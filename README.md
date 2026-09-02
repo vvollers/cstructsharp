@@ -29,17 +29,17 @@ The current version is `0.2.0-preview`.
 - Reusing one compiled layout for many operations and from more than one thread.
 
 Unknown enum values and raw union bytes can be kept without losing information. See `EnumValueResult` and
-`UnionValue` in the [API reference](https://vvollers.github.io/CStructSharp/api/CStructSharp.html).
+`UnionValue` in the [API reference](https://vvollers.github.io/cstructsharp/docs/api/CStructSharp.html).
 
 ## Where to learn more
 
-- [Project home](https://vvollers.github.io/CStructSharp/)
-- [Start with the library](https://vvollers.github.io/CStructSharp/docs/guides/index.html)
-- [Read the layout-language manual](https://vvollers.github.io/CStructSharp/docs/language/index.html)
-- [Run the examples](https://vvollers.github.io/CStructSharp/docs/examples/index.html)
-- [Browse the API reference](https://vvollers.github.io/CStructSharp/docs/api/CStructSharp.html)
-- [Open the interactive WASM explorer](https://vvollers.github.io/CStructSharp/explorer/)
-- [Learn how the repository is maintained](https://vvollers.github.io/CStructSharp/docs/project/index.html)
+- [Project home](https://vvollers.github.io/cstructsharp/)
+- [Start with the library](https://vvollers.github.io/cstructsharp/docs/guides/index.html)
+- [Read the layout-language manual](https://vvollers.github.io/cstructsharp/docs/language/index.html)
+- [Run the examples](https://vvollers.github.io/cstructsharp/docs/examples/index.html)
+- [Browse the API reference](https://vvollers.github.io/cstructsharp/docs/api/CStructSharp.html)
+- [Open the interactive WASM explorer](https://vvollers.github.io/cstructsharp/explorer/)
+- [Learn how the repository is maintained](https://vvollers.github.io/cstructsharp/docs/project/index.html)
 - [Read the release notes](CHANGELOG.md)
 
 The source for the website is in `CStructSharp.Docs/`. The machine-readable description of the Portable v1 layout

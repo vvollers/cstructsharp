@@ -11,7 +11,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/vvollers/CStructSharp</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Release notes: https://github.com/vvollers/CStructSharp/blob/main/CHANGELOG.md. Documentation: https://vvollers.github.io/CStructSharp/. Report issues at https://github.com/vvollers/CStructSharp/issues.</PackageReleaseNotes>
+    <PackageReleaseNotes>Release notes: https://github.com/vvollers/CStructSharp/blob/main/CHANGELOG.md. Documentation: https://vvollers.github.io/cstructsharp/docs/. Report issues at https://github.com/vvollers/CStructSharp/issues.</PackageReleaseNotes>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/vvollers/CStructSharp.git</RepositoryUrl>

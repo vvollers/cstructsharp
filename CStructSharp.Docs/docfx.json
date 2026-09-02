@@ -73,7 +73,7 @@
       }
     },
     "sitemap": {
-      "baseUrl": "https://vvollers.github.io/CStructSharp/docs/",
+      "baseUrl": "https://vvollers.github.io/cstructsharp/docs/",
       "changefreq": "weekly",
       "priority": 0.5
     }

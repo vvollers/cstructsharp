@@ -31,7 +31,7 @@ exactly the three requested artifacts. Release actions remain pinned to immutabl
 
 ## Release URLs
 
-- [Project landing page](https://vvollers.github.io/CStructSharp/)
-- [Documentation](https://vvollers.github.io/CStructSharp/docs/)
-- [Interactive WASM explorer](https://vvollers.github.io/CStructSharp/explorer/)
+- [Project landing page](https://vvollers.github.io/cstructsharp/)
+- [Documentation](https://vvollers.github.io/cstructsharp/docs/)
+- [Interactive WASM explorer](https://vvollers.github.io/cstructsharp/explorer/)
 - [GitHub releases](https://github.com/vvollers/cstructsharp/releases)

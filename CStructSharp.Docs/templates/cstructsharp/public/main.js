@@ -78,7 +78,7 @@ function improvePublicationMetadata() {
   if (!document.querySelector("link[rel='canonical']")) {
     const canonical = document.createElement("link");
     canonical.rel = "canonical";
-    canonical.href = new URL(relativePath, "https://vvollers.github.io/CStructSharp/").href;
+    canonical.href = new URL(relativePath, "https://vvollers.github.io/cstructsharp/docs/").href;
     document.head.append(canonical);
   }
 
