@@ -46,7 +46,7 @@ test("representative templates render without serious accessibility or console e
     await expect(page.locator("main")).toBeVisible();
     await expect(page.locator("link[rel='canonical']")).toHaveAttribute(
       "href",
-      `https://vvollers.github.io/CStructSharp/${item.path}`,
+      `https://vvollers.github.io/cstructsharp/docs/${item.path}`,
     );
 
     const results = await new AxeBuilder({ page }).
