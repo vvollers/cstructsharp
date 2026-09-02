@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "name": "browser-rc1",
+  "packageVersion": "0.2.0-preview",
+  "contractVersion": 4,
+  "managedExports": [
+    "GetVersion",
+    "ParseWithDebug",
+    "SerializeToBase64",
+    "UpdateStreamToBase64"
+  ],
+  "operations": [
+    "parse",
+    "serialize",
+    "update"
+  ],
+  "envelopeFields": [
+    "ContractVersion",
+    "Operation",
+    "Success",
+    "Data",
+    "DebugData",
+    "Error"
+  ],
+  "optionFields": [
+    "addressingMode",
+    "aligned",
+    "allowPointerDereference",
+    "bindingMode",
+    "clearUnionStorage",
+    "dereferencePointers",
+    "littleEndian",
+    "maxArrayElements",
+    "maxDefinitionLength",
+    "maxExpressionNestingDepth",
+    "maxExpressionTokens",
+    "maxLayoutNestingDepth",
+    "maxNestingDepth",
+    "maxPointerDepth",
+    "maxPointerTargetBytes",
+    "maxStringBytes",
+    "maxTotalBytesRead",
+    "maxTotalBytesWritten",
+    "maxTraversalBytesRead",
+    "maxTraversalNestingDepth",
+    "maxTraversalPointerDepth",
+    "maxTraversalPointerTargetBytes",
+    "maxTraversalStringBytes",
+    "origin",
+    "pointerSize",
+    "requireExistingPointerTarget",
+    "rootTypeName"
+  ],
+  "errorCodes": [
+    "invalid-input",
+    "invalid-json",
+    "invalid-layout",
+    "invalid-path",
+    "operation-failed",
+    "read-budget",
+    "read-failed",
+    "write-budget",
+    "write-failed"
+  ],
+  "compatibilityPolicy": "Exact until a reviewed contract-version increment updates this baseline.",
+  "evidence": {
+    "unitTests": 7,
+    "bootstrapTests": 3,
+    "browserTests": 8,
+    "browserEngine": "Playwright Chromium"
+  }
+}

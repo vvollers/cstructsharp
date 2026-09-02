@@ -1,0 +1,474 @@
+{
+  "schemaVersion": 1,
+  "contractRevision": 1,
+  "profile": "Portable",
+  "featurePairs": [
+    {
+      "id": "fixed-primitives",
+      "featureId": "fixed-primitives",
+      "manual": "CStructSharp.Docs/language/primitive-types.md#fixed-primitives",
+      "valid": {
+        "definition": "struct root { uint16< value; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 2,
+        "bytes": "3412",
+        "offsets": {
+          "root.value": 0
+        },
+        "values": {
+          "root.value": "4660"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "multi-token-integer",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "character-buffers",
+      "featureId": "character-buffers",
+      "manual": "CStructSharp.Docs/language/arrays-and-strings.md#fixed-character-buffers",
+      "valid": {
+        "definition": "struct root { char value[2]; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 3,
+        "alignment": 1,
+        "bytes": "41427E",
+        "offsets": {
+          "root.value": 0,
+          "root.value[1]": 1,
+          "root.tail": 2
+        },
+        "values": {
+          "root.value[0]": "A",
+          "root.value[1]": "B",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "qualified-field",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "terminated-strings",
+      "featureId": "terminated-strings",
+      "manual": "CStructSharp.Docs/language/arrays-and-strings.md#terminated-strings",
+      "valid": {
+        "definition": "struct root { utf8_string_zero value; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "alignment": 1,
+        "bytes": "41007E",
+        "offsets": {
+          "root.value": 0,
+          "root.tail": 2
+        },
+        "values": {
+          "root.value": "A",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "general-flexible-array",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "enums",
+      "featureId": "enums",
+      "manual": "CStructSharp.Docs/language/structs-unions-enums-typedefs.md#enums",
+      "valid": {
+        "definition": "enum mode : uint8 { One=1, Two=2 }; struct root { mode value; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 1,
+        "bytes": "027E",
+        "offsets": {
+          "root.value": 0,
+          "root.tail": 1
+        },
+        "values": {
+          "root.value.name": "Two",
+          "root.value.value": "2",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "tagged-field-reference",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "portable-bitfields",
+      "featureId": "portable-bitfields",
+      "manual": "CStructSharp.Docs/language/bitfields.md#portable-bitfields",
+      "valid": {
+        "definition": "struct root { uint8 low:4; uint8 high:4; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 1,
+        "bytes": "A57E",
+        "offsets": {
+          "root.low": 0,
+          "root.high": 0,
+          "root.tail": 1
+        },
+        "values": {
+          "root.low": "5",
+          "root.high": "10",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "zero-width-bitfield",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "fixed-arrays",
+      "featureId": "fixed-arrays",
+      "manual": "CStructSharp.Docs/language/arrays-and-strings.md#fixed-arrays",
+      "valid": {
+        "definition": "struct root { uint8 values[2]; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 3,
+        "alignment": 1,
+        "bytes": "11227E",
+        "offsets": {
+          "root.values": 0,
+          "root.values[1]": 1,
+          "root.tail": 2
+        },
+        "values": {
+          "root.values[0]": "17",
+          "root.values[1]": "34",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "multidimensional-array",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "runtime-expression-arrays",
+      "featureId": "runtime-expression-arrays",
+      "manual": "CStructSharp.Docs/language/arrays-and-strings.md#runtime-expression-arrays",
+      "valid": {
+        "definition": "struct root { uint8 values[N]; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "alignment": 1,
+        "bytes": "11227E",
+        "variables": {
+          "N": 2
+        },
+        "offsets": {
+          "root.values": 0,
+          "root.values[1]": 1,
+          "root.tail": 2
+        },
+        "values": {
+          "root.values[0]": "17",
+          "root.values[1]": "34",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "general-flexible-array",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "nested-structs",
+      "featureId": "nested-structs",
+      "manual": "CStructSharp.Docs/language/structs-unions-enums-typedefs.md#named-structs",
+      "valid": {
+        "definition": "struct child { uint8 value; }; struct root { child item; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 1,
+        "bytes": "117E",
+        "offsets": {
+          "root.item": 0,
+          "root.item.value": 0,
+          "root.tail": 1
+        },
+        "values": {
+          "root.item.value": "17",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "forward-declaration",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "inline-structs",
+      "featureId": "inline-structs",
+      "manual": "CStructSharp.Docs/language/structs-unions-enums-typedefs.md#inline-structs",
+      "valid": {
+        "definition": "struct root { struct { uint8 value; } item; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 1,
+        "bytes": "117E",
+        "offsets": {
+          "root.item": 0,
+          "root.item.value": 0,
+          "root.tail": 1
+        },
+        "values": {
+          "root.item.value": "17",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "anonymous-member",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "typedefs",
+      "featureId": "typedefs",
+      "manual": "CStructSharp.Docs/language/structs-unions-enums-typedefs.md#typedefs",
+      "valid": {
+        "definition": "typedef uint16 word; struct root { word value; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 3,
+        "alignment": 2,
+        "bytes": "34127E",
+        "offsets": {
+          "root.value": 0,
+          "root.tail": 2
+        },
+        "values": {
+          "root.value": "4660",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "typedef-array",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "unions",
+      "featureId": "unions",
+      "manual": "CStructSharp.Docs/language/structs-unions-enums-typedefs.md#unions",
+      "valid": {
+        "definition": "union choice { uint8 narrow; uint16 wide; };",
+        "root": "choice",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 2,
+        "bytes": "A512",
+        "offsets": {
+          "choice.narrow": 0,
+          "choice.wide": 0
+        },
+        "values": {
+          "choice.narrow": "165",
+          "choice.wide": "4773"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "inline-union",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "pointers",
+      "featureId": "pointers",
+      "manual": "CStructSharp.Docs/language/pointers-and-addressing.md#pointers",
+      "valid": {
+        "definition": "struct root { uint16 *target; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 3,
+        "alignment": 2,
+        "bytes": "00007E",
+        "offsets": {
+          "root.target.address": 0,
+          "root.tail": 2
+        },
+        "values": {
+          "root.target.address": "0",
+          "root.target.depth": "1",
+          "root.target.isNull": "true",
+          "root.target.isDereferenced": "false",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "function-pointer",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "multi-pointers",
+      "featureId": "multi-pointers",
+      "manual": "CStructSharp.Docs/language/pointers-and-addressing.md#multi-level-pointers",
+      "valid": {
+        "definition": "struct root { uint8 **target; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 3,
+        "alignment": 2,
+        "bytes": "00007E",
+        "offsets": {
+          "root.target.address": 0,
+          "root.tail": 2
+        },
+        "values": {
+          "root.target.address": "0",
+          "root.target.depth": "2",
+          "root.target.isNull": "true",
+          "root.target.isDereferenced": "false",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "forward-declaration",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "alignment-and-endian-overrides",
+      "featureId": "alignment-and-endian-overrides",
+      "manual": "CStructSharp.Docs/language/layout-alignment-and-padding.md#alignment-and-endian",
+      "valid": {
+        "definition": "struct root { uint8 head; uint16> big; uint16< little; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": true,
+        "littleEndian": true,
+        "size": 6,
+        "alignment": 2,
+        "bytes": "110012347856",
+        "offsets": {
+          "root.head": 0,
+          "root.big": 2,
+          "root.little": 4
+        },
+        "values": {
+          "root.head": "17",
+          "root.big": "4660",
+          "root.little": "22136"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "packing-pragma",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "bounded-failures",
+      "featureId": "bounded-failures",
+      "manual": "CStructSharp.Docs/language/limits-and-diagnostics.md#bounded-failures",
+      "valid": {
+        "definition": "struct root { utf8_string_zero text; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "alignment": 1,
+        "bytes": "414200",
+        "offsets": {
+          "root.text": 0
+        },
+        "values": {
+          "root.text": "AB"
+        }
+      },
+      "invalid": {
+        "stage": "read",
+        "definition": "struct root { utf8_string_zero text; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "bytes": "414200",
+        "maxStringBytes": 2,
+        "errorCode": "ReadLimitExceeded"
+      }
+    },
+    {
+      "id": "invalid-layouts",
+      "featureId": "invalid-layouts",
+      "manual": "CStructSharp.Docs/language/limits-and-diagnostics.md#invalid-layouts",
+      "valid": {
+        "definition": "struct root { uint8 value; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 1,
+        "alignment": 1,
+        "bytes": "2A",
+        "offsets": {
+          "root.value": 0
+        },
+        "values": {
+          "root.value": "42"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "include-directive",
+        "errorCode": "InvalidLayout"
+      }
+    }
+  ]
+}

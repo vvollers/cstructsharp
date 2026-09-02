@@ -1,0 +1,52 @@
+{
+  "name": "cstruct-sharp-web",
+  "version": "0.2.0-preview",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10.0.0"
+  },
+  "packageManager": "npm@12.0.2",
+  "scripts": {
+    "generate:demos": "node scripts/generate-test-demos.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings 0",
+    "test:bootstrap": "node --test wasm/bootstrap.test.js",
+    "test:demos": "node --test scripts/generate-test-demos.test.mjs",
+    "test:wasm-publication": "node --test scripts/wasm-publication.test.mjs",
+    "test:wasm-reproducibility": "node scripts/test-wasm-reproducibility.mjs",
+    "test:unit": "vitest run --dir src --environment happy-dom",
+    "verify:wasm": "node scripts/verify-wasm-publication.mjs",
+    "test:e2e": "playwright test",
+    "dev": "npm run generate:demos && vite",
+    "build": "node scripts/build-production.mjs",
+    "build:frontend": "npm run generate:demos && vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "build:wasm": "node scripts/publish-wasm.mjs",
+    "build:wasm:win": "node scripts/publish-wasm.mjs",
+    "dev:all": "concurrently \"npm run dev\" \"echo WASM watch not available - run build:wasm manually after C# changes\""
+  },
+  "dependencies": {
+    "vue": "^3.5.42"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.4.1",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/test-utils": "2.5.0",
+    "concurrently": "^10.0.5",
+    "eslint": "^10.9.1",
+    "eslint-plugin-vue": "^10.10.0",
+    "globals": "^17.12.0",
+    "happy-dom": "^20.12.0",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.69.0",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11",
+    "vue-tsc": "^3.3.11"
+  }
+}

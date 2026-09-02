@@ -1,0 +1,27 @@
+{
+  "name": "cstructsharp-docs-quality",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <27"
+  },
+  "scripts": {
+    "lint:workflow-yaml": "node quality/validate-workflow-yaml.mjs",
+    "lint:markdown": "markdownlint-cli2",
+    "lint:spelling": "cspell lint --no-progress --show-suggestions",
+    "install:browser": "playwright install chromium",
+    "test:browser": "playwright test",
+    "test:browser:list": "playwright test --list"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@playwright/test": "1.61.1",
+    "cspell": "10.0.1",
+    "js-yaml": "5.2.2",
+    "markdownlint-cli2": "0.23.1"
+  },
+  "overrides": {
+    "js-yaml": "5.2.2"
+  }
+}

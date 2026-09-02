@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "budgetId": "non-web-rc1",
+  "status": "enforced",
+  "workItem": "QA-08",
+  "date": "2026-07-26",
+  "benchmark": {
+    "generator": "BenchmarkDotNet",
+    "generatorVersion": "0.15.8",
+    "targetFramework": "net10.0",
+    "runtimePrefix": ".NET 10.",
+    "category": "ReleaseGate",
+    "job": {
+      "launchCount": 3,
+      "warmupCount": 5,
+      "iterationCount": 8,
+      "unrollFactor": 1
+    },
+    "minimumSamples": 16,
+    "timingMetric": "medianNanoseconds",
+    "maximumMedianMultiplier": 4.0,
+    "minimumMedianBudgetNanoseconds": 10000,
+    "maximumRelativeStandardDeviation": 0.35,
+    "maximumAllocationGrowthRatio": 0.05,
+    "minimumAllocationHeadroomBytes": 1024,
+    "baselineEvidence": {
+      "summary": "artifacts/baseline/qa-08-non-web-benchmark-summary.json",
+      "summarySha256": "C02EF680F5D0F4EB218B774A23D044C3C2026DF63938E4F6EABFA68EC1FB0CAA",
+      "rawReport": "artifacts/baseline/qa-08-non-web-benchmarks/results/BenchmarkRun-joined-2026-07-26-13-11-21-report-full.json",
+      "rawReportSha256": "C0B2F486EC6146B6D6DCCADD7BCCAD0C2F54BA8379E18919B1BB1749CB8B0949",
+      "environment": "Windows 11 10.0.26200; AMD Ryzen 9 9950X; X64; .NET 10.0.10; SDK 10.0.204",
+      "worktreeDirty": true
+    },
+    "cases": [
+      {
+        "type": "AddressBenchmarks",
+        "method": "ResolveFixedNestedArray",
+        "parameters": "Index=0",
+        "baselineMedianNanoseconds": 329.852,
+        "baselineAllocatedBytes": 2336
+      },
+      {
+        "type": "AddressBenchmarks",
+        "method": "ResolveFixedNestedArray",
+        "parameters": "Index=127",
+        "baselineMedianNanoseconds": 4150.986,
+        "baselineAllocatedBytes": 11632
+      },
+      {
+        "type": "AddressBenchmarks",
+        "method": "ResolveFixedNestedArray",
+        "parameters": "Index=255",
+        "baselineMedianNanoseconds": 7701.653,
+        "baselineAllocatedBytes": 20848
+      },
+      {
+        "type": "CompilationBenchmarks",
+        "method": "CompileMaximumSource",
+        "parameters": "",
+        "baselineMedianNanoseconds": 1165047.461,
+        "baselineAllocatedBytes": 842248
+      },
+      {
+        "type": "CompilationBenchmarks",
+        "method": "CompileMedium",
+        "parameters": "",
+        "baselineMedianNanoseconds": 274565.061,
+        "baselineAllocatedBytes": 265210
+      },
+      {
+        "type": "CompilationBenchmarks",
+        "method": "CompileSmall",
+        "parameters": "",
+        "baselineMedianNanoseconds": 27921.475,
+        "baselineAllocatedBytes": 77448
+      },
+      {
+        "type": "ReadBenchmarks",
+        "method": "ParsePrimitiveArray1KiB",
+        "parameters": "",
+        "baselineMedianNanoseconds": 18322.858,
+        "baselineAllocatedBytes": 92304
+      },
+      {
+        "type": "ReadBenchmarks",
+        "method": "ParseSmallRootMemory",
+        "parameters": "",
+        "baselineMedianNanoseconds": 1516.873,
+        "baselineAllocatedBytes": 3797
+      },
+      {
+        "type": "ReadBenchmarks",
+        "method": "ReadSelectedScalarTypedMemory",
+        "parameters": "",
+        "baselineMedianNanoseconds": 402.138,
+        "baselineAllocatedBytes": 2288
+      },
+      {
+        "type": "ReadBenchmarks",
+        "method": "ReadTypedSmallRootMemory",
+        "parameters": "",
+        "baselineMedianNanoseconds": 6349.956,
+        "baselineAllocatedBytes": 7589
+      },
+      {
+        "type": "WriteAndUpdateBenchmarks",
+        "method": "SerializePocoToBufferWriter",
+        "parameters": "",
+        "baselineMedianNanoseconds": 6654.138,
+        "baselineAllocatedBytes": 3096
+      },
+      {
+        "type": "WriteAndUpdateBenchmarks",
+        "method": "SerializePocoToSpan",
+        "parameters": "",
+        "baselineMedianNanoseconds": 6630.326,
+        "baselineAllocatedBytes": 3080
+      },
+      {
+        "type": "WriteAndUpdateBenchmarks",
+        "method": "SerializeTerminatedUtf8",
+        "parameters": "",
+        "baselineMedianNanoseconds": 4478.285,
+        "baselineAllocatedBytes": 28008
+      },
+      {
+        "type": "WriteAndUpdateBenchmarks",
+        "method": "UpdatePointerTarget",
+        "parameters": "",
+        "baselineMedianNanoseconds": 496.657,
+        "baselineAllocatedBytes": 3328
+      }
+    ]
+  },
+  "package": {
+    "baselineEvidence": {
+      "path": "artifacts/baseline/qa-07-managed-final-package-artifacts.json",
+      "sha256": "0B03E9D3C2F127EA74127B192ED2AD6A96CD5F541A07DCDA95134230059A5C8D"
+    },
+    "baseline": {
+      "files": 2,
+      "bytes": 374078,
+      "gzipBytes": 373032
+    },
+    "maximumBytes": 393216,
+    "maximumGzipBytes": 393216,
+    "extensions": [
+      {
+        "extension": ".nupkg",
+        "baselineBytes": 286491,
+        "baselineGzipBytes": 285700,
+        "maximumBytes": 307200,
+        "maximumGzipBytes": 307200
+      },
+      {
+        "extension": ".snupkg",
+        "baselineBytes": 87587,
+        "baselineGzipBytes": 87332,
+        "maximumBytes": 92160,
+        "maximumGzipBytes": 92160
+      }
+    ]
+  },
+  "webIntegration": "WASM raw/compressed size, deployable file count, and browser startup budgets remain deferred to the consolidated final Web/WASM phase."
+}

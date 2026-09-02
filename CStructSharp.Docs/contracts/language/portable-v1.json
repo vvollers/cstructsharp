@@ -1,0 +1,695 @@
+{
+  "schemaVersion": 1,
+  "contractRevision": 1,
+  "profile": "Portable",
+  "shippedProfiles": [
+    "Portable"
+  ],
+  "fixedPrimitives": [
+    {
+      "spelling": "byte",
+      "canonical": "uint8",
+      "bytes": 1,
+      "alignment": 1,
+      "signedness": "unsigned",
+      "endian": "independent",
+      "clr": "Byte",
+      "writerDomain": "0..255"
+    },
+    {
+      "spelling": "int8",
+      "canonical": "int8",
+      "bytes": 1,
+      "alignment": 1,
+      "signedness": "signed",
+      "endian": "independent",
+      "clr": "SByte",
+      "writerDomain": "-128..127"
+    },
+    {
+      "spelling": "uint8",
+      "canonical": "uint8",
+      "bytes": 1,
+      "alignment": 1,
+      "signedness": "unsigned",
+      "endian": "independent",
+      "clr": "Byte",
+      "writerDomain": "0..255"
+    },
+    {
+      "spelling": "char",
+      "canonical": "char",
+      "bytes": 1,
+      "alignment": 1,
+      "signedness": "code-unit",
+      "endian": "independent",
+      "clr": "Char",
+      "writerDomain": "U+0000..U+00FF"
+    },
+    {
+      "spelling": "wchar",
+      "canonical": "wchar",
+      "bytes": 2,
+      "alignment": 2,
+      "signedness": "code-unit",
+      "endian": "layout",
+      "clr": "Char",
+      "writerDomain": "U+0000..U+FFFF code unit"
+    },
+    {
+      "spelling": "wchar>",
+      "canonical": "wchar>",
+      "bytes": 2,
+      "alignment": 2,
+      "signedness": "code-unit",
+      "endian": "big",
+      "clr": "Char",
+      "writerDomain": "U+0000..U+FFFF code unit"
+    },
+    {
+      "spelling": "wchar<",
+      "canonical": "wchar<",
+      "bytes": 2,
+      "alignment": 2,
+      "signedness": "code-unit",
+      "endian": "little",
+      "clr": "Char",
+      "writerDomain": "U+0000..U+FFFF code unit"
+    },
+    {
+      "spelling": "int16",
+      "canonical": "int16",
+      "bytes": 2,
+      "alignment": 2,
+      "signedness": "signed",
+      "endian": "layout",
+      "clr": "Int16",
+      "writerDomain": "-32768..32767"
+    },
+    {
+      "spelling": "int16>",
+      "canonical": "int16>",
+      "bytes": 2,
+      "alignment": 2,
+      "signedness": "signed",
+      "endian": "big",
+      "clr": "Int16",
+      "writerDomain": "-32768..32767"
+    },
+    {
+      "spelling": "int16<",
+      "canonical": "int16<",
+      "bytes": 2,
+      "alignment": 2,
+      "signedness": "signed",
+      "endian": "little",
+      "clr": "Int16",
+      "writerDomain": "-32768..32767"
+    },
+    {
+      "spelling": "uint16",
+      "canonical": "uint16",
+      "bytes": 2,
+      "alignment": 2,
+      "signedness": "unsigned",
+      "endian": "layout",
+      "clr": "UInt16",
+      "writerDomain": "0..65535"
+    },
+    {
+      "spelling": "uint16>",
+      "canonical": "uint16>",
+      "bytes": 2,
+      "alignment": 2,
+      "signedness": "unsigned",
+      "endian": "big",
+      "clr": "UInt16",
+      "writerDomain": "0..65535"
+    },
+    {
+      "spelling": "uint16<",
+      "canonical": "uint16<",
+      "bytes": 2,
+      "alignment": 2,
+      "signedness": "unsigned",
+      "endian": "little",
+      "clr": "UInt16",
+      "writerDomain": "0..65535"
+    },
+    {
+      "spelling": "int32",
+      "canonical": "int32",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "signed",
+      "endian": "layout",
+      "clr": "Int32",
+      "writerDomain": "-2147483648..2147483647"
+    },
+    {
+      "spelling": "int32>",
+      "canonical": "int32>",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "signed",
+      "endian": "big",
+      "clr": "Int32",
+      "writerDomain": "-2147483648..2147483647"
+    },
+    {
+      "spelling": "int32<",
+      "canonical": "int32<",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "signed",
+      "endian": "little",
+      "clr": "Int32",
+      "writerDomain": "-2147483648..2147483647"
+    },
+    {
+      "spelling": "uint32",
+      "canonical": "uint32",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "unsigned",
+      "endian": "layout",
+      "clr": "UInt32",
+      "writerDomain": "0..4294967295"
+    },
+    {
+      "spelling": "uint32>",
+      "canonical": "uint32>",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "unsigned",
+      "endian": "big",
+      "clr": "UInt32",
+      "writerDomain": "0..4294967295"
+    },
+    {
+      "spelling": "uint32<",
+      "canonical": "uint32<",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "unsigned",
+      "endian": "little",
+      "clr": "UInt32",
+      "writerDomain": "0..4294967295"
+    },
+    {
+      "spelling": "int64",
+      "canonical": "int64",
+      "bytes": 8,
+      "alignment": 8,
+      "signedness": "signed",
+      "endian": "layout",
+      "clr": "Int64",
+      "writerDomain": "-9223372036854775808..9223372036854775807"
+    },
+    {
+      "spelling": "int64>",
+      "canonical": "int64>",
+      "bytes": 8,
+      "alignment": 8,
+      "signedness": "signed",
+      "endian": "big",
+      "clr": "Int64",
+      "writerDomain": "-9223372036854775808..9223372036854775807"
+    },
+    {
+      "spelling": "int64<",
+      "canonical": "int64<",
+      "bytes": 8,
+      "alignment": 8,
+      "signedness": "signed",
+      "endian": "little",
+      "clr": "Int64",
+      "writerDomain": "-9223372036854775808..9223372036854775807"
+    },
+    {
+      "spelling": "uint64",
+      "canonical": "uint64",
+      "bytes": 8,
+      "alignment": 8,
+      "signedness": "unsigned",
+      "endian": "layout",
+      "clr": "UInt64",
+      "writerDomain": "0..18446744073709551615"
+    },
+    {
+      "spelling": "uint64>",
+      "canonical": "uint64>",
+      "bytes": 8,
+      "alignment": 8,
+      "signedness": "unsigned",
+      "endian": "big",
+      "clr": "UInt64",
+      "writerDomain": "0..18446744073709551615"
+    },
+    {
+      "spelling": "uint64<",
+      "canonical": "uint64<",
+      "bytes": 8,
+      "alignment": 8,
+      "signedness": "unsigned",
+      "endian": "little",
+      "clr": "UInt64",
+      "writerDomain": "0..18446744073709551615"
+    },
+    {
+      "spelling": "short",
+      "canonical": "int16",
+      "bytes": 2,
+      "alignment": 2,
+      "signedness": "signed",
+      "endian": "layout",
+      "clr": "Int16",
+      "writerDomain": "-32768..32767"
+    },
+    {
+      "spelling": "ushort",
+      "canonical": "uint16",
+      "bytes": 2,
+      "alignment": 2,
+      "signedness": "unsigned",
+      "endian": "layout",
+      "clr": "UInt16",
+      "writerDomain": "0..65535"
+    },
+    {
+      "spelling": "int",
+      "canonical": "int32",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "signed",
+      "endian": "layout",
+      "clr": "Int32",
+      "writerDomain": "-2147483648..2147483647"
+    },
+    {
+      "spelling": "uint",
+      "canonical": "uint32",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "unsigned",
+      "endian": "layout",
+      "clr": "UInt32",
+      "writerDomain": "0..4294967295"
+    },
+    {
+      "spelling": "long",
+      "canonical": "int64",
+      "bytes": 8,
+      "alignment": 8,
+      "signedness": "signed",
+      "endian": "layout",
+      "clr": "Int64",
+      "writerDomain": "-9223372036854775808..9223372036854775807"
+    },
+    {
+      "spelling": "ulong",
+      "canonical": "uint64",
+      "bytes": 8,
+      "alignment": 8,
+      "signedness": "unsigned",
+      "endian": "layout",
+      "clr": "UInt64",
+      "writerDomain": "0..18446744073709551615"
+    }
+  ],
+  "terminatedPrimitives": [
+    {
+      "spelling": "ascii_string_zero",
+      "encoding": "strict ASCII",
+      "terminator": "NUL",
+      "endian": "independent",
+      "alignment": 1,
+      "clr": "String"
+    },
+    {
+      "spelling": "ascii_string_newline",
+      "encoding": "strict ASCII",
+      "terminator": "LF",
+      "endian": "independent",
+      "alignment": 1,
+      "clr": "String"
+    },
+    {
+      "spelling": "utf8_string_zero",
+      "encoding": "strict UTF-8",
+      "terminator": "NUL",
+      "endian": "independent",
+      "alignment": 1,
+      "clr": "String"
+    },
+    {
+      "spelling": "utf8_string_newline",
+      "encoding": "strict UTF-8",
+      "terminator": "LF",
+      "endian": "independent",
+      "alignment": 1,
+      "clr": "String"
+    },
+    {
+      "spelling": "unicode_string_zero",
+      "encoding": "strict UTF-16",
+      "terminator": "NUL",
+      "endian": "layout",
+      "alignment": 1,
+      "clr": "String"
+    },
+    {
+      "spelling": "unicode_string_zero>",
+      "encoding": "strict UTF-16",
+      "terminator": "NUL",
+      "endian": "big",
+      "alignment": 1,
+      "clr": "String"
+    },
+    {
+      "spelling": "unicode_string_zero<",
+      "encoding": "strict UTF-16",
+      "terminator": "NUL",
+      "endian": "little",
+      "alignment": 1,
+      "clr": "String"
+    },
+    {
+      "spelling": "unicode_string_newline",
+      "encoding": "strict UTF-16",
+      "terminator": "LF",
+      "endian": "layout",
+      "alignment": 1,
+      "clr": "String"
+    },
+    {
+      "spelling": "unicode_string_newline>",
+      "encoding": "strict UTF-16",
+      "terminator": "LF",
+      "endian": "big",
+      "alignment": 1,
+      "clr": "String"
+    },
+    {
+      "spelling": "unicode_string_newline<",
+      "encoding": "strict UTF-16",
+      "terminator": "LF",
+      "endian": "little",
+      "alignment": 1,
+      "clr": "String"
+    },
+    {
+      "spelling": "string",
+      "encoding": "strict UTF-16",
+      "terminator": "NUL",
+      "endian": "layout",
+      "alignment": 1,
+      "clr": "String"
+    },
+    {
+      "spelling": "string>",
+      "encoding": "strict UTF-16",
+      "terminator": "NUL",
+      "endian": "big",
+      "alignment": 1,
+      "clr": "String"
+    },
+    {
+      "spelling": "string<",
+      "encoding": "strict UTF-16",
+      "terminator": "NUL",
+      "endian": "little",
+      "alignment": 1,
+      "clr": "String"
+    },
+    {
+      "spelling": "cstring",
+      "encoding": "strict ASCII",
+      "terminator": "NUL",
+      "endian": "independent",
+      "alignment": 1,
+      "clr": "String"
+    }
+  ],
+  "layoutExamples": [
+    {
+      "id": "packed-mixed",
+      "definition": "struct sample { uint8 a; uint32 b; uint16 c; };",
+      "root": "sample",
+      "pointerSize": 4,
+      "littleEndian": true,
+      "aligned": false,
+      "size": 7,
+      "alignment": 4,
+      "offsets": {
+        "sample.a": 0,
+        "sample.b": 1,
+        "sample.c": 5
+      },
+      "values": {
+        "sample.a": "17",
+        "sample.b": "573785173",
+        "sample.c": "26231"
+      },
+      "bytes": "11554433227766"
+    },
+    {
+      "id": "aligned-mixed",
+      "definition": "struct sample { uint8 a; uint32 b; uint16 c; };",
+      "root": "sample",
+      "pointerSize": 4,
+      "littleEndian": true,
+      "aligned": true,
+      "size": 12,
+      "alignment": 4,
+      "offsets": {
+        "sample.a": 0,
+        "sample.b": 4,
+        "sample.c": 8
+      },
+      "values": {
+        "sample.a": "17",
+        "sample.b": "573785173",
+        "sample.c": "26231"
+      },
+      "bytes": "110000005544332277660000"
+    },
+    {
+      "id": "aligned-nested-array",
+      "definition": "struct inner { uint8 tag; uint32 value; }; struct root { uint16 prefix; inner items[2]; uint8 tail; };",
+      "root": "root",
+      "pointerSize": 4,
+      "littleEndian": true,
+      "aligned": true,
+      "size": 24,
+      "alignment": 4,
+      "offsets": {
+        "root.prefix": 0,
+        "root.items[0].tag": 4,
+        "root.items[0].value": 8,
+        "root.items[1].tag": 12,
+        "root.items[1].value": 16,
+        "root.tail": 20
+      },
+      "values": {
+        "root.prefix": "4660",
+        "root.items[0].tag": "161",
+        "root.items[0].value": "287454020",
+        "root.items[1].tag": "162",
+        "root.items[1].value": "1432778632",
+        "root.tail": "238"
+      },
+      "bytes": "34120000A100000044332211A200000088776655EE000000"
+    },
+    {
+      "id": "aligned-union",
+      "definition": "union choice { uint8 small; uint32 large; };",
+      "root": "choice",
+      "pointerSize": 4,
+      "littleEndian": true,
+      "aligned": true,
+      "size": 4,
+      "alignment": 4,
+      "offsets": {
+        "choice.small": 0,
+        "choice.large": 0
+      },
+      "values": {
+        "choice.small": "165",
+        "choice.large": "165"
+      },
+      "bytes": "A5000000"
+    },
+    {
+      "id": "explicit-endian",
+      "definition": "struct endian_sample { uint16> be; uint16< le; wchar> ch; };",
+      "root": "endian_sample",
+      "pointerSize": 4,
+      "littleEndian": true,
+      "aligned": false,
+      "size": 6,
+      "alignment": 2,
+      "offsets": {
+        "endian_sample.be": 0,
+        "endian_sample.le": 2,
+        "endian_sample.ch": 4
+      },
+      "values": {
+        "endian_sample.be": "4660",
+        "endian_sample.le": "22136",
+        "endian_sample.ch": "A"
+      },
+      "bytes": "123478560041"
+    },
+    {
+      "id": "portable-bitfields",
+      "definition": "struct flags { uint8 low : 3; uint8 high : 5; uint16 next; };",
+      "root": "flags",
+      "pointerSize": 4,
+      "littleEndian": true,
+      "aligned": false,
+      "size": 3,
+      "alignment": 2,
+      "offsets": {
+        "flags.low": 0,
+        "flags.high": 0,
+        "flags.next": 1
+      },
+      "values": {
+        "flags.low": "5",
+        "flags.high": "17",
+        "flags.next": "4660"
+      },
+      "bytes": "8D3412"
+    },
+    {
+      "id": "packed-null-pointer",
+      "definition": "struct pointer_sample { uint8 marker; uint16 *target; };",
+      "root": "pointer_sample",
+      "pointerSize": 2,
+      "littleEndian": true,
+      "aligned": false,
+      "size": 3,
+      "alignment": 2,
+      "offsets": {
+        "pointer_sample.marker": 0,
+        "pointer_sample.target.address": 1
+      },
+      "values": {
+        "pointer_sample.marker": "170",
+        "pointer_sample.target.address": "0",
+        "pointer_sample.target.depth": "1",
+        "pointer_sample.target.isNull": "true"
+      },
+      "bytes": "AA0000"
+    },
+    {
+      "id": "aligned-null-pointer",
+      "definition": "struct pointer_sample { uint8 marker; uint16 *target; };",
+      "root": "pointer_sample",
+      "pointerSize": 2,
+      "littleEndian": true,
+      "aligned": true,
+      "size": 4,
+      "alignment": 2,
+      "offsets": {
+        "pointer_sample.marker": 0,
+        "pointer_sample.target.address": 2
+      },
+      "values": {
+        "pointer_sample.marker": "170",
+        "pointer_sample.target.address": "0",
+        "pointer_sample.target.depth": "1",
+        "pointer_sample.target.isNull": "true"
+      },
+      "bytes": "AA000000"
+    }
+  ],
+  "unsupportedConstructs": [
+    {
+      "id": "include-directive",
+      "definition": "#include <stdint.h>\nstruct root { uint8 value; };",
+      "category": "translation-unit preprocessing"
+    },
+    {
+      "id": "packing-pragma",
+      "definition": "#pragma pack(push, 1)\nstruct root { uint8 value; };",
+      "category": "compiler packing directive"
+    },
+    {
+      "id": "tagged-field-reference",
+      "definition": "struct child { uint8 value; }; struct root { struct child value; };",
+      "category": "C tag namespace"
+    },
+    {
+      "id": "forward-declaration",
+      "definition": "struct child; struct root { child *value; };",
+      "category": "incomplete type"
+    },
+    {
+      "id": "anonymous-member",
+      "definition": "struct root { struct { uint8 value; }; };",
+      "category": "anonymous aggregate member"
+    },
+    {
+      "id": "inline-union",
+      "definition": "struct root { union { uint8 small; uint16 large; } value; };",
+      "category": "inline union"
+    },
+    {
+      "id": "multiple-declarators",
+      "definition": "struct root { uint8 first, second; };",
+      "category": "multiple declarators"
+    },
+    {
+      "id": "multidimensional-array",
+      "definition": "struct root { uint8 values[2][3]; };",
+      "category": "multidimensional array"
+    },
+    {
+      "id": "general-flexible-array",
+      "definition": "struct root { uint16 values[]; };",
+      "category": "general flexible-array member"
+    },
+    {
+      "id": "qualified-field",
+      "definition": "struct root { const uint8 value; };",
+      "category": "qualifier"
+    },
+    {
+      "id": "multi-token-integer",
+      "definition": "struct root { unsigned long value; };",
+      "category": "host fundamental type"
+    },
+    {
+      "id": "floating-point-field",
+      "definition": "struct root { double value; };",
+      "category": "floating-point codec"
+    },
+    {
+      "id": "integer-suffix",
+      "definition": "#define COUNT 1U\nstruct root { uint8 values[COUNT]; };",
+      "category": "C integer suffix"
+    },
+    {
+      "id": "function-pointer",
+      "definition": "struct root { uint8 (*callback)(uint8); };",
+      "category": "function pointer"
+    },
+    {
+      "id": "zero-width-bitfield",
+      "definition": "struct root { uint8 reserved : 0; };",
+      "category": "zero-width bitfield"
+    },
+    {
+      "id": "typedef-array",
+      "definition": "typedef uint8 bytes[4]; struct root { bytes value; };",
+      "category": "typedef array"
+    },
+    {
+      "id": "typedef-union",
+      "definition": "typedef union choice { uint8 small; uint16 large; } choice; struct root { choice value; };",
+      "category": "typedef union form"
+    }
+  ]
+}

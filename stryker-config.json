@@ -1,0 +1,56 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-net/master/src/Stryker.CLI/Stryker.CLI/Resources/stryker.schema.json",
+  "stryker-config": {
+    "project": "CStructSharp/CStructSharp.csproj",
+    "test-projects": [
+      "CStructSharpTests/CStructSharpTests.csproj"
+    ],
+    "coverage-analysis": "off",
+    "mutate": [
+      "CStruct.cs",
+      "CStructAddressResolver.cs",
+      "CStructCompilationOptions.cs",
+      "CStructCompiledModel.cs",
+      "CStructDefinitionParser.cs",
+      "CStructEnumIntegers.cs",
+      "CStructExceptionContext.cs",
+      "CStructBitfields.cs",
+      "CStructLayout.cs",
+      "CStructLayoutMath.cs",
+      "CStructOperationState.cs",
+      "CStructPathResolver.cs",
+      "CStructPointerArithmetic.cs",
+      "CStructPrimitiveCodecs.cs",
+      "CStructReader.cs",
+      "CStructSelectedReader.cs",
+      "CStructSymbolValidation.cs",
+      "CStructValueReader.cs",
+      "CStructWriter.cs",
+      "ConstructionDictionary.cs",
+      "EnumValueResult.cs",
+      "ExpressionEvaluationLimits.cs",
+      "ExpressionEvaluator.cs",
+      "LayoutVariableInput.cs",
+      "LayoutVariableResolver.cs",
+      "Pointer.cs",
+      "ReadBudgetStream.cs",
+      "SparseUpdateStream.cs",
+      "TypedValueConverter.cs",
+      "Structure/Enum.cs",
+      "Structure/Field.cs",
+      "Structure/Literal.cs",
+      "UnionValue.cs",
+      "WriteBudgetStream.cs"
+    ],
+    "reporters": [
+      "progress",
+      "json",
+      "html"
+    ],
+    "thresholds": {
+      "high": 75,
+      "low": 75,
+      "break": 75
+    }
+  }
+}

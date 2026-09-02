@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <CStructSharpPackageVersion Condition="'$(CStructSharpPackageVersion)' == ''">0.0.0-package-version-required</CStructSharpPackageVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The runner supplies the version read from the package under test. This must never become a ProjectReference. -->
+    <PackageReference Include="CStructSharp" Version="$(CStructSharpPackageVersion)" />
+  </ItemGroup>
+
+</Project>

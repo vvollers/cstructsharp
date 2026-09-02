@@ -1,0 +1,227 @@
+[assembly: System.Reflection.AssemblyMetadata("RepositoryUrl", "https://github.com/vvollers/CStructSharp.git")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("CStructSharpTests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("CStructSharpWeb.Wasm")]
+[assembly: System.Runtime.Versioning.TargetFramework("<TARGET_FRAMEWORK>", FrameworkDisplayName="<FRAMEWORK_DISPLAY>")]
+namespace CStructSharp
+{
+    public sealed class CStruct
+    {
+        public CStruct(string layout, byte pointerSize = 8, bool aligned = false, bool isLittleEndian = true, CStructSharp.CStructCompilationOptions? compilationOptions = null) { }
+        public bool Aligned { get; }
+        public bool IsLittleEndian { get; }
+        public byte PointerSize { get; }
+        public int GetDynamicArrayLength(System.IO.Stream stream, string elementNameOrPath, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public int GetStructAlignmentInBytes(string name) { }
+        public int GetStructSizeInBytes(string name) { }
+        public dynamic Parse(System.ReadOnlyMemory<byte> source, string? elementNameOrPath = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public dynamic Parse(System.ReadOnlySpan<byte> source, string? elementNameOrPath = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public dynamic ParseStream(System.IO.Stream stream) { }
+        public dynamic ParseStream(System.IO.Stream stream, string elementNameOrPath) { }
+        public dynamic ParseStream(System.IO.Stream stream, string elementNameOrPath, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        [return: System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "DebugData",
+                "Result"})]
+        public System.ValueTuple<System.Collections.Generic.List<CStructSharp.DebugData>, dynamic> ParseStreamWithDebug(System.IO.Stream stream) { }
+        [return: System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "DebugData",
+                "Result"})]
+        public System.ValueTuple<System.Collections.Generic.List<CStructSharp.DebugData>, dynamic> ParseStreamWithDebug(System.IO.Stream stream, string elementNameOrPath) { }
+        [return: System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "DebugData",
+                "Result"})]
+        public System.ValueTuple<System.Collections.Generic.List<CStructSharp.DebugData>, dynamic> ParseStreamWithDebug(System.IO.Stream stream, string elementNameOrPath, CStructSharp.ReadOptions options) { }
+        [return: System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "DebugData",
+                "Result"})]
+        public System.ValueTuple<System.Collections.Generic.List<CStructSharp.DebugData>, dynamic> ParseStreamWithDebug(System.IO.Stream stream, string elementNameOrPath, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, CStructSharp.ReadOptions? options = null) { }
+        public object? ReadValue(System.IO.Stream stream) { }
+        public object? ReadValue(System.IO.Stream stream, string elementNameOrPath, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public object? ReadValue(System.ReadOnlyMemory<byte> source, string? elementNameOrPath = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public object? ReadValue(System.ReadOnlySpan<byte> source, string? elementNameOrPath = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public T ReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(System.IO.Stream stream) { }
+        public T ReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(System.IO.Stream stream, string elementNameOrPath, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public T ReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(System.ReadOnlyMemory<byte> source, string? elementNameOrPath = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public T ReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(System.ReadOnlySpan<byte> source, string? elementNameOrPath = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public long ResolveAddress(System.IO.Stream stream, string elementNameOrPath, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public byte[] Serialize(string elementNameOrPath, object data, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.WriteOptions? options = null) { }
+        public long Serialize(System.Buffers.IBufferWriter<byte> destination, string elementNameOrPath, object data, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.WriteOptions? options = null) { }
+        public int Serialize(System.Span<byte> destination, string elementNameOrPath, object data, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.WriteOptions? options = null) { }
+        public bool TryReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(System.IO.Stream stream, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value) { }
+        public bool TryReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(System.IO.Stream stream, string elementNameOrPath, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public bool TryReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(System.ReadOnlyMemory<byte> source, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, string? elementNameOrPath = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public bool TryReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(System.ReadOnlySpan<byte> source, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, string? elementNameOrPath = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public void UpdateStream(System.IO.Stream stream, string elementNameOrPath, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.UpdateOptions? options = null) { }
+        public void WriteStream(System.IO.Stream stream, string elementNameOrPath, object data, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.WriteOptions? options = null) { }
+    }
+    public sealed class CStructCompilationOptions
+    {
+        public CStructCompilationOptions() { }
+        public int MaxDefinitionLength { get; init; }
+        public int MaxExpressionNestingDepth { get; init; }
+        public int MaxExpressionTokens { get; init; }
+        public int MaxLayoutNestingDepth { get; init; }
+    }
+    public enum CStructErrorCode
+    {
+        InvalidLayout = 1,
+        InvalidPath = 2,
+        ReadFailed = 3,
+        ReadLimitExceeded = 4,
+        WriteFailed = 5,
+        WriteLimitExceeded = 6,
+    }
+    public abstract class CStructException : System.Exception
+    {
+        protected CStructException(CStructSharp.CStructErrorCode code, string? message, System.Exception? innerException = null) { }
+        public CStructSharp.CStructErrorCode Code { get; }
+        public long? Offset { get; }
+        public string? Path { get; }
+    }
+    public sealed class CStructLayoutException : CStructSharp.CStructException
+    {
+        public CStructLayoutException() { }
+        public CStructLayoutException(string message) { }
+        public CStructLayoutException(string message, System.Exception innerException) { }
+    }
+    public sealed class CStructPathException : CStructSharp.CStructException
+    {
+        public CStructPathException() { }
+        public CStructPathException(string message) { }
+        public CStructPathException(string message, System.Exception innerException) { }
+    }
+    public class CStructReadException : CStructSharp.CStructException
+    {
+        public CStructReadException() { }
+        public CStructReadException(string message) { }
+        public CStructReadException(string message, System.Exception innerException) { }
+        protected CStructReadException(CStructSharp.CStructErrorCode code, string? message, System.Exception? innerException = null) { }
+    }
+    public sealed class CStructReadLimitException : CStructSharp.CStructReadException
+    {
+        public CStructReadLimitException(string message) { }
+        public CStructReadLimitException(string message, System.Exception innerException) { }
+    }
+    public class CStructWriteException : CStructSharp.CStructException
+    {
+        public CStructWriteException() { }
+        public CStructWriteException(string message) { }
+        public CStructWriteException(string message, System.Exception innerException) { }
+        protected CStructWriteException(CStructSharp.CStructErrorCode code, string? message, System.Exception? innerException = null) { }
+    }
+    public sealed class CStructWriteLimitException : CStructSharp.CStructWriteException
+    {
+        public CStructWriteLimitException(string message) { }
+        public CStructWriteLimitException(string message, System.Exception innerException) { }
+    }
+    public struct DebugData
+    {
+        public DebugData() { }
+        [System.Text.Json.Serialization.JsonPropertyName("buffer")]
+        public int[] Buffer { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("curPos")]
+        public long CurPos { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("debugStackString")]
+        public string DebugStackString { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("endPos")]
+        public long EndPos { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string? TypeName { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public object? Value { get; set; }
+    }
+    public sealed class EnumValueResult
+    {
+        public int BitWidth { get; }
+        public string Enum { get; }
+        public bool IsSigned { get; }
+        public string? Name { get; }
+        public ulong RawBits { get; }
+        public string StorageType { get; }
+        public System.Numerics.BigInteger Value { get; }
+        public override string ToString() { }
+    }
+    public enum PocoBindingMode
+    {
+        PublicReadable = 0,
+        PublicReadWrite = 1,
+    }
+    public sealed class Pointer
+    {
+        public Pointer(long address, object? value, int depth, bool isDereferenced = false) { }
+        public long Address { get; }
+        public int Depth { get; }
+        public bool IsDereferenced { get; }
+        public bool IsNull { get; }
+        public CStructSharp.Pointer? Next { get; }
+        public object? Value { get; }
+        public object? Dereference() { }
+        public override string ToString() { }
+    }
+    public enum PointerAddressingMode
+    {
+        Absolute = 0,
+        Relative = 1,
+    }
+    public sealed class ReadOptions
+    {
+        public ReadOptions() { }
+        public CStructSharp.PointerAddressingMode AddressingMode { get; init; }
+        public bool DereferencePointers { get; init; }
+        public int MaxArrayElements { get; init; }
+        public int MaxNestingDepth { get; init; }
+        public int MaxPointerDepth { get; init; }
+        public long? MaxPointerTargetBytes { get; init; }
+        public long MaxStringBytes { get; init; }
+        public long MaxTotalBytesRead { get; init; }
+        public long Origin { get; init; }
+    }
+    public static class StaticHelpers
+    {
+        public static byte[] ParseHexDataContent(this string hexData) { }
+    }
+    public sealed class UnionValue : System.Dynamic.DynamicObject, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyCollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyDictionary<string, object?>, System.Collections.IEnumerable
+    {
+        public int Count { get; }
+        public bool HasRawStorage { get; }
+        public bool HasSelection { get; }
+        public object? this[string key] { get; }
+        public System.Collections.Generic.IEnumerable<string> Keys { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, object?> Members { get; }
+        public System.ReadOnlyMemory<byte>? RawStorage { get; }
+        public string? SelectedMember { get; }
+        public object? SelectedValue { get; }
+        public string UnionName { get; }
+        public System.Collections.Generic.IEnumerable<object?> Values { get; }
+        public bool ContainsKey(string key) { }
+        public System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, object?>> GetEnumerator() { }
+        public override bool TryGetMember(System.Dynamic.GetMemberBinder binder, out object? result) { }
+        public bool TryGetValue(string key, out object? value) { }
+        public CStructSharp.UnionValue WithSelectedMember(string memberName, object? value) { }
+        public CStructSharp.UnionValue WithoutSelection() { }
+        public static CStructSharp.UnionValue FromMember(string unionName, string memberName, object? value) { }
+        public static CStructSharp.UnionValue FromRaw(string unionName, System.ReadOnlySpan<byte> rawStorage) { }
+    }
+    public sealed class UpdateOptions : CStructSharp.WriteOptions
+    {
+        public UpdateOptions() { }
+        public bool AllowPointerDereference { get; init; }
+        public bool ClearUnionStorage { get; init; }
+        public long MaxTraversalBytesRead { get; init; }
+        public int MaxTraversalNestingDepth { get; init; }
+        public int MaxTraversalPointerDepth { get; init; }
+        public long? MaxTraversalPointerTargetBytes { get; init; }
+        public long MaxTraversalStringBytes { get; init; }
+        public bool RequireExistingPointerTarget { get; init; }
+    }
+    public class WriteOptions
+    {
+        public WriteOptions() { }
+        public CStructSharp.PointerAddressingMode AddressingMode { get; init; }
+        public CStructSharp.PocoBindingMode BindingMode { get; init; }
+        public int MaxArrayElements { get; init; }
+        public int MaxNestingDepth { get; init; }
+        public long MaxStringBytes { get; init; }
+        public long MaxTotalBytesWritten { get; init; }
+        public long Origin { get; init; }
+    }
+}

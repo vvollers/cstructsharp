@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "seed": "0x46555A5A51413034",
+  "iterationsPerTarget": 128,
+  "maxInputBytes": 256,
+  "limits": {
+    "maxDefinitionLength": 1024,
+    "maxLayoutNestingDepth": 32,
+    "maxExpressionNestingDepth": 32,
+    "maxExpressionTokens": 512,
+    "maxArrayElements": 64,
+    "maxStringBytes": 128,
+    "maxTotalBytesRead": 256,
+    "maxNestingDepth": 32,
+    "maxPointerDepth": 8,
+    "maxPointerTargetBytes": 128,
+    "maxTotalBytesWritten": 256
+  },
+  "targets": [
+    {
+      "id": "definition",
+      "seeds": [
+        {
+          "id": "fixed-struct",
+          "encoding": "utf8",
+          "data": "struct root { byte tag; uint32 value; };"
+        },
+        {
+          "id": "nested-union",
+          "encoding": "utf8",
+          "data": "union choice { uint16 number; byte raw[2]; }; struct root { byte tag; choice value; };"
+        },
+        {
+          "id": "malformed-field",
+          "encoding": "utf8",
+          "data": "struct root { uint16 value }"
+        },
+        {
+          "id": "recursive-by-value",
+          "encoding": "utf8",
+          "data": "struct root { root value; };"
+        }
+      ]
+    },
+    {
+      "id": "expression",
+      "seeds": [
+        {
+          "id": "precedence",
+          "encoding": "utf8",
+          "data": "1 + 2 * 3"
+        },
+        {
+          "id": "unknown-identifier",
+          "encoding": "utf8",
+          "data": "UNKNOWN + 1"
+        },
+        {
+          "id": "divide-by-zero",
+          "encoding": "utf8",
+          "data": "1 / 0"
+        },
+        {
+          "id": "nested-bitwise",
+          "encoding": "utf8",
+          "data": "(((0x55 << 2) | 3) ^ 0xAA)"
+        }
+      ]
+    },
+    {
+      "id": "path",
+      "seeds": [
+        {
+          "id": "array-element",
+          "encoding": "utf8",
+          "data": "root.values[1]"
+        },
+        {
+          "id": "nested-value",
+          "encoding": "utf8",
+          "data": "root.nested.value"
+        },
+        {
+          "id": "pointer-accessor",
+          "encoding": "utf8",
+          "data": "root.link.address"
+        },
+        {
+          "id": "empty-segment",
+          "encoding": "utf8",
+          "data": "root..values"
+        }
+      ]
+    },
+    {
+      "id": "binary-roundtrip",
+      "seeds": [
+        {
+          "id": "complete-two-values",
+          "encoding": "hex",
+          "data": "020102030400"
+        },
+        {
+          "id": "complete-empty-values",
+          "encoding": "hex",
+          "data": "0000"
+        },
+        {
+          "id": "array-limit",
+          "encoding": "hex",
+          "data": "FF"
+        },
+        {
+          "id": "unterminated-name",
+          "encoding": "hex",
+          "data": "000102"
+        }
+      ]
+    },
+    {
+      "id": "pointer-union",
+      "seeds": [
+        {
+          "id": "null-pointer",
+          "encoding": "hex",
+          "data": "01A50000000000"
+        },
+        {
+          "id": "self-cycle-at-seven",
+          "encoding": "hex",
+          "data": "01A50000000700025A0000000700"
+        },
+        {
+          "id": "out-of-range-pointer",
+          "encoding": "hex",
+          "data": "01A5000000FFFF"
+        },
+        {
+          "id": "truncated-union",
+          "encoding": "hex",
+          "data": "01A5"
+        }
+      ]
+    }
+  ]
+}

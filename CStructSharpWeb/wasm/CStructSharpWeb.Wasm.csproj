@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    
+    <!-- WASM-specific settings -->
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <WasmBuildNative>true</WasmBuildNative>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <WasmDebugLevel Condition="'$(Configuration)' == 'Release'">0</WasmDebugLevel>
+    <WasmEmitSourceMap Condition="'$(Configuration)' == 'Release'">false</WasmEmitSourceMap>
+    
+    <!-- The browser bridge uses source-generated JSON metadata and explicit value projection. -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <!-- The rooted dynamic surface is exercised by the complete real-browser contract matrix. -->
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+    
+    <!-- Preserve reflection for dynamic binding -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    
+    <!-- Browser JavaScript entry point -->
+    <WasmMainJSPath>main.js</WasmMainJSPath>
+    
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\CStructSharp\CStructSharp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Browser values use ExpandoObject and the runtime binder; keep that reflection surface intact. -->
+    <TrimmerRootAssembly Include="CStructSharp" />
+    <TrimmerRootAssembly Include="Microsoft.CSharp" />
+  </ItemGroup>
+
+</Project>
