@@ -87,6 +87,8 @@ jobs:
       - name: Install browser system dependencies
         working-directory: CStructSharp.Docs
         run: |
+          sudo apt-get update
+          sudo apt-get install --yes ripgrep
           npm ci --ignore-scripts
           npm exec -- playwright install-deps chromium
 
