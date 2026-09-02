@@ -87,7 +87,7 @@ function improvePublicationMetadata() {
     if (contribution && !contribution.querySelector(".edit-link")) {
       const sourceLink = document.createElement("a");
       sourceLink.href =
-        "https://github.com/vvollers/CStructSharp/blob/main/CStructSharp/CStruct.cs";
+        "https://github.com/vvollers/cstructsharp/blob/main/CStructSharp/CStruct.cs";
       sourceLink.className = "edit-link";
       sourceLink.textContent = "View source";
       contribution.append(sourceLink);
@@ -107,7 +107,7 @@ function improvePublicationMetadata() {
   const editLink = contribution.querySelector(".edit-link") || document.createElement("a");
   const encodedPath = sourcePath.split("/").map(encodeURIComponent).join("/");
   editLink.href =
-    `https://github.com/vvollers/CStructSharp/edit/main/CStructSharp.Docs/${encodedPath}`;
+    `https://github.com/vvollers/cstructsharp/edit/main/CStructSharp.Docs/${encodedPath}`;
   editLink.className = "edit-link";
   editLink.textContent = "Edit this page";
   if (!editLink.parentElement) {
