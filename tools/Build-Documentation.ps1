@@ -235,7 +235,9 @@ else
         '--log',
         (Join-Path $DocumentationRoot 'docfx-build.log')
     )
-    $docfxBudgetSeconds = 10
+    # Hosted runners can be slower than a warm local build. Keep this as a
+    # regression guard without making a valid release depend on runner load.
+    $docfxBudgetSeconds = 30
 }
 
 $siteFiles = @(Get-ChildItem -LiteralPath $SiteDirectory -Recurse -File)
