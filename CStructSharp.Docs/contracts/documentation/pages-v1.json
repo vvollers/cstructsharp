@@ -20,12 +20,12 @@
     "api/CStructSharp.CStruct.html"
   ],
   "actions": {
-    "actions/checkout": "d23441a48e516b6c34aea4fa41551a30e30af803",
-    "actions/setup-dotnet": "26b0ec14cb23fa6904739307f278c14f94c95bf1",
-    "actions/setup-node": "249970729cb0ef3589644e2896645e5dc5ba9c38",
+    "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+    "actions/setup-dotnet": "a98b56852c35b8e3190ac28c8c2271da59106c68",
+    "actions/setup-node": "820762786026740c76f36085b0efc47a31fe5020",
     "actions/upload-artifact": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
     "actions/configure-pages": "983d7736d9b0ae728b81ab479565c72886d7745b",
     "actions/upload-pages-artifact": "7b1f4a764d45c48632c6b24a0339c27f5614fb0b",
-    "actions/deploy-pages": "d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e"
+    "actions/deploy-pages": "cd2ce8fcbc39b97be8ca5fce6e763baed58fa128"
   }
 }
