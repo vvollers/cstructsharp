@@ -23,8 +23,7 @@
     <!-- StyleCop's exhaustive XML-tag rules are intentionally excluded; compiler cref validation and all
          nullability, correctness, and formatting diagnostics remain active. -->
     <NoWarn>$(NoWarn);CS1591;SA1600;SA1602;SA1611;SA1615;SA1618;SA1623;SA1642</NoWarn>
-    <VersionPrefix>0.2.0</VersionPrefix>
-    <VersionSuffix>preview</VersionSuffix>
+    <VersionPrefix>0.2.1</VersionPrefix>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
