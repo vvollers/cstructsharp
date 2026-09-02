@@ -123,14 +123,16 @@ jobs:
 
       - name: Publish NuGet package and symbols
         env:
+          VERSION: ${{ steps.version.outputs.version }}
           NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: |
-          dotnet nuget push artifacts/package/*.nupkg \
+          dotnet nuget push "artifacts/package/CStructSharp.${VERSION}.nupkg" \
             --api-key "${NUGET_API_KEY}" \
             --source https://api.nuget.org/v3/index.json
-          dotnet nuget push artifacts/package/*.snupkg \
+          dotnet nuget push "artifacts/package/CStructSharp.${VERSION}.snupkg" \
             --api-key "${NUGET_API_KEY}" \
-            --source https://api.nuget.org/v3/index.json
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
 
       - name: Build WebAssembly explorer
         working-directory: CStructSharpWeb
