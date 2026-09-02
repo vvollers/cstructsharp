@@ -144,13 +144,13 @@ test("repository-subpath pages expose reviewed edit and source links", async ({ 
   await expect(page).toHaveURL(/\/_site\/guides\/index\.html$/);
   await expect(page.getByRole("link", { name: "Edit this page" })).toHaveAttribute(
     "href",
-    "https://github.com/vvollers/CStructSharp/edit/main/CStructSharp.Docs/guides/index.md",
+    /https:\/\/github\.com\/vvollers\/(?:CStructSharp|cstructsharp)\/edit\/main\/CStructSharp\.Docs\/guides\/index\.md/,
   );
 
   await page.goto("api/CStructSharp.CStruct.html");
   await expect(page.getByRole("link", { name: /Edit this page|View source/ })).toHaveAttribute(
     "href",
-    /https:\/\/github\.com\/vvollers\/CStructSharp\/blob\/(?:[0-9a-f]{40}|main)\/CStructSharp\/CStruct\.cs/,
+    /https:\/\/github\.com\/vvollers\/cstructsharp\/blob\/(?:[0-9a-f]{40}|main)\/CStructSharp\/CStruct\.cs/,
   );
 });
 
