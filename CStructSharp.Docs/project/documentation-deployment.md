@@ -65,7 +65,8 @@ cancel a publication already in progress.
 
 ## Verify the live site
 
-The intended publication root is `https://vvollers.github.io/CStructSharp/`. After deployment, verify:
+The intended documentation URL is `https://vvollers.github.io/cstructsharp/docs/`. The project landing page is at
+`https://vvollers.github.io/cstructsharp/`. After deployment, verify:
 
 - home, first-parse guide, language tutorial/manual, and generated API pages;
 - custom 404 behavior;
