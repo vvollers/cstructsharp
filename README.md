@@ -16,7 +16,7 @@ CStructSharp understands this layout and can read values from binary data or wri
 own portable layout rules. It does not parse complete C header files, run a C preprocessor, or copy the ABI rules of
 a particular C compiler.
 
-The current preview version is `0.2.0-preview`.
+The current version is `0.2.0-preview`.
 
 ## What it supports
 
@@ -33,11 +33,13 @@ Unknown enum values and raw union bytes can be kept without losing information. 
 
 ## Where to learn more
 
-- [Start with the library](https://vvollers.github.io/CStructSharp/guides/index.html)
-- [Read the layout-language manual](https://vvollers.github.io/CStructSharp/language/index.html)
-- [Run the examples](https://vvollers.github.io/CStructSharp/examples/index.html)
-- [Browse the API reference](https://vvollers.github.io/CStructSharp/api/CStructSharp.html)
-- [Learn how the repository is maintained](https://vvollers.github.io/CStructSharp/project/index.html)
+- [Project home](https://vvollers.github.io/CStructSharp/)
+- [Start with the library](https://vvollers.github.io/CStructSharp/docs/guides/index.html)
+- [Read the layout-language manual](https://vvollers.github.io/CStructSharp/docs/language/index.html)
+- [Run the examples](https://vvollers.github.io/CStructSharp/docs/examples/index.html)
+- [Browse the API reference](https://vvollers.github.io/CStructSharp/docs/api/CStructSharp.html)
+- [Open the interactive WASM explorer](https://vvollers.github.io/CStructSharp/explorer/)
+- [Learn how the repository is maintained](https://vvollers.github.io/CStructSharp/docs/project/index.html)
 - [Read the release notes](CHANGELOG.md)
 
 The source for the website is in `CStructSharp.Docs/`. The machine-readable description of the Portable v1 layout
