@@ -1,0 +1,3 @@
+# Keep repository text deterministic across Windows and Linux CI. Editors and
+# all project toolchains used here accept LF; Git still detects binary files.
+* text=auto eol=lf

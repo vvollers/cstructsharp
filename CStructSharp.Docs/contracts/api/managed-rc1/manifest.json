@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "baselineId": "managed-rc1",
+  "baselineRevision": 1,
+  "status": "frozen",
+  "workItem": "QA-07",
+  "packageVersion": "0.2.0-preview",
+  "assembly": "CStructSharp.dll",
+  "exportedTypes": 20,
+  "generator": {
+    "package": "PublicApiGenerator.Tool",
+    "version": "11.5.4",
+    "command": "generate-public-api"
+  },
+  "canonical": {
+    "path": "CStructSharp.Docs/contracts/api/managed-rc1/CStructSharp.public-api.txt",
+    "lines": 227,
+    "normalizedSha256": "97FBD33981B1107DA997F01943C390DEBDB608A1D0325FDCE12090AF2E225F3B"
+  },
+  "frameworks": [
+    {
+      "tfm": "net8.0",
+      "targetFramework": ".NETCoreApp,Version=v8.0",
+      "frameworkDisplayName": ".NET 8.0",
+      "normalizedSha256": "A0E24C89BE1F2C40189E728B69DD94DCC6FADC4FCF87B2AE29C96BFBD66B0420"
+    },
+    {
+      "tfm": "net10.0",
+      "targetFramework": ".NETCoreApp,Version=v10.0",
+      "frameworkDisplayName": ".NET 10.0",
+      "normalizedSha256": "08AC11329C63E9EE1E95C02E9C9208B095528F4062F6C78C2027A7DC4AC8245C"
+    }
+  ],
+  "history": [
+    {
+      "revision": 1,
+      "kind": "freeze",
+      "date": "2026-07-26",
+      "packageVersion": "0.2.0-preview",
+      "combinedSha256": "77A43017F644467A68C5D8BA23D092E83CFDB279385B971B046BF7774627ACD7",
+      "rationale": "Freeze the reviewed 20-type, 227-line managed release-candidate API after all planned public redesign packages.",
+      "releaseImpact": "Any later public addition, removal, signature/default/nullability/attribute change must fail CI until the baseline revision, review history, version impact, changelog, and migration decision are updated deliberately."
+    }
+  ]
+}

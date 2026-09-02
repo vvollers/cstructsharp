@@ -1,0 +1,41 @@
+items:
+- name: Guide overview
+  href: index.md
+- name: Binary layout basics
+  href: binary-layout-basics.md
+- name: Install and first parse
+  href: install-and-first-parse.md
+- name: Choose an API
+  href: choosing-an-api.md
+- name: Read values and paths
+  href: reading-values.md
+- name: Typed values
+  href: typed-values.md
+- name: Spans and memory
+  href: spans-and-memory.md
+- name: Writing and serialization
+  href: writing-and-serialization.md
+- name: Updating data
+  href: updating-existing-data.md
+- name: Pointers
+  href: pointers.md
+- name: Unions
+  href: unions.md
+- name: Enums
+  href: enums.md
+- name: Strings and encodings
+  href: strings-and-encodings.md
+- name: Debug data and addresses
+  href: debug-data-and-addresses.md
+- name: Variables, options, and limits
+  href: variables-options-and-limits.md
+- name: Errors and recovery
+  href: errors-and-recovery.md
+- name: Concurrency and ownership
+  href: concurrency-and-ownership.md
+- name: Performance
+  href: performance.md
+- name: Tips and anti-patterns
+  href: tips-and-anti-patterns.md
+- name: Recipes
+  href: recipes/

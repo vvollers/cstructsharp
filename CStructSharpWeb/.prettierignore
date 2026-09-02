@@ -1,0 +1,11 @@
+dist/
+node_modules/
+playwright-report/
+public/
+src/generated/
+src/vite-env.d.ts
+test-results/
+vite.config.d.ts
+vite.config.js
+wasm/bin/
+wasm/obj/

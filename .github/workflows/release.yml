@@ -1,0 +1,74 @@
+name: Release artifacts
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build release artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          global-json-file: global.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+          cache-dependency-path: CStructSharpWeb/package-lock.json
+
+      - name: Install WebAssembly workload
+        run: dotnet workload restore ./CStructSharpWeb/wasm/CStructSharpWeb.Wasm.csproj
+
+      - name: Install explorer dependencies
+        working-directory: CStructSharpWeb
+        run: npm ci
+
+      - name: Build NuGet package
+        run: dotnet pack ./CStructSharp/CStructSharp.csproj -c Release -o ./artifacts/package
+
+      - name: Build documentation
+        shell: pwsh
+        run: ./tools/Build-Documentation.ps1
+
+      - name: Build WebAssembly test explorer
+        working-directory: CStructSharpWeb
+        run: npm run build
+
+      - name: Upload NuGet package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: nuget-package
+          path: |
+            artifacts/package/*.nupkg
+            artifacts/package/*.snupkg
+          if-no-files-found: error
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: documentation
+          path: CStructSharp.Docs/_site/
+          if-no-files-found: error
+
+      - name: Upload WebAssembly test explorer
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: wasm-test-explorer
+          path: CStructSharpWeb/dist/
+          if-no-files-found: error

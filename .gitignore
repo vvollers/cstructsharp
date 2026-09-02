@@ -1,0 +1,97 @@
+# Local-only project records
+/.local-docs/
+/docs/
+
+# .NET SDK/tool state and build outputs
+/.dotnet/
+**/bin/
+**/obj/
+**/out/
+**/artifacts/
+**/publish/
+**/BenchmarkDotNet.Artifacts/
+**/StrykerOutput/
+*.binlog
+
+# Test, coverage, and analysis output
+**/TestResults/
+**/coverage/
+**/coverage-results/
+*.trx
+*.coverage
+*.coveragexml
+*.cobertura.xml
+*.sarif
+
+# NuGet caches and packages
+**/.nuget/
+**/packages/
+*.nupkg
+*.snupkg
+
+# Node, Vite, Vitest, and browser-test output
+**/node_modules/
+**/dist/
+**/.vite/
+**/.vitest/
+**/.nyc_output/
+**/playwright-report/
+**/test-results/
+**/blob-report/
+**/*.tsbuildinfo
+*.eslintcache
+*.stylelintcache
+
+# Generated WebAssembly/frontend assets
+CStructSharpWeb/public/wasm/
+CStructSharpWeb/public/wasm*
+CStructSharpWeb/src/generated/test-demos.json
+CStructSharpWeb/vite.config.d.ts
+CStructSharpWeb/vite.config.d.ts.map
+
+# Tool caches, telemetry, and machine-local state
+**/.cache/
+**/.telemetry/
+**/.tmp/
+**/tmp/
+.npm/
+.pnpm-store/
+.yarn/
+
+# IDE and editor state
+.vs/
+.vscode/
+.idea/
+*.iml
+*.suo
+*.user
+*.userosscache
+*.rsuser
+*.sln.docstates
+*.DotSettings.user
+_ReSharper.Caches/
+
+# Logs, crash dumps, and temporary files
+*.log
+*.dmp
+*.pid
+*.tmp
+*.temp
+*.bak
+*.orig
+*~
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local environment files (checked-in examples remain allowed)
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# OS-generated files
+Thumbs.db
+Desktop.ini
+.DS_Store

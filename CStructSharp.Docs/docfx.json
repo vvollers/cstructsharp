@@ -1,0 +1,81 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "files": [
+            "CStructSharp.dll"
+          ],
+          "src": "../CStructSharp/bin/Release/net10.0"
+        }
+      ],
+      "dest": "api",
+      "disableDefaultFilter": false,
+      "memberLayout": "samePage",
+      "namespaceLayout": "flattened"
+    }
+  ],
+  "build": {
+    "overwrite": [
+      {
+        "files": [
+          "api-overwrites/**.md"
+        ]
+      }
+    ],
+    "content": [
+      {
+          "files": [
+            "index.md",
+            "404.md",
+            "toc.yml",
+          "project/**.md",
+          "project/**.yml",
+          "language/**.md",
+          "language/**.yml",
+          "guides/**.md",
+          "guides/**.yml",
+          "examples/**.md",
+          "examples/**.yml",
+          "api/**.md",
+          "api/**.yml"
+        ]
+      }
+    ],
+    "resource": [
+      {
+        "files": [
+          ".nojekyll",
+          "assets/**",
+          "contracts/**.json",
+          "contracts/**.txt"
+        ]
+      }
+    ],
+    "output": "_site",
+    "template": [
+      "default",
+      "modern",
+      "templates/cstructsharp"
+    ],
+    "globalMetadata": {
+      "_appName": "CStructSharp",
+      "_appTitle": "CStructSharp documentation",
+      "_appFooter": "CStructSharp is licensed under the MIT License. <a href=\"https://github.com/vvollers/CStructSharp/blob/main/CHANGELOG.md\">Release notes</a> · <a href=\"https://github.com/vvollers/CStructSharp/issues/new?labels=documentation&amp;title=Documentation%3A%20\">Report a documentation issue</a>",
+      "_appLogoPath": "assets/logo.svg",
+      "_appFaviconPath": "assets/favicon.svg",
+      "_enableSearch": true,
+      "_lang": "en",
+      "_gitContribute": {
+        "repo": "https://github.com/vvollers/CStructSharp",
+        "branch": "main"
+      }
+    },
+    "sitemap": {
+      "baseUrl": "https://vvollers.github.io/CStructSharp/",
+      "changefreq": "weekly",
+      "priority": 0.5
+    }
+  }
+}

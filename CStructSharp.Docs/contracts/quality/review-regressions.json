@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 2,
+  "findings": [
+    {
+      "id": "RF-01",
+      "title": "P0: updating a non-first bitfield changes the wrong bits",
+      "status": "fixed",
+      "reproduction": {
+        "layout": "struct root { uint8 low:4; uint8 high:4; };",
+        "input": "A5",
+        "operation": "UpdateStream root.high to 3",
+        "expected": "35",
+        "observedBeforeFix": "A3"
+      },
+      "test": {
+        "file": "CStructSharpTests/WriteSupport.cs",
+        "class": "WriteSupport",
+        "method": "UpdateStream_NonFirstBitfield_UsesResolvedBitOffset",
+        "summaryContains": "resolved bit offset"
+      }
+    },
+    {
+      "id": "RF-02",
+      "title": "P0: parsed unions are not safely round-trippable",
+      "status": "fixed",
+      "reproduction": {
+        "layout": "union choice { uint8 small; uint16 large; };",
+        "input": "34 12",
+        "operation": "ParseStream followed by Serialize",
+        "expected": "34 12",
+        "observedBeforeFix": "34 00"
+      },
+      "test": {
+        "file": "CStructSharpTests/ReviewRegressionTests.cs",
+        "class": "ReviewRegressionTests",
+        "method": "Serialize_ParsedUnion_PreservesCompleteRawStorage",
+        "summaryContains": "Preserves every byte"
+      }
+    },
+    {
+      "id": "RF-03",
+      "title": "P1: indexed fixed-array updates invoke the whole-array writer",
+      "status": "fixed",
+      "reproduction": {
+        "layout": "struct root { uint16 items[3]; };",
+        "input": "11 11 22 22 33 33",
+        "operation": "UpdateStream root.items[1] to 0xABCD",
+        "expected": "11 11 CD AB 33 33",
+        "observedBeforeFix": "InvalidOperationException: Expected an array or list"
+      },
+      "test": {
+        "file": "CStructSharpTests/WriteSupport.cs",
+        "class": "WriteSupport",
+        "method": "UpdateStream_ArrayElement_UsesResolvedElementCodec",
+        "summaryContains": "selected array element"
+      }
+    },
+    {
+      "id": "RF-04",
+      "title": "P1: final targets of multi-level pointer updates use the wrong codec",
+      "status": "fixed",
+      "reproduction": {
+        "layout": "struct root { uint16 **ptr; };",
+        "input": "02 00 04 00 00 00",
+        "operation": "UpdateStream root.ptr.value.value to 0x1234 with one-byte pointers",
+        "expected": "02 00 04 00 34 12",
+        "observedBeforeFix": "The final primitive was rejected as an oversized pointer address"
+      },
+      "test": {
+        "file": "CStructSharpTests/WriteSupport.cs",
+        "class": "WriteSupport",
+        "method": "UpdateStream_MultiLevelPointerFinalTarget_UsesResolvedCodec",
+        "summaryContains": "remaining pointer depth"
+      }
+    },
+    {
+      "id": "RF-05",
+      "title": "P1: pointers to unions are read as sequential structs",
+      "status": "fixed",
+      "reproduction": {
+        "layout": "union choice { uint8 small; uint16 large; }; struct root { choice *target; };",
+        "input": "01 34 12",
+        "operation": "ParseStream root with one-byte pointers",
+        "expected": "small=0x34 and large=0x1234 from the same target address",
+        "observedBeforeFix": "CStructReadException: Not enough bytes in stream"
+      },
+      "test": {
+        "file": "CStructSharpTests/ReviewRegressionTests.cs",
+        "class": "ReviewRegressionTests",
+        "method": "ParseStream_PointerToUnion_RewindsEveryMemberToTargetAddress",
+        "summaryContains": "pointer target"
+      }
+    },
+    {
+      "id": "RF-06",
+      "title": "P1: wide terminated strings ignore layout endianness",
+      "status": "fixed",
+      "reproduction": {
+        "layout": "struct root { wchar value[]; }; with big-endian layout",
+        "input": "00 41 00 00",
+        "operation": "ParseStream root",
+        "expected": "A",
+        "observedBeforeFix": "䄀"
+      },
+      "test": {
+        "file": "CStructSharpTests/StringEncodingTests.cs",
+        "class": "StringEncodingTests",
+        "method": "ParseStream_BigEndianNeutralWideString_DecodesUtf16BigEndian",
+        "summaryContains": "layout byte order"
+      }
+    },
+    {
+      "id": "RF-07",
+      "title": "P1: accepted enum storage types cannot preserve their value domain",
+      "status": "fixed",
+      "reproduction": {
+        "layout": "enum state : uint32 { Known = 1 }; struct root { state value; };",
+        "input": "FF FF FF FF",
+        "operation": "ParseStream root",
+        "expected": "Unknown raw uint32 value 4294967295",
+        "observedBeforeFix": "OverflowException from Convert.ToInt32"
+      },
+      "decisionAdrs": ["ADR-004", "ADR-011"],
+      "acceptedDecision": "Implement exact width- and signedness-aware enum values with one BigInteger public projection and no Int32 compatibility bridge.",
+      "test": {
+        "file": "CStructSharpTests/ReviewRegressionTests.cs",
+        "class": "ReviewRegressionTests",
+        "method": "ParseStream_UnknownUInt32Enum_PreservesCompleteDomain",
+        "summaryContains": "complete unsigned backing domain"
+      }
+    },
+    {
+      "id": "RF-08",
+      "title": "P1: duplicate field names compile into an ambiguous layout",
+      "status": "fixed",
+      "reproduction": {
+        "layout": "struct root { uint8 value; uint16 value; };",
+        "input": "11 22 33",
+        "operation": "Construct CStruct before any stream operation",
+        "expected": "CStructLayoutException before stream access",
+        "observedBeforeFix": "Layout accepted; parse and path resolution selected different declarations"
+      },
+      "test": {
+        "file": "CStructSharpTests/DuplicateNameValidationTests.cs",
+        "class": "DuplicateNameValidationTests",
+        "method": "Constructor_RejectsExactDuplicateFieldReproductionBeforeStreamAccess",
+        "summaryContains": "review's conflicting field layout"
+      }
+    },
+    {
+      "id": "RF-09",
+      "title": "P2: inline struct names are incorrectly global",
+      "status": "fixed",
+      "reproduction": {
+        "layout": "struct first { struct { uint8 small; } value; }; struct second { struct { uint16 large; } value; };",
+        "input": "first=2A; second=34 12",
+        "operation": "Construct one CStruct and parse both roots",
+        "expected": "Both unrelated lexical value fields compile and retain independent shapes",
+        "observedBeforeFix": "Duplicate layout element name: value"
+      },
+      "test": {
+        "file": "CStructSharpTests/ScopedInlineTypeTests.cs",
+        "class": "ScopedInlineTypeTests",
+        "method": "Constructor_AllowsTheSameInlineFieldNameInUnrelatedScopes",
+        "summaryContains": "collided globally"
+      }
+    }
+  ]
+}

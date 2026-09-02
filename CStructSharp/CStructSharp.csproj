@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PackageId>CStructSharp</PackageId>
+    <Authors>Vincent Vollers</Authors>
+    <Description>Parse, inspect, serialize, and update binary streams from C-style struct definitions.</Description>
+    <PackageTags>binary;parser;cstruct;struct;serialization</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/vvollers/CStructSharp</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Release notes: https://github.com/vvollers/CStructSharp/blob/main/CHANGELOG.md. Documentation: https://vvollers.github.io/CStructSharp/. Report issues at https://github.com/vvollers/CStructSharp/issues.</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/vvollers/CStructSharp.git</RepositoryUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <!-- StyleCop's exhaustive XML-tag rules are intentionally excluded; compiler cref validation and all
+         nullability, correctness, and formatting diagnostics remain active. -->
+    <NoWarn>$(NoWarn);CS1591;SA1600;SA1602;SA1611;SA1615;SA1618;SA1623;SA1642</NoWarn>
+    <VersionPrefix>0.2.0</VersionPrefix>
+    <VersionSuffix>preview</VersionSuffix>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\CHANGELOG.md" Pack="true" PackagePath="\" />
+    <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
+    <None Include="..\MUTATION_TESTING.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Pidgin" Version="3.5.1" />
+    <!-- Local copies may intentionally have no Git remote. Release/CI checkouts do, so enable Source Link there and
+         avoid emitting misleading local-build warnings while still validating every publishable symbol package. -->
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" Condition="'$(CI)' == 'true'">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Roslynator.Analyzers" Version="5.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

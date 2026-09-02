@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "name": "web-rc1",
+  "packageVersion": "0.2.0-preview",
+  "maximums": {
+    "wasmFiles": 40,
+    "wasmBytes": 6291456,
+    "wasmGzipBytes": 2500000,
+    "frontendBytes": 7340032,
+    "frontendGzipBytes": 2600000,
+    "mainJavaScriptBytes": 350000,
+    "mainJavaScriptGzipBytes": 90000,
+    "startupReadyMilliseconds": 10000
+  },
+  "comparisonBaseline": "artifacts/baseline/web-final-entry-artifacts.json",
+  "measurement": {
+    "compression": "Each file compressed independently with gzip level 9; totals are summed.",
+    "startup": "Chromium performance.now() after the production page reports managed Ready."
+  }
+}

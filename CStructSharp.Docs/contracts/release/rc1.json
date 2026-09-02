@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "policyId": "release-artifacts",
+  "packageVersion": "0.2.0-preview",
+  "publishMode": "artifact-build-only",
+  "requiredArtifacts": [
+    "nuget-package",
+    "documentation",
+    "wasm-test-explorer"
+  ],
+  "actionDependencyDecision": {
+    "status": "immutable-pins-applied",
+    "scope": "Every external action in .github/workflows/release.yml",
+    "pins": {
+      "actions/checkout": "11d5960a326750d5838078e36cf38b85af677262",
+      "actions/setup-dotnet": "67a3573c9a986a3f9c594539f4ab511d57bb3ce9",
+      "actions/setup-node": "49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "actions/upload-artifact": "ea165f8d65b6e75b540449e92b4886f43607fa02"
+    }
+  }
+}

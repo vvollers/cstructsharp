@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "missing-front-matter",
+      "kind": "page",
+      "text": "# Fixture",
+      "expected": "front-matter"
+    },
+    {
+      "id": "missing-title",
+      "kind": "page",
+      "text": "---\ndescription: Fixture description.\n---\n\n# Fixture",
+      "expected": "title"
+    },
+    {
+      "id": "missing-description",
+      "kind": "page",
+      "text": "---\ntitle: Fixture\n---\n\n# Fixture",
+      "expected": "description"
+    },
+    {
+      "id": "multiple-h1",
+      "kind": "page",
+      "text": "---\ntitle: Fixture\ndescription: Fixture description.\n---\n\n# Fixture\n\n# Duplicate",
+      "expected": "h1"
+    },
+    {
+      "id": "placeholder",
+      "kind": "page",
+      "text": "---\ntitle: Fixture\ndescription: Fixture description.\n---\n\n# Fixture\n\nTODO",
+      "expected": "placeholder"
+    },
+    {
+      "id": "duplicate-title",
+      "kind": "collection",
+      "pages": [
+        {
+          "path": "a.md",
+          "title": "Same title",
+          "url": "a.html"
+        },
+        {
+          "path": "b.md",
+          "title": "Same title",
+          "url": "b.html"
+        }
+      ],
+      "expected": "duplicate-title"
+    },
+    {
+      "id": "duplicate-url",
+      "kind": "collection",
+      "pages": [
+        {
+          "path": "a.md",
+          "title": "First",
+          "url": "same.html"
+        },
+        {
+          "path": "b.md",
+          "title": "Second",
+          "url": "SAME.html"
+        }
+      ],
+      "expected": "duplicate-url"
+    },
+    {
+      "id": "broken-link",
+      "kind": "links",
+      "targets": [
+        "present.md",
+        "missing.md"
+      ],
+      "existing": [
+        "present.md"
+      ],
+      "expected": "broken-link"
+    },
+    {
+      "id": "missing-toc-target",
+      "kind": "toc",
+      "targets": [
+        "present.md",
+        "missing.md"
+      ],
+      "existing": [
+        "present.md"
+      ],
+      "expected": "missing-toc-target"
+    },
+    {
+      "id": "duplicate-toc-target",
+      "kind": "toc",
+      "targets": [
+        "present.md",
+        "present.md"
+      ],
+      "existing": [
+        "present.md"
+      ],
+      "expected": "duplicate-toc-target"
+    },
+    {
+      "id": "orphan-page",
+      "kind": "reachability",
+      "pages": [
+        "index.md",
+        "guide.md"
+      ],
+      "reachable": [],
+      "exempt": [
+        "index.md"
+      ],
+      "expected": "orphan"
+    },
+    {
+      "id": "missing-conceptual-search",
+      "kind": "search",
+      "entries": [
+        "api/CStructSharp.CStruct.html"
+      ],
+      "expected": "search-conceptual"
+    },
+    {
+      "id": "missing-api-search",
+      "kind": "search",
+      "entries": [
+        "guides/index.html"
+      ],
+      "expected": "search-api"
+    },
+    {
+      "id": "ignored-source",
+      "kind": "tracking",
+      "ignored": true,
+      "expected": "ignored-source"
+    }
+  ]
+}

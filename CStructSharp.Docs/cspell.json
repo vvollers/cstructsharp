@@ -1,0 +1,34 @@
+{
+  "version": "0.2",
+  "language": "en-US",
+  "useGitignore": true,
+  "enableGlobDot": true,
+  "files": [
+    "**/*.md"
+  ],
+  "ignorePaths": [
+    "_site/**",
+    "api/CStructSharp*.md",
+    "node_modules/**"
+  ],
+  "ignoreRegExpList": [
+    "/```[\\s\\S]*?```/g",
+    "/`[^`\\r\\n]+`/g",
+    "/https?:\\/\\/[^\\s)]+/g",
+    "/xref:[^\\s)]+/g"
+  ],
+  "dictionaryDefinitions": [
+    {
+      "name": "cstructsharp-terms",
+      "path": "./config/cspell-terms.txt",
+      "addWords": true
+    }
+  ],
+  "dictionaries": [
+    "cstructsharp-terms"
+  ],
+  "flagWords": [
+    "hte",
+    "teh"
+  ]
+}

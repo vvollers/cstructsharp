@@ -1,0 +1,51 @@
+name: Mutation tests
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore tools and projects
+        run: |
+          dotnet tool restore
+          dotnet restore ./CStructSharpTests/CStructSharpTests.csproj
+
+      - name: Mutate the reviewed permanent non-Web scope
+        run: >-
+          dotnet stryker
+          --config-file ./stryker-config.json
+          --solution ./CStructSharp.NonWeb.sln
+          --target-framework net10.0
+          --configuration Release
+          --output ./artifacts/mutation/permanent
+          --skip-version-check
+
+      - name: Enforce the permanent-scope report
+        if: always()
+        shell: pwsh
+        run: >-
+          ./tools/Validate-MutationReport.ps1
+          -ReportPath ./artifacts/mutation/permanent/reports/mutation-report.json
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: artifacts/mutation/permanent/
+          if-no-files-found: warn

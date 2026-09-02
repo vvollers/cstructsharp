@@ -1,0 +1,27 @@
+items:
+- name: Project documentation
+  href: index.md
+- name: Overview
+  href: overview.md
+- name: Getting started
+  href: getting-started.md
+- name: Repository map
+  href: repository-map.md
+- name: Architecture
+  href: architecture.md
+- name: Dependencies
+  href: dependencies.md
+- name: Building
+  href: building.md
+- name: Testing
+  href: testing.md
+- name: Debugging
+  href: debugging.md
+- name: Contributing
+  href: contributing.md
+- name: Release process
+  href: release-process.md
+- name: Documentation deployment
+  href: documentation-deployment.md
+- name: Documentation maintenance
+  href: maintenance.md

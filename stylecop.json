@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DotNetAnalyzers/StyleCopAnalyzers/master/StyleCop.Analyzers/StyleCop.Analyzers/Settings/stylecop.schema.json",
+  "settings": {
+    "documentationRules": {
+      "documentationCulture": "en-US",
+      "documentInterfaces": true,
+      "documentInternalElements": false,
+      "xmlHeader": false
+    },
+    "orderingRules": {
+      "elementOrder": [
+        "kind",
+        "constant",
+        "accessibility",
+        "static",
+        "readonly"
+      ],
+      "systemUsingDirectivesFirst": true,
+      "usingDirectivesPlacement": "outsideNameSpace"
+    },
+    "maintainabilityRules": {
+      "topLevelTypes": ["class"]
+    }
+  }
+}
