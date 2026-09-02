@@ -475,6 +475,10 @@ foreach ($expectedPage in @(
 $absoluteRootUrls = @(
     rg -n '(?:href|src)="/' $SiteDirectory -g '*.html'
 )
+if ($LASTEXITCODE -eq 1)
+{
+    $global:LASTEXITCODE = 0
+}
 Assert-Condition ($absoluteRootUrls.Count -eq 0) 'Generated HTML contains root-absolute asset or content URLs.'
 
 $siteFiles = @(Get-ChildItem -LiteralPath $SiteDirectory -Recurse -File)
