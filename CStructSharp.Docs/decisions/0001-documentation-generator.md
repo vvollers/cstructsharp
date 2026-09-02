@@ -64,7 +64,7 @@ Measured local observations:
 
 Initial non-regression budgets, pending CI calibration:
 
-- full DocFX metadata/render after the core build: at most 10 seconds;
+- full DocFX metadata/render after the core build: at most 30 seconds;
 - content-only render: at most 5 seconds;
 - uncompressed static site: at most 32 MiB; and
 - compressed Pages artifact: at most 8 MiB.
