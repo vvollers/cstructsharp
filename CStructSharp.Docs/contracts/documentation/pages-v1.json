@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "publicationBaseUrl": "https://vvollers.github.io/cstructsharp/docs/",
-  "repositoryUrl": "https://github.com/vvollers/CStructSharp",
+  "repositoryUrl": "https://github.com/vvollers/cstructsharp",
   "defaultBranch": "main",
   "deploymentMode": "manual-dispatch-with-explicit-boolean",
   "nodeVersion": "26.5.0",
