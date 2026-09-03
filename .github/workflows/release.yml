@@ -159,7 +159,9 @@ jobs:
       - name: Create standalone WASM bundle
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: zip -r "artifacts/cstructsharp-wasm-v${VERSION}.zip" CStructSharpWeb/dist
+        run: |
+          node CStructSharpWeb/scripts/create-wasm-package.mjs
+          (cd CStructSharpWeb/artifacts/wasm-package && zip -r "../../../artifacts/cstructsharp-wasm-v${VERSION}.zip" .)
 
       - name: Create GitHub Release
         env:

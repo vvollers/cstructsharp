@@ -16,7 +16,37 @@ CStructSharp understands this layout and can read values from binary data or wri
 own portable layout rules. It does not parse complete C header files, run a C preprocessor, or copy the ABI rules of
 a particular C compiler.
 
-The current version is `0.2.0-preview`.
+The current version is `0.2.7`.
+
+## Install
+
+For a .NET application, add the published NuGet package from your project directory:
+
+```powershell
+dotnet add package CStructSharp
+```
+
+This adds the latest published `CStructSharp` package and restores it for the project. The package targets .NET 8 and
+.NET 10. See [Install and make a first parse](https://vvollers.github.io/cstructsharp/docs/guides/install-and-first-parse.html)
+for a complete example.
+
+For a browser application, download the `cstructsharp-wasm-v<VERSION>.zip` asset from the
+[GitHub Releases](https://github.com/vvollers/cstructsharp/releases) page and extract the complete archive into your
+static assets. Do not separate `cstructsharp-wasm.js` from `main.js`, `bootstrap.js`, or `_framework/`.
+
+```js
+import { parseWithDebug, serialize } from "./cstructsharp-wasm/cstructsharp-wasm.js";
+
+const definition = "struct root { byte value; };";
+const parsed = await parseWithDebug(definition, new Uint8Array([42]), { rootTypeName: "root" });
+if (parsed.Success) console.log(parsed.Data);
+
+const serialized = await serialize(definition, { value: 165 }, { rootTypeName: "root" });
+if (serialized.Success) console.log(serialized.Data); // Base64: "pQ=="
+```
+
+The browser bundle runs CStructSharp locally through WebAssembly. It must be served over HTTP(S), not opened with
+`file://`. The archive's `README.md` documents `parseWithDebug`, `serialize`, `update`, and direct runtime loading.
 
 ## What it supports
 

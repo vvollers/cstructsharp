@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+
+import { VueHex } from "vuehex";
 
 import type { DebugDataItem, InteropResult } from "../wasm/cstruct-contract";
 
@@ -14,7 +16,19 @@ const props = defineProps<{
   result: InteropResult | null;
 }>();
 
+const emit = defineEmits<{
+  "bytes-edited": [bytes: Uint8Array];
+}>();
+
 const selectedRange = ref<number | null>(null);
+const editorBytes = ref<Uint8Array<ArrayBufferLike>>(new Uint8Array());
+watch(
+  () => props.bytes,
+  (bytes) => {
+    editorBytes.value = bytes.slice();
+  },
+  { immediate: true },
+);
 const ranges = computed<DebugRange[]>(() =>
   (props.result?.DebugData ?? []).map((item, index) => ({
     index,
@@ -35,20 +49,6 @@ const parsedData = computed(() => {
     return props.result.Data;
   }
 });
-const rows = computed(() => {
-  const result: Array<{ offset: number; cells: Array<{ byte: number; index: number }> }> = [];
-  for (let offset = 0; offset < props.bytes.length; offset += 16) {
-    result.push({
-      offset,
-      cells: Array.from(props.bytes.subarray(offset, offset + 16), (byte, relative) => ({
-        byte,
-        index: offset + relative,
-      })),
-    });
-  }
-  return result;
-});
-
 function rangeFor(index: number): DebugRange | undefined {
   return ranges.value.find((range) => index >= range.start && index < range.end);
 }
@@ -67,6 +67,11 @@ function byteClass(index: number): string[] {
 
 function formatDebug(item: DebugDataItem): string {
   return `${item.DebugStackString || "value"} · ${item.Type} · ${item.Value ?? "null"} · bytes ${item.CurPos}–${Math.max(item.CurPos, item.EndPos - 1)}`;
+}
+
+function handleBytesEdited(bytes: Uint8Array): void {
+  editorBytes.value = bytes;
+  emit("bytes-edited", bytes);
 }
 </script>
 
@@ -96,20 +101,21 @@ function formatDebug(item: DebugDataItem): string {
 
       <template v-if="result.Success">
         <h3>{{ result.Operation === "parse" ? "Input bytes" : "Output bytes" }}</h3>
-        <div v-if="rows.length" class="hex-map" data-testid="hex-map">
-          <div v-for="row in rows" :key="row.offset" class="hex-row">
-            <span class="offset">{{ row.offset.toString(16).padStart(6, "0") }}</span>
-            <button
-              v-for="cell in row.cells"
-              :key="cell.index"
-              type="button"
-              :class="byteClass(cell.index)"
-              :title="`byte ${cell.index}: 0x${cell.byte.toString(16).padStart(2, '0')}`"
-              @click="selectedRange = rangeFor(cell.index)?.index ?? null"
-            >
-              {{ cell.byte.toString(16).padStart(2, "0") }}
-            </button>
-          </div>
+        <div v-if="editorBytes.length" class="binary-editor" data-testid="binary-editor">
+          <VueHex
+            v-model="editorBytes"
+            data-mode="buffer"
+            theme="dark"
+            :editable="true"
+            :cursor="true"
+            :search="true"
+            statusbar="bottom"
+            :bytes-per-row="16"
+            :cell-class-for-byte="(payload) => byteClass(payload.index)"
+            @byte-click="selectedRange = rangeFor($event.index)?.index ?? null"
+            @update:model-value="handleBytesEdited"
+          />
+          <p class="editor-hint">Click a byte to edit. Use Ctrl/Cmd+F to search.</p>
         </div>
         <p v-else class="placeholder">The operation produced no bytes.</p>
 
@@ -195,7 +201,6 @@ dd {
   overflow-wrap: anywhere;
 }
 
-.hex-map,
 pre {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-sm);
@@ -204,26 +209,20 @@ pre {
   padding: 12px;
 }
 
-.hex-row {
-  display: flex;
-  min-width: max-content;
+.binary-editor {
+  display: grid;
+  gap: 8px;
 }
 
-.offset {
+.binary-editor :deep(.vuehex) {
+  height: 360px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+}
+
+.editor-hint {
   color: var(--color-text-muted);
-  font: 11px/25px var(--font-mono);
-  margin-right: 12px;
-  user-select: none;
-}
-
-.hex-row button {
-  width: 29px;
-  border: 0;
-  border-radius: 3px;
-  background: transparent;
-  color: var(--color-text);
-  cursor: pointer;
-  font: 12px/25px var(--font-mono);
+  font-size: 12px;
 }
 
 .debug-list {
@@ -242,34 +241,34 @@ pre {
   text-align: left;
 }
 
-.range-0 {
+:deep(.range-0) {
   background-color: rgba(0, 212, 255, 0.2) !important;
   border-color: #00d4ff !important;
 }
-.range-1 {
+:deep(.range-1) {
   background-color: rgba(0, 255, 136, 0.18) !important;
   border-color: #00ff88 !important;
 }
-.range-2 {
+:deep(.range-2) {
   background-color: rgba(255, 184, 0, 0.2) !important;
   border-color: #ffb800 !important;
 }
-.range-3 {
+:deep(.range-3) {
   background-color: rgba(186, 104, 255, 0.2) !important;
   border-color: #ba68ff !important;
 }
-.range-4 {
+:deep(.range-4) {
   background-color: rgba(255, 105, 180, 0.2) !important;
   border-color: #ff69b4 !important;
 }
-.range-5 {
+:deep(.range-5) {
   background-color: rgba(64, 224, 208, 0.2) !important;
   border-color: #40e0d0 !important;
 }
-.active {
+:deep(.active) {
   outline: 2px solid white;
 }
-.dim {
+:deep(.dim) {
   opacity: 0.28;
 }
 
