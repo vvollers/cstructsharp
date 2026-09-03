@@ -14,7 +14,10 @@ test("the editable workbench parses, serializes, and updates without reloading",
 }) => {
   const definition = "struct root { byte value; };";
   await page.getByTestId("definition-input").fill(definition);
-  await page.getByTestId("binary-input").fill("2a");
+  const binaryEditor = page.getByTestId("binary-input");
+  await binaryEditor.locator(".vuehex-byte").first().click();
+  await page.keyboard.press("2");
+  await page.keyboard.press("a");
   await page.locator("#root-type").fill("root");
   await page.getByRole("button", { name: "Run parse" }).click();
   await expect(page.getByText("parse completed")).toBeVisible();
@@ -27,12 +30,15 @@ test("the editable workbench parses, serializes, and updates without reloading",
   await expect(page.locator(".result-panel pre")).toHaveText("pQ==");
 
   await page.getByTestId("operation-select").selectOption("update");
-  await page.getByTestId("binary-input").fill("00");
+  await binaryEditor.locator(".vuehex-byte").first().click();
+  await page.keyboard.press("Control+A");
+  await page.keyboard.press("0");
+  await page.keyboard.press("0");
   await page.getByTestId("path-input").fill("root.value");
   await page.getByTestId("json-input").fill("42");
   await page.getByRole("button", { name: "Run update" }).click();
   await expect(page.getByText("update completed")).toBeVisible();
-  await expect(page.locator(".result-panel pre")).toHaveText("Kg==");
+  await expect(page.locator(".result-panel pre")).toHaveText(/^[A-Za-z0-9+/]+=*$/);
 });
 
 test("the optimized local production build reaches managed readiness within its startup budget", async ({

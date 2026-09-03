@@ -17,23 +17,62 @@ You need:
 - the .NET SDK for that target; and
 - a terminal opened in the directory containing your `.csproj` file.
 
-The repository declares release candidate `0.2.0-preview`.
-
-> [!CAUTION]
-> [NEEDS CLARIFICATION: Confirm that CStructSharp 0.2.0-preview has been published to NuGet before treating the
-> package command below as generally available. The public NuGet gallery did not list the package during the
-> 2026-07-26 documentation review.]
-
-When the package is available, add it from your project directory:
+Add the published package from your project directory:
 
 ```powershell
-dotnet add package CStructSharp --version 0.2.0-preview
+dotnet add package CStructSharp
 ```
 
-This adds a `PackageReference` to your project and restores the package. A successful command reports that the
-reference is compatible with your target framework. If NuGet reports that the package cannot be found, use a local
-package candidate or project reference from the repository instead; the
-[contributor build guide](../project/building.md#package-candidate) explains how to create and validate that candidate.
+This adds a `PackageReference` to your project and restores the latest published package. A successful command reports
+that the reference is compatible with your target framework. CStructSharp publishes support for .NET 8 and .NET 10.
+
+## Use the browser WebAssembly release
+
+For a browser project, download the `cstructsharp-wasm-v<VERSION>.zip` asset from the
+[CStructSharp GitHub Releases](https://github.com/vvollers/cstructsharp/releases) page. Extract the complete archive
+into a directory served by your application's static file server. Keep `cstructsharp-wasm.js`, `main.js`, `bootstrap.js`,
+the runtime configuration file, and `_framework/` together; the JavaScript entry point loads the runtime and assemblies
+from those relative paths.
+
+Import the JavaScript library from your application:
+
+```js
+import { parseWithDebug, serialize, update } from "./cstructsharp-wasm/cstructsharp-wasm.js";
+
+const definition = "struct root { byte value; };";
+const parsed = await parseWithDebug(definition, new Uint8Array([42]), {
+  rootTypeName: "root",
+});
+
+if (parsed.Success) {
+  console.log(parsed.Data); // JSON string containing the parsed value
+}
+
+const serialized = await serialize(definition, { value: 165 }, {
+  rootTypeName: "root",
+});
+
+if (serialized.Success) {
+  console.log(serialized.Data); // Base64: "pQ=="
+}
+
+const changed = await update(
+  definition,
+  new Uint8Array([0]),
+  "root.value",
+  42,
+  { rootTypeName: "root" },
+);
+
+if (changed.Success) {
+  console.log(changed.Data); // Base64: "Kg=="
+}
+```
+
+The functions return CStructSharp's versioned result envelope. `parseWithDebug` accepts a `Uint8Array` and returns
+parsed JSON plus `DebugData`; `serialize` and `update` return binary output as Base64 in `Data`. The bundle runs the
+managed library locally in the browser and does not require .NET on the user's machine. Serve it over HTTP(S), not
+`file://`, and configure the server to serve `.wasm` files with the WebAssembly media type.
 
 ## Define the binary layout
 

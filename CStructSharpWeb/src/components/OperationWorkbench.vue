@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch } from "vue";
+
+import { VueHex } from "vuehex";
 
 import type {
   ParseWithDebugOptions,
   SerializeOptions,
   UpdateOptions,
 } from "../wasm/cstruct-contract";
+import { hexToBytes } from "../wasm/cstruct-wasm";
 
 export type WorkbenchOperation = "parse" | "serialize" | "update";
 
@@ -35,6 +38,7 @@ const emit = defineEmits<{
 const operation = ref<WorkbenchOperation>("parse");
 const definition = ref(props.definition);
 const binaryHex = ref(props.binaryHex);
+const binaryEditorBytes = ref<Uint8Array<ArrayBufferLike>>(parseBinaryHex(props.binaryHex));
 const jsonValue = ref('{\n  "value": 42\n}');
 const path = ref(props.initialRootType ? `${props.initialRootType}.value` : "root.value");
 const rootTypeName = ref(props.initialRootType ?? "");
@@ -48,6 +52,31 @@ const maxArrayElements = ref(1_000_000);
 const maxStringBytes = ref(16 * 1024 * 1024);
 const maxTotalBytes = ref(64 * 1024 * 1024);
 const maxNestingDepth = ref(256);
+
+watch(
+  () => props.binaryHex,
+  (value) => {
+    binaryHex.value = value;
+    binaryEditorBytes.value = parseBinaryHex(value);
+  },
+);
+
+function parseBinaryHex(value: string): Uint8Array {
+  try {
+    return hexToBytes(value);
+  } catch {
+    return new Uint8Array();
+  }
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(" ");
+}
+
+function handleBinaryEdited(bytes: Uint8Array): void {
+  binaryEditorBytes.value = bytes;
+  binaryHex.value = bytesToHex(bytes);
+}
 
 function submit(): void {
   emit("run", {
@@ -101,13 +130,21 @@ function submit(): void {
 
     <div v-if="operation !== 'serialize'" class="field">
       <label for="binary">Binary data (hex; whitespace is allowed)</label>
-      <textarea
-        id="binary"
-        v-model="binaryHex"
-        data-testid="binary-input"
-        rows="4"
-        spellcheck="false"
-      ></textarea>
+      <div id="binary" class="binary-input-editor" data-testid="binary-input">
+        <VueHex
+          v-model="binaryEditorBytes"
+          data-mode="buffer"
+          theme="dark"
+          :editable="true"
+          :cursor="true"
+          :search="true"
+          statusbar="bottom"
+          :bytes-per-row="16"
+          aria-label="Binary data editor"
+          @update:model-value="handleBinaryEdited"
+        />
+      </div>
+      <p class="field-hint">Edit bytes directly or paste hexadecimal data into the hex column.</p>
     </div>
 
     <div v-if="operation !== 'parse'" class="field">
@@ -240,6 +277,20 @@ textarea,
 textarea {
   line-height: 1.45;
   resize: vertical;
+}
+
+.binary-input-editor {
+  height: 280px;
+}
+
+.binary-input-editor :deep(.vuehex) {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
+}
+
+.field-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
 }
 
 input:focus,
