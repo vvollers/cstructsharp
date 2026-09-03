@@ -13,7 +13,10 @@ library and explorer versions, commits and tags that change, and builds the rele
 3. The production WebAssembly test explorer and a standalone WASM bundle.
 
 The workflow publishes a combined GitHub Pages site with a landing page at the root, documentation at `/docs/`, and
-the interactive explorer at `/explorer/`. It also creates a GitHub Release containing the NuGet and WASM downloads.
+the interactive explorer at `/explorer/`. It also creates a GitHub Release containing the NuGet package and a
+standalone `cstructsharp-wasm-v<VERSION>.zip` download. The WASM archive contains the browser JavaScript entry point,
+the required .NET WebAssembly runtime and assemblies, and a README with a copy-and-import example. It is intended for
+embedding CStructSharp in another static browser project; it is separate from the full explorer website.
 
 Tests run in the CI workflow, so the release workflow does not repeat them. A release should be started only after CI
 has passed for the current `main` revision.

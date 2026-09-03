@@ -33,6 +33,7 @@ const wasmError = ref("");
 const isProcessing = ref(false);
 const result = ref<InteropResult | null>(null);
 const resultBytes = shallowRef<Uint8Array>(new Uint8Array());
+const binaryHexInput = ref("");
 
 const statusText = computed(() => {
   if (wasmStatus.value === "ready") {
@@ -48,6 +49,14 @@ watch(selectedTestId, () => {
   result.value = null;
   resultBytes.value = new Uint8Array();
 });
+
+watch(
+  selectedRunnable,
+  (test) => {
+    binaryHexInput.value = test?.binaryHex ?? "";
+  },
+  { immediate: true },
+);
 
 onMounted(async () => {
   try {
@@ -89,6 +98,15 @@ function base64ToBytes(value: string | null): Uint8Array {
 
 function parseJson(value: string): unknown {
   return JSON.parse(value, (_key, current: unknown) => current);
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(" ");
+}
+
+function applyEditedBytes(bytes: Uint8Array): void {
+  resultBytes.value = bytes;
+  binaryHexInput.value = bytesToHex(bytes);
 }
 
 async function run(request: WorkbenchRequest): Promise<void> {
@@ -179,7 +197,7 @@ async function run(request: WorkbenchRequest): Promise<void> {
           </p>
           <OperationWorkbench
             :key="selectedTestId"
-            :binary-hex="selectedRunnable.binaryHex"
+            :binary-hex="binaryHexInput"
             :definition="selectedRunnable.definition"
             :disabled="wasmStatus !== 'ready' || isProcessing"
             :initial-aligned="selectedRunnable.parserOptions?.aligned"
@@ -190,7 +208,7 @@ async function run(request: WorkbenchRequest): Promise<void> {
           />
         </section>
 
-        <ResultPanel :bytes="resultBytes" :result="result" />
+        <ResultPanel :bytes="resultBytes" :result="result" @bytes-edited="applyEditedBytes" />
       </div>
     </main>
 

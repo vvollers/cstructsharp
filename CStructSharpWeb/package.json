@@ -29,7 +29,8 @@
     "dev:all": "concurrently \"npm run dev\" \"echo WASM watch not available - run build:wasm manually after C# changes\""
   },
   "dependencies": {
-    "vue": "^3.5.42"
+    "vue": "^3.5.42",
+    "vuehex": "^0.7.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
