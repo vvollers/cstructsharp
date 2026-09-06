@@ -188,6 +188,7 @@ function handleBytesEdited(bytes: Uint8Array): void {
 <style scoped>
 .result-panel {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
 
