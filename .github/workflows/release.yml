@@ -120,25 +120,6 @@ jobs:
         shell: pwsh
         run: ./tools/Test-OnboardingPackage.ps1 -PackageDirectory ./artifacts/package
 
-      - name: NuGet login through Trusted Publishing
-        id: nuget-login
-        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
-        with:
-          user: ${{ vars.NUGET_USER }}
-
-      - name: Publish NuGet package and symbols
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
-        run: |
-          dotnet nuget push "artifacts/package/CStructSharp.${VERSION}.nupkg" \
-            --api-key "${NUGET_API_KEY}" \
-            --source https://api.nuget.org/v3/index.json
-          dotnet nuget push "artifacts/package/CStructSharp.${VERSION}.snupkg" \
-            --api-key "${NUGET_API_KEY}" \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
-
       - name: Build WebAssembly explorer
         working-directory: CStructSharpWeb
         run: npm run build
@@ -165,6 +146,25 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: ./tools/Test-OnboardingBrowser.ps1 -ArchivePath "./artifacts/cstructsharp-wasm-v$env:VERSION.zip"
+
+      - name: NuGet login through Trusted Publishing
+        id: nuget-login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Publish NuGet package and symbols
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "artifacts/package/CStructSharp.${VERSION}.nupkg" \
+            --api-key "${NUGET_API_KEY}" \
+            --source https://api.nuget.org/v3/index.json
+          dotnet nuget push "artifacts/package/CStructSharp.${VERSION}.snupkg" \
+            --api-key "${NUGET_API_KEY}" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
 
       - name: Assemble GitHub Pages site
         run: |

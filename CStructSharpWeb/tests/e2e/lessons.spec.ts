@@ -238,4 +238,9 @@ test("intentional errors can be repaired by pasting into VueHex", async ({ page 
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);
   await page.screenshot({ path: "artifacts/onboarding-mobile.png", fullPage: true });
+  // Wider fallback fonts must not force the workbench's grid columns off-screen.
+  await page.addStyleTag({ content: ':root { --font-sans: "Courier New", monospace; }' });
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+    .toBe(true);
 });

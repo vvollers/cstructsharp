@@ -409,6 +409,7 @@ function currentRequest(): WorkbenchRequest {
 .workbench-heading,
 .dialog-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -490,11 +491,13 @@ function currentRequest(): WorkbenchRequest {
 
 .workbench {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
 .field {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
 }
 
