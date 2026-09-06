@@ -9,24 +9,24 @@ A runtime dependency can reach an application that installs CStructSharp. A priv
 documentation dependency is used only while developing the repository. Keep that distinction in mind when reviewing
 an update: a runtime change has a different compatibility and package-size impact from a test-tool change.
 
-Versions on this page come from project manifests, the local .NET tool manifest, and npm lockfiles.
+Use project manifests, the local .NET tool manifest, and npm lockfiles for current versions. This page explains their roles.
 
 ## Core and managed development packages
 
-| Scope | Dependency | Version | Why it is used |
-| --- | --- | ---: | --- |
-| Core runtime | [Pidgin](https://www.nuget.org/packages/Pidgin/3.5.1) | 3.5.1 | Recognizes layout source with parser combinators |
-| CI build, private | Microsoft.SourceLink.GitHub | 8.0.0 | Connects symbols to repository source |
-| Build, private | Roslynator.Analyzers | 4.15.0 | Finds C# correctness and maintainability issues |
-| Build, private | StyleCop.Analyzers | 1.2.0-beta.556 | Checks source style |
-| Tests | Microsoft.NET.Test.Sdk | 18.8.1 | Hosts managed tests |
-| Tests | MSTest | 4.3.2 | Defines and runs test cases |
-| Tests, private | coverlet.collector / coverlet.msbuild | 10.0.1 | Measures line and branch coverage |
-| Benchmarks | BenchmarkDotNet | 0.15.8 | Measures timing and allocation |
-| Local tool | dotnet-stryker | 4.16.0 | Runs mutation tests |
-| Local tool | sourcelink | 3.1.1 | Checks symbol/source links |
-| Local tool | PublicApiGenerator.Tool | 11.5.4 | Produces the managed API signature snapshot |
-| Local tool | DocFX | 2.78.5 | Builds conceptual and generated API documentation |
+| Scope | Dependency | Why it is used |
+| --- | --- | --- |
+| Core runtime | [Pidgin](https://www.nuget.org/packages/Pidgin/3.5.1) | Recognizes layout source with parser combinators |
+| CI build, private | Microsoft.SourceLink.GitHub | Connects symbols to repository source |
+| Build, private | Roslynator.Analyzers | Finds C# correctness and maintainability issues |
+| Build, private | StyleCop.Analyzers | Checks source style |
+| Tests | Microsoft.NET.Test.Sdk | Hosts managed tests |
+| Tests | MSTest | Defines and runs test cases |
+| Tests, private | coverlet.collector / coverlet.msbuild | Measures line and branch coverage |
+| Benchmarks | BenchmarkDotNet | Measures timing and allocation |
+| Local tool | dotnet-stryker | Runs mutation tests |
+| Local tool | sourcelink | Checks symbol/source links |
+| Local tool | PublicApiGenerator.Tool | Produces the managed API signature snapshot |
+| Local tool | DocFX | Builds conceptual and generated API documentation |
 
 Pidgin is the only package needed by the core at runtime. It recognizes tokens and grammar. CStructSharp remains
 responsible for name resolution, layout calculation, value conversion, safety limits, and every public operation.
@@ -48,12 +48,12 @@ library. Source Link is enabled in CI/release-style builds where repository meta
 
 ## Documentation tools
 
-| Tool | Version | Check |
-| --- | ---: | --- |
-| markdownlint-cli2 | 0.23.1 | Markdown structure and style |
-| cspell | 10.0.1 | Prose and identifier spelling |
-| `@playwright/test` | 1.61.1 | Navigation, search, theme, viewport, keyboard, and code-copy behavior |
-| `@axe-core/playwright` | 4.12.1 | Serious and critical automated accessibility findings |
+| Tool | Check |
+| --- | --- |
+| markdownlint-cli2 | Markdown structure and style |
+| cspell | Prose and identifier spelling |
+| `@playwright/test` | Navigation, search, theme, viewport, keyboard, and code-copy behavior |
+| `@axe-core/playwright` | Serious and critical automated accessibility findings |
 
 The documentation manifest pins exact versions and commits `package-lock.json`. Its `js-yaml` override is fixed at
 5.2.2 so the lint dependency tree does not retain the earlier vulnerable release. Use Node 24 or 26. These tools do
@@ -72,18 +72,18 @@ instead of rewriting dependency versions. Success reports the installed package 
 
 The Web workbench is outside routine core and documentation builds:
 
-| Scope | Package | Manifest range |
-| --- | --- | ---: |
-| Runtime | [vue](https://www.npmjs.com/package/vue) | `^3.5.40` |
-| Build | `vite` / `@vitejs/plugin-vue` | `^8.1.5` / `^6.0.8` |
-| Language | `typescript` / `vue-tsc` / `@types/node` | `^6.0.3` / `^3.3.8` / `^26.1.1` |
-| Unit/component test | `vitest` / `@vue/test-utils` / `happy-dom` | `^4.1.10` / `2.2.7` / `^20.11.1` |
-| Browser test | `@playwright/test` | `^1.61.1` |
-| Lint | `eslint` / `@eslint/js` / `eslint-plugin-vue` | `^10.7.0` / `^10.0.1` / `^10.10.0` |
-| Lint integration | `typescript-eslint` / `globals` | `^8.65.0` / `^17.7.0` |
-| Format/orchestration | `prettier` / `concurrently` | `^3.9.6` / `^9.2.4` |
+| Scope | Package |
+| --- | --- |
+| Runtime | [vue](https://www.npmjs.com/package/vue) |
+| Build | `vite` / `@vitejs/plugin-vue` |
+| Language | `typescript` / `vue-tsc` / `@types/node` |
+| Unit/component test | `vitest` / `@vue/test-utils` / `happy-dom` |
+| Browser test | `@playwright/test` |
+| Lint | `eslint` / `@eslint/js` / `eslint-plugin-vue` |
+| Lint integration | `typescript-eslint` / `globals` |
+| Format/orchestration | `prettier` / `concurrently` |
 
-That manifest requires Node 22.12 or newer and npm 10 or newer; `packageManager` records npm 11.6.2. The lockfile,
+That manifest requires Node 22.12 or newer and npm 10 or newer; `packageManager` records the preferred npm version. The lockfile,
 not a floating manifest range, records the exact installed graph.
 
 ## Review an update

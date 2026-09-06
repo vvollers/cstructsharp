@@ -26,6 +26,10 @@ A *span* is a short-lived view over a section of memory. `ReadOnlyMemory<byte>` 
 CStructSharp operation still finishes synchronously and does not keep it. Use a stream for files or data sources that
 already expose seeking. Use memory APIs when the bytes are already available as an array or memory region.
 
+For a byte array named `bytes`, pass `bytes.AsSpan()` to a memory read, for example
+`layout.Parse(bytes.AsSpan(), "header")`. This explicitly selects the span overload and avoids an ambiguous
+call between the span and memory overloads when compiling for .NET 8. It does not copy the bytes.
+
 Pointer coordinates in memory APIs start at zero within the region you pass. If you pass a slice, a pointer cannot
 refer to bytes before that slice.
 

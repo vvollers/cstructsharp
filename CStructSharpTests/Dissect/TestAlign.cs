@@ -7,9 +7,13 @@ using System.Dynamic;
 public class TestAlign
 {
     /// <summary>
-    ///     In C, all union members start at offset zero and the union size is driven by the largest member alignment and
-    ///     width. This test verifies that aligned parsing follows those ABI-like rules.
+    ///     Both a and b begin at byte zero because union members overlap.
     /// </summary>
+    /// <remarks>
+    ///     With little-endian decoding, the first four bytes give a = 0x01000000, while all eight give b =
+    ///     0x0200000001000000. The largest member requires eight bytes and eight-byte alignment, so the stream ends at
+    ///     offset 8.
+    /// </remarks>
     [TestMethod]
     public void Test_Align_Union()
     {
@@ -39,9 +43,12 @@ public class TestAlign
     }
 
     /// <summary>
-    ///     Validates aligned struct layout with fixed-size arrays whose element alignment affects field offsets and total
-    ///     size. This mirrors native C padding behavior between mixed-width members.
+    ///     An array is aligned for its element type, not for its total byte length.
     /// </summary>
+    /// <remarks>
+    ///     The uint64 array starts at offset 8 after padding following a. Later fields start at 40, 44, and 56, and the
+    ///     whole record takes 64 bytes. The stored values match these offsets, making misplaced reads easy to detect.
+    /// </remarks>
     [TestMethod]
     public void TestAlignArray()
     {
@@ -86,9 +93,12 @@ public class TestAlign
     }
 
     /// <summary>
-    ///     Checks bitfields under aligned layout when base integer widths change between groups. It verifies how C-style
-    ///     packing interacts with alignment boundaries and subsequent scalar fields.
+    ///     The two uint16 bitfields share storage at offset 0 and read 2 then 1 from 0x12.
     /// </summary>
+    /// <remarks>
+    ///     Changing to uint64 starts another group at offset 8 with the same values. Ordinary fields and later groups
+    ///     must resume at their own aligned offsets; a four-bit field still uses its base type's storage unit.
+    /// </remarks>
     [TestMethod]
     public void TestAlignBitField()
     {
@@ -126,9 +136,12 @@ public class TestAlign
     }
 
     /// <summary>
-    ///     Dynamic arrays sized by earlier fields are common in C-derived record formats. This test verifies that
-    ///     variable-length segments still honor alignment padding before later members.
+    ///     The first count is 6, so b contains six uint16 values, while e = 2 makes f contain two uint32 values.
     /// </summary>
+    /// <remarks>
+    ///     These counts are read from the data rather than known in advance. Padding still places c at 16, d at 24, f
+    ///     at 36, and g at 48; the decoded values confirm those positions.
+    /// </remarks>
     [TestMethod]
     public void TestAlignDynamic()
     {
@@ -178,9 +191,13 @@ public class TestAlign
     }
 
     /// <summary>
-    ///     Nested structs carry their own alignment requirements into the parent struct layout. This test validates offset
-    ///     propagation across parent and child boundaries.
+    ///     The nested record contains a uint64, so it starts at an eight-byte boundary even though a uses only four
+    ///     bytes.
     /// </summary>
+    /// <remarks>
+    ///     Its b and c fields read values 8 and 16. Padding after the nested record places d at offset 24, where it
+    ///     must read 24.
+    /// </remarks>
     [TestMethod]
     public void TestAlignNestedStruct()
     {
@@ -214,9 +231,12 @@ public class TestAlign
     }
 
     /// <summary>
-    ///     Pointer fields in C are alignment-sensitive and often larger than nearby scalars. This test verifies pointer
-    ///     placement and resulting offsets for following members.
+    ///     The pointer uses eight bytes here, regardless of its uint32 target type.
     /// </summary>
+    /// <remarks>
+    ///     Its storage starts at offset 8 and contains address 24, where the target value is also 24. After visiting
+    ///     the target, parsing must return to c and d at offsets 16 and 18 instead of continuing after the target.
+    /// </remarks>
     [TestMethod]
     public void TestAlignPointer()
     {
@@ -251,9 +271,13 @@ public class TestAlign
     }
 
     /// <summary>
-    ///     Provides a baseline mixed-width aligned struct to validate per-field padding and final struct tail alignment. These
-    ///     checks reflect the core C ABI layout contract.
+    ///     Alignment inserts unused bytes so each field starts at a suitable multiple of its width.
     /// </summary>
+    /// <remarks>
+    ///     The debug offsets must be 0, 8, 16, 20, 24, and 26. Final padding rounds the record up to 32 bytes, a
+    ///     multiple of its eight-byte alignment. These are the library's selected layout rules, not a guarantee for
+    ///     every C compiler.
+    /// </remarks>
     [TestMethod]
     public void TestAlignStruct()
     {
@@ -290,9 +314,12 @@ public class TestAlign
     }
 
     /// <summary>
-    ///     Arrays of structs repeat each element at the struct stride, including internal and tail padding. This test confirms
-    ///     aligned element-to-element spacing is preserved.
+    ///     Each test record needs 16 bytes: four for a, four of padding, and eight for b.
     /// </summary>
+    /// <remarks>
+    ///     The array therefore starts its records at 0, 16, 32, and 48. Checking both fields in every element detects
+    ///     an incorrect stride, which would shift all records after the first.
+    /// </remarks>
     [TestMethod]
     public void TestAlignStructArray()
     {
@@ -332,9 +359,12 @@ public class TestAlign
     }
 
     /// <summary>
-    ///     Contrasts simple union sizing by using a larger array member that extends beyond another member width. It verifies
-    ///     union total size keeps the full largest-member footprint, including tail bytes.
+    ///     The uint32 array needs 12 bytes, but the uint64 member requires eight-byte alignment.
     /// </summary>
+    /// <remarks>
+    ///     The union therefore occupies 16 bytes after rounding up. Only three array elements exist; the last four
+    ///     padding bytes must not appear as a fourth element, so indexing b[3] must throw.
+    /// </remarks>
     [TestMethod]
     public void UnionTail()
     {

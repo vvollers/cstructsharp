@@ -12,9 +12,12 @@ using CStructSharp;
 public class FixedArrayShapeTests
 {
     /// <summary>
-    ///     Keeps explicit fixed arrays collection-shaped even when their declared count is zero or one, while a
-    ///     following sentinel proves that neither case consumes an incorrect number of bytes.
+    ///     values[0] must return an empty list and consume no bytes; values[1] must return a one-item list containing
+    ///     0x2A rather than a scalar.
     /// </summary>
+    /// <remarks>
+    ///     The following tail must remain 0xA5 in both cases. Serializing the results must reproduce the same bytes.
+    /// </remarks>
     [TestMethod]
     public void FixedPrimitiveArrays_KeepShapeForZeroAndOneElements()
     {
@@ -41,9 +44,13 @@ public class FixedArrayShapeTests
     }
 
     /// <summary>
-    ///     Applies the same zero/one policy to fixed character buffers and nested-struct arrays, which use separate
-    ///     conversion and recursive layout paths internally.
+    ///     A zero-length char buffer returns an empty string and char[1] returns the string Q.
     /// </summary>
+    /// <remarks>
+    ///     A one-element struct array must still return a collection whose first record contains 0x2A. The tail and
+    ///     serialized bytes verify that special handling for text and nested objects does not change their declared
+    ///     size.
+    /// </remarks>
     [TestMethod]
     public void FixedCharacterAndNestedArrays_KeepDeclaredShape()
     {
@@ -67,10 +74,12 @@ public class FixedArrayShapeTests
     }
 
     /// <summary>
-    ///     Cross-checks the complete zero/one/two fixed-array matrix for character buffers, enums, and nested structs.
-    ///     For every shape, the declared count must agree across parsing, serialized length, public size, tail address,
-    ///     and round-trip bytes.
+    ///     Counts 0, 1, and 2 are tested for bytes, character buffers, enums, and nested records.
     /// </summary>
+    /// <remarks>
+    ///     Each one-byte element adds exactly one byte before the 0xA5 tail. Public size, tail address, debug offsets,
+    ///     decoded collection or string, and serialized output must all agree on that count.
+    /// </remarks>
     [TestMethod]
     public void FixedArrays_ZeroOneTwoMatrixAgreesAcrossOperations()
     {

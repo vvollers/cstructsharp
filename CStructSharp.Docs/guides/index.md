@@ -13,12 +13,16 @@ If this is your first binary-format library, read these pages in order:
 1. [Binary layout basics](binary-layout-basics.md) explains bytes, offsets, byte order, padding, and the role of a
    `CStruct`.
 2. [Install and make a first parse](install-and-first-parse.md) turns a six-byte header into C# values.
+   Continue with [writing, updating, and a complete C# class](header-next-steps.md).
 3. [Choose an API](choosing-an-api.md) compares dynamic, typed, stream, memory, and output APIs.
 4. [Read values and paths](reading-values.md) shows how to read either a whole object or one nested field.
 5. [Write and serialize values](writing-and-serialization.md) creates new binary data.
 6. [Update existing data](updating-existing-data.md) changes one field without rebuilding the surrounding object.
 
 The remaining guides cover data shapes and operational concerns:
+
+For JavaScript, take the separate [browser and WASM route](browser/index.md). Use the [glossary](glossary.md)
+when a term is new. The [binary file walkthrough](binary-file-walkthrough.md) combines the concepts in a larger task.
 
 - [C# type mapping](typed-values.md), [strings](strings-and-encodings.md), [enums](enums.md),
   [unions](unions.md), and [pointers](pointers.md);

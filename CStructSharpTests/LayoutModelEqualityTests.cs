@@ -9,9 +9,13 @@ using CStructSharp.Structure;
 public class LayoutModelEqualityTests
 {
     /// <summary>
-    ///     Verifies that all semantic model properties participate in symmetric equality and produce matching hashes,
-    ///     including bit widths, union identity, pointer depth, typedef shape, and enum value sequences.
+    ///     Equivalent declaration objects must compare equally and have matching hashes even when created separately.
     /// </summary>
+    /// <remarks>
+    ///     Changing bit width, pointer depth, typedef shape, enum sequence, or struct-versus-union identity must change
+    ///     equality. This prevents metadata collections from treating layouts with different binary meanings as
+    ///     interchangeable.
+    /// </remarks>
     [TestMethod]
     public void LayoutElements_EqualityAndHashingFollowSemanticValue()
     {

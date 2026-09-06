@@ -4,7 +4,13 @@ namespace CStructSharp.Tests;
 [TestClass]
 public class PublicResultModelTests
 {
-    /// <summary>A stored null address is explicit and can never claim that a target was followed.</summary>
+    /// <summary>
+    ///     A zero pointer byte must produce IsNull true, IsDereferenced false, and no Value or Next.
+    /// </summary>
+    /// <remarks>
+    ///     Dereference() returns null and display text is empty. Address zero represents absence of a target, not a
+    ///     successful read of a null-valued object.
+    /// </remarks>
     [TestMethod]
     public void NullPointer_IsNeverReportedAsDereferenced()
     {
@@ -21,7 +27,14 @@ public class PublicResultModelTests
         Assert.AreEqual(string.Empty, pointer.ToString());
     }
 
-    /// <summary>Rejects states that contradict the documented address, depth, null, or follow status.</summary>
+    /// <summary>
+    ///     Manually created Pointer values must reject negative addresses, zero depth, null addresses carrying targets,
+    ///     and conflicting follow-status flags.
+    /// </summary>
+    /// <remarks>
+    ///     These combinations would make IsNull, IsDereferenced, and Value disagree. Constructor validation ensures
+    ///     every public Pointer has a coherent meaning.
+    /// </remarks>
     [TestMethod]
     public void PointerConstructor_RejectsContradictoryResultStates()
     {
@@ -33,7 +46,14 @@ public class PublicResultModelTests
         Assert.Throws<ArgumentException>(() => new Pointer(1, null, 1, true));
     }
 
-    /// <summary>Null, unresolved, and followed pointers expose distinct stable result states.</summary>
+    /// <summary>
+    ///     The cases distinguish a null address, a nonzero address deliberately left unresolved, and a followed pointer
+    ///     whose value is 42.
+    /// </summary>
+    /// <remarks>
+    ///     Only the third is dereferenced, even though the second is not null. A Pointer used merely as an address
+    ///     input must also remain unresolved.
+    /// </remarks>
     [TestMethod]
     public void PointerResult_ExposesThreeUnambiguousStates()
     {

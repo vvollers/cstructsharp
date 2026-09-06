@@ -8,9 +8,12 @@ using Pidgin;
 public class Typedefs
 {
     /// <summary>
-    ///     A typedef in C introduces an alias name for an existing type without changing memory representation. This test
-    ///     verifies alias and underlying primitive are captured correctly.
+    ///     typedef int myint gives int another name.
     /// </summary>
+    /// <remarks>
+    ///     The parsed alias must be myint and its target must be int. An alias introduces no additional field or
+    ///     storage; later declarations can use the new name for the existing type.
+    /// </remarks>
     [TestMethod]
     public void TestSimpleTypedef()
     {
@@ -20,9 +23,12 @@ public class Typedefs
     }
 
     /// <summary>
-    ///     Tests typedef struct syntax where a struct definition and public alias are declared together. It validates that
-    ///     both the inner struct layout and the exported typedef name are preserved.
+    ///     The declaration defines a two-field struct tagged mystruct_t and gives it the alias mystruct.
     /// </summary>
+    /// <remarks>
+    ///     Both names must survive parsing, and the embedded fields must remain int a followed by int b. The alias and
+    ///     the struct tag are related names, not two copies of the record's bytes.
+    /// </remarks>
     [TestMethod]
     public void TestTypedefStruct()
     {

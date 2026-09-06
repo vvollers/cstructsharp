@@ -11,9 +11,12 @@ using Pidgin;
 public class TypedefResolutionTests
 {
     /// <summary>
-    ///     Parses the ordinary C typedef order both in isolation and through the complete layout compiler, then proves
-    ///     that the alias participates in size, read, and write operations.
+    ///     typedef uint16 word gives the two-byte integer another name.
     /// </summary>
+    /// <remarks>
+    ///     The parser must record that direction correctly, and a word field must read 34 12 as 0x1234. Reported size
+    ///     and serialization must remain identical to using uint16 directly.
+    /// </remarks>
     [TestMethod]
     public void PrimitiveTypedef_UsesAliasNameAndUnderlyingType()
     {
@@ -32,9 +35,13 @@ public class TypedefResolutionTests
     }
 
     /// <summary>
-    ///     Exercises aliases as nested struct types, pointer declarations, and array element types, then rejects unknown
-    ///     and circular alias chains during layout compilation rather than leaving them for a stream operation.
+    ///     Aliases are used for a nested record, array elements, and a pointer.
     /// </summary>
+    /// <remarks>
+    ///     They must retain the expected values, pointer address, and seven-byte packed root size. Forward alias chains
+    ///     must resolve, while missing types and cycles must fail during construction instead of reaching stream
+    ///     operations.
+    /// </remarks>
     [TestMethod]
     public void Typedefs_WorkForStructPointersAndArraysAndRejectInvalidChains()
     {

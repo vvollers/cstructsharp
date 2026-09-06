@@ -9,9 +9,12 @@ using Enum = CStructSharp.Structure.Enum;
 public class Enums
 {
     /// <summary>
-    ///     C enum declarations assign integer values to names, with omitted values auto-incrementing from the previous member.
-    ///     This test verifies explicit assignment and implicit progression in one definition.
+    ///     Red starts at 5, so Green and Blue must become 6 and 7.
     /// </summary>
+    /// <remarks>
+    ///     The declaration parser also records byte as this library's default enum storage type. That default is a
+    ///     library rule, not a claim about the size of enums in every C compiler.
+    /// </remarks>
     [TestMethod]
     public void TestEnums()
     {
@@ -30,9 +33,13 @@ public class Enums
     }
 
     /// <summary>
-    ///     Extends enum parsing with an explicit underlying integer type and expression-based member values. This mirrors
-    ///     C-style schemas that pin storage width for binary compatibility.
+    ///     The parser records uint8 as the storage type, starts Dark at 0, and evaluates the explicit expressions for
+    ///     Grey and Light.
     /// </summary>
+    /// <remarks>
+    ///     Grey is 4095, which cannot fit in uint8. This test only checks declaration parsing; accepting the syntax
+    ///     does not mean the completed layout will accept that out-of-range enum value.
+    /// </remarks>
     [TestMethod]
     public void TestEnumsWithType()
     {
@@ -51,9 +58,13 @@ public class Enums
     }
 
     /// <summary>
-    ///     Parses a single enum member token with optional assignment expression. It validates whitespace tolerance and
-    ///     supports both fixed-value and auto-numbered member forms.
+    ///     Red=2, Blue=4, and Green=0xFF must retain their names and evaluate to 2, 4, and 255 despite surrounding
+    ///     spaces.
     /// </summary>
+    /// <remarks>
+    ///     Yellow and Purple have no explicit assignment. Their final numbers depend on their position in a complete
+    ///     enum, which is outside this individual-member test.
+    /// </remarks>
     [TestMethod]
     public void TestEnumValue()
     {
@@ -74,9 +85,12 @@ public class Enums
     }
 
     /// <summary>
-    ///     Parses comma-separated enum member lists before wrapping them in a full enum declaration. It keeps placeholder
-    ///     entries for omitted values so sequential numbering can be resolved later.
+    ///     The three entries must stay in declaration order.
     /// </summary>
+    /// <remarks>
+    ///     Red keeps 5 and Blue keeps 9, while Green retains a marker meaning 'no number supplied yet'. Numbering Green
+    ///     belongs to the full enum parser; the list parser must not guess it early.
+    /// </remarks>
     [TestMethod]
     public void TestEnumValues()
     {
@@ -91,9 +105,12 @@ public class Enums
     }
 
     /// <summary>
-    ///     Validates enum member lists enclosed in braces, matching full declaration syntax exactly. It confirms the same
-    ///     value rules as TestEnumValues under real enum grammar boundaries.
+    ///     Braces surround the enum members, while commas separate them.
     /// </summary>
+    /// <remarks>
+    ///     Variations in spaces must leave the same three names and explicit values intact. Missing assignments remain
+    ///     marked as missing, so a later step can apply enum numbering rules.
+    /// </remarks>
     [TestMethod]
     public void TestEnumValuesInBrackets()
     {

@@ -10,10 +10,12 @@ using Pidgin;
 public class RobustnessTests
 {
     /// <summary>
-    ///     Verifies readers retry legal short reads until every primitive and pointer byte is available. Network and
-    ///     decompression streams may fragment reads, so a single <see cref="Stream.Read(byte[], int, int)"/> result is
-    ///     not evidence that a binary field has ended.
+    ///     The stream returns only one byte per read, but the layout needs a uint64 and a two-byte pointer.
     /// </summary>
+    /// <remarks>
+    ///     Repeated reads must assemble 0x0102030405060708 and follow address 10 to 0x1234. A short read is not end-of-
+    ///     stream when more bytes remain.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_ReadsNumericValuesAndPointersFromChunkedStream()
     {
@@ -30,7 +32,13 @@ public class RobustnessTests
         Assert.AreEqual((ushort)0x1234, (ushort)pointer.Value!);
     }
 
-    /// <summary>Rejects a truncated primitive value instead of treating end-of-stream as a byte value.</summary>
+    /// <summary>
+    ///     The first byte is available, but second is a uint16 with only one remaining byte.
+    /// </summary>
+    /// <remarks>
+    ///     Parsing must throw a read error instead of filling the missing byte with zero or treating end-of-stream as
+    ///     data. A complete field requires its declared number of bytes.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_RejectsTruncatedPrimitiveValues()
     {
@@ -42,9 +50,12 @@ public class RobustnessTests
     }
 
     /// <summary>
-    ///     Verifies pointer addresses use the configured big-endian byte order at every supported width before their
-    ///     targets are dereferenced. A wrong byte order can turn a valid address into an unsafe, unrelated offset.
+    ///     For pointer widths 1, 2, 4, and 8, the encoded address points just after its own slot.
     /// </summary>
+    /// <remarks>
+    ///     Big-endian decoding must reach the target byte 0xA5 each time. Incorrect address byte order would send the
+    ///     reader to a different, usually invalid location.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_DecodesBigEndianPointersForEverySupportedWidth()
     {
@@ -66,7 +77,13 @@ public class RobustnessTests
         }
     }
 
-    /// <summary>Rejects a pointer whose decoded address lies outside the stream.</summary>
+    /// <summary>
+    ///     The big-endian two-byte pointer contains 80 00, meaning address 32768, but the input is only two bytes long.
+    /// </summary>
+    /// <remarks>
+    ///     Following it must fail with a read error. The library interprets pointers within the supplied stream and
+    ///     cannot read arbitrary process memory.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_RejectsPointerTargetsOutsideTheStream()
     {
@@ -78,9 +95,12 @@ public class RobustnessTests
     }
 
     /// <summary>
-    ///     Verifies callers can retain a decoded pointer address without seeking to its target. This supports safe
-    ///     inspection of incomplete, external, or intentionally opaque pointer graphs.
+    ///     The pointer contains address 2, but DereferencePointers is false.
     /// </summary>
+    /// <remarks>
+    ///     Parsing must expose that address with IsDereferenced false and Value null, without visiting the 0xA5 target.
+    ///     This supports inspecting pointer storage independently of reading what it points to.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_CanLeavePointersUndereferenced()
     {
@@ -100,7 +120,13 @@ public class RobustnessTests
         Assert.IsNull(pointer.Value);
     }
 
-    /// <summary>Rejects recursive pointer graphs instead of recursing indefinitely.</summary>
+    /// <summary>
+    ///     head points to a node at offset 2, whose next pointer points back to the same node.
+    /// </summary>
+    /// <remarks>
+    ///     Parsing must detect this cycle and raise a read error. A finite byte buffer can describe an endless pointer
+    ///     walk, so checking stream length alone is insufficient.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_RejectsCyclicPointers()
     {
@@ -112,9 +138,12 @@ public class RobustnessTests
     }
 
     /// <summary>
-    ///     Verifies a fixed-size pointer target is rejected before decoding when it exceeds the caller's byte budget.
-    ///     The limit bounds work caused by following attacker-controlled addresses.
+    ///     The uint32 target occupies four bytes at address 2, but the configured target-size allowance is smaller.
     /// </summary>
+    /// <remarks>
+    ///     Following it must fail before decoding the target. A pointer slot's own two-byte width does not determine
+    ///     the work needed to read its target.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_EnforcesFixedPointerTargetLimit()
     {
@@ -131,9 +160,12 @@ public class RobustnessTests
     }
 
     /// <summary>
-    ///     Preserves the raw value of an enum member not known to the current layout while leaving its symbolic name
-    ///     absent. This makes parsing forward-compatible with newer producers that add enum values.
+    ///     The enum names only ready = 1, while the input contains 127.
     /// </summary>
+    /// <remarks>
+    ///     Parsing must preserve numeric value 127 with no name. This lets a reader retain values introduced by a newer
+    ///     file producer without inventing a meaning or rejecting valid integer storage.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_PreservesUnknownEnumValues()
     {
@@ -148,7 +180,14 @@ public class RobustnessTests
         Assert.AreEqual(127, enumValue.Value);
     }
 
-    /// <summary>Rejects unresolved identifiers and unsupported calls in layout expressions.</summary>
+    /// <summary>
+    ///     Evaluating missing without a supplied variable must raise KeyNotFoundException.
+    /// </summary>
+    /// <remarks>
+    ///     Evaluating unsupported(1) must raise NotSupportedException because arbitrary function calls are not
+    ///     implemented. These are direct expression tests; public layout construction wraps invalid definitions in its
+    ///     own layout-error category.
+    /// </remarks>
     [TestMethod]
     public void Expressions_RejectUndefinedIdentifiersAndCalls()
     {
@@ -156,7 +195,13 @@ public class RobustnessTests
         Assert.Throws<NotSupportedException>(() => CStructDefinitionParser.Expr.ParseOrThrow("unsupported(1)").Calc());
     }
 
-    /// <summary>Fails fast for pointer widths the binary reader cannot represent.</summary>
+    /// <summary>
+    ///     The constructor is asked for three-byte pointers, while supported widths are 1, 2, 4, and 8.
+    /// </summary>
+    /// <remarks>
+    ///     It must reject this option even though the sample record has no pointer field. Invalid configuration should
+    ///     be caught immediately, not delayed until a later layout needs it.
+    /// </remarks>
     [TestMethod]
     public void Constructor_RejectsUnsupportedPointerSizes()
     {
@@ -164,9 +209,12 @@ public class RobustnessTests
     }
 
     /// <summary>
-    ///     Verifies pointer serialization mirrors pointer parsing by encoding addresses in the layout's selected byte
-    ///     order. This is essential when producing data for a binary format with a non-host endian convention.
+    ///     The supplied target address is 2 and the pointer occupies two bytes.
     /// </summary>
+    /// <remarks>
+    ///     Big-endian serialization must output 00 02. Only the address slot is written; serializing a pointer does not
+    ///     automatically create or place its target data.
+    /// </remarks>
     [TestMethod]
     public void Serialize_WritesPointersUsingConfiguredEndianness()
     {
@@ -180,7 +228,13 @@ public class RobustnessTests
         CollectionAssert.AreEqual(new byte[] { 0x00, 0x02, }, bytes);
     }
 
-    /// <summary>Protects updates through a null pointer unless explicitly configured otherwise.</summary>
+    /// <summary>
+    ///     The two-byte pointer contains zero, so it has no target.
+    /// </summary>
+    /// <remarks>
+    ///     Updating target.value must fail under the default policy rather than write 0xA5 at stream offset zero.
+    ///     Replacing a pointer address and writing through a null pointer are different operations.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_RejectsNullPointerTargetByDefault()
     {
@@ -192,9 +246,13 @@ public class RobustnessTests
     }
 
     /// <summary>
-    ///     Verifies an in-place update clears the full union allocation before writing a shorter selected member. Without
-    ///     this rule, bytes from a previous larger interpretation remain observable through the union's other members.
+    ///     The union is four bytes wide, initially all FF.
     /// </summary>
+    /// <remarks>
+    ///     Replacing the whole union with selected small = 0x11 must yield 11 00 00 00. Default clearing removes
+    ///     leftover bytes from a previous wider interpretation instead of keeping them observable through other member
+    ///     views.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_ClearsUnusedUnionStorageByDefault()
     {
@@ -209,9 +267,12 @@ public class RobustnessTests
     }
 
     /// <summary>
-    ///     Resolves definitions declared after their use and confirms parsing works on an internal variable copy. Caller
-    ///     variables are input context, so parsing must not add derived definitions to the supplied dictionary.
+    ///     second refers to first before first is declared.
     /// </summary>
+    /// <remarks>
+    ///     Resolving first = 2 must make second = 3 and read three array elements. The caller's dictionary must still
+    ///     contain only external = 42, showing that derived definitions are kept in operation-owned state.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_ResolvesForwardDefinesWithoutMutatingSuppliedVariables()
     {
@@ -230,7 +291,13 @@ public class RobustnessTests
         Assert.AreEqual(42, variables["external"].Calc());
     }
 
-    /// <summary>Reports circular preprocessor definitions deterministically.</summary>
+    /// <summary>
+    ///     first depends on second and second depends on first, so neither can produce an array count.
+    /// </summary>
+    /// <remarks>
+    ///     Construction must detect the cycle and report a layout error. It must not endlessly substitute names or
+    ///     defer an impossible dependency until binary parsing.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_RejectsCircularDefines()
     {
@@ -240,7 +307,13 @@ public class RobustnessTests
         Assert.Throws<CStructLayoutException>(() => new CStruct(layout));
     }
 
-    /// <summary>Exposes compiled layout and codec maps as read-only views after construction.</summary>
+    /// <summary>
+    ///     After construction, the public declaration, alignment, reader, and writer maps must be read-only.
+    /// </summary>
+    /// <remarks>
+    ///     These maps describe the validated layout and supported conversions. Allowing callers to mutate them later
+    ///     could make size calculations and stream operations disagree.
+    /// </remarks>
     [TestMethod]
     public void Constructor_ExposesReadOnlyCompiledCollections()
     {
@@ -253,9 +326,12 @@ public class RobustnessTests
     }
 
     /// <summary>
-    ///     Verifies a bitfield that spans its complete unsigned 32-bit storage unit survives serialization and parsing.
-    ///     The case protects mask calculations from signed shifts or narrowing that would lose the high bit.
+    ///     flags:32 uses all bits of a uint32.
     /// </summary>
+    /// <remarks>
+    ///     Four FF bytes must read as 4294967295 and serialize unchanged. Mask calculations must handle a full-width
+    ///     slice without losing the top bit or treating it as a negative value.
+    /// </remarks>
     [TestMethod]
     public void Bitfields_SupportFullStorageWidth()
     {
@@ -272,7 +348,13 @@ public class RobustnessTests
         CollectionAssert.AreEqual(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, }, serialized);
     }
 
-    /// <summary>Rejects bitfield widths that exceed the declared scalar storage unit.</summary>
+    /// <summary>
+    ///     A byte has eight bits, so byte flags:9 cannot fit its declared backing storage.
+    /// </summary>
+    /// <remarks>
+    ///     CStruct construction must reject it before any stream operation. The reader must not silently spill the
+    ///     field into another byte or discard its extra bit.
+    /// </remarks>
     [TestMethod]
     public void Bitfields_RejectWidthsLargerThanStorage()
     {

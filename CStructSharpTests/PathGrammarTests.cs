@@ -6,7 +6,13 @@ using CStructSharp;
 [TestClass]
 public class PathGrammarTests
 {
-    /// <summary>Returns the selected root value rather than leaking the parser's internal declaration-name wrapper.</summary>
+    /// <summary>
+    ///     Selecting root in a plain parse must return an object with value = 0x2A directly.
+    /// </summary>
+    /// <remarks>
+    ///     It must not add another root property around that object. This protects the result shape callers use when
+    ///     accessing fields after a selected-root read.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_RootPathPreservesThePublicObjectShape()
     {
@@ -18,7 +24,13 @@ public class PathGrammarTests
         Assert.IsFalse(((IDictionary<string, object?>)parsed).ContainsKey("root"));
     }
 
-    /// <summary>Accepts case-sensitive identifiers, underscores, Unicode letters, and the complete non-negative index domain.</summary>
+    /// <summary>
+    ///     The example path contains underscores, a Unicode letter, and indexes up to Int32.MaxValue.
+    /// </summary>
+    /// <remarks>
+    ///     It must split into four named segments, with [00] interpreted as zero. This only validates path syntax; it
+    ///     does not claim that an array with such a large index exists.
+    /// </remarks>
     [TestMethod]
     public void Parse_AcceptsNamesAndNonNegativeIndexes()
     {
@@ -36,7 +48,14 @@ public class PathGrammarTests
         Assert.AreEqual(9, segments[3].Index);
     }
 
-    /// <summary>Rejects empty segments, malformed names/brackets, signed or non-decimal indexes, and Int32 overflow.</summary>
+    /// <summary>
+    ///     Each data row supplies an invalid path, such as a doubled dot, negative index, missing bracket, or
+    ///     overflowing decimal index.
+    /// </summary>
+    /// <remarks>
+    ///     Every one must raise CStructPathException. A partially recognizable prefix is not enough: the whole path
+    ///     must be valid before layout traversal begins.
+    /// </remarks>
     /// <param name="path">The invalid public path text.</param>
     [TestMethod]
     [DataRow(null)]

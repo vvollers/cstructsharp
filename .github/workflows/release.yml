@@ -40,6 +40,7 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
+          dotnet-version: 8.0.x
 
       - name: Set up Node.js for documentation
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -115,6 +116,10 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: dotnet pack ./CStructSharp/CStructSharp.csproj -c Release -o ./artifacts/package -p:Version=${VERSION}
 
+      - name: Verify onboarding against the NuGet artifact
+        shell: pwsh
+        run: ./tools/Test-OnboardingPackage.ps1 -PackageDirectory ./artifacts/package
+
       - name: NuGet login through Trusted Publishing
         id: nuget-login
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
@@ -138,6 +143,29 @@ jobs:
         working-directory: CStructSharpWeb
         run: npm run build
 
+      - name: Create standalone WASM bundle
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          node CStructSharpWeb/scripts/create-wasm-package.mjs
+          (cd CStructSharpWeb/artifacts/wasm-package && zip -r "../../../artifacts/cstructsharp-wasm-v${VERSION}.zip" .)
+
+      - name: Install browser for onboarding checks
+        working-directory: CStructSharpWeb
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify explorer lessons
+        working-directory: CStructSharpWeb
+        run: |
+          npm run test:unit
+          npm run test:e2e
+
+      - name: Verify onboarding against the WASM archive
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: ./tools/Test-OnboardingBrowser.ps1 -ArchivePath "./artifacts/cstructsharp-wasm-v$env:VERSION.zip"
+
       - name: Assemble GitHub Pages site
         run: |
           rm -rf artifacts/pages
@@ -155,13 +183,6 @@ jobs:
       - name: Deploy GitHub Pages
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
-
-      - name: Create standalone WASM bundle
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          node CStructSharpWeb/scripts/create-wasm-package.mjs
-          (cd CStructSharpWeb/artifacts/wasm-package && zip -r "../../../artifacts/cstructsharp-wasm-v${VERSION}.zip" .)
 
       - name: Create GitHub Release
         env:

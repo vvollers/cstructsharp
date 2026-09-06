@@ -10,9 +10,12 @@ using CStructSharp.Structure;
 public class FeatureOperationMatrixTests
 {
     /// <summary>
-    ///     Prevents a primitive spelling from being added to the public codec dictionaries without being classified in
-    ///     the canonical feature matrix.
+    ///     The feature catalog's fixed and terminated type names must match the registered read and write handlers.
     /// </summary>
+    /// <remarks>
+    ///     Adding a type without documenting its classification must fail this test. The catalog is intended to
+    ///     describe the actual supported vocabulary, including alternate spellings.
+    /// </remarks>
     [TestMethod]
     public void Catalog_CoversEveryRegisteredPrimitiveSpelling()
     {
@@ -34,9 +37,12 @@ public class FeatureOperationMatrixTests
     }
 
     /// <summary>
-    ///     Applies the length query to every named terminated handler, proves nonzero-position restoration, and keeps
-    ///     ordinary scalar fields outside the array/string contract.
+    ///     Every named terminated-string handler is given an empty encoded string starting at position 1.
     /// </summary>
+    /// <remarks>
+    ///     Length lookup must return zero and restore that position. Asking the same API for an ordinary byte field
+    ///     must raise a path error because scalar numbers do not have array or string length.
+    /// </remarks>
     [TestMethod]
     public void NamedStringLength_CoversEveryHandlerAndRejectsScalars()
     {
@@ -79,9 +85,13 @@ public class FeatureOperationMatrixTests
     }
 
     /// <summary>
-    ///     Exercises every fixed-width primitive spelling in both layout byte orders across parse, debug, address,
-    ///     serialize, direct write, and update.
+    ///     Each fixed-width spelling reads numeric value 0x12 and is updated to 0x34, with a tail byte detecting
+    ///     misplaced access.
     /// </summary>
+    /// <remarks>
+    ///     Explicit byte-order suffixes must override the layout default. Stream, memory, debug, selected, and write
+    ///     APIs must all agree on the same field bytes.
+    /// </remarks>
     [TestMethod]
     public void PrimitiveScalarCases_AgreeAcrossCoreOperations()
     {
@@ -159,9 +169,12 @@ public class FeatureOperationMatrixTests
     }
 
     /// <summary>
-    ///     Runs representative arrays, composites, strings, aliases, pointers, bitfields, and placement rules through
-    ///     every operation that applies to the selected case.
+    ///     Catalog cases combine arrays, nested records, strings, aliases, pointers, bitfields, and placement rules.
     /// </summary>
+    /// <remarks>
+    ///     Each case supplies expected values, addresses, serialized bytes, and updated bytes. Running all applicable
+    ///     APIs against those expectations catches features that work in parsing but fail in another operation.
+    /// </remarks>
     [TestMethod]
     public void RepresentativeFeatureCases_AgreeAcrossCoreOperations()
     {
@@ -267,8 +280,12 @@ public class FeatureOperationMatrixTests
     }
 
     /// <summary>
-    ///     Verifies lossless raw union round-trip and explicit selected-member writes across all core operations.
+    ///     The union between head and tail exposes 34 12 as both a byte and a uint16.
     /// </summary>
+    /// <remarks>
+    ///     An unedited parsed union must preserve those raw bytes, while an explicit member selection controls new
+    ///     output. All APIs must preserve the surrounding bytes and agree that both views start at offset 1.
+    /// </remarks>
     [TestMethod]
     public void ExplicitUnionCase_PreservesRawStorageAndWriteSelection()
     {

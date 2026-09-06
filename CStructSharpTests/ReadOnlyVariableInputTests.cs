@@ -8,7 +8,14 @@ using CStructSharp;
 [TestClass]
 public class ReadOnlyVariableInputTests
 {
-    /// <summary>Applies one read-only override consistently without mutating the caller-owned dictionary.</summary>
+    /// <summary>
+    ///     The read-only dictionary overrides COUNT from 1 to 2, so every operation must treat values as two uint16
+    ///     elements.
+    /// </summary>
+    /// <remarks>
+    ///     Reads, queries, serialization, and updates must agree while leaving the caller's dictionary unchanged.
+    ///     External variables are input context, not scratch storage for the parser.
+    /// </remarks>
     [TestMethod]
     public void PublicOperations_AcceptReadOnlyVariablesAndPreserveCallerState()
     {

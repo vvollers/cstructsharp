@@ -6,7 +6,14 @@ using CStructSharp.Fuzzing;
 [TestClass]
 public class ManagedFuzzCliTests
 {
-    /// <summary>Help, target discovery, ordinary reports, and exact-input replay all complete successfully.</summary>
+    /// <summary>
+    ///     The fuzz command-line tool must show help, list targets, save a report, and replay a supplied input
+    ///     successfully.
+    /// </summary>
+    /// <remarks>
+    ///     The input file contains a simple one-byte struct declaration. This tests the tool used to reproduce
+    ///     robustness failures, not the workbench's interactive parser.
+    /// </remarks>
     [TestMethod]
     public void Run_SupportsDiscoveryReportsAndSingleInputReplay()
     {
@@ -51,7 +58,14 @@ public class ManagedFuzzCliTests
         }
     }
 
-    /// <summary>CLI syntax and numeric parsing reject ambiguity before a fuzz target runs.</summary>
+    /// <summary>
+    ///     Unknown or repeated switches, missing values, invalid iteration counts or seeds, and incomplete replay
+    ///     arguments must be rejected before a fuzz target runs.
+    /// </summary>
+    /// <remarks>
+    ///     Clear argument failures prevent an accidental test configuration from being mistaken for meaningful parser
+    ///     evidence.
+    /// </remarks>
     [TestMethod]
     public void Run_RejectsInvalidOptionsAndValues()
     {
@@ -63,7 +77,13 @@ public class ManagedFuzzCliTests
         Assert.Throws<ArgumentException>(() => Program.Run(["--input", "unused.bin",]));
     }
 
-    /// <summary>Corpus loading rejects invalid metadata, seed syntax, target metadata, lengths, and encodings.</summary>
+    /// <summary>
+    ///     The corpus loader receives invalid metadata, seed values, encodings, and target definitions.
+    /// </summary>
+    /// <remarks>
+    ///     Each must fail rather than silently skip or reinterpret inputs. A trustworthy fuzz run requires validating
+    ///     its test data and resource bounds before testing the library itself.
+    /// </remarks>
     [TestMethod]
     public void Corpus_RejectsMalformedDocumentsAndSeedModels()
     {

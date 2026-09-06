@@ -12,7 +12,14 @@ public class CanonicalPortableReferenceTests
 {
     private static readonly Lazy<PortableContract> Contract = new(LoadContract);
 
-    /// <summary>Every fixed and terminated spelling agrees with the runtime's width, alignment, and natural CLR value.</summary>
+    /// <summary>
+    ///     The published primitive table is used to construct a one-field layout for every spelling.
+    /// </summary>
+    /// <remarks>
+    ///     Fixed types must match their documented size, alignment, and C# result type; terminated types must decode an
+    ///     empty string from a terminator. This makes the reference table an executable check rather than unchecked
+    ///     prose.
+    /// </remarks>
     [TestMethod]
     public void PrimitiveTables_AgreeWithCompiledCodecs()
     {
@@ -41,7 +48,13 @@ public class CanonicalPortableReferenceTests
         }
     }
 
-    /// <summary>Published sizes, alignments, offsets, and canonical byte images execute exactly as documented.</summary>
+    /// <summary>
+    ///     Each reference example supplies layout text, options, exact bytes, offsets, and expected values.
+    /// </summary>
+    /// <remarks>
+    ///     The library must reproduce all those facts and serialize the parsed result back to the same bytes. An
+    ///     incorrect example therefore fails a test instead of silently misleading readers.
+    /// </remarks>
     [TestMethod]
     public void LayoutExamples_PredictCompiledBytesAndOffsets()
     {
@@ -81,7 +94,14 @@ public class CanonicalPortableReferenceTests
         }
     }
 
-    /// <summary>The contract never implies an implemented compiler-specific profile.</summary>
+    /// <summary>
+    ///     The contract must name Portable as the only implemented profile.
+    /// </summary>
+    /// <remarks>
+    ///     Compiler-specific binary layout rules are not selectable profiles merely because the repository records
+    ///     observations from native compilers. This prevents documentation from promising compatibility the library has
+    ///     not implemented.
+    /// </remarks>
     [TestMethod]
     public void Contract_ListsPortableAsTheOnlyShippedProfile()
     {
@@ -89,7 +109,13 @@ public class CanonicalPortableReferenceTests
         CollectionAssert.AreEqual(new[] { "Portable", }, Contract.Value.ShippedProfiles);
     }
 
-    /// <summary>Representative valid-C syntax outside Portable fails before any operation can touch a stream.</summary>
+    /// <summary>
+    ///     The reference includes forms that may be valid C but are outside the library's Portable subset.
+    /// </summary>
+    /// <remarks>
+    ///     Every listed declaration must fail at construction with InvalidLayout and a nonempty explanation. Users must
+    ///     get an explicit rejection rather than an approximation of unsupported syntax.
+    /// </remarks>
     [TestMethod]
     public void UnsupportedConstructs_FailDuringLayoutConstruction()
     {

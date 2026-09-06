@@ -8,9 +8,12 @@ using Pidgin;
 public class Defines
 {
     /// <summary>
-    ///     C-style defines often encode arithmetic over previously declared symbols to drive sizes and offsets. This test
-    ///     verifies expression evaluation with identifier substitution, not just literal constants.
+    ///     The definition gives a name to 2 + myvariable * 4.
     /// </summary>
+    /// <remarks>
+    ///     Supplying myvariable = 5 must produce 22, because multiplication happens before addition. Such expressions
+    ///     can later determine array lengths; this test checks the expression itself without reading binary data.
+    /// </remarks>
     [TestMethod]
     public void TestMoreComplexDefine()
     {
@@ -23,9 +26,11 @@ public class Defines
     }
 
     /// <summary>
-    ///     Parses the basic #define pattern of symbolic name plus literal value. This is the foundation for constant-driven C
-    ///     struct declarations and array lengths.
+    ///     Parsing #define ABC 123 must retain the name ABC and the number 123.
     /// </summary>
+    /// <remarks>
+    ///     A define supplies a reusable constant; it does not add a field or occupy bytes in a binary record.
+    /// </remarks>
     [TestMethod]
     public void TestSimpleDefine()
     {

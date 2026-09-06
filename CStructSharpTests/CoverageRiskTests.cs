@@ -8,7 +8,13 @@ using CStructSharp.Structure;
 [TestClass]
 public class CoverageRiskTests
 {
-    /// <summary>Exercises expression wrapper values, equality short-circuits, hashes, and diagnostic text.</summary>
+    /// <summary>
+    ///     Two independently built addition expressions for 1+2 must compare equal, hash equally, and evaluate to 3.
+    /// </summary>
+    /// <remarks>
+    ///     Changing an operator or operand must make them unequal. Unary expressions, defines, and the missing-
+    ///     expression marker receive similar checks, protecting structural comparisons used by layout models.
+    /// </remarks>
     [TestMethod]
     public void ExpressionValueObjects_HonorTheirEqualityAndValueContracts()
     {
@@ -51,7 +57,13 @@ public class CoverageRiskTests
         Assert.AreEqual("NoneExpr(0)", NoneExpr.Instance.ToString());
     }
 
-    /// <summary>Preserves call-expression structural equality while consistently rejecting evaluation.</summary>
+    /// <summary>
+    ///     Two method(1,2) expression objects must compare by their target and arguments, not object identity.
+    /// </summary>
+    /// <remarks>
+    ///     Changing those parts must change equality. Evaluation, Value, and value-based display must still reject
+    ///     calls because storing call syntax does not mean executing arbitrary functions is supported.
+    /// </remarks>
     [TestMethod]
     public void CallExpression_UsesStructuralArgumentsForEqualityAndHashing()
     {
@@ -82,7 +94,14 @@ public class CoverageRiskTests
         Assert.Throws<NotSupportedException>(() => call.ToString());
     }
 
-    /// <summary>Exercises the complete read-budget stream facade without taking ownership of the caller's stream.</summary>
+    /// <summary>
+    ///     The wrapper must read 11,22,33 through array, span, and single-byte APIs, report end-of-stream correctly,
+    ///     and permit seeking.
+    /// </summary>
+    /// <remarks>
+    ///     Writes and resizing must be rejected. Disposing it leaves the original stream readable because the caller
+    ///     still owns that stream.
+    /// </remarks>
     [TestMethod]
     public void ReadBudgetStream_ImplementsItsReadOnlyNonOwningContract()
     {
@@ -121,7 +140,14 @@ public class CoverageRiskTests
         inner.Dispose();
     }
 
-    /// <summary>Exercises public exception constructors and both valid and invalid string-pointer values.</summary>
+    /// <summary>
+    ///     Public exception constructors must retain supplied messages, inner causes, and stable error codes for
+    ///     layout, path, read, write, and limit failures.
+    /// </summary>
+    /// <remarks>
+    ///     These small contracts help applications report useful errors without depending on private implementation
+    ///     details. A wrapped exception must retain the original cause so callers can inspect what actually failed.
+    /// </remarks>
     [TestMethod]
     public void SmallPublicWrappers_PreserveMessagesCausesAndValues()
     {

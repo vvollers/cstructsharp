@@ -33,6 +33,9 @@ the library API.
 
 ## Where to start
 
+- [Try a browser lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=header) with no installation.
+- [Use the JavaScript/WASM bundle](guides/browser/index.md) in your own browser application.
+
 - To read your first value, follow [Install and make a first parse](guides/install-and-first-parse.md).
 - To decide between a stream, a byte array, a typed C# object, or a dynamic result, see
   [Choose an API](guides/choosing-an-api.md).
@@ -47,6 +50,6 @@ the library API.
 > and does not import arbitrary C headers. Widths, byte order, alignment, and pointer size follow the options and
 > rules documented on this site.
 
-The project is preparing release candidate `0.2.0-preview`. Read the
+These pages describe the repository source. Published versions are listed in the release assets. Read the
 [release notes](https://github.com/vvollers/CStructSharp/blob/main/CHANGELOG.md) for changes, or
 [report a documentation problem](https://github.com/vvollers/CStructSharp/issues/new?labels=documentation&title=Documentation%3A%20).

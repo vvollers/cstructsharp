@@ -25,3 +25,7 @@ items:
   href: documentation-deployment.md
 - name: Documentation maintenance
   href: maintenance.md
+- name: Onboarding review
+  href: onboarding-review.md
+- name: Browser explorer development
+  href: web-development.md

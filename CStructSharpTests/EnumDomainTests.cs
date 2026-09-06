@@ -56,7 +56,14 @@ public class EnumDomainTests
         }
     }
 
-    /// <summary>Reads, debugs, addresses, serializes, writes, and updates exact boundary values for every domain.</summary>
+    /// <summary>
+    ///     Each data row selects a signed or unsigned integer width and byte order.
+    /// </summary>
+    /// <remarks>
+    ///     Minimum, maximum, and an unnamed value must retain their exact numbers and raw bits through every operation.
+    ///     Unknown enum values remain readable without an invented name; wide values must not be narrowed to a 32-bit
+    ///     integer.
+    /// </remarks>
     /// <param name="backingType">The canonical signed or unsigned backing type.</param>
     /// <param name="minimum">The backing domain's inclusive minimum.</param>
     /// <param name="maximum">The backing domain's inclusive maximum.</param>
@@ -134,7 +141,13 @@ public class EnumDomainTests
         }
     }
 
-    /// <summary>Accepts exactly the documented integral scalar spellings and follows scalar typedef chains.</summary>
+    /// <summary>
+    ///     The enum storage type may be a supported integer spelling or a chain of scalar aliases.
+    /// </summary>
+    /// <remarks>
+    ///     Reading zero-filled storage must return numeric zero and the canonical storage type. Following aliases must
+    ///     preserve the actual width and signedness rather than using the enum's name to guess its representation.
+    /// </remarks>
     /// <param name="prefix">Optional typedef declarations placed before the enum.</param>
     /// <param name="backingType">The direct or typedef backing name used by the enum.</param>
     [TestMethod]
@@ -152,7 +165,14 @@ public class EnumDomainTests
         Assert.AreEqual(CanonicalBacking(backingType), result.StorageType);
     }
 
-    /// <summary>Rejects non-integral, variable-sized, aggregate, enum, pointer, and unknown backing declarations.</summary>
+    /// <summary>
+    ///     An enum needs one supported fixed integer representation.
+    /// </summary>
+    /// <remarks>
+    ///     Text, structs, unions, other enums, pointers, unknown names, cycles, and the listed explicit-endian
+    ///     spellings must be rejected as backing declarations. A layout error is expected at construction, before any
+    ///     binary data is interpreted.
+    /// </remarks>
     [TestMethod]
     public void BackingTypes_RejectEverythingOutsideFixedIntegralScalars()
     {
@@ -180,7 +200,14 @@ public class EnumDomainTests
         }
     }
 
-    /// <summary>Checks the compact descriptor's exact range, raw-bit, and natural CLR storage contracts.</summary>
+    /// <summary>
+    ///     This internal conversion test checks each integer type's minimum, maximum, bit count, and matching C#
+    ///     storage type.
+    /// </summary>
+    /// <remarks>
+    ///     Converting valid numbers to raw bits and back must recover the original number. Overflow, booleans, and
+    ///     floating-point inputs must fail instead of silently changing the enum value.
+    /// </remarks>
     [TestMethod]
     public void IntegerCodec_ConvertsEveryDomainAndRejectsInvalidInputs()
     {
@@ -231,7 +258,13 @@ public class EnumDomainTests
         Assert.IsFalse(CStruct.EnumIntegerCodec.TryConvertIntegral(1.0, out _));
     }
 
-    /// <summary>Keeps standalone enum declarations eager and ordinary layout expressions checked to Int32.</summary>
+    /// <summary>
+    ///     A manually built uint64 enum starts above the 32-bit range and must assign the next implicit value exactly.
+    /// </summary>
+    /// <remarks>
+    ///     Wide literals retain their full value, but requesting their legacy 32-bit view must throw on overflow. Enum
+    ///     arithmetic can be wide without making ordinary layout-length expressions unbounded.
+    /// </remarks>
     [TestMethod]
     public void StandaloneModel_EvaluatesImmediatelyAndKeepsInt32ProjectionChecked()
     {
@@ -255,7 +288,14 @@ public class EnumDomainTests
         Assert.Throws<OverflowException>(() => _ = wideLiteral.Value);
     }
 
-    /// <summary>Applies exact evaluator depth, work, cycle, cache, and shift limits across identifier dependencies.</summary>
+    /// <summary>
+    ///     Expressions can refer to other expressions, forming a dependency graph.
+    /// </summary>
+    /// <remarks>
+    ///     Valid calculations at the configured boundary must succeed, but cycles, excessive depth or work, invalid
+    ///     shifts, and missing identifiers must be rejected. These checks keep exact large-integer evaluation from
+    ///     becoming unlimited work on a small input string.
+    /// </remarks>
     [TestMethod]
     public void ExactEvaluator_EnforcesDependencyWorkDepthAndShiftLimits()
     {
@@ -318,7 +358,13 @@ public class EnumDomainTests
             () => cycleEvaluator.EvaluateExact(new Literal(1), null, 0));
     }
 
-    /// <summary>Evaluates wide literals and arithmetic without an intermediate Int32 narrowing or wrapping step.</summary>
+    /// <summary>
+    ///     The declarations build 64-bit enum constants using shifts, defines, and numbers written in several bases.
+    /// </summary>
+    /// <remarks>
+    ///     Their values must remain exact even when intermediate results exceed Int32. This protects high-bit flags and
+    ///     signed boundary values from accidental truncation before the enum's storage range is checked.
+    /// </remarks>
     [TestMethod]
     public void Expressions_UseExactWidthAwareMathematics()
     {
@@ -370,7 +416,13 @@ public class EnumDomainTests
         AssertMember(signedValues, "Minimum", long.MinValue);
     }
 
-    /// <summary>Uses the compiled enum alignment and the instance byte order at an offset after a narrow field.</summary>
+    /// <summary>
+    ///     The enum is backed by uint32, so alignment places it at offset 4 after a byte prefix.
+    /// </summary>
+    /// <remarks>
+    ///     Its bytes must decode to Known = 0x01020304 in either byte order. The tail and round-trip output check that
+    ///     padding and the enum's four-byte width remain consistent.
+    /// </remarks>
     /// <param name="isLittleEndian">Whether neutral enum storage uses least-significant-byte-first order.</param>
     [TestMethod]
     [DataRow(false)]
@@ -397,7 +449,13 @@ public class EnumDomainTests
         CollectionAssert.AreEqual(bytes, cstruct.Serialize("root", parsed));
     }
 
-    /// <summary>Rejects explicit values, implicit increments, and shifts outside the declared backing domain.</summary>
+    /// <summary>
+    ///     Examples such as uint8 value 256 or an implicit member after 255 do not fit their declared storage.
+    /// </summary>
+    /// <remarks>
+    ///     Invalid shifts and division by zero must also fail while compiling the layout. The checks prevent wrapped
+    ///     enum constants and oversized values from leaking into ordinary array-size expressions.
+    /// </remarks>
     [TestMethod]
     public void Expressions_RejectDomainOverflowAndInvalidShiftsDuringCompilation()
     {
@@ -446,7 +504,14 @@ public class EnumDomainTests
             () => new CStruct("#define UNUSED 1 << 63\nstruct root { byte value; };"));
     }
 
-    /// <summary>Uses the same enum descriptor for direct roots, arrays, nested structs, pointers, and union members.</summary>
+    /// <summary>
+    ///     The uint64 maximum is read as a root enum, inside arrays and nested structs, through a pointer, and as a
+    ///     union member.
+    /// </summary>
+    /// <remarks>
+    ///     Every placement must preserve the same exact value and bytes. Changing where an enum appears must not change
+    ///     its numeric range or storage interpretation.
+    /// </remarks>
     /// <param name="isLittleEndian">Whether neutral enum storage uses least-significant-byte-first order.</param>
     [TestMethod]
     [DataRow(false)]
@@ -512,7 +577,13 @@ public class EnumDomainTests
         }
     }
 
-    /// <summary>Publishes an in-range enum scalar to later array expressions for read, path, and write operations.</summary>
+    /// <summary>
+    ///     count is an enum whose Two member has numeric value 2.
+    /// </summary>
+    /// <remarks>
+    ///     The following values[count] must therefore contain two bytes, placing tail at offset 3. Both parsed enum
+    ///     objects and supported write inputs must use that numeric count rather than the symbolic name.
+    /// </remarks>
     [TestMethod]
     public void ScalarEnum_CanDriveALaterArrayLength()
     {
@@ -545,7 +616,13 @@ public class EnumDomainTests
                 }));
     }
 
-    /// <summary>Does not reuse a stale caller value when a wide enum scalar cannot enter the Int32 expression domain.</summary>
+    /// <summary>
+    ///     The stream's count is the uint64 maximum, while the caller supplies an older variable count = 1.
+    /// </summary>
+    /// <remarks>
+    ///     That wide enum cannot be a valid Int32 array count. Reading, locating, or writing the array must fail
+    ///     instead of falling back to the stale value and pretending it contains one element.
+    /// </remarks>
     [TestMethod]
     public void WideEnumScalar_ShadowsStaleExpressionVariables()
     {
@@ -572,7 +649,14 @@ public class EnumDomainTests
                 variables));
     }
 
-    /// <summary>Accepts convenient exact inputs while rejecting coercive, contradictory, or out-of-domain values.</summary>
+    /// <summary>
+    ///     Known represents 42 in a uint64 enum.
+    /// </summary>
+    /// <remarks>
+    ///     Supported integer and structured inputs must encode that exact value. Fractional, contradictory, or out-of-
+    ///     range inputs must raise a write error; convenience conversions must not round numbers or silently choose
+    ///     between conflicting enum information.
+    /// </remarks>
     [TestMethod]
     public void Writer_AcceptsIntegralAndStructuredInputsButRejectsCoercion()
     {
@@ -645,7 +729,14 @@ public class EnumDomainTests
         }
     }
 
-    /// <summary>Fails before committing bytes or changing the caller's stream position for invalid enum updates.</summary>
+    /// <summary>
+    ///     A uint16 enum cannot store 65536.
+    /// </summary>
+    /// <remarks>
+    ///     Updating it with that value must fail before replacing any of the four original bytes. The caller's position
+    ///     must remain 2, showing that an invalid replacement does not disturb either the surrounding fields or stream
+    ///     state.
+    /// </remarks>
     [TestMethod]
     public void Writer_InvalidUpdateIsTransactional()
     {
@@ -661,7 +752,13 @@ public class EnumDomainTests
         Assert.AreEqual(2L, stream.Position);
     }
 
-    /// <summary>Rejects a parsed result from a same-named enum whose signedness or width differs.</summary>
+    /// <summary>
+    ///     Two enums can share the name state while using different integer storage.
+    /// </summary>
+    /// <remarks>
+    ///     A result parsed from uint16 must not be accepted as an int16 result merely because its current number fits.
+    ///     Width and signedness metadata must match, preventing accidental reuse of values from an incompatible layout.
+    /// </remarks>
     [TestMethod]
     public void Writer_ValidatesParsedResultDomainMetadata()
     {
@@ -692,7 +789,13 @@ public class EnumDomainTests
         }
     }
 
-    /// <summary>Returns the first declared symbolic name for aliases and keeps unknown values exact.</summary>
+    /// <summary>
+    ///     First and Alias both represent 7, so the result must consistently choose the first declared name.
+    /// </summary>
+    /// <remarks>
+    ///     The uint64 maximum has no declared name and must display its complete decimal number. This makes enum
+    ///     results predictable without discarding unknown values.
+    /// </remarks>
     [TestMethod]
     public void Results_UseFirstDeclaredNameAndExactUnknownText()
     {

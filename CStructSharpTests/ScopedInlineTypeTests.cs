@@ -10,7 +10,13 @@ using CStructSharp.Structure;
 [TestClass]
 public class ScopedInlineTypeTests
 {
-    /// <summary>Reproduces the review case in which two unrelated inline fields named value collided globally.</summary>
+    /// <summary>
+    ///     first.value contains a byte, while second.value contains a uint16.
+    /// </summary>
+    /// <remarks>
+    ///     Both fields are named value, but their anonymous struct types belong to different parents. They must decode
+    ///     0x2A and 0x1234 independently, and value must not leak into the global type or alignment dictionaries.
+    /// </remarks>
     [TestMethod]
     public void Constructor_AllowsTheSameInlineFieldNameInUnrelatedScopes()
     {
@@ -40,9 +46,13 @@ public class ScopedInlineTypeTests
     }
 
     /// <summary>
-    ///     Exercises deep repeated names, fixed arrays, alignment, byte order, selected reads, debug, address,
-    ///     serialization, writing, updates, and pointer traversal against one scoped declaration graph.
+    ///     Several nested fields are named value, including one in an unrelated peer record.
     /// </summary>
+    /// <remarks>
+    ///     Paths must still find the correct uint16 array, payload at offset 8, and pointer target at 16. Reads and
+    ///     writes in both byte orders must keep these scopes separate and preserve padding and unrelated bytes during
+    ///     updates.
+    /// </remarks>
     /// <param name="isLittleEndian">Whether multi-byte values use least-significant-byte-first order.</param>
     [TestMethod]
     [DataRow(true)]
@@ -136,7 +146,14 @@ public class ScopedInlineTypeTests
         Assert.AreEqual(0L, stream.Position);
     }
 
-    /// <summary>Gives two typedef backing declarations independent identities even when their diagnostic tags match.</summary>
+    /// <summary>
+    ///     Two typedef declarations reuse the private tag shared but export different aliases. small_payload holds one
+    ///     byte and large_payload holds a uint32.
+    /// </summary>
+    /// <remarks>
+    ///     The aliases must retain their own sizes and alignments, placing the second field at offset 4; the private
+    ///     shared tag must not become a global type.
+    /// </remarks>
     [TestMethod]
     public void TypedefBackingNames_AreScopedToTheirAliases()
     {
@@ -186,7 +203,13 @@ public class ScopedInlineTypeTests
             stream.ToArray());
     }
 
-    /// <summary>Allows lexical inline field spellings to match globals and codecs without changing type lookup.</summary>
+    /// <summary>
+    ///     The inline fields named item and byte contain their own anonymous records.
+    /// </summary>
+    /// <remarks>
+    ///     Those field names must not replace the global item type or the built-in byte reader. The local fields must
+    ///     decode 0x1234 and 0xA5 while the public type dictionary still contains only item and root.
+    /// </remarks>
     [TestMethod]
     public void InlineFieldNames_CanMatchGlobalDeclarationsAndBuiltInCodecs()
     {
@@ -209,7 +232,14 @@ public class ScopedInlineTypeTests
             cstruct.CStructElements.Keys.ToArray());
     }
 
-    /// <summary>Accepts private declaration identities that reuse spellings outside their own lexical member scope.</summary>
+    /// <summary>
+    ///     The sample layouts reuse names across typedef backing structs, anonymous children, global declarations, and
+    ///     built-in types.
+    /// </summary>
+    /// <remarks>
+    ///     Each must compile because those private declarations have separate identities. This prevents a convenient
+    ///     local field name from accidentally creating or replacing a global type.
+    /// </remarks>
     [TestMethod]
     public void PrivateStructIdentities_DoNotCollideWithUnrelatedNames()
     {
@@ -234,7 +264,13 @@ public class ScopedInlineTypeTests
         }
     }
 
-    /// <summary>Rejects attempts to use an anonymous inline field spelling as a declared type before touching bytes.</summary>
+    /// <summary>
+    ///     An anonymous child field named local or value does not declare a reusable type with that name.
+    /// </summary>
+    /// <remarks>
+    ///     Attempts to reference it elsewhere, including through a pointer, must fail with Unknown field type. The
+    ///     supplied stream must retain its bytes and position because the error belongs to the layout itself.
+    /// </remarks>
     [TestMethod]
     public void Constructor_RejectsReferencesToAnonymousInlineIdentitiesBeforeStreamAccess()
     {
@@ -264,7 +300,13 @@ public class ScopedInlineTypeTests
         }
     }
 
-    /// <summary>Validates every private backing and nested inline declaration even when no exported root uses it.</summary>
+    /// <summary>
+    ///     Both typedef bodies contain an unsized uint32 array, directly or inside another anonymous struct.
+    /// </summary>
+    /// <remarks>
+    ///     Only character fields support this unsized form. Construction must reject the error even when the
+    ///     declaration is private or never selected as a root; unused definitions are still validated.
+    /// </remarks>
     [TestMethod]
     public void Constructor_ValidatesUnusedPrivateDeclarations()
     {
@@ -281,7 +323,14 @@ public class ScopedInlineTypeTests
         }
     }
 
-    /// <summary>Keeps recursion through an actual global declaration legal while anonymous identities remain private.</summary>
+    /// <summary>
+    ///     A named node may contain a pointer to another node because the pointer has a fixed storage width; the node
+    ///     does not contain an endless sequence of inline nodes.
+    /// </summary>
+    /// <remarks>
+    ///     Zero next addresses and byte values must serialize correctly for both a named struct and a typedef-backed
+    ///     node.
+    /// </remarks>
     [TestMethod]
     public void NamedPointerRecursion_RemainsLegal()
     {
@@ -308,7 +357,13 @@ public class ScopedInlineTypeTests
             aliased.Serialize("root", aliasedData));
     }
 
-    /// <summary>Preserves pointer depth while resolving a pointer typedef used by another pointer declarator.</summary>
+    /// <summary>
+    ///     target_pointer already means uint16*, and adding another star makes a two-level pointer.
+    /// </summary>
+    /// <remarks>
+    ///     Addresses 2 and 4 must lead to 0x1234. Resolving and updating through value.value.value must reach the final
+    ///     uint16, producing EF BE for 0xBEEF without overwriting either pointer slot.
+    /// </remarks>
     [TestMethod]
     public void PointerTypedefDepth_RemainsCompositional()
     {

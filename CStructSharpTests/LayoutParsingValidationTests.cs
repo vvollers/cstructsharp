@@ -10,9 +10,12 @@ using CStructSharp;
 public class LayoutParsingValidationTests
 {
     /// <summary>
-    ///     Requires the top-level grammar to consume all non-comment input so an apparently accepted header can never
-    ///     be only a valid prefix followed by ignored declarations or garbage.
+    ///     A valid struct followed by garbage or an unfinished declaration must fail as a whole.
     /// </summary>
+    /// <remarks>
+    ///     A trailing comment is allowed. This prevents the constructor from accepting only the valid beginning of a
+    ///     definition and silently ignoring a mistake later in the text.
+    /// </remarks>
     [TestMethod]
     public void LayoutParser_RejectsTrailingNonCommentInput()
     {
@@ -25,9 +28,13 @@ public class LayoutParsingValidationTests
     }
 
     /// <summary>
-    ///     Feeds several unsupported or incomplete grammar forms through the public constructor. Every one must identify
-    ///     the failure as invalid layout text and retain Pidgin's line/column context, regardless of which token failed.
+    ///     The inputs include empty text, broken fields, an incomplete number, unsupported include syntax, and trailing
+    ///     garbage.
     /// </summary>
+    /// <remarks>
+    ///     Every failure must be a layout error. Nonempty syntax errors must retain line and column information and
+    ///     their underlying cause so a user can locate the faulty declaration.
+    /// </remarks>
     [TestMethod]
     public void LayoutParser_MalformedCorpusHasStableLocatedDiagnostics()
     {
@@ -57,9 +64,12 @@ public class LayoutParsingValidationTests
     }
 
     /// <summary>
-    ///     Normalizes malformed fields and base-prefixed literals to the documented layout exception instead of leaking
-    ///     parser implementation exceptions to callers.
+    ///     An empty field and malformed hexadecimal or binary array counts exercise failures inside parser conversions.
     /// </summary>
+    /// <remarks>
+    ///     Callers must receive CStructLayoutException for all of them, rather than unrelated parser implementation
+    ///     errors. The test concerns invalid layout text, not missing binary bytes.
+    /// </remarks>
     [TestMethod]
     public void LayoutParser_NormalizesSemanticActionFailures()
     {
@@ -69,9 +79,12 @@ public class LayoutParsingValidationTests
     }
 
     /// <summary>
-    ///     Treats braces inside comments as text rather than declaration nesting and rejects variable-size union members
-    ///     or unsized non-character arrays during layout compilation.
+    ///     Braces inside a comment must not exceed a one-level nesting limit.
     /// </summary>
+    /// <remarks>
+    ///     In contrast, an unsized byte array and a variable-length string inside a union must fail for real storage
+    ///     reasons. Unsized character fields have special support, but unions still require fixed-size members.
+    /// </remarks>
     [TestMethod]
     public void CompilationValidation_IgnoresCommentBracesAndRejectsUnboundedStorage()
     {

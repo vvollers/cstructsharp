@@ -7,9 +7,13 @@ using System.Dynamic;
 public class PointerArithmeticTests
 {
     /// <summary>
-    ///     Rejects a negative real target even when subtracting a more-negative relative origin produces a positive
-    ///     stored offset. Serialize, direct write, and update must all fail before changing output.
+    ///     Target -1 minus origin -2 gives a positive encoded offset, but the actual target is still an invalid
+    ///     negative stream position.
     /// </summary>
+    /// <remarks>
+    ///     Serialization, writing, and updating must all reject it. Checking only whether the stored relative number
+    ///     fits would incorrectly accept this address.
+    /// </remarks>
     [TestMethod]
     public void RelativePointerWrites_RejectNegativeActualTargetsBeforeOutput()
     {
@@ -42,7 +46,14 @@ public class PointerArithmeticTests
         Assert.AreEqual(1L, updateStream.Position);
     }
 
-    /// <summary>Maps pointer conversion, relative subtraction, null ambiguity, and width failures to the write domain.</summary>
+    /// <summary>
+    ///     Pointer inputs can fail during numeric conversion, subtraction of the relative origin, null-address
+    ///     encoding, or width checking.
+    /// </summary>
+    /// <remarks>
+    ///     Each failure must be reported as a write error, with arithmetic overflow retained as the cause where
+    ///     applicable. The library must not truncate an address to make it fit.
+    /// </remarks>
     [TestMethod]
     public void PointerWriteFailures_UseCStructWriteException()
     {
@@ -83,9 +94,13 @@ public class PointerArithmeticTests
     }
 
     /// <summary>
-    ///     Accepts the largest storable signed stream address and rejects the first larger value at every configured
-    ///     pointer width, both byte orders, and both addressing modes.
+    ///     For each pointer width, the largest supported stored address must encode exactly in both byte orders and
+    ///     addressing modes.
     /// </summary>
+    /// <remarks>
+    ///     The next value must fail. Eight-byte pointers are additionally constrained by the signed stream-position
+    ///     range, even though eight raw bytes can represent larger unsigned numbers.
+    /// </remarks>
     /// <param name="pointerSize">The configured pointer storage width.</param>
     /// <param name="isLittleEndian">Whether the pointer storage is least-significant-byte first.</param>
     [TestMethod]
@@ -136,9 +151,12 @@ public class PointerArithmeticTests
     }
 
     /// <summary>
-    ///     Uses read exceptions for materialization, path exceptions for relative path arithmetic, and preserves query
-    ///     and update state when an extreme origin overflows.
+    ///     Adding an extreme origin to a nonzero stored offset would exceed the supported address range.
     /// </summary>
+    /// <remarks>
+    ///     Parsing must report a read error; path arithmetic must report the appropriate path error. Address queries
+    ///     and updates must also restore the caller's position and preserve bytes when this calculation fails.
+    /// </remarks>
     /// <param name="isLittleEndian">Whether the stored address is least-significant-byte first.</param>
     [TestMethod]
     [DataRow(true)]
@@ -209,7 +227,13 @@ public class PointerArithmeticTests
         Assert.AreEqual(rootStart, updateStream.Position);
     }
 
-    /// <summary>Rejects unsigned 64-bit pointer payloads that cannot be represented as signed stream positions.</summary>
+    /// <summary>
+    ///     The stored number 2^63 fits eight unsigned bytes but not a signed stream offset.
+    /// </summary>
+    /// <remarks>
+    ///     It must be rejected even with dereferencing disabled. The supported maximum remains readable as an address,
+    ///     while attempting to use a wide pointer number as an Int32 array count must fail separately.
+    /// </remarks>
     /// <param name="isLittleEndian">Whether the stored address is least-significant-byte first.</param>
     [TestMethod]
     [DataRow(true)]
@@ -296,9 +320,13 @@ public class PointerArithmeticTests
     }
 
     /// <summary>
-    ///     Keeps encoded zero reserved for null while allowing a nonzero relative offset to resolve to physical stream
-    ///     address zero.
+    ///     Stored zero always represents null.
     /// </summary>
+    /// <remarks>
+    ///     A nonzero stored offset of 1 with origin -1 can nevertheless point to actual stream offset zero and read
+    ///     0x2A. The test separates the encoded address from the resolved position so valid relative targets are not
+    ///     mistaken for null.
+    /// </remarks>
     [TestMethod]
     public void RelativePointers_DefineAddressZeroSemanticsAtExtremeOrigins()
     {

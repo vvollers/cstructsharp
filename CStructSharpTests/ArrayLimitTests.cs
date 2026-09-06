@@ -11,9 +11,13 @@ using CStructSharp.Structure;
 public class ArrayLimitTests
 {
     /// <summary>
-    ///     Bounds writer-side array work, rejects values that do not match a fixed declaration, and distinguishes
-    ///     writer failures from reader budget failures through their dedicated exception types.
+    ///     values[2] requires exactly two elements.
     /// </summary>
+    /// <remarks>
+    ///     A write limit of one must reject even a correctly shaped value, and supplying only one element must fail
+    ///     even with the default limit. Reading with a restrictive array budget must use the read-limit exception,
+    ///     distinguishing excessive read work from invalid write input.
+    /// </remarks>
     [TestMethod]
     public void ArrayLimits_AreExplicitAndOperationSpecific()
     {

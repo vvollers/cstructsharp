@@ -54,7 +54,14 @@ public class RoundTripPropertyTests
         new("ulong", value => value),
     ];
 
-    /// <summary>Generates mixed scalar declarations and proves both value equality and canonical byte stability.</summary>
+    /// <summary>
+    ///     A fixed seed generates 192 mixed-scalar layouts and values.
+    /// </summary>
+    /// <remarks>
+    ///     Writing then reading must recover the values, and re-encoding must keep canonical bytes stable. The
+    ///     generator also checks primitive coverage and can simplify a failing case, making broader combinations useful
+    ///     rather than unreproducible.
+    /// </remarks>
     [TestMethod]
     public void GeneratedFixedLayouts_ValueAndCanonicalBytesRoundTrip()
     {
@@ -82,7 +89,14 @@ public class RoundTripPropertyTests
             "The retained corpus must exercise every fixed primitive spelling.");
     }
 
-    /// <summary>Covers nested/inline structs, typedefs, fixed/runtime arrays, character buffers, and aligned padding.</summary>
+    /// <summary>
+    ///     The generated cases combine nested and inline structs, aliases, fixed or runtime arrays, text buffers, and
+    ///     padding.
+    /// </summary>
+    /// <remarks>
+    ///     Equivalent normalized values must survive writing and reading, and canonical bytes must remain stable.
+    ///     Normalization accounts for result representations such as dynamic lists without weakening the binary checks.
+    /// </remarks>
     [TestMethod]
     public void GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip()
     {
@@ -96,7 +110,13 @@ public class RoundTripPropertyTests
             FormatCompositeCase);
     }
 
-    /// <summary>Fills every portable bitfield storage bit and keeps representable known/unknown enum payloads exact.</summary>
+    /// <summary>
+    ///     Generated records combine known or unnamed enum values with bitfields that fill their storage units.
+    /// </summary>
+    /// <remarks>
+    ///     Values must remain exact through read/write cycles and produce stable bytes. Filling every storage bit
+    ///     avoids confusing discarded unused bits with a genuine loss of field data.
+    /// </remarks>
     [TestMethod]
     public void GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip()
     {
@@ -110,7 +130,14 @@ public class RoundTripPropertyTests
             FormatEnumBitfieldCase);
     }
 
-    /// <summary>Generates valid text for every registered terminated-string codec and checks its complete terminator bytes.</summary>
+    /// <summary>
+    ///     Each registered terminated-text type receives generated text valid for its encoding.
+    /// </summary>
+    /// <remarks>
+    ///     Writing and reading must recover the text and preserve complete terminator bytes on re-encoding. Cases
+    ///     respect encoding restrictions so failures reveal conversion or termination defects rather than intentionally
+    ///     invalid input.
+    /// </remarks>
     [TestMethod]
     public void GeneratedTerminatedStrings_ValueAndCanonicalBytesRoundTrip()
     {
@@ -138,9 +165,13 @@ public class RoundTripPropertyTests
     }
 
     /// <summary>
-    ///     Proves that one- and two-level pointers preserve their stored root address bytes while target graph bytes
-    ///     remain external to root serialization.
+    ///     Generated one- and two-level pointer records must preserve their stored addresses and root bytes after
+    ///     parsing and serialization.
     /// </summary>
+    /// <remarks>
+    ///     Target graph bytes remain outside root serialization. Reading a target does not make the serializer
+    ///     allocate, relocate, or copy that external target automatically.
+    /// </remarks>
     [TestMethod]
     public void GeneratedPointerStorage_AddressAndCanonicalRootBytesRoundTrip()
     {
@@ -154,7 +185,14 @@ public class RoundTripPropertyTests
             FormatPointerCase);
     }
 
-    /// <summary>Requires every cross-operation feature to have one semantic and one byte round-trip classification.</summary>
+    /// <summary>
+    ///     Every catalog feature must describe both value round trips and byte round trips, including the conditions
+    ///     under which each holds.
+    /// </summary>
+    /// <remarks>
+    ///     The test checks that none are omitted. Equal decoded values do not always imply preservation of arbitrary
+    ///     padding or unselected storage, so these promises are recorded separately.
+    /// </remarks>
     [TestMethod]
     public void Catalog_ClassifiesRoundTripContractsForEveryFeature()
     {

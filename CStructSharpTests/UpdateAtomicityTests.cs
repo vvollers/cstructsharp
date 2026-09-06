@@ -7,7 +7,13 @@ using System.Dynamic;
 [TestClass]
 public class UpdateAtomicityTests
 {
-    /// <summary>Rejects a missing late member before any earlier member reaches the destination.</summary>
+    /// <summary>
+    ///     The replacement supplies first but omits second, using several C# object shapes.
+    /// </summary>
+    /// <remarks>
+    ///     Updating the whole two-byte record must fail without committing first. This proves member validation
+    ///     completes in staging rather than exposing a partially bound replacement to the destination.
+    /// </remarks>
     [TestMethod]
     public void LateBindingFailures_DoNotReachDestination_ForEveryObjectShape()
     {
@@ -30,7 +36,13 @@ public class UpdateAtomicityTests
         }
     }
 
-    /// <summary>Rejects a bad late array element without retaining already converted leading elements.</summary>
+    /// <summary>
+    ///     The first two values fit uint8, but the last item is nonnumeric text.
+    /// </summary>
+    /// <remarks>
+    ///     Replacing values[3] must reject the entire array and preserve all three original bytes. Successfully
+    ///     converting earlier elements is not permission to commit them before the remaining input is validated.
+    /// </remarks>
     [TestMethod]
     public void LateArrayConversion_DoesNotReachDestination()
     {
@@ -45,7 +57,13 @@ public class UpdateAtomicityTests
                 new object[] { (byte)1, (byte)2, "not-a-byte", }));
     }
 
-    /// <summary>Applies the complete logical-write budget before committing any accepted prefix.</summary>
+    /// <summary>
+    ///     Three byte fields are supplied, but the total write budget is insufficient for the complete replacement.
+    /// </summary>
+    /// <remarks>
+    ///     UpdateStream must preserve the old record even if earlier fields could fit. Its staged validation behavior
+    ///     differs from a direct stream write that may leave an accepted prefix.
+    /// </remarks>
     [TestMethod]
     public void LateWriteBudgetFailure_DoesNotReachDestination()
     {
@@ -64,7 +82,13 @@ public class UpdateAtomicityTests
                 options: new UpdateOptions { MaxTotalBytesWritten = 2, }));
     }
 
-    /// <summary>Rejects a late terminated-string budget failure after staging an ordinary leading member.</summary>
+    /// <summary>
+    ///     A valid prefix is followed by text exceeding the allowed encoded-string size.
+    /// </summary>
+    /// <remarks>
+    ///     The entire update must fail without committing the prefix. String budget checks remain part of preparing the
+    ///     replacement, not an error discovered after earlier fields reach the destination.
+    /// </remarks>
     [TestMethod]
     public void LateStringBudgetFailure_DoesNotReachDestination()
     {
@@ -81,7 +105,13 @@ public class UpdateAtomicityTests
                 options: new UpdateOptions { MaxStringBytes = 3, }));
     }
 
-    /// <summary>Rejects a late runtime-array element conversion after the count and accepted prefix were staged.</summary>
+    /// <summary>
+    ///     The replacement's count is 2, but its second array item cannot convert to a byte.
+    /// </summary>
+    /// <remarks>
+    ///     Neither the new prefix, count, nor first item may reach the stream. A data-dependent array must be fully
+    ///     validated before its containing record is committed.
+    /// </remarks>
     [TestMethod]
     public void LateRuntimeArrayConversion_DoesNotReachDestination()
     {
@@ -101,7 +131,13 @@ public class UpdateAtomicityTests
             stream => cstruct.UpdateStream(stream, "root", value));
     }
 
-    /// <summary>Rejects a late pointer conversion before an earlier ordinary member is visible.</summary>
+    /// <summary>
+    ///     marker is valid but target = -1 is not a legal pointer address.
+    /// </summary>
+    /// <remarks>
+    ///     Replacing the record must fail without changing its earlier marker. This verifies that pointer conversion
+    ///     errors receive the same staged protection as errors in ordinary scalar fields.
+    /// </remarks>
     [TestMethod]
     public void LatePointerFailure_DoesNotReachDestination()
     {
@@ -114,7 +150,13 @@ public class UpdateAtomicityTests
             stream => cstruct.UpdateStream(stream, "root", value));
     }
 
-    /// <summary>Stages scalar-domain, string, array, and union failures after a valid leading member.</summary>
+    /// <summary>
+    ///     Each case puts a valid prefix before an invalid enum, bitfield, string, array, or union value.
+    /// </summary>
+    /// <remarks>
+    ///     All must reject the full update without committing the prefix. The guarantee must hold across specialized
+    ///     writers, not just the simplest numeric conversion path.
+    /// </remarks>
     [TestMethod]
     public void ValueFamilyFailures_DoNotReachDestination()
     {
@@ -155,7 +197,13 @@ public class UpdateAtomicityTests
         }
     }
 
-    /// <summary>Charges staged bitfield preservation reads to the same traversal budget used by path resolution.</summary>
+    /// <summary>
+    ///     Updating high in 0xA5 must read the existing byte to preserve low.
+    /// </summary>
+    /// <remarks>
+    ///     A zero traversal-read budget therefore makes the update fail, even though the field address is already
+    ///     known. Those preservation reads share the read budget and must occur before any destination write.
+    /// </remarks>
     [TestMethod]
     public void PreservationReads_ShareTheTraversalBudget()
     {
@@ -174,7 +222,13 @@ public class UpdateAtomicityTests
         Assert.AreEqual(0L, stream.Position);
     }
 
-    /// <summary>Validates union selection before either clear or preserve policy can affect existing storage.</summary>
+    /// <summary>
+    ///     The chosen union member missing does not exist.
+    /// </summary>
+    /// <remarks>
+    ///     Both clear and preserve policies must reject it while leaving 34 12 untouched. Choosing to clear unused
+    ///     union storage must not cause early zeroing before the member selection is validated.
+    /// </remarks>
     /// <param name="clearUnionStorage">Whether the staged union starts from zeroes or existing storage.</param>
     [TestMethod]
     [DataRow(true)]
@@ -194,7 +248,13 @@ public class UpdateAtomicityTests
                 options: new UpdateOptions { ClearUnionStorage = clearUnionStorage, }));
     }
 
-    /// <summary>Refuses to synthesize missing neighboring bits when an existing storage unit is truncated.</summary>
+    /// <summary>
+    ///     The uint16 unit needs two bytes, but only A5 exists.
+    /// </summary>
+    /// <remarks>
+    ///     The missing byte could contain high's bits, so changing low cannot safely synthesize it. The read failure
+    ///     must leave the destination unchanged rather than pad or extend it.
+    /// </remarks>
     [TestMethod]
     public void TruncatedBitfieldStorage_DoesNotReachDestination()
     {
@@ -206,7 +266,13 @@ public class UpdateAtomicityTests
             stream => cstruct.UpdateStream(stream, "root.low", 3));
     }
 
-    /// <summary>Rejects absolute and relative pointer targets whose selected replacement starts at the old end.</summary>
+    /// <summary>
+    ///     Both an absolute pointer and a relative pointer resolve to offset 4, exactly the end of a four-byte stream.
+    /// </summary>
+    /// <remarks>
+    ///     No target byte exists there to replace. The update must report the selected path as a read failure and make
+    ///     no physical writes.
+    /// </remarks>
     /// <param name="addressingMode">The pointer addressing convention used by the stored byte.</param>
     /// <param name="origin">The physical origin added to a relative stored address.</param>
     /// <param name="storedAddress">The encoded pointer byte that resolves to the old stream end.</param>
@@ -239,7 +305,13 @@ public class UpdateAtomicityTests
         Assert.AreEqual(0L, stream.Position);
     }
 
-    /// <summary>Keeps update as replacement of existing storage instead of silently extending the destination.</summary>
+    /// <summary>
+    ///     The cases select storage in an empty stream or start a one-byte replacement at the end of a one-byte stream.
+    /// </summary>
+    /// <remarks>
+    ///     Both would append data rather than replace it. UpdateStream must reject them and preserve the original
+    ///     length, bytes, and position.
+    /// </remarks>
     [TestMethod]
     public void Update_CannotExtendTheExistingStream()
     {
@@ -258,7 +330,13 @@ public class UpdateAtomicityTests
         }
     }
 
-    /// <summary>Consumes an arbitrary enumerable once while preparing and committing one successful update.</summary>
+    /// <summary>
+    ///     The three-byte array is supplied by an enumerable that can be consumed only once.
+    /// </summary>
+    /// <remarks>
+    ///     Preparing and committing the update must produce 1,2,3 with exactly one enumeration. Staging must save the
+    ///     prepared bytes instead of trying to enumerate the input again during commit.
+    /// </remarks>
     [TestMethod]
     public void SuccessfulUpdate_ConsumesSinglePassEnumerableOnce()
     {
@@ -273,7 +351,13 @@ public class UpdateAtomicityTests
         Assert.AreEqual(0L, stream.Position);
     }
 
-    /// <summary>Commits one coalesced aligned replacement in either byte order without charging output twice.</summary>
+    /// <summary>
+    ///     A byte prefix and aligned uint32 value occupy eight bytes.
+    /// </summary>
+    /// <remarks>
+    ///     The replacement must use the selected byte order and preserve the expected padding. Preparing bytes and then
+    ///     committing them must not charge the logical write budget twice, and the caller's position must be restored.
+    /// </remarks>
     /// <param name="isLittleEndian">Whether the multi-byte field uses least-significant-byte-first order.</param>
     /// <param name="expected">The complete expected replacement bytes.</param>
     [TestMethod]
@@ -301,7 +385,14 @@ public class UpdateAtomicityTests
         Assert.AreEqual(0L, stream.Position);
     }
 
-    /// <summary>Retains the physical commit failure even if restoring the caller position then also fails.</summary>
+    /// <summary>
+    ///     The fake destination fails while committing, after changing zero or one bytes, and then also fails to
+    ///     restore position.
+    /// </summary>
+    /// <remarks>
+    ///     The original write failure must remain the reported cause with path and offset. Already-written bytes may
+    ///     remain: this is a physical I/O failure, not a validation failure that staging can prevent.
+    /// </remarks>
     /// <param name="partialBytes">The prefix physically changed before the injected write failure.</param>
     [TestMethod]
     [DataRow(0)]
@@ -336,7 +427,13 @@ public class UpdateAtomicityTests
         Assert.AreEqual(0, stream.FlushCalls);
     }
 
-    /// <summary>Reports a post-commit restoration failure with context while retaining the validated replacement.</summary>
+    /// <summary>
+    ///     All replacement bytes 1,2,3 are successfully committed, but resetting the caller's position throws.
+    /// </summary>
+    /// <remarks>
+    ///     The operation must report that restoration error while retaining the new bytes. An exception after commit
+    ///     must not be mistaken for evidence that no update occurred.
+    /// </remarks>
     [TestMethod]
     public void SuccessfulCommit_RetainsBytesWhenPositionRestorationFails()
     {

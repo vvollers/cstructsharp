@@ -11,9 +11,12 @@ using CStructSharp;
 public class CompositeAlignmentTests
 {
     /// <summary>
-    ///     Places a narrow-first child after a one-byte prefix and verifies that every public operation uses the
-    ///     child's eight-byte parent boundary, not merely the first member's one-byte alignment.
+    ///     inner begins with a byte but also contains a uint64, giving the whole child eight-byte alignment.
     /// </summary>
+    /// <remarks>
+    ///     It must start at offset 8 after the parent's prefix, with b at 16 and tail at 24. Reading, address lookup,
+    ///     debug information, and writing must all use this same placement.
+    /// </remarks>
     [TestMethod]
     public void AlignedNestedStruct_UsesParentFieldBoundaryEverywhere()
     {
@@ -57,10 +60,13 @@ public class CompositeAlignmentTests
     }
 
     /// <summary>
-    ///     Extends the parent-boundary invariant across an inline child, a child array, and a named union. These are
-    ///     separate recursive branches internally, so each must place its first byte at the compiled field boundary and
-    ///     leave the following sentinel at the same address used by size, read, write, and debug operations.
+    ///     An inline struct, an array of structs, and a union each contain a uint64, so each starts at an eight-byte
+    ///     boundary after the prefix.
     /// </summary>
+    /// <remarks>
+    ///     Their different sizes place the tail at 24, 40, and 16 respectively. The parsed values, reported sizes,
+    ///     resolved addresses, and serialized bytes must agree.
+    /// </remarks>
     [TestMethod]
     public void AlignedCompositeFields_ShareOneParentBoundaryRule()
     {
@@ -129,9 +135,12 @@ public class CompositeAlignmentTests
     }
 
     /// <summary>
-    ///     Uses a new bitfield storage unit when the declared primitive type changes, matching the compiled size rule
-    ///     and keeping the following sentinel at the same offset for read, write, debug, and address operations.
+    ///     uint16 a:4 and int16 b:4 have equally wide but different base types, so they occupy separate two-byte units.
     /// </summary>
+    /// <remarks>
+    ///     They must read 10 and 11, with tail = 0xA5 at offset 4. Treating them as one shared unit would corrupt both
+    ///     b and the tail location.
+    /// </remarks>
     [TestMethod]
     public void MixedBaseTypeBitfields_UseSeparateStorageUnits()
     {

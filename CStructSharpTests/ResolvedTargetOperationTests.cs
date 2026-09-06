@@ -6,7 +6,13 @@ using System.Dynamic;
 [TestClass]
 public class ResolvedTargetOperationTests
 {
-    /// <summary>Preserves root-only address and update behavior for non-struct declarations.</summary>
+    /// <summary>
+    ///     word aliases uint16 and is itself a valid root selection.
+    /// </summary>
+    /// <remarks>
+    ///     Its address is zero, and updating it to 0x1234 must produce 34 12. Path operations must support scalar alias
+    ///     roots instead of assuming every root is a struct with members.
+    /// </remarks>
     [TestMethod]
     public void RootTarget_TypedefRemainsAddressableAndWritable()
     {
@@ -21,9 +27,12 @@ public class ResolvedTargetOperationTests
     }
 
     /// <summary>
-    ///     Combines alignment, a typedef, a nested fixed array, selected parsing, debug mapping, address lookup, and
-    ///     update to prove every path operation reaches the same second-element field.
+    ///     word is a uint16 alias inside an aligned item array.
     /// </summary>
+    /// <remarks>
+    ///     The second item's value must be at offset 8 and read 0x2222. Selected parsing, debug ranges, and updates
+    ///     must combine the alias width, record padding, and array stride consistently.
+    /// </remarks>
     [TestMethod]
     public void PathOperations_AlignedAliasArrayElement_Agree()
     {
@@ -57,7 +66,13 @@ public class ResolvedTargetOperationTests
         Assert.AreEqual(0, stream.Position);
     }
 
-    /// <summary>Preserves numeric bit positions in shared 16-bit storage for both layout byte orders.</summary>
+    /// <summary>
+    ///     The middle five-bit slice of 0xA5D5 shares its byte address with low and high.
+    /// </summary>
+    /// <remarks>
+    ///     Replacing middle with 10 must produce storage value 0xA555 in either byte order. Re-parsing must still
+    ///     return low = 5 and high = 0xA5, proving only the selected bits changed.
+    /// </remarks>
     /// <param name="isLittleEndian">Whether the layout stores the least-significant byte first.</param>
     /// <param name="inputFirst">The first byte of the initial storage value.</param>
     /// <param name="inputSecond">The second byte of the initial storage value.</param>
@@ -91,9 +106,13 @@ public class ResolvedTargetOperationTests
     }
 
     /// <summary>
-    ///     Follows one pointer to a struct while treating the target's ordinary field named <c>value</c> contextually
-    ///     across selected read, debug, address, and update operations.
+    ///     In ptr.value.value, the first value follows the pointer and the second names the child's ordinary byte
+    ///     field.
     /// </summary>
+    /// <remarks>
+    ///     Both must resolve to offset 4 and read 0x2A. Updating that field to 0xA5 must preserve the address and
+    ///     intervening bytes.
+    /// </remarks>
     [TestMethod]
     public void PathOperations_PointerToStruct_AgreeAndKeepAccessorContext()
     {
@@ -120,7 +139,13 @@ public class ResolvedTargetOperationTests
         CollectionAssert.AreEqual(new byte[] { 0x04, 0x00, 0x00, 0x00, 0xA5, }, stream.ToArray());
     }
 
-    /// <summary>Honors the update-specific pointer policy before a nested target can be changed.</summary>
+    /// <summary>
+    ///     The pointer leads to an existing child at offset 4, but UpdateOptions forbids following pointers.
+    /// </summary>
+    /// <remarks>
+    ///     The selected update must raise a path error and leave the child value 0x2A unchanged. A valid target address
+    ///     does not override the caller's traversal policy.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_DisabledPointerDereferenceLeavesTargetUntouched()
     {
@@ -142,7 +167,13 @@ public class ResolvedTargetOperationTests
         Assert.AreEqual(0, stream.Position);
     }
 
-    /// <summary>Rejects object reads that stop on pointer storage before all declared pointer levels are consumed.</summary>
+    /// <summary>
+    ///     child** requires two .value steps to reach a child object.
+    /// </summary>
+    /// <remarks>
+    ///     ParseStream must reject selections that stop on either pointer slot and accept the complete path, returning
+    ///     value = 0x2A. Object parsing must not confuse remaining pointer storage with the final struct.
+    /// </remarks>
     [TestMethod]
     public void SelectedObjectRead_RequiresCompletePointerTraversal()
     {
@@ -163,9 +194,12 @@ public class ResolvedTargetOperationTests
     }
 
     /// <summary>
-    ///     Distinguishes the root pointer storage, the second-level pointer storage, and the final primitive target
-    ///     while retaining the remaining depth for writes that intentionally stop between levels.
+    ///     The outer pointer slot is at 0, the intermediate slot at 2, and the uint16 target at 4.
     /// </summary>
+    /// <remarks>
+    ///     Address lookup and updates must distinguish these three locations. Stopping at an intermediate pointer
+    ///     retains pointer-writing behavior; only the final .value uses the uint16 writer.
+    /// </remarks>
     [TestMethod]
     public void PointerLevelTargets_SelectTheRequestedStorage()
     {
@@ -191,7 +225,14 @@ public class ResolvedTargetOperationTests
         CollectionAssert.AreEqual(implicitStorageStream.ToArray(), explicitStorageStream.ToArray());
     }
 
-    /// <summary>Retains terminated-string target semantics after consuming the pointer's <c>.value</c> accessor.</summary>
+    /// <summary>
+    ///     name points to offset 2.
+    /// </summary>
+    /// <remarks>
+    ///     Selecting name.value with replacement hi must write h, i, and a zero terminator there, preserving the
+    ///     pointer byte. After following a character pointer, the target is terminated text rather than a single char
+    ///     field.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_CharacterPointerTarget_UsesStringCodec()
     {
@@ -204,7 +245,13 @@ public class ResolvedTargetOperationTests
         CollectionAssert.AreEqual(new byte[] { 0x02, 0x00, (byte)'h', (byte)'i', 0x00, }, stream.ToArray());
     }
 
-    /// <summary>Uses the same overlapping union-member address for selected parsing, debug data, and update.</summary>
+    /// <summary>
+    ///     The union follows a one-byte head, so large starts at offset 1 and initially reads 0x1234.
+    /// </summary>
+    /// <remarks>
+    ///     Debug information must cover bytes 1 through 3. Updating large to 0xABCD must produce EE CD AB without
+    ///     shifting the overlapping union storage.
+    /// </remarks>
     [TestMethod]
     public void PathOperations_UnionMember_Agree()
     {
@@ -231,7 +278,13 @@ public class ResolvedTargetOperationTests
         CollectionAssert.AreEqual(new byte[] { 0xEE, 0xCD, 0xAB, }, stream.ToArray());
     }
 
-    /// <summary>Resolves inline-struct fields without requiring a second declaration lookup during update.</summary>
+    /// <summary>
+    ///     child is declared inline and has no separate reusable type name.
+    /// </summary>
+    /// <remarks>
+    ///     Its value still resolves at offset zero, reads 0x2A, and updates to 0xA5. Operations must use the actual
+    ///     compiled child declaration instead of trying a global lookup by its field name.
+    /// </remarks>
     [TestMethod]
     public void PathOperations_InlineStruct_Agree()
     {
@@ -251,7 +304,13 @@ public class ResolvedTargetOperationTests
         CollectionAssert.AreEqual(new byte[] { 0xA5, }, stream.ToArray());
     }
 
-    /// <summary>Fails before mutation when a later bitfield's complete shared storage is not readable.</summary>
+    /// <summary>
+    ///     high uses bits in a uint16 unit, even though both declared slices fit within the supplied first byte.
+    /// </summary>
+    /// <remarks>
+    ///     The complete two-byte backing storage is required for safe preservation. Updating high must therefore fail
+    ///     and leave A5 and position zero unchanged.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_TruncatedLaterBitfield_LeavesStreamUntouched()
     {

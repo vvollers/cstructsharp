@@ -14,7 +14,13 @@ public class MemoryIoTests
         Ready = 0x1234,
     }
 
-    /// <summary>Exercises byte arrays, spans, and memory through natural, typed, and dynamic reads.</summary>
+    /// <summary>
+    ///     The record combines a count-controlled child array, terminated text, and a uint16 enum.
+    /// </summary>
+    /// <remarks>
+    ///     Byte arrays, spans, and memory must decode the same values as stream APIs, including OK and the selected
+    ///     0x0304. Typed reads map the result into C# models; incompatible TryReadValue conversions return false.
+    /// </remarks>
     [TestMethod]
     public void MemoryInput_ParsesNaturalAndTypedValuesWithoutStreamConstruction()
     {
@@ -51,7 +57,14 @@ public class MemoryIoTests
         Assert.AreEqual((ushort)0x0102, selected);
     }
 
-    /// <summary>Defines every pointer coordinate relative to the supplied memory region, including sliced memory.</summary>
+    /// <summary>
+    ///     The input is a slice of a larger array.
+    /// </summary>
+    /// <remarks>
+    ///     Pointer offset 3 is measured from the start of that slice and must reach 0x7E, not a position in the
+    ///     original array. Out-of-region targets fail when followed, while address-only reads can retain an unresolved
+    ///     address.
+    /// </remarks>
     [TestMethod]
     public void MemoryInput_PointersStayInsideTheSuppliedRegion()
     {
@@ -84,7 +97,13 @@ public class MemoryIoTests
         Assert.IsFalse(unresolved.IsDereferenced);
     }
 
-    /// <summary>Retains the shared truncation, budget, default-root, and expected-failure behavior.</summary>
+    /// <summary>
+    ///     The four bytes encode uint32 value 0x12345678.
+    /// </summary>
+    /// <remarks>
+    ///     Memory-based reads must recover it with either the default root or an explicit selection. Truncation,
+    ///     insufficient byte budget, and invalid options must use the same failure rules as the stream APIs.
+    /// </remarks>
     [TestMethod]
     public void MemoryInput_UsesTheSharedFailureAndBudgetPolicy()
     {
@@ -113,7 +132,14 @@ public class MemoryIoTests
                 options: new ReadOptions { MaxTotalBytesRead = -1, }));
     }
 
-    /// <summary>Writes directly into exact and oversized spans and reports the initialized prefix.</summary>
+    /// <summary>
+    ///     A layout containing bitfields, explicit-endian integers, text, and a union is written into caller-owned
+    ///     spans.
+    /// </summary>
+    /// <remarks>
+    ///     An exact or oversized span must match ordinary serialization and report only the initialized prefix. Unused
+    ///     suffix bytes must remain unchanged, and insufficient capacity must produce a write error.
+    /// </remarks>
     [TestMethod]
     public void SpanSerialization_MatchesOwnedSerializationAndEnforcesCapacity()
     {
@@ -156,7 +182,14 @@ public class MemoryIoTests
             () => cstruct.Serialize(new byte[expected.Length - 1].AsSpan(), "root", value));
     }
 
-    /// <summary>Documents that a late capacity failure leaves the already initialized caller-owned prefix changed.</summary>
+    /// <summary>
+    ///     The destination has room for first but not second.
+    /// </summary>
+    /// <remarks>
+    ///     Serialization must throw when capacity runs out, yet its first byte has already changed from 0xA5 to 1.
+    ///     Direct span output does not promise rollback, so callers must not assume failure leaves their buffer
+    ///     untouched.
+    /// </remarks>
     [TestMethod]
     public void SpanSerialization_CapacityFailureDoesNotPromiseRollback()
     {
@@ -168,7 +201,14 @@ public class MemoryIoTests
         CollectionAssert.AreEqual(new byte[] { 1, }, destination);
     }
 
-    /// <summary>Streams large and backtracking-sensitive output to an IBufferWriter without a complete temporary array.</summary>
+    /// <summary>
+    ///     A 5000-byte array is followed by two bitfields sharing a byte and a big-endian tail.
+    /// </summary>
+    /// <remarks>
+    ///     Writing through IBufferWriter must match ordinary serialization across internal chunk boundaries. The
+    ///     runtime count and the bitfield rewrite must still work without allocating one complete temporary output
+    ///     array.
+    /// </remarks>
     [TestMethod]
     public void BufferWriterSerialization_MatchesSharedWriterAcrossChunksAndVariables()
     {
@@ -193,7 +233,14 @@ public class MemoryIoTests
         CollectionAssert.AreEqual(expected, writer.WrittenSpan.ToArray());
     }
 
-    /// <summary>Handles alignment at a window edge, appends to existing output, and zero-initializes new bit storage.</summary>
+    /// <summary>
+    ///     The aligned uint64 after 4095 bytes crosses an output-window boundary.
+    /// </summary>
+    /// <remarks>
+    ///     Appending this record must preserve the writer's existing two-byte prefix and use coordinates relative to
+    ///     the new record. A separate bitfield case verifies unused new bits start at zero rather than inheriting old
+    ///     destination contents.
+    /// </remarks>
     [TestMethod]
     public void MemorySerialization_UsesRegionRelativeAppendAndZeroInitialization()
     {

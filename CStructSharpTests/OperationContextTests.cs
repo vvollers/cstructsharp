@@ -8,7 +8,13 @@ using CStructSharp;
 [TestClass]
 public class OperationContextTests
 {
-    /// <summary>Snapshots each read-like operation's limits before enumerating caller-owned variables.</summary>
+    /// <summary>
+    ///     Caller-controlled variable enumeration deliberately changes the supplied options after the operation begins.
+    /// </summary>
+    /// <remarks>
+    ///     Reads must still use their initial limit snapshot and return the one-element array containing 0x2A. The
+    ///     debug case allows its extra rereads; callbacks must not change policy halfway through an operation.
+    /// </remarks>
     [TestMethod]
     public void ReadLikeOperations_SnapshotOptionsBeforeVariableEnumeration()
     {
@@ -86,7 +92,14 @@ public class OperationContextTests
             maxBytes: 1);
     }
 
-    /// <summary>Snapshots write limits before variable enumeration and before reading caller-owned payload members.</summary>
+    /// <summary>
+    ///     The array limit initially permits two bytes.
+    /// </summary>
+    /// <remarks>
+    ///     A payload callback attempts to change that limit while the writer obtains values, but the operation must
+    ///     still produce 11 22 using its starting snapshot. This keeps caller code from altering an in-progress write
+    ///     policy.
+    /// </remarks>
     [TestMethod]
     public void WriteOperation_SnapshotsOptionsBeforeCallerCallbacks()
     {
@@ -107,7 +120,13 @@ public class OperationContextTests
         CollectionAssert.AreEqual(new byte[] { 0x11, 0x22, }, stream.ToArray());
     }
 
-    /// <summary>Snapshots update traversal limits before caller variables can change the supplied option value.</summary>
+    /// <summary>
+    ///     The update needs one count byte to locate values[0].
+    /// </summary>
+    /// <remarks>
+    ///     Variable enumeration attempts to change that read allowance to zero, but the initial snapshot must remain
+    ///     authoritative. The update must produce 01 5A and restore position zero.
+    /// </remarks>
     [TestMethod]
     public void UpdateOperation_SnapshotsTraversalOptionsBeforeVariableEnumeration()
     {

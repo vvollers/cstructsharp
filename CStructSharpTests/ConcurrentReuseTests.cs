@@ -24,9 +24,12 @@ public class ConcurrentReuseTests
                                   """;
 
     /// <summary>
-    ///     Requires readonly instance references, genuinely immutable public metadata, and explicitly frozen recursive
-    ///     symbols before a constructed layout becomes observable.
+    ///     The sample contains an enum and a recursive node pointer.
     /// </summary>
+    /// <remarks>
+    ///     After construction, every shared instance reference must be readonly and every compiled symbol frozen. This
+    ///     prevents later operations from changing metadata that another thread may be reading.
+    /// </remarks>
     [TestMethod]
     public void ConstructedLayout_PublishesOnlyFrozenSharedState()
     {
@@ -66,7 +69,13 @@ public class ConcurrentReuseTests
         }
     }
 
-    /// <summary>Allows one construction bind, rejects rebinding, and refuses to publish an unbound recursive symbol.</summary>
+    /// <summary>
+    ///     A compiled type symbol can be connected to its definition during construction and then frozen.
+    /// </summary>
+    /// <remarks>
+    ///     Rebinding it must fail, and an unresolved recursive symbol cannot be published as frozen. These state
+    ///     transitions ensure callers never observe a type whose definition can still change.
+    /// </remarks>
     [TestMethod]
     public void CompiledTypeSymbol_SealsExactlyOnceAfterBinding()
     {
@@ -104,9 +113,13 @@ public class ConcurrentReuseTests
     }
 
     /// <summary>
-    ///     Reuses one layout, variable snapshot, and option values across every core operation on distinct streams.
-    ///     A barrier makes each group enter the library together instead of relying on scheduler timing.
+    ///     Workers share one constructed layout, variable dictionary, and options but each owns its stream.
     /// </summary>
+    /// <remarks>
+    ///     A barrier starts groups of operations together. Values, addresses, debug results, and output must remain
+    ///     correct across alignment and byte-order combinations, showing that one operation's temporary state does not
+    ///     leak into another.
+    /// </remarks>
     /// <param name="aligned">Whether portable field alignment is enabled.</param>
     /// <param name="isLittleEndian">Whether neutral numeric fields use little-endian encoding.</param>
     /// <returns>A task that completes after every coordinated operation worker finishes.</returns>

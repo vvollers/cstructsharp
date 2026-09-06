@@ -7,7 +7,13 @@ using System.Dynamic;
 [TestClass]
 public class WriteBudgetTests
 {
-    /// <summary>Rejects negative byte budgets and non-positive nesting before any caller-owned bytes change.</summary>
+    /// <summary>
+    ///     Negative string or total byte budgets and zero nesting depth are invalid options.
+    /// </summary>
+    /// <remarks>
+    ///     Writing or updating a one-byte record must reject them before replacing the original 0xA5. The unchanged
+    ///     position also shows that configuration validation happens before output work.
+    /// </remarks>
     [TestMethod]
     public void InvalidWriteBudgets_AreRejectedBeforeOutput()
     {
@@ -43,7 +49,13 @@ public class WriteBudgetTests
         Assert.AreEqual(0L, updateStream.Position);
     }
 
-    /// <summary>Measures encoded bytes, including each handler's terminator, before allocating or writing its payload.</summary>
+    /// <summary>
+    ///     Each row gives text and its complete encoded length, including the terminator.
+    /// </summary>
+    /// <remarks>
+    ///     ASCII AB needs three bytes, UTF-8 é also needs three, and UTF-16 A needs four. A budget one byte below that
+    ///     size must fail; the exact size must succeed.
+    /// </remarks>
     /// <param name="typeName">The terminated string codec under test.</param>
     /// <param name="value">A value with a known encoded size.</param>
     /// <param name="encodedBytes">The payload size including the terminator.</param>
@@ -78,7 +90,13 @@ public class WriteBudgetTests
         Assert.AreEqual(encodedBytes, bytes.Length);
     }
 
-    /// <summary>Charges the complete padded storage of fixed narrow and wide character buffers as one string field.</summary>
+    /// <summary>
+    ///     value[2] reserves two character units even when the supplied text is only A.
+    /// </summary>
+    /// <remarks>
+    ///     Narrow storage therefore needs two bytes and wide storage four, including padding. The string budget must
+    ///     cover the entire fixed buffer rather than only the nonzero text bytes.
+    /// </remarks>
     /// <param name="typeName">The fixed character codec.</param>
     /// <param name="encodedBytes">The complete padded buffer size.</param>
     [TestMethod]
@@ -103,7 +121,13 @@ public class WriteBudgetTests
         Assert.AreEqual(encodedBytes, exactBytes.Length);
     }
 
-    /// <summary>Applies the string limit independently to each field while the total-output budget remains cumulative.</summary>
+    /// <summary>
+    ///     The strings A and B each need two bytes with their zero terminators.
+    /// </summary>
+    /// <remarks>
+    ///     A per-string limit of two allows both fields, but the operation's total must allow four. This distinguishes
+    ///     a limit checked separately for each field from a budget shared by the whole write.
+    /// </remarks>
     [TestMethod]
     public void StringBudget_ResetsPerField_WhileTotalBudgetAccumulates()
     {
@@ -121,7 +145,14 @@ public class WriteBudgetTests
                 options: new WriteOptions { MaxStringBytes = 2, MaxTotalBytesWritten = 3, }));
     }
 
-    /// <summary>Counts repeated writes to shared bitfield storage even when the final serialized extent is one byte.</summary>
+    /// <summary>
+    ///     low = 5 and high = 10 share the final byte 0xA5.
+    /// </summary>
+    /// <remarks>
+    ///     Writing the two slices updates that storage more than once, so a one-byte total budget is insufficient
+    ///     despite the one-byte output size. The larger accepted budget verifies that actual writes, including
+    ///     rewrites, are counted.
+    /// </remarks>
     [TestMethod]
     public void TotalBudget_CountsPhysicalBitfieldRewrites()
     {
@@ -141,7 +172,13 @@ public class WriteBudgetTests
                 options: new WriteOptions { MaxTotalBytesWritten = 2, }));
     }
 
-    /// <summary>Charges newly created alignment gaps by output extent so seeking cannot bypass the byte budget.</summary>
+    /// <summary>
+    ///     A byte followed by an aligned uint32 occupies eight bytes after padding.
+    /// </summary>
+    /// <remarks>
+    ///     The writer must charge newly created gaps as part of output extent, so seeking over padding cannot evade the
+    ///     budget. A failed direct write can retain its earlier field; an adequate budget produces all eight bytes.
+    /// </remarks>
     [TestMethod]
     public void TotalBudget_ChargesNewAlignedOutputExtent()
     {
@@ -168,7 +205,14 @@ public class WriteBudgetTests
         Assert.AreEqual(8, exactBytes.Length);
     }
 
-    /// <summary>Charges zero-filled union reservation and aligned tail storage through the same total budget.</summary>
+    /// <summary>
+    ///     Selecting a small union member still reserves the wider member's storage, and aligned structs may need
+    ///     padding after their last field.
+    /// </summary>
+    /// <remarks>
+    ///     Both kinds of extra bytes must count toward the total write budget. Limits below the required storage fail;
+    ///     adequate limits produce the full declared extent.
+    /// </remarks>
     [TestMethod]
     public void TotalBudget_ChargesUnionReservationAndStructTailPadding()
     {
@@ -205,7 +249,13 @@ public class WriteBudgetTests
         Assert.AreEqual(8, alignedBytes.Length);
     }
 
-    /// <summary>Stops a direct multi-field write before the byte over budget and documents its current partial-write boundary.</summary>
+    /// <summary>
+    ///     With room for only one write, first becomes 0x11 but writing second must fail.
+    /// </summary>
+    /// <remarks>
+    ///     The destination is then 11 A5 and the position is 1. This deliberately documents that direct WriteStream can
+    ///     leave earlier fields written; it does not provide the staged validation behavior of UpdateStream.
+    /// </remarks>
     [TestMethod]
     public void DirectWrite_TotalBudgetNeverExceedsLimit_ButMayLeaveEarlierFields()
     {
@@ -223,7 +273,14 @@ public class WriteBudgetTests
         Assert.AreEqual(1L, stream.Position);
     }
 
-    /// <summary>Covers scalar, bitfield, pointer-address, and union-clear update writes through the shared total budget.</summary>
+    /// <summary>
+    ///     The helper tries updates to an ordinary scalar, a bitfield, a pointer address, and a selected union under a
+    ///     zero write budget.
+    /// </summary>
+    /// <remarks>
+    ///     Every path must reject output and preserve the existing bytes. Specialized writers must not bypass the
+    ///     shared budget just because they handle storage differently.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_TotalBudgetCoversEveryWriteDispatch()
     {
@@ -251,7 +308,13 @@ public class WriteBudgetTests
             unionValue);
     }
 
-    /// <summary>Applies the encoded-string budget after pointer traversal and restores update position on failure.</summary>
+    /// <summary>
+    ///     Two pointer hops lead to the existing string old.
+    /// </summary>
+    /// <remarks>
+    ///     Replacing it with hi still needs space for its terminator and must obey the configured string budget. A
+    ///     rejected replacement must preserve the pointer chain, old text, and the caller's starting position of 1.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_PointerTargetStringUsesSharedStringBudget()
     {
@@ -269,7 +332,13 @@ public class WriteBudgetTests
         Assert.AreEqual(1L, stream.Position);
     }
 
-    /// <summary>Counts active struct/union recursion and resets depth between sibling objects and array elements.</summary>
+    /// <summary>
+    ///     root contains two middle records, each containing a leaf.
+    /// </summary>
+    /// <remarks>
+    ///     A shallow limit must reject this depth, while a sufficient limit writes both siblings. Finished siblings and
+    ///     array elements must release their nesting level; total object count is not the same as active nesting depth.
+    /// </remarks>
     [TestMethod]
     public void NestingBudget_TracksActiveCompositeDepth()
     {
@@ -316,7 +385,14 @@ public class WriteBudgetTests
                 options: new WriteOptions { MaxNestingDepth = 2, }));
     }
 
-    /// <summary>Applies write depth to a selected pointer target independently of the already bounded traversal phase.</summary>
+    /// <summary>
+    ///     A pointer leads to middle, which contains leaf.
+    /// </summary>
+    /// <remarks>
+    ///     Locating that target and writing its replacement have separate limits. An insufficient write-depth limit
+    ///     must preserve the destination; raising it sufficiently must replace the target value with 0x22 while leaving
+    ///     the pointer untouched.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_PointerTargetUsesWriteNestingBudget()
     {
@@ -347,7 +423,13 @@ public class WriteBudgetTests
         Assert.AreEqual(0L, stream.Position);
     }
 
-    /// <summary>Stops arbitrary numeric enumerables after the one extra item needed to prove a count mismatch.</summary>
+    /// <summary>
+    ///     values[2] is supplied by an enumerable that can yield five items.
+    /// </summary>
+    /// <remarks>
+    ///     The writer may read a third item to discover the mismatch, but must stop there and reject it. An exact two-
+    ///     item enumerable succeeds, preventing unnecessary or endless enumeration before writing.
+    /// </remarks>
     [TestMethod]
     public void RuntimeEnumerableMaterialization_IsBoundedBeforeArrayWrites()
     {
@@ -372,7 +454,13 @@ public class WriteBudgetTests
         Assert.AreEqual(2, exactValues.Yielded);
     }
 
-    /// <summary>Bounds character enumerables before joining them into a fixed-buffer string.</summary>
+    /// <summary>
+    ///     The fixed char buffer holds two characters, but its source enumerable yields more.
+    /// </summary>
+    /// <remarks>
+    ///     The writer must stop after the third character proves it is too long, rather than first joining the entire
+    ///     sequence into a string. No unbounded text materialization is allowed before the size check.
+    /// </remarks>
     [TestMethod]
     public void RuntimeCharacterEnumerableMaterialization_IsBoundedBeforeStringWrites()
     {
@@ -388,7 +476,13 @@ public class WriteBudgetTests
         Assert.AreEqual(3, characters.Yielded);
     }
 
-    /// <summary>Rejects an oversized declared array before asking a caller enumerable for its first item.</summary>
+    /// <summary>
+    ///     The layout itself requests three elements while the configured limit allows two.
+    /// </summary>
+    /// <remarks>
+    ///     The writer already knows this cannot succeed, so it must reject the request without asking the source
+    ///     enumerable for even its first item. This avoids invoking caller code unnecessarily.
+    /// </remarks>
     [TestMethod]
     public void DeclaredArrayLimit_PreventsEnumerableMaterialization()
     {

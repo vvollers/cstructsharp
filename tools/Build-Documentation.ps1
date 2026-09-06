@@ -175,6 +175,9 @@ foreach ($requiredPath in @($CoreProject, $DocfxConfig, $ApiDirectory))
 
 [void](Invoke-DotNet -Label 'tool restore' -Arguments @('tool', 'restore'))
 
+& node (Join-Path $PSScriptRoot 'export-documentation-examples.mjs')
+Assert-Condition ($LASTEXITCODE -eq 0) 'Documentation example export failed.'
+
 $cleanSite = $Clean -or -not $NoBuild
 if ($cleanSite)
 {

@@ -7,7 +7,13 @@ using CStructSharp;
 [TestClass]
 public class NullPointerBindingTests
 {
-    /// <summary>Encodes address zero for nullable POCO properties/fields, dictionaries, expandos, and JSON-shaped data.</summary>
+    /// <summary>
+    ///     A null pointer followed by tail = 0xA5 must encode as 00 00 A5 with a two-byte pointer width.
+    /// </summary>
+    /// <remarks>
+    ///     Dictionaries, dynamic objects, ordinary C# members, and JSON-shaped inputs must agree. Null is a valid
+    ///     address-zero value when the declared member is a pointer.
+    /// </remarks>
     [TestMethod]
     public void Serialize_NullPointerMembers_AgreeAcrossBindingShapes()
     {
@@ -40,7 +46,14 @@ public class NullPointerBindingTests
                 options: new WriteOptions { BindingMode = PocoBindingMode.PublicReadWrite, }));
     }
 
-    /// <summary>Applies the same zero encoding to selected pointer writes, in-place updates, and a root pointer alias.</summary>
+    /// <summary>
+    ///     Null must encode as zero for selected pointer slots, pointer array elements, in-place address updates, and
+    ///     pointer typedef roots.
+    /// </summary>
+    /// <remarks>
+    ///     Clearing an address must not clear the former target bytes. These cases check that null support does not
+    ///     depend on wrapping the pointer in a complete struct.
+    /// </remarks>
     [TestMethod]
     public void SelectedAndRootPointerWrites_AcceptNull()
     {
@@ -85,7 +98,14 @@ public class NullPointerBindingTests
             pointerArray.Serialize("root.items[0]", null!));
     }
 
-    /// <summary>Rejects null non-pointer values uniformly instead of silently converting them to zero.</summary>
+    /// <summary>
+    ///     An ordinary numeric field, struct, union, or whole array needs a value and must not silently treat null as
+    ///     zero or empty data.
+    /// </summary>
+    /// <remarks>
+    ///     All tested binding shapes must reject it. Direct selected writes must emit nothing, and failed updates must
+    ///     preserve existing bytes and position.
+    /// </remarks>
     [TestMethod]
     public void NonPointerNulls_FailConsistentlyWithoutWritingTheSelectedField()
     {

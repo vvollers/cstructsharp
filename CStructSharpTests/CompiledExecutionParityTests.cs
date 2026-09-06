@@ -4,7 +4,13 @@ namespace CStructSharp.Tests;
 [TestClass]
 public class CompiledExecutionParityTests
 {
-    /// <summary>Requires every composite read entry point to consume the selected type's complete compiled extent.</summary>
+    /// <summary>
+    ///     child contains a uint32 and a byte, but alignment rounds its storage to eight bytes.
+    /// </summary>
+    /// <remarks>
+    ///     Reading it as a root, nested object, array element, pointer target, or union member must finish at the
+    ///     expected complete extent. Parse, debug parse, and ReadValue must not stop before required tail padding.
+    /// </remarks>
     [TestMethod]
     public void AlignedCompositeSelections_ConsumeTheCompleteCompiledExtent()
     {
@@ -72,7 +78,14 @@ public class CompiledExecutionParityTests
         }
     }
 
-    /// <summary>Requires a struct union member to advance through its own fields after beginning at the union address.</summary>
+    /// <summary>
+    ///     The union's child view starts at byte zero, but fields within that child are sequential: value uses the
+    ///     first four bytes and tail uses the next.
+    /// </summary>
+    /// <remarks>
+    ///     Every read API must preserve those child values and consume the eight-byte union. Overlap applies between
+    ///     union members, not between fields inside a struct member.
+    /// </remarks>
     [TestMethod]
     public void UnionStructMember_UsesSequentialCompiledFieldTraversal()
     {

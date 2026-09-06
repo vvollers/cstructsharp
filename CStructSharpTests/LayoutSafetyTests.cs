@@ -9,7 +9,13 @@ using Pidgin;
 [TestClass]
 public class LayoutSafetyTests
 {
-    /// <summary>Rejects a misspelled field type immediately instead of retrying alignment resolution forever.</summary>
+    /// <summary>
+    ///     missing is used as a field type without being declared.
+    /// </summary>
+    /// <remarks>
+    ///     Construction must immediately raise a layout error. This catches a typo before reading data and avoids an
+    ///     endless attempt to calculate the alignment of a type that does not exist.
+    /// </remarks>
     [TestMethod]
     public void Constructor_RejectsUnknownFieldType()
     {
@@ -18,9 +24,12 @@ public class LayoutSafetyTests
     }
 
     /// <summary>
-    ///     Gives every invalid declaration a single public exception type, whether the problem is parser syntax or a
-    ///     conflicting top-level name. This lets callers reject untrusted layout text without knowing parser internals.
+    ///     One input omits closing syntax and another declares root twice.
     /// </summary>
+    /// <remarks>
+    ///     Both must raise CStructLayoutException even though the causes differ. A caller validating layout text can
+    ///     therefore handle malformed grammar and conflicting names through the same public error category.
+    /// </remarks>
     [TestMethod]
     public void Constructor_UsesLayoutExceptionForSyntaxAndDuplicateTopLevelNames()
     {
@@ -30,7 +39,13 @@ public class LayoutSafetyTests
                                                   "struct root { byte first; }; struct root { byte second; };"));
     }
 
-    /// <summary>Rejects an impossible by-value recursive layout while preserving the legal self-pointer form.</summary>
+    /// <summary>
+    ///     node containing another complete node would require infinite inline storage and must be rejected. node
+    ///     containing node* is valid because only the pointer address is stored inline.
+    /// </summary>
+    /// <remarks>
+    ///     With the default pointer width, that record has a finite size of eight bytes.
+    /// </remarks>
     [TestMethod]
     public void Constructor_DistinguishesByValueRecursionFromSelfPointer()
     {
@@ -40,7 +55,14 @@ public class LayoutSafetyTests
         Assert.AreEqual(8, pointerLayout.GetStructSizeInBytes("node"));
     }
 
-    /// <summary>Applies the caller-selected definition length and nesting limits before invoking the layout parser.</summary>
+    /// <summary>
+    ///     The test supplies a definition-length limit smaller than the text and nesting limits smaller than the
+    ///     declarations require.
+    /// </summary>
+    /// <remarks>
+    ///     Construction must reject these inputs before expensive parsing proceeds. These limits bound layout
+    ///     processing separately from budgets used later to read binary data.
+    /// </remarks>
     [TestMethod]
     public void Constructor_EnforcesCompilationInputLimits()
     {
@@ -60,7 +82,13 @@ public class LayoutSafetyTests
                                                   }));
     }
 
-    /// <summary>Uses the nested declaration's complete footprint rather than only its alignment in packed and aligned layouts.</summary>
+    /// <summary>
+    ///     A child record contributes its whole size, not merely its alignment requirement.
+    /// </summary>
+    /// <remarks>
+    ///     The packed example needs three bytes; the aligned example needs eight after child placement and final
+    ///     padding. Reporting the correct size is essential when allocating buffers or repeating records in an array.
+    /// </remarks>
     [TestMethod]
     public void GetStructSizeInBytes_UsesNestedStructStorageSize()
     {
@@ -71,7 +99,13 @@ public class LayoutSafetyTests
         Assert.AreEqual(8, new CStruct(aligned, aligned: true).GetStructSizeInBytes("outer"));
     }
 
-    /// <summary>Keeps tail padding in the stride between aligned nested-struct array elements during parsing.</summary>
+    /// <summary>
+    ///     inner has a uint64 and a uint32, then tail padding rounds its aligned size to 16 bytes.
+    /// </summary>
+    /// <remarks>
+    ///     The second item must therefore read values 3 and 4 from offset 16, and the outer tail must remain 0xA5. A
+    ///     12-byte stride would read padding as data.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_UsesCompleteNestedStructArrayStride()
     {
@@ -92,7 +126,13 @@ public class LayoutSafetyTests
         Assert.AreEqual((byte)0xA5, (byte)result.tail);
     }
 
-    /// <summary>Does not add a full extra alignment unit when a union's largest array member is already aligned.</summary>
+    /// <summary>
+    ///     words[2] occupies eight bytes and already meets the union's alignment requirement.
+    /// </summary>
+    /// <remarks>
+    ///     The union must stay eight bytes, making the packed root nine bytes with tail = 0xA5. Rounding must not add a
+    ///     whole extra alignment unit when no padding is needed.
+    /// </remarks>
     [TestMethod]
     public void UnionArraySizeAndFollowingFieldOffset_AreExact()
     {
@@ -108,9 +148,12 @@ public class LayoutSafetyTests
     }
 
     /// <summary>
-    ///     Materializes the unused portion of a selected union member during serialization, so serializing a union by
-    ///     itself produces the full declared storage rather than only the selected member's bytes.
+    ///     The uint32 member makes choice four bytes wide even when small is selected.
     /// </summary>
+    /// <remarks>
+    ///     Writing small = 0xA5 must produce A5 00 00 00. The unused bytes are part of the union's storage and cannot
+    ///     disappear simply because the selected member is shorter.
+    /// </remarks>
     [TestMethod]
     public void Serialize_ReservesCompleteUnionStorageForShortSelectedMember()
     {
@@ -124,7 +167,13 @@ public class LayoutSafetyTests
         Assert.AreEqual(cstruct.GetStructSizeInBytes("choice"), bytes.Length);
     }
 
-    /// <summary>Enforces the caller's limit before a data-controlled array can allocate or loop excessively.</summary>
+    /// <summary>
+    ///     The first byte requests three elements in values[count].
+    /// </summary>
+    /// <remarks>
+    ///     A lower configured element limit must stop the read before processing that array. The count comes from
+    ///     binary data, so validating only the layout text would not prevent excessive work.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_EnforcesArrayElementLimit()
     {
@@ -140,7 +189,13 @@ public class LayoutSafetyTests
                                                  new ReadOptions { MaxArrayElements = 2, }));
     }
 
-    /// <summary>Rejects a negative data-controlled array length before it can be used as a loop or allocation bound.</summary>
+    /// <summary>
+    ///     int8 interprets FF as -1.
+    /// </summary>
+    /// <remarks>
+    ///     Using that count for values[count] must raise a read error because an array cannot have negative length. The
+    ///     reader must not convert it to a huge unsigned count or quietly treat it as empty.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_RejectsNegativeArrayElementCount()
     {
@@ -152,9 +207,12 @@ public class LayoutSafetyTests
     }
 
     /// <summary>
-    ///     Treats a struct with a data-controlled array as a variable-size pointer target when a fixed target-size
-    ///     policy is enabled, instead of leaking an internal layout-calculation exception.
+    ///     The pointer targets a record whose size depends on its count field.
     /// </summary>
+    /// <remarks>
+    ///     A policy requiring a known fixed target size cannot validate that record in advance. The read must fail
+    ///     through the documented read exception instead of leaking an internal size-calculation failure.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_RejectsVariableSizePointerTargetsWhenFixedLimitIsEnabled()
     {
@@ -170,7 +228,14 @@ public class LayoutSafetyTests
                                                  new ReadOptions { MaxPointerTargetBytes = 64, }));
     }
 
-    /// <summary>Stops an unterminated or oversized C string at the configured per-field encoded-byte budget.</summary>
+    /// <summary>
+    ///     name[] contains abc followed by zero, but the configured per-string budget is too small for the encoded
+    ///     storage.
+    /// </summary>
+    /// <remarks>
+    ///     Reading must stop with an error. The budget includes the terminator, so a short-looking returned string can
+    ///     still require more bytes than its character count.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_EnforcesStringByteLimit()
     {
@@ -186,7 +251,14 @@ public class LayoutSafetyTests
                                                  new ReadOptions { MaxStringBytes = 3, }));
     }
 
-    /// <summary>Counts every physical read, including primitive reads, against the operation-wide byte budget.</summary>
+    /// <summary>
+    ///     A single uint32 needs four physical bytes.
+    /// </summary>
+    /// <remarks>
+    ///     Setting MaxTotalBytesRead to 3 must reject this plain parse even though all four input bytes exist. The
+    ///     budget limits reading activity, rather than changing the width of the declared field or indicating that the
+    ///     file is truncated.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_EnforcesTotalReadByteLimit()
     {
@@ -202,7 +274,13 @@ public class LayoutSafetyTests
                                                  new ReadOptions { MaxTotalBytesRead = 3, }));
     }
 
-    /// <summary>Applies nesting limits to nested declared structs, not only to the root declaration.</summary>
+    /// <summary>
+    ///     a contains b, which contains c, although the final value uses only one byte.
+    /// </summary>
+    /// <remarks>
+    ///     A shallow nesting budget must reject this chain. Byte count alone cannot bound recursive structure
+    ///     processing, so nesting has a separate limit.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_EnforcesNestedStructLimit()
     {
@@ -218,7 +296,13 @@ public class LayoutSafetyTests
                                                  new ReadOptions { MaxNestingDepth = 2, }));
     }
 
-    /// <summary>Uses documented C-like grouping for mixed arithmetic and bitwise layout expressions.</summary>
+    /// <summary>
+    ///     The formulas check interactions among arithmetic, shifts, and bitwise AND.
+    /// </summary>
+    /// <remarks>
+    ///     For example, 1&lt;&lt;1+1 must mean 1 shifted by (1+1), giving 4. Consistent precedence matters when a
+    ///     struct's array length is calculated from mixed operators without extra parentheses.
+    /// </remarks>
     [TestMethod]
     public void Expressions_UseSharedPrecedenceRows()
     {
@@ -228,7 +312,13 @@ public class LayoutSafetyTests
         Assert.AreEqual(4, CStructDefinitionParser.Expr.ParseOrThrow("8 >> 1 & 7").Calc());
     }
 
-    /// <summary>Makes the hex parser reject punctuation and incomplete bytes instead of silently discarding input.</summary>
+    /// <summary>
+    ///     0A FF must become two bytes, 10 and 255.
+    /// </summary>
+    /// <remarks>
+    ///     An odd digit count or comma-separated input must throw FormatException. Rejecting unexpected characters
+    ///     keeps a copied hex fixture from silently changing before the binary parser sees it.
+    /// </remarks>
     [TestMethod]
     public void ParseHexDataContent_IsStrictByDefault()
     {
@@ -237,7 +327,13 @@ public class LayoutSafetyTests
         Assert.Throws<FormatException>(() => "0A,FF".ParseHexDataContent());
     }
 
-    /// <summary>Checks a representative fixed-size layout over many values rather than relying on one hand-picked fixture.</summary>
+    /// <summary>
+    ///     A seeded generator supplies 128 combinations for byte, uint16, and uint32 fields.
+    /// </summary>
+    /// <remarks>
+    ///     Serializing and then parsing each record must recover every original number. The fixed seed makes failures
+    ///     repeatable while checking more values than one hand-written byte example.
+    /// </remarks>
     [TestMethod]
     public void SerializeThenParse_RoundTripsRepresentativeFixedValues()
     {
@@ -266,9 +362,12 @@ public class LayoutSafetyTests
     }
 
     /// <summary>
-    ///     Generates many small, fixed-size declarations and values to prove that serialization, parsing, alignment,
-    ///     and public size reporting agree across combinations rather than only across hand-written examples.
+    ///     The test generates 96 small layouts with different integer fields and alternates packed and aligned mode.
     /// </summary>
+    /// <remarks>
+    ///     Reported size must match the produced buffer length, and reading must recover the supplied values. This
+    ///     checks combinations of field widths and padding rather than one fixed record shape.
+    /// </remarks>
     [TestMethod]
     public void SerializeThenParse_RoundTripsGeneratedFixedLayouts()
     {
@@ -308,10 +407,13 @@ public class LayoutSafetyTests
     }
 
     /// <summary>
-    ///     Exercises a bounded variable-length layout with deterministic random input. Each trial must either produce
-    ///     a regular object or stop through the documented read exception; hostile bytes must not escape as unrelated
-    ///     runtime failures or grow work beyond the configured limits.
+    ///     Random bytes are interpreted as a count, an array, and terminated text under small limits.
     /// </summary>
+    /// <remarks>
+    ///     Some inputs must parse successfully and others must raise documented read errors. Unrelated runtime
+    ///     exceptions are failures of the test, as would be a corpus that stopped exercising either successful or
+    ///     rejected reads.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_BoundedBinaryFuzz_UsesOnlyDocumentedReadFailures()
     {
@@ -355,7 +457,13 @@ public class LayoutSafetyTests
         Assert.IsGreaterThan(0, documentedFailures, "The corpus must continue exercising bounded failure handling.");
     }
 
-    /// <summary>Rejects streams that would otherwise fail later when writer alignment queries their unavailable position.</summary>
+    /// <summary>
+    ///     The supplied destination accepts writes but cannot seek or report normal positioning.
+    /// </summary>
+    /// <remarks>
+    ///     WriteStream must reject it at the public boundary even for a one-byte struct. The writer's layout and
+    ///     alignment logic requires positioning support, so failure should be clear before writing begins.
+    /// </remarks>
     [TestMethod]
     public void WriteStream_RequiresSeekableStream()
     {
@@ -366,7 +474,13 @@ public class LayoutSafetyTests
         Assert.Throws<ArgumentException>(() => cstruct.WriteStream(stream, "root", new { value = (byte)0xA5, }));
     }
 
-    /// <summary>Retries a short bitfield-storage read so an update preserves bits outside the selected field.</summary>
+    /// <summary>
+    ///     The two-byte bitfield unit starts as A5 BC, but the stream returns at most one byte per read.
+    /// </summary>
+    /// <remarks>
+    ///     Updating low or high must gather both bytes before masking in the replacement. Expected outputs A3 BC and 35
+    ///     12 prove that untouched neighboring bits survive short reads.
+    /// </remarks>
     /// <param name="path">The first or later bitfield selected for update.</param>
     /// <param name="value">The replacement value for the selected slice.</param>
     /// <param name="expectedFirst">The expected first storage byte after the update.</param>
@@ -393,9 +507,13 @@ public class LayoutSafetyTests
     }
 
     /// <summary>
-    ///     Refuses to extend a truncated bitfield unit during an in-place update, because the missing byte could contain
-    ///     neighbouring bits that an update operation is required to preserve.
+    ///     Only A5 is supplied for a two-byte storage unit.
     /// </summary>
+    /// <remarks>
+    ///     Updating its low four bits cannot safely proceed because the missing byte contains other bits that must be
+    ///     preserved. The operation must raise a read error and leave the existing byte unchanged rather than extend
+    ///     the stream.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_RejectsTruncatedExistingBitfieldStorage()
     {

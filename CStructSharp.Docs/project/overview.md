@@ -17,8 +17,7 @@ The core supports:
 - serializing new data to an array, span, buffer writer, or stream; and
 - replacing an existing value without moving the surrounding data.
 
-The repository currently declares release candidate `0.2.0-preview` for .NET 8 and .NET 10. This is the version being
-validated by the release files; it does not by itself prove that the package has been published. The managed public
+The library targets .NET 8 and .NET 10. The core project file records the development version; release assets identify published versions. The managed public
 surface contains 20 types and is checked against a reviewed `managed-rc1` baseline so accidental signature changes
 are caught.
 

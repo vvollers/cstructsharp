@@ -5,6 +5,8 @@ export default {
     "!api/CStructSharp*.md",
     "!api-overwrites/**",
     "!node_modules/**",
+    "!test-results/**",
+    "!playwright-report/**",
   ],
   config: {
     "default": true,

@@ -13,7 +13,13 @@ public class ManualLanguageFixtureTests
     private static readonly Lazy<ManualFixtureContract> Fixtures = new(LoadFixtures);
     private static readonly Lazy<PortableContract> Portable = new(LoadPortableContract);
 
-    /// <summary>Proves the exact bytes, sizes, alignments, offsets, and values printed by every valid fixture.</summary>
+    /// <summary>
+    ///     Every valid teaching fixture supplies its own definition, options, bytes, and predicted values and offsets.
+    /// </summary>
+    /// <remarks>
+    ///     The library must match those predictions and reproduce the expected serialization. The test keeps
+    ///     explanatory examples tied to executable behavior rather than relying on handwritten calculations alone.
+    /// </remarks>
     [TestMethod]
     public void ValidFixtures_PredictBytesOffsetsAndValues()
     {
@@ -64,7 +70,13 @@ public class ManualLanguageFixtureTests
         }
     }
 
-    /// <summary>Proves every paired unsupported form or bounded read reports its documented stable category.</summary>
+    /// <summary>
+    ///     Each valid feature example has a paired invalid form or bounded-read failure.
+    /// </summary>
+    /// <remarks>
+    ///     The test checks whether rejection happens during construction or reading and whether its stable error code
+    ///     matches the fixture. This documents both what is supported and how the corresponding mistake is reported.
+    /// </remarks>
     [TestMethod]
     public void InvalidFixtures_ReportStableErrorCategories()
     {

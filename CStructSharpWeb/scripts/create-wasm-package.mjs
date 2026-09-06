@@ -38,10 +38,21 @@ export function createWasmPackage(sourceDirectory = source, destinationDirectory
   copyDirectory(sourceDirectory, destinationDirectory);
   fs.copyFileSync(libraryEntry, path.join(destinationDirectory, "cstructsharp-wasm.js"));
   fs.copyFileSync(readme, path.join(destinationDirectory, "README.md"));
+  copyDirectory(path.join(webRoot, "wasm", "starter"), path.join(destinationDirectory, "starter"));
+  fs.copyFileSync(
+    path.join(webRoot, "wasm", "serve.mjs"),
+    path.join(destinationDirectory, "serve.mjs"),
+  );
   return {
     directory: destinationDirectory,
     manifest,
-    files: ["README.md", "cstructsharp-wasm.js", ...manifest.files.map((entry) => entry.path)],
+    files: [
+      "README.md",
+      "cstructsharp-wasm.js",
+      "serve.mjs",
+      ...fs.readdirSync(path.join(webRoot, "wasm", "starter")).map((name) => `starter/${name}`),
+      ...manifest.files.map((entry) => entry.path),
+    ],
   };
 }
 
