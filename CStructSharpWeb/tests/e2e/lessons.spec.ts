@@ -233,8 +233,9 @@ test("intentional errors can be repaired by pasting into VueHex", async ({ page 
   await page.getByRole("button", { name: "Run parse", exact: true }).click();
   await expect(page.getByText("parse completed", { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
-    true,
-  );
+  // Monaco resizes through ResizeObserver after the viewport change has been applied.
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+    .toBe(true);
   await page.screenshot({ path: "artifacts/onboarding-mobile.png", fullPage: true });
 });
