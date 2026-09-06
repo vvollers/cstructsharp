@@ -6,7 +6,14 @@ using System.Text.Json;
 [TestClass]
 public class CompilerDifferentialFixtureTests
 {
-    /// <summary>Every checked-in observation retains provenance and expressly declines to claim an ABI profile.</summary>
+    /// <summary>
+    ///     Checked-in GCC and Clang observations must record compiler version, target, flags, language, and fixture
+    ///     identity.
+    /// </summary>
+    /// <remarks>
+    ///     They must label themselves observations rather than implemented profiles. This makes native-layout evidence
+    ///     traceable without suggesting that one machine's results define all C layouts.
+    /// </remarks>
     [TestMethod]
     public void Baselines_AreObservationOnlyAndHaveCompleteProvenance()
     {
@@ -39,7 +46,14 @@ public class CompilerDifferentialFixtureTests
         CollectionAssert.AreEquivalent(new[] { "Clang", "GCC", }, families.ToArray());
     }
 
-    /// <summary>Native fixed-width aggregates agree with the equivalent little-endian aligned Portable examples.</summary>
+    /// <summary>
+    ///     The selected native fixtures use fixed-width integers and match the equivalent aligned little-endian
+    ///     Portable examples.
+    /// </summary>
+    /// <remarks>
+    ///     Their stored sizes, offsets, and byte images are compared exactly. Agreement for these particular records is
+    ///     useful evidence, but does not imply every native type or layout follows Portable rules.
+    /// </remarks>
     [TestMethod]
     public void FixedWidthAggregates_MatchExactPortableExamples()
     {
@@ -89,7 +103,13 @@ public class CompilerDifferentialFixtureTests
         }
     }
 
-    /// <summary>Observed native widths are evidence, not aliases for Portable's deterministic primitive contract.</summary>
+    /// <summary>
+    ///     Portable long is eight bytes, while the recorded native long is four and native pointers are eight.
+    /// </summary>
+    /// <remarks>
+    ///     The test preserves those differences instead of redefining the library's aliases to match one compiler
+    ///     target. Binary schemas should use the documented library widths rather than assume host C widths.
+    /// </remarks>
     [TestMethod]
     public void NativeScalarDifferences_DoNotBecomePortableClaims()
     {
@@ -116,7 +136,14 @@ public class CompilerDifferentialFixtureTests
         }
     }
 
-    /// <summary>Implementation-defined bitfields retain raw native images without being normalized into Portable.</summary>
+    /// <summary>
+    ///     The Portable example is three bytes, 8D3412, while the native observation is four bytes, 8D003412, with
+    ///     padding before next.
+    /// </summary>
+    /// <remarks>
+    ///     Both records must retain their own exact evidence. Native bitfield placement is compiler-dependent and must
+    ///     not be silently normalized into a false compatibility claim.
+    /// </remarks>
     [TestMethod]
     public void Bitfields_RetainNativeByteImagesWithoutPortableParityClaim()
     {

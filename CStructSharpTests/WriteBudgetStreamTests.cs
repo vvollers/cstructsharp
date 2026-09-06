@@ -4,7 +4,13 @@ namespace CStructSharp.Tests;
 [TestClass]
 public class WriteBudgetStreamTests
 {
-    /// <summary>Forwards stream capabilities and every read/seek shape without charging the write budget.</summary>
+    /// <summary>
+    ///     This internal stream wrapper has a write budget of one byte, but ordinary reads and seeks must still work.
+    /// </summary>
+    /// <remarks>
+    ///     Capability flags, length, position, and flush must reflect the wrapped stream. Reading bytes does not spend
+    ///     a write budget; accounting must match the direction of the operation.
+    /// </remarks>
     [TestMethod]
     public void ForwardingSurface_PreservesCallerStreamBehavior()
     {
@@ -36,7 +42,13 @@ public class WriteBudgetStreamTests
         Assert.AreEqual(4L, inner.Position);
     }
 
-    /// <summary>Allows shrinking and exact bounded extension while rejecting the first byte beyond the limit.</summary>
+    /// <summary>
+    ///     The stream begins with two bytes, and a budget of two allows extending it to four.
+    /// </summary>
+    /// <remarks>
+    ///     Extending to five must fail without changing its length. Shrinking to one remains allowed because it creates
+    ///     no new output extent.
+    /// </remarks>
     [TestMethod]
     public void SetLength_ChargesOnlyExtentBeyondInitialLength()
     {
@@ -56,7 +68,13 @@ public class WriteBudgetStreamTests
         Assert.AreEqual(1L, stream.Length);
     }
 
-    /// <summary>Uses one cumulative physical budget across array, span, and single-byte writes.</summary>
+    /// <summary>
+    ///     Array, span, and single-byte writes all spend the same four-byte budget.
+    /// </summary>
+    /// <remarks>
+    ///     Rewriting an earlier position counts again even though it does not increase the stream length. The next
+    ///     write must fail, leaving exactly the bytes produced by the four accepted writes.
+    /// </remarks>
     [TestMethod]
     public void WriteOverloads_ShareOneExactPhysicalBudget()
     {
@@ -77,7 +95,13 @@ public class WriteBudgetStreamTests
         Assert.AreEqual(1L, stream.Position);
     }
 
-    /// <summary>Applies the per-field string boundary exactly, including its invalid negative domain.</summary>
+    /// <summary>
+    ///     With a two-byte string limit, lengths zero and two are valid, while -1 and three must be rejected.
+    /// </summary>
+    /// <remarks>
+    ///     This tests the internal size check before encoding or output. The upper limit is inclusive, and a negative
+    ///     byte length is never meaningful.
+    /// </remarks>
     [TestMethod]
     public void StringBytes_RejectNegativeAndFirstByteOverLimit()
     {
@@ -92,7 +116,13 @@ public class WriteBudgetStreamTests
         Assert.Throws<CStructWriteException>(() => stream.EnsureStringBytes(3));
     }
 
-    /// <summary>Preflights a complete zero region and writes an accepted region through reusable bounded chunks.</summary>
+    /// <summary>
+    ///     A request for 10000 zero bytes must fail before writing anything under a 9999-byte budget.
+    /// </summary>
+    /// <remarks>
+    ///     With enough budget it must produce exactly 10000 zeros, even though the implementation writes in chunks. A
+    ///     zero-length request does nothing, while a negative length is invalid.
+    /// </remarks>
     [TestMethod]
     public void WriteZeroes_RejectsBeforeFirstChunk_AndWritesExactLargeRegion()
     {
@@ -121,7 +151,13 @@ public class WriteBudgetStreamTests
         Assert.IsTrue(output.All(value => value == 0));
     }
 
-    /// <summary>Rejects arithmetic overflow before submitting bytes to an extreme-position stream.</summary>
+    /// <summary>
+    ///     The fake destination reports a position near the largest supported offset.
+    /// </summary>
+    /// <remarks>
+    ///     Adding the next byte would overflow address arithmetic, so the wrapper must raise a write error before
+    ///     calling the underlying writer. The original overflow remains available as the cause.
+    /// </remarks>
     [TestMethod]
     public void Write_RejectsStreamPositionOverflowBeforeInnerWrite()
     {
@@ -133,7 +169,13 @@ public class WriteBudgetStreamTests
         Assert.AreEqual(0, inner.WriteCount);
     }
 
-    /// <summary>Rejects a missing inner stream and leaves a valid caller-owned stream open on disposal.</summary>
+    /// <summary>
+    ///     A null inner stream must be rejected at construction.
+    /// </summary>
+    /// <remarks>
+    ///     Disposing a valid budget wrapper must leave the caller's stream usable, demonstrated by a later successful
+    ///     byte write. The wrapper controls accounting, not the lifetime of storage owned by its caller.
+    /// </remarks>
     [TestMethod]
     public void Lifetime_DoesNotTakeOwnershipOfCallerStream()
     {

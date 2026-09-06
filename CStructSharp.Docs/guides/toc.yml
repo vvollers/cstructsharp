@@ -5,6 +5,14 @@ items:
   href: binary-layout-basics.md
 - name: Install and first parse
   href: install-and-first-parse.md
+- name: Continue with the header
+  href: header-next-steps.md
+- name: Browser and WASM
+  href: browser/
+- name: Glossary
+  href: glossary.md
+- name: Binary file walkthrough
+  href: binary-file-walkthrough.md
 - name: Choose an API
   href: choosing-an-api.md
 - name: Read values and paths

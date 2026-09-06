@@ -10,6 +10,7 @@ export interface TestEntry {
   methodName: string;
   filePath: string;
   line: number;
+  sourceUrl?: string;
   runnable: boolean;
   reason?: string;
   definition?: string;

@@ -7,6 +7,7 @@ export default [
   {
     ignores: [
       "dist/**",
+      "artifacts/**",
       "node_modules/**",
       "playwright-report/**",
       "public/**",

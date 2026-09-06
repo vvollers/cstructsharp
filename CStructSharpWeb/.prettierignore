@@ -9,3 +9,4 @@ vite.config.d.ts
 vite.config.js
 wasm/bin/
 wasm/obj/
+artifacts/

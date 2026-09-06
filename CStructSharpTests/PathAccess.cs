@@ -7,9 +7,12 @@ using System.Dynamic;
 public class PathAccess
 {
     /// <summary>
-    ///     Confirms a path to a fixed-size array reports the declaration's element count, not the number of bytes in the
-    ///     stream. This lets callers reason about array shape without decoding every element.
+    ///     items[3] declares three uint8 elements, so the returned length must be 3.
     /// </summary>
+    /// <remarks>
+    ///     The API reports an element count, not an address or byte size. For wider element types those quantities
+    ///     would differ, even though they happen to match for this one-byte array.
+    /// </remarks>
     [TestMethod]
     public void GetDynamicArrayLength_UsesArrayLength()
     {
@@ -27,9 +30,12 @@ public class PathAccess
     }
 
     /// <summary>
-    ///     Confirms an unsized character array derives its logical length from the first NUL terminator. The terminator
-    ///     is storage metadata, so it is excluded from the returned character count.
+    ///     The bytes spell hi followed by a zero byte.
     /// </summary>
+    /// <remarks>
+    ///     For char name[], that zero ends the text, so the reported length is 2. The terminator is consumed as part of
+    ///     locating the end but is not itself a character in the returned length.
+    /// </remarks>
     [TestMethod]
     public void GetDynamicArrayLength_UsesStringLength()
     {
@@ -47,9 +53,12 @@ public class PathAccess
     }
 
     /// <summary>
-    ///     Selects the second nested-struct array element by path and verifies the parser starts at that element's
-    ///     computed stride rather than treating the array as an unstructured byte range.
+    ///     Each inner record is a two-byte uint16.
     /// </summary>
+    /// <remarks>
+    ///     Index 1 selects the second record, starting two bytes after index 0. Reading 22 00 there must return value =
+    ///     0x22, demonstrating that the path follows record sizes rather than treating the index as a byte offset.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_Path_ArrayElement_ReturnsValue()
     {
@@ -68,9 +77,13 @@ public class PathAccess
     }
 
     /// <summary>
-    ///     Selects a nested object directly, then compares it with a full-root parse. This verifies path traversal
-    ///     preserves the same field offsets and values while returning only the requested object.
+    ///     outer contains inn followed by y.
     /// </summary>
+    /// <remarks>
+    ///     Selecting outer.inn must return the inner object with x = 0x11. After rewinding, parsing outer must still
+    ///     find y = 0x22. A path selects a part of the same layout; it does not invent a new layout for the remaining
+    ///     bytes.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_Path_ReturnsSubObject()
     {
@@ -93,9 +106,13 @@ public class PathAccess
     }
 
     /// <summary>
-    ///     Selects individual structs inside an array whose fixed character buffers differ in termination. It verifies
-    ///     array indexing, fixed-buffer decoding, and preservation of embedded trailing NUL characters.
+    ///     Each inner record contains exactly four character bytes.
     /// </summary>
+    /// <remarks>
+    ///     Index 1 reads test, while index 0 reads one followed by a retained zero character and still has length 4.
+    ///     Fixed char buffers preserve their full declared length; they are different from unsized, zero-terminated
+    ///     text.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_Path_StringInNestedArray_IsExpected_V2()
     {
@@ -121,9 +138,12 @@ public class PathAccess
     }
 
     /// <summary>
-    ///     Requests debug information for a nested path and verifies every returned range belongs to that subtree. This
-    ///     prevents unrelated parent or sibling bytes from being presented as part of a focused inspection result.
+    ///     outer.i occupies the two middle bytes between a and b.
     /// </summary>
+    /// <remarks>
+    ///     Selecting it must return x = 2, and every debug path must start with outer.i. This keeps the byte inspector
+    ///     focused on the selected child rather than including unrelated siblings.
+    /// </remarks>
     [TestMethod]
     public void ParseStreamWithDebug_Path_FiltersDebugData()
     {
@@ -145,9 +165,12 @@ public class PathAccess
     }
 
     /// <summary>
-    ///     Resolves an array-index path to the second element's byte address, proving path resolution applies the
-    ///     element stride instead of returning the array field's base address.
+    ///     Each items element occupies one byte, so zero-based index 1 is at offset 1.
     /// </summary>
+    /// <remarks>
+    ///     ResolveAddress returns that location, not the value 0x20 stored there. This distinction matters when
+    ///     highlighting or updating an element.
+    /// </remarks>
     [TestMethod]
     public void ResolveAddress_ArrayIndex_ReturnsElementOffset()
     {
@@ -165,9 +188,12 @@ public class PathAccess
     }
 
     /// <summary>
-    ///     Resolves a field after a one-byte predecessor, protecting the basic field-offset calculation used by update
-    ///     operations and debug ranges.
+    ///     With packed layout, the uint16 b follows the one-byte a immediately.
     /// </summary>
+    /// <remarks>
+    ///     Its address must therefore be 1, even though some aligned C layouts would insert padding. This test checks
+    ///     location only and does not ask the API to return b's numeric value.
+    /// </remarks>
     [TestMethod]
     public void ResolveAddress_Field_ReturnsFieldOffset()
     {
@@ -185,9 +211,12 @@ public class PathAccess
     }
 
     /// <summary>
-    ///     Distinguishes pointer-field storage from dereferenced target storage in a nested path. The <c>.address</c>
-    ///     accessor must identify the pointer bytes, whereas <c>.value</c> must follow the stored address.
+    ///     The pointer slot is at offset 0 and stores 8, pointing to the byte 0x2A.
     /// </summary>
+    /// <remarks>
+    ///     Resolving ptr.value must return target offset 8, while ptr.address must return slot offset 0. A nested
+    ///     containing struct must not blur the difference between the pointer's storage and its target.
+    /// </remarks>
     [TestMethod]
     public void ResolveAddress_NestedPointerValue_ReturnsTargetOffset()
     {
@@ -213,9 +242,12 @@ public class PathAccess
     }
 
     /// <summary>
-    ///     Combines nested-struct layout, array stride, and a field offset to find a scalar inside the second element.
-    ///     This is the address calculation required for safe targeted updates in arrays of records.
+    ///     Each packed inner record is three bytes: one for a and two for b.
     /// </summary>
+    /// <remarks>
+    ///     The second record starts at 3, and its b starts one byte later, so the expected address is 4. The path
+    ///     calculation must combine the array stride with the field's offset within its record.
+    /// </remarks>
     [TestMethod]
     public void ResolveAddress_Path_ArrayElementField_ReturnsOffset()
     {
@@ -234,9 +266,12 @@ public class PathAccess
     }
 
     /// <summary>
-    ///     Confirms the explicit <c>.address</c> accessor returns the pointer field's own storage, which is where callers
-    ///     write when changing the address rather than the pointee.
+    ///     The two-byte pointer at offset 0 stores the target address 4.
     /// </summary>
+    /// <remarks>
+    ///     Asking for ptr.address must return 0 because this accessor selects where the address is stored. It does not
+    ///     return the stored address number or follow it to the uint16 target.
+    /// </remarks>
     [TestMethod]
     public void ResolveAddress_PointerAddress_ReturnsPointerFieldOffset()
     {
@@ -254,9 +289,12 @@ public class PathAccess
     }
 
     /// <summary>
-    ///     Confirms the explicit <c>.value</c> accessor follows the pointer and returns the target's byte address. This
-    ///     is the complementary contract to <c>.address</c> and underpins pointer-target updates.
+    ///     The one-byte pointer stores 2, so ptr.value must resolve to offset 2.
     /// </summary>
+    /// <remarks>
+    ///     The uint32 target is wider than the pointer slot. This checks that following a pointer uses its stored
+    ///     address, rather than advancing by the target type's width.
+    /// </remarks>
     [TestMethod]
     public void ResolveAddress_PointerValue_ReturnsTargetOffset()
     {

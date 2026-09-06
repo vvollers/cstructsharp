@@ -9,9 +9,12 @@ using CStructSharp.Structure;
 public class Parsing
 {
     /// <summary>
-    ///     In C, a fixed array field like byte a[2] is stored inline inside the struct as contiguous elements. This test
-    ///     verifies element indexing and byte-for-byte ordering during decode.
+    ///     The brackets reserve two adjacent bytes inside mystruct; they do not store a pointer.
     /// </summary>
+    /// <remarks>
+    ///     Input bytes 10 and 20 must become a[0] and a[1]. Array indexes start at zero, and no byte-order conversion
+    ///     is needed for a one-byte element.
+    /// </remarks>
     [TestMethod]
     public void ArrayParsingTest()
     {
@@ -28,10 +31,13 @@ public class Parsing
     }
 
     /// <summary>
-    ///     This test models a common C layout pattern: an array of nested structs whose count comes from a preprocessor
-    ///     expression. It validates that #define arithmetic is resolved before layout so the decoder reads the correct number
-    ///     of records.
+    ///     MYCONST evaluates to 15 - 10 = 5.
     /// </summary>
+    /// <remarks>
+    ///     Each substruct has two bytes, so the ten input bytes form five records. The checks select the first, middle,
+    ///     and last records, expecting pairs (10,20), (12,22), and (14,24). Selecting mystruct as the root avoids
+    ///     parsing only the earlier substruct declaration.
+    /// </remarks>
     [TestMethod]
     public void ComplexParsingTest()
     {
@@ -58,10 +64,13 @@ public class Parsing
     }
 
     /// <summary>
-    ///     Uses the same nested struct-array definition as ComplexParsingTest, but additionally validates debug-map
-    ///     generation. The debug map is important for C-style binary parsing because it ties each field value to exact byte
-    ///     offsets.
+    ///     Five two-byte substruct records are decoded from the ten input bytes.
     /// </summary>
+    /// <remarks>
+    ///     The checked pairs remain (10,20), (12,22), and (14,24), and the debug list must not be empty. This overload
+    ///     wraps the full result under mystruct and supplies byte-location metadata for inspection; it does not change
+    ///     the field values.
+    /// </remarks>
     [TestMethod]
     public void ComplexParsingTestWithDebug()
     {
@@ -92,9 +101,12 @@ public class Parsing
     }
 
     /// <summary>
-    ///     C structs often repeat same-width integer fields back-to-back, relying on declaration order for layout. This test
-    ///     confirms two long members are decoded sequentially with no unexpected reordering.
+    ///     The fixture copies C# long values 10 and 20 into a byte buffer, then reads the two layout fields in order.
     /// </summary>
+    /// <remarks>
+    ///     In this library long is eight bytes; C compilers do not all use that size for C long. The test expects a =
+    ///     10 and b = 20 from the resulting 16 bytes.
+    /// </remarks>
     [TestMethod]
     public void LongParsingTest()
     {
@@ -116,9 +128,12 @@ public class Parsing
     }
 
     /// <summary>
-    ///     C bitfields pack sub-byte values into integer storage units, then continue with normal fields when boundaries are
-    ///     crossed. This test verifies bit extraction order, grouping behavior, and transition back to byte-aligned fields.
+    ///     The first byte 0b00000101 supplies a = 1, b = 0, and c = 1 from its low bits.
     /// </summary>
+    /// <remarks>
+    ///     The ordinary field d starts at the next byte and reads 15. Two-bit fields then share bytes in groups, and k
+    ///     must still read 10 after the final partial group.
+    /// </remarks>
     [TestMethod]
     public void ParsingBitFieldTest()
     {
@@ -166,9 +181,13 @@ public class Parsing
     }
 
     /// <summary>
-    ///     Builds on ParsingBitFieldTest by adding a leading ushort and enabling aligned mode. It checks that pre-bitfield
-    ///     alignment and struct-level layout still produce correct bitfield values.
+    ///     The leading ushort consumes 0A 00 and reads 10 before the one-bit fields begin.
     /// </summary>
+    /// <remarks>
+    ///     With alignment enabled, those fields must still read 1, 0, and 1, and the later two-bit groups must keep
+    ///     their original order. The final byte field k must read 10 rather than leftover bits from the preceding
+    ///     group.
+    /// </remarks>
     [TestMethod]
     public void ParsingBitFieldWithStructTest()
     {
@@ -220,9 +239,12 @@ public class Parsing
     }
 
     /// <summary>
-    ///     C enums are integer-backed constants that map numeric payload values to symbolic names. This test verifies explicit
-    ///     enum values and implicit auto-incremented values resolve correctly during parsing.
+    ///     Red is explicitly 5 and Blue is 9; Green inherits the next number after Red, which is 6.
     /// </summary>
+    /// <remarks>
+    ///     Input bytes 5, 9, and 6 must therefore return names Red, Blue, and Green. An enum gives meaning to stored
+    ///     integer values without storing the names themselves.
+    /// </remarks>
     [TestMethod]
     public void ParsingEnumTest()
     {
@@ -243,9 +265,12 @@ public class Parsing
     }
 
     /// <summary>
-    ///     Demonstrates the baseline C struct rule that scalar members are read in declaration order from contiguous bytes. It
-    ///     is the control case for more complex layout tests.
+    ///     mystruct has two one-byte fields and the input contains exactly two bytes.
     /// </summary>
+    /// <remarks>
+    ///     The first becomes a = 10 and the second b = 20. This is the simplest complete example of using layout text
+    ///     to give names to positions in a binary record.
+    /// </remarks>
     [TestMethod]
     public void SimpleParsingTest()
     {
@@ -262,9 +287,13 @@ public class Parsing
     }
 
     /// <summary>
-    ///     A wchar array in C represents a fixed-length wide-character buffer embedded directly in the struct. This test
-    ///     verifies that buffer is decoded as a full string value with expected character width.
+    ///     The library's wchar uses a two-byte UTF-16 code unit.
     /// </summary>
+    /// <remarks>
+    ///     Four units containing test occupy eight bytes and must return one string. The brackets make this a fixed
+    ///     buffer, so no extra zero terminator is needed; this width is a library choice rather than a universal C
+    ///     wchar_t rule.
+    /// </remarks>
     [TestMethod]
     public void WCharParseArrayTest()
     {
@@ -282,9 +311,12 @@ public class Parsing
     }
 
     /// <summary>
-    ///     Contrasts WCharParseArrayTest by declaring four independent wchar fields instead of one wchar array. It validates
-    ///     per-field decoding and preserves each character as a distinct struct member.
+    ///     The same eight UTF-16 bytes are declared as four separate fields instead of one array.
     /// </summary>
+    /// <remarks>
+    ///     The result must expose characters t, e, s, and t as a, b, c, and d. A scalar character field and a character
+    ///     array therefore have different result shapes even when their bytes match.
+    /// </remarks>
     [TestMethod]
     public void WCharParsingTest()
     {

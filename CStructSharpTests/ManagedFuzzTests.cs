@@ -6,7 +6,14 @@ using CStructSharp.Fuzzing;
 [TestClass]
 public class ManagedFuzzTests
 {
-    /// <summary>The reviewed corpus keeps all five targets, bounded limits, and at least four seeds per target.</summary>
+    /// <summary>
+    ///     The reviewed corpus must retain five targets, 20 starting seeds, 128 mutations per target, and inputs no
+    ///     larger than 256 bytes.
+    /// </summary>
+    /// <remarks>
+    ///     Small read, write, and array limits keep runs bounded. This test checks the agreed test configuration rather
+    ///     than parsing one particular struct.
+    /// </remarks>
     [TestMethod]
     public void Corpus_DefinesEveryBoundedManagedTarget()
     {
@@ -26,7 +33,14 @@ public class ManagedFuzzTests
         Assert.IsTrue(corpus.Limits.MaxTotalBytesWritten <= 4096);
     }
 
-    /// <summary>The complete reviewed run has stable cross-TFM inputs, classifications, counts, and replay digests.</summary>
+    /// <summary>
+    ///     Running the reviewed corpus produces 660 seed and mutation outcomes.
+    /// </summary>
+    /// <remarks>
+    ///     Success counts, documented-failure counts, and digests must match the saved expectations for every target.
+    ///     Stable results make unexpected behavior changes visible and let the same cases be reproduced across
+    ///     supported .NET targets.
+    /// </remarks>
     [TestMethod]
     public void ReviewedRun_MatchesTheFrozenReplayManifest()
     {
@@ -72,7 +86,13 @@ public class ManagedFuzzTests
         }
     }
 
-    /// <summary>A custom replay seed produces the same report every time without using System.Random.</summary>
+    /// <summary>
+    ///     The same custom random seed and iteration count are used twice.
+    /// </summary>
+    /// <remarks>
+    ///     Both runs must produce identical digests and outcome counts. Reproducibility matters because a random
+    ///     malformed layout or byte sequence is only useful for debugging if the exact failure can be generated again.
+    /// </remarks>
     [TestMethod]
     public void CustomSeed_ReplaysIdentically()
     {
@@ -92,7 +112,14 @@ public class ManagedFuzzTests
             second.Targets.Select(target => target.DocumentedFailures).ToArray());
     }
 
-    /// <summary>Single-input mode supports exact external-engine replay while retaining target failure policy.</summary>
+    /// <summary>
+    ///     One supplied binary input must round-trip successfully, while the incomplete definition struct root { must
+    ///     be classified as a documented failure.
+    /// </summary>
+    /// <remarks>
+    ///     Single-input replay must preserve that distinction. An expected rejection of malformed input is successful
+    ///     fuzz handling, not a defect by itself.
+    /// </remarks>
     [TestMethod]
     public void SingleInput_ReplaysSuccessAndDocumentedFailure()
     {
@@ -111,7 +138,13 @@ public class ManagedFuzzTests
         Assert.AreEqual(1, failure.Targets.Single().DocumentedFailures);
     }
 
-    /// <summary>Callers cannot silently enlarge a run beyond the reviewed input/resource envelope.</summary>
+    /// <summary>
+    ///     Requests that exceed the reviewed input bounds, use negative work counts, or name an unknown target must
+    ///     fail before execution.
+    /// </summary>
+    /// <remarks>
+    ///     The fuzz harness must not silently expand its resource use or run a different target from the one requested.
+    /// </remarks>
     [TestMethod]
     public void Run_RejectsUnreviewedBoundsAndUnknownTargets()
     {

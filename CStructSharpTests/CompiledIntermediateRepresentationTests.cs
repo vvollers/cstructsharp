@@ -10,9 +10,13 @@ using CStructSharp.Structure;
 public class CompiledIntermediateRepresentationTests
 {
     /// <summary>
-    ///     Verifies canonical alias identity, direct codec attachment, fixed array stride/storage, pointer shape, field
-    ///     placement, and immutable declaration-order collections.
+    ///     word and base_word both resolve to uint16.
     /// </summary>
+    /// <remarks>
+    ///     The compiled model must record two-byte elements, a four-byte array, and a separate two-byte pointer slot at
+    ///     offset 6. Cached readers, writers, and immutable field ordering let all operations use the same validated
+    ///     facts instead of rediscovering the layout.
+    /// </remarks>
     [TestMethod]
     public void CompiledDescriptors_CacheCanonicalTypeShapeAndPlacement()
     {
@@ -83,9 +87,13 @@ public class CompiledIntermediateRepresentationTests
     }
 
     /// <summary>
-    ///     Verifies that caller-dependent array counts retain an explicit runtime strategy and do not leak a default
-    ///     define value into supposedly fixed offsets or extents.
+    ///     COUNT defaults to 2 but can be overridden for an operation.
     /// </summary>
+    /// <remarks>
+    ///     The compiler must therefore keep values' size and tail's offset variable rather than freezing the default
+    ///     into fixed metadata. Address lookup must use the current count, including an override, when finding the
+    ///     tail.
+    /// </remarks>
     [TestMethod]
     public void CompiledDescriptors_KeepRuntimeSizeStrategiesVariable()
     {
@@ -116,7 +124,14 @@ public class CompiledIntermediateRepresentationTests
                 new Dictionary<string, Expr> { ["COUNT"] = new Literal(3), }));
     }
 
-    /// <summary>Verifies that identical inline spellings retain separate identities and never enter the global symbol map.</summary>
+    /// <summary>
+    ///     left.value contains one byte and right.value contains a uint16.
+    /// </summary>
+    /// <remarks>
+    ///     Their identical field names must refer to distinct compiled child types with sizes one and two. Neither
+    ///     anonymous child becomes a global symbol named value, preventing unrelated scopes from sharing the wrong
+    ///     layout.
+    /// </remarks>
     [TestMethod]
     public void CompiledDescriptors_KeepInlineTypeIdentityLexicallyScoped()
     {
@@ -142,9 +157,13 @@ public class CompiledIntermediateRepresentationTests
     }
 
     /// <summary>
-    ///     Verifies that enum storage, union extent, bit slices, and terminated flexible-array behavior are compiled
-    ///     into direct immutable strategies rather than inferred independently by each operation.
+    ///     The compiled model must record shared low/high bit offsets, uint16 enum storage, and a terminated name[]
+    ///     whose length remains variable.
     /// </summary>
+    /// <remarks>
+    ///     A char pointer must select a string reader after dereferencing, and union members must all have offset zero.
+    ///     These facts must be prepared consistently before stream operations.
+    /// </remarks>
     [TestMethod]
     public void CompiledDescriptors_CaptureEnumUnionBitfieldAndFlexibleStrategies()
     {
@@ -216,9 +235,12 @@ public class CompiledIntermediateRepresentationTests
     }
 
     /// <summary>
-    ///     Proves that a compiled primitive typedef chain retains its resolved codec, width, pointer shape, and array
-    ///     stride while every parsed-symbol and handler construction table rejects post-construction mutation.
+    ///     A chain of aliases describes count, two array values, and a pointer to another uint16.
     /// </summary>
+    /// <remarks>
+    ///     The packed root remains eight bytes and the pointer reaches 0xDEF0. Metadata queries and every read/write
+    ///     path must agree, even though construction-time tables are frozen and cannot be modified after compilation.
+    /// </remarks>
     [TestMethod]
     public void PrimitiveTypedefSlice_UsesCompiledFactsAcrossEveryOperation()
     {
@@ -317,9 +339,12 @@ public class CompiledIntermediateRepresentationTests
     }
 
     /// <summary>
-    ///     Keeps the immutable compiled model as the only layout compiler instead of retaining the superseded
-    ///     construction-time cache, parsed-field alias walker, and parsed-field sizing engine beside it.
+    ///     This reflection test checks that superseded private layout caches and sizing helpers are absent.
     /// </summary>
+    /// <remarks>
+    ///     There is no binary fixture: the expected result is one source of compiled layout facts. Keeping multiple
+    ///     independent sizing engines could let parsing, address lookup, and writing disagree after a change.
+    /// </remarks>
     [TestMethod]
     public void CompiledModel_IsTheOnlyLayoutCompiler()
     {

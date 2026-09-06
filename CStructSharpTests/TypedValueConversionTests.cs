@@ -19,7 +19,14 @@ public class TypedValueConversionTests
         byte Value { get; set; }
     }
 
-    /// <summary>Converts every supported integral source and numeric target without culture or unchecked narrowing.</summary>
+    /// <summary>
+    ///     A parsed byte value 42 is converted into supported C# numeric targets, and wider signed and unsigned source
+    ///     values exercise their ranges.
+    /// </summary>
+    /// <remarks>
+    ///     Integer conversions must not wrap or depend on culture. Floating-point targets follow their normal numeric
+    ///     conversion behavior and may have less precision than exact wide integers.
+    /// </remarks>
     [TestMethod]
     public void NumericProjection_CoversExactIntegralAndFloatingTargets()
     {
@@ -60,7 +67,14 @@ public class TypedValueConversionTests
         Assert.AreEqual((decimal)ulong.MaxValue, Read<decimal>(enumLayout, EightOnes(), "mode"));
     }
 
-    /// <summary>Supports direct object values and rejects null, non-collections, and nonnumeric enum projections.</summary>
+    /// <summary>
+    ///     Reading as object preserves the natural byte value.
+    /// </summary>
+    /// <remarks>
+    ///     In contrast, a null pointer target cannot become a non-nullable int, and incompatible strings, collection
+    ///     shapes, or enum targets must fail. The mapper must preserve type meaning instead of guessing a conversion
+    ///     from unrelated data.
+    /// </remarks>
     [TestMethod]
     public void Projection_RejectsIncompatibleNullCollectionAndEnumTargets()
     {
@@ -105,7 +119,14 @@ public class TypedValueConversionTests
         }
     }
 
-    /// <summary>Maps exact dictionary names and normalizes every unsupported POCO shape or invocation failure.</summary>
+    /// <summary>
+    ///     Matching names can populate an ordinary C# model, including a model representing union views.
+    /// </summary>
+    /// <remarks>
+    ///     Unsupported constructors, unwritable or incompatible members, and failures while invoking model code must
+    ///     produce meaningful conversion errors. This tests object creation and binding after binary decoding, not a
+    ///     different byte format.
+    /// </remarks>
     [TestMethod]
     public void PocoProjection_ReportsConstructionAndMemberContracts()
     {

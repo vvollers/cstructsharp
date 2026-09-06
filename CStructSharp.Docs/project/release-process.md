@@ -18,19 +18,24 @@ standalone `cstructsharp-wasm-v<VERSION>.zip` download. The WASM archive contain
 the required .NET WebAssembly runtime and assemblies, and a README with a copy-and-import example. It is intended for
 embedding CStructSharp in another static browser project; it is separate from the full explorer website.
 
-Tests run in the CI workflow, so the release workflow does not repeat them. A release should be started only after CI
-has passed for the current `main` revision.
+Managed regression tests run in CI. The release workflow additionally checks the exact NuGet and WASM artifacts
+using the onboarding programs before publishing their corresponding artifacts. A release should be started only
+after CI has passed for the current `main` revision. See [onboarding review](onboarding-review.md) for the human
+sessions and artifact checks, and [browser development](web-development.md) for local explorer commands.
 
-## Validate the workflow boundary
+## Validate the consumer experience
 
 From the repository root:
 
 ```powershell
-.\tools\Validate-ReleasePolicy.ps1
+./tools/Test-OnboardingPackage.ps1 -PackageDirectory ./artifacts/package
+./tools/Test-OnboardingBrowser.ps1 -ArchivePath ./artifacts/cstructsharp-wasm-vVERSION.zip
 ```
 
-The check confirms that CI is limited to restore, build, test, and test-result reporting, and that release builds
-exactly the three requested artifacts. Release actions remain pinned to immutable commits.
+Replace VERSION with the actual archive version. These checks use isolated package consumers and an extracted
+browser bundle. The old `contracts/release/rc1.json` and its validator describe the historical build-only release
+candidate policy; they do not describe the current publishing workflow. Release actions remain pinned to immutable
+commits. Do not update old compatibility snapshots merely to make them appear current.
 
 ## Release URLs
 

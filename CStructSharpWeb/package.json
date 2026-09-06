@@ -13,11 +13,12 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
-    "test:bootstrap": "node --test wasm/bootstrap.test.js",
+    "test:bootstrap": "node --test wasm/bootstrap.test.js wasm/cstructsharp-wasm.test.js",
     "test:demos": "node --test scripts/generate-test-demos.test.mjs",
     "test:wasm-publication": "node --test scripts/wasm-publication.test.mjs",
     "test:wasm-reproducibility": "node scripts/test-wasm-reproducibility.mjs",
     "test:unit": "vitest run --dir src --environment happy-dom",
+    "test:generated-csharp": "node scripts/test-generated-csharp.mjs",
     "verify:wasm": "node scripts/verify-wasm-publication.mjs",
     "test:e2e": "playwright test",
     "dev": "npm run generate:demos && vite",
@@ -29,6 +30,7 @@
     "dev:all": "concurrently \"npm run dev\" \"echo WASM watch not available - run build:wasm manually after C# changes\""
   },
   "dependencies": {
+    "monaco-editor": "^0.56.0",
     "vue": "^3.5.42",
     "vuehex": "^0.7.0"
   },
@@ -49,5 +51,8 @@
     "vite": "^8.2.2",
     "vitest": "^4.1.11",
     "vue-tsc": "^3.3.11"
+  },
+  "overrides": {
+    "dompurify": "^3.4.15"
   }
 }

@@ -4,7 +4,14 @@ namespace CStructSharp.Tests;
 [TestClass]
 public class SparseUpdateStreamTests
 {
-    /// <summary>Advertises the expected stream contract and rejects invalid cursor, length, and buffer arguments.</summary>
+    /// <summary>
+    ///     This internal staging stream stores proposed changes before they reach the destination.
+    /// </summary>
+    /// <remarks>
+    ///     It must report normal readable, seekable, writable capabilities while rejecting invalid positions, length
+    ///     changes, and buffer arguments. A consistent stream contract is necessary because ordinary field writers
+    ///     operate on this temporary layer.
+    /// </remarks>
     [TestMethod]
     public void Contract_ValidatesCapabilitiesPositionsLengthsAndBuffers()
     {
@@ -30,7 +37,14 @@ public class SparseUpdateStreamTests
         Assert.Throws<CStructWriteException>(() => staging.SetLength(1));
     }
 
-    /// <summary>Implements ordinary begin/current/end seeking and checked rejection of invalid targets.</summary>
+    /// <summary>
+    ///     Seeking from the beginning, current position, or end must produce ordinary absolute offsets within the
+    ///     staging view.
+    /// </summary>
+    /// <remarks>
+    ///     Negative targets, invalid origins, and arithmetic overflow must fail. Staging must not change the meaning of
+    ///     a field address merely because it stores changes separately.
+    /// </remarks>
     [TestMethod]
     public void Seek_UsesVirtualAbsoluteCoordinates()
     {
@@ -46,7 +60,13 @@ public class SparseUpdateStreamTests
         Assert.Throws<CStructWriteException>(() => staging.Seek(long.MaxValue, SeekOrigin.Current));
     }
 
-    /// <summary>Overlays last writes on baseline reads and commits maximal final ranges in ascending order.</summary>
+    /// <summary>
+    ///     Overlapping staged writes must use the most recent bytes, producing 0,10,20,21,4,5,99,7 when read back.
+    /// </summary>
+    /// <remarks>
+    ///     The baseline remains unwritten until commit. Commit combines adjacent changed bytes into ranges starting at
+    ///     1 and 6, rather than replaying overwritten intermediate values.
+    /// </remarks>
     [TestMethod]
     public void OverlayAndCommit_UseLastWriteWinsCoalescedRanges()
     {
@@ -73,7 +93,13 @@ public class SparseUpdateStreamTests
         Assert.AreEqual(0, destination.FlushCalls);
     }
 
-    /// <summary>Rejects writes outside the original extent without forwarding any staging-side mutation.</summary>
+    /// <summary>
+    ///     The baseline has two bytes, so writing at its end or increasing its length would extend existing storage.
+    /// </summary>
+    /// <remarks>
+    ///     Both requests must fail and make zero underlying writes. This is the mechanism that keeps UpdateStream a
+    ///     replacement operation rather than an append operation.
+    /// </remarks>
     [TestMethod]
     public void Write_RejectsExtensionAndPreservesBaseline()
     {
@@ -87,7 +113,13 @@ public class SparseUpdateStreamTests
         Assert.AreEqual(0, baseline.WriteCalls);
     }
 
-    /// <summary>Reads only unstaged gaps from the baseline and never takes ownership of it.</summary>
+    /// <summary>
+    ///     A staged replacement changes the middle byte from 2 to 9.
+    /// </summary>
+    /// <remarks>
+    ///     Reading the combined view must return 1,9,3 and fetch only offsets 0 and 2 from the baseline. Disposing the
+    ///     staging view must leave the caller-owned baseline open.
+    /// </remarks>
     [TestMethod]
     public void Read_UsesStagedBytesAndOnlyReadsBaselineGaps()
     {
@@ -105,7 +137,13 @@ public class SparseUpdateStreamTests
         Assert.IsTrue(baseline.CanRead);
     }
 
-    /// <summary>Advances one-byte reads across baseline, staged, and end-of-stream states.</summary>
+    /// <summary>
+    ///     Single-byte reads must see original 1, staged 9, and original 3 in sequence.
+    /// </summary>
+    /// <remarks>
+    ///     The next read returns -1 at end of stream, while bulk reads there return zero. The cursor must remain at
+    ///     length 3 rather than advancing past the end.
+    /// </remarks>
     [TestMethod]
     public void ReadByte_AdvancesAcrossBaselineOverlayAndEnd()
     {
@@ -123,7 +161,13 @@ public class SparseUpdateStreamTests
         Assert.AreEqual(0, staging.Read(new byte[1], 0, 1));
     }
 
-    /// <summary>Coalesces a final range across a chunk boundary and retains a later sparse range separately.</summary>
+    /// <summary>
+    ///     Three adjacent changed bytes start at 1023 and cross an internal storage-chunk boundary.
+    /// </summary>
+    /// <remarks>
+    ///     Commit must still write them as one range, with the isolated change at 2049 kept separate. Internal chunking
+    ///     must not alter the final bytes or split logically adjacent output unnecessarily.
+    /// </remarks>
     [TestMethod]
     public void Commit_CoalescesAcrossChunkBoundaries()
     {
@@ -143,7 +187,14 @@ public class SparseUpdateStreamTests
         Assert.AreEqual(9, result[2049]);
     }
 
-    /// <summary>Stops after a failed later range without attempting generic rollback of an earlier committed range.</summary>
+    /// <summary>
+    ///     The destination accepts the first changed range but throws on the second.
+    /// </summary>
+    /// <remarks>
+    ///     The first change must remain, the second must not appear, and the original I/O exception must be retained.
+    ///     Staging prevents validation failures from mutating data, but cannot guarantee rollback after a physical
+    ///     destination failure.
+    /// </remarks>
     [TestMethod]
     public void CommitFailure_BetweenRangesRetainsOnlyCommittedPrefix()
     {
@@ -162,7 +213,13 @@ public class SparseUpdateStreamTests
         Assert.AreEqual(2, destination.WriteCalls);
     }
 
-    /// <summary>Normalizes a destination seek failure before the first physical write and retains the attempted offset.</summary>
+    /// <summary>
+    ///     Commit tries to position the destination at offset 2, but the stream throws before writing.
+    /// </summary>
+    /// <remarks>
+    ///     The error must preserve that seek failure and attempted offset even if reading diagnostic position also
+    ///     fails. No destination bytes may change because the first physical write was never reached.
+    /// </remarks>
     [TestMethod]
     public void CommitFailure_WhileSeekingRetainsCauseAndAttemptedOffset()
     {

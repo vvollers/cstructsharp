@@ -19,7 +19,14 @@ public class PublicExceptionBoundaryTests
                                   };
                                   """;
 
-    /// <summary>Classifies malformed declarations as layout failures while retaining argument errors for bad options.</summary>
+    /// <summary>
+    ///     An unknown field type is invalid layout text and must raise CStructLayoutException.
+    /// </summary>
+    /// <remarks>
+    ///     Null input, pointer width three, or zero compilation limits are invalid API arguments and must retain
+    ///     argument exceptions. Distinguishing these causes helps callers fix the definition versus fixing how they
+    ///     called the library.
+    /// </remarks>
     [TestMethod]
     public void Compilation_SeparatesLayoutFailuresFromArgumentFailures()
     {
@@ -32,7 +39,13 @@ public class PublicExceptionBoundaryTests
                 compilationOptions: new CStructCompilationOptions { MaxDefinitionLength = 0, }));
     }
 
-    /// <summary>Uses one semantic path category for empty, missing, and wrong-kind public declaration selectors.</summary>
+    /// <summary>
+    ///     Metadata queries receive empty, missing, or wrong-kind declaration names.
+    /// </summary>
+    /// <remarks>
+    ///     These semantic selection errors must raise CStructPathException, while a null argument remains
+    ///     ArgumentNullException. A name can exist and still be unsuitable when an API specifically requires a struct.
+    /// </remarks>
     [TestMethod]
     public void MetadataQueries_UsePathFailuresForInvalidSelectors()
     {
@@ -46,7 +59,14 @@ public class PublicExceptionBoundaryTests
         Assert.Throws<CStructPathException>(() => cstruct.GetStructAlignmentInBytes("alias"));
     }
 
-    /// <summary>Classifies selector problems identically across all public read-like operation families.</summary>
+    /// <summary>
+    ///     Empty paths, missing fields, and traversing through an ordinary scalar must fail consistently across
+    ///     reading, debug, address, and length APIs.
+    /// </summary>
+    /// <remarks>
+    ///     TryReadValue must return false and restore position for these expected failures. A selector error must not
+    ///     be confused with damaged binary data.
+    /// </remarks>
     [TestMethod]
     public void ReadLikeOperations_UsePathFailuresForInvalidSelectors()
     {
@@ -78,7 +98,14 @@ public class PublicExceptionBoundaryTests
             () => cstruct.GetDynamicArrayLength(new MemoryStream(new byte[8]), "root.scalar"));
     }
 
-    /// <summary>Classifies selector failures before either new output or existing bytes can be changed.</summary>
+    /// <summary>
+    ///     Invalid output selectors must raise a path error before a direct write creates bytes or an update changes
+    ///     existing storage.
+    /// </summary>
+    /// <remarks>
+    ///     Failed updates must also restore their original position. Valid replacement data cannot compensate for
+    ///     selecting a nonexistent or invalid target.
+    /// </remarks>
     [TestMethod]
     public void WriteLikeOperations_UsePathFailuresWithoutMutation()
     {
@@ -108,7 +135,14 @@ public class PublicExceptionBoundaryTests
         Assert.AreEqual(2L, pointerUpdate.Position);
     }
 
-    /// <summary>Retains call-contract failures as ordinary argument exceptions instead of payload/domain failures.</summary>
+    /// <summary>
+    ///     Null streams, unsupported read/write/seek capabilities, and invalid option values violate the API's calling
+    ///     contract.
+    /// </summary>
+    /// <remarks>
+    ///     They must raise ordinary argument exceptions across all operation families. These failures should not be
+    ///     presented as corrupt payloads or layout interpretation errors.
+    /// </remarks>
     [TestMethod]
     public void Operations_RetainArgumentFailuresForArgumentsOptionsAndCapabilities()
     {
@@ -168,7 +202,14 @@ public class PublicExceptionBoundaryTests
                 options: new WriteOptions { MaxArrayElements = -1, }));
     }
 
-    /// <summary>Wraps physical stream failures in the operation's domain while preserving the original exception.</summary>
+    /// <summary>
+    ///     Fake streams fail during reading, writing, or seeking.
+    /// </summary>
+    /// <remarks>
+    ///     Public APIs must wrap IOException in the appropriate read or write exception while retaining the original
+    ///     instance and any available offset. This allows applications to diagnose storage failures separately from
+    ///     invalid binary values.
+    /// </remarks>
     [TestMethod]
     public void PhysicalStreamFailures_AreWrappedWithTheirOriginalCause()
     {
@@ -207,7 +248,14 @@ public class PublicExceptionBoundaryTests
         Assert.IsNull(seek.Offset);
     }
 
-    /// <summary>Exposes one stable base/code model and distinct budget categories to callers.</summary>
+    /// <summary>
+    ///     Missing paths, incomplete data, conversion failures, and exhausted budgets must expose the expected stable
+    ///     code and useful path/offset context.
+    /// </summary>
+    /// <remarks>
+    ///     Limits also have dedicated exception subtypes. Callers can classify failures programmatically instead of
+    ///     interpreting human-readable message text.
+    /// </remarks>
     [TestMethod]
     public void DomainFailures_ExposeStableCodesAndLimitSubtypes()
     {
@@ -280,7 +328,14 @@ public class PublicExceptionBoundaryTests
             CStructErrorCode.WriteLimitExceeded);
     }
 
-    /// <summary>Leaves cancellation and unexpected implementation failures outside the expected domain model.</summary>
+    /// <summary>
+    ///     Injected cancellation and unexpected implementation exceptions must propagate without being disguised as
+    ///     ordinary bad-input errors.
+    /// </summary>
+    /// <remarks>
+    ///     A secondary position-reporting failure must also not replace an existing path failure. This keeps
+    ///     application cancellation and possible defects visible to the caller.
+    /// </remarks>
     [TestMethod]
     public void UnexpectedFailures_AreNotRelabeled()
     {
@@ -311,7 +366,14 @@ public class PublicExceptionBoundaryTests
         Assert.IsNull(primary.Offset);
     }
 
-    /// <summary>Classifies caller payload shape and conversion failures as writes rather than argument errors.</summary>
+    /// <summary>
+    ///     Null records, nonnumeric text for a byte, and other incompatible replacement shapes must raise
+    ///     CStructWriteException.
+    /// </summary>
+    /// <remarks>
+    ///     The API call itself is valid, but the supplied value cannot be encoded by the layout. That differs from an
+    ///     invalid path or a missing stream argument.
+    /// </remarks>
     [TestMethod]
     public void InvalidPayloads_UseWriteFailures()
     {

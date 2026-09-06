@@ -8,9 +8,13 @@ using System.Globalization;
 public class BitfieldSemanticsTests
 {
     /// <summary>
-    ///     Uses one shared 16-bit unit to verify first, middle, and last slices across parse, debug, address, serialize,
-    ///     and update operations under every portable alignment and byte-order combination.
+    ///     A uint16 storage unit holds three fields of 3, 5, and 8 bits.
     /// </summary>
+    /// <remarks>
+    ///     The number 0xA5D5 must split into 5, 26, and 165, regardless of byte order. All three fields share a byte
+    ///     address and debug range. Updating one slice must preserve the other bits, the prefix, and the tail, with or
+    ///     without alignment padding.
+    /// </remarks>
     /// <param name="aligned">Whether fields use their portable alignment boundaries.</param>
     /// <param name="isLittleEndian">Whether the least-significant storage byte is written first.</param>
     [TestMethod]
@@ -85,9 +89,12 @@ public class BitfieldSemanticsTests
     }
 
     /// <summary>
-    ///     Starts a new storage unit when the primitive type changes and verifies the same boundary across all path
-    ///     operations for aligned/unaligned and little/big-endian layouts.
+    ///     a and b share the byte 0xBA and read 10 and 11.
     /// </summary>
+    /// <remarks>
+    ///     Changing the base type to uint16 starts a new unit, where c and d read 12 and 13. Updating d to 5 must make
+    ///     that unit 0x005C. Every operation must agree about the new unit's position and any alignment padding.
+    /// </remarks>
     /// <param name="aligned">Whether the wider second unit is aligned to two bytes.</param>
     /// <param name="isLittleEndian">Whether the least-significant storage byte is written first.</param>
     [TestMethod]
@@ -146,7 +153,14 @@ public class BitfieldSemanticsTests
         CollectionAssert.AreEqual(expected, stream.ToArray());
     }
 
-    /// <summary>Reinterprets every signed primitive width as raw storage while retaining layout byte order.</summary>
+    /// <summary>
+    ///     The signed type names int8 through int64 describe storage here, while the bitfields expose unsigned slices
+    ///     of that storage.
+    /// </summary>
+    /// <remarks>
+    ///     Each test value has its top bit set and must remain positive and exact. Parsing, serialization, and updating
+    ///     must preserve those bits in both byte orders rather than sign-extending or rejecting them.
+    /// </remarks>
     [TestMethod]
     public void SignedBackingStorage_RoundTripsUnsignedSlicesAtEveryWidth()
     {
@@ -184,7 +198,13 @@ public class BitfieldSemanticsTests
         }
     }
 
-    /// <summary>Accepts each slice's inclusive maximum and rejects the first value outside it without mutation.</summary>
+    /// <summary>
+    ///     A field of n bits can hold unsigned values from zero through 2^n - 1.
+    /// </summary>
+    /// <remarks>
+    ///     The test writes that maximum for several widths, including 64 bits, then tries the next larger value. The
+    ///     maximum must succeed; overflow must leave both the original bytes and the stream position unchanged.
+    /// </remarks>
     [TestMethod]
     public void BitfieldWriteRange_UsesExactInclusiveBoundaries()
     {
@@ -213,7 +233,14 @@ public class BitfieldSemanticsTests
         }
     }
 
-    /// <summary>Rejects non-integral and non-convertible inputs instead of applying runtime rounding rules.</summary>
+    /// <summary>
+    ///     flags occupies four bits of an existing byte.
+    /// </summary>
+    /// <remarks>
+    ///     Booleans, fractional numbers, and nonnumeric text must cause a write error instead of being rounded or
+    ///     converted unexpectedly. The original 0xA5 byte and position zero must survive each failure, protecting the
+    ///     other bits in the same storage.
+    /// </remarks>
     [TestMethod]
     public void BitfieldWriteRange_RejectsValuesOutsideTheUnsignedIntegerDomain()
     {
@@ -229,7 +256,13 @@ public class BitfieldSemanticsTests
         }
     }
 
-    /// <summary>Preserves non-selected union bits while using the union member's overlapping storage address.</summary>
+    /// <summary>
+    ///     The union's low field and all field describe overlapping bits of 0xBCA5.
+    /// </summary>
+    /// <remarks>
+    ///     Reading low gives 5; updating it to 3 must produce 0xBCA3. Only those four low bits may change, even though
+    ///     the union also exposes the complete 16-bit value and is surrounded by other fields.
+    /// </remarks>
     [TestMethod]
     public void UnionBitfieldUpdate_PreservesOverlappingStorage()
     {
@@ -262,7 +295,14 @@ public class BitfieldSemanticsTests
         }
     }
 
-    /// <summary>Rejects array-shaped bitfields during layout compilation before any stream operation can begin.</summary>
+    /// <summary>
+    ///     flags[2]:4 combines an array with a bitfield.
+    /// </summary>
+    /// <remarks>
+    ///     The declaration parser can recognize this form, but the executable layout does not support it. Constructing
+    ///     CStruct must raise a layout error before any data is read, rather than guessing how array elements should
+    ///     share bits.
+    /// </remarks>
     [TestMethod]
     public void BitfieldArrays_AreRejectedDuringCompilation()
     {
@@ -270,7 +310,13 @@ public class BitfieldSemanticsTests
             () => new CStruct("struct root { uint16 flags[2]:4; };", pointerSize: 1));
     }
 
-    /// <summary>Rejects a value larger than the selected bit slice before changing shared storage.</summary>
+    /// <summary>
+    ///     low and high each use four bits in 0xA5.
+    /// </summary>
+    /// <remarks>
+    ///     Writing 0x10 to high is invalid because four bits can hold at most 0xF. The operation must report a write
+    ///     error and preserve the entire byte, including the unrelated low field.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_BitfieldOverflow_LeavesStorageUntouched()
     {
@@ -283,7 +329,13 @@ public class BitfieldSemanticsTests
         Assert.AreEqual(0, stream.Position);
     }
 
-    /// <summary>Normalizes negative bitfield input to a domain-specific write error without mutating caller bytes.</summary>
+    /// <summary>
+    ///     Although the storage type is int8, the library treats each bit slice as unsigned.
+    /// </summary>
+    /// <remarks>
+    ///     Writing -1 into high must therefore fail. The test checks that rejection happens without replacing the
+    ///     shared 0xA5 byte or changing the caller's stream position.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_NegativeBitfieldValue_LeavesStorageUntouched()
     {
@@ -296,7 +348,13 @@ public class BitfieldSemanticsTests
         Assert.AreEqual(0, stream.Position);
     }
 
-    /// <summary>Interprets signed backing storage as raw bits and exposes the complete slice as an unsigned value.</summary>
+    /// <summary>
+    ///     The declaration uses every bit of an int8 storage unit.
+    /// </summary>
+    /// <remarks>
+    ///     Reading 0xFF must return 255 for flags, not -1. This makes the library's unsigned bitfield rule explicit; it
+    ///     should not be confused with the signedness rules of a particular C compiler.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_SignedBitfieldBacking_UsesUnsignedSlice()
     {

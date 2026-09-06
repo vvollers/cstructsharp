@@ -7,7 +7,14 @@ using Pidgin;
 [TestClass]
 public class ExpressionSafetyTests
 {
-    /// <summary>Rejects invalid limits and applies caller-selected syntax-tree depth and work boundaries.</summary>
+    /// <summary>
+    ///     Zero limits are invalid configuration.
+    /// </summary>
+    /// <remarks>
+    ///     A valid layout at the allowed expression depth must compile, while deeper parentheses or an expression
+    ///     requiring too much work must fail. Brackets and braces inside comments do not contribute to nesting because
+    ///     they are not layout syntax.
+    /// </remarks>
     [TestMethod]
     public void CompilationOptions_EnforceExpressionDepthAndTokenLimits()
     {
@@ -56,7 +63,13 @@ public class ExpressionSafetyTests
                 }));
     }
 
-    /// <summary>Applies the configured work limit to definitions, enums, bit widths, and fixed-array counts.</summary>
+    /// <summary>
+    ///     The expression 1+1 has two operands and one addition node.
+    /// </summary>
+    /// <remarks>
+    ///     A work limit of two is therefore too small. It must fail consistently whether used in a define, enum value,
+    ///     bitfield width, or array count; none of those declaration forms may bypass expression limits.
+    /// </remarks>
     /// <param name="layout">A layout whose relevant expression contains three nodes.</param>
     [TestMethod]
     [DataRow("#define COUNT 1 + 1\nstruct root { byte value; };")]
@@ -74,7 +87,14 @@ public class ExpressionSafetyTests
                 }));
     }
 
-    /// <summary>Bounds named dependency chains and rejects parsed calls before any operation starts.</summary>
+    /// <summary>
+    ///     A depends on B, which depends on C, so even a short array expression can require following several
+    ///     definitions.
+    /// </summary>
+    /// <remarks>
+    ///     The configured depth must bound that chain. A call such as method(1) must also fail because recognizing call
+    ///     syntax does not make arbitrary function execution supported.
+    /// </remarks>
     [TestMethod]
     public void CompilationLimits_IncludeDefinitionDependenciesAndUnsupportedCalls()
     {
@@ -96,7 +116,13 @@ public class ExpressionSafetyTests
             () => new CStruct("struct root { byte values[method(1)]; };"));
     }
 
-    /// <summary>Applies immutable compilation limits to caller expression graphs supplied after construction.</summary>
+    /// <summary>
+    ///     COUNT is supplied as an expression graph after CStruct construction.
+    /// </summary>
+    /// <remarks>
+    ///     A valid chain resolves to a one-element array, while missing names, cycles, and excessive work or depth must
+    ///     fail. Evaluating these inputs must not rewrite the caller's original expression objects.
+    /// </remarks>
     [TestMethod]
     public void RuntimeVariables_UseConfiguredDepthAndWorkLimits()
     {
@@ -180,7 +206,13 @@ public class ExpressionSafetyTests
         Assert.IsInstanceOfType<Identifier>(cyclic["OTHER"]);
     }
 
-    /// <summary>Defers only definitions with genuine external dependencies and resolves them from operation variables.</summary>
+    /// <summary>
+    ///     COUNT is defined as BASE+1, but BASE is provided only when reading.
+    /// </summary>
+    /// <remarks>
+    ///     Supplying BASE = 1 must read two bytes into values. The variable dictionary must remain unchanged, and
+    ///     operations that lack the required external name must report a layout error rather than guess a count.
+    /// </remarks>
     [TestMethod]
     public void RuntimeVariables_ResolveDefinitionsThatDependOnExternalNames()
     {
@@ -200,7 +232,14 @@ public class ExpressionSafetyTests
             () => cstruct.ParseStream(new MemoryStream([0x2A, 0xA5,]), "root"));
     }
 
-    /// <summary>Makes statically resolved definitions available to every declaration-level expression site.</summary>
+    /// <summary>
+    ///     WIDTH becomes 2 and FIRST becomes 4.
+    /// </summary>
+    /// <remarks>
+    ///     The same definitions must produce a two-bit flags field, a two-element array, and enum Value = 5. Reading
+    ///     the fixture must return flags = 3 and that named enum, showing that all expression locations share the
+    ///     resolved constants.
+    /// </remarks>
     [TestMethod]
     public void StaticDefinitions_AreAvailableToEnumBitfieldAndArrayExpressions()
     {
@@ -219,7 +258,13 @@ public class ExpressionSafetyTests
         Assert.AreEqual("Value", ((EnumValueResult)parsed.value).Name);
     }
 
-    /// <summary>Normalizes runtime array-expression overflow across parse, debug, address, write, and update entry points.</summary>
+    /// <summary>
+    ///     COUNT is Int32.MaxValue, so COUNT+1 cannot be a valid layout array count.
+    /// </summary>
+    /// <remarks>
+    ///     Parse, debug, address, length, and write operations must all report the expression error. Writes and updates
+    ///     must preserve the original bytes and caller position instead of wrapping the count and proceeding.
+    /// </remarks>
     [TestMethod]
     public void RuntimeArrayOverflow_UsesLayoutExceptionAcrossOperationsWithoutMutation()
     {
@@ -255,7 +300,13 @@ public class ExpressionSafetyTests
         Assert.AreEqual(1L, updateStream.Position);
     }
 
-    /// <summary>Rejects overflow and invalid shifts in enum, bitfield, and array expression sites during compilation.</summary>
+    /// <summary>
+    ///     An int32 enum may explicitly contain its maximum, but an implicit following value would overflow.
+    /// </summary>
+    /// <remarks>
+    ///     Invalid large shifts in bit widths and array counts must also fail during compilation. These checks
+    ///     distinguish a legal boundary value from arithmetic that would exceed the supported size domain.
+    /// </remarks>
     [TestMethod]
     public void StaticExpressionSites_UseCheckedSignedInt32Semantics()
     {
@@ -276,7 +327,14 @@ public class ExpressionSafetyTests
         Assert.Throws<InvalidOperationException>(() => _ = zeroWidth.BitSize);
     }
 
-    /// <summary>Defines checked arithmetic, explicit shift ranges, division by zero, and two's-complement base literals.</summary>
+    /// <summary>
+    ///     Direct expression evaluation must honor precedence, signed shifts, and checked arithmetic.
+    /// </summary>
+    /// <remarks>
+    ///     Overflow and division by zero must throw instead of wrapping silently. Full-width base-prefixed literals
+    ///     also test the documented two's-complement interpretation, such as 0xFFFFFFFF becoming -1 in the ordinary
+    ///     32-bit expression view.
+    /// </remarks>
     [TestMethod]
     public void StandaloneExpressions_HaveExplicitNumericFailureSemantics()
     {
@@ -340,7 +398,14 @@ public class ExpressionSafetyTests
         Assert.AreEqual(40, widePostfixStack.Calc());
     }
 
-    /// <summary>Bounds direct public expression evaluation even when a caller builds the immutable node graph manually.</summary>
+    /// <summary>
+    ///     Hundreds of nested complement operations or linked identifiers must hit a layout limit, whether constructed
+    ///     as objects or written as text.
+    /// </summary>
+    /// <remarks>
+    ///     This prevents a tiny mathematical result from requiring unsafe recursive evaluation. Public expression APIs
+    ///     must enforce limits even without a normal struct parse.
+    /// </remarks>
     [TestMethod]
     public void StandaloneExpression_RejectsAdversarialDepthWithoutRecursingUnboundedly()
     {
@@ -375,7 +440,13 @@ public class ExpressionSafetyTests
         Assert.Throws<CStructLayoutException>(() => new CStruct(defineChain));
     }
 
-    /// <summary>Reuses the static baseline and recomputes only definitions transitively affected by an override.</summary>
+    /// <summary>
+    ///     Changing BASE to 5 must recompute DOUBLE as 10 and SIZE as 11.
+    /// </summary>
+    /// <remarks>
+    ///     OTHER does not depend on BASE, so its cached value should be reused. This internal test checks that caching
+    ///     improves reuse without returning stale counts after an operation supplies an override.
+    /// </remarks>
     [TestMethod]
     public void DefinitionOverrides_InvalidateOnlyTheirDependentCachedValues()
     {
@@ -424,7 +495,14 @@ public class ExpressionSafetyTests
         Assert.AreSame(suppliedBase, supplied["BASE"]);
     }
 
-    /// <summary>Accepts exact evaluator boundaries and proves dependency/result caches share the finite session budget.</summary>
+    /// <summary>
+    ///     An expression exactly at the configured depth and work boundary must succeed.
+    /// </summary>
+    /// <remarks>
+    ///     Reused dependencies can be cached, but separate evaluations in one session still share a finite work budget.
+    ///     The checks also protect the read-only compiled representation so callers cannot alter a cached program after
+    ///     validation.
+    /// </remarks>
     [TestMethod]
     public void Evaluator_UsesExactLimitsDependencyCachesAndCompiledPrograms()
     {
@@ -509,7 +587,13 @@ public class ExpressionSafetyTests
         Assert.Throws<CStructLayoutException>(() => session.Evaluate(new Literal(4)));
     }
 
-    /// <summary>Uses one runtime expression result across every operation, pointer traversal, and layout byte order.</summary>
+    /// <summary>
+    ///     A pointer leads to a target containing values[COUNT] and a tail.
+    /// </summary>
+    /// <remarks>
+    ///     With COUNT = 1, the uint16 must read 0x1234 and the tail must be at offset 3 in both byte orders. Selected
+    ///     reads, debug ranges, length lookup, serialization, and updates must use that same count.
+    /// </remarks>
     /// <param name="isLittleEndian">Whether the 16-bit array value is stored least-significant byte first.</param>
     [TestMethod]
     [DataRow(true)]

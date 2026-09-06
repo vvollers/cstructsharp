@@ -4,6 +4,8 @@ import { computed, ref, watch } from "vue";
 import { VueHex } from "vuehex";
 
 import type { DebugDataItem, InteropResult } from "../wasm/cstruct-contract";
+import { formatParsedJson } from "../format-parsed-json";
+import LayoutEditor from "./LayoutEditor.vue";
 
 interface DebugRange {
   end: number;
@@ -66,8 +68,42 @@ function byteClass(index: number): string[] {
 }
 
 function formatDebug(item: DebugDataItem): string {
-  return `${item.DebugStackString || "value"} · ${item.Type} · ${item.Value ?? "null"} · bytes ${item.CurPos}–${Math.max(item.CurPos, item.EndPos - 1)}`;
+  let value = item.Value ?? "null";
+  const isText =
+    /^(?:w?char[<>]?|cstring|(?:ascii_|utf8_|unicode_)?string(?:_zero|_newline)?[<>]?)$/.test(
+      item.Type,
+    );
+  if (!isText && /^-?\d+$/.test(value)) {
+    // Debug values arrive as decimal strings; BigInt preserves all 64-bit integer digits.
+    const integer = BigInt(value);
+    const magnitude = integer < 0n ? -integer : integer;
+    value += ` (${integer < 0n ? "-" : ""}0x${magnitude.toString(16).toUpperCase()})`;
+  }
+  return `${item.DebugStackString || "value"} · ${item.Type} · value ${value} · offset ${item.CurPos} · width ${item.EndPos - item.CurPos} bytes · bytes ${item.CurPos}–${Math.max(item.CurPos, item.EndPos - 1)}`;
 }
+
+const recovery = computed(() => {
+  const hints: Record<string, string> = {
+    "invalid-layout":
+      "Check the declaration spelling and supported layout syntax. C headers may need translation.",
+    "invalid-path":
+      "Check the root and field names, including their letter case. Use dots between nested fields.",
+    "read-failed":
+      "Check that all required bytes are present and that the selected root, byte order, and pointer settings match the format.",
+    "read-budget":
+      "Compare the expected field sizes with Safety limits. Increase a limit only when the format requires that amount of data.",
+    "write-failed":
+      "Check the JSON field names, numeric ranges, and text capacity. An update cannot move later fields.",
+    "write-budget":
+      "Check the output size against Safety limits before increasing the allowed work.",
+    "browser-error":
+      "Check that bytes are pairs of hexadecimal digits and the value is valid JSON.",
+  };
+  return (
+    hints[props.result?.Error?.Code ?? ""] ??
+    "Review the code, path, and offset below and compare with the lesson's original inputs."
+  );
+});
 
 function handleBytesEdited(bytes: Uint8Array): void {
   editorBytes.value = bytes;
@@ -98,6 +134,7 @@ function handleBytesEdited(bytes: Uint8Array): void {
           <dd>{{ result.Error.Offset }}</dd>
         </div>
       </dl>
+      <p v-if="!result.Success">{{ recovery }}</p>
 
       <template v-if="result.Success">
         <h3>{{ result.Operation === "parse" ? "Input bytes" : "Output bytes" }}</h3>
@@ -134,10 +171,15 @@ function handleBytesEdited(bytes: Uint8Array): void {
           </div>
         </template>
 
-        <h3>{{ result.Operation === "parse" ? "Parsed JSON" : "Base64" }}</h3>
-        <pre>{{
-          typeof parsedData === "string" ? parsedData : JSON.stringify(parsedData, null, 2)
-        }}</pre>
+        <template v-if="result.Operation === 'parse'">
+          <h3>Parsed JSON</h3>
+          <LayoutEditor
+            :model-value="formatParsedJson(parsedData)"
+            language="json"
+            label="Parsed JSON"
+            read-only
+          />
+        </template>
       </template>
     </template>
   </section>
@@ -201,14 +243,6 @@ dd {
   overflow-wrap: anywhere;
 }
 
-pre {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-primary);
-  overflow: auto;
-  padding: 12px;
-}
-
 .binary-editor {
   display: grid;
   gap: 8px;
@@ -270,13 +304,5 @@ pre {
 }
 :deep(.dim) {
   opacity: 0.28;
-}
-
-pre {
-  color: var(--color-text);
-  font-size: 12px;
-  max-height: 480px;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 </style>

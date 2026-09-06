@@ -4,7 +4,13 @@ namespace CStructSharp.Tests;
 [TestClass]
 public class FixedBufferStreamTests
 {
-    /// <summary>Reads an initialized region through the array, span, byte, seek, and position contracts.</summary>
+    /// <summary>
+    ///     The adapter exposes four existing caller-owned bytes as a readable, seekable, non-writable stream.
+    /// </summary>
+    /// <remarks>
+    ///     Array, span, and single-byte reads must return 1,2,3,4 in order, then report end-of-stream. Seeking must use
+    ///     the region's own coordinates, matching the behavior expected by memory-based parser APIs.
+    /// </remarks>
     [TestMethod]
     public unsafe void ReadOnlyRegion_ExposesInitializedBytesAndStreamCapabilities()
     {
@@ -38,7 +44,13 @@ public class FixedBufferStreamTests
         }
     }
 
-    /// <summary>Rejects invalid fixed-region construction, positions, seeks, ranges, and read-only mutations.</summary>
+    /// <summary>
+    ///     A fixed read-only region cannot be written, resized, or positioned outside its bounds.
+    /// </summary>
+    /// <remarks>
+    ///     Invalid arrays, ranges, seek origins, and overflowing offsets must raise the appropriate errors. These
+    ///     checks protect the supplied memory region before layout readers use its unsafe internal pointer.
+    /// </remarks>
     [TestMethod]
     public unsafe void ReadOnlyRegion_RejectsInvalidOperations()
     {
@@ -75,7 +87,14 @@ public class FixedBufferStreamTests
         }
     }
 
-    /// <summary>Tracks the initialized prefix, clears forward gaps/growth, and preserves unused capacity.</summary>
+    /// <summary>
+    ///     The writable region begins with capacity but no initialized output.
+    /// </summary>
+    /// <remarks>
+    ///     Writing through position 7 must produce 1,2,3,0,0,4,5 while leaving unused capacity as 0xA5. Growth must
+    ///     zero new bytes, and shrinking must reduce the visible length and clamp the cursor without exposing old
+    ///     capacity as valid output.
+    /// </remarks>
     [TestMethod]
     public unsafe void WritableRegion_WritesReadsAndClearsNewlyInitializedBytes()
     {
@@ -120,7 +139,14 @@ public class FixedBufferStreamTests
         }
     }
 
-    /// <summary>Rejects writable-region length, position, and capacity overflow without changing its prefix.</summary>
+    /// <summary>
+    ///     After writing three bytes into a four-byte region, a two-byte write cannot fit and must leave the prefix
+    ///     1,2,3 unchanged.
+    /// </summary>
+    /// <remarks>
+    ///     Negative or oversized lengths and writes at full capacity must also fail. The adapter must never write
+    ///     beyond caller-owned memory or extend its fixed capacity.
+    /// </remarks>
     [TestMethod]
     public unsafe void WritableRegion_RejectsBoundsAndCapacityFailures()
     {

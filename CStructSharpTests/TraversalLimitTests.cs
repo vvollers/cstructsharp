@@ -8,7 +8,14 @@ using CStructSharp.Structure;
 [TestClass]
 public class TraversalLimitTests
 {
-    /// <summary>Rejects an excessive runtime array before selected traversal can scan to a high index.</summary>
+    /// <summary>
+    ///     count = 3 requests three item records, but the policy allows only two.
+    /// </summary>
+    /// <remarks>
+    ///     Full parsing and selected path operations must all reject it before scanning to a requested element. Query
+    ///     APIs must restore their starting position after the failure instead of providing a way around the array
+    ///     limit.
+    /// </remarks>
     [TestMethod]
     public void RuntimeArrayLimit_AgreesAcrossReadLikeOperations()
     {
@@ -61,7 +68,13 @@ public class TraversalLimitTests
         }
     }
 
-    /// <summary>Counts the complete lexical struct path instead of restarting depth at a selected object.</summary>
+    /// <summary>
+    ///     root, middle, and leaf form three nested struct levels.
+    /// </summary>
+    /// <remarks>
+    ///     A limit of two must fail even when the caller directly selects the leaf. Starting a selected read must not
+    ///     reset the depth counter and hide the containing structures.
+    /// </remarks>
     [TestMethod]
     public void NestingLimit_AgreesAcrossSelectedAndAddressTraversal()
     {
@@ -110,7 +123,13 @@ public class TraversalLimitTests
         }
     }
 
-    /// <summary>Counts a terminal pointer-to-struct object as one additional structure level.</summary>
+    /// <summary>
+    ///     root already uses the one permitted struct level.
+    /// </summary>
+    /// <remarks>
+    ///     Following selected to a child struct would add another, so address lookup must fail before returning that
+    ///     target. The stream must return to its starting position of 1 after the failed query.
+    /// </remarks>
     [TestMethod]
     public void PointerStructTarget_AppliesNestingLimitBeforeReturningAddress()
     {
@@ -124,7 +143,13 @@ public class TraversalLimitTests
         Assert.AreEqual(1L, stream.Position);
     }
 
-    /// <summary>Does not count a terminal scalar pointer target as a nested structure.</summary>
+    /// <summary>
+    ///     Following selected reaches a byte at offset 1, not another struct.
+    /// </summary>
+    /// <remarks>
+    ///     A nesting limit of one therefore permits this lookup and returns 1. Pointer depth and composite nesting are
+    ///     different counts; a scalar target must not consume a nonexistent struct level.
+    /// </remarks>
     [TestMethod]
     public void ScalarPointerTarget_AllowsExactRootNestingLimit()
     {
@@ -136,7 +161,13 @@ public class TraversalLimitTests
         Assert.AreEqual(0L, stream.Position);
     }
 
-    /// <summary>Counts the selected struct itself before parsing composites nested inside it.</summary>
+    /// <summary>
+    ///     A limit of two is sufficient to locate root.selected, but reading its nested leaf would enter a third level.
+    /// </summary>
+    /// <remarks>
+    ///     Address lookup may therefore succeed while parsing that selected object's contents fails. The distinction is
+    ///     the work performed after locating the target.
+    /// </remarks>
     [TestMethod]
     public void SelectedStructContents_ContinueFromContainingNestingDepth()
     {
@@ -170,7 +201,13 @@ public class TraversalLimitTests
         }
     }
 
-    /// <summary>Allows zero-sized limits when an operation performs none of the work they govern.</summary>
+    /// <summary>
+    ///     Locating the first byte field requires no payload read, array scan, string scan, or pointer hop.
+    /// </summary>
+    /// <remarks>
+    ///     Zero budgets for those kinds of work are therefore valid for this query. A zero nesting limit remains
+    ///     invalid because even the root is a structure; the test distinguishes these cases.
+    /// </remarks>
     [TestMethod]
     public void ZeroWorkLimits_AreValidAndInclusive()
     {
@@ -200,7 +237,14 @@ public class TraversalLimitTests
         Assert.AreEqual(0L, invalidStream.Position);
     }
 
-    /// <summary>Shares physical-read accounting between target location and the selected object reader.</summary>
+    /// <summary>
+    ///     Locating selected first reads count to skip a data-sized array; reading the child then consumes its own two
+    ///     bytes.
+    /// </summary>
+    /// <remarks>
+    ///     Both phases must spend one shared budget, and debug rereads count too. Resetting accounting at the selected
+    ///     object would let the operation exceed its configured limit.
+    /// </remarks>
     [TestMethod]
     public void SelectedRead_UsesOneTotalByteBudget()
     {
@@ -232,7 +276,14 @@ public class TraversalLimitTests
         }
     }
 
-    /// <summary>Does not reset total-byte accounting before measuring a selected terminated string.</summary>
+    /// <summary>
+    ///     Finding text requires reading the earlier count, then measuring A plus its zero terminator requires more
+    ///     bytes.
+    /// </summary>
+    /// <remarks>
+    ///     A budget covering only part of that combined work must fail. GetDynamicArrayLength must restore the original
+    ///     stream position even after exhausting the budget.
+    /// </remarks>
     [TestMethod]
     public void DynamicLength_UsesResolverAndStringReadsAsOneBudget()
     {
@@ -249,7 +300,13 @@ public class TraversalLimitTests
         Assert.AreEqual(0L, stream.Position);
     }
 
-    /// <summary>Keeps pointer depth consumed by a selected path active while reading the selected target.</summary>
+    /// <summary>
+    ///     Reaching head already follows one pointer.
+    /// </summary>
+    /// <remarks>
+    ///     Reading its next pointer would require a second hop, so a limit of one must reject it. Selected parsing and
+    ///     related path operations must carry the depth already spent reaching the target into subsequent work.
+    /// </remarks>
     [TestMethod]
     public void SelectedPointerTarget_PreservesPathDereferenceDepth()
     {
@@ -294,7 +351,13 @@ public class TraversalLimitTests
         }
     }
 
-    /// <summary>Applies the selected UTF-16 byte budget before every path-based operation scans past the terminator.</summary>
+    /// <summary>
+    ///     The UTF-16 text A and its terminator occupy four bytes before selected.
+    /// </summary>
+    /// <remarks>
+    ///     An insufficient string-byte limit must block reads and any path operation that needs to scan past this text.
+    ///     Both byte orders follow the same rule, and queries must restore their starting position on failure.
+    /// </remarks>
     /// <param name="isLittleEndian">Whether neutral wide characters use UTF-16LE instead of UTF-16BE.</param>
     [TestMethod]
     [DataRow(true)]
@@ -363,7 +426,13 @@ public class TraversalLimitTests
         }
     }
 
-    /// <summary>Copies every read-side traversal limit into update resolution before any caller bytes are changed.</summary>
+    /// <summary>
+    ///     The cases exceed array, nesting, pointer, target-size, or total-read limits while locating an update target.
+    /// </summary>
+    /// <remarks>
+    ///     Each must fail before committing a replacement. Checking unchanged bytes and position proves that
+    ///     UpdateOptions traversal limits apply before the separate write phase begins.
+    /// </remarks>
     [TestMethod]
     public void UpdateTraversalLimits_RejectBeforeMutationAndRestorePosition()
     {
@@ -434,7 +503,13 @@ public class TraversalLimitTests
         }
     }
 
-    /// <summary>Validates bounded array work hidden inside a fixed-size union that precedes a selected target.</summary>
+    /// <summary>
+    ///     A fixed-size union before selected includes values[3], while the array limit is two.
+    /// </summary>
+    /// <remarks>
+    ///     Selected operations must still enforce the relevant traversal limit instead of bypassing it because the
+    ///     union's extent is known. Its unrelated pointer view must not become an accidental target to follow.
+    /// </remarks>
     [TestMethod]
     public void PrecedingUnion_AppliesArrayLimitsAcrossReadLikeOperations()
     {
@@ -488,7 +563,13 @@ public class TraversalLimitTests
         }
     }
 
-    /// <summary>Applies nesting limits while measuring an unselected composite that precedes the requested field.</summary>
+    /// <summary>
+    ///     To reach selected, traversal must account for an earlier middle containing leaf.
+    /// </summary>
+    /// <remarks>
+    ///     That preceding branch still exceeds the configured nesting limit. Selecting a later scalar cannot erase the
+    ///     structural work needed to locate it, and failing queries must preserve caller position.
+    /// </remarks>
     [TestMethod]
     public void PrecedingComposite_AppliesNestingLimitAcrossReadLikeOperations()
     {
@@ -536,7 +617,13 @@ public class TraversalLimitTests
         }
     }
 
-    /// <summary>Accepts values exactly at every configured boundary across aligned selected traversal.</summary>
+    /// <summary>
+    ///     The pointer at offset zero selects two aligned big-endian uint16 records.
+    /// </summary>
+    /// <remarks>
+    ///     Limits set exactly to the required work must allow values 0x1234 and 0x5678 and resolve the second value at
+    ///     offset 4. A limit is inclusive: using its final permitted unit is valid.
+    /// </remarks>
     [TestMethod]
     public void TraversalLimits_AreInclusiveAtConfiguredBoundaries()
     {

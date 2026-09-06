@@ -9,8 +9,12 @@ using CStructSharp.Structure;
 public class ReviewRegressionTests
 {
     /// <summary>
-    ///     Preserves every byte of an untagged union when the parsed value is serialized without selecting a member.
+    ///     The two bytes 34 12 describe both a small byte and a wider uint16 union member.
     /// </summary>
+    /// <remarks>
+    ///     With no member explicitly selected, serialization must preserve both original bytes. Choosing the first
+    ///     member automatically would lose the second byte and change an untouched record.
+    /// </remarks>
     [TestMethod]
     public void Serialize_ParsedUnion_PreservesCompleteRawStorage()
     {
@@ -24,8 +28,12 @@ public class ReviewRegressionTests
     }
 
     /// <summary>
-    ///     Preserves the complete unsigned backing domain instead of narrowing a valid enum payload through Int32.
+    ///     All four input bytes are FF, representing uint32 maximum 4294967295.
     /// </summary>
+    /// <remarks>
+    ///     The enum only names value 1, so the result must have no symbolic name but retain that exact number.
+    ///     Narrowing through signed Int32 would incorrectly turn it into -1 or reject valid storage.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_UnknownUInt32Enum_PreservesCompleteDomain()
     {
@@ -42,8 +50,13 @@ public class ReviewRegressionTests
     }
 
     /// <summary>
-    ///     Rewinds every union member view to the pointer target instead of consuming the target as a sequential struct.
+    ///     A pointer leads to two bytes representing 0x1234.
     /// </summary>
+    /// <remarks>
+    ///     Both union views must begin at that same target address, with small reading its first byte and large reading
+    ///     both. The fixture checks byte order, alignment, raw storage, and debug positions so a union is not
+    ///     accidentally read like sequential struct fields.
+    /// </remarks>
     /// <param name="aligned">Whether the layout applies portable field alignment.</param>
     /// <param name="isLittleEndian">Whether multi-byte union members store their least-significant byte first.</param>
     [TestMethod]

@@ -1,3 +1,5 @@
 items:
+- name: Complete recipes
+  href: recipes/
 - name: Run the examples
   href: index.md

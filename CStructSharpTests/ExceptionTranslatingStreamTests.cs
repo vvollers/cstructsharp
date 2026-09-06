@@ -22,7 +22,13 @@ public class ExceptionTranslatingStreamTests
         WriteByte,
     }
 
-    /// <summary>Wraps each source-stream I/O shape as a read failure and retains the physical cause.</summary>
+    /// <summary>
+    ///     A fake stream throws IOException from each read-related operation, including length and position access.
+    /// </summary>
+    /// <remarks>
+    ///     The wrapper must report ReadFailed, preserve the exact cause, and include an offset when it can obtain one.
+    ///     A secondary diagnostic failure must not hide the original I/O problem.
+    /// </remarks>
     [TestMethod]
     public void ReadBudgetStream_TranslatesEveryPhysicalIoShape()
     {
@@ -54,7 +60,14 @@ public class ExceptionTranslatingStreamTests
         }
     }
 
-    /// <summary>Distinguishes existing-data reads from destination writes for every forwarded writer operation.</summary>
+    /// <summary>
+    ///     The writer wrapper can both inspect existing bytes and submit output.
+    /// </summary>
+    /// <remarks>
+    ///     Injected read failures must remain read errors, while destination and write failures must become write
+    ///     errors. Every case must preserve the original IOException and useful offset information rather than
+    ///     classifying everything as a write merely because the wrapper is used by writers.
+    /// </remarks>
     [TestMethod]
     public void WriteBudgetStream_TranslatesEveryPhysicalIoShape()
     {

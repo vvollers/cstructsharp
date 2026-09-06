@@ -70,6 +70,15 @@ article .hljs-meta {
   color: #7dd3fc;
 }
 
+/* HTML attributes and JavaScript object keys must remain readable in code samples. */
+article .hljs-attr {
+  color: #9f1239;
+}
+
+[data-bs-theme="dark"] article .hljs-attr {
+  color: #fda4af;
+}
+
 article table {
   display: block;
   max-width: 100%;

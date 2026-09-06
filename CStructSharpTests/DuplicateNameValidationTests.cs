@@ -7,7 +7,13 @@ using System.IO;
 [TestClass]
 public class DuplicateNameValidationTests
 {
-    /// <summary>Reproduces the review's conflicting field layout and proves compilation fails before parsing any bytes.</summary>
+    /// <summary>
+    ///     root declares value twice, once as uint8 and once as uint16.
+    /// </summary>
+    /// <remarks>
+    ///     A result could not unambiguously expose both under the same name, so construction must report the duplicate
+    ///     field before touching the supplied stream. The message must identify value and its containing struct.
+    /// </remarks>
     [TestMethod]
     public void Constructor_RejectsExactDuplicateFieldReproductionBeforeStreamAccess()
     {
@@ -27,7 +33,13 @@ public class DuplicateNameValidationTests
         RegressionTestSupport.AssertStreamUntouched(stream, original, 1);
     }
 
-    /// <summary>Rejects duplicates recursively in unions, inline structures, pointer targets, and enum member scopes.</summary>
+    /// <summary>
+    ///     Duplicate names are tested inside unions, inline structs, pointer targets, typedef bodies, and enums.
+    /// </summary>
+    /// <remarks>
+    ///     Each must fail with the conflicting member and scope identified. Nesting or indirect access must not hide an
+    ///     invalid declaration from the constructor's validation.
+    /// </remarks>
     [TestMethod]
     public void Constructor_RejectsDuplicateNamesInEveryMemberScope()
     {
@@ -57,7 +69,13 @@ public class DuplicateNameValidationTests
         }
     }
 
-    /// <summary>Keeps ordinary field names lexical and case-sensitive while allowing the same spelling in another scope.</summary>
+    /// <summary>
+    ///     value and Value are different names, and separate containing records may each have a value field.
+    /// </summary>
+    /// <remarks>
+    ///     A field may also be named byte without replacing the built-in type. These valid declarations must retain
+    ///     their expected sizes instead of being rejected by an overly broad duplicate-name check.
+    /// </remarks>
     [TestMethod]
     public void Constructor_AllowsCaseDistinctAndSeparatelyScopedFieldNames()
     {
@@ -79,7 +97,13 @@ public class DuplicateNameValidationTests
         Assert.AreEqual(2, cstruct.GetStructSizeInBytes("choice"));
     }
 
-    /// <summary>Keeps enum constants inside their enum and permits case-distinct constants and collisions with field/type names.</summary>
+    /// <summary>
+    ///     Ready and ready are distinct members, and different enums may each declare Ready.
+    /// </summary>
+    /// <remarks>
+    ///     A struct and its field can also use that spelling. Parsing must still read the byte field as 0xA5 and
+    ///     resolve the enum value to Ready within the correct enum.
+    /// </remarks>
     [TestMethod]
     public void Constructor_AllowsEnumMembersInSeparateCaseSensitiveScopes()
     {
@@ -97,7 +121,14 @@ public class DuplicateNameValidationTests
         Assert.AreEqual("Ready", result.state.Name);
     }
 
-    /// <summary>Defines one case-sensitive global declaration namespace and reserves every built-in codec name.</summary>
+    /// <summary>
+    ///     Global structs, unions, enums, typedefs, and defines cannot claim the same exact exported name or replace a
+    ///     built-in type such as byte.
+    /// </summary>
+    /// <remarks>
+    ///     Those cases must fail with a clear conflict message. Case-distinct names and a typedef's matching private
+    ///     backing tag remain valid.
+    /// </remarks>
     [TestMethod]
     public void Constructor_RejectsCrossKindAndBuiltInGlobalNameCollisions()
     {
@@ -138,7 +169,13 @@ public class DuplicateNameValidationTests
         Assert.AreEqual(1, matchingAlias.GetStructSizeInBytes("root"));
     }
 
-    /// <summary>Ensures every public operation is unreachable for an ambiguous layout and therefore cannot mutate stream state.</summary>
+    /// <summary>
+    ///     Each data row attempts a public operation after constructing a layout with duplicate fields.
+    /// </summary>
+    /// <remarks>
+    ///     Construction must fail first, making the operation unreachable and preserving stream state. This verifies
+    ///     one consistent validation boundary rather than separate, potentially inconsistent checks in each API.
+    /// </remarks>
     /// <param name="operation">The public operation that must remain unreachable after compilation rejects the layout.</param>
     [TestMethod]
     [DynamicData(nameof(RegressionTestSupport.PublicOperationMatrix), typeof(RegressionTestSupport))]

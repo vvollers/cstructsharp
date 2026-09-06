@@ -7,9 +7,13 @@ using System.Dynamic;
 public class IndexedPointerUpdateTests
 {
     /// <summary>
-    ///     Keeps parse, debug, address, selected serialization, and update on the same primitive array element across
-    ///     alignment and byte-order modes.
+    ///     The middle uint16 element is 0x2222.
     /// </summary>
+    /// <remarks>
+    ///     Its address is two bytes after the array start, which moves when alignment is enabled. Parsing, debug
+    ///     ranges, selected serialization, and updating must all identify those same two bytes in either byte order and
+    ///     preserve the surrounding record.
+    /// </remarks>
     /// <param name="aligned">Whether the declared fields use portable alignment.</param>
     /// <param name="isLittleEndian">Whether least-significant bytes are stored first.</param>
     [TestMethod]
@@ -65,7 +69,13 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual(0, stream.Position);
     }
 
-    /// <summary>Serializes one selected fixed-array item through its element codec instead of the collection writer.</summary>
+    /// <summary>
+    ///     Selecting items[1] chooses one uint16, so the input is a scalar 0xABCD and the output is only CD AB.
+    /// </summary>
+    /// <remarks>
+    ///     Serialization does not prepend space for items[0] or require all three array values. The path supplies the
+    ///     element's type and validates its index.
+    /// </remarks>
     [TestMethod]
     public void Serialize_ArrayElement_UsesSelectedElementShape()
     {
@@ -76,7 +86,13 @@ public class IndexedPointerUpdateTests
         CollectionAssert.AreEqual(new byte[] { 0xCD, 0xAB, }, bytes);
     }
 
-    /// <summary>Rejects the first index beyond a fixed array before selected serialization creates output.</summary>
+    /// <summary>
+    ///     items[2] is outside an array declared with length two because its valid indexes are 0 and 1.
+    /// </summary>
+    /// <remarks>
+    ///     Selected serialization must raise a path error before producing bytes. A valid scalar replacement does not
+    ///     make an invalid selection legal.
+    /// </remarks>
     [TestMethod]
     public void Serialize_ArrayElement_RejectsIndexAtDeclaredLength()
     {
@@ -86,7 +102,13 @@ public class IndexedPointerUpdateTests
             () => cstruct.Serialize("root.items[2]", (ushort)0x1234));
     }
 
-    /// <summary>Writes a primitive pointer target at its exact stored address even when aligned mode is enabled.</summary>
+    /// <summary>
+    ///     The stored pointer explicitly targets byte offset 3.
+    /// </summary>
+    /// <remarks>
+    ///     Even with alignment enabled, updating its uint16 value must write EF BE at offsets 3 and 4, not round the
+    ///     address to 4. Alignment controls inline field placement; it must not alter an explicit pointer target.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_AlignedPointerTarget_UsesExactResolvedAddress()
     {
@@ -102,7 +124,13 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual(0, stream.Position);
     }
 
-    /// <summary>Rejects relative-address subtraction overflow before pointer storage or stream position changes.</summary>
+    /// <summary>
+    ///     Converting an extreme target address to an offset relative to the configured origin can overflow.
+    /// </summary>
+    /// <remarks>
+    ///     Pointer-address updates must detect that arithmetic failure before writing. The original eight 0xA5 bytes
+    ///     and stream position must remain unchanged.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_RelativePointerAddressOverflow_LeavesStreamUntouched()
     {
@@ -124,7 +152,13 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual(0, stream.Position);
     }
 
-    /// <summary>Uses scalar enum and character codecs when one item is selected from their fixed arrays.</summary>
+    /// <summary>
+    ///     A selected enum item accepts the name Two and writes its big-endian uint16 value 00 02.
+    /// </summary>
+    /// <remarks>
+    ///     A selected char item accepts a single character, producing the fixed string AZC after an update. Neither
+    ///     operation should invoke the writer for the whole array or alter its tail.
+    /// </remarks>
     [TestMethod]
     public void EnumAndCharacterArrayElements_UseTheirElementCodecs()
     {
@@ -156,7 +190,13 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual("AZC", (string)parsedCharacters.values);
     }
 
-    /// <summary>Updates one nested struct and one union array item without changing sibling elements or sentinels.</summary>
+    /// <summary>
+    ///     The selected array element may itself be an aligned struct or a union.
+    /// </summary>
+    /// <remarks>
+    ///     Replacing it must preserve other elements, padding outside its extent, and the tail. A selected small union
+    ///     member still reserves the union's full two bytes, giving A5 00 for that element.
+    /// </remarks>
     [TestMethod]
     public void CompositeArrayElements_UpdateOnlyTheirSelectedExtent()
     {
@@ -207,7 +247,14 @@ public class IndexedPointerUpdateTests
         CollectionAssert.AreEqual(new byte[] { 0x11, 0x11, 0xA5, 0x00, 0x7E, }, unionStream.ToArray());
     }
 
-    /// <summary>Retains collection shape for whole-array writes while validating selected indexes before output.</summary>
+    /// <summary>
+    ///     Selecting items without an index requires both uint16 values; writing AAAA and BBBB replaces the full array
+    ///     and leaves the tail.
+    /// </summary>
+    /// <remarks>
+    ///     A one-element replacement or an out-of-range indexed path must fail without further mutation. Whole-array
+    ///     and single-element selections have different input shapes.
+    /// </remarks>
     [TestMethod]
     public void WholeArrayWrites_PreserveShapeRules()
     {
@@ -229,7 +276,14 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual(0, stream.Position);
     }
 
-    /// <summary>Updates pointer-array storage and one selected pointee without treating either as the whole collection.</summary>
+    /// <summary>
+    ///     Each array element is a two-byte pointer slot.
+    /// </summary>
+    /// <remarks>
+    ///     Selecting values[1] writes a new stored address, while values[1].value follows its current address to update
+    ///     the uint16 target. Big-endian bytes and unchanged neighbors verify that neither selection is confused with
+    ///     the whole pointer array.
+    /// </remarks>
     [TestMethod]
     public void PointerArrayElements_DistinguishStorageFromTarget()
     {
@@ -260,7 +314,13 @@ public class IndexedPointerUpdateTests
         CollectionAssert.AreEqual(expectedTarget, target.ToArray());
     }
 
-    /// <summary>Handles zero- and one-length array boundaries consistently for address, serialization, and update.</summary>
+    /// <summary>
+    ///     empty[0] reserves no storage and has no valid index. one[1] has exactly one valid index, zero, at offset 0.
+    /// </summary>
+    /// <remarks>
+    ///     Updating it to 0xBEEF must produce EF BE before the unchanged tail, while invalid selections must preserve
+    ///     that result.
+    /// </remarks>
     [TestMethod]
     public void ArrayElementSelection_HandlesZeroAndOneLengths()
     {
@@ -283,9 +343,12 @@ public class IndexedPointerUpdateTests
     }
 
     /// <summary>
-    ///     Resolves and updates root storage, intermediate storage, and the final primitive across every pointer width
-    ///     and both byte orders.
+    ///     The fixture begins at a nonzero stream position and contains a two-level pointer to 0x1234.
     /// </summary>
+    /// <remarks>
+    ///     Paths can select the outer slot, intermediate slot, or final uint16. Across all pointer widths and byte
+    ///     orders, each update must touch only its selected storage and restore the starting position.
+    /// </remarks>
     /// <param name="pointerSize">The encoded address width.</param>
     /// <param name="isLittleEndian">Whether least-significant address and value bytes are stored first.</param>
     [TestMethod]
@@ -360,7 +423,13 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual((ushort)0xBEEF, (ushort)((Pointer)reparsed.ptr).Next!.Value!);
     }
 
-    /// <summary>Applies the same relative origin at every pointer level for resolution and pointer-storage updates.</summary>
+    /// <summary>
+    ///     With origin 10, stored offsets lead to actual targets 20 and 30.
+    /// </summary>
+    /// <remarks>
+    ///     The same origin applies at both hops; it is not replaced by the current pointer's position. Address updates
+    ///     must subtract that origin when encoding a replacement and preserve all unrelated bytes.
+    /// </remarks>
     /// <param name="isLittleEndian">Whether least-significant address bytes are stored first.</param>
     [TestMethod]
     [DataRow(true)]
@@ -411,7 +480,13 @@ public class IndexedPointerUpdateTests
         CollectionAssert.AreEqual(expectedRoot, rootAddress.ToArray());
     }
 
-    /// <summary>Uses each final target's enum, struct, union, or terminated-string codec after pointer traversal.</summary>
+    /// <summary>
+    ///     After following pointers, the final value may be an enum, struct, union, or terminated string.
+    /// </summary>
+    /// <remarks>
+    ///     Updates must use that target's normal encoding and shape rules, such as enum Two or text hi. Pointer slots
+    ///     and the root tail must remain unchanged while only the target is replaced.
+    /// </remarks>
     [TestMethod]
     public void PointerTargets_UseTheirFinalDeclaredCodecs()
     {
@@ -473,7 +548,14 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual("hi", (string)((Pointer)parsedString.name).Next!.Value!);
     }
 
-    /// <summary>Applies null policy at the selected pointer level and never traverses beyond an intermediate null.</summary>
+    /// <summary>
+    ///     Default policy rejects writing through a null target.
+    /// </summary>
+    /// <remarks>
+    ///     The test also exercises the explicit opt-out at a final selected null and checks that an intermediate null
+    ///     still prevents further traversal. Policy must be applied to the pointer level actually selected, including
+    ///     relative-address cases.
+    /// </remarks>
     [TestMethod]
     public void NullPointerUpdates_ApplyPolicyAtTheSelectedLevel()
     {
@@ -523,7 +605,14 @@ public class IndexedPointerUpdateTests
         CollectionAssert.AreEqual(new byte[] { 0x00, 0xA5, }, relativeNull.ToArray());
     }
 
-    /// <summary>Stores a null address at root and intermediate pointer levels, including relative layouts.</summary>
+    /// <summary>
+    ///     Writing zero to ptr.address clears the outer slot; writing zero to ptr.value.address clears the intermediate
+    ///     slot.
+    /// </summary>
+    /// <remarks>
+    ///     Both are valid address changes and must leave the former target bytes intact. Relative addressing must also
+    ///     encode null as zero without subtracting the origin.
+    /// </remarks>
     [TestMethod]
     public void PointerAddressUpdates_CanStoreNullAtEveryLevel()
     {
@@ -551,7 +640,14 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual(0, relativeStorage.Position);
     }
 
-    /// <summary>Leaves bytes and caller position unchanged when selected element or pointer validation fails.</summary>
+    /// <summary>
+    ///     The cases provide a negative uint16 replacement, an oversized pointer address, and an unreadable pointer
+    ///     target.
+    /// </summary>
+    /// <remarks>
+    ///     Each must produce the appropriate error without altering bytes or caller position. Validation protects the
+    ///     selected range even when path resolution has already performed some reads.
+    /// </remarks>
     [TestMethod]
     public void SelectedUpdateFailures_AreNonMutating()
     {
@@ -582,7 +678,13 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual(0, invalidTarget.Position);
     }
 
-    /// <summary>Reads only pointer storage on the selected branch before writing the final target.</summary>
+    /// <summary>
+    ///     Updating the final uint16 needs only the pointer bytes at offsets 0 and 4.
+    /// </summary>
+    /// <remarks>
+    ///     The tracking stream must record exactly those reads, then the replacement EF BE at the target. The unrelated
+    ///     bad pointer and the old scalar target value need not be read to perform this replacement.
+    /// </remarks>
     [TestMethod]
     public void PointerTargetUpdate_DoesNotReadUnrelatedOrFinalStorage()
     {

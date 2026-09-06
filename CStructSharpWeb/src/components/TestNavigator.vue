@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 
 import { isRunnable, type TestEntry, type TestManifest } from "../demo-types";
+import { formatTestTitle } from "../format-test-title";
 
 const props = defineProps<{
   manifest: TestManifest;
@@ -23,7 +24,7 @@ const visible = computed(() => {
     }
     return (
       !normalized ||
-      `${test.id} ${test.className} ${test.methodName} ${test.filePath}`
+      `${test.id} ${test.className} ${formatTestTitle(test.className)} ${formatTestTitle(test.methodName)} ${test.filePath} ${test.documentation?.summary} ${test.documentation?.usage}`
         .toLowerCase()
         .includes(normalized)
     );
@@ -67,16 +68,17 @@ watch(visible, (tests) => {
     <div class="groups">
       <section v-for="group in groups" :key="group.name">
         <h3>
-          {{ group.name }} <span>{{ group.tests.length }}</span>
+          {{ formatTestTitle(group.name) }} <span>{{ group.tests.length }}</span>
         </h3>
         <button
           v-for="test in group.tests"
           :key="test.id"
           type="button"
+          :title="test.id"
           :class="{ active: selectedId === test.id, unsupported: !test.runnable }"
           @click="emit('update:selectedId', test.id)"
         >
-          {{ test.methodName }}
+          {{ formatTestTitle(test.methodName) }}
           <small v-if="!test.runnable">reference</small>
         </button>
       </section>

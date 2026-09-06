@@ -1,301 +1,101 @@
 # CStructSharp
 
-CStructSharp is a .NET library for reading and writing binary data. You describe the data with a small language that
-looks like a C struct, then use that description to work with bytes, streams, or memory.
+CStructSharp reads and writes binary data using a description that looks like a C struct. Give it a layout and
+some bytes, and it gives you named values. Give it values, and it can create bytes or change a field in existing
+data. Use it from C# or JavaScript in a browser.
 
-For example, this layout describes a six-byte header:
+## Choose your starting point
 
-```c
-struct header {
-    uint16 kind;
-    uint32 length;
-};
-```
+- [Try the browser lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=header): no installation.
+- [Use C#](https://vvollers.github.io/cstructsharp/docs/guides/install-and-first-parse.html): create a console app.
+- [Use JavaScript and WASM](https://vvollers.github.io/cstructsharp/docs/guides/browser/index.html): run a complete browser starter.
 
-CStructSharp understands this layout and can read values from binary data or write values back to it. It uses its
-own portable layout rules. It does not parse complete C header files, run a C preprocessor, or copy the ABI rules of
-a particular C compiler.
+## Read your first value in C#
 
-The current version is `0.2.7`.
+Install a stable .NET 10 SDK. These commands work in PowerShell or a Unix shell:
 
-## Install
-
-For a .NET application, add the published NuGet package from your project directory:
-
-```powershell
+```sh
+dotnet new console -n BinaryHeader -f net10.0
+cd BinaryHeader
 dotnet add package CStructSharp
 ```
 
-This adds the latest published `CStructSharp` package and restores it for the project. The package targets .NET 8 and
-.NET 10. See [Install and make a first parse](https://vvollers.github.io/cstructsharp/docs/guides/install-and-first-parse.html)
-for a complete example.
-
-For a browser application, download the `cstructsharp-wasm-v<VERSION>.zip` asset from the
-[GitHub Releases](https://github.com/vvollers/cstructsharp/releases) page and extract the complete archive into your
-static assets. Do not separate `cstructsharp-wasm.js` from `main.js`, `bootstrap.js`, or `_framework/`.
-
-```js
-import { parseWithDebug, serialize } from "./cstructsharp-wasm/cstructsharp-wasm.js";
-
-const definition = "struct root { byte value; };";
-const parsed = await parseWithDebug(definition, new Uint8Array([42]), { rootTypeName: "root" });
-if (parsed.Success) console.log(parsed.Data);
-
-const serialized = await serialize(definition, { value: 165 }, { rootTypeName: "root" });
-if (serialized.Success) console.log(serialized.Data); // Base64: "pQ=="
-```
-
-The browser bundle runs CStructSharp locally through WebAssembly. It must be served over HTTP(S), not opened with
-`file://`. The archive's `README.md` documents `parseWithDebug`, `serialize`, `update`, and direct runtime loading.
-
-## What it supports
-
-- Fixed-size integers and characters, with a byte order you can choose.
-- Structs, unions, enums, typedefs, arrays, strings, bitfields, expressions, and pointers.
-- Reading into dynamic objects or regular C# classes.
-- Writing complete values or updating one value at a path such as `packet.header.length`.
-- Streams, spans, memory, and `IBufferWriter<byte>`.
-- Limits for input size, nesting, arrays, strings, pointers, reads, and writes.
-- Reusing one compiled layout for many operations and from more than one thread.
-
-Unknown enum values and raw union bytes can be kept without losing information. See `EnumValueResult` and
-`UnionValue` in the [API reference](https://vvollers.github.io/cstructsharp/docs/api/CStructSharp.html).
-
-## Where to learn more
-
-- [Project home](https://vvollers.github.io/cstructsharp/)
-- [Start with the library](https://vvollers.github.io/cstructsharp/docs/guides/index.html)
-- [Read the layout-language manual](https://vvollers.github.io/cstructsharp/docs/language/index.html)
-- [Run the examples](https://vvollers.github.io/cstructsharp/docs/examples/index.html)
-- [Browse the API reference](https://vvollers.github.io/cstructsharp/docs/api/CStructSharp.html)
-- [Open the interactive WASM explorer](https://vvollers.github.io/cstructsharp/explorer/)
-- [Learn how the repository is maintained](https://vvollers.github.io/cstructsharp/docs/project/index.html)
-- [Read the release notes](CHANGELOG.md)
-
-The source for the website is in `CStructSharp.Docs/`. The machine-readable description of the Portable v1 layout
-rules is in
-[portable-v1.json](CStructSharp.Docs/contracts/language/portable-v1.json).
-
-## What you need
-
-For normal library work, install:
-
-- Git;
-- PowerShell 7 if you want to use the scripts in `tools/`;
-- a stable .NET 10 SDK; and
-- the .NET 8 runtime if you want to run the `net8.0` tests or fuzz harness.
-
-The repository's `global.json` asks for SDK `10.0.100` or a newer .NET 10 feature band. It does not allow a preview
-SDK. Check your installation with:
-
-```powershell
-dotnet --version
-dotnet --list-runtimes
-```
-
-You do not need Node.js for the library, tests, fuzz harness, benchmarks, or NuGet package. You do need it for these
-two parts of the repository:
-
-- Documentation checks require Node 24 or 26.
-- The web workbench requires Node 22.12 or newer and npm 10 or newer. Its preferred npm version is 11.6.2.
-
-Node 24 with npm 11.6.2 works for both.
-
-## Build and test the project
-
-Run these commands from the repository root:
-
-```powershell
-dotnet restore .\CStructSharp.NonWeb.sln
-dotnet build .\CStructSharp.NonWeb.sln -c Release --no-restore
-dotnet test .\CStructSharpTests\CStructSharpTests.csproj -c Release --no-build
-```
-
-Here is what each command does:
-
-1. `restore` downloads the required NuGet packages.
-2. `build` compiles the library, tests, fuzz harness, and benchmarks.
-3. `test` runs the test suite on both .NET 8 and .NET 10.
-
-The build step compiles the test, fuzz, and benchmark programs, but it does not run them. A successful test run
-shows one result for `net8.0` and one for `net10.0`.
-
-To build only the library on .NET 10:
-
-```powershell
-dotnet restore .\CStructSharp\CStructSharp.csproj
-dotnet build .\CStructSharp\CStructSharp.csproj -c Release -f net10.0 --no-restore
-```
-
-## Read your first value
+Replace `Program.cs` with this complete program, then run `dotnet run`:
 
 ```csharp
 using CStructSharp;
 
-var definition = """
-    struct header {
-        uint16 kind;
-        uint32 length;
-    };
-    """;
+var layout = new CStruct("struct header { uint16 kind; uint32 length; };");
+byte[] bytes = { 0x02, 0x00, 0x06, 0x00, 0x00, 0x00 };
+dynamic header = layout.Parse(bytes.AsSpan(), "header");
 
-var layout = new CStruct(definition);
-using var input = new MemoryStream(
-    new byte[] { 0x02, 0x00, 0x06, 0x00, 0x00, 0x00 });
-
-dynamic header = layout.ParseStream(input, "header");
-
-Console.WriteLine(header.kind);   // 2
-Console.WriteLine(header.length); // 6
+Console.WriteLine($"kind = {header.kind}");
+Console.WriteLine($"length = {header.length}");
 ```
 
-By default, CStructSharp uses packed fields, little-endian values, and eight-byte pointers. Set the pointer size,
-alignment, and byte order yourself when they are part of a stored file format or network protocol. The
-[Portable v1 guide](CStructSharp.Docs/language/portable-v1-reference.md) explains the layout rules and the places
-where they differ from C.
+Output:
 
-## How the projects fit together
-
-Most projects use the main `CStructSharp` library:
-
-| Path | What it is | What it uses |
-| --- | --- | --- |
-| `CStructSharp/` | The library | Pidgin for parsing; no other project in this repository |
-| `CStructSharp.Fuzz/` | A program that tries many unusual inputs | The library |
-| `CStructSharpTests/` | The MSTest test suite | The library, fuzz support, and test data from `CStructSharp.Docs/` |
-| `CStructSharp.Benchmarks/` | Performance tests | The library and BenchmarkDotNet |
-| `CStructSharpWeb/wasm/` | The .NET bridge used in a browser | The library and the WebAssembly workload |
-| `CStructSharpWeb/` | The Vue web workbench | The published WebAssembly bridge |
-| `CStructSharp.Docs/` | The documentation website and examples | A .NET 10 build of the library, DocFX, and Node tools |
-| `CStructSharp.PackageConsumer/` | A test app for the NuGet package | A built `.nupkg`, not the library project |
-
-The main library does not depend on the tests, fuzz harness, benchmarks, website, or documentation.
-
-There are two solution files:
-
-- `CStructSharp.NonWeb.sln` contains the library, tests, fuzz harness, and benchmarks. Use this for normal work.
-- `CStructSharp.sln` adds the .NET WebAssembly bridge. Use it when you are working on browser integration.
-
-Neither solution builds the Vue app, the documentation website, the documentation examples, or the package
-consumer. The next sections show how to work with them.
-
-## Run one part of the repository
-
-### Tests
-
-Run every test on both supported .NET versions:
-
-```powershell
-dotnet test .\CStructSharpTests\CStructSharpTests.csproj -c Release
+```text
+kind = 2
+length = 6
 ```
 
-Add `-f net8.0` or `-f net10.0` when you only need one target framework.
+The layout names the fields. The byte array supplies the data. The result contains the values:
 
-### Fuzz harness
+| Field | Byte offsets | Input bytes | Value |
+| --- | --- | --- | --- |
+| `kind` | 0–1 | `02 00` | 2 |
+| `length` | 2–5 | `06 00 00 00` | 6 |
 
-The fuzz harness changes valid and invalid inputs in small ways. It helps find crashes and unexpected exceptions
-that an ordinary test may miss. This runs the standard set on .NET 10:
+By default, fields are packed together, numbers use little-endian byte order, and pointers occupy eight bytes.
+The [binary layout basics](https://vvollers.github.io/cstructsharp/docs/guides/binary-layout-basics.html) explain these choices.
+Try changing `0x02` to `0x03`: `kind` becomes `3`.
 
-```powershell
-dotnet run --project .\CStructSharp.Fuzz\CStructSharp.Fuzz.csproj -c Release -f net10.0 -- --target all
-```
+## When to use it
 
-Run it again with `-f net8.0` when you need to check both supported .NET versions.
+Use CStructSharp to read a documented device message, inspect a file header, or change a fixed field in a binary
+record. A hand-written `BinaryReader` may be sufficient for a few fixed fields. A reusable layout description is
+useful when several operations share a format or the format is supplied at runtime.
 
-### Benchmarks
+The language has its own portable rules. It does not compile C, import arbitrary C headers, discover an unknown
+format, or automatically match a native compiler's struct layout. Floating-point and boolean fields are currently
+unsupported. See [differences from C](https://vvollers.github.io/cstructsharp/docs/language/differences-from-c.html)
+before translating a header.
 
-This runs the default short BenchmarkDotNet job:
+Supported features include integers, structs, unions, enums, arrays, text, bitfields, expressions, and stored pointers.
+You can read dynamic objects or C# classes, write new bytes, and update a path such as `packet.header.length`.
+Advanced APIs support streams, spans, memory, buffer writers, explicit limits, and reuse of a compiled layout.
 
-```powershell
-dotnet run --project .\CStructSharp.Benchmarks\CStructSharp.Benchmarks.csproj -c Release -- --filter '*'
-```
+## Use the browser bundle
 
-Benchmark results are written below the ignored `artifacts/` directory.
+Download `cstructsharp-wasm-v<VERSION>.zip` from [GitHub Releases](https://github.com/vvollers/cstructsharp/releases).
+Extract the complete archive. With Node.js installed, run `node serve.mjs` in that directory and open
+`http://127.0.0.1:8080/starter/`. The included page reads, writes, and updates the same header.
 
-### Web workbench
+Browser users do not need .NET installed. Keep the runtime files together and serve them over HTTP(S).
+The [browser guide](https://vvollers.github.io/cstructsharp/docs/guides/browser/index.html) explains the files,
+JavaScript API, result conversion, and common loading errors.
 
-The web workbench has two parts: a .NET WebAssembly bridge and a Vue app. Build them together with:
+## Continue learning
 
-```powershell
-dotnet workload restore .\CStructSharpWeb\wasm\CStructSharpWeb.Wasm.csproj
-npm --prefix .\CStructSharpWeb ci
-npm --prefix .\CStructSharpWeb run build
-```
+- [Learn step by step](https://vvollers.github.io/cstructsharp/docs/guides/index.html)
+- [Find an executable recipe](https://vvollers.github.io/cstructsharp/docs/guides/recipes/index.html)
+- [Learn the layout language](https://vvollers.github.io/cstructsharp/docs/language/tutorial/index.html)
+- [Look up the C# API](https://vvollers.github.io/cstructsharp/docs/api/CStructSharp.html)
+- [Read release notes](https://github.com/vvollers/CStructSharp/blob/main/CHANGELOG.md)
 
-The build places the browser-ready bridge in `CStructSharpWeb/public/wasm/` and the finished website in
-`CStructSharpWeb/dist/`.
+The package targets .NET 8 and .NET 10. Release assets describe published versions; the repository's
+`CStructSharp/CStructSharp.csproj` records the development version. Historical compatibility snapshots have their
+own labels and do not identify the latest release.
 
-After the first build, you can use:
+## Work on the project
 
-```powershell
-npm --prefix .\CStructSharpWeb run dev
-```
+Package consumers do not need to clone or build this repository. Contributors should start with the
+[repository setup guide](https://vvollers.github.io/cstructsharp/docs/project/getting-started.html), then follow
+[build instructions](https://vvollers.github.io/cstructsharp/docs/project/building.html),
+[testing](https://vvollers.github.io/cstructsharp/docs/project/testing.html), and
+[contribution guidance](https://github.com/vvollers/CStructSharp/blob/main/CONTRIBUTING.md).
+The [repository map](https://vvollers.github.io/cstructsharp/docs/project/repository-map.html) explains the projects.
 
-This starts the Vite development server. It does not rebuild the C# code when that code changes. Run
-`npm --prefix .\CStructSharpWeb run build:wasm` after a C# change.
-
-The full managed solution can also be built directly:
-
-```powershell
-dotnet workload restore .\CStructSharpWeb\wasm\CStructSharpWeb.Wasm.csproj
-dotnet restore .\CStructSharp.sln
-dotnet build .\CStructSharp.sln -c Release --no-restore
-```
-
-This builds the .NET bridge, but not the Vue app.
-
-### Documentation website
-
-Run the complete documentation check with:
-
-```powershell
-.\tools\Validate-Documentation.ps1
-```
-
-It builds the library, examples, API pages, and website, then checks the writing, links, and browser behavior.
-
-After a successful build, use this faster command while editing pages:
-
-```powershell
-.\tools\Build-Documentation.ps1 -NoBuild -Serve
-```
-
-It starts a local website at `http://localhost:8080`. See
-[CStructSharp.Docs/README.md](CStructSharp.Docs/README.md) if setup or browser checks fail.
-
-### NuGet package
-
-Create a local package and test it as a real dependency:
-
-```powershell
-dotnet pack .\CStructSharp\CStructSharp.csproj -c Release -o .\artifacts\package
-$package = Get-ChildItem .\artifacts\package -Filter '*.nupkg' | Where-Object Extension -eq '.nupkg'
-$symbols = Get-ChildItem .\artifacts\package -Filter '*.snupkg'
-.\tools\Validate-Package.ps1 -PackagePath $package.FullName -SymbolPackagePath $symbols.FullName
-.\tools\Test-PackageConsumer.ps1 -PackageDirectory .\artifacts\package
-```
-
-Start with an empty `artifacts/package/` directory so the scripts find one package and one symbol package. These
-commands create and test files on your machine. They do not publish anything.
-
-## Compatibility files
-
-Files below `CStructSharp.Docs/contracts/` record the public API, layout language, browser interface, and performance
-limits. Automated checks compare the code with these files. If a check finds a difference, first decide whether the
-code changed by mistake or whether the public behavior really needs to change. Do not update a contract file only
-to make the check pass.
-
-The .NET API and browser interface have separate compatibility files because they can change at different times.
-
-## Contributing
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing behavior. A bug fix should normally start with a test that
-shows the problem. Keep the fix focused, run the checks for the part you changed, and update the related docs when
-users will notice the change.
-
-## License
-
-CStructSharp uses the [MIT License](LICENSE.txt).
-
-You can report questions and bugs in the
-[CStructSharp issue tracker](https://github.com/vvollers/CStructSharp/issues).
+CStructSharp uses the [MIT License](https://github.com/vvollers/CStructSharp/blob/main/LICENSE.txt).
+Report questions and bugs in the [issue tracker](https://github.com/vvollers/CStructSharp/issues).

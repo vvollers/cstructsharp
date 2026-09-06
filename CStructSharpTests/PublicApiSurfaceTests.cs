@@ -31,7 +31,14 @@ public class PublicApiSurfaceTests
         "CStructSharp.WriteOptions",
     ];
 
-    /// <summary>Rejects parser, syntax-tree, handler, raw-declaration, and dead-helper implementation details.</summary>
+    /// <summary>
+    ///     Reflection compares exported types and method signatures against the intended public API.
+    /// </summary>
+    /// <remarks>
+    ///     Parser nodes, internal handlers, and obsolete helpers must not become public dependencies. The test contains
+    ///     no byte fixture; it protects a compact library surface that users can learn without understanding its
+    ///     compiler internals.
+    /// </remarks>
     [TestMethod]
     public void ExportedTypesAndSignatures_AreDeliberateAndImplementationAgnostic()
     {
@@ -87,7 +94,14 @@ public class PublicApiSurfaceTests
                 .ToArray());
     }
 
-    /// <summary>Uses ordinary integer dictionaries for every variable-bearing operation instead of parser nodes.</summary>
+    /// <summary>
+    ///     Every public operation accepting variables must use IReadOnlyDictionary&lt;string, int&gt;.
+    /// </summary>
+    /// <remarks>
+    ///     Callers should supply ordinary names and numbers rather than internal expression objects. Reflection checks
+    ///     all relevant overloads so a newly added API cannot accidentally expose a different, harder-to-use input
+    ///     shape.
+    /// </remarks>
     [TestMethod]
     public void VariableInputs_UseOneReadOnlyIntegerShape()
     {
@@ -123,7 +137,14 @@ public class PublicApiSurfaceTests
         }
     }
 
-    /// <summary>Locks the compact synchronous memory input and caller-owned output overload family.</summary>
+    /// <summary>
+    ///     The public API must offer synchronous reads from ReadOnlySpan and ReadOnlyMemory, plus output to Span and
+    ///     IBufferWriter.
+    /// </summary>
+    /// <remarks>
+    ///     Reflection verifies those overloads without requiring another public wrapper type. This keeps efficient
+    ///     memory access available through familiar .NET abstractions.
+    /// </remarks>
     [TestMethod]
     public void MemoryIo_UsesSpanMemoryAndBufferWriterWithoutNewPublicTypes()
     {

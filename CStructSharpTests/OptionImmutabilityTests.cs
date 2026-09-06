@@ -8,7 +8,13 @@ using CStructSharp.Structure;
 [TestClass]
 public class OptionImmutabilityTests
 {
-    /// <summary>Requires every writable public option property to be assignable only during initialization.</summary>
+    /// <summary>
+    ///     Reflection inspects compilation, read, write, and update option properties.
+    /// </summary>
+    /// <remarks>
+    ///     Each must support object initialization but have an init-only setter, preventing ordinary reassignment
+    ///     afterward. This is an API contract test for reusable settings, not a test of any binary structure.
+    /// </remarks>
     [TestMethod]
     public void PublicOptionProperties_AreInitOnly()
     {
@@ -37,7 +43,14 @@ public class OptionImmutabilityTests
         }
     }
 
-    /// <summary>Retains the documented defaults while one immutable value is safely reused across operations.</summary>
+    /// <summary>
+    ///     Default options must retain documented choices such as absolute addressing, pointer following, union
+    ///     clearing, and a 64 MiB write budget.
+    /// </summary>
+    /// <remarks>
+    ///     Reusing the same option objects for several one-byte operations must produce each operation's expected
+    ///     result. Budgets and temporary state must not accumulate across calls.
+    /// </remarks>
     [TestMethod]
     public void ImmutableOptions_RetainDefaultsAndSupportReuse()
     {

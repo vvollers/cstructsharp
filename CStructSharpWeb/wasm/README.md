@@ -1,55 +1,54 @@
 # CStructSharp WebAssembly bundle
 
-This directory is a standalone browser distribution of CStructSharp. It runs the managed CStructSharp library locally through .NET WebAssembly; it does not require a server or a .NET runtime on the user's machine.
+This bundle reads and writes binary data in a browser using a C-like layout. The browser runs the managed library
+locally; its user does not need .NET installed.
 
-Keep the complete extracted directory together. It contains `cstructsharp-wasm.js`, the .NET WebAssembly runtime under `_framework/`, `main.js`, `bootstrap.js`, and the runtime configuration file.
+## Run your first example
 
-## Use from a browser project
+Keep the complete extracted archive together. With Node.js installed, open a terminal in this directory and run:
 
-```js
-import {
-  getVersion,
-  parseWithDebug,
-  serialize,
-  update,
-} from "./cstructsharp-wasm.js";
-
-const definition = "struct root { byte value; };";
-const parsed = await parseWithDebug(definition, new Uint8Array([42]), {
-  rootTypeName: "root",
-});
-console.log(parsed.Data); // JSON string: {"value":42}
-
-const serialized = await serialize(definition, { value: 165 }, {
-  rootTypeName: "root",
-});
-console.log(serialized.Data); // Base64: "pQ=="
-
-const changed = await update(
-  definition,
-  new Uint8Array([0]),
-  "root.value",
-  42,
-  { rootTypeName: "root" },
-);
-console.log(changed.Data); // Base64: "Kg=="
+```sh
+node serve.mjs
 ```
 
-The functions return the versioned CStructSharp result envelope. Check `Success` before using `Data`; failures contain an `Error` object with `Code`, `Message`, `Offset`, and `Path`.
+Open `http://127.0.0.1:8080/starter/`, wait for Ready, then select Read, write, and update.
+The six-byte header starts with kind 2 and length 6. The page creates kind 3 and updates it to 4.
+Press Ctrl+C to stop the local server. Open `http://127.0.0.1:8080/starter/inspector.html` for the larger file inspector.
 
-`serialize` and `update` return their binary result in `Data` as Base64. `parseWithDebug` returns parsed JSON in `Data` and includes field-to-byte mappings in `DebugData`.
+`starter/index.html` and `starter/app.js` are the complete beginner application. Copy and adapt them for your own
+page. They check operation success, decode read JSON, use output byte arrays, and report runtime loading errors separately.
 
-## Direct loading
-
-To only load the managed API, use:
+## Use from your JavaScript
 
 ```js
-import { loadCStructSharpWasm } from "./cstructsharp-wasm.js";
+import { parseWithDebug } from "./cstructsharp-wasm.js";
 
-const api = await loadCStructSharpWasm();
-console.log(api.getVersion());
+try {
+  const result = await parseWithDebug(
+    "struct header { uint16 kind; uint32 length; };",
+    new Uint8Array([2, 0, 6, 0, 0, 0]),
+    { rootTypeName: "header" },
+  );
+  if (result.Success) {
+    const values = JSON.parse(result.Data);
+    console.log(values.header.kind); // 2; debug parses include the root wrapper
+  } else {
+    console.error(result.Error.Code, result.Error.Path, result.Error.Offset);
+  }
+} catch (error) {
+  console.error("Loading or JavaScript error:", error.message);
+}
 ```
 
-The bundle must be served over HTTP(S), not opened with `file://`, because browsers restrict module and WebAssembly loading from local files. The server must preserve the `.wasm` content type. The bundle can be copied into any static web application's assets and imported using a relative URL.
+Also exported: `serialize(definition, value, options)`, `update(definition, bytes, path, value, options)`,
+`getVersion()`, and `loadCStructSharpWasm()`. All return promises. Serialize and update return a `Uint8Array` in `Data`.
+Use it directly; older examples that call `atob(result.Data)` should remove that conversion.
+Pass the selected struct's fields when serializing, without the debug root wrapper.
 
-The archive is the browser/WASM distribution. For the .NET library and NuGet package, use the regular CStructSharp package.
+Keep `cstructsharp-wasm.js`, `main.js`, `bootstrap.js`, the runtime configuration, and `_framework/` together.
+Serve over HTTP(S), not `file://`, with `.wasm` served as `application/wasm`. Relative imports work under a deployment
+subdirectory when the complete bundle is kept together. The included server is for local development.
+
+Read the [browser API guide](https://vvollers.github.io/cstructsharp/docs/guides/browser/api.html) for options,
+large integers, union values, and the differences from C#. Read the
+[deployment guide](https://vvollers.github.io/cstructsharp/docs/guides/browser/deployment.html) if loading fails.

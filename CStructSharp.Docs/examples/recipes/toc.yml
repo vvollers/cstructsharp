@@ -1,0 +1,45 @@
+items:
+- name: Read a fixed header
+  href: decode-header.md
+- name: Write and update a header
+  href: header-round-trip.md
+- name: Diagnose the wrong byte order
+  href: byte-order.md
+- name: Read into a C# class
+  href: map-poco.md
+- name: Repair an invalid path
+  href: invalid-path.md
+- name: Read an item in a nested array
+  href: nested-array.md
+- name: Explain padding in an aligned header
+  href: aligned-header.md
+- name: Read flags stored in one byte
+  href: bit-flags.md
+- name: Read and write fixed text
+  href: fixed-text.md
+- name: Read zero-terminated text
+  href: terminated-text.md
+- name: Combine text, an enum, and a union
+  href: composite-record.md
+- name: Connect a field to its bytes
+  href: inspect-ranges.md
+- name: Patch a nested field in a stream
+  href: patch-field.md
+- name: Preserve or select union storage
+  href: preserve-union.md
+- name: Preserve an unknown enum number
+  href: preserve-enum.md
+- name: Supply a runtime array count
+  href: runtime-payload.md
+- name: Follow an absolute stored pointer
+  href: follow-pointer.md
+- name: Follow a pointer relative to an origin
+  href: relative-pointer.md
+- name: Bound the work of a read
+  href: bounded-read.md
+- name: Read inside a larger stream
+  href: positioned-stream.md
+- name: Reuse a layout with different output storage
+  href: round-trip.md
+- name: Inspect and edit a complete binary file
+  href: edit-file.md

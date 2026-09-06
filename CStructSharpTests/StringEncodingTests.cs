@@ -7,7 +7,13 @@ using CStructSharp.Structure;
 [TestClass]
 public class StringEncodingTests
 {
-    /// <summary>Uses the layout byte order for a neutral terminated <c>wchar[]</c> field.</summary>
+    /// <summary>
+    ///     No byte-order suffix is present on wchar[], so the big-endian layout setting applies.
+    /// </summary>
+    /// <remarks>
+    ///     Bytes 00 41 form A, and 00 00 is the complete two-byte terminator. The result must be A and the stream must
+    ///     advance four bytes, excluding the terminator from the string itself.
+    /// </remarks>
     [TestMethod]
     public void ParseStream_BigEndianNeutralWideString_DecodesUtf16BigEndian()
     {
@@ -22,9 +28,12 @@ public class StringEncodingTests
     }
 
     /// <summary>
-    ///     Applies the layout byte order consistently to parsing, debug mapping, measurement, addressing, serialization,
-    ///     writing, and in-place updates of a neutral terminated wide string.
+    ///     The text A followed by an emoji uses three UTF-16 code units, plus a zero terminator.
     /// </summary>
+    /// <remarks>
+    ///     Both byte orders must produce the same C# string and place tail after the encoded text. Updating A to B
+    ///     keeps the encoded length unchanged and must preserve the emoji and tail.
+    /// </remarks>
     [TestMethod]
     public void NeutralWideTerminatedString_AllOperationsUseLayoutEndianness()
     {
@@ -76,7 +85,14 @@ public class StringEncodingTests
         }
     }
 
-    /// <summary>Lets explicit <c>&gt;</c>/<c>&lt;</c> suffixes override the layout order for fixed and terminated buffers.</summary>
+    /// <summary>
+    ///     wchar&gt; reads big-endian units and wchar&lt; reads little-endian units even when the layout default
+    ///     differs.
+    /// </summary>
+    /// <remarks>
+    ///     Fixed buffers and terminated buffers must both follow those suffixes. The emoji also checks that two UTF-16
+    ///     units can represent one visible character; writes and updates must preserve its encoding.
+    /// </remarks>
     [TestMethod]
     public void ExplicitEndianWideBuffers_OverrideLayoutAndRoundTrip()
     {
@@ -153,7 +169,14 @@ public class StringEncodingTests
         Assert.AreEqual(0, terminatedUpdateStream.Position);
     }
 
-    /// <summary>Uses the same neutral and explicit-endian rules after following a character pointer.</summary>
+    /// <summary>
+    ///     A one-byte pointer leads to a terminated wide string at offset 2.
+    /// </summary>
+    /// <remarks>
+    ///     Following it must still obey the target type's explicit byte order or the neutral layout default. Address
+    ///     lookup and replacement must reach the same text, and a configured read limit must still apply through the
+    ///     pointer.
+    /// </remarks>
     [TestMethod]
     public void WideStringPointer_ReadAddressAndUpdateUseSelectedEncoding()
     {
@@ -196,7 +219,14 @@ public class StringEncodingTests
                 new ReadOptions { MaxPointerTargetBytes = 4, }));
     }
 
-    /// <summary>Supports newline-terminated UTF-16 in both explicit byte orders without consuming the following byte.</summary>
+    /// <summary>
+    ///     The first field contains big-endian A followed by a UTF-16 newline; the second contains little-endian B and
+    ///     a newline.
+    /// </summary>
+    /// <remarks>
+    ///     Results must be A and B without terminators. The final byte must remain 0x7F, proving each text reader stops
+    ///     after its own complete encoded newline.
+    /// </remarks>
     [TestMethod]
     public void ExplicitUtf16NewlineHandlers_StopAtEncodedTerminator()
     {
@@ -228,7 +258,13 @@ public class StringEncodingTests
                 }));
     }
 
-    /// <summary>Round-trips valid zero/newline strings through every neutral named encoding.</summary>
+    /// <summary>
+    ///     Each case chooses ASCII, UTF-8, or UTF-16 and either a zero or newline terminator.
+    /// </summary>
+    /// <remarks>
+    ///     Text valid for that encoding must return unchanged and serialize to exactly the original bytes. The
+    ///     following 0x7F byte checks that decoding neither stops too early nor consumes the next field.
+    /// </remarks>
     [TestMethod]
     public void NamedTerminatedEncodings_ValidTextRoundTripsWithoutFallback()
     {
@@ -274,7 +310,14 @@ public class StringEncodingTests
         }
     }
 
-    /// <summary>Rejects malformed UTF-8/UTF-16 input instead of replacing bytes or returning invalid CLR strings.</summary>
+    /// <summary>
+    ///     The inputs include invalid UTF-8, a non-ASCII byte, an unpaired UTF-16 surrogate, and incomplete wide-
+    ///     character data.
+    /// </summary>
+    /// <remarks>
+    ///     Each must raise a read error. Substituting a replacement character would hide damaged binary data and could
+    ///     make later field positions misleading.
+    /// </remarks>
     [TestMethod]
     public void StrictStringReaders_RejectMalformedSequencesAndOddWideInput()
     {
@@ -295,7 +338,14 @@ public class StringEncodingTests
         Assert.Throws<CStructReadException>(() => terminatedWide.ParseStream(oddWide, "root"));
     }
 
-    /// <summary>Rejects lossy writes, malformed surrogate input, and embedded terminators before emitting that value.</summary>
+    /// <summary>
+    ///     A narrow char can store U+00FF but cannot store U+0100 in one byte.
+    /// </summary>
+    /// <remarks>
+    ///     Other cases include text outside ASCII, malformed surrogate input, embedded terminators, and text too large
+    ///     for a fixed wide buffer. Writes must fail instead of losing characters or producing a string that reads back
+    ///     differently.
+    /// </remarks>
     [TestMethod]
     public void StrictStringWriters_RejectUnrepresentableOrTruncatingValues()
     {
@@ -325,7 +375,13 @@ public class StringEncodingTests
             () => fixedWide.Serialize("root", new Dictionary<string, object> { ["value"] = "\uD800", }));
     }
 
-    /// <summary>Rejects every terminated handler as a union member because none has a fixed storage extent.</summary>
+    /// <summary>
+    ///     A union needs a known storage extent so all overlapping members share a defined range.
+    /// </summary>
+    /// <remarks>
+    ///     A terminated string ends according to its data, so its size is not fixed by its type. Every listed
+    ///     terminated-string union member must therefore be rejected during layout construction.
+    /// </remarks>
     [TestMethod]
     public void TerminatedStringHandlers_RemainVariableLengthDuringCompilation()
     {
@@ -355,7 +411,13 @@ public class StringEncodingTests
         }
     }
 
-    /// <summary>Counts encoded bytes, including a complete wide terminator, when enforcing the read budget.</summary>
+    /// <summary>
+    ///     Big-endian A plus its zero terminator occupies four bytes, even though the returned text has one character.
+    /// </summary>
+    /// <remarks>
+    ///     A sufficient byte budget must succeed and leave the position at 4; a smaller budget must fail. Limits count
+    ///     the complete encoded terminator as well as the text.
+    /// </remarks>
     [TestMethod]
     public void WideTerminatedString_EnforcesByteBudgetWithoutSplittingCodeUnits()
     {

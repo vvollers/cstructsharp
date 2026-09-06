@@ -5,6 +5,7 @@ const webRoot = process.cwd();
 const repoRoot = path.resolve(webRoot, "..");
 const testsRoot = path.resolve(repoRoot, "CStructSharpTests");
 const outPath = path.resolve(webRoot, "src/generated/test-demos.json");
+const githubSourceRoot = "https://github.com/vvollers/cstructsharp/blob/main/";
 
 function walkCsFiles(dir) {
   const results = [];
@@ -665,8 +666,14 @@ function extractMethods(filePath) {
   const testAttrRegex = /\[TestMethod\]/g;
   let attrMatch;
   while ((attrMatch = testAttrRegex.exec(text)) !== null) {
-    const afterAttr = text.slice(attrMatch.index);
-    const methodMatch = /public\s+void\s+(?<name>\w+)\s*\(\s*\)\s*\{/.exec(afterAttr);
+    // Keep each attribute attached to its own method, including data-driven and async tests.
+    // Searching for the next parameterless method could silently borrow a later test's body and ID.
+    const nextTest = text.indexOf("[TestMethod]", attrMatch.index + attrMatch[0].length);
+    const afterAttr = text.slice(attrMatch.index, nextTest === -1 ? undefined : nextTest);
+    const methodMatch =
+      /public\s+(?:(?:async|unsafe)\s+)*(?:void|Task)\s+(?<name>\w+)\s*\((?<parameters>[^)]*)\)\s*\{/.exec(
+        afterAttr,
+      );
     if (!methodMatch?.groups?.name) continue;
 
     const methodName = methodMatch.groups.name;
@@ -677,8 +684,23 @@ function extractMethods(filePath) {
     if (closeBrace === -1) continue;
 
     const body = text.slice(openBrace + 1, closeBrace);
-    const line = countLines(text, attrMatch.index);
+    const line = countLines(text, attrMatch.index + methodStartInSlice);
     const documentation = extractDocumentationFromXmlDoc(text, attrMatch.index);
+
+    if (methodMatch.groups.parameters.trim()) {
+      tests.push({
+        id: `${className}.${methodName}`,
+        className,
+        methodName,
+        filePath: relativePath,
+        line,
+        documentation,
+        runnable: false,
+        reason:
+          "This parameterized test uses data rows or fixtures supplied by the C# test runner.",
+      });
+      continue;
+    }
 
     const stringMap = extractStringVariables(body);
     const parseCall = hasParseCall(body);
@@ -799,7 +821,12 @@ function extractDocumentationFromXmlDoc(sourceText, beforeIndex) {
 }
 
 const csFiles = walkCsFiles(testsRoot);
-const allTests = csFiles.flatMap((file) => extractMethods(file));
+const allTests = csFiles
+  .flatMap((file) => extractMethods(file))
+  .map((test) => ({
+    ...test,
+    sourceUrl: `${githubSourceRoot}${test.filePath.split("/").map(encodeURIComponent).join("/")}#L${test.line}`,
+  }));
 allTests.sort((a, b) => a.id.localeCompare(b.id));
 
 const missingDocs = allTests.filter((t) => !t.documentation?.summary);

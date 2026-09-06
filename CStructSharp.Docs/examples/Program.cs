@@ -6,7 +6,7 @@ using System.Dynamic;
 using System.Numerics;
 using global::CStructSharp;
 
-internal static class Program
+internal static partial class Program
 {
     private static readonly (string Name, Action Run)[] Scenarios =
     [
@@ -21,17 +21,45 @@ internal static class Program
         ("fixed-text", FixedText),
         ("round-trip", RoundTrip),
         ("patch-field", PatchField),
+        ("header-round-trip", HeaderRoundTrip),
+        ("byte-order", ByteOrder),
+        ("nested-array", NestedArray),
+        ("aligned-header", AlignedHeader),
+        ("bit-flags", BitFlags),
+        ("terminated-text", TerminatedText),
+        ("invalid-path", InvalidPath),
+        ("bounded-read", BoundedRead),
+        ("relative-pointer", RelativePointer),
+        ("positioned-stream", PositionedStream),
+        ("edit-file", EditFile),
     ];
 
-    public static int Main()
+    public static int Main(string[] args)
     {
-        foreach ((string name, Action run) in Scenarios)
+        if (args is ["--list"])
+        {
+            foreach (var scenario in Scenarios)
+            {
+                Console.WriteLine(scenario.Name);
+            }
+
+            return 0;
+        }
+
+        var selected = args.Length == 0 ? Scenarios : Scenarios.Where(scenario => args.Contains(scenario.Name)).ToArray();
+        if (args.Any(arg => !Scenarios.Any(scenario => scenario.Name == arg)))
+        {
+            Console.Error.WriteLine("Unknown scenario. Use --list to see names, or omit arguments to run all.");
+            return 2;
+        }
+
+        foreach ((string name, Action run) in selected)
         {
             run();
             Console.WriteLine($"PASS {name}");
         }
 
-        Console.WriteLine($"PASS all {Scenarios.Length} scenarios");
+        Console.WriteLine($"PASS {(args.Length == 0 ? "all" : "selected")} {selected.Length} scenarios");
         return 0;
     }
 

@@ -6,7 +6,13 @@ using System.Collections;
 [TestClass]
 public class ConstructionDictionaryTests
 {
-    /// <summary>Discards mutable storage, retains its comparer and entries, and rejects every later write path.</summary>
+    /// <summary>
+    ///     The builder starts with case-insensitive entries one = 1 and two = 2.
+    /// </summary>
+    /// <remarks>
+    ///     Freezing must retain both entries and the comparer while rejecting all later mutation and a second freeze.
+    ///     This internal helper supports publishing stable layout metadata after construction.
+    /// </remarks>
     [TestMethod]
     public void Freeze_PublishesCompleteSnapshotAndRejectsLaterMutation()
     {
@@ -39,7 +45,13 @@ public class ConstructionDictionaryTests
         Assert.Throws<InvalidOperationException>(() => table.Freeze());
     }
 
-    /// <summary>Replaces rather than merges builder entries before the irreversible publication step.</summary>
+    /// <summary>
+    ///     Before freezing, ReplaceWith must discard old and install first = 2 and second = 3.
+    /// </summary>
+    /// <remarks>
+    ///     After freezing, uppercase lookups must still work because the configured comparer is case-insensitive.
+    ///     Replacement must not accidentally merge stale construction entries into the final snapshot.
+    /// </remarks>
     [TestMethod]
     public void ReplaceWith_UsesConfiguredComparerAndRemovesOldEntries()
     {

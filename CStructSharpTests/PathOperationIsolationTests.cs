@@ -11,9 +11,12 @@ using CStructSharp;
 public class PathOperationIsolationTests
 {
     /// <summary>
-    ///     Rejects partially valid path strings and proves that ordinary fields called value/address retain their literal
-    ///     meaning rather than being globally treated as pointer helper names.
+    ///     value and address are ordinary byte fields in this record, at offsets 1 and 2.
     /// </summary>
+    /// <remarks>
+    ///     They acquire special meaning only after a pointer in a path. Invalid path strings must fail rather than
+    ///     being partially accepted or misinterpreting those field names.
+    /// </remarks>
     [TestMethod]
     public void Paths_AreStrictAndPointerAccessorNamesAreContextual()
     {
@@ -41,9 +44,12 @@ public class PathOperationIsolationTests
     }
 
     /// <summary>
-    ///     Keeps the names <c>value</c> and <c>address</c> available to ordinary nested fields during selected writes;
-    ///     they become pointer accessors only when the preceding declaration is actually a pointer.
+    ///     The nested child has ordinary fields called value and address.
     /// </summary>
+    /// <remarks>
+    ///     Serializing either selected path must write that field's byte. These names must not trigger pointer logic
+    ///     when the preceding item is a struct, allowing layouts to use common member names freely.
+    /// </remarks>
     [TestMethod]
     public void SelectedWrites_TreatPointerAccessorNamesContextually()
     {
@@ -62,9 +68,13 @@ public class PathOperationIsolationTests
     }
 
     /// <summary>
-    ///     Applies the same dereference, depth, and target-size safety policy to targeted address resolution that full
-    ///     parsing uses, so a narrow path API cannot become a way around caller-defined pointer budgets.
+    ///     Two pointer hops lead to offset 4.
     /// </summary>
+    /// <remarks>
+    ///     A depth allowance of two succeeds, but disabling dereferencing or imposing smaller pointer limits must fail.
+    ///     Asking only for an address must not bypass the same safety policy that applies when parsing the target
+    ///     value.
+    /// </remarks>
     [TestMethod]
     public void ResolveAddress_EnforcesPointerSafetyOptions()
     {
@@ -96,9 +106,12 @@ public class PathOperationIsolationTests
     }
 
     /// <summary>
-    ///     Resolves only the selected update path: an unrelated invalid pointer and an absent later field must not block
-    ///     changing an already-present scalar byte.
+    ///     The record contains an invalid pointer before target and a missing field after it.
     /// </summary>
+    /// <remarks>
+    ///     Updating the existing target byte to 0xA5 must still succeed. Finding this field requires its position, not
+    ///     dereferencing an unrelated pointer or validating absent data beyond the selected update.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_DoesNotReadUnrelatedPointerTargetsOrFollowingFields()
     {
@@ -112,9 +125,13 @@ public class PathOperationIsolationTests
     }
 
     /// <summary>
-    ///     Applies prefix-only traversal to selected object parsing, debug mapping, and dynamic length lookup so all
-    ///     path-based reads remain independent from invalid pointer targets and absent trailing siblings.
+    ///     A selected child with value 0x2A can be read even though an unrelated pointer is invalid and a later field
+    ///     is missing.
     /// </summary>
+    /// <remarks>
+    ///     Debug output must include only that child, and array-length lookup must similarly stop at the requested
+    ///     branch. Selection limits which data is needed.
+    /// </remarks>
     [TestMethod]
     public void SelectedReads_StopAfterTheRequestedLayoutBranch()
     {

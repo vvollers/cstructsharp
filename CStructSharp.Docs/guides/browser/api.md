@@ -1,0 +1,73 @@
+---
+title: JavaScript API and value conversion
+description: Read, create, and update bytes using the public browser bundle and preserve exact values across JSON.
+---
+
+# JavaScript API and value conversion
+
+Start with the [complete browser application](index.md). Import public functions from `cstructsharp-wasm.js`.
+These functions return promises and load the runtime when first used. The explorer's TypeScript adapter and the raw
+managed exports are implementation details; their signatures differ from this public entry point.
+
+| Function | Input | Successful result |
+| --- | --- | --- |
+| `await loadCStructSharpWasm()` | None | Loaded raw API, for advanced integration |
+| `await getVersion()` | None | Version string from the loaded managed library |
+| `await parseWithDebug(definition, bytes, options)` | Layout string, `Uint8Array`, options | Result with JSON text in `Data` and field ranges in `DebugData` |
+| `await serialize(definition, value, options)` | Layout, JavaScript value, options | Result with a `Uint8Array` in `Data` |
+| `await update(definition, bytes, path, value, options)` | Layout, original bytes, field path, replacement, options | Result with the complete updated `Uint8Array` in `Data` |
+
+The result object, also called an envelope, contains `ContractVersion`, `Operation`, `Success`, `Data`, `DebugData`,
+and `Error`. Check `Success` before using `Data`. A failure has an error `Code`, `Message`, and optional `Path` and
+`Offset`. Loading problems and invalid JavaScript arguments can instead throw; keep a `try`/`catch` around calls.
+
+## Choose layout options
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `rootTypeName` | First struct selected by the bridge | Pass a name explicitly, such as `header` |
+| `littleEndian` | `true` | Least significant byte first |
+| `aligned` | `false` | Packed fields; `true` inserts Portable padding |
+| `pointerSize` | `8` | Pointer storage width, in bytes: 1, 2, 4, or 8 |
+| `addressingMode` | `"Absolute"` | Use `"Relative"` when addresses are measured from an origin |
+| `origin` | `0` | Address origin; use a decimal string for a large exact integer |
+
+Reading also accepts `dereferencePointers`, `maxArrayElements`, `maxStringBytes`, `maxTotalBytesRead`, and
+`maxNestingDepth`. Writing has `maxTotalBytesWritten`; updating adds traversal limits and `allowPointerDereference`.
+The bridge enforces upper bounds, so arbitrary increases are not accepted. The
+[versioned contract](../../contracts/api/browser-rc1/contract.json) lists exact option bounds and error categories.
+
+The browser API does not expose the C# runtime-variable dictionary, streams, spans, or typed class mapping.
+Use fixed array counts or layout constants in browser examples. Do not assume a runtime-sized C# recipe can be
+copied unchanged into JavaScript.
+
+## Convert values deliberately
+
+- Parse `Data` is a string: call `JSON.parse(result.Data)` after checking success. A debug parse retains the root
+  wrapper: the header example is read as `values.header.kind`. C# `Parse` returns the selected struct directly.
+- For serialize, pass the selected struct's fields, such as `{ kind: 3, length: 6 }`, without the debug root wrapper.
+- Write/update `Data` is already a `Uint8Array`. Use it directly for reading, saving, or sending bytes.
+- Large integers can arrive as decimal strings. Keep them as strings or convert them to `BigInt`; converting to
+  JavaScript `Number` can lose precision. The public wrapper converts BigInt values to decimal strings when writing.
+- Enums include their enum name, optional member name, and numeric value. An unknown member name can be `null`.
+- Unions include `$kind: "union"`, `Union`, `RawStorage`, `Members`, and `SelectedMember`. Preserve raw storage for
+  an unchanged round trip, or explicitly select a member when creating a different value.
+- Fixed text can contain a zero character, displayed as `\u0000` in JSON. Capacity and termination are format rules,
+  not a reason to trim every string automatically.
+
+Try the [large integer lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=large-integer) and
+[fixed text lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=text).
+
+If adapting an older wrapper example, remove the `atob(result.Data)` conversion after serialize or update.
+The public wrapper now handles that conversion internally. Raw managed exports still use the versioned
+text transport contract; parse JSON and union `RawStorage` representations are unchanged.
+
+## Diagnose a failure
+
+For `read-failed`, compare the input byte count with the layout widths. For `invalid-path`, check case and spelling.
+For a limit error, check the format's required size before raising the limit. A plausible but wrong number often
+means the byte order or field placement is wrong; such a read may succeed because the bytes are still valid.
+
+Keep error codes for program decisions and messages for people. See the [managed error guide](../errors-and-recovery.md)
+for the distinction between validation failures and physical write failures, and the
+[browser contract orientation](../../api/browser-contract.md) for compatibility maintenance.

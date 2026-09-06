@@ -82,3 +82,49 @@ test("demo generation keeps extracted inputs complete and constructor options in
   assert.equal(expectedFailure.runnable, false);
   assert.equal(expectedFailure.reason, "This test verifies an expected parse failure.");
 });
+
+test("every C# test keeps its own documentation, including parameterized, async, and unsafe methods", () => {
+  const manifest = JSON.parse(generate());
+  const testsRoot = path.resolve(webRoot, "..", "CStructSharpTests");
+  const files = fs
+    .readdirSync(testsRoot, { recursive: true })
+    .filter((name) => name.endsWith(".cs"));
+  const sourceCount = files.reduce(
+    (count, name) =>
+      count +
+      (fs.readFileSync(path.join(testsRoot, name), "utf8").match(/\[TestMethod\]/g) ?? []).length,
+    0,
+  );
+  assert.equal(manifest.tests.length, sourceCount);
+  assert.equal(new Set(manifest.tests.map((entry) => entry.id)).size, sourceCount);
+  for (const entry of manifest.tests) {
+    assert.ok(entry.documentation.summary, `${entry.id}: missing overview`);
+    assert.ok(entry.documentation.usage, `${entry.id}: missing explanation`);
+    const source = fs.readFileSync(path.resolve(webRoot, "..", entry.filePath), "utf8");
+    assert.ok(
+      source.split(/\r?\n/)[entry.line - 1].includes(`${entry.methodName}(`),
+      `${entry.id}: source line must point to its method declaration`,
+    );
+    assert.equal(
+      entry.sourceUrl,
+      `https://github.com/vvollers/cstructsharp/blob/main/${entry.filePath}#L${entry.line}`,
+    );
+  }
+  const byId = new Map(manifest.tests.map((entry) => [entry.id, entry]));
+  const parameterized = byId.get(
+    "WriteBudgetTests.TerminatedStrings_EnforceExactEncodedByteBudget",
+  );
+  assert.equal(parameterized.runnable, false);
+  assert.match(parameterized.reason, /parameterized/);
+  assert.match(parameterized.documentation.usage, /UTF-8 é/);
+  assert.match(
+    byId.get("ConcurrentReuseTests.ConstructedLayout_SupportsConcurrentCoreOperations")
+      .documentation.summary,
+    /Workers share/,
+  );
+  assert.match(
+    byId.get("FixedBufferStreamTests.ReadOnlyRegion_ExposesInitializedBytesAndStreamCapabilities")
+      .documentation.summary,
+    /caller-owned bytes/,
+  );
+});

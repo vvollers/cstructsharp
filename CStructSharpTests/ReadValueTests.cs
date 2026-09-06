@@ -11,7 +11,14 @@ public class ReadValueTests
         Ready = 2,
     }
 
-    /// <summary>Reads every major natural result shape through one selected-value API.</summary>
+    /// <summary>
+    ///     One layout exercises scalar, array, nested-object, enum, union, and pointer selections.
+    /// </summary>
+    /// <remarks>
+    ///     ReadValue must return each type's natural result, such as EnumValueResult, UnionValue, or Pointer. A pointer
+    ///     address selection returns 13, while its value selection returns 0xBEEF; these are intentionally different
+    ///     results.
+    /// </remarks>
     [TestMethod]
     public void ReadValue_ReturnsNaturalRootNestedArrayEnumUnionAndPointerShapes()
     {
@@ -102,7 +109,14 @@ public class ReadValueTests
         }
     }
 
-    /// <summary>Maps nested dynamic values to ordinary POCOs, arrays, nullable values, and CLR enums.</summary>
+    /// <summary>
+    ///     The count-controlled child array must map into a C# array with values 0x1234 and 0x5678, and the enum must
+    ///     become Mode.Ready.
+    /// </summary>
+    /// <remarks>
+    ///     Supported numeric widening and nullable results are checked too. Typed reading changes the C# result
+    ///     representation, not the binary layout being decoded.
+    /// </remarks>
     [TestMethod]
     public void ReadValueOfT_MapsTypedRootAndNestedValuesWithExplicitConversions()
     {
@@ -145,7 +159,14 @@ public class ReadValueTests
             cstruct.ReadValue<ChildModel[]>(stream, "root.children").Select(item => item.Value).ToArray());
     }
 
-    /// <summary>Normalizes conversion failures and gives probing callers a position-safe non-throwing path.</summary>
+    /// <summary>
+    ///     A uint16 value cannot sensibly become DateTime, so ReadValue must report a read error with the selected
+    ///     path.
+    /// </summary>
+    /// <remarks>
+    ///     TryReadValue must return false for expected conversion or path failures and restore position. Reading the
+    ///     same bytes as int succeeds, and a null pointer target can become a nullable value.
+    /// </remarks>
     [TestMethod]
     public void TypedReadFailures_AreDomainErrorsAndTryReadRestoresPosition()
     {
@@ -171,7 +192,14 @@ public class ReadValueTests
         Assert.IsNull(cstruct.ReadValue<int?>(stream, "root.missing.value"));
     }
 
-    /// <summary>Uses the compiled endian, alignment, bitfield, union, and relative-pointer rules for selected values.</summary>
+    /// <summary>
+    ///     Selected values include an aligned integer, the middle slice of a bitfield unit, an overlapping union view,
+    ///     and a relative pointer target.
+    /// </summary>
+    /// <remarks>
+    ///     They must obey the same byte-order and address rules as full parsing. A convenient selected-value API must
+    ///     not implement a different interpretation of the layout.
+    /// </remarks>
     [TestMethod]
     public void ReadValue_UsesSharedBinarySemanticsForExactTargets()
     {
@@ -236,7 +264,14 @@ public class ReadValueTests
         }
     }
 
-    /// <summary>Supports scalar declarations, common list targets, fields, and position-safe default-root probing.</summary>
+    /// <summary>
+    ///     A typedef root can read directly as int, and an array of item records can map into common C# collection
+    ///     shapes and public fields.
+    /// </summary>
+    /// <remarks>
+    ///     Default-root TryReadValue must also populate the expected model. These checks show that typed reads are not
+    ///     restricted to property-only root classes.
+    /// </remarks>
     [TestMethod]
     public void TypedRead_HandlesScalarRootsCollectionsFieldsAndDefaultTry()
     {
@@ -269,7 +304,14 @@ public class ReadValueTests
         }
     }
 
-    /// <summary>Rejects overflow, missing POCO members, and ambiguous case folding with precise conversion paths.</summary>
+    /// <summary>
+    ///     The value 256 cannot fit a byte property, a requested model member may be absent, and value versus Value can
+    ///     make case-insensitive matching ambiguous.
+    /// </summary>
+    /// <remarks>
+    ///     Each case must fail with a useful conversion path. The mapper must not truncate, invent missing values, or
+    ///     choose an ambiguous member arbitrarily.
+    /// </remarks>
     [TestMethod]
     public void TypedRead_RejectsUnsafeOrAmbiguousMappings()
     {
@@ -300,7 +342,13 @@ public class ReadValueTests
         }
     }
 
-    /// <summary>Reads character buffers, terminated strings, inline objects, and complete multi-pointer chains.</summary>
+    /// <summary>
+    ///     Selected reads return fixed text AZ, terminated text Hi, and an inline child's 0x1234.
+    /// </summary>
+    /// <remarks>
+    ///     A separate two-level pointer chain must expose both Pointer objects or the final 0x7F depending on the path.
+    ///     The selected API must preserve the distinctions between strings, objects, addresses, and targets.
+    /// </remarks>
     [TestMethod]
     public void ReadValue_HandlesStringsInlineStructsAndMultiPointers()
     {
@@ -349,7 +397,14 @@ public class ReadValueTests
         }
     }
 
-    /// <summary>Applies read budgets to selected values and restores failed probe positions.</summary>
+    /// <summary>
+    ///     A selected uint16 still needs two bytes, so a total budget of one must fail with ReadLimitExceeded and the
+    ///     root.value path.
+    /// </summary>
+    /// <remarks>
+    ///     TryReadValue must turn that expected failure into false and restore position. Selecting one field does not
+    ///     disable read accounting.
+    /// </remarks>
     [TestMethod]
     public void ReadValue_EnforcesReadBudgets()
     {

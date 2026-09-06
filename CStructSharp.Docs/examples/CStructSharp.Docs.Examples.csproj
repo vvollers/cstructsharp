@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="starter/**" />
+    <Compile Remove="recipes/**" />
     <ProjectReference Include="..\..\CStructSharp\CStructSharp.csproj" />
   </ItemGroup>
 </Project>

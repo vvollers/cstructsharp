@@ -6,7 +6,14 @@ using System.Buffers;
 [TestClass]
 public class BufferWriterStreamTests
 {
-    /// <summary>Supports local rewrites, reads, gaps, length changes, and completion without output copies.</summary>
+    /// <summary>
+    ///     This adapter gives an IBufferWriter a temporary stream-like window.
+    /// </summary>
+    /// <remarks>
+    ///     Within that uncommitted window, reads, rewrites, gaps, and length changes must produce the expected seven-
+    ///     byte output. Completing the adapter hands over the final bytes and prevents further writes, supporting
+    ///     serializers that briefly revisit shared storage.
+    /// </remarks>
     [TestMethod]
     public void ActiveWindow_ProvidesTheStreamOperationsRequiredByTheSerializer()
     {
@@ -40,7 +47,14 @@ public class BufferWriterStreamTests
         Assert.Throws<ObjectDisposedException>(() => stream.WriteByte(8));
     }
 
-    /// <summary>Refuses to seek back into output that the IBufferWriter already owns.</summary>
+    /// <summary>
+    ///     After 4096 bytes are handed to the buffer writer and another byte is appended, the first window is no longer
+    ///     editable.
+    /// </summary>
+    /// <remarks>
+    ///     Seeking back or truncating into it must throw. Completion must still report 4097 bytes with the final value
+    ///     1 intact.
+    /// </remarks>
     [TestMethod]
     public void CommittedWindow_CannotBeRevisitedOrTruncated()
     {
@@ -57,7 +71,14 @@ public class BufferWriterStreamTests
         Assert.AreEqual((byte)1, writer.Written[^1]);
     }
 
-    /// <summary>Validates construction and the array-based read/write argument contract.</summary>
+    /// <summary>
+    ///     A missing writer, null array, negative offset or count, and a range past the array end must produce standard
+    ///     argument errors.
+    /// </summary>
+    /// <remarks>
+    ///     Reading an empty active window returns zero. The adapter must obey ordinary Stream argument rules before any
+    ///     layout-specific serialization uses it.
+    /// </remarks>
     [TestMethod]
     public void ArrayOperations_RejectNullAndInvalidRanges()
     {
@@ -79,7 +100,13 @@ public class BufferWriterStreamTests
         Assert.Throws<ArgumentException>(() => stream.Write(array, 2, 2));
     }
 
-    /// <summary>Allows idempotent completion and flush while rejecting stateful operations afterward.</summary>
+    /// <summary>
+    ///     Completing after writing 1,2,3 must return length 3 every time, without handing over the bytes twice.
+    /// </summary>
+    /// <remarks>
+    ///     Flush remains harmless, but reads, writes, seeks, and length changes must fail after completion. The output
+    ///     stays exactly 1,2,3.
+    /// </remarks>
     [TestMethod]
     public void Completion_IsIdempotentAndClosesStatefulOperations()
     {
@@ -105,7 +132,14 @@ public class BufferWriterStreamTests
         Assert.AreEqual(0L, empty.Complete());
     }
 
-    /// <summary>Rejects invalid and overflowing seek/length requests before allocating an impractical window.</summary>
+    /// <summary>
+    ///     Negative, overly large, or overflowing positions and lengths must fail before allocating an impractical
+    ///     buffer window.
+    /// </summary>
+    /// <remarks>
+    ///     Invalid seek origins must also be rejected. This protects the adapter's finite indexing model even when a
+    ///     caller requests an extreme stream coordinate.
+    /// </remarks>
     [TestMethod]
     public void PositionAndLength_RejectInvalidOrOverflowingRequests()
     {
@@ -125,7 +159,13 @@ public class BufferWriterStreamTests
         Assert.IsInstanceOfType<OverflowException>(overflow.InnerException);
     }
 
-    /// <summary>Grows, clears, truncates, and clamps position inside one uncommitted writer window.</summary>
+    /// <summary>
+    ///     Growing the uncommitted window must initialize new bytes to zero.
+    /// </summary>
+    /// <remarks>
+    ///     After writing 9 at position 1 and shrinking to three bytes, completion must produce 0,9,0 and clamp the
+    ///     cursor to the new end. Unwritten memory must never appear as arbitrary output data.
+    /// </remarks>
     [TestMethod]
     public void SetLength_ManagesOnlyTheActiveWindow()
     {
@@ -148,7 +188,13 @@ public class BufferWriterStreamTests
         CollectionAssert.AreEqual(new byte[] { 0, 9, 0, }, writer.WrittenSpan.ToArray());
     }
 
-    /// <summary>Commits a full window, carries a forward gap, and clears it before appending the next byte.</summary>
+    /// <summary>
+    ///     After a full 4096-byte window, seeking forward two bytes and writing 0x7E must append 00 00 7E.
+    /// </summary>
+    /// <remarks>
+    ///     The preceding 0xA5 bytes must remain intact. Alignment-style gaps must be initialized even when they cross
+    ///     into a new output window.
+    /// </remarks>
     [TestMethod]
     public void ForwardGapAcrossWindowBoundary_IsZeroInitialized()
     {
@@ -166,7 +212,14 @@ public class BufferWriterStreamTests
         CollectionAssert.AreEqual(new byte[] { 0, 0, 0x7E, }, writer.Written[4096..]);
     }
 
-    /// <summary>Refuses rewrites, seeks, or length growth that would cross an active-window boundary.</summary>
+    /// <summary>
+    ///     Rewinding to byte 4095 puts the cursor inside the active 4096-byte window.
+    /// </summary>
+    /// <remarks>
+    ///     A rewrite extending beyond that window, or an equivalent seek or resize, must fail without changing its
+    ///     length. Local backtracking is supported, but it cannot span a boundary that requires committing the current
+    ///     window.
+    /// </remarks>
     [TestMethod]
     public void ActiveWindowBoundary_CannotBeCrossedWhileRewriting()
     {
@@ -183,7 +236,13 @@ public class BufferWriterStreamTests
         Assert.AreEqual(4096L, stream.Complete());
     }
 
-    /// <summary>Fails closed when an IBufferWriter violates a nonzero requested-size contract.</summary>
+    /// <summary>
+    ///     The fake IBufferWriter returns less memory than the requested nonzero size.
+    /// </summary>
+    /// <remarks>
+    ///     The adapter must throw InvalidOperationException rather than write past the returned region. This checks a
+    ///     broken destination implementation, not malformed layout text or binary input.
+    /// </remarks>
     [TestMethod]
     public void WriterReturningTooLittleMemory_IsRejected()
     {

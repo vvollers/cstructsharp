@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, shallowRef, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
 
 import OperationWorkbench, { type WorkbenchRequest } from "./components/OperationWorkbench.vue";
 import ResultPanel from "./components/ResultPanel.vue";
 import TestNavigator from "./components/TestNavigator.vue";
+import LessonNavigator from "./components/LessonNavigator.vue";
+import { lessons, compareLessonResult, type LessonOperation } from "./lessons";
 import { isRunnable, type TestManifest } from "./demo-types";
 import rawTestDemos from "./generated/test-demos.json";
+import { formatTestTitle } from "./format-test-title";
 import {
   getVersion,
   hexToBytes,
@@ -18,10 +21,58 @@ import {
 } from "./wasm/cstruct-wasm";
 
 const testManifest = rawTestDemos as TestManifest;
+const mode = ref<"learn" | "tests">("learn");
+const selectedLessonId = ref("header");
+const selectedLesson = computed(() =>
+  mode.value === "learn"
+    ? (lessons.find((item) => item.id === selectedLessonId.value) ?? lessons[0]!)
+    : null,
+);
+const resetCount = ref(0);
+const stale = ref(false);
+const expected = ref<LessonOperation["expected"] | null>(null);
+const expectationMatches = ref<boolean | null>(null);
+const routeMessage = ref("");
+const docsBase = "https://vvollers.github.io/cstructsharp/docs/";
+const catalogExpanded = ref(window.innerWidth > 900);
+const narrowViewport = window.matchMedia("(max-width: 900px)");
+function updateCatalog(event: MediaQueryListEvent): void {
+  catalogExpanded.value = !event.matches;
+}
+function readRoute(): void {
+  const route = new URLSearchParams(window.location.hash.slice(1));
+  const lessonId = route.get("lesson");
+  const testId = route.get("test");
+  routeMessage.value = "";
+  if (testId && testManifest.tests.some((item) => item.id === testId)) {
+    mode.value = "tests";
+    selectedTestId.value = testId;
+  } else {
+    mode.value = "learn";
+    selectedLessonId.value = lessons.some((item) => item.id === lessonId) ? lessonId! : "header";
+    if (lessonId && lessonId !== selectedLessonId.value)
+      routeMessage.value = "That lesson was not found. Start with the header lesson below.";
+  }
+}
+function selectLesson(id: string): void {
+  window.location.hash = new URLSearchParams({ lesson: id }).toString();
+  if (narrowViewport.matches) catalogExpanded.value = false;
+}
+function selectTest(id: string): void {
+  selectedTestId.value = id;
+  if (id) window.location.hash = new URLSearchParams({ test: id }).toString();
+}
+function changeMode(value: "learn" | "tests"): void {
+  if (value === "learn") selectLesson(selectedLessonId.value);
+  else selectTest(selectedTestId.value);
+}
 const firstRunnable = testManifest.tests.find(isRunnable);
 const selectedTestId = ref(firstRunnable?.id ?? testManifest.tests[0]?.id ?? "");
 const selectedTest = computed(
-  () => testManifest.tests.find((test) => test.id === selectedTestId.value) ?? null,
+  () =>
+    selectedLesson.value ??
+    testManifest.tests.find((test) => test.id === selectedTestId.value) ??
+    null,
 );
 const selectedRunnable = computed(() =>
   isRunnable(selectedTest.value) ? selectedTest.value : null,
@@ -37,7 +88,7 @@ const binaryHexInput = ref("");
 
 const statusText = computed(() => {
   if (wasmStatus.value === "ready") {
-    return `Ready · ${wasmVersion.value}`;
+    return `Ready · ${wasmVersion.value.split("+")[0]}`;
   }
   if (wasmStatus.value === "error") {
     return `Unavailable · ${wasmError.value}`;
@@ -45,10 +96,23 @@ const statusText = computed(() => {
   return "Loading WebAssembly…";
 });
 
-watch(selectedTestId, () => {
+watch(selectedTest, () => {
   result.value = null;
   resultBytes.value = new Uint8Array();
+  stale.value = false;
+  expected.value = null;
+  expectationMatches.value = null;
 });
+
+function resetExample(): void {
+  resetCount.value++;
+  binaryHexInput.value = selectedRunnable.value?.binaryHex ?? "";
+  result.value = null;
+  resultBytes.value = new Uint8Array();
+  stale.value = false;
+  expected.value = null;
+  expectationMatches.value = null;
+}
 
 watch(
   selectedRunnable,
@@ -59,6 +123,9 @@ watch(
 );
 
 onMounted(async () => {
+  readRoute();
+  window.addEventListener("hashchange", readRoute);
+  narrowViewport.addEventListener("change", updateCatalog);
   try {
     await initWasm();
     if (!isLoaded()) {
@@ -70,6 +137,10 @@ onMounted(async () => {
     wasmStatus.value = "error";
     wasmError.value = error instanceof Error ? error.message : "Unknown initialization error";
   }
+});
+onUnmounted(() => {
+  window.removeEventListener("hashchange", readRoute);
+  narrowViewport.removeEventListener("change", updateCatalog);
 });
 
 function failure(operation: WorkbenchRequest["operation"], error: unknown): InteropResult {
@@ -107,6 +178,7 @@ function bytesToHex(bytes: Uint8Array): string {
 function applyEditedBytes(bytes: Uint8Array): void {
   resultBytes.value = bytes;
   binaryHexInput.value = bytesToHex(bytes);
+  stale.value = true;
 }
 
 async function run(request: WorkbenchRequest): Promise<void> {
@@ -115,6 +187,9 @@ async function run(request: WorkbenchRequest): Promise<void> {
   }
 
   isProcessing.value = true;
+  stale.value = false;
+  expected.value = selectedLesson.value?.operations[request.operation]?.expected ?? null;
+  expectationMatches.value = null;
   result.value = null;
   resultBytes.value = new Uint8Array();
   await Promise.resolve();
@@ -148,6 +223,12 @@ async function run(request: WorkbenchRequest): Promise<void> {
   } catch (error) {
     result.value = failure(request.operation, error);
   } finally {
+    if (expected.value && result.value)
+      expectationMatches.value = compareLessonResult(
+        expected.value,
+        result.value,
+        resultBytes.value,
+      );
     isProcessing.value = false;
   }
 }
@@ -159,9 +240,13 @@ async function run(request: WorkbenchRequest): Promise<void> {
       <div>
         <h1><span>CStruct</span>Sharp</h1>
         <p>Inspect, create, and patch binary structures in your browser.</p>
+        <a :href="`${docsBase}guides/install-and-first-parse.html`">Use C#</a> ·
+        <a :href="`${docsBase}guides/browser/index.html`">Use JavaScript</a> ·
+        <a :href="docsBase">Documentation</a>
       </div>
       <div
         class="status-badge"
+        :title="wasmVersion"
         :class="{ ready: wasmStatus === 'ready', error: wasmStatus === 'error' }"
       >
         <i></i>{{ statusText }}
@@ -169,45 +254,101 @@ async function run(request: WorkbenchRequest): Promise<void> {
     </header>
 
     <main>
-      <TestNavigator v-model:selected-id="selectedTestId" :manifest="testManifest" />
+      <details
+        class="catalog"
+        :open="catalogExpanded"
+        @toggle="catalogExpanded = ($event.target as HTMLDetailsElement).open"
+      >
+        <summary>Choose a lesson or test</summary>
+        <nav class="catalog-modes" aria-label="Example catalog">
+          <button type="button" :aria-pressed="mode === 'learn'" @click="changeMode('learn')">
+            Learn
+          </button>
+          <button type="button" :aria-pressed="mode === 'tests'" @click="changeMode('tests')">
+            All tests
+          </button>
+        </nav>
+        <LessonNavigator
+          v-if="mode === 'learn'"
+          :selected-id="selectedLessonId"
+          @select="selectLesson"
+        />
+        <TestNavigator
+          v-else
+          :selected-id="selectedTestId"
+          :manifest="testManifest"
+          @update:selected-id="selectTest"
+        />
+      </details>
 
       <div class="workspace">
         <section class="card example-context">
+          <p v-if="routeMessage" role="status">{{ routeMessage }}</p>
           <template v-if="selectedTest">
-            <div>
-              <p class="eyebrow">Example from the executable test suite</p>
-              <h2>{{ selectedTest.id }}</h2>
-              <p class="source">{{ selectedTest.filePath }}:{{ selectedTest.line }}</p>
+            <div class="example-title-row">
+              <h2 :title="selectedLesson ? undefined : selectedTest.id">
+                {{ selectedLesson?.title ?? formatTestTitle(selectedTest.methodName) }}
+              </h2>
+              <a
+                v-if="!selectedLesson && selectedTest.sourceUrl"
+                class="test-source-link"
+                :href="selectedTest.sourceUrl"
+                :title="`${selectedTest.filePath}:${selectedTest.line}`"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View source on GitHub ↗
+              </a>
             </div>
-            <p v-if="selectedTest.documentation?.summary">
-              {{ selectedTest.documentation.summary }}
-            </p>
-            <p v-else-if="!selectedRunnable" class="unsupported">
-              {{ selectedTest.reason }}
+            <p class="example-explanation">
+              {{
+                selectedLesson?.explanation ??
+                [selectedTest.documentation?.summary, selectedTest.documentation?.usage]
+                  .filter(Boolean)
+                  .join(" ")
+              }}
             </p>
           </template>
           <p v-else>No matching examples.</p>
         </section>
 
         <section v-if="selectedRunnable" class="card">
-          <h2>Workbench</h2>
-          <p class="section-intro">
-            Start with the selected test case, then edit every input. Advanced safety limits stay
-            explicit and bounded by the managed bridge.
-          </p>
           <OperationWorkbench
-            :key="selectedTestId"
+            :key="`${selectedRunnable.id}-${resetCount}`"
             :binary-hex="binaryHexInput"
             :definition="selectedRunnable.definition"
             :disabled="wasmStatus !== 'ready' || isProcessing"
+            :running="isProcessing"
+            :presets="selectedLesson?.operations ?? { parse: { expected: {} } }"
+            :operation="selectedLesson?.operation ?? 'parse'"
+            :initial-options="selectedLesson?.options"
             :initial-aligned="selectedRunnable.parserOptions?.aligned"
             :initial-little-endian="selectedRunnable.parserOptions?.littleEndian"
             :initial-pointer-size="selectedRunnable.parserOptions?.pointerSize"
             :initial-root-type="selectedRunnable.rootType"
+            @reset="resetExample"
             @run="run"
+            @changed="stale = result !== null"
           />
         </section>
 
+        <section v-if="expected" class="card" aria-live="polite">
+          <h2>Compare with the starting example</h2>
+          <p v-if="stale">Inputs changed. Run again to refresh the result.</p>
+          <p v-else>
+            {{
+              expectationMatches
+                ? "Matches the expected result."
+                : "Different from the starting result. If you edited the example, check the explanation above to understand the change."
+            }}
+          </p>
+          <pre>{{
+            expected.error
+              ? `Expected error: ${expected.error}`
+              : (expected.hex ?? JSON.stringify(expected.data, null, 2))
+          }}</pre>
+        </section>
+        <p v-else-if="stale" role="status">Inputs changed. Run again to refresh the result.</p>
         <ResultPanel :bytes="resultBytes" :result="result" @bytes-edited="applyEditedBytes" />
       </div>
     </main>
@@ -229,11 +370,9 @@ header {
   justify-content: space-between;
   gap: 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  background: linear-gradient(180deg, var(--color-bg-secondary), transparent);
+  background: var(--color-bg-secondary);
   padding: 22px clamp(20px, 4vw, 52px);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  position: static;
 }
 
 h1 {
@@ -297,8 +436,45 @@ main {
 
 .workspace {
   display: grid;
+  align-content: start;
   gap: 22px;
   min-width: 0;
+}
+
+.catalog-modes {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.catalog-modes button {
+  padding: 0.7rem;
+  cursor: pointer;
+}
+.catalog {
+  align-self: start;
+}
+.catalog > summary {
+  cursor: pointer;
+  padding: 0.5rem 0;
+}
+.catalog-modes button,
+.reset-example {
+  color: var(--color-text);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-text-muted);
+  border-radius: 6px;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+}
+.catalog-modes button[aria-pressed="true"] {
+  border: 2px solid var(--color-accent);
+}
+a {
+  color: var(--color-accent);
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .workspace h2 {
@@ -311,9 +487,10 @@ main {
 
 .example-context {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.8fr);
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
   align-items: start;
+  align-content: start;
 }
 
 .eyebrow {
@@ -326,6 +503,25 @@ main {
 
 .example-context h2 {
   overflow-wrap: anywhere;
+}
+
+.example-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.example-title-row h2 {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.test-source-link {
+  color: var(--color-accent);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .unsupported {

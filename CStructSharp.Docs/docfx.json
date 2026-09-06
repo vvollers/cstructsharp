@@ -48,6 +48,7 @@
         "files": [
           ".nojekyll",
           "assets/**",
+          "examples/recipes/**.cs",
           "contracts/**.json",
           "contracts/**.txt"
         ]

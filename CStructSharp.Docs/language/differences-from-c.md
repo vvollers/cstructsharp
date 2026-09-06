@@ -14,6 +14,22 @@ require `CStructLayoutException` with code `InvalidLayout`.
 
 ## Unsupported C forms
 
+For a small translation, a C header might describe `struct packet { unsigned short kind; unsigned int length; };`.
+Before translating, confirm the format specification says those fields are 16 and 32 bits and stored without padding.
+Then use:
+
+```c
+struct packet {
+    uint16 kind;
+    uint32 length;
+};
+```
+
+With packed placement, kind occupies offsets 0–1 and length occupies offsets 2–5. With Portable aligned placement,
+length starts at offset 4 and the total size is 8. Choose the rule stated by the format, not by the host computer.
+Remove header includes and packing pragmas only after translating their relevant layout choices into explicit options.
+This example establishes one format's widths; it does not prove equivalence with every native compiler.
+
 | Fixture id | Representative form | Why it is not accepted | Portable approach |
 | --- | --- | --- | --- |
 | `include-directive` | `#include <stdint.h>` | The core does not search/read translation-unit files | Supply one complete normalized layout string |

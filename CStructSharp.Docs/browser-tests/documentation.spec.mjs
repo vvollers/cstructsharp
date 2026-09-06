@@ -2,6 +2,9 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 const representativePages = [
+  { path: "guides/browser/index.html", heading: "Use CStructSharp in a browser" },
+  { path: "guides/browser/inspector.html", heading: "Build a browser binary inspector" },
+  { path: "guides/header-next-steps.html", heading: "Write, update, and use a C# class" },
   {
     path: "index.html",
     heading: "CStructSharp documentation",
@@ -167,7 +170,7 @@ test("a first-time reader can reach a runnable example, language rules, release 
   await page.keyboard.press("Enter");
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("dotnet add package");
 
-  const exampleCopyButton = page.getByRole("button", { name: "Copy code" }).nth(1);
+  const exampleCopyButton = page.locator(".cstruct-code-block").filter({ has: page.locator("code.lang-csharp") }).first().getByRole("button", { name: "Copy code" });
   await exampleCopyButton.focus();
   await page.keyboard.press("Enter");
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("struct header");

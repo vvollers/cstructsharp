@@ -7,9 +7,13 @@ using System.Dynamic;
 public class TestPointer
 {
     /// <summary>
-    ///     Models a C argument-vector style structure where an array holds multiple char pointers. This test verifies pointer
-    ///     array storage, address interpretation, and dereferencing to pointed strings.
+    ///     args[4] reserves four two-byte pointer slots even though argc is 2.
     /// </summary>
+    /// <remarks>
+    ///     The first addresses, 9 and 22, lead to the strings argument one and argument two. The remaining zero
+    ///     addresses must produce null pointers with no target value. These addresses refer to positions in the
+    ///     supplied byte stream, not process memory.
+    /// </remarks>
     [TestMethod]
     public void TestPointerArray()
     {
@@ -56,9 +60,12 @@ public class TestPointer
     }
 
     /// <summary>
-    ///     Verifies core pointer semantics with two uint32 pointers stored in one struct. It checks that pointer values
-    ///     resolve to target data at the expected offsets.
+    ///     Each pointer occupies two bytes, while each target occupies four.
     /// </summary>
+    /// <remarks>
+    ///     Stored addresses 4 and 8 lead to little-endian values 0x04030201 and 0x08070605. The test checks both the
+    ///     stored address and the decoded target so confusing pointer width with target width cannot pass unnoticed.
+    /// </remarks>
     [TestMethod]
     public void TestPointerBasic()
     {
@@ -90,8 +97,13 @@ public class TestPointer
     }
 
     /// <summary>
-    ///     Verifies multi-level pointer dereferencing for a uint32 value with pointer size 2.
+    ///     Three stars mean three levels of indirection.
     /// </summary>
+    /// <remarks>
+    ///     Two-byte addresses lead from the field to offset 6, then 8, then 10. Only the final target is a uint32,
+    ///     which must decode as 0x11223344. Intermediate targets must remain Pointer objects rather than being mistaken
+    ///     for the final integer.
+    /// </remarks>
     [TestMethod]
     public void TestPointerDepth()
     {
@@ -121,10 +133,12 @@ public class TestPointer
     }
 
     /// <summary>
-    ///     Parses a two-level pointer chain where the first address leads to a second address and the second leads to a
-    ///     primitive value. It protects both pointer-depth bookkeeping and restoration of the stream position between
-    ///     dereference hops.
+    ///     A one-byte address leads to offset 1, which stores another address leading to offset 2.
     /// </summary>
+    /// <remarks>
+    ///     The four A bytes there form 0x41414141. The outer pointer reports depth 2 and the inner depth 1;
+    ///     Dereference() and Value must expose the same already-decoded target.
+    /// </remarks>
     [TestMethod]
     public void TestPointerPointer()
     {
@@ -164,9 +178,13 @@ public class TestPointer
     }
 
     /// <summary>
-    ///     Parses a pointer to a pointer to a nested struct, validating two-level indirection into the same structure
-    ///     used by TestPointerStruct.
+    ///     The two-byte pointer chain visits offsets 4 and 6 before reading the test record.
     /// </summary>
+    /// <remarks>
+    ///     That record mixes fixed narrow and UTF-16 text, little-endian integers, and terminated strings. The expected
+    ///     strings are test, test, lalala, and test; reaching the record through two pointers must preserve the same
+    ///     field interpretation as a direct read.
+    /// </remarks>
     [TestMethod]
     public void TestPointerPointerStruct()
     {
@@ -214,9 +232,13 @@ public class TestPointer
     }
 
     /// <summary>
-    ///     Parses a pointer to a nested struct that contains fixed arrays, scalars, and variable-length strings. This
-    ///     validates multi-level dereference and mixed-type decoding through pointer indirection.
+    ///     A single two-byte pointer leads to the test record at offset 4. char[4] and wchar[4] both decode to test but
+    ///     occupy different byte counts; the later unsized text fields end at their terminators.
     /// </summary>
+    /// <remarks>
+    ///     Values such as b = 0x0302 confirm that following the pointer preserves the configured little-endian
+    ///     interpretation.
+    /// </remarks>
     [TestMethod]
     public void TestPointerStruct()
     {

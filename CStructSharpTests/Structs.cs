@@ -8,9 +8,12 @@ using Pidgin;
 public class Structs
 {
     /// <summary>
-    ///     Parses a minimal C struct with two int members to validate fundamental grammar: type-name pairs, field order, and
-    ///     field count. This is the base structural model every richer declaration relies on.
+    ///     The declaration names the record mystruct and lists int fields a then b.
     /// </summary>
+    /// <remarks>
+    ///     The resulting model must contain exactly those two fields in that order. Only the layout text is parsed
+    ///     here; no integer values are read from a byte buffer.
+    /// </remarks>
     [TestMethod]
     public void TestSimpleStruct()
     {
@@ -24,9 +27,13 @@ public class Structs
     }
 
     /// <summary>
-    ///     Exercises real-world C struct grammar with fixed arrays, computed array sizes, nested type references, and
-    ///     bitfield-array syntax. It validates that the parser preserves both declaration intent and derived counts.
+    ///     This boot-record-style declaration contains 13 fields.
     /// </summary>
+    /// <remarks>
+    ///     Brackets specify element counts, so jmp[3] has three bytes and part[4] has four nested records. rest_of_code
+    ///     uses subtraction for its count. The parser also records the six-bit width on offsets; this syntax check does
+    ///     not prove every declared combination can be executed.
+    /// </remarks>
     [TestMethod]
     public void TestStructWithArrays()
     {
@@ -86,9 +93,12 @@ public class Structs
     }
 
     /// <summary>
-    ///     Verifies C field declarations that include explicit bit widths using colon syntax on integral types. It also
-    ///     confirms that non-bitfield members in the same struct remain regular scalar fields.
+    ///     The colon specifies a width in bits: a uses four bits and b uses two.
     /// </summary>
+    /// <remarks>
+    ///     The following byte c is an ordinary field, represented with bit width zero in the model. The test checks
+    ///     this distinction in the parsed declaration, rather than testing how those bits are stored in a stream.
+    /// </remarks>
     [TestMethod]
     public void TestStructWithBitfields()
     {
@@ -108,9 +118,12 @@ public class Structs
     }
 
     /// <summary>
-    ///     Unsized array members like char a[] represent flexible or unknown-length storage in C declarations. This test
-    ///     confirms the parser marks the field as unknown-sized rather than inventing a fixed length.
+    ///     Empty brackets in char a[] supply no fixed element count.
     /// </summary>
+    /// <remarks>
+    ///     The model must preserve an unknown-size marker instead of treating the field as a zero-length array.
+    ///     Recognizing that syntax does not determine how many bytes a later read should consume.
+    /// </remarks>
     [TestMethod]
     public void TestUknownArraySize()
     {

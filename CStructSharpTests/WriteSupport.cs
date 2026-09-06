@@ -7,10 +7,12 @@ using System.Dynamic;
 public class WriteSupport
 {
     /// <summary>
-    ///     Verifies the dynamic-object write path maps members by layout name and emits each <c>uint16</c> in the
-    ///     configured little-endian order. The assertion protects the fundamental object-to-byte contract used by
-    ///     higher-level serializers.
+    ///     The dynamic input wraps a and b under the root name test.
     /// </summary>
+    /// <remarks>
+    ///     Their values 0x0102 and 0x0304 must become 02 01 04 03 in little-endian order. Each uint16 contributes two
+    ///     bytes, and matching member names connects the C# object to the layout fields.
+    /// </remarks>
     [TestMethod]
     public void Serialize_SimpleStruct_Expando_WritesBytes()
     {
@@ -28,9 +30,12 @@ public class WriteSupport
     }
 
     /// <summary>
-    ///     Verifies the POCO binding path follows the same member-name and byte-order rules as an <see cref="ExpandoObject"/>.
-    ///     This matters because callers can supply ordinary CLR objects without manually building a dynamic graph.
+    ///     An ordinary C# object supplies properties A and B for the layout's a and b fields.
     /// </summary>
+    /// <remarks>
+    ///     Binding must produce the same bytes, 02 01 04 03, as the dynamic-object example. Users need not construct a
+    ///     dynamic dictionary to serialize a simple record.
+    /// </remarks>
     [TestMethod]
     public void Serialize_SimpleStruct_Poco_WritesBytes()
     {
@@ -45,9 +50,11 @@ public class WriteSupport
     }
 
     /// <summary>
-    ///     Resolves the second field's offset inside an existing struct and overwrites only its two-byte storage. The
-    ///     unchanged first field proves an update is positional rather than a complete reserialization of the stream.
+    ///     b follows a two-byte field, so its replacement 0x1122 belongs at offsets 2 and 3.
     /// </summary>
+    /// <remarks>
+    ///     The expected buffer is 00 00 22 11. The first two bytes must remain unchanged because only b was selected.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_Field_WritesAtOffset()
     {
@@ -61,9 +68,12 @@ public class WriteSupport
     }
 
     /// <summary>
-    ///     Preserves the resolved bit offset when an in-place update selects a later bitfield in shared storage. The
-    ///     low nibble must remain unchanged, and the operation must restore the caller's original stream position.
+    ///     high is the upper four bits of 0xA5.
     /// </summary>
+    /// <remarks>
+    ///     Replacing it with 3 must produce 0x35, preserving low = 5. The update must remember the bit offset, not just
+    ///     the shared byte address, and restore the caller's original position.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_NonFirstBitfield_UsesResolvedBitOffset()
     {
@@ -79,9 +89,12 @@ public class WriteSupport
     }
 
     /// <summary>
-    ///     Writes one selected array element through its scalar codec instead of passing the scalar value to the
-    ///     collection writer for the complete declared field.
+    ///     items[1] selects one uint16 from a three-element array.
     /// </summary>
+    /// <remarks>
+    ///     Writing 0xABCD must replace only the middle pair with CD AB. The writer must treat the replacement as a
+    ///     scalar element, not require or rewrite the complete array.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_ArrayElement_UsesResolvedElementCodec()
     {
@@ -99,9 +112,12 @@ public class WriteSupport
     }
 
     /// <summary>
-    ///     Carries the remaining pointer depth through address resolution so the final <c>.value</c> writes the
-    ///     primitive target rather than interpreting it as another pointer address.
+    ///     Two one-byte addresses lead to a uint16 at offset 4.
     /// </summary>
+    /// <remarks>
+    ///     The path ptr.value.value exhausts both pointer levels, so 0x1234 must be written as 34 12 at the final
+    ///     target. Neither intermediate address may be replaced.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_MultiLevelPointerFinalTarget_UsesResolvedCodec()
     {
@@ -119,9 +135,12 @@ public class WriteSupport
     }
 
     /// <summary>
-    ///     Follows the pointer's stored address for the <c>.value</c> path, writes the target value there, and leaves the
-    ///     pointer field itself intact. This distinguishes a pointer dereference update from writing a new address.
+    ///     The two-byte pointer stores address 4.
     /// </summary>
+    /// <remarks>
+    ///     Updating ptr.value to 0x1234 must put 34 12 at offsets 4 and 5 while retaining 04 00 in the pointer slot.
+    ///     Selecting the target differs from changing the stored address itself.
+    /// </remarks>
     [TestMethod]
     public void UpdateStream_PointerValue_WritesTarget()
     {
@@ -139,9 +158,12 @@ public class WriteSupport
     }
 
     /// <summary>
-    ///     Selects a nested struct path and writes only that sub-object's storage. The fixture verifies that path-based
-    ///     writing can target an inner declaration without requiring a complete outer object or touching its sibling.
+    ///     The path outer.i selects the one-byte inner record.
     /// </summary>
+    /// <remarks>
+    ///     Supplying only x = 0x11 must write that byte without requiring outer.y or a complete outer object. This is
+    ///     writing the selected layout at the destination position, rather than rebuilding all of outer.
+    /// </remarks>
     [TestMethod]
     public void WriteStream_Path_SubObject_WritesInner()
     {

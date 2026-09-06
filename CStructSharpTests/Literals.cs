@@ -7,9 +7,12 @@ using Pidgin;
 public class Literals
 {
     /// <summary>
-    ///     Validates the lexical character set allowed for binary numeric input, including separators. Correct tokenization is
-    ///     required before any C-style literal can be evaluated safely.
+    ///     The low-level character parser accepts 0, 1, and the underscore separator.
     /// </summary>
+    /// <remarks>
+    ///     Other digits, letters, spaces, and punctuation must raise a parse error. This checks individual characters,
+    ///     not whether a complete binary number is valid.
+    /// </remarks>
     [TestMethod]
     public void TestBinaryChar()
     {
@@ -28,9 +31,12 @@ public class Literals
     }
 
     /// <summary>
-    ///     Parses signed binary literals using 0b prefix and underscore separators. This mirrors binary constant usage in
-    ///     low-level C headers.
+    ///     The 0b prefix selects base two, and underscores only improve readability: 0b1000_1000 is 136.
     /// </summary>
+    /// <remarks>
+    ///     Negative signs are preserved. The token parser stops before a semicolon, but an input beginning with invalid
+    ///     binary digits must fail.
+    /// </remarks>
     [TestMethod]
     public void TestBinaryLiteral()
     {
@@ -43,9 +49,12 @@ public class Literals
     }
 
     /// <summary>
-    ///     Extracts binary digit sequences as normalized text rather than converting to an integer. This isolates tokenizer
-    ///     behavior from numeric conversion logic.
+    ///     This parser returns digit text rather than a number.
     /// </summary>
+    /// <remarks>
+    ///     It removes underscores from 1001_0110 and stops before the semicolon in 1010;987. Starting with 2 is invalid
+    ///     because binary notation only has digits 0 and 1.
+    /// </remarks>
     [TestMethod]
     public void TestBinaryString()
     {
@@ -56,9 +65,12 @@ public class Literals
     }
 
     /// <summary>
-    ///     Validates decimal digit tokenization rules, including accepted separators. This is the lexical basis for plain
-    ///     integer constants in C expressions.
+    ///     Digits 0 through 9 and the underscore separator are accepted one character at a time.
     /// </summary>
+    /// <remarks>
+    ///     A minus sign is rejected here because signs belong to the complete-number parser. This separates recognizing
+    ///     digits from interpreting an entire signed number.
+    /// </remarks>
     [TestMethod]
     public void TestDecimalChars()
     {
@@ -77,9 +89,12 @@ public class Literals
     }
 
     /// <summary>
-    ///     Parses signed decimal integer literals with optional grouping underscores. It confirms conversion and rejection
-    ///     behavior for non-decimal content.
+    ///     123_456 must become the integer 123456, and a leading minus must make it negative.
     /// </summary>
+    /// <remarks>
+    ///     Parsing 1234;92 returns the first number, 1234. Letters at the start must fail because this parser expects a
+    ///     decimal token.
+    /// </remarks>
     [TestMethod]
     public void TestDecimalLiteral()
     {
@@ -92,9 +107,12 @@ public class Literals
     }
 
     /// <summary>
-    ///     Parses decimal digit runs as text output, focusing on normalization and stopping rules. It differs from
-    ///     TestDecimalLiteral by avoiding numeric conversion.
+    ///     The result stays a string: 12_314 becomes 12314 after separators are removed.
     /// </summary>
+    /// <remarks>
+    ///     A semicolon ends the digit run, while an input starting with letters fails. Numeric conversion is
+    ///     deliberately tested separately.
+    /// </remarks>
     [TestMethod]
     public void TestDecimalString()
     {
@@ -105,9 +123,12 @@ public class Literals
     }
 
     /// <summary>
-    ///     Parses signed hexadecimal literals with 0x prefix and separators, a core C notation for flags and magic values. The
-    ///     test also verifies invalid digit handling.
+    ///     The 0x prefix selects hexadecimal, where A through F represent values 10 through 15.
     /// </summary>
+    /// <remarks>
+    ///     Underscores do not change the number and a leading minus changes its sign. The test also checks that a
+    ///     semicolon ends the token and that letters outside the hex alphabet are rejected.
+    /// </remarks>
     [TestMethod]
     public void TestHexLiteral()
     {
@@ -120,9 +141,12 @@ public class Literals
     }
 
     /// <summary>
-    ///     Parses hexadecimal character runs into normalized text form. This isolates lexing behavior from integer conversion
-    ///     performed in TestHexLiteral.
+    ///     89__AF2 must normalize to the text 89AF2, preserving the digits while removing separators.
     /// </summary>
+    /// <remarks>
+    ///     Parsing stops at a semicolon. QWERTY fails immediately because Q is not a hexadecimal digit; this test does
+    ///     not yet convert the accepted text into an integer.
+    /// </remarks>
     [TestMethod]
     public void TestHexString()
     {
@@ -133,9 +157,12 @@ public class Literals
     }
 
     /// <summary>
-    ///     Validates the umbrella literal parser that accepts binary, octal, decimal, and hexadecimal forms under one entry
-    ///     point. This matches real C definitions where multiple bases are mixed.
+    ///     The shared parser chooses binary, octal, decimal, or hexadecimal from the prefix.
     /// </summary>
+    /// <remarks>
+    ///     Here octal uses the library's explicit 0o notation. Leading spaces are allowed, and trailing text after a
+    ///     completed token is left for another parser; this is not a whole-file validation test.
+    /// </remarks>
     [TestMethod]
     public void TestLiteral()
     {
@@ -167,9 +194,12 @@ public class Literals
     }
 
     /// <summary>
-    ///     Parses signed octal literals with 0o prefix and separators. This supports C-like schemas and tools that still use
-    ///     octal constants.
+    ///     The library uses 0o to introduce base-eight numbers.
     /// </summary>
+    /// <remarks>
+    ///     Only digits 0 through 7 contribute to the value; underscores are ignored and a leading minus is retained.
+    ///     Results are compared with C# base-eight conversion, and a token beginning with 9 must fail.
+    /// </remarks>
     [TestMethod]
     public void TestOctalLiteral()
     {
@@ -192,9 +222,12 @@ public class Literals
     }
 
     /// <summary>
-    ///     Parses octal digit runs as normalized text and verifies stop conditions on invalid characters. It complements
-    ///     TestOctalLiteral by testing lexing independently.
+    ///     767_226 becomes the digit string 767226, and a semicolon ends the token.
     /// </summary>
+    /// <remarks>
+    ///     An input starting with 8 fails because octal has no digit 8. Keeping this check separate from integer
+    ///     conversion makes token-boundary errors easier to locate.
+    /// </remarks>
     [TestMethod]
     public void TestOctalString()
     {
@@ -205,9 +238,12 @@ public class Literals
     }
 
     /// <summary>
-    ///     Validates allowed single-character tokens for hexadecimal digits in both upper and lower case plus separators. This
-    ///     ensures predictable lexing before hex conversion.
+    ///     Both upper- and lowercase A through F are valid, along with decimal digits and underscores.
     /// </summary>
+    /// <remarks>
+    ///     Z, punctuation, and spaces must fail this one-character parser. The check establishes the alphabet used by
+    ///     hexadecimal constants in layout definitions.
+    /// </remarks>
     [TestMethod]
     public void TextHexadecimalChar()
     {
@@ -226,9 +262,12 @@ public class Literals
     }
 
     /// <summary>
-    ///     Validates allowed single-character tokens for octal digits and separators. This guards parser correctness for octal
-    ///     literal input.
+    ///     Only 0 through 7 and the underscore separator belong to this character parser.
     /// </summary>
+    /// <remarks>
+    ///     Digits 8 and 9 and letters must be rejected. This is a check of the octal alphabet, not of binary data read
+    ///     from a stream.
+    /// </remarks>
     [TestMethod]
     public void TextOctalChar()
     {
