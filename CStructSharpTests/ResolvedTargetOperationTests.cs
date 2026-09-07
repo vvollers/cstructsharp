@@ -67,6 +67,57 @@ public class ResolvedTargetOperationTests
     }
 
     /// <summary>
+    ///     record is a fixed-size struct, so a large array of it has a statically known per-element stride.
+    /// </summary>
+    /// <remarks>
+    ///     Addressing, reading, and updating the last element of a 2,000-element array must resolve directly to
+    ///     <c>index * recordSize</c> instead of measuring every preceding element. Every byte before the selected
+    ///     element must remain untouched by the update, proving no earlier element was visited or written.
+    /// </remarks>
+    [TestMethod]
+    public void PathOperations_LateIndexInLargeFixedSizeStructArray_ResolveAndUpdateOnlyTheSelectedElement()
+    {
+        const string layout = """
+                              struct record { uint32 id; uint16 tag; };
+                              struct root { record items[2000]; };
+                              """;
+        var cstruct = new CStruct(layout);
+        const int recordSize = 6;
+        const int lastIndex = 1999;
+        const long expectedAddress = (long)lastIndex * recordSize;
+
+        var bytes = new byte[2000 * recordSize];
+        bytes[expectedAddress + 0] = 0xBE;
+        bytes[expectedAddress + 1] = 0xBA;
+        bytes[expectedAddress + 2] = 0xFE;
+        bytes[expectedAddress + 3] = 0xCA;
+        bytes[expectedAddress + 4] = 0xEF;
+        bytes[expectedAddress + 5] = 0xBE;
+        using var stream = new MemoryStream(bytes);
+
+        Assert.AreEqual(expectedAddress, cstruct.ResolveAddress(stream, $"root.items[{lastIndex}].id"));
+        Assert.AreEqual(expectedAddress + 4, cstruct.ResolveAddress(stream, $"root.items[{lastIndex}].tag"));
+
+        stream.Position = 0;
+        Assert.AreEqual(0xCAFEBABEu, cstruct.ReadValue<uint>(stream, $"root.items[{lastIndex}].id"));
+        stream.Position = 0;
+        Assert.AreEqual((ushort)0xBEEF, cstruct.ReadValue<ushort>(stream, $"root.items[{lastIndex}].tag"));
+
+        stream.Position = 0;
+        cstruct.UpdateStream(stream, $"root.items[{lastIndex}].id", 0x11223344u);
+        Assert.AreEqual(0, stream.Position);
+
+        byte[] finalBytes = stream.ToArray();
+        CollectionAssert.AreEqual(
+            new byte[] { 0x44, 0x33, 0x22, 0x11, },
+            finalBytes[(int)expectedAddress..(int)(expectedAddress + 4)]);
+        for (int i = 0; i < expectedAddress; i++)
+        {
+            Assert.AreEqual(0, finalBytes[i], $"byte at offset {i} should be untouched by the update.");
+        }
+    }
+
+    /// <summary>
     ///     The middle five-bit slice of 0xA5D5 shares its byte address with low and high.
     /// </summary>
     /// <remarks>
