@@ -71,3 +71,25 @@ means the byte order or field placement is wrong; such a read may succeed becaus
 Keep error codes for program decisions and messages for people. See the [managed error guide](../errors-and-recovery.md)
 for the distinction between validation failures and physical write failures, and the
 [browser contract orientation](../../api/browser-contract.md) for compatibility maintenance.
+
+## TypeScript and editor help
+
+The current source distribution includes `cstructsharp-wasm.d.ts` beside `cstructsharp-wasm.js`.
+Keep the declaration file with the JavaScript file when copying the bundle. TypeScript resolves it from the
+same import; no separate type package or reference to the explorer source is needed.
+
+```typescript
+import { serialize } from './cstructsharp-wasm.js';
+
+const result = await serialize('struct header { uint16 kind; };', { kind: 3 }, { rootTypeName: 'header' });
+if (result.Success) {
+  const bytes: Uint8Array = result.Data;
+  console.log(bytes);
+} else {
+  console.error(result.Error.Code, result.Error.Message);
+}
+```
+
+The result type narrows on `Success`. Read `Data` remains JSON text, while create/update `Data` is a byte array.
+Declarations include option help and the raw adapter's distinct text transport types. They do not change runtime
+validation: loading and invalid JavaScript arguments can still throw, and parsed large integers can still be strings.

@@ -18,7 +18,7 @@ foreach ($path in @($baselinePath, $contractPath, $boundaryPath, $exportsPath, $
 }
 
 $baseline = Get-Content -LiteralPath $baselinePath -Raw | ConvertFrom-Json
-$contract = Get-Content -LiteralPath $contractPath -Raw
+$contract = (Get-Content -LiteralPath $contractPath -Raw) + (Get-Content -LiteralPath (Join-Path $RepositoryRoot 'CStructSharpWeb/wasm/cstructsharp-wasm.d.ts') -Raw)
 $boundary = Get-Content -LiteralPath $boundaryPath -Raw
 $exports = Get-Content -LiteralPath $exportsPath -Raw
 $bootstrap = Get-Content -LiteralPath $bootstrapPath -Raw
@@ -29,9 +29,8 @@ $managedSources = $exports + $boundary + $dtoSource
 if ($baseline.schemaVersion -ne 1 -or $baseline.name -ne 'browser-rc1') {
     throw 'Browser baseline schema/name is not the supported browser-rc1 revision.'
 }
-if ($package.version -ne $baseline.packageVersion) {
-    throw "Browser package version '$($package.version)' differs from '$($baseline.packageVersion)'."
-}
+# packageVersion records the historical freeze. Later package releases can retain the same wire contract;
+# compare its actual version, fields and exports below rather than requiring the old release number.
 if ($contract -notmatch "INTEROP_CONTRACT_VERSION\s*=\s*$($baseline.contractVersion)\s+as const") {
     throw 'TypeScript contract version differs from the browser baseline.'
 }

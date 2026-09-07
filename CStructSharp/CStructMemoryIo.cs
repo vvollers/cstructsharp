@@ -12,6 +12,28 @@ using System.Diagnostics.CodeAnalysis;
 public sealed partial class CStruct
 {
     /// <summary>
+    ///     Parses a composite from a byte array without copying the complete input. A null path selects the first
+    ///     source-order struct or union; pointer positions are zero-based within the supplied region.
+    /// </summary>
+    /// <param name="source">The complete byte region available to this operation.</param>
+    /// <param name="elementNameOrPath">The optional case-sensitive declaration or nested path; <see langword="null"/> selects the first composite.</param>
+    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
+    /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <returns>A dynamic struct object, lossless <see cref="UnionValue"/>, or selected nested value.</returns>
+    /// <exception cref="CStructPathException">The requested path is invalid or cannot be resolved.</exception>
+    /// <exception cref="CStructReadException">The region cannot provide or decode the required bytes.</exception>
+    /// <exception cref="ArgumentNullException">The source array is null.</exception>
+    public dynamic Parse(
+        byte[] source,
+        string? elementNameOrPath = null,
+        IReadOnlyDictionary<string, int>? variables = null,
+        ReadOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        return this.Parse(source.AsSpan(), elementNameOrPath, variables, options);
+    }
+
+    /// <summary>
     ///     Parses a composite from a byte span without copying the complete input. A null path selects the first
     ///     source-order struct or union; pointer positions are zero-based within the supplied region.
     /// </summary>
@@ -53,6 +75,28 @@ public sealed partial class CStruct
     }
 
     /// <summary>
+    ///     Reads one natural value from a byte array without copying the complete input. A null path selects the first
+    ///     source-order struct or union.
+    /// </summary>
+    /// <param name="source">The complete byte region available to this operation.</param>
+    /// <param name="elementNameOrPath">The optional case-sensitive declaration or nested path; <see langword="null"/> selects the first composite.</param>
+    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
+    /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <returns>The selected value in its natural dynamic, scalar, collection, pointer, enum, or union representation.</returns>
+    /// <exception cref="CStructPathException">The requested path is invalid or cannot be resolved.</exception>
+    /// <exception cref="CStructReadException">The region cannot provide or decode the required bytes.</exception>
+    /// <exception cref="ArgumentNullException">The source array is null.</exception>
+    public object? ReadValue(
+        byte[] source,
+        string? elementNameOrPath = null,
+        IReadOnlyDictionary<string, int>? variables = null,
+        ReadOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        return this.ReadValue(source.AsSpan(), elementNameOrPath, variables, options);
+    }
+
+    /// <summary>
     ///     Reads one natural value from a byte span without copying the complete input. A null path selects the first
     ///     source-order struct or union.
     /// </summary>
@@ -89,6 +133,26 @@ public sealed partial class CStruct
         return this.ReadMemoryValueCore(source.Span, elementNameOrPath, variables, options);
     }
 
+    /// <summary>Reads and checks one typed value directly from a byte array.</summary>
+    /// <typeparam name="T">The destination type; supported POCOs require a public parameterless constructor and public bindable members.</typeparam>
+    /// <param name="source">The complete byte region available to this operation.</param>
+    /// <param name="elementNameOrPath">The optional case-sensitive declaration or nested path; <see langword="null"/> selects the first composite.</param>
+    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
+    /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <returns>The selected value converted or bound to <typeparamref name="T"/>.</returns>
+    /// <exception cref="CStructPathException">The requested path is invalid or cannot be resolved.</exception>
+    /// <exception cref="CStructReadException">The bytes cannot be decoded or the result cannot be bound to <typeparamref name="T"/>.</exception>
+    /// <exception cref="ArgumentNullException">The source array is null.</exception>
+    public T ReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
+        byte[] source,
+        string? elementNameOrPath = null,
+        IReadOnlyDictionary<string, int>? variables = null,
+        ReadOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        return this.ReadValue<T>(source.AsSpan(), elementNameOrPath, variables, options);
+    }
+
     /// <summary>Reads and checks one typed value directly from a byte span.</summary>
     /// <typeparam name="T">The destination type; supported POCOs require a public parameterless constructor and public bindable members.</typeparam>
     /// <param name="source">The complete byte region available to this operation.</param>
@@ -123,6 +187,26 @@ public sealed partial class CStruct
         ReadOptions? options = null)
     {
         return this.ReadMemoryValueCore<T>(source.Span, elementNameOrPath, variables, options);
+    }
+
+    /// <summary>Attempts one typed byte-array read and returns false only for expected CStructSharp domain failures.</summary>
+    /// <typeparam name="T">The destination type; supported POCOs require a public parameterless constructor and public bindable members.</typeparam>
+    /// <param name="source">The complete byte region available to this operation.</param>
+    /// <param name="value">Receives the typed result on success, or the default value of <typeparamref name="T"/> on failure.</param>
+    /// <param name="elementNameOrPath">The optional case-sensitive declaration or nested path; <see langword="null"/> selects the first composite.</param>
+    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
+    /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <returns><see langword="true"/> on success; <see langword="false"/> for a categorized CStructSharp layout, path, or read failure.</returns>
+    /// <exception cref="ArgumentNullException">The source array is null.</exception>
+    public bool TryReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
+        byte[] source,
+        [MaybeNullWhen(false)] out T value,
+        string? elementNameOrPath = null,
+        IReadOnlyDictionary<string, int>? variables = null,
+        ReadOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        return this.TryReadValue(source.AsSpan(), out value, elementNameOrPath, variables, options);
     }
 
     /// <summary>Attempts one typed span read and returns false only for expected CStructSharp domain failures.</summary>

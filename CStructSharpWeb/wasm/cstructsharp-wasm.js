@@ -24,13 +24,23 @@ export async function loadCStructSharpWasm() {
   return loading;
 }
 
-/** Parse bytes and return the versioned CStructSharp result envelope. */
+/** Parse bytes; successful Data is JSON text with the selected root wrapper.
+ * @param {string} definition Portable layout source.
+ * @param {Uint8Array} bytes Input bytes.
+ * @param {import("./cstructsharp-wasm.js").ParseWithDebugOptions | null} [options]
+ * @returns {Promise<import("./cstructsharp-wasm.js").Result<string, "parse">>}
+ */
 export async function parseWithDebug(definition, bytes, options = null) {
   const api = await loadCStructSharpWasm();
   return parseEnvelope(api.parseWithDebug(definition, toBase64(bytes), options), "parse");
 }
 
-/** Serialize a JavaScript value. Successful Data is a Uint8Array ready to use. */
+/** Serialize root fields (without a parse root wrapper). BigInt values retain exact decimal digits.
+ * @param {string} definition Portable layout source.
+ * @param {unknown} value A JSON-serializable value, optionally containing BigInt values.
+ * @param {import("./cstructsharp-wasm.js").SerializeOptions | null} [options]
+ * @returns {Promise<import("./cstructsharp-wasm.js").Result<Uint8Array, "serialize">>}
+ */
 export async function serialize(definition, value, options = null) {
   const api = await loadCStructSharpWasm();
   return parseByteEnvelope(
@@ -39,7 +49,14 @@ export async function serialize(definition, value, options = null) {
   );
 }
 
-/** Update one path in bytes. Successful Data is the complete updated Uint8Array. */
+/** Update one path without mutating input. Successful Data is the complete updated byte array.
+ * @param {string} definition Portable layout source.
+ * @param {Uint8Array} bytes Original input.
+ * @param {string} path Case-sensitive field path.
+ * @param {unknown} value Replacement value; BigInt is sent as decimal text.
+ * @param {import("./cstructsharp-wasm.js").UpdateOptions | null} [options]
+ * @returns {Promise<import("./cstructsharp-wasm.js").Result<Uint8Array, "update">>}
+ */
 export async function update(definition, bytes, path, value, options = null) {
   const api = await loadCStructSharpWasm();
   return parseByteEnvelope(

@@ -11,5 +11,6 @@ items:
   href: api/
 - name: Examples
   href: examples/
+  homepage: guides/recipes/index.md
 - name: Project
   href: project/

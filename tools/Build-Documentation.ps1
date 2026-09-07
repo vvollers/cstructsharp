@@ -5,11 +5,17 @@ param(
     [switch]$Serve,
     [ValidateRange(1, 65535)]
     [int]$Port = 8080,
+    [uri]$ExplorerUrl,
     [switch]$SelfTest
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if ($ExplorerUrl -and (-not $ExplorerUrl.IsAbsoluteUri -or $ExplorerUrl.Scheme -notin @('http', 'https') -or
+    $ExplorerUrl.Query -or $ExplorerUrl.Fragment -or $ExplorerUrl.UserInfo)) {
+    throw 'ExplorerUrl must be an absolute HTTP(S) directory URL without credentials, query, or fragment.'
+}
 
 $RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $CoreDirectory = Join-Path $RepositoryRoot 'CStructSharp'
@@ -241,6 +247,16 @@ else
     # Hosted runners can be slower than a warm local build. Keep this as a
     # regression guard without making a valid release depend on runner load.
     $docfxBudgetSeconds = 30
+}
+
+if ($ExplorerUrl) {
+    # Rewrite only generated preview links; source and publication defaults stay canonical.
+    $previewExplorer = $ExplorerUrl.AbsoluteUri.TrimEnd('/') + '/'
+    foreach ($page in Get-ChildItem -LiteralPath $SiteDirectory -Recurse -File -Filter '*.html') {
+        $content = [IO.File]::ReadAllText($page.FullName)
+        $updated = $content.Replace('https://vvollers.github.io/cstructsharp/explorer/', $previewExplorer)
+        if ($updated -cne $content) { [IO.File]::WriteAllText($page.FullName, $updated) }
+    }
 }
 
 $siteFiles = @(Get-ChildItem -LiteralPath $SiteDirectory -Recurse -File)

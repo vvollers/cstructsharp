@@ -55,6 +55,11 @@ try {
             if (-not $output.Contains($line)) { throw "Missing expected continuation output '$line': $output" }
         }
         Write-Host "PASS external $framework starter and continuation against package $version"
+        $languageVersion = if ($framework -eq 'net8.0') { '12.0' } else { 'latest' }
+        Set-Content -LiteralPath 'Program.cs' -Value (Get-Content (Join-Path $repository 'tools/fixtures/byte-array-consumer.cs') -Raw)
+        $output = Invoke-CheckedDotnet @('run', '--project', 'Starter.csproj', '--no-restore', "-p:LangVersion=$languageVersion")
+        if (-not $output.Contains('PASS byte-array consumer')) { throw "Byte-array consumer failed: $output" }
+        Write-Host "PASS external $framework byte-array consumer with C# $languageVersion"
     }
     foreach ($recipe in Get-ChildItem (Join-Path $repository 'CStructSharp.Docs/examples/recipes') -Filter '*.cs') {
         Set-Content -LiteralPath 'Program.cs' -Value (Get-Content $recipe.FullName -Raw)

@@ -33,7 +33,10 @@ const stale = ref(false);
 const expected = ref<LessonOperation["expected"] | null>(null);
 const expectationMatches = ref<boolean | null>(null);
 const routeMessage = ref("");
-const docsBase = "https://vvollers.github.io/cstructsharp/docs/";
+const docsBase = new URL(
+  import.meta.env.VITE_DOCS_BASE_URL || "../docs/",
+  new URL(import.meta.env.BASE_URL, window.location.origin),
+).href.replace(/\/?$/, "/");
 const catalogExpanded = ref(window.innerWidth > 900);
 const narrowViewport = window.matchMedia("(max-width: 900px)");
 function updateCatalog(event: MediaQueryListEvent): void {

@@ -67,3 +67,25 @@ Compress-Archive -Path ./CStructSharpWeb/artifacts/wasm-package/* -DestinationPa
 
 The last check extracts the ZIP into a nested static path and tests the starter and inspector using the public
 JavaScript entry point. It does not substitute the explorer's internal adapter.
+
+## Preview matching documentation and explorer sources
+
+For source review, run the documentation server with local explorer links in one PowerShell terminal:
+
+```powershell
+./tools/Build-Documentation.ps1 -Serve -Port 8080 -ExplorerUrl http://127.0.0.1:5173/cstructsharp/explorer/
+```
+
+In another terminal, set the explorer's documentation base before starting Vite:
+
+```powershell
+$env:VITE_DOCS_BASE_URL = 'http://localhost:8080/'
+npm --prefix ./CStructSharpWeb run dev
+```
+
+Open `http://127.0.0.1:5173/cstructsharp/explorer/`. The header links now open the local docs, and lesson links
+in the local docs return to this explorer. Build the WASM runtime first if needed, following the instructions above.
+For production builds, omit these overrides: the explorer links to the sibling `../docs/` directory and documentation
+links use the published explorer. `VITE_DOCS_BASE_URL` is a build-time setting when building the frontend.
+Remove it from the terminal with `Remove-Item Env:VITE_DOCS_BASE_URL` before making a publication build.
+The documentation override changes generated HTML only; rebuild without it before publishing.

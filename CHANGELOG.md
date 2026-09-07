@@ -2,6 +2,16 @@
 
 All notable changes to CStructSharp are documented here.
 
+## Unreleased
+
+- Add byte-array overloads for Parse, untyped and typed ReadValue, and TryReadValue. Ordinary array calls
+  now compile under C# 12 without span/memory ambiguity. Null arrays throw ArgumentNullException;
+  non-null inputs use the existing span implementation without copying. Existing overloads are retained.
+- Route Examples to the task catalog, correct dated onboarding/testing guidance, and support matching local
+  documentation/explorer links through explicit preview configuration.
+- Include public TypeScript declarations with the WASM bundle, with shared option types and distinct JSON-text
+  read versus Uint8Array write results. Extracted-package checks compile a strict external TypeScript consumer.
+
 ## 0.2.0-preview
 
 - Completed the consolidated browser release phase. Contract v4 replaces preview positional exports with one bounded

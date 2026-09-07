@@ -52,3 +52,9 @@ subdirectory when the complete bundle is kept together. The included server is f
 Read the [browser API guide](https://vvollers.github.io/cstructsharp/docs/guides/browser/api.html) for options,
 large integers, union values, and the differences from C#. Read the
 [deployment guide](https://vvollers.github.io/cstructsharp/docs/guides/browser/deployment.html) if loading fails.
+
+## TypeScript
+
+Keep `cstructsharp-wasm.d.ts` beside the public JavaScript entry point. Editors discover the options and
+success/failure result types from the same import. After checking `Success`, parse `Data` is JSON text and
+serialize/update `Data` is a `Uint8Array`. No explorer source or separate type package is required.

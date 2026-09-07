@@ -95,7 +95,8 @@ Assert-Condition ($manifest.exportedTypes -eq 20) `
 
 [xml]$project = Get-Content -Raw -LiteralPath $ProjectPath
 $versionPrefix = [string]$project.Project.PropertyGroup.VersionPrefix
-$versionSuffix = [string]$project.Project.PropertyGroup.VersionSuffix
+$suffixNode = $project.SelectSingleNode('/Project/PropertyGroup/VersionSuffix')
+$versionSuffix = if ($null -eq $suffixNode) { '' } else { $suffixNode.InnerText }
 $packageVersion = if ([string]::IsNullOrWhiteSpace($versionSuffix)) {
     $versionPrefix
 }
