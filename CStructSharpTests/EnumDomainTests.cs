@@ -225,7 +225,7 @@ public class EnumDomainTests
 
         foreach ((string type, BigInteger minimum, BigInteger maximum, Type storageType) in domains)
         {
-            Assert.IsTrue(CStruct.EnumIntegerCodec.TryCreate(type, out CStruct.EnumIntegerCodec? codec));
+            Assert.IsTrue(EnumIntegerCodec.TryCreate(type, out EnumIntegerCodec? codec));
             Assert.IsNotNull(codec);
             Assert.AreEqual(type, codec.StorageType);
             Assert.AreEqual(type.StartsWith("int", StringComparison.Ordinal), codec.IsSigned);
@@ -253,9 +253,9 @@ public class EnumDomainTests
             Assert.Throws<InvalidOperationException>(() => codec.FromStorageValue(minimum - BigInteger.One));
         }
 
-        Assert.IsFalse(CStruct.EnumIntegerCodec.TryCreate("char", out _));
-        Assert.IsFalse(CStruct.EnumIntegerCodec.TryConvertIntegral(true, out _));
-        Assert.IsFalse(CStruct.EnumIntegerCodec.TryConvertIntegral(1.0, out _));
+        Assert.IsFalse(EnumIntegerCodec.TryCreate("char", out _));
+        Assert.IsFalse(EnumIntegerCodec.TryConvertIntegral(true, out _));
+        Assert.IsFalse(EnumIntegerCodec.TryConvertIntegral(1.0, out _));
     }
 
     /// <summary>

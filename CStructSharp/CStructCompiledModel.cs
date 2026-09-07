@@ -86,8 +86,8 @@ public partial class CStruct
                         enm.Name.Name,
                         CompiledTypeKind.Enum,
                         enm,
-                        this.GetEnumIntegerCodec(enm.Name.Name).SizeInBytes,
-                        this.GetEnumIntegerCodec(enm.Name.Name).SizeInBytes,
+                        this.enumIntegerCodecs.Get(enm.Name.Name).SizeInBytes,
+                        this.enumIntegerCodecs.Get(enm.Name.Name).SizeInBytes,
                         null,
                         null));
                 break;
@@ -146,14 +146,14 @@ public partial class CStruct
                 members.Add(
                     new CompiledEnumMember(
                         value.Name.Name,
-                        this.GetEnumIntegerCodec(enm.Key.Name.Name).ToRawBits(literal.ExactValue)));
+                        this.enumIntegerCodecs.Get(enm.Key.Name.Name).ToRawBits(literal.ExactValue)));
             }
 
             enm.Value.Bind(
                 new CompiledEnumType(
                     enm.Value,
                     underlying,
-                    this.GetEnumIntegerCodec(enm.Key.Name.Name),
+                    this.enumIntegerCodecs.Get(enm.Key.Name.Name),
                     members.ToImmutable()));
         }
 
