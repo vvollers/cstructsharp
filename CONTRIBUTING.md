@@ -218,5 +218,9 @@ Most contributions do not need this section. Before preparing a release candidat
   supported frameworks; and
 - complete the full-solution release rehearsal.
 
-The release workflow creates candidate files only. Publishing a package, tag, release, or website is a separate
-maintainer action.
+Triggering `.github/workflows/release.yml` is the release decision: the workflow first builds and verifies every
+artifact (managed tests, packages, documentation, WebAssembly bundle, onboarding and browser checks) with no write
+access to the repository, then — only if that verification succeeds — commits and tags the version bump, publishes
+the NuGet package, deploys the documentation/explorer site, and creates the GitHub Release. There is no separate,
+manually-approved publish step after triggering; see
+[the release process guide](CStructSharp.Docs/project/release-process.md) for detail.

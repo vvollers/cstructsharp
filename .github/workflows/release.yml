@@ -14,21 +14,21 @@ on:
           - major
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
 
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Build and publish release
+  verify:
+    name: Build, test, and verify release artifacts
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
     steps:
       - name: Check out main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -42,6 +42,10 @@ jobs:
           global-json-file: global.json
           dotnet-version: 8.0.x
 
+      # Nothing below this step may run against an untested build: this is the release's test gate.
+      - name: Run managed test suite
+        run: dotnet test ./CStructSharpTests/CStructSharpTests.csproj -c Release
+
       - name: Set up Node.js for documentation
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -49,7 +53,9 @@ jobs:
           cache: npm
           cache-dependency-path: CStructSharp.Docs/package-lock.json
 
-      - name: Calculate and apply version bump
+      # Computes the next version and writes it into the working tree so every build/pack step below embeds the
+      # correct version, without committing or tagging anything yet. Nothing here mutates shared/remote state.
+      - name: Calculate next version
         id: version
         env:
           BUMP: ${{ inputs.bump }}
@@ -83,18 +89,17 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\ntag=v${version}\n`);
           NODE
 
-      - name: Commit and tag version bump
+      # Fails fast, before any expensive build work, if a previous run already published this tag (e.g. a prior
+      # release run partially completed). Re-checked in the publish job immediately before tagging.
+      - name: Reject a version/tag that already exists
         env:
-          VERSION: ${{ steps.version.outputs.version }}
           TAG: ${{ steps.version.outputs.tag }}
         run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add CStructSharp/CStructSharp.csproj CStructSharpWeb/package.json CStructSharpWeb/package-lock.json
-          git commit -m "chore: release ${VERSION}"
-          git push origin HEAD:main
-          git tag -a "${TAG}" -m "Release ${VERSION}"
-          git push origin "${TAG}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" > /dev/null 2>&1; then
+            echo "::error::Tag ${TAG} already exists on origin. A previous release run may have partially completed; investigate before re-running." >&2
+            exit 1
+          fi
+          echo "Tag ${TAG} does not exist on origin yet; continuing."
 
       - name: Install documentation dependencies
         working-directory: CStructSharp.Docs
@@ -147,6 +152,125 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: ./tools/Test-OnboardingBrowser.ps1 -ArchivePath "./artifacts/cstructsharp-wasm-v$env:VERSION.zip"
 
+      - name: Assemble GitHub Pages site
+        run: |
+          rm -rf artifacts/pages
+          mkdir -p artifacts/pages/docs artifacts/pages/explorer
+          cp -R CStructSharp.Docs/_site/. artifacts/pages/docs/
+          cp -R CStructSharpWeb/dist/. artifacts/pages/explorer/
+          cp CStructSharp.Docs/landing/index.html artifacts/pages/index.html
+          touch artifacts/pages/.nojekyll
+
+      # The files below are handed to the publish job so it commits the *exact* version already built and
+      # verified above, rather than recomputing (and potentially diverging from) the version bump.
+      - name: Upload version-bump files
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: version-bump-files
+          path: |
+            CStructSharp/CStructSharp.csproj
+            CStructSharpWeb/package.json
+            CStructSharpWeb/package-lock.json
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload NuGet package artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: nuget-package
+          path: artifacts/package
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload standalone WASM bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: wasm-bundle
+          path: artifacts/cstructsharp-wasm-v*.zip
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload GitHub Pages site
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: pages-site
+          path: artifacts/pages
+          retention-days: 1
+          if-no-files-found: error
+
+  # Nothing in this job runs unless every build/test/verification step in `verify` succeeded. This job is the
+  # only one with write access to the repository, NuGet, and GitHub Pages.
+  publish:
+    name: Publish release
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          dotnet-version: 8.0.x
+
+      # Re-checked here (not just in `verify`) as a last-moment guard against a concurrent or re-triggered run.
+      - name: Reject a version/tag that already exists
+        env:
+          TAG: ${{ needs.verify.outputs.tag }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" > /dev/null 2>&1; then
+            echo "::error::Tag ${TAG} already exists on origin. A previous release run may have partially completed; investigate before re-running." >&2
+            exit 1
+          fi
+
+      - name: Download version-bump files
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: version-bump-files
+          path: .
+
+      - name: Commit and tag version bump
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+          TAG: ${{ needs.verify.outputs.tag }}
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add CStructSharp/CStructSharp.csproj CStructSharpWeb/package.json CStructSharpWeb/package-lock.json
+          git commit -m "chore: release ${VERSION}"
+          git push origin HEAD:main
+          git tag -a "${TAG}" -m "Release ${VERSION}"
+          git push origin "${TAG}"
+
+      - name: Download NuGet package artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: nuget-package
+          path: artifacts/package
+
+      - name: Download standalone WASM bundle
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wasm-bundle
+          path: artifacts
+
+      - name: Download GitHub Pages site
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: pages-site
+          path: artifacts/pages
+
       - name: NuGet login through Trusted Publishing
         id: nuget-login
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
@@ -155,7 +279,7 @@ jobs:
 
       - name: Publish NuGet package and symbols
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ needs.verify.outputs.version }}
           NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: |
           dotnet nuget push "artifacts/package/CStructSharp.${VERSION}.nupkg" \
@@ -165,15 +289,6 @@ jobs:
             --api-key "${NUGET_API_KEY}" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
-
-      - name: Assemble GitHub Pages site
-        run: |
-          rm -rf artifacts/pages
-          mkdir -p artifacts/pages/docs artifacts/pages/explorer
-          cp -R CStructSharp.Docs/_site/. artifacts/pages/docs/
-          cp -R CStructSharpWeb/dist/. artifacts/pages/explorer/
-          cp CStructSharp.Docs/landing/index.html artifacts/pages/index.html
-          touch artifacts/pages/.nojekyll
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
@@ -187,8 +302,8 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ needs.verify.outputs.version }}
+          TAG: ${{ needs.verify.outputs.tag }}
         run: |
           gh release create "${TAG}" \
             artifacts/package/*.nupkg \
