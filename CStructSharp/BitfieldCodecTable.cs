@@ -3,16 +3,62 @@ namespace CStructSharp;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using CStructSharp.Structure;
 
-/// <summary>Centralizes the portable unsigned-value rules shared by bitfield readers and writers.</summary>
-public partial class CStruct
+/// <summary>
+///     Centralizes the portable unsigned-value rules shared by bitfield readers and writers, and the per-instance
+///     table of primitive codecs that are valid bitfield storage.
+/// </summary>
+internal sealed class BitfieldCodecTable
 {
-    private readonly ConstructionDictionary<string, BitfieldStorageCodec> integralBitfieldStorageCodecs =
-        new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Entry> codecs = new(StringComparer.Ordinal);
+
+    /// <summary>Builds the table of scalar integral primitive codecs that are safe bitfield storage.</summary>
+    /// <param name="isLittleEndian">The layout's default byte order for unsuffixed multi-byte type names.</param>
+    /// <param name="fieldAlignments">The already-populated primitive byte width for every registered field type name.</param>
+    /// <param name="fieldHandlers">The already-populated primitive readers, used only to confirm a candidate type has one.</param>
+    /// <param name="writeHandlers">The already-populated primitive writers, used only to confirm a candidate type has one.</param>
+    /// <param name="fieldTypeAliases">The C-style and shorthand type name aliases to mirror into this table.</param>
+    public BitfieldCodecTable(
+        bool isLittleEndian,
+        IReadOnlyDictionary<string, byte> fieldAlignments,
+        IReadOnlyDictionary<string, Func<Stream, object>> fieldHandlers,
+        IReadOnlyDictionary<string, Action<Stream, object>> writeHandlers,
+        IReadOnlyDictionary<string, string> fieldTypeAliases)
+    {
+        this.Register("byte", 1, isLittleEndian, fieldAlignments, fieldHandlers, writeHandlers);
+        this.Register("int8", 1, isLittleEndian, fieldAlignments, fieldHandlers, writeHandlers);
+        this.Register("uint8", 1, isLittleEndian, fieldAlignments, fieldHandlers, writeHandlers);
+        this.Register("char", 1, isLittleEndian, fieldAlignments, fieldHandlers, writeHandlers);
+
+        foreach ((string name, int byteSize) in new[]
+                 {
+                     ("wchar", 2),
+                     ("int16", 2),
+                     ("uint16", 2),
+                     ("int32", 4),
+                     ("uint32", 4),
+                     ("int64", 8),
+                     ("uint64", 8),
+                 })
+        {
+            this.Register(name + ">", byteSize, false, fieldAlignments, fieldHandlers, writeHandlers);
+            this.Register(name + "<", byteSize, true, fieldAlignments, fieldHandlers, writeHandlers);
+            this.Register(name, byteSize, isLittleEndian, fieldAlignments, fieldHandlers, writeHandlers);
+        }
+
+        foreach (KeyValuePair<string, string> alias in fieldTypeAliases)
+        {
+            if (this.codecs.TryGetValue(alias.Value, out Entry storageCodec))
+            {
+                this.codecs.Add(alias.Key, storageCodec);
+            }
+        }
+    }
 
     /// <summary>Extracts one unsigned bit slice from a signed or unsigned primitive storage value.</summary>
-    private static ulong ExtractBitfieldValue(object storageValue, int bitOffset, int bitSize)
+    public static ulong ExtractBitfieldValue(object storageValue, int bitOffset, int bitSize)
     {
         ulong rawValue = ConvertBitfieldStorageToUnsigned(storageValue);
 
@@ -22,7 +68,7 @@ public partial class CStruct
     }
 
     /// <summary>Combines one validated bitfield value with the neighboring bits in its storage unit.</summary>
-    private static ulong MergeBitfieldValue(ulong storageValue, ulong fieldValue, int bitOffset, int bitSize)
+    public static ulong MergeBitfieldValue(ulong storageValue, ulong fieldValue, int bitOffset, int bitSize)
     {
         ulong mask = GetBitfieldMask(bitSize);
         ulong shiftedMask = mask << bitOffset;
@@ -30,7 +76,7 @@ public partial class CStruct
     }
 
     /// <summary>Converts and validates a caller value against one bitfield's unsigned numeric domain.</summary>
-    private static ulong ValidateBitfieldWriteValue(Field field, object? value)
+    public static ulong ValidateBitfieldWriteValue(Field field, object? value)
     {
         if (value is null)
         {
@@ -73,13 +119,13 @@ public partial class CStruct
     }
 
     /// <summary>Builds a low-bit mask without overflowing the full 64-bit case.</summary>
-    private static ulong GetBitfieldMask(int bitSize)
+    public static ulong GetBitfieldMask(int bitSize)
     {
         return bitSize == 64 ? ulong.MaxValue : (1UL << bitSize) - 1UL;
     }
 
     /// <summary>Reinterprets signed primitive values as raw same-width storage bits.</summary>
-    private static ulong ConvertBitfieldStorageToUnsigned(object value)
+    public static ulong ConvertBitfieldStorageToUnsigned(object value)
     {
         return value switch
         {
@@ -97,68 +143,9 @@ public partial class CStruct
     }
 
     /// <summary>
-    ///     Records the scalar integral primitive codecs that are safe bitfield storage, including their encoded byte
-    ///     order. A read/write delegate alone is deliberately not sufficient capability.
-    /// </summary>
-    private void BuildIntegralBitfieldStorageCodecs()
-    {
-        this.RegisterBitfieldStorageCodec("byte", 1, this.IsLittleEndian);
-        this.RegisterBitfieldStorageCodec("int8", 1, this.IsLittleEndian);
-        this.RegisterBitfieldStorageCodec("uint8", 1, this.IsLittleEndian);
-        this.RegisterBitfieldStorageCodec("char", 1, this.IsLittleEndian);
-
-        foreach ((string name, int byteSize) in new[]
-                 {
-                     ("wchar", 2),
-                     ("int16", 2),
-                     ("uint16", 2),
-                     ("int32", 4),
-                     ("uint32", 4),
-                     ("int64", 8),
-                     ("uint64", 8),
-                 })
-        {
-            this.RegisterBitfieldStorageCodec(name + ">", byteSize, false);
-            this.RegisterBitfieldStorageCodec(name + "<", byteSize, true);
-            this.RegisterBitfieldStorageCodec(name, byteSize, this.IsLittleEndian);
-        }
-
-        foreach (KeyValuePair<string, string> alias in FieldTypeAliasses)
-        {
-            if (this.integralBitfieldStorageCodecs.TryGetValue(
-                    alias.Value,
-                    out BitfieldStorageCodec storageCodec))
-            {
-                this.RegisterBitfieldStorageCodec(alias.Key, storageCodec);
-            }
-        }
-    }
-
-    /// <summary>Registers one eligible codec and verifies that its reader, writer, and fixed width agree.</summary>
-    private void RegisterBitfieldStorageCodec(string name, int byteSize, bool isLittleEndian)
-    {
-        this.RegisterBitfieldStorageCodec(name, new BitfieldStorageCodec(byteSize, isLittleEndian));
-    }
-
-    /// <summary>Registers an alias of an already validated integral storage codec.</summary>
-    private void RegisterBitfieldStorageCodec(string name, BitfieldStorageCodec storageCodec)
-    {
-        bool hasMatchingSize = this.fieldAlignments.TryGetValue(name, out byte byteSize) &&
-                               byteSize == storageCodec.ByteSize;
-        if (!hasMatchingSize ||
-            !this.fieldHandlers.ContainsKey(name) ||
-            !this.writeHandlers.ContainsKey(name))
-        {
-            throw new InvalidOperationException("Integral bitfield codec registration is inconsistent: " + name);
-        }
-
-        this.integralBitfieldStorageCodecs.Add(name, storageCodec);
-    }
-
-    /// <summary>
     ///     Returns the explicitly capable integral storage codec after validating scalar shape and bit width.
     /// </summary>
-    private BitfieldStorageCodec ValidateBitField(Field field)
+    public Entry ValidateBitField(Field field)
     {
         if (!ReferenceEquals(field.ArrayCount, Field.NoArray))
         {
@@ -170,9 +157,7 @@ public partial class CStruct
             throw new InvalidOperationException("Pointers cannot be bitfields.");
         }
 
-        if (!this.integralBitfieldStorageCodecs.TryGetValue(
-                field.Type.Name,
-                out BitfieldStorageCodec storageCodec))
+        if (!this.codecs.TryGetValue(field.Type.Name, out Entry storageCodec))
         {
             throw new InvalidOperationException(
                 $"Bitfield storage type '{field.Type.Name}' is not a direct scalar integral codec.");
@@ -187,8 +172,27 @@ public partial class CStruct
         return storageCodec;
     }
 
+    /// <summary>Registers one eligible codec and verifies that its reader, writer, and fixed width agree.</summary>
+    private void Register(
+        string name,
+        int byteSize,
+        bool isLittleEndian,
+        IReadOnlyDictionary<string, byte> fieldAlignments,
+        IReadOnlyDictionary<string, Func<Stream, object>> fieldHandlers,
+        IReadOnlyDictionary<string, Action<Stream, object>> writeHandlers)
+    {
+        bool hasMatchingSize = fieldAlignments.TryGetValue(name, out byte alignedByteSize) &&
+                               alignedByteSize == byteSize;
+        if (!hasMatchingSize || !fieldHandlers.ContainsKey(name) || !writeHandlers.ContainsKey(name))
+        {
+            throw new InvalidOperationException("Integral bitfield codec registration is inconsistent: " + name);
+        }
+
+        this.codecs.Add(name, new Entry(byteSize, isLittleEndian));
+    }
+
     /// <summary>Describes the fixed-width integer storage facts needed by every bitfield executor.</summary>
-    private readonly record struct BitfieldStorageCodec(int ByteSize, bool IsLittleEndian)
+    public readonly record struct Entry(int ByteSize, bool IsLittleEndian)
     {
         public int BitCapacity => checked(this.ByteSize * 8);
     }

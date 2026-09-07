@@ -24,7 +24,7 @@ public partial class CStruct
         }
         catch (CStructException exception)
         {
-            AttachExceptionContext(exception, segments, state.Stream);
+            ExceptionContext.Attach(exception, segments, state.Stream);
             throw;
         }
     }
@@ -195,7 +195,7 @@ public partial class CStruct
                                throw new InvalidOperationException(
                                    "Compiled bitfield has no storage size: " + field.Name.Name);
                 int alignment = compiledField.Alignment;
-                bool startsNewUnit = this.StartsNewBitfieldUnit(
+                bool startsNewUnit = LayoutMath.StartsNewBitfieldUnit(
                     activeBitUnitType,
                     activeBitUnitSize,
                     activeBitUnitAlignment,
@@ -205,7 +205,7 @@ public partial class CStruct
                     alignment);
                 if (startsNewUnit)
                 {
-                    current = this.Aligned ? this.AlignUp(current, alignment) : current;
+                    current = this.Aligned ? LayoutMath.AlignUp(current, alignment) : current;
                     activeBitUnitStart = current;
                     current = checked(current + unitSize);
                     activeBitUnitSize = unitSize;
@@ -227,7 +227,7 @@ public partial class CStruct
                 activeBitUnitType = null;
 
                 int alignment = compiledField.Alignment;
-                current = this.Aligned ? this.AlignUp(current, alignment) : current;
+                current = this.Aligned ? LayoutMath.AlignUp(current, alignment) : current;
                 fieldStart = current;
             }
 
@@ -879,7 +879,7 @@ public partial class CStruct
                                throw new InvalidOperationException(
                                    "Compiled bitfield has no storage size: " + field.Name.Name);
                 int alignment = compiledField.Alignment;
-                bool startsNew = this.StartsNewBitfieldUnit(
+                bool startsNew = LayoutMath.StartsNewBitfieldUnit(
                     activeBitUnitType,
                     activeBitUnitSize,
                     activeBitUnitAlignment,
@@ -889,7 +889,7 @@ public partial class CStruct
                     alignment);
                 if (startsNew)
                 {
-                    current = this.Aligned ? this.AlignUp(current, alignment) : current;
+                    current = this.Aligned ? LayoutMath.AlignUp(current, alignment) : current;
                     activeBitUnitStart = current;
                     current = checked(current + unitSize);
                     activeBitUnitSize = unitSize;
@@ -910,7 +910,7 @@ public partial class CStruct
                 activeBitUnitAlignment = 0;
                 activeBitUnitType = null;
                 int alignment = compiledField.Alignment;
-                current = this.Aligned ? this.AlignUp(current, alignment) : current;
+                current = this.Aligned ? LayoutMath.AlignUp(current, alignment) : current;
                 fieldStart = current;
             }
 
@@ -922,7 +922,7 @@ public partial class CStruct
         }
 
         int structAlignment = this.GetCompiledComposite(strct).Symbol.Alignment;
-        return this.Aligned ? this.AlignUp(current, structAlignment) : current;
+        return this.Aligned ? LayoutMath.AlignUp(current, structAlignment) : current;
     }
 
     /// <summary>
@@ -996,7 +996,7 @@ public partial class CStruct
 
         if (field.BitSize > 0)
         {
-            value = ExtractBitfieldValue(value, bitOffset, field.BitSize);
+            value = BitfieldCodecTable.ExtractBitfieldValue(value, bitOffset, field.BitSize);
         }
 
         try

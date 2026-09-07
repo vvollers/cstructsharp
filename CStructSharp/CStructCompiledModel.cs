@@ -412,12 +412,12 @@ public partial class CStruct
                 int? storageSize = elementSize.HasValue && arrayShape.FixedCount.HasValue
                                        ? checked(elementSize.Value * arrayShape.FixedCount.Value)
                                        : null;
-                BitfieldStorageCodec? bitfieldStorage = null;
+                BitfieldCodecTable.Entry? bitfieldStorage = null;
                 if (field.BitSize > 0)
                 {
                     try
                     {
-                        bitfieldStorage = this.ValidateBitField(field);
+                        bitfieldStorage = this.bitfieldCodecs.ValidateBitField(field);
                     }
                     catch (InvalidOperationException exception)
                     {
@@ -501,7 +501,7 @@ public partial class CStruct
 
             if (largest.HasValue && this.Aligned)
             {
-                largest = this.AlignUp(largest.Value, compositeAlignment);
+                largest = LayoutMath.AlignUp(largest.Value, compositeAlignment);
             }
 
             fixedSize = largest;
@@ -519,7 +519,7 @@ public partial class CStruct
             if (field.BitStorageSize.HasValue)
             {
                 int unitSize = field.BitStorageSize.Value;
-                bool startsNew = this.StartsNewBitfieldUnit(
+                bool startsNew = LayoutMath.StartsNewBitfieldUnit(
                     activeBitUnitType,
                     activeBitUnitSize,
                     activeBitUnitAlignment,
@@ -531,7 +531,7 @@ public partial class CStruct
                 {
                     if (current.HasValue && this.Aligned)
                     {
-                        current = this.AlignUp(current.Value, field.Alignment);
+                        current = LayoutMath.AlignUp(current.Value, field.Alignment);
                     }
 
                     activeBitUnitStart = current;
@@ -554,7 +554,7 @@ public partial class CStruct
             activeBitUnitType = null;
             if (current.HasValue && this.Aligned)
             {
-                current = this.AlignUp(current.Value, field.Alignment);
+                current = LayoutMath.AlignUp(current.Value, field.Alignment);
             }
 
             int? offset = current;
@@ -566,7 +566,7 @@ public partial class CStruct
 
         if (current.HasValue && this.Aligned)
         {
-            current = this.AlignUp(current.Value, compositeAlignment);
+            current = LayoutMath.AlignUp(current.Value, compositeAlignment);
         }
 
         fixedSize = current;
@@ -718,7 +718,7 @@ public partial class CStruct
                     this.GetCompiledFieldStorageSize(field, variables, requireFixedSize));
             }
 
-            return this.Aligned ? this.AlignUp(largest, composite.Symbol.Alignment) : largest;
+            return this.Aligned ? LayoutMath.AlignUp(largest, composite.Symbol.Alignment) : largest;
         }
 
         int current = 0;
@@ -731,7 +731,7 @@ public partial class CStruct
             if (field.BitStorageSize.HasValue)
             {
                 int unitSize = field.BitStorageSize.Value;
-                bool startsNew = this.StartsNewBitfieldUnit(
+                bool startsNew = LayoutMath.StartsNewBitfieldUnit(
                     activeBitUnitType,
                     activeBitUnitSize,
                     activeBitUnitAlignment,
@@ -741,7 +741,7 @@ public partial class CStruct
                     field.Alignment);
                 if (startsNew)
                 {
-                    current = this.Aligned ? this.AlignUp(current, field.Alignment) : current;
+                    current = this.Aligned ? LayoutMath.AlignUp(current, field.Alignment) : current;
                     current = checked(current + unitSize);
                     activeBitUnitSize = unitSize;
                     activeBitUnitAlignment = field.Alignment;
@@ -757,12 +757,12 @@ public partial class CStruct
             activeBitUnitBitsUsed = 0;
             activeBitUnitAlignment = 0;
             activeBitUnitType = null;
-            current = this.Aligned ? this.AlignUp(current, field.Alignment) : current;
+            current = this.Aligned ? LayoutMath.AlignUp(current, field.Alignment) : current;
             current = checked(
                 current + this.GetCompiledFieldStorageSize(field, variables, requireFixedSize));
         }
 
-        return this.Aligned ? this.AlignUp(current, composite.Symbol.Alignment) : current;
+        return this.Aligned ? LayoutMath.AlignUp(current, composite.Symbol.Alignment) : current;
     }
 
     /// <summary>Calculates one compiled field's complete storage without resolving its parsed type name.</summary>

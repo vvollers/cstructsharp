@@ -75,7 +75,7 @@ public partial class CStruct
         if (state.Aligned)
         {
             int alignment = this.GetCompiledComposite(strct).Symbol.Alignment;
-            state.Stream.Position = this.AlignUp(state.Stream.Position, alignment);
+            state.Stream.Position = LayoutMath.AlignUp(state.Stream.Position, alignment);
         }
 
         state.NextPosition = state.Stream.Position;
