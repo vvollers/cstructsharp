@@ -5,23 +5,26 @@ description: Build and review the NuGet, documentation, and WebAssembly explorer
 
 # Release process
 
-The release workflow is manually triggered by a maintainer. It takes a major, minor, or patch bump, updates the
-library and explorer versions, commits and tags that change, and builds the release from the tagged source:
+The release workflow (`.github/workflows/release.yml`) is manually triggered by a maintainer, who picks a major,
+minor, or patch bump. It runs as two jobs:
 
-1. The multi-target NuGet package and symbol package.
-2. The generated DocFX documentation site.
-3. The production WebAssembly test explorer and a standalone WASM bundle.
+1. **`verify`** — computes the next version, runs the managed test suite (`CStructSharpTests`), builds the
+   multi-target NuGet package and symbol package, the generated DocFX documentation site, and the production
+   WebAssembly test explorer and standalone WASM bundle, then checks the exact NuGet and WASM artifacts using the
+   onboarding programs and runs the explorer's unit and Playwright end-to-end tests. This job has no write access
+   to the repository, NuGet, or GitHub Pages.
+2. **`publish`** — runs only if `verify` succeeded (`needs: verify`). It commits and tags the version bump on
+   `main`, publishes the NuGet package and symbols, deploys the combined GitHub Pages site (a landing page at the
+   root, documentation at `/docs/`, and the interactive explorer at `/explorer/`), and creates a GitHub Release
+   containing the NuGet package and the standalone `cstructsharp-wasm-v<VERSION>.zip` download. The WASM archive
+   contains the browser JavaScript entry point, the required .NET WebAssembly runtime and assemblies, and a README
+   with a copy-and-import example. It is intended for embedding CStructSharp in another static browser project; it
+   is separate from the full explorer website.
 
-The workflow publishes a combined GitHub Pages site with a landing page at the root, documentation at `/docs/`, and
-the interactive explorer at `/explorer/`. It also creates a GitHub Release containing the NuGet package and a
-standalone `cstructsharp-wasm-v<VERSION>.zip` download. The WASM archive contains the browser JavaScript entry point,
-the required .NET WebAssembly runtime and assemblies, and a README with a copy-and-import example. It is intended for
-embedding CStructSharp in another static browser project; it is separate from the full explorer website.
-
-Managed regression tests run in CI. The release workflow additionally checks the exact NuGet and WASM artifacts
-using the onboarding programs before publishing their corresponding artifacts. A release should be started only
-after CI has passed for the current `main` revision. See [onboarding review](onboarding-review.md) for the human
-sessions and artifact checks, and [browser development](web-development.md) for local explorer commands.
+A release should still be started only after CI has passed for the current `main` revision — `verify` re-running
+the managed test suite is a safety net against a stale or racing `main`, not a substitute for a green CI run. See
+[onboarding review](onboarding-review.md) for the human sessions and artifact checks, and
+[browser development](web-development.md) for local explorer commands.
 
 ## Validate the consumer experience
 
