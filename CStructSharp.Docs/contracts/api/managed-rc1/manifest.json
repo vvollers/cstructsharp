@@ -48,7 +48,7 @@
       "packageVersion": "0.2.11",
       "combinedSha256": "9E737ED34E38701F1E5391E7023337ECF09B9BAD2695F803A596A3EA93A27440",
       "rationale": "Product review item 4: add exactly four byte-array read overloads, retaining all prior signatures and annotations. Each rejects null and forwards without copying to the existing span path. Both C# 12 and current compiler consumers are checked.",
-      "releaseImpact": "Unreleased source addition on the 0.2.11 development version; the next publication must receive a new version through the release process. No existing binary signature changes. Explicitly typed null byte arrays now throw ArgumentNullException rather than being converted to empty memory; use empty arrays for empty input. See decisions/product/0010-byte-array-read-overloads.md."
+      "releaseImpact": "Unreleased source addition on the 0.2.11 development version; the next publication must receive a new version through the release process. No existing binary signature changes. Explicitly typed null byte arrays now throw ArgumentNullException rather than being converted to empty memory; use empty arrays for empty input."
     }
   ]
 }

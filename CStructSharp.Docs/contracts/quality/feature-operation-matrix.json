@@ -436,7 +436,7 @@
       "value": {
         "status": "verified",
         "conditions": [
-          "Declared unsigned slices obey ADR-010's portable semantics and each supplied value fits its declared width."
+          "Declared unsigned slices obey the portable bitfield semantics and each supplied value fits its declared width."
         ],
         "evidence": [
           "CStructSharpTests/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip"
@@ -1038,7 +1038,6 @@
       "limitations": [],
       "workItems": [
         "COR-06",
-        "ADR-004",
         "LANG-09"
       ]
     },
@@ -1900,8 +1899,7 @@
       ],
       "workItems": [
         "LANG-15",
-        "LANG-16",
-        "ADR-009"
+        "LANG-16"
       ]
     },
     {
@@ -2004,8 +2002,7 @@
       ],
       "limitations": [],
       "workItems": [
-        "SAF-03",
-        "ADR-006"
+        "SAF-03"
       ]
     },
     {
@@ -2099,8 +2096,7 @@
       "limitations": [],
       "workItems": [
         "SAF-06",
-        "API-04",
-        "ADR-005"
+        "API-04"
       ]
     }
   ],
@@ -2111,8 +2107,7 @@
       "rationale": "The current ordinary-name grammar does not implement C tag namespaces.",
       "diagnosticPolicy": "Reject during layout construction; never reinterpret the tokens as another supported declaration.",
       "workItems": [
-        "LANG-01",
-        "ADR-001"
+        "LANG-01"
       ]
     },
     {
@@ -2121,8 +2116,7 @@
       "rationale": "Only the repository's narrower typedef forms are accepted today.",
       "diagnosticPolicy": "Reject unsupported forms during layout construction.",
       "workItems": [
-        "LANG-02",
-        "ADR-001"
+        "LANG-02"
       ]
     },
     {
@@ -2131,8 +2125,7 @@
       "rationale": "Portable explicit-width codecs exist, but the general C declaration spelling grammar does not.",
       "diagnosticPolicy": "Require a documented repository spelling or reject construction.",
       "workItems": [
-        "LANG-03",
-        "ADR-001"
+        "LANG-03"
       ]
     },
     {
@@ -2141,8 +2134,7 @@
       "rationale": "No public value, endian, NaN, or ABI representation contract has been approved.",
       "diagnosticPolicy": "Reject as an unknown field type during layout construction.",
       "workItems": [
-        "LANG-04",
-        "ADR-001"
+        "LANG-04"
       ]
     },
     {
@@ -2151,8 +2143,7 @@
       "rationale": "The compiled model and public result shape currently represent one dimension.",
       "diagnosticPolicy": "Reject repeated dimensions rather than silently flattening them.",
       "workItems": [
-        "LANG-05",
-        "ADR-001"
+        "LANG-05"
       ]
     },
     {
@@ -2161,8 +2152,7 @@
       "rationale": "There is no implicit safe count or byte extent for a general flexible member.",
       "diagnosticPolicy": "Reject until an explicit extent policy is supplied.",
       "workItems": [
-        "LANG-06",
-        "ADR-001"
+        "LANG-06"
       ]
     },
     {
@@ -2171,8 +2161,7 @@
       "rationale": "The current data-pointer grammar cannot safely distinguish or invoke function pointers.",
       "diagnosticPolicy": "Reject rather than treating the declaration as a data pointer.",
       "workItems": [
-        "LANG-08",
-        "ADR-001"
+        "LANG-08"
       ]
     },
     {
@@ -2181,8 +2170,7 @@
       "rationale": "The accepted portable subset requires named fields and direct built-in integral storage.",
       "diagnosticPolicy": "Reject during layout compilation with a storage-capability diagnostic.",
       "workItems": [
-        "LANG-10",
-        "ADR-009"
+        "LANG-10"
       ]
     },
     {
@@ -2191,8 +2179,7 @@
       "rationale": "CStructSharp consumes standalone layout definitions and is not a general C preprocessor.",
       "diagnosticPolicy": "Reject unsupported directives; a future header frontend must be an explicit separate boundary.",
       "workItems": [
-        "LANG-11",
-        "ADR-001"
+        "LANG-11"
       ]
     },
     {
@@ -2201,8 +2188,7 @@
       "rationale": "The current field grammar accepts one declarator per declaration.",
       "diagnosticPolicy": "Reject the declaration rather than applying the first shape to every name.",
       "workItems": [
-        "LANG-12",
-        "ADR-001"
+        "LANG-12"
       ]
     },
     {
@@ -2211,8 +2197,7 @@
       "rationale": "Accepted positions and whether layout-neutral qualifiers are preserved have not been decided.",
       "diagnosticPolicy": "Reject instead of silently ignoring unrecognized tokens.",
       "workItems": [
-        "LANG-13",
-        "ADR-001"
+        "LANG-13"
       ]
     },
     {
@@ -2221,8 +2206,7 @@
       "rationale": "Inline declarations currently require a containing field name and do not promote members.",
       "diagnosticPolicy": "Reject unnamed containing members.",
       "workItems": [
-        "LANG-14",
-        "ADR-001"
+        "LANG-14"
       ]
     },
     {
@@ -2231,8 +2215,7 @@
       "rationale": "Only the constructor's portable aligned/unaligned policy is currently available.",
       "diagnosticPolicy": "Reject unknown directives/attributes; never infer host packing.",
       "workItems": [
-        "LANG-15",
-        "ADR-009"
+        "LANG-15"
       ]
     },
     {
@@ -2242,8 +2225,7 @@
       "diagnosticPolicy": "Use only the documented portable policy; never infer the host compiler or process ABI.",
       "workItems": [
         "LANG-16",
-        "QA-03",
-        "ADR-009"
+        "QA-03"
       ]
     }
   ]
