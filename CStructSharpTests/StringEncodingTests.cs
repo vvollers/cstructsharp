@@ -443,6 +443,84 @@ public class StringEncodingTests
                 new ReadOptions { MaxStringBytes = 3, }));
     }
 
+    /// <summary>
+    ///     A 2,000-character terminated string is long enough that reading it one byte at a time would need
+    ///     thousands of underlying stream reads.
+    /// </summary>
+    /// <remarks>
+    ///     The decoded value, the trailing field, and the final stream position must exactly match a byte-by-byte
+    ///     reader's result, while the number of underlying <c>Read</c> calls must stay far below the string's
+    ///     length - proving the terminator scan batches its I/O instead of issuing one call per byte.
+    /// </remarks>
+    [TestMethod]
+    public void TerminatedString_LongValue_BatchesUnderlyingReadsWithoutChangingTheResult()
+    {
+        const string layout = "struct root { ascii_string_zero value; uint8 tail; };";
+        var cstruct = new CStruct(layout);
+        string expected = new('A', 2000);
+        byte[] bytes = [.. Encoding.ASCII.GetBytes(expected), 0x00, 0x7F,];
+
+        using var stream = new ReadCallCountingStream(bytes);
+        dynamic parsed = cstruct.ParseStream(stream, "root");
+
+        Assert.AreEqual(expected, (string)parsed.value);
+        Assert.AreEqual((byte)0x7F, (byte)parsed.tail);
+        Assert.AreEqual(bytes.Length, stream.Position);
+        string message = $"Expected far fewer than one read call per byte; observed {stream.ReadCallCount} " +
+                          $"calls for a {expected.Length}-character string.";
+        Assert.IsTrue(stream.ReadCallCount < 50, message);
+    }
+
+    /// <summary>
+    ///     The underlying stream never returns more than three bytes per physical read, forcing the terminator scan
+    ///     to issue several reads to fill even its own internal chunk buffer.
+    /// </summary>
+    /// <remarks>
+    ///     The decoded value and final position must still be exact regardless of how the physical reads happen to
+    ///     be fragmented, proving the terminator scan correctly loops on a short read instead of assuming its
+    ///     request size is always satisfied in one call.
+    /// </remarks>
+    [TestMethod]
+    public void TerminatedString_UnderlyingStreamFragmentsEveryRead_StillDecodesExactly()
+    {
+        const string layout = "struct root { utf8_string_zero value; uint8 tail; };";
+        var cstruct = new CStruct(layout);
+        const string expected = "Hello, world! This text is long enough to span many fragmented reads.";
+        byte[] bytes = [.. Encoding.UTF8.GetBytes(expected), 0x00, 0x7F,];
+
+        using var stream = new ChunkedMemoryStream(bytes, maximumReadSize: 3, writable: false);
+        dynamic parsed = cstruct.ParseStream(stream, "root");
+
+        Assert.AreEqual(expected, (string)parsed.value);
+        Assert.AreEqual((byte)0x7F, (byte)parsed.tail);
+        Assert.AreEqual(bytes.Length, stream.Position);
+    }
+
+    /// <summary>
+    ///     ABCDEFGH plus its terminator needs nine bytes, but the budget allows only five.
+    /// </summary>
+    /// <remarks>
+    ///     A byte-by-byte reader consumes one byte, then checks the budget, so it always leaves the stream one byte
+    ///     past the limit rather than exactly at it. The chunked reader must leave the stream at that same position
+    ///     (six, not five and not the full ten-byte record) and must not touch the unrelated trailing field.
+    /// </remarks>
+    [TestMethod]
+    public void TerminatedString_BudgetExceeded_LeavesStreamOneBytePastTheLimitLikeAByteByByteReader()
+    {
+        const string layout = "struct root { ascii_string_zero value; uint8 tail; };";
+        var cstruct = new CStruct(layout);
+        byte[] bytes = [.. Encoding.ASCII.GetBytes("ABCDEFGH"), 0x00, 0x7F,];
+        using var stream = new MemoryStream(bytes);
+
+        Assert.Throws<CStructReadLimitException>(
+            () => cstruct.ParseStream(
+                stream,
+                "root",
+                new Dictionary<string, Expr>(),
+                new ReadOptions { MaxStringBytes = 5, }));
+        Assert.AreEqual(6, stream.Position);
+    }
+
     private static byte[] EncodeUtf16(string value, bool littleEndian)
     {
         return new UnicodeEncoding(!littleEndian, false, true).GetBytes(value);

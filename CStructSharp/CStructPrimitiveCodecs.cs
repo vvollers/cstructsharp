@@ -10,6 +10,17 @@ using CStructSharp.Structure;
 /// <summary>Builds the primitive binary codec maps used by the CStruct facade.</summary>
 public partial class CStruct
 {
+    /// <summary>
+    ///     The number of bytes requested per underlying <see cref="Stream.Read(byte[],int,int)"/> call while
+    ///     scanning for a string terminator. Decoding still happens one byte at a time so behavior is unchanged;
+    ///     this only amortizes the I/O call cost for a stream (such as a raw
+    ///     <see cref="System.Net.Sockets.NetworkStream"/> or another unbuffered custom stream) that does not
+    ///     already buffer internally. Any bytes read past the terminator, or past the point where the encoded-byte
+    ///     budget is exceeded, are seeked back before returning or throwing so the caller-visible stream position
+    ///     exactly matches reading one byte at a time.
+    /// </summary>
+    private const int TerminatedStringReadChunkSize = 256;
+
     private static readonly Encoding StrictAsciiEncoding = Encoding.GetEncoding(
         Encoding.ASCII.CodePage,
         EncoderFallback.ExceptionFallback,
@@ -47,44 +58,81 @@ public partial class CStruct
     /// <summary>Reads characters until a terminator and leaves the stream immediately after that terminator.</summary>
     private static string ReadIntoString(Stream stream, Encoding encoding, char terminator)
     {
-        // Decode incrementally instead of using StreamReader: StreamReader may read ahead, which makes byte budgets and
-        // exact binary stream positions impossible to enforce reliably.
+        // Decode one byte at a time instead of using StreamReader: StreamReader may read ahead, which makes byte
+        // budgets and exact binary stream positions impossible to enforce reliably. I/O is still requested in
+        // chunks - only the decode granularity, budget accounting, and terminator search stay byte-by-byte - and
+        // any bytes read but not yet decoded are seeked back before returning or throwing so the exact-position and
+        // budget contract observed by a caller is identical to a strictly byte-by-byte reader.
         StringBuilder builder = new();
         Decoder decoder = encoding.GetDecoder();
-        byte[] input = new byte[1];
+        byte[] chunk = new byte[TerminatedStringReadChunkSize];
         char[] output = new char[2];
         long encodedByteCount = 0;
+        long? maxStringBytes = stream is ReadBudgetStream budget ? budget.MaxStringBytes : null;
 
         while (true)
         {
-            input[0] = ReadByteExactly(stream);
-            encodedByteCount++;
-            if (stream is ReadBudgetStream budget && encodedByteCount > budget.MaxStringBytes)
+            int bytesRead = stream.Read(chunk, 0, chunk.Length);
+            if (bytesRead == 0)
             {
-                throw new CStructReadLimitException("String field exceeded the configured encoded-byte limit.");
+                throw new CStructReadException("Not enough bytes in stream.");
             }
 
-            int charsUsed;
-            try
+            for (int i = 0; i < bytesRead; i++)
             {
-                decoder.Convert(input, 0, 1, output, 0, output.Length, false, out _, out charsUsed, out _);
-            }
-            catch (DecoderFallbackException exception)
-            {
-                throw new CStructReadException("String field contains bytes that are invalid for its encoding.", exception);
-            }
-
-            for (int i = 0; i < charsUsed; i++)
-            {
-                char character = output[i];
-                if (character == terminator)
+                encodedByteCount++;
+                if (maxStringBytes.HasValue && encodedByteCount > maxStringBytes.Value)
                 {
-                    // Do not include the terminator in the public string value, and leave the stream immediately after it.
-                    return builder.ToString();
+                    // A byte-by-byte reader would already have physically consumed this over-budget byte (it reads
+                    // the byte, then checks the budget), leaving the stream one byte past the limit rather than
+                    // exactly at it. Only seek back the remainder of the chunk that was never inspected at all, so
+                    // the throw-time position matches that exactly.
+                    SeekBackUnconsumedChunkBytes(stream, bytesRead, i + 1);
+                    throw new CStructReadLimitException("String field exceeded the configured encoded-byte limit.");
                 }
 
-                builder.Append(character);
+                int charsUsed;
+                try
+                {
+                    decoder.Convert(chunk, i, 1, output, 0, output.Length, false, out _, out charsUsed, out _);
+                }
+                catch (DecoderFallbackException exception)
+                {
+                    throw new CStructReadException(
+                        "String field contains bytes that are invalid for its encoding.",
+                        exception);
+                }
+
+                for (int c = 0; c < charsUsed; c++)
+                {
+                    char character = output[c];
+                    if (character == terminator)
+                    {
+                        // Do not include the terminator in the public string value, and leave the stream
+                        // immediately after it, exactly as a byte-by-byte reader would.
+                        SeekBackUnconsumedChunkBytes(stream, bytesRead, i + 1);
+                        return builder.ToString();
+                    }
+
+                    builder.Append(character);
+                }
             }
+        }
+    }
+
+    /// <summary>
+    ///     Seeks a stream back by the tail of the most recent chunk read that was not actually consumed, so a
+    ///     chunked read leaves the stream at the same position a byte-by-byte reader would have stopped at.
+    /// </summary>
+    /// <param name="stream">The stream positioned immediately after the chunk read supplying <paramref name="bytesRead"/>.</param>
+    /// <param name="bytesRead">The number of bytes the most recent chunk read actually returned.</param>
+    /// <param name="consumedCount">The number of leading bytes of that chunk that were actually decoded or counted.</param>
+    private static void SeekBackUnconsumedChunkBytes(Stream stream, int bytesRead, int consumedCount)
+    {
+        int unconsumed = bytesRead - consumedCount;
+        if (unconsumed > 0)
+        {
+            stream.Position -= unconsumed;
         }
     }
 
