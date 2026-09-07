@@ -371,7 +371,7 @@ public partial class CStruct
 
         bool isArray = hasFixedArrayDeclarator || unknownArray;
         BigInteger? writtenEnumValue = null;
-        if (unknownArray && IsVariableLengthType(effectiveField.Type.Name))
+        if (unknownArray && PrimitiveCodecs.IsVariableLengthType(effectiveField.Type.Name))
         {
             isArray = false;
         }
@@ -775,8 +775,8 @@ public partial class CStruct
             throw new CStructPathException("Path is empty.");
         }
 
-        UpdateOptions effectiveOptions = SnapshotUpdateOptions(options);
-        ValidateWriteOptions(effectiveOptions);
+        UpdateOptions effectiveOptions = CStructElementWriterState.SnapshotUpdateOptions(options);
+        CStructElementWriterState.ValidateWriteOptions(effectiveOptions);
 
         // Copy caller variables and calculate #defines so array lengths are evaluated exactly as they are for normal writes.
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
@@ -795,7 +795,7 @@ public partial class CStruct
             throw exception;
         }
 
-        ReadOperationSettings readOptions = SnapshotTraversalOptions(effectiveOptions);
+        ReadOperationSettings readOptions = ReadOperationSettings.SnapshotTraversalOptions(effectiveOptions);
         var readState = new CStructOperationContext(
             stream,
             effectiveVariables,
@@ -942,8 +942,8 @@ public partial class CStruct
             throw new CStructPathException("Path is empty.");
         }
 
-        WriteOptions effectiveOptions = SnapshotWriteOptions(options);
-        ValidateWriteOptions(effectiveOptions);
+        WriteOptions effectiveOptions = CStructElementWriterState.SnapshotWriteOptions(options);
+        CStructElementWriterState.ValidateWriteOptions(effectiveOptions);
 
         // Definitions and supplied variables form the small expression environment used for array counts.
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);

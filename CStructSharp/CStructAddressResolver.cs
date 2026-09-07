@@ -799,7 +799,7 @@ public partial class CStruct
 
         if (compiledField.Array.Kind == CompiledArrayKind.Scalar &&
             field.PointerDepth == 0 &&
-            IsVariableLengthType(compiledField.CodecName))
+            PrimitiveCodecs.IsVariableLengthType(compiledField.CodecName))
         {
             state.Stream.Position = fieldStart;
             _ = compiledField.Reader?.Invoke(state.Stream) ??

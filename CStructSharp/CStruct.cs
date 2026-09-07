@@ -95,7 +95,7 @@ public sealed partial class CStruct
             this.fieldAlignments,
             this.fieldHandlers,
             this.writeHandlers,
-            FieldTypeAliasses);
+            PrimitiveCodecs.FieldTypeAliasses);
 
         // Parse the layout text and index only exported top-level names. Anonymous inline declarations stay attached
         // to their containing field and receive declaration identity in the compiled model.
@@ -516,7 +516,7 @@ public sealed partial class CStruct
         ReadOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        ReadOperationSettings effectiveOptions = SnapshotReadOptions(options);
+        ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         var state = new CStructOperationContext(
@@ -554,7 +554,7 @@ public sealed partial class CStruct
             }
 
             if (compiledField.Array.Kind == CompiledArrayKind.Scalar &&
-                IsVariableLengthType(compiledField.CodecName))
+                PrimitiveCodecs.IsVariableLengthType(compiledField.CodecName))
             {
                 state.Stream.Position = target.Address;
                 Func<Stream, object> reader = compiledField.Reader ??
@@ -685,7 +685,7 @@ public sealed partial class CStruct
         LayoutVariableInput variables,
         ReadOptions? options)
     {
-        ReadOperationSettings effectiveOptions = SnapshotReadOptions(options);
+        ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
         if (segments.Count == 1)
         {
@@ -814,7 +814,7 @@ public sealed partial class CStruct
         LayoutVariableInput variables,
         ReadOptions? options)
     {
-        ReadOperationSettings effectiveOptions = SnapshotReadOptions(options);
+        ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
         if (segments.Count == 1)
         {
@@ -897,7 +897,7 @@ public sealed partial class CStruct
         ReadOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        ReadOperationSettings effectiveOptions = SnapshotReadOptions(options);
+        ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         var state = new CStructOperationContext(
@@ -920,7 +920,7 @@ public sealed partial class CStruct
     /// <summary>Chooses the zero-terminated string reader that matches a character pointer type.</summary>
     private static string GetStringPointerHandlerKey(Identifier type)
     {
-        if (IsVariableLengthType(type.Name))
+        if (PrimitiveCodecs.IsVariableLengthType(type.Name))
         {
             return type.Name;
         }
@@ -947,7 +947,7 @@ public sealed partial class CStruct
     /// <summary>Returns whether a pointer target should be read as a terminated string.</summary>
     private static bool IsStringPointerType(Identifier type)
     {
-        return type.Equals(CharType) || IsWideCharacterType(type) || IsVariableLengthType(type.Name);
+        return type.Equals(CharType) || IsWideCharacterType(type) || PrimitiveCodecs.IsVariableLengthType(type.Name);
     }
 
     /// <summary>Returns whether a type is a neutral or explicit-endian 16-bit character.</summary>
