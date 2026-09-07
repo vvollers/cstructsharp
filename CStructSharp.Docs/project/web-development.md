@@ -34,6 +34,35 @@ npm --prefix ./CStructSharpWeb run dev
 Open the address printed by Vite. Changes to Vue update during development; changes to C# require
 `npm --prefix ./CStructSharpWeb run build:wasm`. Run the complete production build before browser tests.
 
+## Managed bridge trimming
+
+`CStructSharpWeb/wasm/CStructSharpWeb.Wasm.csproj` builds with `PublishTrimmed` and `TrimMode=partial`, roots the
+`CStructSharp` and `Microsoft.CSharp` assemblies, and suppresses trim-analysis warnings. This was investigated to
+see whether removing the `CStructSharp` root would shrink the published bundle:
+
+- Removing `<TrimmerRootAssembly Include="CStructSharp" />` produces a byte-for-byte identical `CStructSharp.wasm`
+  (verified by hash) and an identical total `_framework` size. Under `TrimMode=partial`, an application assembly
+  that does not opt in to trimming (`IsTrimmable`) is never member-trimmed regardless of whether it is explicitly
+  rooted, so this specific entry has no measurable effect on bundle size either way. A real reduction would require
+  `CStructSharp` to opt in to trimming and carry full `DynamicallyAccessedMembers` annotations across its
+  reflection-based paths (see below) - a larger, separate change to the core library, not something to attempt from
+  this project alone.
+- Removing the root does surface real `IL2026`/`IL2075`/`IL2067`/`IL2072`/`IL2111` trim-analysis warnings when
+  `SuppressTrimAnalysisWarnings` is temporarily set to `false`. They fall into two groups, both genuinely reachable
+  from the four `[JSExport]` methods in `CStructExports.cs`, not dead code: (1) every `dynamic`/`ExpandoObject`
+  result path (`ParseWithDebugInternal` and the core reader/writer methods it calls) uses the C# runtime binder,
+  which is why `Microsoft.CSharp` must stay rooted; (2) `CStruct.TryGetMemberValue` (the POCO-property fallback
+  used by `Serialize`/`UpdateStream` when a caller's value is not already a dictionary/`ExpandoObject`) and
+  `TypedValueConverter`'s array/list/object conversion helpers use unannotated `Type.GetProperty`/`GetField`
+  reflection. In practice this second group is never exercised from the browser: `ParseJsonValue` in
+  `CStructJsonConversion.cs` always converts incoming JSON into the dynamic/dictionary shape, so the reflection
+  branch is statically reachable but not actually hit at runtime through the JS API. One consequence: the
+  `bindingMode` interop option (`WriteOptions.BindingMode`) has no observable effect through the JS API, because it
+  only changes behavior inside that same unreached reflection branch.
+
+Given the measured result, `SuppressTrimAnalysisWarnings` stays `true` and both assemblies stay rooted; there is no
+available bundle-size win from adjusting this, and unrooting would only add warning noise without changing output.
+
 ## Change lessons and test examples
 
 `src/lessons.ts` contains authored titles, exercises, and operation presets. The generator's test catalog remains
