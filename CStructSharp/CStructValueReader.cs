@@ -195,7 +195,7 @@ public sealed partial class CStruct
     {
         ArgumentNullException.ThrowIfNull(stream);
         IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
-        ReadOperationSettings effectiveOptions = SnapshotReadOptions(options);
+        ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         var state = new CStructOperationContext(
             stream,

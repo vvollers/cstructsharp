@@ -56,7 +56,7 @@ public partial class CStruct
                 throw new CStructLayoutException("Primitive codec has no matching writer: " + reader.Key);
             }
 
-            int? fixedSize = IsVariableLengthType(reader.Key) ? null : this.fieldAlignments[reader.Key];
+            int? fixedSize = PrimitiveCodecs.IsVariableLengthType(reader.Key) ? null : this.fieldAlignments[reader.Key];
             var symbol = new CompiledTypeSymbol(
                 reader.Key,
                 CompiledTypeKind.Primitive,
