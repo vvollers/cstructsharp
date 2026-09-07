@@ -27,8 +27,9 @@ CStructSharp operation still finishes synchronously and does not keep it. Use a 
 already expose seeking. Use memory APIs when the bytes are already available as an array or memory region.
 
 For a byte array named `bytes`, pass `bytes.AsSpan()` to a memory read, for example
-`layout.Parse(bytes.AsSpan(), "header")`. This explicitly selects the span overload and avoids an ambiguous
-call between the span and memory overloads when compiling for .NET 8. It does not copy the bytes.
+`layout.Parse(bytes.AsSpan(), "header")`. This explicitly selects the span overload without copying bytes and also works with older packages
+whose span/memory overloads are ambiguous under C# 12. The current source additionally provides byte-array
+overloads for `Parse`, `ReadValue`, and `TryReadValue`; these reject null arrays and forward without copying.
 
 Pointer coordinates in memory APIs start at zero within the region you pass. If you pass a slice, a pointer cannot
 refer to bytes before that slice.
@@ -74,9 +75,9 @@ stream failure during the final commit may still leave a written prefix.
 
 For a small file already loaded into a `byte[]`:
 
-1. Start with `Parse(bytes, "root")` while learning the format.
-2. Change to `ReadValue<MyType>(bytes, "root")` when the C# shape is stable.
-3. Use `ReadValue(bytes, "root.header.flags")` when only one field is needed.
+1. Start with `Parse(bytes.AsSpan(), "root")` while learning the format.
+2. Change to `ReadValue<MyType>(bytes.AsSpan(), "root")` when the C# shape is stable.
+3. Use `ReadValue(bytes.AsSpan(), "root.header.flags")` when only one field is needed.
 4. Start writes with `Serialize("root", value)`.
 5. Consider spans or `IBufferWriter<byte>` only after measuring allocation in the real workload.
 

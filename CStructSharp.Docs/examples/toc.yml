@@ -1,4 +1,6 @@
 items:
+- name: Choose a recipe
+  href: ../guides/recipes/index.md
 - name: Complete recipes
   href: recipes/
 - name: Run the examples

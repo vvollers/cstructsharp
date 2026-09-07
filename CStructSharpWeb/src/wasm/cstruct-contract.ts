@@ -1,3 +1,15 @@
+import type {
+  ParseWithDebugOptions,
+  SerializeOptions,
+  UpdateOptions,
+} from "../../wasm/cstructsharp-wasm.js";
+export type {
+  LayoutOptions,
+  ParseWithDebugOptions,
+  SerializeOptions,
+  UpdateOptions,
+} from "../../wasm/cstructsharp-wasm.js";
+
 /**
  * Single TypeScript source for the versioned wire contract shared by the Vue
  * adapter and real-browser contract tests. The C# DTOs are verified against
@@ -61,50 +73,6 @@ export interface InteropResult {
   Data: string | null;
   DebugData: DebugDataItem[];
   Error: ErrorDetails | null;
-}
-
-export interface LayoutOptions {
-  aligned?: boolean;
-  pointerSize?: number;
-  rootTypeName?: string | null;
-  littleEndian?: boolean;
-  maxDefinitionLength?: number;
-  maxLayoutNestingDepth?: number;
-  maxExpressionNestingDepth?: number;
-  maxExpressionTokens?: number;
-}
-
-export interface ParseWithDebugOptions extends LayoutOptions {
-  addressingMode?: "Absolute" | "Relative";
-  origin?: number | string | bigint;
-  dereferencePointers?: boolean;
-  maxPointerDepth?: number;
-  maxPointerTargetBytes?: number | null;
-  maxArrayElements?: number;
-  maxStringBytes?: number;
-  maxTotalBytesRead?: number;
-  maxNestingDepth?: number;
-}
-
-export interface SerializeOptions extends LayoutOptions {
-  addressingMode?: "Absolute" | "Relative";
-  origin?: number | string | bigint;
-  bindingMode?: "PublicReadable" | "PublicReadWrite";
-  maxArrayElements?: number;
-  maxStringBytes?: number;
-  maxTotalBytesWritten?: number;
-  maxNestingDepth?: number;
-}
-
-export interface UpdateOptions extends SerializeOptions {
-  allowPointerDereference?: boolean;
-  requireExistingPointerTarget?: boolean;
-  clearUnionStorage?: boolean;
-  maxTraversalPointerDepth?: number;
-  maxTraversalPointerTargetBytes?: number | null;
-  maxTraversalStringBytes?: number;
-  maxTraversalBytesRead?: number;
-  maxTraversalNestingDepth?: number;
 }
 
 /** Describes the fully validated JavaScript adapter published by bootstrap.js. */

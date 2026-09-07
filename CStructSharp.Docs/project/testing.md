@@ -92,7 +92,8 @@ compressed sizes.
 
 The browser adapter's source can be compared with its recorded wire format without compiling Web/WASM. Run relevant
 frontend and browser checks locally when changing that application. Release automation builds the production
-WASM explorer but does not repeat those checks.
+WASM explorer and runs frontend unit tests, explorer end-to-end tests, and the extracted browser starter checks.
+It also runs the starter and recipe programs against the candidate NuGet package.
 
 ## Documentation
 

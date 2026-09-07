@@ -66,8 +66,15 @@ test("representative templates render without serious accessibility or console e
 
 test("primary navigation and unified search reach conceptual and API content", async ({ page }) => {
   const errors = captureBrowserErrors(page);
+  // Exercise navigation without overlapping Chromium's cross-document view-transition snapshots.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("index.html");
 
+  await page.getByRole("link", { name: "Examples", exact: true }).click();
+  await expect(page).toHaveURL(/\/guides\/recipes\/index\.html$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Tested recipes" })).toBeVisible();
+  await page.getByRole("link", { name: "Supply a runtime array count", exact: true }).press("Enter");
+  await expect(page).toHaveURL(/\/examples\/recipes\/runtime-payload\.html$/);
   await page.getByRole("link", { name: "Layout language", exact: true }).click();
   await expect(page).toHaveURL(/\/language\/index\.html$/);
   await expect(page.getByRole("heading", { level: 1, name: "The Portable layout language" })).toBeVisible();
