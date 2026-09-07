@@ -13,6 +13,7 @@ public class ReadBenchmarks
     private CStruct pointerGraphLayout = null!;
     private CStruct scalarLayout = null!;
     private CStruct typedLayout = null!;
+    private CStruct fixedSizeStructArrayLayout = null!;
     private MemoryStream array1KiBStream = null!;
     private MemoryStream array1MiBStream = null!;
     private MemoryStream nestedUnalignedStream = null!;
@@ -20,9 +21,19 @@ public class ReadBenchmarks
     private MemoryStream pointerGraphStream = null!;
     private MemoryStream scalarStream = null!;
     private MemoryStream typedStream = null!;
+    private MemoryStream fixedSizeStructArrayStream = null!;
     private byte[] scalarBytes = null!;
     private byte[] typedBytes = null!;
     private ReadOptions largeArrayOptions = null!;
+    private string fixedSizeStructArrayElementPath = null!;
+
+    /// <summary>
+    ///     The selected index into a 10,000-element array of a fixed-size two-field struct, used by
+    ///     <see cref="ResolveIndexedFixedSizeStructArrayElement"/> to show that indexed address resolution costs the
+    ///     same regardless of how far into the array the selected element is.
+    /// </summary>
+    [Params(0, 1, 10, 100, 1000, 9999)]
+    public int FixedSizeStructArrayIndex { get; set; }
 
     [GlobalSetup]
     public void Setup()
@@ -40,6 +51,8 @@ public class ReadBenchmarks
         this.scalarLayout = new CStruct("struct root { uint16 value; };");
         this.typedLayout = new CStruct(
             "struct child { uint16 value; }; struct root { byte count; child children[count]; };");
+        this.fixedSizeStructArrayLayout = new CStruct(
+            "struct record { uint32 id; uint16 tag; }; struct root { record items[10000]; };");
 
         this.array1KiBStream = new MemoryStream(new byte[1024], writable: false);
         this.array1MiBStream = new MemoryStream(new byte[1024 * 1024], writable: false);
@@ -61,6 +74,9 @@ public class ReadBenchmarks
             MaxArrayElements = 1024 * 1024,
             MaxTotalBytesRead = 2 * 1024 * 1024,
         };
+
+        this.fixedSizeStructArrayStream = new MemoryStream(new byte[10000 * 6], writable: false);
+        this.fixedSizeStructArrayElementPath = $"root.items[{this.FixedSizeStructArrayIndex}].id";
     }
 
     [GlobalCleanup]
@@ -73,6 +89,7 @@ public class ReadBenchmarks
         this.pointerGraphStream.Dispose();
         this.scalarStream.Dispose();
         this.typedStream.Dispose();
+        this.fixedSizeStructArrayStream.Dispose();
     }
 
     [Benchmark]
@@ -194,6 +211,22 @@ public class ReadBenchmarks
     public ushort ReadSelectedScalarTypedMemory()
     {
         return this.scalarLayout.ReadValue<ushort>(this.scalarBytes.AsSpan(), "root.value");
+    }
+
+    /// <summary>
+    ///     Resolves the address of one field inside one selected element of a 10,000-element array of a fixed-size
+    ///     struct. Address resolution for a statically fixed-size element is a direct multiplication rather than a
+    ///     walk over every preceding element, so this benchmark's reported time should stay flat across
+    ///     <see cref="FixedSizeStructArrayIndex"/> instead of growing with the selected index.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("IndexedArrayAccess")]
+    public long ResolveIndexedFixedSizeStructArrayElement()
+    {
+        this.fixedSizeStructArrayStream.Position = 0;
+        return this.fixedSizeStructArrayLayout.ResolveAddress(
+            this.fixedSizeStructArrayStream,
+            this.fixedSizeStructArrayElementPath);
     }
 
     public sealed class TypedChild

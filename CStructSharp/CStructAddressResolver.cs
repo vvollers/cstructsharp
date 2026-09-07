@@ -729,6 +729,18 @@ public partial class CStruct
             return fieldStart;
         }
 
+        // A known per-element size means every element - including any nested struct's own fields - has a
+        // statically fixed layout with no runtime-dependent count or size, so the selected element's start is one
+        // multiplication instead of a per-element walk. This is also safe with respect to layout-variable capture:
+        // resolving one array element never continues on to a later sibling field of the containing struct (the
+        // caller returns or recurses into the selected element as soon as this method returns), and nothing inside
+        // a statically fixed-size element can itself depend on a captured variable. So skipping the walk over the
+        // preceding elements cannot omit a variable capture that anything still to be resolved needs.
+        if (compiledField.FixedElementSize is int fixedElementSize)
+        {
+            return checked(fieldStart + ((long)fixedElementSize * index));
+        }
+
         Field field = compiledField.EffectiveField;
         CStructElement? namedElement = compiledField.NamedElement;
         if (namedElement is Struct nested)
@@ -742,8 +754,7 @@ public partial class CStruct
             return current;
         }
 
-        int elementSize = compiledField.FixedElementSize ??
-                          this.GetCompiledFieldElementSize(compiledField, state.Variables, false);
+        int elementSize = this.GetCompiledFieldElementSize(compiledField, state.Variables, false);
         return checked(fieldStart + ((long)elementSize * index));
     }
 
@@ -771,6 +782,12 @@ public partial class CStruct
             int count = compiledField.Array.Kind == CompiledArrayKind.Scalar
                             ? 1
                             : this.GetBoundedArrayCount(compiledField, state);
+
+            // Unlike GetArrayElementStart, this walk cannot be replaced by FixedElementSize * count even when the
+            // element size is statically known: a later sibling field of the containing struct is still to be
+            // resolved after this call returns, and MeasureStructEnd's per-field CaptureLayoutVariable calls may
+            // expose a scalar from inside one of these elements (by its bare field name) that a later field's
+            // runtime array-count expression depends on. Skipping elements here could silently drop that capture.
             long current = fieldStart;
             for (int i = 0; i < count; i++)
             {
