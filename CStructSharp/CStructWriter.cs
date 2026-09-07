@@ -49,7 +49,7 @@ public partial class CStruct
         }
 
         // Validate the selected slice before reading or changing its shared storage unit.
-        ulong fieldValue = ValidateBitfieldWriteValue(field, value);
+        ulong fieldValue = BitfieldCodecTable.ValidateBitfieldWriteValue(field, value);
 
         // Bitfields share bytes. Read the existing bytes so neighboring fields survive this update.
         long curPos = state.Stream.Position;
@@ -80,7 +80,7 @@ public partial class CStruct
 
         // Keep the bits belonging to earlier fields and replace only this field's masked range.
         ulong existing = ReadUnsigned(buffer, storageIsLittleEndian);
-        ulong newValue = MergeBitfieldValue(existing, fieldValue, state.CurrentBitOffset, field.BitSize);
+        ulong newValue = BitfieldCodecTable.MergeBitfieldValue(existing, fieldValue, state.CurrentBitOffset, field.BitSize);
 
         // Convert the merged number back to bytes, then overwrite exactly this storage unit.
         byte[] output = WriteUnsigned(newValue, byteSize, storageIsLittleEndian);
@@ -402,7 +402,7 @@ public partial class CStruct
                                      ? 0
                                      : state.CurrentBitfieldSize;
             bool startsNewStorageUnit = state.CurrentBitOffset > 0 &&
-                                        this.StartsNewBitfieldUnit(
+                                        LayoutMath.StartsNewBitfieldUnit(
                                             state.CurrentBitfieldType,
                                             activeUnitSize,
                                             activeUnitSize,
@@ -443,7 +443,7 @@ public partial class CStruct
             }
 
             // Advance to the next boundary. The bytes skipped here are the layout's padding.
-            state.Stream.Position = this.AlignUp(curPos, structAlignment);
+            state.Stream.Position = LayoutMath.AlignUp(curPos, structAlignment);
             curPos = state.Stream.Position;
 
             state.CurrentFieldAlignment = structAlignment;
@@ -565,7 +565,7 @@ public partial class CStruct
         }
 
         int alignment = this.GetCompiledComposite(strct).Symbol.Alignment;
-        long alignedEnd = this.AlignUp(state.Stream.Position, alignment);
+        long alignedEnd = LayoutMath.AlignUp(state.Stream.Position, alignment);
         if (alignedEnd == state.Stream.Position)
         {
             return;
@@ -791,7 +791,7 @@ public partial class CStruct
         if (!this.TryGetCompiledDeclaration(rootName, out CStructElement? rootElement))
         {
             var exception = new CStructPathException("Unknown root element: " + rootName);
-            AttachExceptionContext(exception, segments, stream);
+            ExceptionContext.Attach(exception, segments, stream);
             throw exception;
         }
 
@@ -868,7 +868,7 @@ public partial class CStruct
             primaryException = exception;
             if (exception is CStructException domainException)
             {
-                AttachExceptionContext(domainException, segments, stream);
+                ExceptionContext.Attach(domainException, segments, stream);
             }
 
             throw;
@@ -886,7 +886,7 @@ public partial class CStruct
             }
             catch (CStructException restorationException)
             {
-                AttachExceptionContext(restorationException, segments, stream);
+                ExceptionContext.Attach(restorationException, segments, stream);
                 throw;
             }
         }
@@ -958,7 +958,7 @@ public partial class CStruct
         if (!this.TryGetCompiledDeclaration(rootName, out CStructElement? rootElement))
         {
             var exception = new CStructPathException("Unknown root element: " + rootName);
-            AttachExceptionContext(exception, segments, stream);
+            ExceptionContext.Attach(exception, segments, stream);
             throw exception;
         }
 
@@ -997,7 +997,7 @@ public partial class CStruct
         }
         catch (CStructException exception)
         {
-            AttachExceptionContext(exception, segments, stream);
+            ExceptionContext.Attach(exception, segments, stream);
             throw;
         }
     }

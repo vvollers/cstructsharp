@@ -33,6 +33,8 @@ public sealed partial class CStruct
     private static readonly Identifier WcharLittleEndianType = new("wchar<");
     private static readonly Identifier WcharType = new("wchar");
 
+    private readonly BitfieldCodecTable bitfieldCodecs;
+
     private readonly ConstructionDictionary<string, CStructElement> cStructElements =
         new(StringComparer.Ordinal);
 
@@ -87,7 +89,12 @@ public sealed partial class CStruct
         // Primitive readers and writers are built once because their byte order is part of the layout contract.
         this.BuildFieldHandlers();
         this.BuildWriteHandlers();
-        this.BuildIntegralBitfieldStorageCodecs();
+        this.bitfieldCodecs = new BitfieldCodecTable(
+            this.IsLittleEndian,
+            this.fieldAlignments,
+            this.fieldHandlers,
+            this.writeHandlers,
+            FieldTypeAliasses);
 
         // Parse the layout text and index only exported top-level names. Anonymous inline declarations stay attached
         // to their containing field and receive declaration identity in the compiled model.
@@ -109,12 +116,12 @@ public sealed partial class CStruct
 
         foreach (CStructElement declaration in structResult)
         {
-            this.ValidateBuiltInNameCollision(declaration);
+            SymbolValidation.ValidateBuiltInNameCollision(declaration, this.fieldHandlers);
             if (this.cStructElements.TryGetValue(declaration.Name.Name, out CStructElement? existing))
             {
                 throw new CStructLayoutException(
                     $"Duplicate global declaration name '{declaration.Name.Name}': " +
-                    $"{GetDeclarationKind(existing)} and {GetDeclarationKind(declaration)}.");
+                    $"{SymbolValidation.GetDeclarationKind(existing)} and {SymbolValidation.GetDeclarationKind(declaration)}.");
             }
 
             this.cStructElements.Add(declaration.Name.Name, declaration);
@@ -143,7 +150,7 @@ public sealed partial class CStruct
 
         // A compiled layout cannot safely expose duplicate field or enum-member names: readers, writers, and paths
         // would otherwise select different declarations from the same lexical scope.
-        this.ValidateScopedMemberNames(structResult);
+        SymbolValidation.ValidateScopedMemberNames(structResult);
 
         foreach (KeyValuePair<string, CStructElement> el in this.CStructElements)
         {
@@ -173,7 +180,6 @@ public sealed partial class CStruct
         this.fieldAlignments.Freeze();
         this.fieldHandlers.Freeze();
         this.writeHandlers.Freeze();
-        this.integralBitfieldStorageCodecs.Freeze();
         this.enumIntegerCodecs.Freeze();
     }
 
@@ -561,7 +567,7 @@ public sealed partial class CStruct
         }
         catch (CStructException exception)
         {
-            AttachExceptionContext(exception, segments, stream);
+            ExceptionContext.Attach(exception, segments, stream);
             throw;
         }
         finally
@@ -720,7 +726,7 @@ public sealed partial class CStruct
         }
         catch (CStructException exception)
         {
-            AttachExceptionContext(exception, segments, stream);
+            ExceptionContext.Attach(exception, segments, stream);
             throw;
         }
     }
@@ -850,7 +856,7 @@ public sealed partial class CStruct
         }
         catch (CStructException exception)
         {
-            AttachExceptionContext(exception, segments, stream);
+            ExceptionContext.Attach(exception, segments, stream);
             throw;
         }
     }

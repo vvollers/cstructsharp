@@ -7,10 +7,10 @@ using System.IO;
 using System.Linq;
 
 /// <summary>Builds safe diagnostic context from already validated semantic paths and caller-owned streams.</summary>
-public partial class CStruct
+internal static class ExceptionContext
 {
     /// <summary>Attaches normalized operation context without allowing a diagnostic lookup to hide the primary failure.</summary>
-    private static void AttachExceptionContext(
+    public static void Attach(
         CStructException exception,
         IReadOnlyList<PathSegment> segments,
         Stream stream)
@@ -19,7 +19,7 @@ public partial class CStruct
     }
 
     /// <summary>Formats only parser-validated identifiers and indexes, never arbitrary caller input.</summary>
-    private static string? FormatPath(IReadOnlyList<PathSegment> segments)
+    public static string? FormatPath(IReadOnlyList<PathSegment> segments)
     {
         return string.Join(
             ".",

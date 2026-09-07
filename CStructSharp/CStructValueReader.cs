@@ -118,11 +118,11 @@ public sealed partial class CStruct
                 elementNameOrPath,
                 LayoutVariableInput.FromIntegers(variables),
                 options);
-            return (T)TypedValueConverter.Convert(naturalValue, typeof(T), FormatPath(segments))!;
+            return (T)TypedValueConverter.Convert(naturalValue, typeof(T), ExceptionContext.FormatPath(segments))!;
         }
         catch (CStructException exception)
         {
-            AttachExceptionContext(exception, segments, stream);
+            ExceptionContext.Attach(exception, segments, stream);
             throw;
         }
     }
@@ -210,7 +210,7 @@ public sealed partial class CStruct
         }
         catch (CStructException exception)
         {
-            AttachExceptionContext(exception, segments, stream);
+            ExceptionContext.Attach(exception, segments, stream);
             throw;
         }
     }

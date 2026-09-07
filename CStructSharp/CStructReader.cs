@@ -37,7 +37,7 @@ public partial class CStruct
         }
 
         int alignment = this.GetCompiledComposite(strct).Symbol.Alignment;
-        state.Stream.Position = this.AlignUp(state.Stream.Position, alignment);
+        state.Stream.Position = LayoutMath.AlignUp(state.Stream.Position, alignment);
     }
 
     /// <summary>
@@ -252,7 +252,7 @@ public partial class CStruct
                                     if (state.Aligned && unionPosition == -1)
                                     {
                                         int structAlignment = compiledField.Alignment;
-                                        state.Stream.Position = this.AlignUp(curPos, structAlignment);
+                                        state.Stream.Position = LayoutMath.AlignUp(curPos, structAlignment);
                                         curPos = state.Stream.Position;
                                     }
 
@@ -340,7 +340,7 @@ public partial class CStruct
                                                          ? 0
                                                          : state.CurrentBitfieldSize;
                                 bool startsNewStorageUnit = state.CurrentBitOffset > 0 &&
-                                                           this.StartsNewBitfieldUnit(
+                                                           LayoutMath.StartsNewBitfieldUnit(
                                                                state.CurrentBitfieldType,
                                                                activeUnitSize,
                                                                activeUnitSize,
@@ -380,7 +380,7 @@ public partial class CStruct
                                     state.CurrentBitfieldType = null;
                                 }
 
-                                state.Stream.Position = this.AlignUp(curPos, structAlignment);
+                                state.Stream.Position = LayoutMath.AlignUp(curPos, structAlignment);
                                 curPos = state.Stream.Position;
 
                                 state.CurrentFieldAlignment = structAlignment;
@@ -412,7 +412,7 @@ public partial class CStruct
                                     throw new CStructReadException("Bitfield exceeds its storage unit: " + f.Name.Name);
                                 }
 
-                                ulong extracted = ExtractBitfieldValue(
+                                ulong extracted = BitfieldCodecTable.ExtractBitfieldValue(
                                     content,
                                     state.CurrentBitOffset,
                                     f.BitSize);
@@ -582,7 +582,7 @@ public partial class CStruct
         }
         catch (CStructException exception)
         {
-            AttachExceptionContext(exception, segments, stream);
+            ExceptionContext.Attach(exception, segments, stream);
             throw;
         }
 
