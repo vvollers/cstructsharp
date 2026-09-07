@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 using System.Dynamic;
 using System.Reflection;
 
-/// <summary>Defines the lock-free concurrent-reuse contract accepted by ADR-007 and ADR-011.</summary>
+/// <summary>Defines the lock-free concurrent-reuse contract.</summary>
 [TestClass]
 public class ConcurrentReuseTests
 {

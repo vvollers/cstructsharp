@@ -36,7 +36,6 @@ Some behavior is also recorded in JSON/text files so tests, docs, and release au
 related to your change:
 
 ```powershell
-.\tools\Validate-RegressionInventory.ps1
 .\tools\Validate-FeatureOperationMatrix.ps1
 .\tools\Validate-CanonicalReference.ps1
 .\tools\Validate-CompilerFixture.ps1
@@ -44,7 +43,7 @@ related to your change:
 .\tools\Compare-ManagedApiBaseline.ps1
 ```
 
-These commands check, respectively, named regressions, language operations, the Portable data tables, compiler
+These commands check, respectively, language operations, the Portable data tables, compiler
 observations, replayable fuzz inputs, and public API signatures. Each prints a concise pass summary or exits nonzero
 with the mismatched file/entry.
 

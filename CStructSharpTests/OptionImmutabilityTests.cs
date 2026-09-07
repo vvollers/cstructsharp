@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using CStructSharp.Structure;
 
-/// <summary>Defines the immutable public option contract accepted by ADR-007 and ADR-011.</summary>
+/// <summary>Defines the immutable public option contract.</summary>
 [TestClass]
 public class OptionImmutabilityTests
 {

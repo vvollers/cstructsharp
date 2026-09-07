@@ -120,7 +120,6 @@
         "expected": "Unknown raw uint32 value 4294967295",
         "observedBeforeFix": "OverflowException from Convert.ToInt32"
       },
-      "decisionAdrs": ["ADR-004", "ADR-011"],
       "acceptedDecision": "Implement exact width- and signedness-aware enum values with one BigInteger public projection and no Int32 compatibility bridge.",
       "test": {
         "file": "CStructSharpTests/ReviewRegressionTests.cs",

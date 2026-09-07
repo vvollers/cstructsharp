@@ -94,17 +94,8 @@ function Assert-WorkItems {
     Assert-Condition ($items.Count -eq @($items | Select-Object -Unique).Count) `
         "$Context contains duplicate work-item ids."
     foreach ($item in $items) {
-        Assert-Condition ($item -match '^(?:ADR-\d{3}|[A-Z]+-\d{2})$') `
+        Assert-Condition ($item -match '^[A-Z]+-\d{2}$') `
             "$Context contains invalid traceability id '$item'."
-        if ($item -match '^ADR-(?<number>\d{3})$') {
-            $filePrefix = '{0:D4}-' -f [int]$Matches['number']
-            $adrFiles = @(
-                Get-ChildItem -LiteralPath (Join-Path $repositoryRoot 'CStructSharp.Docs\decisions\product') `
-                    -File `
-                    -Filter "$filePrefix*.md")
-            Assert-Condition ($adrFiles.Count -eq 1) `
-                "$Context expected exactly one document for '$item'; found $($adrFiles.Count)."
-        }
     }
 }
 
