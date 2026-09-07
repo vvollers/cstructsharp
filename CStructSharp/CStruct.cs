@@ -42,6 +42,7 @@ public sealed partial class CStruct
     private readonly ConstructionDictionary<string, Func<Stream, object>> fieldHandlers =
         new(StringComparer.Ordinal);
 
+    private readonly EnumIntegerCodecTable enumIntegerCodecs;
     private readonly ExpressionEvaluator expressionEvaluator;
     private readonly LayoutVariableResolver layoutVariableResolver;
     private readonly IReadOnlyDictionary<string, Expr> staticLayoutVariables;
@@ -137,7 +138,7 @@ public sealed partial class CStruct
         this.staticLayoutVariables = this.layoutVariableResolver.CreateStatic();
 
         // Validate enum storage before either expression evaluation or alignment can narrow/lookup the backing type.
-        this.CompileEnumStorageDescriptors(structResult);
+        this.enumIntegerCodecs = new EnumIntegerCodecTable(structResult, this.cStructElements);
 
         // Compile every retained expression with this layout's immutable limits. Bit widths and enum values are static;
         // array expressions keep their compiled program because caller variables may change their result per operation.
@@ -157,7 +158,7 @@ public sealed partial class CStruct
             if (el.Value is CstructEnum en)
             {
                 // An enum occupies exactly the same bytes as its declared primitive storage type.
-                this.fieldAlignments[el.Key] = (byte)this.GetEnumIntegerCodec(en.Name.Name).SizeInBytes;
+                this.fieldAlignments[el.Key] = (byte)this.enumIntegerCodecs.Get(en.Name.Name).SizeInBytes;
             }
         }
 
@@ -180,7 +181,6 @@ public sealed partial class CStruct
         this.fieldAlignments.Freeze();
         this.fieldHandlers.Freeze();
         this.writeHandlers.Freeze();
-        this.enumIntegerCodecs.Freeze();
     }
 
     /// <summary>
@@ -333,7 +333,7 @@ public sealed partial class CStruct
     /// <summary>Evaluates one enum in its exact validated signed/unsigned storage domain.</summary>
     private CstructEnum EvaluateEnumDeclaration(CstructEnum enm)
     {
-        EnumIntegerCodec codec = this.GetEnumIntegerCodec(enm.Name.Name);
+        EnumIntegerCodec codec = this.enumIntegerCodecs.Get(enm.Name.Name);
         return enm.Evaluate(
             this.expressionEvaluator,
             this.staticLayoutVariables,
