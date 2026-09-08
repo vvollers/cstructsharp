@@ -25,7 +25,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "multi-token-integer",
+        "unsupportedId": "unrecognized-integer-spelling",
         "errorCode": "InvalidLayout"
       }
     },

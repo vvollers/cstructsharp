@@ -45,6 +45,31 @@ internal static class PrimitiveCodecs
         ["string>"] = "unicode_string_zero>",
         ["string<"] = "unicode_string_zero<",
         ["cstring"] = "ascii_string_zero",
+
+        // Wider C integer spellings (LANG-03a). Portable's long/ulong are always 64-bit regardless of host data
+        // model (see differences-from-c.md), so every "long"-containing multi-word spelling below is consistently
+        // 64-bit rather than inferred from any native ABI.
+        ["signed"] = "int32",
+        ["unsigned"] = "uint32",
+        ["signed int"] = "int32",
+        ["unsigned int"] = "uint32",
+        ["signed short"] = "int16",
+        ["unsigned short"] = "uint16",
+        ["signed long"] = "int64",
+        ["unsigned long"] = "uint64",
+        ["long long"] = "int64",
+        ["signed long long"] = "int64",
+        ["unsigned long long"] = "uint64",
+        ["signed char"] = "int8",
+        ["unsigned char"] = "uint8",
+        ["int8_t"] = "int8",
+        ["uint8_t"] = "uint8",
+        ["int16_t"] = "int16",
+        ["uint16_t"] = "uint16",
+        ["int32_t"] = "int32",
+        ["uint32_t"] = "uint32",
+        ["int64_t"] = "int64",
+        ["uint64_t"] = "uint64",
     };
 
     /// <summary>Returns whether a primitive handler consumes bytes until a terminator instead of having a fixed footprint.</summary>
