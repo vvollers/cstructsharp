@@ -175,61 +175,13 @@ public partial class CStruct
                 bitStorageSize);
         }
 
-        long current = structStart;
-        long activeBitUnitStart = -1;
-        int activeBitUnitSize = 0;
-        int activeBitUnitBitsUsed = 0;
-        int activeBitUnitAlignment = 0;
-        string? activeBitUnitType = null;
+        var cursor = new CompositeFieldPlacementCursor(structStart, this.Aligned);
 
         foreach (CompiledField compiledField in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
         {
             Field declaredField = compiledField.Declaration;
             Field field = compiledField.EffectiveField;
-            long fieldStart;
-            int bitOffset = 0;
-
-            if (field.BitSize > 0)
-            {
-                int unitSize = compiledField.BitStorageSize ??
-                               throw new InvalidOperationException(
-                                   "Compiled bitfield has no storage size: " + field.Name.Name);
-                int alignment = compiledField.Alignment;
-                bool startsNewUnit = LayoutMath.StartsNewBitfieldUnit(
-                    activeBitUnitType,
-                    activeBitUnitSize,
-                    activeBitUnitAlignment,
-                    activeBitUnitBitsUsed,
-                    field,
-                    unitSize,
-                    alignment);
-                if (startsNewUnit)
-                {
-                    current = this.Aligned ? LayoutMath.AlignUp(current, alignment) : current;
-                    activeBitUnitStart = current;
-                    current = checked(current + unitSize);
-                    activeBitUnitSize = unitSize;
-                    activeBitUnitAlignment = alignment;
-                    activeBitUnitType = field.Type.Name;
-                    activeBitUnitBitsUsed = 0;
-                }
-
-                fieldStart = activeBitUnitStart;
-                bitOffset = activeBitUnitBitsUsed;
-                activeBitUnitBitsUsed += field.BitSize;
-            }
-            else
-            {
-                activeBitUnitStart = -1;
-                activeBitUnitSize = 0;
-                activeBitUnitBitsUsed = 0;
-                activeBitUnitAlignment = 0;
-                activeBitUnitType = null;
-
-                int alignment = compiledField.Alignment;
-                current = this.Aligned ? LayoutMath.AlignUp(current, alignment) : current;
-                fieldStart = current;
-            }
+            (long fieldStart, int bitOffset) = cursor.AdvanceToField(compiledField);
 
             if (string.Equals(declaredField.Name.Name, requested.Name, StringComparison.Ordinal))
             {
@@ -252,7 +204,7 @@ public partial class CStruct
             this.CaptureLayoutVariable(compiledField, fieldStart, bitOffset, state);
             if (field.BitSize == 0)
             {
-                current = this.MeasureFieldEnd(compiledField, fieldStart, state);
+                cursor.CompleteField(this.MeasureFieldEnd(compiledField, fieldStart, state));
             }
         }
 
@@ -860,69 +812,22 @@ public partial class CStruct
                     false));
         }
 
-        long current = structStart;
-        long activeBitUnitStart = -1;
-        int activeBitUnitSize = 0;
-        int activeBitUnitBitsUsed = 0;
-        int activeBitUnitAlignment = 0;
-        string? activeBitUnitType = null;
+        var cursor = new CompositeFieldPlacementCursor(structStart, this.Aligned);
 
         foreach (CompiledField compiledField in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
         {
             Field field = compiledField.EffectiveField;
-            long fieldStart;
-            int bitOffset = 0;
-
-            if (field.BitSize > 0)
-            {
-                int unitSize = compiledField.BitStorageSize ??
-                               throw new InvalidOperationException(
-                                   "Compiled bitfield has no storage size: " + field.Name.Name);
-                int alignment = compiledField.Alignment;
-                bool startsNew = LayoutMath.StartsNewBitfieldUnit(
-                    activeBitUnitType,
-                    activeBitUnitSize,
-                    activeBitUnitAlignment,
-                    activeBitUnitBitsUsed,
-                    field,
-                    unitSize,
-                    alignment);
-                if (startsNew)
-                {
-                    current = this.Aligned ? LayoutMath.AlignUp(current, alignment) : current;
-                    activeBitUnitStart = current;
-                    current = checked(current + unitSize);
-                    activeBitUnitSize = unitSize;
-                    activeBitUnitAlignment = alignment;
-                    activeBitUnitType = field.Type.Name;
-                    activeBitUnitBitsUsed = 0;
-                }
-
-                fieldStart = activeBitUnitStart;
-                bitOffset = activeBitUnitBitsUsed;
-                activeBitUnitBitsUsed += field.BitSize;
-            }
-            else
-            {
-                activeBitUnitStart = -1;
-                activeBitUnitSize = 0;
-                activeBitUnitBitsUsed = 0;
-                activeBitUnitAlignment = 0;
-                activeBitUnitType = null;
-                int alignment = compiledField.Alignment;
-                current = this.Aligned ? LayoutMath.AlignUp(current, alignment) : current;
-                fieldStart = current;
-            }
+            (long fieldStart, int bitOffset) = cursor.AdvanceToField(compiledField);
 
             this.CaptureLayoutVariable(compiledField, fieldStart, bitOffset, state);
             if (field.BitSize == 0)
             {
-                current = this.MeasureFieldEnd(compiledField, fieldStart, state);
+                cursor.CompleteField(this.MeasureFieldEnd(compiledField, fieldStart, state));
             }
         }
 
         int structAlignment = this.compiledSizeQueries.GetCompiledComposite(strct).Symbol.Alignment;
-        return this.Aligned ? LayoutMath.AlignUp(current, structAlignment) : current;
+        return this.Aligned ? LayoutMath.AlignUp(cursor.Current, structAlignment) : cursor.Current;
     }
 
     /// <summary>
