@@ -847,11 +847,6 @@
       "category": "inline union"
     },
     {
-      "id": "multiple-declarators",
-      "definition": "struct root { uint8 first, second; };",
-      "category": "multiple declarators"
-    },
-    {
       "id": "multidimensional-array",
       "definition": "struct root { uint8 values[2][3]; };",
       "category": "multidimensional array"

@@ -330,17 +330,77 @@ internal static class CStructDefinitionParser
             Tok(SemiColon).IgnoreResult()).
         Labelled("Field");
 
-    public static readonly Parser<char, Field> StructOrField = Rec(() => InnerStruct!.Or(Field));
+    /// <summary>
+    ///     Parses one comma-separated declarator after the first (its own pointer stars, optional array, and
+    ///     optional bit width), sharing the enclosing <see cref="FieldGroup"/>'s type.
+    /// </summary>
+    private static readonly Parser<char, (Identifier Name, int PointerDepth, Maybe<Maybe<Expr>> Array, Maybe<Expr> BitSize)>
+        Declarator = Map(
+            (words, arr, bitSize) => (
+                Name: words.Last(),
+                PointerDepth: words.Sum(o => o.PointerDepth),
+                Array: arr,
+                BitSize: bitSize),
+            ExtendedIdentifier.AtLeastOnce(),
+            Array.Optional(),
+            BitSize.Optional());
+
+    /// <summary>
+    ///     Parses one field declaration with one or more comma-separated declarators sharing one type (LANG-12),
+    ///     e.g. <c>uint8 *a, b[4];</c>. Each declarator carries its own pointer stars, array, and bit width -
+    ///     matching C's declarator-list semantics, where a leading star belongs to the declarator it precedes, not
+    ///     every name in the list. <see cref="Field"/> itself stays a single-declarator parser used only by its one
+    ///     existing direct caller; every real struct/union body consumes this production instead.
+    /// </summary>
+    public static readonly Parser<char, IEnumerable<Field>> FieldGroup = Map(
+            (fields, arr, bitSize, rest, _) =>
+            {
+                string typeName = string.Join(
+                    " ",
+                    fields.SkipLast(1).Select(o => o.Name).Where(name => !string.IsNullOrWhiteSpace(name)));
+                var typeIdentifier = new Identifier(typeName);
+                int firstPointerDepth = fields.Sum(o => o.PointerDepth);
+
+                Field MakeField(Identifier name, int pointerDepth, Maybe<Maybe<Expr>> declaratorArray, Maybe<Expr> declaratorBitSize)
+                {
+                    Expr arrayCount = declaratorArray.HasValue
+                        ? declaratorArray.Value.HasValue ? declaratorArray.Value.Value : Structure.Field.UnknownArraysize
+                        : Structure.Field.NoArray;
+                    return new Field(
+                        typeIdentifier,
+                        name,
+                        arrayCount,
+                        declaratorBitSize.HasValue ? declaratorBitSize.Value : NoneExpr.Instance,
+                        pointerDepth);
+                }
+
+                var result = new List<Field> { MakeField(fields.Last(), firstPointerDepth, arr, bitSize), };
+                foreach ((Identifier Name, int PointerDepth, Maybe<Maybe<Expr>> Array, Maybe<Expr> BitSize) declarator in rest)
+                {
+                    result.Add(MakeField(declarator.Name, declarator.PointerDepth, declarator.Array, declarator.BitSize));
+                }
+
+                return (IEnumerable<Field>)result;
+            },
+            ExtendedIdentifier.AtLeastOnce(),
+            Array.Optional(),
+            BitSize.Optional(),
+            Comma.Then(Declarator).Many(),
+            Tok(SemiColon).IgnoreResult()).
+        Labelled("Field");
+
+    public static readonly Parser<char, IEnumerable<Field>> StructOrField =
+        Rec(() => InnerStruct!.Select(f => (IEnumerable<Field>)new[] { f, }).Or(FieldGroup));
 
     public static readonly Parser<char, Field> InnerStruct = Map(
-            (fields, name) => new Struct(name, [.. fields,], false),
+            (fields, name) => new Struct(name, [.. fields.SelectMany(group => group),], false),
             StructKeyword.Then(SkipWhiteSpacesAndComments).Then(OpenBrace).Then(StructOrField.Many()),
             SkipWhiteSpacesAndComments.Before(CloseBrace).Then(Identifier).Before(SemiColon)).
         Select<Field>(s => s).
         Labelled("Struct");
 
     public static readonly Parser<char, CStructElement> Struct = Map(
-            (name, fields) => new Struct(name, [.. fields,], false),
+            (name, fields) => new Struct(name, [.. fields.SelectMany(group => group),], false),
             StructKeyword.Then(SkipWhiteSpacesAndComments).Then(Identifier),
             SkipWhiteSpacesAndComments.Then(OpenBrace).
                 Then(SkipWhiteSpacesAndComments).
@@ -349,11 +409,11 @@ internal static class CStructDefinitionParser
         Labelled("Struct");
 
     public static readonly Parser<char, CStructElement> Union = Map(
-            (name, fields) => new Struct(name, [.. fields], true),
+            (name, fields) => new Struct(name, [.. fields.SelectMany(group => group)], true),
             UnionKeyword.Then(SkipWhiteSpacesAndComments).Then(Identifier),
             SkipWhiteSpacesAndComments.Then(OpenBrace).
                 Then(SkipWhiteSpacesAndComments).
-                Then(Field.Many().Before(CloseBrace).Before(SemiColon.Optional()))).
+                Then(FieldGroup.Many().Before(CloseBrace).Before(SemiColon.Optional()))).
         Select<CStructElement>(s => s).
         Labelled("Union");
 
@@ -374,7 +434,7 @@ internal static class CStructDefinitionParser
 
     /// <summary>Parses <c>typedef struct { ... } Name;</c>, the anonymous inline form with no tag between "struct" and "{".</summary>
     public static readonly Parser<char, CStructElement> AnonymousTypedefStruct = Map(
-            (fields, name) => new Typedef(name, new Struct(name, [.. fields,], false)),
+            (fields, name) => new Typedef(name, new Struct(name, [.. fields.SelectMany(group => group),], false)),
             TypedefKeyword.Then(SkipWhiteSpacesAndComments).Then(StructKeyword).
                 Then(SkipWhiteSpacesAndComments).Then(OpenBrace).Then(StructOrField.Many()),
             SkipWhiteSpacesAndComments.Before(CloseBrace).Then(Identifier).Before(SemiColon)).
@@ -383,9 +443,9 @@ internal static class CStructDefinitionParser
 
     /// <summary>Parses <c>typedef union { ... } Name;</c>, the anonymous inline form with no tag between "union" and "{".</summary>
     public static readonly Parser<char, CStructElement> AnonymousTypedefUnion = Map(
-            (fields, name) => new Typedef(name, new Struct(name, [.. fields,], true)),
+            (fields, name) => new Typedef(name, new Struct(name, [.. fields.SelectMany(group => group),], true)),
             TypedefKeyword.Then(SkipWhiteSpacesAndComments).Then(UnionKeyword).
-                Then(SkipWhiteSpacesAndComments).Then(OpenBrace).Then(Field.Many()),
+                Then(SkipWhiteSpacesAndComments).Then(OpenBrace).Then(FieldGroup.Many()),
             SkipWhiteSpacesAndComments.Before(CloseBrace).Then(Identifier).Before(SemiColon)).
         Select<CStructElement>(s => s).
         Labelled("Anonymous Typedef Union");
