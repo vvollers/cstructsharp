@@ -17,44 +17,44 @@ public partial class CStruct
         this.fieldHandlers.ReplaceWith(
             new Dictionary<string, Func<Stream, object>>
             {
-                ["byte"] = stream => ReadByteExactly(stream),
-                ["int8"] = stream => unchecked((sbyte)ReadByteExactly(stream)),
-                ["uint8"] = stream => ReadByteExactly(stream),
-                ["char"] = stream => (char)ReadByteExactly(stream),
-                ["wchar>"] = stream => BitConverter.ToChar(ReadIntoBuffer(stream, 2, false)),
-                ["wchar<"] = stream => BitConverter.ToChar(ReadIntoBuffer(stream, 2, true)),
+                ["byte"] = stream => BinaryPrimitiveIO.ReadByteExactly(stream),
+                ["int8"] = stream => unchecked((sbyte)BinaryPrimitiveIO.ReadByteExactly(stream)),
+                ["uint8"] = stream => BinaryPrimitiveIO.ReadByteExactly(stream),
+                ["char"] = stream => (char)BinaryPrimitiveIO.ReadByteExactly(stream),
+                ["wchar>"] = stream => BitConverter.ToChar(BinaryPrimitiveIO.ReadIntoBuffer(stream, 2, false)),
+                ["wchar<"] = stream => BitConverter.ToChar(BinaryPrimitiveIO.ReadIntoBuffer(stream, 2, true)),
                 ["int16>"]
-                                     = stream => (short)((ReadByteExactly(stream) << 8) | ReadByteExactly(stream)),
+                                     = stream => (short)((BinaryPrimitiveIO.ReadByteExactly(stream) << 8) | BinaryPrimitiveIO.ReadByteExactly(stream)),
                 ["int16<"]
-                                     = stream => (short)(ReadByteExactly(stream) | (ReadByteExactly(stream) << 8)),
+                                     = stream => (short)(BinaryPrimitiveIO.ReadByteExactly(stream) | (BinaryPrimitiveIO.ReadByteExactly(stream) << 8)),
                 ["uint16>"]
-                                     = stream => (ushort)((ReadByteExactly(stream) << 8) | ReadByteExactly(stream)),
+                                     = stream => (ushort)((BinaryPrimitiveIO.ReadByteExactly(stream) << 8) | BinaryPrimitiveIO.ReadByteExactly(stream)),
                 ["uint16<"]
-                                     = stream => (ushort)(ReadByteExactly(stream) | (ReadByteExactly(stream) << 8)),
+                                     = stream => (ushort)(BinaryPrimitiveIO.ReadByteExactly(stream) | (BinaryPrimitiveIO.ReadByteExactly(stream) << 8)),
                 ["int32>"]
-                                     = stream => (ReadByteExactly(stream) << 24) |
-                                                 (ReadByteExactly(stream) << 16) |
-                                                 (ReadByteExactly(stream) << 8) |
-                                                 ReadByteExactly(stream),
+                                     = stream => (BinaryPrimitiveIO.ReadByteExactly(stream) << 24) |
+                                                 (BinaryPrimitiveIO.ReadByteExactly(stream) << 16) |
+                                                 (BinaryPrimitiveIO.ReadByteExactly(stream) << 8) |
+                                                 BinaryPrimitiveIO.ReadByteExactly(stream),
                 ["int32<"]
-                                     = stream => ReadByteExactly(stream) |
-                                                 (ReadByteExactly(stream) << 8) |
-                                                 (ReadByteExactly(stream) << 16) |
-                                                 (ReadByteExactly(stream) << 24),
+                                     = stream => BinaryPrimitiveIO.ReadByteExactly(stream) |
+                                                 (BinaryPrimitiveIO.ReadByteExactly(stream) << 8) |
+                                                 (BinaryPrimitiveIO.ReadByteExactly(stream) << 16) |
+                                                 (BinaryPrimitiveIO.ReadByteExactly(stream) << 24),
                 ["uint32>"]
-                                     = stream => ((uint)ReadByteExactly(stream) << 24) |
-                                                 ((uint)ReadByteExactly(stream) << 16) |
-                                                 ((uint)ReadByteExactly(stream) << 8) |
-                                                 ReadByteExactly(stream),
+                                     = stream => ((uint)BinaryPrimitiveIO.ReadByteExactly(stream) << 24) |
+                                                 ((uint)BinaryPrimitiveIO.ReadByteExactly(stream) << 16) |
+                                                 ((uint)BinaryPrimitiveIO.ReadByteExactly(stream) << 8) |
+                                                 BinaryPrimitiveIO.ReadByteExactly(stream),
                 ["uint32<"]
-                                     = stream => ReadByteExactly(stream) |
-                                                 ((uint)ReadByteExactly(stream) << 8) |
-                                                 ((uint)ReadByteExactly(stream) << 16) |
-                                                 ((uint)ReadByteExactly(stream) << 24),
-                ["int64>"] = stream => BitConverter.ToInt64(ReadIntoBuffer(stream, 8, false)),
-                ["int64<"] = stream => BitConverter.ToInt64(ReadIntoBuffer(stream, 8, true)),
-                ["uint64>"] = stream => BitConverter.ToUInt64(ReadIntoBuffer(stream, 8, false)),
-                ["uint64<"] = stream => BitConverter.ToUInt64(ReadIntoBuffer(stream, 8, true)),
+                                     = stream => BinaryPrimitiveIO.ReadByteExactly(stream) |
+                                                 ((uint)BinaryPrimitiveIO.ReadByteExactly(stream) << 8) |
+                                                 ((uint)BinaryPrimitiveIO.ReadByteExactly(stream) << 16) |
+                                                 ((uint)BinaryPrimitiveIO.ReadByteExactly(stream) << 24),
+                ["int64>"] = stream => BitConverter.ToInt64(BinaryPrimitiveIO.ReadIntoBuffer(stream, 8, false)),
+                ["int64<"] = stream => BitConverter.ToInt64(BinaryPrimitiveIO.ReadIntoBuffer(stream, 8, true)),
+                ["uint64>"] = stream => BitConverter.ToUInt64(BinaryPrimitiveIO.ReadIntoBuffer(stream, 8, false)),
+                ["uint64<"] = stream => BitConverter.ToUInt64(BinaryPrimitiveIO.ReadIntoBuffer(stream, 8, true)),
                 ["ascii_string_zero"] = stream => PrimitiveCodecs.ReadIntoString(stream, PrimitiveCodecs.StrictAsciiEncoding, '\0'),
                 ["ascii_string_newline"] = stream => PrimitiveCodecs.ReadIntoString(stream, PrimitiveCodecs.StrictAsciiEncoding, '\n'),
                 ["utf8_string_zero"] = stream => PrimitiveCodecs.ReadIntoString(stream, PrimitiveCodecs.StrictUtf8Encoding, '\0'),
@@ -117,83 +117,83 @@ public partial class CStruct
                 ["uint8"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
                 ["char"] = (stream, value) => stream.WriteByte(PrimitiveCodecs.ConvertToNarrowCharacter(value)),
                 ["wchar>"]
-                                     = (stream, value) => WriteEndianBytes(
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
                                                                            stream,
                                                                            BitConverter.GetBytes(Convert.ToChar(value)),
                                                                            false),
                 ["wchar<"]
-                                     = (stream, value) => WriteEndianBytes(
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
                                                                            stream,
                                                                            BitConverter.GetBytes(Convert.ToChar(value)),
                                                                            true),
                 ["int16>"]
-                                     = (stream, value) => WriteEndianBytes(
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
                                                                            stream,
                                                                            BitConverter.
                                                                                GetBytes(Convert.ToInt16(value)),
                                                                            false),
                 ["int16<"]
-                                     = (stream, value) => WriteEndianBytes(
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
                                                                            stream,
                                                                            BitConverter.
                                                                                GetBytes(Convert.ToInt16(value)),
                                                                            true),
                 ["uint16>"]
-                                     = (stream, value) => WriteEndianBytes(
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
                                                                            stream,
                                                                            BitConverter.GetBytes(
                                                                             Convert.ToUInt16(value)),
                                                                            false),
                 ["uint16<"]
-                                     = (stream, value) => WriteEndianBytes(
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
                                                                            stream,
                                                                            BitConverter.GetBytes(
                                                                             Convert.ToUInt16(value)),
                                                                            true),
                 ["int32>"]
-                                     = (stream, value) => WriteEndianBytes(
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
                                                                            stream,
                                                                            BitConverter.
                                                                                GetBytes(Convert.ToInt32(value)),
                                                                            false),
                 ["int32<"]
-                                     = (stream, value) => WriteEndianBytes(
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
                                                                            stream,
                                                                            BitConverter.
                                                                                GetBytes(Convert.ToInt32(value)),
                                                                            true),
                 ["uint32>"]
-                                     = (stream, value) => WriteEndianBytes(
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
                                                                            stream,
                                                                            BitConverter.GetBytes(
                                                                             Convert.ToUInt32(value)),
                                                                            false),
                 ["uint32<"]
-                                     = (stream, value) => WriteEndianBytes(
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
                                                                            stream,
                                                                            BitConverter.GetBytes(
                                                                             Convert.ToUInt32(value)),
                                                                            true),
                 ["int64>"]
-                                     = (stream, value) => WriteEndianBytes(
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
                                                                            stream,
                                                                            BitConverter.
                                                                                GetBytes(Convert.ToInt64(value)),
                                                                            false),
                 ["int64<"]
-                                     = (stream, value) => WriteEndianBytes(
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
                                                                            stream,
                                                                            BitConverter.
                                                                                GetBytes(Convert.ToInt64(value)),
                                                                            true),
                 ["uint64>"]
-                                     = (stream, value) => WriteEndianBytes(
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
                                                                            stream,
                                                                            BitConverter.GetBytes(
                                                                             Convert.ToUInt64(value)),
                                                                            false),
                 ["uint64<"]
-                                     = (stream, value) => WriteEndianBytes(
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
                                                                            stream,
                                                                            BitConverter.GetBytes(
                                                                             Convert.ToUInt64(value)),
@@ -268,12 +268,12 @@ public partial class CStruct
     /// <summary>Selects strict UTF-16 in the explicit field order, or in the layout order for neutral <c>wchar</c>.</summary>
     private Encoding GetWideCharacterEncoding(Identifier type)
     {
-        if (type.Equals(WcharBigEndianType))
+        if (type.Equals(CharacterFieldTypes.WcharBigEndianType))
         {
             return PrimitiveCodecs.StrictUtf16BigEndianEncoding;
         }
 
-        if (type.Equals(WcharLittleEndianType))
+        if (type.Equals(CharacterFieldTypes.WcharLittleEndianType))
         {
             return PrimitiveCodecs.StrictUtf16LittleEndianEncoding;
         }

@@ -30,17 +30,17 @@ public class CompiledIntermediateRepresentationTests
                               };
                               """;
         var cstruct = new CStruct(layout, pointerSize: 2);
-        CStruct.CompiledLayoutModel model = cstruct.CompiledModel;
+        CompiledLayoutModel model = cstruct.CompiledModel;
 
         Assert.AreSame(model.Symbols["uint16"].Symbol, model.Symbols["base_word"].Symbol);
         Assert.AreSame(model.Symbols["uint16"].Symbol, model.Symbols["word"].Symbol);
         Assert.AreEqual(0, model.Symbols["word"].PointerDepth);
 
         Struct root = cstruct.GetStruct("root");
-        var compiledRoot = (CStruct.CompiledCompositeType)model.Composites[root].Definition!;
+        var compiledRoot = (CompiledCompositeType)model.Composites[root].Definition!;
         Assert.AreEqual(3, compiledRoot.Fields.Length);
 
-        CStruct.CompiledField count = compiledRoot.Fields[0];
+        CompiledField count = compiledRoot.Fields[0];
         Assert.AreEqual("uint16", count.EffectiveField.Type.Name);
         Assert.AreEqual("uint16", count.CodecName);
         Assert.AreEqual(2, count.Alignment);
@@ -51,39 +51,39 @@ public class CompiledIntermediateRepresentationTests
         Assert.IsNotNull(count.Reader);
         Assert.IsNotNull(count.Writer);
 
-        CStruct.CompiledField values = compiledRoot.Fields[1];
+        CompiledField values = compiledRoot.Fields[1];
         Assert.AreEqual(2, values.FixedArrayCount);
         Assert.AreEqual(2, values.FixedElementSize);
         Assert.AreEqual(4, values.FixedStorageSize);
         Assert.AreEqual(2, values.FixedOffset);
         Assert.AreEqual(2, values.SelectArrayElement().FixedStorageSize);
 
-        CStruct.CompiledField link = compiledRoot.Fields[2];
+        CompiledField link = compiledRoot.Fields[2];
         Assert.AreEqual(1, link.PointerDepth);
         Assert.AreEqual("pointer", link.CodecName);
         Assert.AreEqual(2, link.FixedElementSize);
         Assert.AreEqual(6, link.FixedOffset);
-        CStruct.CompiledField pointerTarget = link.SelectPointerTarget(0, null, null, null, 2);
+        CompiledField pointerTarget = link.SelectPointerTarget(0, null, null, null, 2);
         Assert.AreEqual(0, pointerTarget.PointerDepth);
         Assert.AreEqual(2, pointerTarget.Alignment);
         Assert.AreEqual(2, pointerTarget.FixedElementSize);
         Assert.AreSame(link.Reader, pointerTarget.Reader);
         Assert.AreSame(link.Writer, pointerTarget.Writer);
-        CStruct.CompiledField remainingPointer = link.SelectPointerTarget(1, null, null, null, 2);
+        CompiledField remainingPointer = link.SelectPointerTarget(1, null, null, null, 2);
         Assert.AreEqual(1, remainingPointer.PointerDepth);
         Assert.AreEqual("pointer", remainingPointer.CodecName);
         Assert.AreEqual(2, remainingPointer.FixedStorageSize);
         Assert.IsInstanceOfType(model.Declarations, typeof(System.Collections.Immutable.ImmutableDictionary<string, CStructElement>));
-        Assert.IsInstanceOfType(model.Fields, typeof(System.Collections.Immutable.ImmutableDictionary<Field, CStruct.CompiledField>));
+        Assert.IsInstanceOfType(model.Fields, typeof(System.Collections.Immutable.ImmutableDictionary<Field, CompiledField>));
         Assert.AreEqual(3, model.Fields.Count);
-        Assert.IsInstanceOfType(compiledRoot.Fields, typeof(System.Collections.Immutable.ImmutableArray<CStruct.CompiledField>));
+        Assert.IsInstanceOfType(compiledRoot.Fields, typeof(System.Collections.Immutable.ImmutableArray<CompiledField>));
         Assert.IsInstanceOfType(
             compiledRoot.FieldsByName,
-            typeof(System.Collections.Immutable.ImmutableDictionary<string, CStruct.CompiledField>));
+            typeof(System.Collections.Immutable.ImmutableDictionary<string, CompiledField>));
         Assert.AreSame(values, compiledRoot.FieldsByName["values"]);
         Assert.Throws<CStructLayoutException>(
             () => model.Symbols["word"].Symbol.Bind(
-                new CStruct.CompiledPrimitiveType(model.Symbols["word"].Symbol)));
+                new CompiledPrimitiveType(model.Symbols["word"].Symbol)));
     }
 
     /// <summary>
@@ -107,7 +107,7 @@ public class CompiledIntermediateRepresentationTests
         var cstruct = new CStruct(layout);
         Struct root = cstruct.GetStruct("root");
         var compiledRoot =
-            (CStruct.CompiledCompositeType)cstruct.CompiledModel.Composites[root].Definition!;
+            (CompiledCompositeType)cstruct.CompiledModel.Composites[root].Definition!;
 
         Assert.IsNull(compiledRoot.Symbol.FixedSize);
         Assert.IsNull(compiledRoot.Fields[0].FixedArrayCount);
@@ -143,9 +143,9 @@ public class CompiledIntermediateRepresentationTests
         Struct left = cstruct.GetStruct("left");
         Struct right = cstruct.GetStruct("right");
         var compiledLeft =
-            (CStruct.CompiledCompositeType)cstruct.CompiledModel.Composites[left].Definition!;
+            (CompiledCompositeType)cstruct.CompiledModel.Composites[left].Definition!;
         var compiledRight =
-            (CStruct.CompiledCompositeType)cstruct.CompiledModel.Composites[right].Definition!;
+            (CompiledCompositeType)cstruct.CompiledModel.Composites[right].Definition!;
 
         Assert.AreNotSame(compiledLeft.Fields[0].Type.Symbol, compiledRight.Fields[0].Type.Symbol);
         Assert.IsFalse(cstruct.CompiledModel.Symbols.ContainsKey("value"));
@@ -181,15 +181,15 @@ public class CompiledIntermediateRepresentationTests
                               };
                               """;
         var cstruct = new CStruct(layout, aligned: true);
-        CStruct.CompiledLayoutModel model = cstruct.CompiledModel;
+        CompiledLayoutModel model = cstruct.CompiledModel;
 
-        CStruct.CompiledTypeReference mode = model.Symbols["mode"];
-        Assert.AreEqual(CStruct.CompiledTypeKind.Enum, mode.Symbol.Kind);
-        var compiledMode = (CStruct.CompiledEnumType)mode.Symbol.Definition!;
+        CompiledTypeReference mode = model.Symbols["mode"];
+        Assert.AreEqual(CompiledTypeKind.Enum, mode.Symbol.Kind);
+        var compiledMode = (CompiledEnumType)mode.Symbol.Definition!;
         Assert.AreEqual("uint16", compiledMode.Underlying.TerminalName);
         Assert.AreSame(model.Symbols["uint16"].Symbol, compiledMode.Underlying.Symbol);
 
-        var payload = (CStruct.CompiledCompositeType)model.Composites[cstruct.GetStruct("payload")].Definition!;
+        var payload = (CompiledCompositeType)model.Composites[cstruct.GetStruct("payload")].Definition!;
         Assert.AreEqual(0, payload.FieldsByName["low"].FixedOffset);
         Assert.AreEqual(0, payload.FieldsByName["low"].BitOffset);
         Assert.AreEqual(1, payload.FieldsByName["low"].BitStorageSize);
@@ -198,8 +198,8 @@ public class CompiledIntermediateRepresentationTests
         Assert.AreEqual("uint16", payload.FieldsByName["state"].CodecName);
         Assert.AreEqual(2, payload.FieldsByName["state"].FixedOffset);
 
-        CStruct.CompiledField name = payload.FieldsByName["name"];
-        Assert.AreEqual(CStruct.CompiledArrayKind.Flexible, name.Array.Kind);
+        CompiledField name = payload.FieldsByName["name"];
+        Assert.AreEqual(CompiledArrayKind.Flexible, name.Array.Kind);
         Assert.AreEqual(4, name.FixedOffset);
         Assert.IsNull(name.FixedStorageSize);
         Assert.IsTrue(name.IsUnsizedCharacterArray);
@@ -210,9 +210,9 @@ public class CompiledIntermediateRepresentationTests
         var textPointerLayout = new CStruct("struct text_root { char *text; };", pointerSize: 2);
         Struct textRoot = textPointerLayout.GetStruct("text_root");
         var compiledTextRoot =
-            (CStruct.CompiledCompositeType)textPointerLayout.CompiledModel.Composites[textRoot].Definition!;
-        CStruct.CompiledField textPointer = compiledTextRoot.FieldsByName["text"];
-        CStruct.CompiledField terminatedTarget = textPointer.SelectPointerTarget(
+            (CompiledCompositeType)textPointerLayout.CompiledModel.Composites[textRoot].Definition!;
+        CompiledField textPointer = compiledTextRoot.FieldsByName["text"];
+        CompiledField terminatedTarget = textPointer.SelectPointerTarget(
             0,
             "cstring",
             textPointer.TerminatedReader,
@@ -225,8 +225,8 @@ public class CompiledIntermediateRepresentationTests
         Assert.AreSame(textPointer.TerminatedReader, terminatedTarget.Reader);
         Assert.AreSame(textPointer.TerminatedWriter, terminatedTarget.Writer);
 
-        var choice = (CStruct.CompiledCompositeType)model.Composites[cstruct.GetStruct("choice")].Definition!;
-        Assert.AreEqual(CStruct.CompiledTypeKind.Union, choice.Symbol.Kind);
+        var choice = (CompiledCompositeType)model.Composites[cstruct.GetStruct("choice")].Definition!;
+        Assert.AreEqual(CompiledTypeKind.Union, choice.Symbol.Kind);
         Assert.AreEqual(4, choice.Symbol.FixedSize);
         Assert.IsTrue(choice.Fields.All(field => field.FixedOffset == 0));
         Assert.AreEqual(

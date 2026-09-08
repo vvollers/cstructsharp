@@ -50,10 +50,7 @@ public class ConcurrentReuseTests
         AssertFrozenMetadata(cstruct.FieldHandlers, nameof(cstruct.FieldHandlers));
         AssertFrozenMetadata(cstruct.WriteHandlers, nameof(cstruct.WriteHandlers));
 
-        Type symbolType = typeof(CStruct).GetNestedType(
-                              "CompiledTypeSymbol",
-                              BindingFlags.NonPublic) ??
-                          throw new AssertFailedException("CompiledTypeSymbol was not found.");
+        Type symbolType = typeof(CompiledTypeSymbol);
         PropertyInfo frozenProperty = symbolType.GetProperty(
                                           "IsFrozen",
                                           BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic) ??
@@ -79,15 +76,15 @@ public class ConcurrentReuseTests
     [TestMethod]
     public void CompiledTypeSymbol_SealsExactlyOnceAfterBinding()
     {
-        var symbol = new CStruct.CompiledTypeSymbol(
+        var symbol = new CompiledTypeSymbol(
             "value",
-            CStruct.CompiledTypeKind.Primitive,
+            CompiledTypeKind.Primitive,
             null,
             1,
             1,
             null,
             null);
-        var definition = new CStruct.CompiledPrimitiveType(symbol);
+        var definition = new CompiledPrimitiveType(symbol);
 
         symbol.Bind(definition);
 
@@ -100,9 +97,9 @@ public class ConcurrentReuseTests
         Assert.IsTrue(symbol.IsFrozen);
         Assert.Throws<CStructLayoutException>(() => symbol.Bind(definition));
 
-        var unbound = new CStruct.CompiledTypeSymbol(
+        var unbound = new CompiledTypeSymbol(
             "unbound",
-            CStruct.CompiledTypeKind.Primitive,
+            CompiledTypeKind.Primitive,
             null,
             1,
             1,
