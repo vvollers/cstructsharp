@@ -581,6 +581,28 @@
       }
     },
     {
+      "featureId": "field-alignment-override",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The override replaces which alignment value the field's placement uses; the field's own codec supplies its value contract unchanged."
+        ],
+        "evidence": [
+          "CStructSharpTests/AlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Exact bytes match only when the enclosing layout is constructed with aligned: true; in packed mode the override has no effect on placement or padding."
+        ],
+        "evidence": [
+          "CStructSharpTests/AlignmentOverrideTests.cs#BasicOverride_PadsToTheOverriddenAlignment",
+          "CStructSharpTests/AlignmentOverrideTests.cs#PackedMode_HasNoEffect"
+        ]
+      }
+    },
+    {
       "featureId": "runtime-expression-arrays",
       "value": {
         "status": "conditional",
@@ -1675,6 +1697,102 @@
       "limitations": [
         "Only const, volatile, and restrict are recognized, before the type or immediately after a pointer star; any other token or position is still rejected rather than silently tolerated.",
         "A qualifier is discarded with no compiled representation - it cannot be recovered from a compiled field, and no distinct write/update/read-value contract applies."
+      ]
+    },
+    {
+      "id": "field-alignment-override",
+      "manual": "CStructSharp.Docs/language/layout-alignment-and-padding.md#explicit-field-alignment-override",
+      "fixture": "field-alignment-override",
+      "title": "Explicit per-field alignment override (@align(N))",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "CStructSharpTests/AlignmentOverrideTests.cs#BasicOverride_PadsToTheOverriddenAlignment",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AlignmentOverrideTests.cs#PackedMode_HasNoEffect",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AlignmentOverrideTests.cs#DefineDrivenOverride_Works",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AlignmentOverrideTests.cs#PerDeclaratorScoping_OnlyAffectsItsOwnName",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AlignmentOverrideTests.cs#PointerFieldOverride_Works",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AlignmentOverrideTests.cs#NonPowerOfTwo_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate",
+          "operations": [
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "N must be a positive power of two; a non-conforming value fails at construction, naming the field and the rejected value.",
+        "Only has an observable effect when the enclosing layout is constructed with aligned: true - in packed mode it is accepted but has no effect, consistent with a field's own natural alignment already having none there.",
+        "Changes only which alignment value a field's placement uses; it cannot move a field's placement backward or authoritatively assert an exact byte offset (see docs/adr/0013-canonical-placement-controls.md for the scope reasoning)."
       ]
     },
     {

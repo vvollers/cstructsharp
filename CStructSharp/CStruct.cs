@@ -334,7 +334,15 @@ public sealed partial class CStruct
                 }
             }
 
-            fields.Add(new Field(field.Type, field.Name, field.ArrayCount, bitSize, field.PointerDepth, field.TypeKeywordHint));
+            fields.Add(
+                new Field(
+                    field.Type,
+                    field.Name,
+                    field.ArrayCount,
+                    bitSize,
+                    field.PointerDepth,
+                    field.TypeKeywordHint,
+                    field.AlignmentOverrideExpression));
         }
 
         return new Struct(strct.Name, [.. fields,], strct.IsUnion);

@@ -852,6 +852,25 @@
         "sample.tail": "170"
       },
       "bytes": "01AA"
+    },
+    {
+      "id": "alignment-override",
+      "definition": "struct sample { uint8 a; uint8 value @align(4); };",
+      "root": "sample",
+      "pointerSize": 4,
+      "littleEndian": true,
+      "aligned": true,
+      "size": 8,
+      "alignment": 4,
+      "offsets": {
+        "sample.a": 0,
+        "sample.value": 4
+      },
+      "values": {
+        "sample.a": "1",
+        "sample.value": "2"
+      },
+      "bytes": "0100000002000000"
     }
   ],
   "unsupportedConstructs": [
@@ -904,6 +923,11 @@
       "id": "trailing-qualifier-position",
       "definition": "struct root { uint8 value const; };",
       "category": "qualifier"
+    },
+    {
+      "id": "non-power-of-two-alignment",
+      "definition": "struct root { uint8 value @align(3); };",
+      "category": "explicit placement"
     },
     {
       "id": "unrecognized-integer-spelling",

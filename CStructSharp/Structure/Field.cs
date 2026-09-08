@@ -12,7 +12,14 @@ internal class Field : CStructElement
     public static readonly Expr UnknownArraysize = new Literal(int.MinValue);
 
     /// <summary>Creates a field definition and derives pointer depth from the type and field name when it is not supplied.</summary>
-    public Field(Identifier type, Identifier name, Expr arraycount, int bitSize, int pointerDepth = -1, string? typeKeywordHint = null)
+    public Field(
+        Identifier type,
+        Identifier name,
+        Expr arraycount,
+        int bitSize,
+        int pointerDepth = -1,
+        string? typeKeywordHint = null,
+        Expr? alignmentOverrideExpression = null)
     {
         this.Type = type;
         this.Name = name;
@@ -23,10 +30,18 @@ internal class Field : CStructElement
         this.PointerDepth = pointerDepth >= 0 ? pointerDepth : derivedPointerDepth;
         this.IsPointer = this.PointerDepth > 0;
         this.TypeKeywordHint = typeKeywordHint;
+        this.AlignmentOverrideExpression = alignmentOverrideExpression;
     }
 
     /// <summary>Creates a parsed field whose bit width will be evaluated with the compiled layout's expression policy.</summary>
-    internal Field(Identifier type, Identifier name, Expr arraycount, Expr bitSize, int pointerDepth = -1, string? typeKeywordHint = null)
+    internal Field(
+        Identifier type,
+        Identifier name,
+        Expr arraycount,
+        Expr bitSize,
+        int pointerDepth = -1,
+        string? typeKeywordHint = null,
+        Expr? alignmentOverrideExpression = null)
     {
         this.Type = type;
         this.Name = name;
@@ -36,6 +51,7 @@ internal class Field : CStructElement
         this.PointerDepth = pointerDepth >= 0 ? pointerDepth : derivedPointerDepth;
         this.IsPointer = this.PointerDepth > 0;
         this.TypeKeywordHint = typeKeywordHint;
+        this.AlignmentOverrideExpression = alignmentOverrideExpression;
     }
 
     public Expr ArrayCount { get; }
@@ -76,6 +92,9 @@ internal class Field : CStructElement
 
     /// <summary>The optional struct/union/enum keyword written before the type reference, or null when none was written.</summary>
     public string? TypeKeywordHint { get; }
+
+    /// <summary>The optional <c>@align(N)</c> expression written after this declarator, or null when none was written.</summary>
+    internal Expr? AlignmentOverrideExpression { get; }
 
     /// <summary>Checks whether another value represents the same layout data.</summary>
     public override bool Equals(CStructElement? other)

@@ -374,6 +374,34 @@
       }
     },
     {
+      "id": "field-alignment-override",
+      "featureId": "field-alignment-override",
+      "manual": "CStructSharp.Docs/language/layout-alignment-and-padding.md#explicit-field-alignment-override",
+      "valid": {
+        "definition": "struct root { uint8 a; uint8 value @align(4); };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": true,
+        "littleEndian": true,
+        "size": 8,
+        "alignment": 4,
+        "bytes": "0100000002000000",
+        "offsets": {
+          "root.a": 0,
+          "root.value": 4
+        },
+        "values": {
+          "root.a": "1",
+          "root.value": "2"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "non-power-of-two-alignment",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
       "id": "typedefs",
       "featureId": "typedefs",
       "manual": "CStructSharp.Docs/language/structs-unions-enums-typedefs.md#typedefs",

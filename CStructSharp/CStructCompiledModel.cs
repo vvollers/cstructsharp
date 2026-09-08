@@ -421,6 +421,15 @@ public partial class CStruct
                 }
 
                 int alignment = pointerDepth > 0 ? this.PointerSize : type.Symbol.Alignment;
+                if (field.AlignmentOverrideExpression is not null)
+                {
+                    int explicitAlignment = this.layoutExpressionEvaluator.Evaluate(
+                        field.AlignmentOverrideExpression,
+                        this.staticLayoutVariables,
+                        "alignment override for " + field.Name.Name);
+                    alignment = LayoutMath.ValidateExplicitAlignment(explicitAlignment, field.Name.Name);
+                }
+
                 int? elementSize = pointerDepth > 0 ? this.PointerSize : type.Symbol.FixedSize;
                 CompiledArrayShape arrayShape = this.CompileArrayShape(effectiveField);
                 int? storageSize = elementSize.HasValue && arrayShape.FixedCount.HasValue
