@@ -892,9 +892,9 @@
       "category": "typedef array"
     },
     {
-      "id": "typedef-union",
-      "definition": "typedef union choice { uint8 small; uint16 large; } choice; struct root { choice value; };",
-      "category": "typedef union form"
+      "id": "typedef-tag-alias",
+      "definition": "struct child { uint8 value; }; typedef struct child alias; struct root { alias value; };",
+      "category": "C tag namespace"
     }
   ]
 }

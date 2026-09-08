@@ -26,6 +26,7 @@ definition       = trivia, { declaration }, end-of-input ;
 declaration      = struct-declaration
                  | union-declaration
                  | typedef-struct-declaration
+                 | typedef-union-declaration
                  | typedef-declaration
                  | enum-declaration
                  | define-declaration ;
@@ -35,7 +36,9 @@ struct-declaration
 union-declaration
                  = "union", identifier, "{", { union-field }, "}", [ ";" ] ;
 typedef-struct-declaration
-                 = "typedef", struct-declaration, identifier, ";" ;
+                 = "typedef", "struct", [ identifier ], "{", { struct-field }, "}", identifier, ";" ;
+typedef-union-declaration
+                 = "typedef", "union", [ identifier ], "{", { union-field }, "}", identifier, ";" ;
 typedef-declaration
                  = "typedef", identifier, pointer-stars, identifier, ";" ;
 enum-declaration = "enum", identifier, [ enum-storage ],
@@ -130,7 +133,8 @@ The table explains each production and links to the page that defines its additi
 | `declaration` | One exported declaration kind |
 | `struct-declaration` | Named sequential composite; [declarations](structs-unions-enums-typedefs.md#named-structs) |
 | `union-declaration` | Named overlapping composite; [declarations](structs-unions-enums-typedefs.md#unions) |
-| `typedef-struct-declaration` | Supported named struct alias form; [typedefs](structs-unions-enums-typedefs.md#typedefs) |
+| `typedef-struct-declaration` | Named-tag or anonymous inline struct alias form; [typedefs](structs-unions-enums-typedefs.md#typedefs) |
+| `typedef-union-declaration` | Named-tag or anonymous inline union alias form; [typedefs](structs-unions-enums-typedefs.md#typedefs) |
 | `typedef-declaration` | Alias of one name plus optional pointer depth |
 | `enum-declaration` | Named integral enum |
 | `enum-storage` | Optional explicit integral backing |

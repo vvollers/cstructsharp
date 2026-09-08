@@ -364,8 +364,43 @@ internal static class CStructDefinitionParser
         Select<CStructElement>(s => s).
         Labelled("Typedef Struct");
 
+    /// <summary>Parses <c>typedef union tag { ... } alias;</c>, the named-tag form, mirroring <see cref="Typedefstruct"/> for unions.</summary>
+    public static readonly Parser<char, CStructElement> Typedefunion = Map(
+            (strct, name) => new Typedef(name, strct),
+            TypedefKeyword.Then(SkipWhiteSpacesAndComments).Then(Union.Cast<Struct>()),
+            SkipWhiteSpacesAndComments.Then(Identifier).Before(SemiColon)).
+        Select<CStructElement>(s => s).
+        Labelled("Typedef Union");
+
+    /// <summary>Parses <c>typedef struct { ... } Name;</c>, the anonymous inline form with no tag between "struct" and "{".</summary>
+    public static readonly Parser<char, CStructElement> AnonymousTypedefStruct = Map(
+            (fields, name) => new Typedef(name, new Struct(name, [.. fields,], false)),
+            TypedefKeyword.Then(SkipWhiteSpacesAndComments).Then(StructKeyword).
+                Then(SkipWhiteSpacesAndComments).Then(OpenBrace).Then(StructOrField.Many()),
+            SkipWhiteSpacesAndComments.Before(CloseBrace).Then(Identifier).Before(SemiColon)).
+        Select<CStructElement>(s => s).
+        Labelled("Anonymous Typedef Struct");
+
+    /// <summary>Parses <c>typedef union { ... } Name;</c>, the anonymous inline form with no tag between "union" and "{".</summary>
+    public static readonly Parser<char, CStructElement> AnonymousTypedefUnion = Map(
+            (fields, name) => new Typedef(name, new Struct(name, [.. fields,], true)),
+            TypedefKeyword.Then(SkipWhiteSpacesAndComments).Then(UnionKeyword).
+                Then(SkipWhiteSpacesAndComments).Then(OpenBrace).Then(Field.Many()),
+            SkipWhiteSpacesAndComments.Before(CloseBrace).Then(Identifier).Before(SemiColon)).
+        Select<CStructElement>(s => s).
+        Labelled("Anonymous Typedef Union");
+
     public static Parser<char, IEnumerable<CStructElement>> Parser =>
-        OneOf(Struct, Union, Try(Typedefstruct), Typedef, Enum, Define).
+        OneOf(
+                Struct,
+                Union,
+                Try(AnonymousTypedefUnion),
+                Try(AnonymousTypedefStruct),
+                Try(Typedefunion),
+                Try(Typedefstruct),
+                Typedef,
+                Enum,
+                Define).
             Many().
             Between(SkipWhiteSpacesAndComments).
             Before(Parser<char>.End);
