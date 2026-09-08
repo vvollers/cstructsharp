@@ -402,6 +402,36 @@
       }
     },
     {
+      "id": "offset-assertion",
+      "featureId": "field-offset-assertion",
+      "manual": "CStructSharp.Docs/language/layout-alignment-and-padding.md#explicit-byte-offset-assertion",
+      "valid": {
+        "definition": "struct root { uint8 a; uint8 b; uint8 value @2; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 3,
+        "alignment": 1,
+        "bytes": "010203",
+        "offsets": {
+          "root.a": 0,
+          "root.b": 1,
+          "root.value": 2
+        },
+        "values": {
+          "root.a": "1",
+          "root.b": "2",
+          "root.value": "3"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "offset-assertion-mismatch",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
       "id": "typedefs",
       "featureId": "typedefs",
       "manual": "CStructSharp.Docs/language/structs-unions-enums-typedefs.md#typedefs",

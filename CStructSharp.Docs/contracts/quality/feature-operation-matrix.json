@@ -603,6 +603,28 @@
       }
     },
     {
+      "featureId": "field-offset-assertion",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The assertion never changes placement; it only validates the field's already-computed offset, so the field's own codec supplies its value contract unchanged."
+        ],
+        "evidence": [
+          "CStructSharpTests/OffsetAssertionTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Exact bytes match the unannotated field's own contract; the assertion is checked only when the field's offset is statically computable, so a field following a runtime-length sibling is unaffected either way."
+        ],
+        "evidence": [
+          "CStructSharpTests/OffsetAssertionTests.cs#MatchingAssertion_Succeeds",
+          "CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_ConstructionSucceedsWithTheAssertionUnchecked"
+        ]
+      }
+    },
+    {
       "featureId": "runtime-expression-arrays",
       "value": {
         "status": "conditional",
@@ -1793,6 +1815,94 @@
         "N must be a positive power of two; a non-conforming value fails at construction, naming the field and the rejected value.",
         "Only has an observable effect when the enclosing layout is constructed with aligned: true - in packed mode it is accepted but has no effect, consistent with a field's own natural alignment already having none there.",
         "Changes only which alignment value a field's placement uses; it cannot move a field's placement backward or authoritatively assert an exact byte offset - both remain future work."
+      ]
+    },
+    {
+      "id": "field-offset-assertion",
+      "manual": "CStructSharp.Docs/language/layout-alignment-and-padding.md#explicit-byte-offset-assertion",
+      "fixture": "offset-assertion",
+      "title": "Explicit per-field byte-offset assertion (@N)",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "CStructSharpTests/OffsetAssertionTests.cs#MatchingAssertion_Succeeds",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/OffsetAssertionTests.cs#Mismatch_IsRejectedNamingBothValues",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/OffsetAssertionTests.cs#ModeSensitivity_ChecksTheActualComputedOffsetForEachMode",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_ConstructionSucceedsWithTheAssertionUnchecked",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/OffsetAssertionTests.cs#DefineDrivenAssertion_Works",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/OffsetAssertionTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate",
+          "operations": [
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "Validated only when the field's byte offset is statically computable at construction time; a field following a runtime-length sibling accepts the assertion without checking it.",
+        "Not supported on a bitfield declarator - rejected outright at construction rather than applying an under-specified partial rule.",
+        "Never repositions a field; it only validates the field's already-computed placement, so it never changes parse, serialize, write, or update output."
       ]
     },
     {

@@ -97,7 +97,33 @@ An override on one declarator in a comma-separated list (`uint8 a @align(4), b;`
 own placement and the composite's own reported alignment; it does not affect its sibling declarators' placement.
 
 `@align(N)` changes only which alignment value a field's placement uses. It cannot move a field's placement
-backward, and it is not an assertion checked against computed placement - both remain future work.
+backward. For checking a field's placement without changing it, see the offset assertion below.
+
+## Explicit byte-offset assertion
+
+A declarator may instead carry a trailing bare `@N` (LANG-15), asserting the declarator's expected byte offset
+without ever changing it - a correctness check for hand-transcribed formats, not a placement control:
+
+```c
+struct sample {
+    uint8 a;
+    uint8 b;
+    uint8 value @2;
+};
+```
+
+`N` is a full expression, evaluated the same way `@align(N)`'s argument is, so a `#define`d constant works. `N`
+must be non-negative. A mismatch between the asserted value and the field's actual computed offset fails at
+construction, naming both values (`offset-assertion-mismatch` in
+[`portable-v1.json`](../contracts/language/portable-v1.json)). Unlike `@align(N)`, `@N` never changes placement -
+it only validates the placement that would already have been computed without it, so parsing, addressing,
+serializing, writing, and updating are all unaffected by whether `@N` is present.
+
+**`@N` is checked only when the field's byte offset is statically computable at construction time** - true for the
+overwhelming majority of layouts, but a field following a runtime-length array or terminated-string sibling has no
+statically known offset; on such a field, `@N` is accepted but not checked. **`@N` is not supported on a bitfield
+declarator** (`offset-assertion-on-bitfield`) - rejected outright at construction rather than resolving the
+narrower question of whether it should apply to a whole shared storage unit or only its first member.
 
 ## Checked layout examples
 
@@ -116,6 +142,7 @@ Padding in newly serialized output is zero. Offsets are relative to the root.
 | `aligned-null-pointer` | Same definition and values | 2-byte pointer, little, aligned | marker `0`, pointer `2` | 4 / 2 | `AA 00 00 00` |
 | `boolean-round-trip` | `struct sample { bool flag; uint8 tail; };` with `flag=true`, `tail=0xAA` | little, packed | `flag=0`, `tail=1` | 2 / 1 | `01 AA` |
 | `alignment-override` | `struct sample { uint8 a; uint8 value @align(4); };` with `a=1`, `value=2` | little, aligned | `a=0`, `value=4` | 8 / 4 | `01 00 00 00 02 00 00 00` |
+| `offset-assertion` | `struct sample { uint8 a; uint8 b; uint8 value @2; };` with `a=1`, `b=2`, `value=3` | little, packed | `a=0`, `b=1`, `value=2` | 3 / 1 | `01 02 03` |
 
 `GetStructAlignmentInBytes` returns the alignment column even in packed mode. `GetStructSizeInBytes` works only when
 the selected struct/union has a fixed extent. Runtime arrays and terminated fields need operation variables or actual

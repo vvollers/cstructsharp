@@ -448,6 +448,12 @@ public partial class CStruct
                             "Invalid bitfield declaration: " + field.Name.Name,
                             exception);
                     }
+
+                    if (field.OffsetAssertionExpression is not null)
+                    {
+                        throw new CStructLayoutException(
+                            "An explicit offset assertion is not supported on a bitfield declarator: " + field.Name.Name);
+                    }
                 }
 
                 var compiledField = new CompiledField(
@@ -595,6 +601,25 @@ public partial class CStruct
             }
 
             int? offset = current;
+            if (offset.HasValue && field.Declaration.OffsetAssertionExpression is not null)
+            {
+                int asserted = this.layoutExpressionEvaluator.Evaluate(
+                    field.Declaration.OffsetAssertionExpression,
+                    this.staticLayoutVariables,
+                    "offset assertion for " + field.Declaration.Name.Name);
+                if (asserted < 0)
+                {
+                    throw new CStructLayoutException(
+                        "Explicit offset assertion must be non-negative: " + field.Declaration.Name.Name + " = " + asserted);
+                }
+
+                if (asserted != offset.Value)
+                {
+                    throw new CStructLayoutException(
+                        $"Field '{field.Declaration.Name.Name}' asserts offset {asserted} but computed offset is {offset.Value}.");
+                }
+            }
+
             current = current.HasValue && field.FixedStorageSize.HasValue
                           ? checked(current.Value + field.FixedStorageSize.Value)
                           : null;

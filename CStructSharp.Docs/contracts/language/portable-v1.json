@@ -871,6 +871,27 @@
         "sample.value": "2"
       },
       "bytes": "0100000002000000"
+    },
+    {
+      "id": "offset-assertion",
+      "definition": "struct sample { uint8 a; uint8 b; uint8 value @2; };",
+      "root": "sample",
+      "pointerSize": 4,
+      "littleEndian": true,
+      "aligned": false,
+      "size": 3,
+      "alignment": 1,
+      "offsets": {
+        "sample.a": 0,
+        "sample.b": 1,
+        "sample.value": 2
+      },
+      "values": {
+        "sample.a": "1",
+        "sample.b": "2",
+        "sample.value": "3"
+      },
+      "bytes": "010203"
     }
   ],
   "unsupportedConstructs": [
@@ -927,6 +948,16 @@
     {
       "id": "non-power-of-two-alignment",
       "definition": "struct root { uint8 value @align(3); };",
+      "category": "explicit placement"
+    },
+    {
+      "id": "offset-assertion-mismatch",
+      "definition": "struct root { uint8 a; uint8 value @5; };",
+      "category": "explicit placement"
+    },
+    {
+      "id": "offset-assertion-on-bitfield",
+      "definition": "struct root { uint8 flag : 1 @2; };",
       "category": "explicit placement"
     },
     {

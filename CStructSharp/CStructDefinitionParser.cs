@@ -317,6 +317,24 @@ internal static class CStructDefinitionParser
     /// </summary>
     public static readonly Parser<char, Expr> AlignmentOverride = Tok("@align").Then(Parenthesised(Expr));
 
+    /// <summary>
+    ///     An explicit per-declarator byte-offset assertion (LANG-15 field-level slice), e.g. <c>value @4;</c>.
+    ///     Checked against the field's computed placement at compile time rather than ever repositioning it.
+    /// </summary>
+    public static readonly Parser<char, Expr> OffsetAssertion = Tok('@').Then(Expr);
+
+    /// <summary>
+    ///     A declarator carries at most one trailing placement suffix - either <see cref="AlignmentOverride"/> or
+    ///     <see cref="OffsetAssertion"/>, tried in that order since <c>@align(</c> is the more specific literal
+    ///     prefix. Absent when neither is written.
+    /// </summary>
+    private static readonly Parser<char, (Expr? AlignmentOverride, Expr? OffsetAssertion)> PlacementSuffix =
+        OneOf(
+                Try(AlignmentOverride).Select(expr => ((Expr?)expr, (Expr?)null)),
+                Try(OffsetAssertion).Select(expr => ((Expr?)null, (Expr?)expr))).
+            Optional().
+            Select(maybe => maybe.HasValue ? maybe.Value : ((Expr?)null, (Expr?)null));
+
     public static readonly Parser<char, Field> Field = Map(
             (fields, arr, bitSize, _) =>
             {
@@ -366,20 +384,21 @@ internal static class CStructDefinitionParser
 
     /// <summary>
     ///     Parses one comma-separated declarator after the first (its own pointer stars, optional array, optional
-    ///     bit width, and optional alignment override), sharing the enclosing <see cref="FieldGroup"/>'s type.
+    ///     bit width, and optional trailing placement suffix), sharing the enclosing <see cref="FieldGroup"/>'s type.
     /// </summary>
-    private static readonly Parser<char, (Identifier Name, int PointerDepth, Maybe<Maybe<Expr>> Array, Maybe<Expr> BitSize, Maybe<Expr> AlignmentOverride)>
+    private static readonly Parser<char, (Identifier Name, int PointerDepth, Maybe<Maybe<Expr>> Array, Maybe<Expr> BitSize, Expr? AlignmentOverride, Expr? OffsetAssertion)>
         Declarator = Map(
-            (words, arr, bitSize, alignmentOverride) => (
+            (words, arr, bitSize, suffix) => (
                 Name: words.Last(),
                 PointerDepth: words.Sum(o => o.PointerDepth),
                 Array: arr,
                 BitSize: bitSize,
-                AlignmentOverride: alignmentOverride),
+                AlignmentOverride: suffix.AlignmentOverride,
+                OffsetAssertion: suffix.OffsetAssertion),
             QualifiedIdentifierToken.AtLeastOnce(),
             Array.Optional(),
             BitSize.Optional(),
-            AlignmentOverride.Optional());
+            PlacementSuffix);
 
     /// <summary>
     ///     Parses one field declaration with one or more comma-separated declarators sharing one type (LANG-12),
@@ -389,7 +408,7 @@ internal static class CStructDefinitionParser
     ///     existing direct caller; every real struct/union body consumes this production instead.
     /// </summary>
     public static readonly Parser<char, IEnumerable<Field>> FieldGroup = Map(
-            (keywordHint, fields, arr, bitSize, alignmentOverride, rest, _) =>
+            (keywordHint, fields, arr, bitSize, suffix, rest, _) =>
             {
                 string? typeKeywordHint = keywordHint.HasValue ? keywordHint.Value : null;
                 string typeName = string.Join(
@@ -403,7 +422,8 @@ internal static class CStructDefinitionParser
                     int pointerDepth,
                     Maybe<Maybe<Expr>> declaratorArray,
                     Maybe<Expr> declaratorBitSize,
-                    Maybe<Expr> declaratorAlignmentOverride)
+                    Expr? declaratorAlignmentOverride,
+                    Expr? declaratorOffsetAssertion)
                 {
                     Expr arrayCount = declaratorArray.HasValue
                         ? declaratorArray.Value.HasValue ? declaratorArray.Value.Value : Structure.Field.UnknownArraysize
@@ -415,14 +435,15 @@ internal static class CStructDefinitionParser
                         declaratorBitSize.HasValue ? declaratorBitSize.Value : NoneExpr.Instance,
                         pointerDepth,
                         typeKeywordHint,
-                        declaratorAlignmentOverride.HasValue ? declaratorAlignmentOverride.Value : null);
+                        declaratorAlignmentOverride,
+                        declaratorOffsetAssertion);
                 }
 
                 var result = new List<Field>
                 {
-                    MakeField(fields.Last(), firstPointerDepth, arr, bitSize, alignmentOverride),
+                    MakeField(fields.Last(), firstPointerDepth, arr, bitSize, suffix.AlignmentOverride, suffix.OffsetAssertion),
                 };
-                foreach ((Identifier Name, int PointerDepth, Maybe<Maybe<Expr>> Array, Maybe<Expr> BitSize, Maybe<Expr> AlignmentOverride) declarator in rest)
+                foreach ((Identifier Name, int PointerDepth, Maybe<Maybe<Expr>> Array, Maybe<Expr> BitSize, Expr? AlignmentOverride, Expr? OffsetAssertion) declarator in rest)
                 {
                     result.Add(
                         MakeField(
@@ -430,7 +451,8 @@ internal static class CStructDefinitionParser
                             declarator.PointerDepth,
                             declarator.Array,
                             declarator.BitSize,
-                            declarator.AlignmentOverride));
+                            declarator.AlignmentOverride,
+                            declarator.OffsetAssertion));
                 }
 
                 return (IEnumerable<Field>)result;
@@ -439,7 +461,7 @@ internal static class CStructDefinitionParser
             QualifiedIdentifierToken.AtLeastOnce(),
             Array.Optional(),
             BitSize.Optional(),
-            AlignmentOverride.Optional(),
+            PlacementSuffix,
             Comma.Then(Declarator).Many(),
             Tok(SemiColon).IgnoreResult()).
         Labelled("Field");
