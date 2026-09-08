@@ -516,6 +516,27 @@
       }
     },
     {
+      "featureId": "multiple-declarators",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Each declarator is treated as an ordinary field of its own compiled shape; no distinct value contract applies."
+        ],
+        "evidence": [
+          "CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_SupportWriteSerializeReadValueAndUpdate"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "Each declarator's own primitive/array/bitfield codec supplies its exact-byte contract."
+        ],
+        "evidence": [
+          "CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_SupportWriteSerializeReadValueAndUpdate"
+        ]
+      }
+    },
+    {
       "featureId": "runtime-expression-arrays",
       "value": {
         "status": "conditional",
@@ -1336,6 +1357,100 @@
       ],
       "workItems": [
         "LANG-05"
+      ]
+    },
+    {
+      "id": "multiple-declarators",
+      "manual": "CStructSharp.Docs/language/grammar.md#complete-portable-grammar",
+      "fixture": "multiple-declarators",
+      "title": "Comma-separated declarators sharing one field type",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_ReadTheSameAsSeparateFieldDeclarations",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_SupportWriteSerializeReadValueAndUpdate",
+          "operations": [
+            "write",
+            "serialize",
+            "read-value",
+            "update"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_LeadingPointerStarAppliesOnlyToItsOwnDeclarator",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_EachDeclaratorHasItsOwnArrayAndBitWidth",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_WorkInsideAUnion",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_DuplicateNameAcrossDeclarators_StillRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        }
+      ],
+      "limitations": [
+        "Each declarator carries its own independent pointer stars, array, and bit width, matching C's declarator-list semantics rather than sharing the first declarator's shape."
       ]
     },
     {
@@ -2300,15 +2415,6 @@
       "diagnosticPolicy": "Reject unsupported directives; a future header frontend must be an explicit separate boundary.",
       "workItems": [
         "LANG-11"
-      ]
-    },
-    {
-      "id": "multiple-declarators",
-      "syntax": "int a, b; and mixed pointer/array declarators",
-      "rationale": "The current field grammar accepts one declarator per declaration.",
-      "diagnosticPolicy": "Reject the declaration rather than applying the first shape to every name.",
-      "workItems": [
-        "LANG-12"
       ]
     },
     {

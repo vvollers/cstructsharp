@@ -38,7 +38,6 @@ This example establishes one format's widths; it does not prove equivalence with
 | `forward-declaration` | `struct child;` | Incomplete type identity/storage is unavailable | Supply the complete named declaration |
 | `anonymous-member` | Unnamed inline aggregate | Members are not implicitly promoted | Give the inline struct a field name |
 | `inline-union` | `union { ... } value;` inside a struct | Only named top-level unions are accepted | Declare `union choice`, then use `choice value;` |
-| `multiple-declarators` | `uint8 first, second;` | One field declaration has one name/shape | Write two field declarations |
 | `multidimensional-array` | `value[2][3]` | Public paths have one explicit dimension | Use a named row struct or flatten explicitly |
 | `general-flexible-array` | `uint16 values[]` | Remaining stream bytes do not define a safe count | Use bounded `values[COUNT]`; empty `[]` is for character strings |
 | `qualified-field` | `const uint8 value;` | Qualifier/storage behavior is not silently discarded | Remove layout-neutral qualifiers before construction |

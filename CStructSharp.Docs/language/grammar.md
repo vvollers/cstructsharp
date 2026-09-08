@@ -53,7 +53,8 @@ struct-field     = field | inline-struct-field ;
 inline-struct-field
                  = "struct", "{", { struct-field }, "}", identifier, ";" ;
 union-field      = field ;
-field            = type-name, pointer-stars, identifier, [ array ], [ bit-width ], ";" ;
+field            = type-name, declarator, { ",", declarator }, ";" ;
+declarator       = pointer-stars, identifier, [ array ], [ bit-width ] ;
 pointer-stars    = { "*" } ;
 array            = "[", [ expression ], "]" ;
 bit-width        = ":", expression ;
@@ -102,10 +103,13 @@ Each numeric digit sequence must contain at least one real digit; underscores al
 do not nest. The parser accepts pointer stars adjacent to either token (`uint8* p`, `uint8 *p`, and `uint8 * p`) and
 normalizes the total star count.
 
-Only one array declarator is accepted. Empty `[]` has meaning only for a supported character type and is then a
-terminated string. A `#define` is one object-like integer expression; there are no parameters or textual expansion.
-Function-call spelling is recognized only so construction can reject it explicitly. It is not a supported
-`primary`, and it never executes user code.
+Only one array declarator per name is accepted. Empty `[]` has meaning only for a supported character type and is
+then a terminated string. A field declaration may share one type across multiple comma-separated declarators
+(`uint8 first, second;`); each declarator has its own independent pointer stars, array, and bit width, matching C's
+declarator-list semantics - a leading star belongs only to the declarator it directly precedes, not to every name in
+the list, so `uint8 *a, b;` declares `a` as a pointer and `b` as a plain `uint8`. A `#define` is one object-like
+integer expression; there are no parameters or textual expansion. Function-call spelling is recognized only so
+construction can reject it explicitly. It is not a supported `primary`, and it never executes user code.
 
 ## Public path EBNF
 
@@ -144,7 +148,8 @@ The table explains each production and links to the page that defines its additi
 | `struct-field` | Ordinary or named inline-struct member |
 | `inline-struct-field` | Lexically scoped sequential composite |
 | `union-field` | Ordinary field; inline structs/unions are not accepted here |
-| `field` | One type, one declarator, optional array, optional bit width |
+| `field` | One type, one or more comma-separated declarators |
+| `declarator` | One name with its own pointer stars, optional array, and optional bit width |
 | `pointer-stars` | Zero or more data-pointer levels |
 | `array` | One fixed/runtime count or character-string marker |
 | `bit-width` | One named nonzero portable bit slice |

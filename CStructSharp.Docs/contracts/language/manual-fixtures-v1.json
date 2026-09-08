@@ -292,6 +292,34 @@
       }
     },
     {
+      "id": "multiple-declarators",
+      "featureId": "multiple-declarators",
+      "manual": "CStructSharp.Docs/language/grammar.md#complete-portable-grammar",
+      "valid": {
+        "definition": "struct root { uint8 first, second; };",
+        "root": "root",
+        "pointerSize": 1,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 1,
+        "bytes": "0102",
+        "offsets": {
+          "root.first": 0,
+          "root.second": 1
+        },
+        "values": {
+          "root.first": "1",
+          "root.second": "2"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "qualified-field",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
       "id": "typedefs",
       "featureId": "typedefs",
       "manual": "CStructSharp.Docs/language/structs-unions-enums-typedefs.md#typedefs",

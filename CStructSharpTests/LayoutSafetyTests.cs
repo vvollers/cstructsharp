@@ -548,6 +548,95 @@ public class LayoutSafetyTests
         CollectionAssert.AreEqual(new byte[] { 0xA5, }, stream.ToArray());
     }
 
+    /// <summary>
+    ///     Comma-separated declarators sharing one type (LANG-12) compile to the same fields as writing two separate
+    ///     declarations - this is the exact promoted shape of the retired multiple-declarators unsupported-corpus
+    ///     fixture.
+    /// </summary>
+    [TestMethod]
+    public void MultipleDeclarators_ReadTheSameAsSeparateFieldDeclarations()
+    {
+        var cstruct = new CStruct("struct root { uint8 first, second; };");
+
+        dynamic parsed = cstruct.ParseStream(new MemoryStream([1, 2,]), "root");
+
+        Assert.AreEqual((byte)1, (byte)parsed.first);
+        Assert.AreEqual((byte)2, (byte)parsed.second);
+        Assert.AreEqual(2, cstruct.GetStructSizeInBytes("root"));
+    }
+
+    /// <summary>
+    ///     A field declared as one of several comma-separated declarators writes (directly and via serialize),
+    ///     reads back by value, and updates in place exactly like an ordinarily-declared field - the desugaring
+    ///     produces the same compiled field, not a distinct execution path.
+    /// </summary>
+    [TestMethod]
+    public void MultipleDeclarators_SupportWriteSerializeReadValueAndUpdate()
+    {
+        var cstruct = new CStruct("struct root { uint8 first, second; };");
+
+        using var writeStream = new MemoryStream();
+        cstruct.WriteStream(writeStream, "root", new { first = (byte)1, second = (byte)2, });
+        CollectionAssert.AreEqual(new byte[] { 1, 2, }, writeStream.ToArray());
+
+        byte[] bytes = cstruct.Serialize("root", new { first = (byte)1, second = (byte)2, });
+        CollectionAssert.AreEqual(new byte[] { 1, 2, }, bytes);
+
+        using var readStream = new MemoryStream(bytes);
+        Assert.AreEqual((byte)2, Convert.ToByte(cstruct.ReadValue(readStream, "root.second")));
+
+        using var updateStream = new MemoryStream(bytes);
+        cstruct.UpdateStream(updateStream, "root.second", (byte)9);
+        CollectionAssert.AreEqual(new byte[] { 1, 9, }, updateStream.ToArray());
+    }
+
+    /// <summary>
+    ///     A leading pointer star belongs only to the declarator it directly precedes, matching C's declarator-list
+    ///     semantics - not every name sharing that declaration.
+    /// </summary>
+    /// <remarks>
+    ///     <c>uint8 *a, b;</c> must size as one pointer plus one plain byte, not two pointers; this is the classic C
+    ///     gotcha this feature must reproduce correctly rather than simplifying away.
+    /// </remarks>
+    [TestMethod]
+    public void MultipleDeclarators_LeadingPointerStarAppliesOnlyToItsOwnDeclarator()
+    {
+        var cstruct = new CStruct("struct root { uint8 *a, b; };", pointerSize: 2);
+
+        Assert.AreEqual(3, cstruct.GetStructSizeInBytes("root"));
+    }
+
+    /// <summary>Each declarator keeps its own independent array and bit-width suffix.</summary>
+    [TestMethod]
+    public void MultipleDeclarators_EachDeclaratorHasItsOwnArrayAndBitWidth()
+    {
+        var arrayCstruct = new CStruct("struct root { uint8 a, b[4]; };");
+        dynamic arrayParsed = arrayCstruct.ParseStream(new MemoryStream([9, 1, 2, 3, 4,]), "root");
+        Assert.AreEqual((byte)9, (byte)arrayParsed.a);
+        Assert.AreEqual(4, arrayParsed.b.Count);
+
+        var bitfieldCstruct = new CStruct("struct root { uint8 low:4, high:4; };");
+        dynamic bitfieldParsed = bitfieldCstruct.ParseStream(new MemoryStream([0xAB,]), "root");
+        Assert.AreEqual(0xB, (int)bitfieldParsed.low);
+        Assert.AreEqual(0xA, (int)bitfieldParsed.high);
+    }
+
+    /// <summary>A union field declaration may also share one type across multiple comma-separated declarators.</summary>
+    [TestMethod]
+    public void MultipleDeclarators_WorkInsideAUnion()
+    {
+        var cstruct = new CStruct("union choice { uint8 small; uint16 large, larger; };");
+
+        Assert.AreEqual(2, cstruct.GetStructSizeInBytes("choice"));
+    }
+
+    /// <summary>Two declarators sharing the same name are still rejected, exactly as two separate declarations would be.</summary>
+    [TestMethod]
+    public void MultipleDeclarators_DuplicateNameAcrossDeclarators_StillRejected()
+    {
+        Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { uint8 a, a; };"));
+    }
+
     /// <summary>Produces a value that is exactly representable by the generated primitive declaration.</summary>
     private static object CreateRandomPrimitiveValue(string typeName, System.Random random)
     {
