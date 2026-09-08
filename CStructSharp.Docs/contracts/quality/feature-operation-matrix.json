@@ -1792,7 +1792,7 @@
       "limitations": [
         "N must be a positive power of two; a non-conforming value fails at construction, naming the field and the rejected value.",
         "Only has an observable effect when the enclosing layout is constructed with aligned: true - in packed mode it is accepted but has no effect, consistent with a field's own natural alignment already having none there.",
-        "Changes only which alignment value a field's placement uses; it cannot move a field's placement backward or authoritatively assert an exact byte offset (see docs/adr/0013-canonical-placement-controls.md for the scope reasoning)."
+        "Changes only which alignment value a field's placement uses; it cannot move a field's placement backward or authoritatively assert an exact byte offset - both remain future work."
       ]
     },
     {
