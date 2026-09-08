@@ -70,6 +70,36 @@ To calculate a layout:
 An unsized array is allowed only for supported character types, where it means terminated text. A general unsized
 array or variable-size union member does not have a fixed amount of storage, so it is rejected.
 
+## Explicit field alignment override
+
+A declarator may carry a trailing `@align(N)` (LANG-15), overriding that one declarator's own natural alignment -
+for example, forcing a single-byte field onto a 4-byte boundary regardless of its own type:
+
+```c
+struct sample {
+    uint8 a;
+    uint8 value @align(4);
+};
+```
+
+`N` is a full expression, evaluated the same way a bit width is, so a `#define`d constant works, not only a
+literal. `N` must be a positive power of two; a non-conforming value fails at construction, naming the field and
+the rejected value (`non-power-of-two-alignment` in [`portable-v1.json`](../contracts/language/portable-v1.json)).
+The override applies wherever the field's alignment is otherwise consulted - parsing, addressing, serializing,
+writing, and updating all agree, since every one of them reads the same compiled alignment value.
+
+**`@align(N)` only has an observable effect when the enclosing layout is constructed with `aligned: true`.** In
+packed mode it is accepted but has no effect on placement or padding - consistent with how a field's own natural
+alignment already has no effect in packed mode; every alignment step in this library is gated behind the global
+packed/aligned choice, not just fed a value.
+
+An override on one declarator in a comma-separated list (`uint8 a @align(4), b;`) affects only that declarator's
+own placement and the composite's own reported alignment; it does not affect its sibling declarators' placement.
+
+`@align(N)` changes only which alignment value a field's placement uses. It cannot move a field's placement
+backward, and it is not an assertion checked against computed placement - both remain future work; see
+[ADR-013](../../docs/adr/0013-canonical-placement-controls.md) (local design notes) for the scope reasoning.
+
 ## Checked layout examples
 
 The rows below come from [`portable-v1.json`](../contracts/language/portable-v1.json) and execute on both frameworks.
@@ -86,6 +116,7 @@ Padding in newly serialized output is zero. Offsets are relative to the root.
 | `packed-null-pointer` | `struct pointer_sample { uint8 marker; uint16 *target; };`, null pointer | 2-byte pointer, little, packed | marker `0`, pointer `1` | 3 / 2 | `AA 00 00` |
 | `aligned-null-pointer` | Same definition and values | 2-byte pointer, little, aligned | marker `0`, pointer `2` | 4 / 2 | `AA 00 00 00` |
 | `boolean-round-trip` | `struct sample { bool flag; uint8 tail; };` with `flag=true`, `tail=0xAA` | little, packed | `flag=0`, `tail=1` | 2 / 1 | `01 AA` |
+| `alignment-override` | `struct sample { uint8 a; uint8 value @align(4); };` with `a=1`, `value=2` | little, aligned | `a=0`, `value=4` | 8 / 4 | `01 00 00 00 02 00 00 00` |
 
 `GetStructAlignmentInBytes` returns the alignment column even in packed mode. `GetStructSizeInBytes` works only when
 the selected struct/union has a fixed extent. Runtime arrays and terminated fields need operation variables or actual

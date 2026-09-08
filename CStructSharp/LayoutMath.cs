@@ -31,6 +31,21 @@ internal static class LayoutMath
     }
 
     /// <summary>
+    ///     Validates an explicit alignment override (LANG-15's <c>@align(N)</c>) - it must be a positive power of two,
+    ///     matching every native ABI's own alignment rule.
+    /// </summary>
+    public static int ValidateExplicitAlignment(int alignment, string fieldName)
+    {
+        if (alignment <= 0 || (alignment & (alignment - 1)) != 0)
+        {
+            throw new CStructLayoutException(
+                "Explicit alignment override must be a positive power of two: " + fieldName + " = " + alignment);
+        }
+
+        return alignment;
+    }
+
+    /// <summary>
     ///     Decides whether the next bitfield requires a fresh primitive storage unit. Compilation, read, write, and path
     ///     operations share this rule so type changes, capacity, and alignment cannot drift independently.
     /// </summary>
