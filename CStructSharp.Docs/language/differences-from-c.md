@@ -47,7 +47,7 @@ This example establishes one format's widths; it does not prove equivalence with
 | `function-pointer` | `uint8 (*callback)(uint8)` | Data-pointer grammar cannot describe/invoke functions | Use fixed unsigned storage only when an opaque address is appropriate |
 | `zero-width-bitfield` | `uint8 reserved : 0;` | Native separator/allocation rules vary | Start an explicit new field/storage unit |
 | `typedef-array` | `typedef uint8 bytes[4];` | Typedef aliases a name and optional pointer depth, not a declarator | Put `[4]` on the field |
-| `typedef-union` | Common C typedef-union form | The supported typedef-struct form is intentionally narrower | Use a named Portable union directly |
+| `typedef-tag-alias` | `typedef struct ExistingTag alias;` (no braces) | A typedef alias of an already-declared tag, without repeating its body, is not a supported declarator form | Repeat the full `typedef struct tag { ... } alias;` declaration, or use `child alias;` directly |
 
 Broader unsupported families include booleans/other floating types, full preprocessing, qualifiers, anonymous member
 promotion, source packing controls, and named compiler modes. One fixture may represent several equivalent spellings.

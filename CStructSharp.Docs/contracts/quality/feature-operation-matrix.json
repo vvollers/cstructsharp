@@ -1646,13 +1646,34 @@
           "operations": [
             "read-value"
           ]
+        },
+        {
+          "test": "CStructSharpTests/ScopedInlineTypeTests.cs#AnonymousTypedefStruct_IsAcceptedAndUsableAtTheRootPath",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/ScopedInlineTypeTests.cs#AnonymousTypedefUnion_IsAcceptedAndReadsWritesLikeANamedUnion",
+          "operations": [
+            "serialize"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/ScopedInlineTypeTests.cs#NamedTagTypedefUnion_IsAcceptedAndReadsWritesLikeANamedUnion",
+          "operations": [
+            "serialize"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/ScopedInlineTypeTests.cs#AnonymousTypedefStruct_SupportsNestedInlineStructFields",
+          "operations": [
+            "parse"
+          ]
         }
       ],
       "limitations": [
-        "The accepted grammar does not yet cover all common anonymous and tag-plus-alias C typedef forms."
-      ],
-      "workItems": [
-        "LANG-02"
+        "A typedef alias of an already-declared tag without repeating its body (typedef struct ExistingTag alias;, no braces) is not a supported declarator form."
       ]
     },
     {
@@ -2225,15 +2246,6 @@
       "diagnosticPolicy": "Reject during layout construction; never reinterpret the tokens as another supported declaration.",
       "workItems": [
         "LANG-01"
-      ]
-    },
-    {
-      "id": "common-typedef-struct-forms",
-      "syntax": "typedef struct { ... } Name; and tag/alias variants",
-      "rationale": "Only the repository's narrower typedef forms are accepted today.",
-      "diagnosticPolicy": "Reject unsupported forms during layout construction.",
-      "workItems": [
-        "LANG-02"
       ]
     },
     {

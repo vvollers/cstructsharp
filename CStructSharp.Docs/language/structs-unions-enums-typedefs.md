@@ -147,8 +147,17 @@ typedef struct packet {
 Following aliases does not change width, byte order, alignment, array count, or pointer addressing. Alias cycles are
 rejected.
 
-The special typedef-struct form declares a named Portable struct and then exports an alias. Common C forms such as
-`typedef struct { ... } Name;`, tag-plus-alias variants, typedef arrays, and typedef unions are not supported.
+The special typedef-struct form declares a Portable struct and then exports an alias. Both the named-tag form shown
+above and the anonymous inline form are accepted, along with the equivalent forms for unions:
+
+```c
+typedef struct { uint8 x; uint8 y; } point_t;
+typedef union { uint8 small; uint16 large; } choice_t;
+typedef union tagged_choice { uint8 small; uint16 large; } tagged_choice_t;
+```
+
+A typedef alias of an already-declared tag without repeating its body (`typedef struct ExistingTag alias;`, no
+braces), and typedef arrays, remain unsupported — see [differences from C](differences-from-c.md).
 
 The `typedefs` fixture checks that `word value` reads `34 12` as 4660 and that a packed root followed by one byte has
 size/alignment `3/2`.

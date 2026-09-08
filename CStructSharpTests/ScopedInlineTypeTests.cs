@@ -385,6 +385,79 @@ public class ScopedInlineTypeTests
             stream.ToArray());
     }
 
+    /// <summary>
+    ///     <c>typedef struct { ... } Name;</c>, the anonymous inline form with no tag between "struct" and "{", is
+    ///     accepted (LANG-02) and is directly usable at the root path, unlike the pre-existing named form.
+    /// </summary>
+    [TestMethod]
+    public void AnonymousTypedefStruct_IsAcceptedAndUsableAtTheRootPath()
+    {
+        var cstruct = new CStruct("typedef struct { uint8 x; uint8 y; } Point;");
+        dynamic parsed = cstruct.ParseStream(new MemoryStream([1, 2,]), "Point");
+
+        Assert.AreEqual((byte)1, (byte)parsed.x);
+        Assert.AreEqual((byte)2, (byte)parsed.y);
+    }
+
+    /// <summary>
+    ///     <c>typedef union { ... } Name;</c>, the anonymous inline form with no tag between "union" and "{", is
+    ///     accepted (LANG-02) and reads/writes exactly like a named union.
+    /// </summary>
+    [TestMethod]
+    public void AnonymousTypedefUnion_IsAcceptedAndReadsWritesLikeANamedUnion()
+    {
+        var cstruct = new CStruct("typedef union { uint8 small; uint16 large; } Choice;");
+
+        byte[] bytes = cstruct.Serialize("Choice", UnionValue.FromMember("Choice", "small", (byte)0xA5));
+
+        CollectionAssert.AreEqual(new byte[] { 0xA5, 0x00, }, bytes);
+    }
+
+    /// <summary>An anonymous typedef struct may itself contain a nested anonymous struct field, exactly like the named form.</summary>
+    [TestMethod]
+    public void AnonymousTypedefStruct_SupportsNestedInlineStructFields()
+    {
+        var cstruct = new CStruct("typedef struct { struct { uint8 a; } inner; uint8 b; } Outer;");
+
+        dynamic parsed = cstruct.ParseStream(new MemoryStream([1, 2,]), "Outer");
+
+        Assert.AreEqual((byte)1, (byte)parsed.inner.a);
+        Assert.AreEqual((byte)2, (byte)parsed.b);
+    }
+
+    /// <summary>
+    ///     <c>typedef union tag { ... } alias;</c>, the named-tag form (LANG-02, mirroring the pre-existing named
+    ///     struct form), is accepted and reads/writes exactly like a named union.
+    /// </summary>
+    [TestMethod]
+    public void NamedTagTypedefUnion_IsAcceptedAndReadsWritesLikeANamedUnion()
+    {
+        var cstruct = new CStruct(
+            "typedef union choice { uint8 small; uint16 large; } choice; struct root { choice value; };");
+
+        byte[] bytes = cstruct.Serialize(
+            "root",
+            new { value = UnionValue.FromMember("choice", "small", (byte)0xA5), });
+
+        CollectionAssert.AreEqual(new byte[] { 0xA5, 0x00, }, bytes);
+    }
+
+    /// <summary>
+    ///     The pre-existing named form (<c>typedef struct tag { ... } alias;</c>) is unaffected by accepting the
+    ///     anonymous form; both remain valid, and the named form's alias still works as a nested field type.
+    /// </summary>
+    [TestMethod]
+    public void NamedTypedefStruct_RemainsAcceptedAlongsideTheAnonymousForm()
+    {
+        var cstruct = new CStruct(
+            "typedef struct point { uint8 x; uint8 y; } point_alias; struct root { point_alias item; };");
+
+        dynamic parsed = cstruct.ParseStream(new MemoryStream([1, 2,]), "root");
+
+        Assert.AreEqual((byte)1, (byte)parsed.item.x);
+        Assert.AreEqual((byte)2, (byte)parsed.item.y);
+    }
+
     /// <summary>Writes one unsigned value at a fixed offset in the requested byte order.</summary>
     private static void WriteUnsigned(byte[] bytes, int offset, int width, ulong value, bool littleEndian)
     {
