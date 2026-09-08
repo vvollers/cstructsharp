@@ -97,8 +97,7 @@ An override on one declarator in a comma-separated list (`uint8 a @align(4), b;`
 own placement and the composite's own reported alignment; it does not affect its sibling declarators' placement.
 
 `@align(N)` changes only which alignment value a field's placement uses. It cannot move a field's placement
-backward, and it is not an assertion checked against computed placement - both remain future work; see
-[ADR-013](../../docs/adr/0013-canonical-placement-controls.md) (local design notes) for the scope reasoning.
+backward, and it is not an assertion checked against computed placement - both remain future work.
 
 ## Checked layout examples
 
