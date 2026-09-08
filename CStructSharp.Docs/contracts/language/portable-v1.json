@@ -827,8 +827,8 @@
       "category": "compiler packing directive"
     },
     {
-      "id": "tagged-field-reference",
-      "definition": "struct child { uint8 value; }; struct root { struct child value; };",
+      "id": "tag-kind-mismatch",
+      "definition": "struct child { uint8 value; }; struct root { union child value; };",
       "category": "C tag namespace"
     },
     {

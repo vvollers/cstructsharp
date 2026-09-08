@@ -364,6 +364,16 @@ public partial class CStruct
                                                      namedTypes,
                                                      compositeSymbols,
                                                      resolvingAliases);
+                if (field.TypeKeywordHint is not null)
+                {
+                    string actualKind = type.Symbol.Kind.ToString().ToLowerInvariant();
+                    if (!string.Equals(field.TypeKeywordHint, actualKind, StringComparison.Ordinal))
+                    {
+                        throw new CStructLayoutException(
+                            $"Field '{field.Name.Name}' declared as '{field.TypeKeywordHint}' but '{field.Type.Name}' is a {actualKind}.");
+                    }
+                }
+
                 int pointerDepth = checked(field.PointerDepth + type.PointerDepth);
                 if (pointerDepth == 0 && type.Symbol.Declaration is Struct nested)
                 {

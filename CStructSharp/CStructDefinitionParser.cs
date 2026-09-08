@@ -349,6 +349,14 @@ internal static class CStructDefinitionParser
         TypeQualifier.SkipMany().Then(ExtendedIdentifier);
 
     /// <summary>
+    ///     An optional <c>struct</c>/<c>union</c>/<c>enum</c> keyword written before a field's type reference
+    ///     (LANG-01), e.g. <c>struct child value;</c>. Recorded as a hint on the produced <see cref="Field"/> and
+    ///     checked against the referenced declaration's actual kind at compile time; it does not become part of the
+    ///     type name itself.
+    /// </summary>
+    private static readonly Parser<char, string> TagKeyword = OneOf(StructKeyword, UnionKeyword, EnumKeyword);
+
+    /// <summary>
     ///     Parses one comma-separated declarator after the first (its own pointer stars, optional array, and
     ///     optional bit width), sharing the enclosing <see cref="FieldGroup"/>'s type.
     /// </summary>
@@ -371,8 +379,9 @@ internal static class CStructDefinitionParser
     ///     existing direct caller; every real struct/union body consumes this production instead.
     /// </summary>
     public static readonly Parser<char, IEnumerable<Field>> FieldGroup = Map(
-            (fields, arr, bitSize, rest, _) =>
+            (keywordHint, fields, arr, bitSize, rest, _) =>
             {
+                string? typeKeywordHint = keywordHint.HasValue ? keywordHint.Value : null;
                 string typeName = string.Join(
                     " ",
                     fields.SkipLast(1).Select(o => o.Name).Where(name => !string.IsNullOrWhiteSpace(name)));
@@ -389,7 +398,8 @@ internal static class CStructDefinitionParser
                         name,
                         arrayCount,
                         declaratorBitSize.HasValue ? declaratorBitSize.Value : NoneExpr.Instance,
-                        pointerDepth);
+                        pointerDepth,
+                        typeKeywordHint);
                 }
 
                 var result = new List<Field> { MakeField(fields.Last(), firstPointerDepth, arr, bitSize), };
@@ -400,6 +410,7 @@ internal static class CStructDefinitionParser
 
                 return (IEnumerable<Field>)result;
             },
+            TagKeyword.Optional(),
             QualifiedIdentifierToken.AtLeastOnce(),
             Array.Optional(),
             BitSize.Optional(),
@@ -408,7 +419,7 @@ internal static class CStructDefinitionParser
         Labelled("Field");
 
     public static readonly Parser<char, IEnumerable<Field>> StructOrField =
-        Rec(() => InnerStruct!.Select(f => (IEnumerable<Field>)new[] { f, }).Or(FieldGroup));
+        Rec(() => Try(InnerStruct!).Select(f => (IEnumerable<Field>)new[] { f, }).Or(FieldGroup));
 
     public static readonly Parser<char, Field> InnerStruct = Map(
             (fields, name) => new Struct(name, [.. fields.SelectMany(group => group),], false),

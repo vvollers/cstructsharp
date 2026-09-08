@@ -34,7 +34,7 @@ This example establishes one format's widths; it does not prove equivalence with
 | --- | --- | --- | --- |
 | `include-directive` | `#include <stdint.h>` | The core does not search/read translation-unit files | Supply one complete normalized layout string |
 | `packing-pragma` | `#pragma pack(push, 1)` | There is no compiler pack stack | Set packed/aligned placement in the constructor |
-| `tagged-field-reference` | `struct child value;` | Portable has no separate C tag namespace | Declare `child`, then use `child value;` |
+| `tag-kind-mismatch` | `struct root { union child value; };` where `child` is a `struct` | A tag keyword is checked against the referenced declaration's actual kind | Use the matching keyword, or omit it and write `child value;` |
 | `forward-declaration` | `struct child;` | Incomplete type identity/storage is unavailable | Supply the complete named declaration |
 | `anonymous-member` | Unnamed inline aggregate | Members are not implicitly promoted | Give the inline struct a field name |
 | `inline-union` | `union { ... } value;` inside a struct | Only named top-level unions are accepted | Declare `union choice`, then use `choice value;` |
