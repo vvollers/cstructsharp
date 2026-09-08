@@ -55,14 +55,16 @@ inline-struct-field
 union-field      = field ;
 field            = { type-qualifier }, [ tag-keyword ], type-name, declarator, { ",", declarator }, ";" ;
 declarator       = { type-qualifier }, pointer-stars, { type-qualifier }, identifier, [ array ], [ bit-width ],
-                   [ alignment-override ] ;
+                   [ placement-suffix ] ;
 type-qualifier   = "const" | "volatile" | "restrict" ;
 tag-keyword      = "struct" | "union" | "enum" ;
 pointer-stars    = { "*" } ;
 array            = "[", [ expression ], "]" ;
 bit-width        = ":", expression ;
+placement-suffix = alignment-override | offset-assertion ;
 alignment-override
                  = "@align", "(", expression, ")" ;
+offset-assertion = "@", expression ;
 
 expression       = bitwise-or ;
 bitwise-or       = bitwise-and, { "|", bitwise-and } ;
@@ -119,11 +121,15 @@ qualifier in any other position, are still rejected. A field's type reference ma
 leading `struct`, `union`, or `enum` keyword (`struct child value;`), matching how C itself refers to a tagged type;
 the keyword is checked against the referenced declaration's actual kind at construction time and rejected on a
 mismatch, but otherwise has no effect - `struct child value;` and `child value;` compile to the identical field. A
-declarator may carry a trailing `@align(N)` (LANG-15), overriding that one declarator's own natural alignment; `N`
-is a full expression, evaluated the same way `bit-width` is, so a `#define`d constant works. `N` must be a positive
-power of two. `@align(N)` only has an observable effect when the enclosing layout is constructed with
-`aligned: true` - in packed mode it is accepted but has no effect, the same as every field's own natural alignment
-already having none there. See [Layout, alignment, and padding](layout-alignment-and-padding.md#explicit-field-alignment-override).
+declarator may carry at most one trailing placement suffix (LANG-15) - either `@align(N)`, overriding that one
+declarator's own natural alignment, or bare `@N`, asserting the declarator's expected byte offset without ever
+changing it. Both accept a full expression, evaluated the same way `bit-width` is, so a `#define`d constant works
+for either. `@align(N)`'s `N` must be a positive power of two; it only has an observable effect when the enclosing
+layout is constructed with `aligned: true` - in packed mode it is accepted but has no effect, the same as every
+field's own natural alignment already having none there. `@N`'s value must be non-negative and is checked against
+the declarator's actual computed offset only when that offset is statically known at construction time (a
+declarator following a runtime-length sibling accepts but does not check its assertion); it is not supported on a
+bitfield declarator. See [Layout, alignment, and padding](layout-alignment-and-padding.md#explicit-field-alignment-override).
 A `#define` is one object-like integer expression; there are no parameters or textual expansion. Function-call
 spelling is recognized only so construction can reject it explicitly. It is not a supported `primary`, and it never
 executes user code.
@@ -166,13 +172,15 @@ The table explains each production and links to the page that defines its additi
 | `inline-struct-field` | Lexically scoped sequential composite |
 | `union-field` | Ordinary field; inline structs/unions are not accepted here |
 | `field` | One optionally qualified, optionally tagged type, one or more comma-separated declarators |
-| `declarator` | One name with its own optional qualifiers, pointer stars, optional array, optional bit width, and optional alignment override |
+| `declarator` | One name with its own optional qualifiers, pointer stars, optional array, optional bit width, and optional placement suffix |
 | `type-qualifier` | A recognized layout-neutral qualifier, discarded with no effect on the compiled field |
 | `tag-keyword` | An optional struct/union/enum keyword, checked against the referenced declaration's actual kind |
 | `pointer-stars` | Zero or more data-pointer levels |
 | `array` | One fixed/runtime count or character-string marker |
 | `bit-width` | One named nonzero portable bit slice |
+| `placement-suffix` | At most one trailing alignment override or offset assertion per declarator |
 | `alignment-override` | An explicit per-declarator alignment override, effective only when `aligned: true` |
+| `offset-assertion` | An explicit per-declarator byte-offset assertion, checked when statically computable |
 | `expression` | Complete checked integer expression |
 | `bitwise-or` | Lowest-precedence bitwise OR |
 | `bitwise-and` | Bitwise AND |

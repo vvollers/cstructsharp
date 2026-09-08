@@ -342,7 +342,8 @@ public sealed partial class CStruct
                     bitSize,
                     field.PointerDepth,
                     field.TypeKeywordHint,
-                    field.AlignmentOverrideExpression));
+                    field.AlignmentOverrideExpression,
+                    field.OffsetAssertionExpression));
         }
 
         return new Struct(strct.Name, [.. fields,], strct.IsUnion);

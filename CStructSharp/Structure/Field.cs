@@ -19,7 +19,8 @@ internal class Field : CStructElement
         int bitSize,
         int pointerDepth = -1,
         string? typeKeywordHint = null,
-        Expr? alignmentOverrideExpression = null)
+        Expr? alignmentOverrideExpression = null,
+        Expr? offsetAssertionExpression = null)
     {
         this.Type = type;
         this.Name = name;
@@ -31,6 +32,7 @@ internal class Field : CStructElement
         this.IsPointer = this.PointerDepth > 0;
         this.TypeKeywordHint = typeKeywordHint;
         this.AlignmentOverrideExpression = alignmentOverrideExpression;
+        this.OffsetAssertionExpression = offsetAssertionExpression;
     }
 
     /// <summary>Creates a parsed field whose bit width will be evaluated with the compiled layout's expression policy.</summary>
@@ -41,7 +43,8 @@ internal class Field : CStructElement
         Expr bitSize,
         int pointerDepth = -1,
         string? typeKeywordHint = null,
-        Expr? alignmentOverrideExpression = null)
+        Expr? alignmentOverrideExpression = null,
+        Expr? offsetAssertionExpression = null)
     {
         this.Type = type;
         this.Name = name;
@@ -52,6 +55,7 @@ internal class Field : CStructElement
         this.IsPointer = this.PointerDepth > 0;
         this.TypeKeywordHint = typeKeywordHint;
         this.AlignmentOverrideExpression = alignmentOverrideExpression;
+        this.OffsetAssertionExpression = offsetAssertionExpression;
     }
 
     public Expr ArrayCount { get; }
@@ -95,6 +99,9 @@ internal class Field : CStructElement
 
     /// <summary>The optional <c>@align(N)</c> expression written after this declarator, or null when none was written.</summary>
     internal Expr? AlignmentOverrideExpression { get; }
+
+    /// <summary>The optional <c>@N</c> offset assertion written after this declarator, or null when none was written.</summary>
+    internal Expr? OffsetAssertionExpression { get; }
 
     /// <summary>Checks whether another value represents the same layout data.</summary>
     public override bool Equals(CStructElement? other)
