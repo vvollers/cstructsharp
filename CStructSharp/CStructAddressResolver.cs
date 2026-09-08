@@ -827,7 +827,7 @@ public partial class CStruct
         }
 
         int structAlignment = this.compiledSizeQueries.GetCompiledComposite(strct).Symbol.Alignment;
-        return this.Aligned ? LayoutMath.AlignUp(cursor.Current, structAlignment) : cursor.Current;
+        return cursor.FinishComposite(structAlignment);
     }
 
     /// <summary>
