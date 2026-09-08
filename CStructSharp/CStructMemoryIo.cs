@@ -321,7 +321,7 @@ public sealed partial class CStruct
             using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
             return this.ParseStreamCore(
                 stream,
-                elementNameOrPath ?? this.GetFirstCompiledStructName(),
+                elementNameOrPath ?? this.compiledModelQueries.GetFirstCompiledStructName(),
                 LayoutVariableInput.FromIntegers(variables),
                 options);
         }
@@ -339,7 +339,7 @@ public sealed partial class CStruct
             using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
             return this.ReadValueCore(
                 stream,
-                elementNameOrPath ?? this.GetFirstCompiledStructName(),
+                elementNameOrPath ?? this.compiledModelQueries.GetFirstCompiledStructName(),
                 LayoutVariableInput.FromIntegers(variables),
                 options);
         }
@@ -357,7 +357,7 @@ public sealed partial class CStruct
             using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
             return this.ReadValue<T>(
                 stream,
-                elementNameOrPath ?? this.GetFirstCompiledStructName(),
+                elementNameOrPath ?? this.compiledModelQueries.GetFirstCompiledStructName(),
                 variables,
                 options);
         }

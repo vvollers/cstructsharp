@@ -577,60 +577,6 @@ public partial class CStruct
                throw new InvalidOperationException("Composite type is not bound: " + strct.Name.Name);
     }
 
-    /// <summary>Returns the immutable synthetic field used to execute one exported typedef root.</summary>
-    private CompiledField GetCompiledRootField(CStructElement declaration)
-    {
-        return this.compiledLayout.RootFields.TryGetValue(declaration, out CompiledField? compiled)
-                   ? compiled
-                   : throw new InvalidOperationException(
-                       "Root declaration has no compiled field projection: " + declaration.Name.Name);
-    }
-
-    /// <summary>Returns the exact compiled integer model owned by one enum declaration.</summary>
-    private CompiledEnumType GetCompiledEnum(CstructEnum enm)
-    {
-        if (this.compiledLayout.Symbols.TryGetValue(enm.Name.Name, out CompiledTypeReference type) &&
-            type.Symbol.Definition is CompiledEnumType compiled)
-        {
-            return compiled;
-        }
-
-        throw new InvalidOperationException("Enum type is not bound: " + enm.Name.Name);
-    }
-
-    /// <summary>Returns one exported declaration from the immutable compiled symbol snapshot.</summary>
-    private bool TryGetCompiledDeclaration(
-        string name,
-        [NotNullWhen(true)] out CStructElement? declaration)
-    {
-        return this.compiledLayout.Declarations.TryGetValue(name, out declaration);
-    }
-
-    /// <summary>Returns the first exported struct or union name in source order for convenience overloads.</summary>
-    private string GetFirstCompiledStructName()
-    {
-        foreach (KeyValuePair<string, CStructElement> declaration in this.compiledLayout.OrderedDeclarations)
-        {
-            if (declaration.Value is Struct)
-            {
-                return declaration.Key;
-            }
-        }
-
-        throw new CStructLayoutException("Layout does not contain a root struct declaration.");
-    }
-
-    /// <summary>Projects one exported parsed declaration to its already resolved named type, if it has one.</summary>
-    private CStructElement? ResolveCompiledNamedElement(CStructElement declaration)
-    {
-        return declaration switch
-        {
-            Struct or CstructEnum => declaration,
-            Typedef => this.GetCompiledRootField(declaration).NamedElement,
-            _ => null,
-        };
-    }
-
     /// <summary>Returns a primitive reader directly or the compiled underlying reader for an enum.</summary>
     private Func<Stream, object>? GetCompiledReader(CompiledTypeSymbol symbol)
     {
@@ -682,7 +628,7 @@ public partial class CStruct
                 dependencies);
         }
 
-        int count = this.EvaluateLayoutExpression(
+        int count = this.layoutExpressionEvaluator.Evaluate(
             field.ArrayCount,
             this.staticLayoutVariables,
             "array length for " + field.Name.Name);
@@ -819,7 +765,7 @@ public partial class CStruct
                               throw new InvalidOperationException(
                                   "Compiled array strategy has no count expression: " +
                                   field.EffectiveField.Name.Name);
-            count = this.EvaluateLayoutExpression(
+            count = this.layoutExpressionEvaluator.Evaluate(
                 expression,
                 variables,
                 "array length for " + field.EffectiveField.Name.Name);

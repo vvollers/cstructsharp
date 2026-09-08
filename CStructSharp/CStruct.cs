@@ -34,8 +34,10 @@ public sealed partial class CStruct
     private readonly ConstructionDictionary<string, Func<Stream, object>> fieldHandlers =
         new(StringComparer.Ordinal);
 
+    private readonly CompiledModelQueries compiledModelQueries;
     private readonly EnumIntegerCodecTable enumIntegerCodecs;
     private readonly ExpressionEvaluator expressionEvaluator;
+    private readonly LayoutExpressionEvaluator layoutExpressionEvaluator;
     private readonly LayoutVariableResolver layoutVariableResolver;
     private readonly IReadOnlyDictionary<string, Expr> staticLayoutVariables;
     private readonly ConstructionDictionary<string, Action<Stream, object>> writeHandlers =
@@ -66,6 +68,7 @@ public sealed partial class CStruct
         LayoutSourceValidator.ValidateLayoutSource(layout, effectiveCompilationOptions);
         this.expressionEvaluator = new ExpressionEvaluator(
             ExpressionEvaluationLimits.FromOptions(effectiveCompilationOptions));
+        this.layoutExpressionEvaluator = new LayoutExpressionEvaluator(this.expressionEvaluator);
 
         // Reject pointer widths that the primitive reader and writer cannot represent.
         if (pointerSize is not (1 or 2 or 4 or 8))
@@ -157,6 +160,7 @@ public sealed partial class CStruct
         // Convert parsed declarations into one validated immutable model. Its recursive binder owns type resolution,
         // alignment, sizing, placement, and operation descriptors, so no parallel layout cache can drift from it.
         this.compiledLayout = this.CompileIntermediateRepresentation();
+        this.compiledModelQueries = new CompiledModelQueries(this.compiledLayout);
         foreach (KeyValuePair<string, CStructElement> declaration in this.CStructElements)
         {
             if (this.compiledLayout.Symbols.TryGetValue(
@@ -221,7 +225,7 @@ public sealed partial class CStruct
         {
             throw;
         }
-        catch (Exception exception) when (this.IsExpressionFailure(exception))
+        catch (Exception exception) when (LayoutExpressionEvaluator.IsExpressionFailure(exception))
         {
             throw new CStructLayoutException(
                 "Layout declaration contains an invalid expression: " + exception.Message,
@@ -299,7 +303,7 @@ public sealed partial class CStruct
                 if (this.expressionEvaluator.GetDependencies(field.ArrayCount).
                     All(this.staticLayoutVariables.ContainsKey))
                 {
-                    int count = this.EvaluateLayoutExpression(
+                    int count = this.layoutExpressionEvaluator.Evaluate(
                         field.ArrayCount,
                         this.staticLayoutVariables,
                         "array length for " + field.Name.Name);
@@ -314,7 +318,7 @@ public sealed partial class CStruct
             int bitSize = 0;
             if (!ReferenceEquals(field.BitSizeExpression, NoneExpr.Instance))
             {
-                bitSize = this.EvaluateLayoutExpression(
+                bitSize = this.layoutExpressionEvaluator.Evaluate(
                     field.BitSizeExpression,
                     this.staticLayoutVariables,
                     "bitfield width for " + field.Name.Name);
@@ -329,35 +333,6 @@ public sealed partial class CStruct
         }
 
         return new Struct(strct.Name, [.. fields,], strct.IsUnion);
-    }
-
-    /// <summary>Evaluates one core layout expression and normalizes deterministic failures to the layout domain.</summary>
-    private int EvaluateLayoutExpression(
-        Expr expression,
-        IReadOnlyDictionary<string, Expr> variables,
-        string context)
-    {
-        try
-        {
-            return this.expressionEvaluator.Evaluate(expression, variables);
-        }
-        catch (CStructLayoutException)
-        {
-            throw;
-        }
-        catch (Exception exception) when (this.IsExpressionFailure(exception))
-        {
-            throw new CStructLayoutException(
-                $"Cannot evaluate {context}: {exception.Message}",
-                exception);
-        }
-    }
-
-    /// <summary>Recognizes supported expression-domain failures without hiding unrelated programming defects.</summary>
-    private bool IsExpressionFailure(Exception exception)
-    {
-        return exception is InvalidOperationException or ArithmeticException or
-               KeyNotFoundException or NotSupportedException;
     }
 
     /// <summary>
@@ -481,7 +456,7 @@ public sealed partial class CStruct
         ArgumentNullException.ThrowIfNull(name);
 
         // Look up the declaration first so callers get the same clear error for an unknown name or a non-struct name.
-        if (!this.TryGetCompiledDeclaration(name, out CStructElement? value))
+        if (!this.compiledModelQueries.TryGetCompiledDeclaration(name, out CStructElement? value))
         {
             throw new CStructPathException("Unknown struct declaration: " + name);
         }
@@ -529,7 +504,7 @@ public sealed partial class CStruct
     {
         return this.ParseStreamCore(
             stream,
-            this.GetFirstCompiledStructName(),
+            this.compiledModelQueries.GetFirstCompiledStructName(),
             LayoutVariableInput.FromIntegers(null),
             new ReadOptions());
     }
@@ -638,7 +613,7 @@ public sealed partial class CStruct
     {
         return this.ParseStreamWithDebugCore(
             stream,
-            this.GetFirstCompiledStructName(),
+            this.compiledModelQueries.GetFirstCompiledStructName(),
             LayoutVariableInput.FromIntegers(null),
             new ReadOptions());
     }

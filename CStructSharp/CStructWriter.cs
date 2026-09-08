@@ -129,18 +129,18 @@ public partial class CStruct
                     }
 
                     // Root aliases use the same immutable field projection as aliases nested inside a struct.
-                    this.WriteFieldValue(this.GetCompiledRootField(t), data, state, -1);
+                    this.WriteFieldValue(this.compiledModelQueries.GetCompiledRootField(t), data, state, -1);
                     return;
                 }
 
             case CstructEnum enm:
-                this.WriteFieldValue(this.GetCompiledRootField(enm), data, state, -1);
+                this.WriteFieldValue(this.compiledModelQueries.GetCompiledRootField(enm), data, state, -1);
                 return;
 
             case Defines d:
                 // Defines influence later array sizes and expressions; writing one only updates the working variable map.
                 state.Variables[d.Name.Name] = new Literal(
-                    this.EvaluateLayoutExpression(
+                    this.layoutExpressionEvaluator.Evaluate(
                         d.Value,
                         state.Variables,
                         "definition " + d.Name.Name));
@@ -350,7 +350,7 @@ public partial class CStruct
             else
             {
                 // Fixed array counts may refer to an earlier field or #define, so calculate them from the current state.
-                numFieldValues = this.EvaluateLayoutExpression(
+                numFieldValues = this.layoutExpressionEvaluator.Evaluate(
                     compiledField.Array.CountExpression ??
                     throw new InvalidOperationException(
                         "Compiled array has no count expression: " + effectiveField.Name.Name),
@@ -636,7 +636,7 @@ public partial class CStruct
             switch (structElement)
             {
             case CstructEnum enm:
-                CompiledEnumType compiledEnum = this.GetCompiledEnum(enm);
+                CompiledEnumType compiledEnum = this.compiledModelQueries.GetCompiledEnum(enm);
                 BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, enm, value, state.BindingMode);
                 (compiledField.Writer ??
                  throw new InvalidOperationException(
@@ -788,7 +788,7 @@ public partial class CStruct
         }
 
         string rootName = segments[0].Name;
-        if (!this.TryGetCompiledDeclaration(rootName, out CStructElement? rootElement))
+        if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out CStructElement? rootElement))
         {
             var exception = new CStructPathException("Unknown root element: " + rootName);
             ExceptionContext.Attach(exception, segments, stream);
@@ -955,7 +955,7 @@ public partial class CStruct
         }
 
         string rootName = segments[0].Name;
-        if (!this.TryGetCompiledDeclaration(rootName, out CStructElement? rootElement))
+        if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out CStructElement? rootElement))
         {
             var exception = new CStructPathException("Unknown root element: " + rootName);
             ExceptionContext.Attach(exception, segments, stream);

@@ -19,7 +19,7 @@ public partial class CStruct
         IReadOnlyList<PathSegment> segments,
         IReadOnlyDictionary<string, Expr> variables)
     {
-        CStructElement current = this.ResolveCompiledNamedElement(root) ?? root;
+        CStructElement current = this.compiledModelQueries.ResolveCompiledNamedElement(root) ?? root;
         for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++)
         {
             PathSegment segment = segments[segmentIndex];
