@@ -238,6 +238,35 @@ public class Literals
     }
 
     /// <summary>
+    ///     A trailing u/U/l/L combination (in any order or repetition) is recognized and discarded without changing
+    ///     the parsed value, matching the "no semantic effect" framing for this deliberately permissive feature.
+    /// </summary>
+    /// <remarks>
+    ///     Portable's expressions are already exact-integer, so C's width/signedness suffix rules carry no
+    ///     information Portable needs. This still stops exactly at a semicolon, just like every other literal test.
+    /// </remarks>
+    [TestMethod]
+    public void TestIntegerLiteralSuffix()
+    {
+        Assert.AreEqual(1, CStructDefinitionParser.LiteralDecimal.ParseOrThrow("1U").Value);
+        Assert.AreEqual(1, CStructDefinitionParser.LiteralDecimal.ParseOrThrow("1u").Value);
+        Assert.AreEqual(100, CStructDefinitionParser.LiteralDecimal.ParseOrThrow("100UL").Value);
+        Assert.AreEqual(100, CStructDefinitionParser.LiteralDecimal.ParseOrThrow("100LU").Value);
+        Assert.AreEqual(100, CStructDefinitionParser.LiteralDecimal.ParseOrThrow("100LL").Value);
+        Assert.AreEqual(100, CStructDefinitionParser.LiteralDecimal.ParseOrThrow("100ULL").Value);
+        Assert.AreEqual(-5, CStructDefinitionParser.LiteralDecimal.ParseOrThrow("-5U").Value);
+        Assert.AreEqual(1, CStructDefinitionParser.LiteralDecimal.ParseOrThrow("1U;92").Value);
+
+        Assert.AreEqual(0x1, CStructDefinitionParser.LiteralHex.ParseOrThrow("0x1UL").Value);
+        Assert.AreEqual(0b1, CStructDefinitionParser.LiteralBinary.ParseOrThrow("0b1U").Value);
+        Assert.AreEqual(
+                        Convert.ToInt32("17", 8),
+                        CStructDefinitionParser.LiteralOctal.ParseOrThrow("0o17U").Value);
+
+        Assert.AreEqual(1, CStructDefinitionParser.Literal.ParseOrThrow("1U").Value);
+    }
+
+    /// <summary>
     ///     Both upper- and lowercase A through F are valid, along with decimal digits and underscores.
     /// </summary>
     /// <remarks>

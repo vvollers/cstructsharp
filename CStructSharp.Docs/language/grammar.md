@@ -63,7 +63,8 @@ additive         = multiplicative, { ( "+" | "-" ), multiplicative } ;
 multiplicative   = unary, { ( "*" | "/" ), unary } ;
 unary            = { "-" | "~" }, primary ;
 primary          = literal | identifier | "(", expression, ")" ;
-literal          = sign, ( decimal | hexadecimal | binary | octal ) ;
+literal          = sign, ( decimal | hexadecimal | binary | octal ), [ integer-suffix ] ;
+integer-suffix   = { "u" | "U" | "l" | "L" } ;
 sign             = [ "+" | "-" ] ;
 decimal          = decimal-digits ;
 hexadecimal      = ( "0x" | "0X" ), hex-digits ;
@@ -151,7 +152,8 @@ The table explains each production and links to the page that defines its additi
 | `multiplicative` | Checked multiplication/division |
 | `unary` | Negation and bitwise complement |
 | `primary` | Literal, variable/name, or parenthesized expression |
-| `literal` | Optional sign plus one radix-specific integer |
+| `literal` | Optional sign plus one radix-specific integer, plus an optional discarded C-style suffix |
+| `integer-suffix` | Zero or more `u`/`U`/`l`/`L` characters, recognized and discarded with no effect on the value |
 | `sign` | Literal-leading plus/minus |
 | `decimal` | Base-10 digit sequence |
 | `hexadecimal` | `0x`/`0X` base-16 digit sequence |

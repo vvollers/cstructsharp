@@ -105,10 +105,19 @@ internal static class CStructDefinitionParser
     public static readonly Parser<char, string> BinaryString = BinaryDigit.AtLeastOnce().Select(string.Concat).
         Assert(value => value.Length > 0);
 
+    /// <summary>
+    ///     Recognizes and discards a trailing C-style integer-literal suffix (any combination of <c>u</c>/<c>U</c>
+    ///     and <c>l</c>/<c>L</c>). Portable's expressions are already exact-integer, so a suffix carries no width
+    ///     information and has no effect on the parsed value.
+    /// </summary>
+    public static readonly Parser<char, Unit> IntegerLiteralSuffix =
+        OneOf(Char('u'), Char('U'), Char('l'), Char('L')).SkipMany();
+
     public static readonly Parser<char, Expr> LiteralBinary = Map(
             (sign, lit) => CreateRadixLiteral(sign, lit),
             Sign,
             CIString("0b").Then(BinaryString.Select(o => ParseBigInteger(o, 2)))).
+        Before(IntegerLiteralSuffix).
         Select<Expr>(c => c).
         Labelled("Binary Literal");
 
@@ -116,6 +125,7 @@ internal static class CStructDefinitionParser
             (sign, lit) => CreateRadixLiteral(sign, lit),
             Sign,
             CIString("0x").Then(HexString.Select(o => ParseBigInteger(o, 16)))).
+        Before(IntegerLiteralSuffix).
         Select<Expr>(c => c).
         Labelled("Hex Literal");
 
@@ -123,6 +133,7 @@ internal static class CStructDefinitionParser
             (sign, lit) => CreateRadixLiteral(sign, lit),
             Sign,
             CIString("0o").Then(OctalString.Select(o => ParseBigInteger(o, 8)))).
+        Before(IntegerLiteralSuffix).
         Select<Expr>(c => c).
         Labelled("Octal Literal");
 
@@ -130,6 +141,7 @@ internal static class CStructDefinitionParser
             (sign, lit) => new Literal(sign * lit),
             Sign,
             DigitString.Assert(o => o.Length > 0).Select(o => BigInteger.Parse(o, CultureInfo.InvariantCulture))).
+        Before(IntegerLiteralSuffix).
         Select<Expr>(c => c).
         Labelled("Decimal Literal");
 

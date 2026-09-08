@@ -877,11 +877,6 @@
       "category": "floating-point codec"
     },
     {
-      "id": "integer-suffix",
-      "definition": "#define COUNT 1U\nstruct root { uint8 values[COUNT]; };",
-      "category": "C integer suffix"
-    },
-    {
       "id": "function-pointer",
       "definition": "struct root { uint8 (*callback)(uint8); };",
       "category": "function pointer"

@@ -8,6 +8,23 @@ using Pidgin;
 public class ExpressionSafetyTests
 {
     /// <summary>
+    ///     A suffixed literal in a #define binds and evaluates identically to its unsuffixed form (LANG-03b).
+    /// </summary>
+    /// <remarks>
+    ///     The suffix is discarded with no semantic effect; this is the exact promoted shape of the retired
+    ///     integer-suffix unsupported-corpus fixture.
+    /// </remarks>
+    [TestMethod]
+    public void Define_WithSuffixedLiteral_EvaluatesTheSameAsUnsuffixed()
+    {
+        var cstruct = new CStruct("#define COUNT 3U\nstruct root { uint8 values[COUNT]; };");
+
+        dynamic result = cstruct.ParseStream(new MemoryStream([1, 2, 3,]), "root");
+
+        Assert.AreEqual(3, result.values.Count);
+    }
+
+    /// <summary>
     ///     Zero limits are invalid configuration.
     /// </summary>
     /// <remarks>
@@ -382,8 +399,11 @@ public class ExpressionSafetyTests
             () => CStructDefinitionParser.LiteralHex.ParseOrThrow("-0x80000000").Calc());
         Assert.Throws<OverflowException>(
             () => CStructDefinitionParser.LiteralHex.ParseOrThrow("0x100000000").Calc());
+
+        // Since LANG-03b, "1u" itself is a valid suffixed literal (equal to 1); combine the suffix with a negative
+        // sign instead, which is still rejected for an unrelated, still-current reason (negative array length).
         Assert.Throws<CStructLayoutException>(
-            () => new CStruct("struct root { byte values[1u]; };"));
+            () => new CStruct("struct root { byte values[-1u]; };"));
         Assert.Throws<KeyNotFoundException>(() => new Identifier("MISSING").Calc());
 
         Expr widePostfixStack = new Literal(1);
