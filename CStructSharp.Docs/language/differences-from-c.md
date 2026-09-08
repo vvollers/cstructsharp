@@ -61,6 +61,7 @@ and related details. Portable uses explicit binary-format rules instead:
 | --- | --- |
 | C `long` / `unsigned long` width | `long` / `ulong` are always 64-bit |
 | Plain `char` signedness | `char` is one unsigned raw code unit |
+| `_Bool`/C++ `bool` width and representation | `bool`/`_Bool` is always 1 byte, canonical `0x00`/`0x01` write output |
 | `wchar_t` width/locale | `wchar` is one 16-bit UTF-16 code unit |
 | Pointer width | Constructor value 1, 2, 4, or 8 |
 | Enum backing | Supported explicit integral type; omitted means unsigned byte |

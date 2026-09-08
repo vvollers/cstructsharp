@@ -70,6 +70,10 @@ internal static class PrimitiveCodecs
         ["uint32_t"] = "uint32",
         ["int64_t"] = "int64",
         ["uint64_t"] = "uint64",
+
+        // Boolean primitive (LANG-04 bool split-out). "_Bool" is the C99 keyword spelling; "bool" (the stdbool.h
+        // macro spelling) is the canonical codec name registered directly in CStructPrimitiveCodecs.cs.
+        ["_Bool"] = "bool",
     };
 
     /// <summary>Returns whether a primitive handler consumes bytes until a terminator instead of having a fixed footprint.</summary>

@@ -179,6 +179,7 @@ public class EnumDomainTests
         string[] layouts =
         [
             "enum state : char { Value };",
+            "enum state : bool { Value };",
             "enum state : wchar { Value };",
             "enum state : string { Value };",
             "enum state : cstring { Value };",

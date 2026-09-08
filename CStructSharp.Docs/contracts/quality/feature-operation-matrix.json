@@ -229,6 +229,8 @@
       "byte",
       "int8",
       "uint8",
+      "bool",
+      "_Bool",
       "char",
       "wchar",
       "wchar>",
@@ -384,6 +386,27 @@
         ],
         "evidence": [
           "CStructSharpTests/RoundTripPropertyTests.cs#GeneratedFixedLayouts_ValueAndCanonicalBytesRoundTrip"
+        ]
+      }
+    },
+    {
+      "featureId": "boolean-primitive",
+      "value": {
+        "status": "conditional",
+        "conditions": [
+          "A parsed non-canonical nonzero byte reads as true; writing that same value back always produces the canonical 0x01, so a value round trip is exact only starting from an already-canonical 0x00/0x01 byte."
+        ],
+        "evidence": [
+          "CStructSharpTests/BooleanPrimitiveTests.cs#UpdateStream_CanonicalizesEvenOverANonCanonicalByte"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "A canonical 0x00/0x01 byte round trips exactly; byte order does not apply, since the codec is one byte wide."
+        ],
+        "evidence": [
+          "CStructSharpTests/BooleanPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate"
         ]
       }
     },
@@ -875,6 +898,87 @@
       ],
       "limitations": [
         "Portable aliases have repository-defined widths; they do not infer the host C ABI."
+      ]
+    },
+    {
+      "id": "boolean-primitive",
+      "manual": "CStructSharp.Docs/language/primitive-types.md#fixed-primitives",
+      "fixture": "boolean-primitive",
+      "title": "Boolean scalar, always 1 byte with canonical write output",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "CStructSharpTests/BooleanPrimitiveTests.cs#ZeroAndOne_ParseAsFalseAndTrue",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/BooleanPrimitiveTests.cs#NonCanonicalNonzeroByte_ParsesAsTrue",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/BooleanPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate",
+          "operations": [
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/BooleanPrimitiveTests.cs#BoolArray_ElementsAreIndependent",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/BooleanPrimitiveTests.cs#UnderscoreBoolAlias_CompilesIdenticallyToBool",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "A stored byte outside 0x00/0x01 still reads as true (any nonzero byte); a write or update always replaces it with the canonical 0x01/0x00, so a non-canonical byte does not survive an update cycle.",
+        "Not eligible as bitfield storage or enum backing - both already have an exact equivalent via existing integral types."
       ]
     },
     {
@@ -2564,8 +2668,8 @@
   ],
   "exclusions": [
     {
-      "id": "boolean-and-floating-codecs",
-      "syntax": "_Bool, bool, float, double, and long double",
+      "id": "floating-point-codecs",
+      "syntax": "float, double, and long double",
       "rationale": "No public value, endian, NaN, or ABI representation contract has been approved.",
       "diagnosticPolicy": "Reject as an unknown field type during layout construction.",
       "workItems": [
