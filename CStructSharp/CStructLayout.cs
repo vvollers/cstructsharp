@@ -36,7 +36,7 @@ public partial class CStruct
                     throw new CStructPathException("Field is not an indexable fixed array: " + segment.Name);
                 }
 
-                int count = this.GetCompiledArrayCount(compiledField, variables, false);
+                int count = this.compiledSizeQueries.GetCompiledArrayCount(compiledField, variables, false);
                 if (segment.Index.Value >= count)
                 {
                     throw new CStructPathException(

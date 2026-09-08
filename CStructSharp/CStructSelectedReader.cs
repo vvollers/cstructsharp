@@ -48,7 +48,7 @@ public partial class CStruct
         state.EnterStructure();
         try
         {
-            foreach (CompiledField field in this.GetCompiledComposite(strct).Fields)
+            foreach (CompiledField field in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
             {
                 this.HandleCStructElement(
                     field.Declaration,
@@ -74,7 +74,7 @@ public partial class CStruct
 
         if (state.Aligned)
         {
-            int alignment = this.GetCompiledComposite(strct).Symbol.Alignment;
+            int alignment = this.compiledSizeQueries.GetCompiledComposite(strct).Symbol.Alignment;
             state.Stream.Position = LayoutMath.AlignUp(state.Stream.Position, alignment);
         }
 
@@ -116,8 +116,8 @@ public partial class CStruct
         CStructElement[] debugStack)
     {
         long unionPosition = state.Stream.Position;
-        int unionSize = this.GetCompiledStructSizeInBytes(
-            this.GetCompiledComposite(union),
+        int unionSize = this.compiledSizeQueries.GetCompiledStructSizeInBytes(
+            this.compiledSizeQueries.GetCompiledComposite(union),
             state.Variables,
             false);
         long unionEnd = checked(unionPosition + unionSize);
@@ -143,7 +143,7 @@ public partial class CStruct
             // An untagged union does not identify an active member. Decode local views, but never follow an external
             // pointer merely because its address bytes overlap this storage.
             state.SuppressPointerDereference = true;
-            foreach (CompiledField field in this.GetCompiledComposite(union).Fields)
+            foreach (CompiledField field in this.compiledSizeQueries.GetCompiledComposite(union).Fields)
             {
                 RestoreVariables(state.Variables, unionInputVariables);
                 this.HandleCStructElement(
