@@ -59,48 +59,21 @@ internal sealed class CompiledSizeQueries
             return this.aligned ? LayoutMath.AlignUp(largest, composite.Symbol.Alignment) : largest;
         }
 
-        int current = 0;
-        int activeBitUnitSize = 0;
-        int activeBitUnitBitsUsed = 0;
-        int activeBitUnitAlignment = 0;
-        string? activeBitUnitType = null;
+        // Drives the same cursor CStructAddressResolver/CStructReader/CStructWriter use, but sources each field's
+        // extent from pure arithmetic (GetCompiledFieldStorageSize) rather than a stream - this method must stay
+        // callable with no Stream/operation context, both mid-compilation and from variables-only callers.
+        var cursor = new CompositeFieldPlacementCursor(0, this.aligned);
         foreach (CompiledField field in composite.Fields)
         {
-            if (field.BitStorageSize.HasValue)
+            (long fieldStart, _) = cursor.AdvanceToField(field);
+            if (!field.BitStorageSize.HasValue)
             {
-                int unitSize = field.BitStorageSize.Value;
-                bool startsNew = LayoutMath.StartsNewBitfieldUnit(
-                    activeBitUnitType,
-                    activeBitUnitSize,
-                    activeBitUnitAlignment,
-                    activeBitUnitBitsUsed,
-                    field.EffectiveField,
-                    unitSize,
-                    field.Alignment);
-                if (startsNew)
-                {
-                    current = this.aligned ? LayoutMath.AlignUp(current, field.Alignment) : current;
-                    current = checked(current + unitSize);
-                    activeBitUnitSize = unitSize;
-                    activeBitUnitAlignment = field.Alignment;
-                    activeBitUnitType = field.EffectiveField.Type.Name;
-                    activeBitUnitBitsUsed = 0;
-                }
-
-                activeBitUnitBitsUsed += field.EffectiveField.BitSize;
-                continue;
+                cursor.CompleteField(
+                    checked(fieldStart + this.GetCompiledFieldStorageSize(field, variables, requireFixedSize)));
             }
-
-            activeBitUnitSize = 0;
-            activeBitUnitBitsUsed = 0;
-            activeBitUnitAlignment = 0;
-            activeBitUnitType = null;
-            current = this.aligned ? LayoutMath.AlignUp(current, field.Alignment) : current;
-            current = checked(
-                current + this.GetCompiledFieldStorageSize(field, variables, requireFixedSize));
         }
 
-        return this.aligned ? LayoutMath.AlignUp(current, composite.Symbol.Alignment) : current;
+        return checked((int)cursor.FinishComposite(composite.Symbol.Alignment));
     }
 
     /// <summary>Calculates one compiled field's complete storage without resolving its parsed type name.</summary>
