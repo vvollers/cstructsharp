@@ -395,6 +395,30 @@ public class FeatureOperationMatrixTests
         yield return ("uint", 4);
         yield return ("long", 8);
         yield return ("ulong", 8);
+
+        // Wider C integer spellings (LANG-03a); Portable long/ulong are always 64-bit, so every "long"-containing
+        // multi-word alias below is consistently 64-bit rather than inferred from a native ABI.
+        yield return ("signed", 4);
+        yield return ("unsigned", 4);
+        yield return ("signed int", 4);
+        yield return ("unsigned int", 4);
+        yield return ("signed short", 2);
+        yield return ("unsigned short", 2);
+        yield return ("signed long", 8);
+        yield return ("unsigned long", 8);
+        yield return ("long long", 8);
+        yield return ("signed long long", 8);
+        yield return ("unsigned long long", 8);
+        yield return ("signed char", 1);
+        yield return ("unsigned char", 1);
+        yield return ("int8_t", 1);
+        yield return ("uint8_t", 1);
+        yield return ("int16_t", 2);
+        yield return ("uint16_t", 2);
+        yield return ("int32_t", 4);
+        yield return ("uint32_t", 4);
+        yield return ("int64_t", 8);
+        yield return ("uint64_t", 8);
     }
 
     private static IEnumerable<MatrixCase> RepresentativeCases()

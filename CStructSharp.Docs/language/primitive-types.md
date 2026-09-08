@@ -33,8 +33,27 @@ suffix always means little-endian, and `>` always means big-endian.
 | `uint` | `uint32` | 4 / 4 | Unsigned, 0..4294967295 | Layout | `UInt32` |
 | `long` | `int64` | 8 / 8 | Signed, -9223372036854775808..9223372036854775807 | Layout | `Int64` |
 | `ulong` | `uint64` | 8 / 8 | Unsigned, 0..18446744073709551615 | Layout | `UInt64` |
+| `signed`, `signed int` | `int32` | 4 / 4 | Signed, -2147483648..2147483647 | Layout | `Int32` |
+| `unsigned`, `unsigned int` | `uint32` | 4 / 4 | Unsigned, 0..4294967295 | Layout | `UInt32` |
+| `signed short` | `int16` | 2 / 2 | Signed, -32768..32767 | Layout | `Int16` |
+| `unsigned short` | `uint16` | 2 / 2 | Unsigned, 0..65535 | Layout | `UInt16` |
+| `signed long` | `int64` | 8 / 8 | Signed, -9223372036854775808..9223372036854775807 | Layout | `Int64` |
+| `unsigned long` | `uint64` | 8 / 8 | Unsigned, 0..18446744073709551615 | Layout | `UInt64` |
+| `long long`, `signed long long` | `int64` | 8 / 8 | Signed, -9223372036854775808..9223372036854775807 | Layout | `Int64` |
+| `unsigned long long` | `uint64` | 8 / 8 | Unsigned, 0..18446744073709551615 | Layout | `UInt64` |
+| `signed char`, `int8_t` | `int8` | 1 / 1 | Signed, -128..127 | Not applicable | `SByte` |
+| `unsigned char`, `uint8_t` | `uint8` | 1 / 1 | Unsigned, 0..255 | Not applicable | `Byte` |
+| `int16_t` | `int16` | 2 / 2 | Signed, -32768..32767 | Layout | `Int16` |
+| `uint16_t` | `uint16` | 2 / 2 | Unsigned, 0..65535 | Layout | `UInt16` |
+| `int32_t` | `int32` | 4 / 4 | Signed, -2147483648..2147483647 | Layout | `Int32` |
+| `uint32_t` | `uint32` | 4 / 4 | Unsigned, 0..4294967295 | Layout | `UInt32` |
+| `int64_t` | `int64` | 8 / 8 | Signed, -9223372036854775808..9223372036854775807 | Layout | `Int64` |
+| `uint64_t` | `uint64` | 8 / 8 | Unsigned, 0..18446744073709551615 | Layout | `UInt64` |
 
-The table groups 31 accepted spellings. The complete rows are also stored in
+The table groups 52 accepted spellings, including the wider C integer spellings (`unsigned long long`, `uint32_t`,
+and similar) accepted as aliases of an existing fixed-width codec — none of these infer a native compiler's data
+model; `signed char`/`unsigned char`/`*_t` forms alias the numeric `int8`/`uint8` codecs, not the raw `char` code
+unit. The complete rows are also stored in
 [`portable-v1.json`](../contracts/language/portable-v1.json) and checked against the runtime on .NET 8 and .NET 10.
 
 Alignment equals byte width for every fixed primitive. Packed placement ignores alignment when choosing the next

@@ -42,7 +42,7 @@ This example establishes one format's widths; it does not prove equivalence with
 | `multidimensional-array` | `value[2][3]` | Public paths have one explicit dimension | Use a named row struct or flatten explicitly |
 | `general-flexible-array` | `uint16 values[]` | Remaining stream bytes do not define a safe count | Use bounded `values[COUNT]`; empty `[]` is for character strings |
 | `qualified-field` | `const uint8 value;` | Qualifier/storage behavior is not silently discarded | Remove layout-neutral qualifiers before construction |
-| `multi-token-integer` | `unsigned long value;` | Native data-model widths are not inferred | Use exact `uint32`, `uint64`, and so on |
+| `unrecognized-integer-spelling` | `intmax_t value;` | The accepted alias table is curated, not a general C type-name parser | Use a documented [primitive spelling](primitive-types.md) |
 | `floating-point-field` | `double value;` | Endian/NaN/value rules are not defined | Model reviewed raw integer bits or add a fully specified feature |
 | `integer-suffix` | `#define COUNT 1U` | C suffixes/promotions are not implemented | Use an unsuffixed bounded integer |
 | `function-pointer` | `uint8 (*callback)(uint8)` | Data-pointer grammar cannot describe/invoke functions | Use fixed unsigned storage only when an opaque address is appropriate |
