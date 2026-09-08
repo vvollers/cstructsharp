@@ -30,6 +30,32 @@
       }
     },
     {
+      "id": "portable-c-integer-spellings",
+      "featureId": "portable-c-integer-spellings",
+      "manual": "CStructSharp.Docs/language/primitive-types.md#fixed-primitives",
+      "valid": {
+        "definition": "struct root { uint32_t value; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 4,
+        "alignment": 4,
+        "bytes": "78563412",
+        "offsets": {
+          "root.value": 0
+        },
+        "values": {
+          "root.value": "305419896"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "unrecognized-integer-spelling",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
       "id": "character-buffers",
       "featureId": "character-buffers",
       "manual": "CStructSharp.Docs/language/arrays-and-strings.md#fixed-character-buffers",

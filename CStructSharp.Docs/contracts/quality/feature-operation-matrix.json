@@ -388,6 +388,27 @@
       }
     },
     {
+      "featureId": "portable-c-integer-spellings",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The caller supplies a CLR value representable by the aliased fixed-width codec."
+        ],
+        "evidence": [
+          "CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "An alternate spelling produces identical bytes to its documented canonical spelling."
+        ],
+        "evidence": [
+          "CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
+        ]
+      }
+    },
+    {
       "featureId": "character-buffers",
       "value": {
         "status": "conditional",
@@ -791,6 +812,81 @@
       ],
       "limitations": [
         "Portable aliases have repository-defined widths; they do not infer the host C ABI."
+      ]
+    },
+    {
+      "id": "portable-c-integer-spellings",
+      "manual": "CStructSharp.Docs/language/primitive-types.md#fixed-primitives",
+      "fixture": "portable-c-integer-spellings",
+      "title": "Wider C integer type spellings and integer literal suffixes",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/Literals.cs#TestIntegerLiteralSuffix",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/ExpressionSafetyTests.cs#Define_WithSuffixedLiteral_EvaluatesTheSameAsUnsuffixed",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "The accepted alias table is curated; general C type-name spellings outside the documented list are still rejected.",
+        "An integer-literal suffix is recognized as any combination of u/U/l/L and discarded; it does not validate C's exact suffix grammar."
       ]
     },
     {
@@ -2138,15 +2234,6 @@
       "diagnosticPolicy": "Reject unsupported forms during layout construction.",
       "workItems": [
         "LANG-02"
-      ]
-    },
-    {
-      "id": "portable-c-integer-spellings",
-      "syntax": "unsigned long long, signed char, uint32_t, and integer suffixes",
-      "rationale": "Portable explicit-width codecs exist, but the general C declaration spelling grammar does not.",
-      "diagnosticPolicy": "Require a documented repository spelling or reject construction.",
-      "workItems": [
-        "LANG-03"
       ]
     },
     {

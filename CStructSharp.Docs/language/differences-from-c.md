@@ -44,7 +44,6 @@ This example establishes one format's widths; it does not prove equivalence with
 | `qualified-field` | `const uint8 value;` | Qualifier/storage behavior is not silently discarded | Remove layout-neutral qualifiers before construction |
 | `unrecognized-integer-spelling` | `intmax_t value;` | The accepted alias table is curated, not a general C type-name parser | Use a documented [primitive spelling](primitive-types.md) |
 | `floating-point-field` | `double value;` | Endian/NaN/value rules are not defined | Model reviewed raw integer bits or add a fully specified feature |
-| `integer-suffix` | `#define COUNT 1U` | C suffixes/promotions are not implemented | Use an unsuffixed bounded integer |
 | `function-pointer` | `uint8 (*callback)(uint8)` | Data-pointer grammar cannot describe/invoke functions | Use fixed unsigned storage only when an opaque address is appropriate |
 | `zero-width-bitfield` | `uint8 reserved : 0;` | Native separator/allocation rules vary | Start an explicit new field/storage unit |
 | `typedef-array` | `typedef uint8 bytes[4];` | Typedef aliases a name and optional pointer depth, not a declarator | Put `[4]` on the field |
