@@ -34,8 +34,8 @@ internal sealed class ResolvedTarget
         int alignment,
         int? fixedSize,
         int containingStructureDepth,
-        CStruct.CompiledField? effectiveCompiledField = null,
-        CStruct.CompiledField? writableCompiledField = null)
+        CompiledField? effectiveCompiledField = null,
+        CompiledField? writableCompiledField = null)
     {
         this.Address = address;
         this.Kind = kind;
@@ -85,7 +85,7 @@ internal sealed class ResolvedTarget
 
     public Field? EffectiveField { get; }
 
-    public CStruct.CompiledField? EffectiveCompiledField { get; }
+    public CompiledField? EffectiveCompiledField { get; }
 
     public int? FixedSize { get; }
 
@@ -113,7 +113,7 @@ internal sealed class ResolvedTarget
 
     public Field? WritableField { get; }
 
-    public CStruct.CompiledField? WritableCompiledField { get; }
+    public CompiledField? WritableCompiledField { get; }
 
     /// <summary>Returns whether this target selects one array item instead of the declared collection.</summary>
     public bool SelectsArrayElement => this.SelectedArrayIndex.HasValue;

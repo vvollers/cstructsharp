@@ -660,7 +660,7 @@ public partial class CStruct
     {
         bool isTerminatedTarget = remainingPointerDepth == 0 && field.TerminatedReader is not null;
         string? terminatedCodec = isTerminatedTarget
-                                      ? GetStringPointerHandlerKey(field.EffectiveField.Type)
+                                      ? CharacterFieldTypes.GetStringPointerHandlerKey(field.EffectiveField.Type)
                                       : null;
         return field.SelectPointerTarget(
             remainingPointerDepth,
@@ -810,7 +810,7 @@ public partial class CStruct
 
         if (compiledField.Array.Kind == CompiledArrayKind.Flexible)
         {
-            if (!IsCharArrayField(field))
+            if (!CharacterFieldTypes.IsCharArrayField(field))
             {
                 throw new CStructLayoutException(
                     "Only character fields can use an unsized array declarator: " + field.Name.Name);

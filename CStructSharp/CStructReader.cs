@@ -155,20 +155,20 @@ public partial class CStruct
                         if (compiledField.Array.Kind == CompiledArrayKind.Flexible)
                         {
                             // An unsized char array means a terminated string in this layout language.
-                            if (f.Type.Equals(CharType))
+                            if (f.Type.Equals(CharacterFieldTypes.CharType))
                             {
-                                f = new Field(CstringType, f.Name, NoneExpr.Instance, 0);
+                                f = new Field(CharacterFieldTypes.CstringType, f.Name, NoneExpr.Instance, 0);
                                 fieldReader = compiledField.TerminatedReader;
                             }
-                            else if (f.Type.Equals(WcharType))
+                            else if (f.Type.Equals(CharacterFieldTypes.WcharType))
                             {
-                                f = new Field(StringType, f.Name, NoneExpr.Instance, 0);
+                                f = new Field(CharacterFieldTypes.StringType, f.Name, NoneExpr.Instance, 0);
                                 fieldReader = compiledField.TerminatedReader;
                             }
-                            else if (IsWideCharacterType(f.Type))
+                            else if (CharacterFieldTypes.IsWideCharacterType(f.Type))
                             {
                                 f = new Field(
-                                    new Identifier(GetStringPointerHandlerKey(f.Type)),
+                                    new Identifier(CharacterFieldTypes.GetStringPointerHandlerKey(f.Type)),
                                     f.Name,
                                     NoneExpr.Instance,
                                     0);
@@ -493,12 +493,12 @@ public partial class CStruct
 
                     if (isArray)
                     {
-                        if (!f.IsPointer && (f.Type.Equals(CharType) || IsWideCharacterType(f.Type)))
+                        if (!f.IsPointer && (f.Type.Equals(CharacterFieldTypes.CharType) || CharacterFieldTypes.IsWideCharacterType(f.Type)))
                         {
                             // Expose fixed character arrays as the string callers expect, after every character has been read.
                             var list = (List<object?>)containerDict[f.Name.Name]!;
                             string parsedString = new(list.Cast<char>().ToArray());
-                            if (IsWideCharacterType(f.Type))
+                            if (CharacterFieldTypes.IsWideCharacterType(f.Type))
                             {
                                 try
                                 {
@@ -650,7 +650,7 @@ public partial class CStruct
     private long ReadPointerAddress(CStructOperationContext state)
     {
         // Read exactly the configured pointer width and normalize the bytes to the layout's byte order first.
-        Span<byte> addressData = ReadIntoBuffer(state.Stream, this.PointerSize, this.IsLittleEndian);
+        Span<byte> addressData = BinaryPrimitiveIO.ReadIntoBuffer(state.Stream, this.PointerSize, this.IsLittleEndian);
         ulong rawAddress = this.PointerSize switch
         {
             1 => addressData[0],

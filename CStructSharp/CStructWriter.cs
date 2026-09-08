@@ -79,11 +79,11 @@ public partial class CStruct
         }
 
         // Keep the bits belonging to earlier fields and replace only this field's masked range.
-        ulong existing = ReadUnsigned(buffer, storageIsLittleEndian);
+        ulong existing = BinaryPrimitiveIO.ReadUnsigned(buffer, storageIsLittleEndian);
         ulong newValue = BitfieldCodecTable.MergeBitfieldValue(existing, fieldValue, state.CurrentBitOffset, field.BitSize);
 
         // Convert the merged number back to bytes, then overwrite exactly this storage unit.
-        byte[] output = WriteUnsigned(newValue, byteSize, storageIsLittleEndian);
+        byte[] output = BinaryPrimitiveIO.WriteUnsigned(newValue, byteSize, storageIsLittleEndian);
         state.Stream.Position = curPos;
         state.Stream.Write(output, 0, output.Length);
 
@@ -174,7 +174,7 @@ public partial class CStruct
             foreach (CompiledField field in this.GetCompiledComposite(strct).Fields)
             {
                 // Require every ordinary struct field. Missing values would make the byte layout ambiguous.
-                object fieldValue = GetMemberValueOrThrow(
+                object fieldValue = PocoDataBinding.GetMemberValueOrThrow(
                     data,
                     field.EffectiveField.Name.Name,
                     state.BindingMode);
@@ -321,19 +321,19 @@ public partial class CStruct
             {
                 // C-style char[] has no fixed count here. Select a string handler that writes its terminator.
                 unknownArray = true;
-                if (effectiveField.Type.Equals(CharType))
+                if (effectiveField.Type.Equals(CharacterFieldTypes.CharType))
                 {
-                    effectiveField = new Field(CstringType, effectiveField.Name, NoneExpr.Instance, 0);
+                    effectiveField = new Field(CharacterFieldTypes.CstringType, effectiveField.Name, NoneExpr.Instance, 0);
                     valueField = compiledField.SelectPointerTarget(
                         0,
-                        CstringType.Name,
+                        CharacterFieldTypes.CstringType.Name,
                         compiledField.TerminatedReader,
                         compiledField.TerminatedWriter,
                         this.PointerSize);
                 }
-                else if (IsWideCharacterType(effectiveField.Type))
+                else if (CharacterFieldTypes.IsWideCharacterType(effectiveField.Type))
                 {
-                    string handler = GetStringPointerHandlerKey(effectiveField.Type);
+                    string handler = CharacterFieldTypes.GetStringPointerHandlerKey(effectiveField.Type);
                     effectiveField = new Field(
                         new Identifier(handler),
                         effectiveField.Name,
@@ -451,18 +451,18 @@ public partial class CStruct
 
         if (isArray)
         {
-            if (IsCharArrayField(effectiveField))
+            if (CharacterFieldTypes.IsCharArrayField(effectiveField))
             {
                 // Character arrays accept either one string or a collection of characters and always fill the declared size.
                 string str = value as string ??
-                             ConvertToBoundedCharString(value!, numFieldValues, effectiveField.Name.Name);
+                             WriteValueMaterialization.ConvertToBoundedCharString(value!, numFieldValues, effectiveField.Name.Name);
                 this.WriteFixedCharArray(compiledField, str, numFieldValues, state);
             }
             else
             {
                 // Other arrays are written item by item so nested structs, enums, and pointers use their normal logic.
                 int materializationLimit = unknownArray ? state.Options.MaxArrayElements : numFieldValues;
-                IList<object> items = ConvertToObjectList(
+                IList<object> items = WriteValueMaterialization.ConvertToObjectList(
                     value!,
                     materializationLimit,
                     effectiveField.Name.Name);
@@ -501,7 +501,7 @@ public partial class CStruct
         }
         else
         {
-            UpdateVariablesFromValue(state, effectiveField.Name.Name, value!);
+            WriterVariableProjection.UpdateVariablesFromValue(state, effectiveField.Name.Name, value!);
         }
     }
 
@@ -520,12 +520,12 @@ public partial class CStruct
             throw new CStructWriteException($"String is too long for {field.Name.Name}: {value.Length} > {count}.");
         }
 
-        long encodedByteCount = checked((long)count * (IsWideCharacterType(field.Type) ? 2 : 1));
+        long encodedByteCount = checked((long)count * (CharacterFieldTypes.IsWideCharacterType(field.Type) ? 2 : 1));
         state.EnsureStringBytes(encodedByteCount);
 
         // Padding with NUL matches the usual C character-buffer convention.
         string padded = value.PadRight(count, '\0');
-        if (IsWideCharacterType(field.Type))
+        if (CharacterFieldTypes.IsWideCharacterType(field.Type))
         {
             byte[] encoded;
             try
@@ -596,7 +596,7 @@ public partial class CStruct
             this.PointerSize);
 
         // The shared primitive helper handles the layout byte order for every supported pointer width.
-        byte[] bytes = WriteUnsigned(value, this.PointerSize, this.IsLittleEndian);
+        byte[] bytes = BinaryPrimitiveIO.WriteUnsigned(value, this.PointerSize, this.IsLittleEndian);
         stream.Write(bytes, 0, bytes.Length);
     }
 
@@ -637,7 +637,7 @@ public partial class CStruct
             {
             case CstructEnum enm:
                 CompiledEnumType compiledEnum = this.GetCompiledEnum(enm);
-                BigInteger enumValue = GetEnumValue(compiledEnum, enm, value, state.BindingMode);
+                BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, enm, value, state.BindingMode);
                 (compiledField.Writer ??
                  throw new InvalidOperationException(
                      "Compiled enum has no storage writer: " + enm.Name.Name))(
@@ -963,7 +963,7 @@ public partial class CStruct
         }
 
         // Callers may pass either { root: ... } or the root object itself; accept both forms at the public boundary.
-        object rootData = NormalizeRootData(data, rootName, effectiveOptions.BindingMode);
+        object rootData = PocoDataBinding.NormalizeRootData(data, rootName, effectiveOptions.BindingMode);
 
         // Keep all write-time choices in one state object for recursive struct and field calls.
         try
@@ -985,10 +985,10 @@ public partial class CStruct
 
             object subData = rootData;
             if (childSegments.Count > 0 &&
-                TryGetMemberValue(rootData, childSegments[0].Name, effectiveOptions.BindingMode, out _))
+                PocoDataBinding.TryGetMemberValue(rootData, childSegments[0].Name, effectiveOptions.BindingMode, out _))
             {
                 // If the caller supplied a complete root object, walk down to the matching nested source value.
-                subData = ResolveDataPath(rootData, childSegments, effectiveOptions.BindingMode);
+                subData = PocoDataBinding.ResolveDataPath(rootData, childSegments, effectiveOptions.BindingMode);
             }
 
             // Separately resolve the layout shape so the writer knows whether the selected target is a field, struct, or typedef.
@@ -1000,269 +1000,5 @@ public partial class CStruct
             ExceptionContext.Attach(exception, segments, stream);
             throw;
         }
-    }
-
-    /// <summary>Consumes at most one item beyond a fixed character buffer so arbitrary sequences cannot materialize unboundedly.</summary>
-    private static string ConvertToBoundedCharString(object value, int maximumCount, string fieldName)
-    {
-        IEnumerable<char> characters = value switch
-        {
-            char[] chars => chars,
-            IEnumerable<char> chars => chars,
-            IEnumerable<byte> bytes => bytes.Select(b => (char)b),
-            _ => throw new CStructWriteException("Unsupported char array source: " + value.GetType().Name),
-        };
-
-        var result = new StringBuilder();
-        foreach (char character in characters)
-        {
-            if (result.Length >= maximumCount)
-            {
-                throw new CStructWriteException(
-                    $"String is too long for {fieldName}: more than {maximumCount} characters.");
-            }
-
-            result.Append(character);
-        }
-
-        return result.ToString();
-    }
-
-    /// <summary>Normalizes an array value while consuming at most one item beyond its permitted count.</summary>
-    private static IList<object> ConvertToObjectList(object value, int maximumCount, string fieldName)
-    {
-        if (value is IList<object> list)
-        {
-            // Keep the existing list when possible so no extra allocation is needed for the common dynamic-object path.
-            EnsureMaterializedCount(list.Count, maximumCount, fieldName);
-            return list;
-        }
-
-        if (value is Array array)
-        {
-            // Arrays are converted once so later code can use simple indexing for every input shape.
-            EnsureMaterializedCount(array.Length, maximumCount, fieldName);
-            return array.Cast<object>().ToList();
-        }
-
-        if (value is IEnumerable enumerable)
-        {
-            // Enumerables may be single-pass or infinite. Consume only the permitted values plus one proof of overflow.
-            var result = new List<object>();
-            foreach (object item in enumerable)
-            {
-                if (result.Count >= maximumCount)
-                {
-                    throw new CStructWriteException(
-                        $"Array value for {fieldName} exceeds its permitted element count of {maximumCount}.");
-                }
-
-                result.Add(item);
-            }
-
-            return result;
-        }
-
-        throw new CStructWriteException("Expected an array or list for field value.");
-    }
-
-    /// <summary>Rejects already materialized collections before allocating a normalized copy.</summary>
-    private static void EnsureMaterializedCount(int count, int maximumCount, string fieldName)
-    {
-        if (count > maximumCount)
-        {
-            throw new CStructWriteException(
-                $"Array value for {fieldName} exceeds its permitted element count of {maximumCount}.");
-        }
-    }
-
-    /// <summary>Accepts one exact enum input shape and validates all supplied metadata against the compiled declaration.</summary>
-    private static BigInteger GetEnumValue(
-        CompiledEnumType compiled,
-        CstructEnum enm,
-        object value,
-        PocoBindingMode bindingMode)
-    {
-        try
-        {
-            BigInteger result;
-            if (value is EnumValueResult parsed)
-            {
-                ValidateEnumName(enm, parsed.Enum);
-                ValidateEnumDomainMetadata(compiled, parsed);
-                result = parsed.Value;
-                ValidateEnumMemberMetadata(compiled, parsed.Name, result);
-            }
-            else if (value is string text)
-            {
-                if (compiled.MembersByName.TryGetValue(text, out CompiledEnumMember member))
-                {
-                    result = compiled.Integer.FromRawBits(member.RawBits);
-                }
-                else if (!BigInteger.TryParse(
-                             text,
-                             NumberStyles.Integer,
-                             CultureInfo.InvariantCulture,
-                             out result))
-                {
-                    throw new FormatException(
-                        $"'{text}' is neither a member of enum '{enm.Name.Name}' nor an invariant decimal integer.");
-                }
-            }
-            else if (EnumIntegerCodec.TryConvertIntegral(value, out result))
-            {
-                // The direct integral shape is already exact.
-            }
-            else
-            {
-                result = GetEnumObjectValue(compiled, enm, value, bindingMode);
-            }
-
-            compiled.Integer.EnsureInRange(result);
-            return result;
-        }
-        catch (CStructWriteException)
-        {
-            throw;
-        }
-        catch (Exception exception) when (exception is ArgumentException or ArithmeticException or
-                                          FormatException or InvalidCastException or InvalidOperationException)
-        {
-            throw new CStructWriteException(
-                $"Cannot convert the supplied value for enum '{enm.Name.Name}'.",
-                exception);
-        }
-    }
-
-    /// <summary>Reads the browser/POCO enum object shape and rejects absent or contradictory metadata.</summary>
-    private static BigInteger GetEnumObjectValue(
-        CompiledEnumType compiled,
-        CstructEnum enm,
-        object value,
-        PocoBindingMode bindingMode)
-    {
-        bool hasEnum = TryGetMemberValue(value, "Enum", bindingMode, out object enumName);
-        if (hasEnum && enumName is not null)
-        {
-            ValidateEnumName(enm, enumName.ToString());
-        }
-
-        bool hasName = TryGetMemberValue(value, "Name", bindingMode, out object memberName);
-        BigInteger? namedValue = null;
-        string? selectedName = memberName?.ToString();
-        if (hasName && selectedName is not null)
-        {
-            if (!compiled.MembersByName.TryGetValue(selectedName, out CompiledEnumMember member))
-            {
-                throw new InvalidOperationException(
-                    $"Enum '{enm.Name.Name}' has no member named '{selectedName}'.");
-            }
-
-            namedValue = compiled.Integer.FromRawBits(member.RawBits);
-        }
-
-        bool hasValue = TryGetMemberValue(value, "Value", bindingMode, out object rawValue);
-        BigInteger? numericValue = null;
-        if (hasValue && rawValue is not null)
-        {
-            numericValue = ConvertEnumNumericInput(rawValue);
-        }
-
-        if (namedValue is null && numericValue is null)
-        {
-            throw new InvalidOperationException(
-                $"Enum '{enm.Name.Name}' input must supply Name or Value.");
-        }
-
-        if (namedValue is not null && numericValue is not null && namedValue.Value != numericValue.Value)
-        {
-            throw new InvalidOperationException(
-                $"Enum '{enm.Name.Name}' Name and Value identify different members.");
-        }
-
-        return numericValue ?? namedValue!.Value;
-    }
-
-    /// <summary>Converts only an integral CLR value or invariant decimal string without floating coercion.</summary>
-    private static BigInteger ConvertEnumNumericInput(object value)
-    {
-        if (EnumIntegerCodec.TryConvertIntegral(value, out BigInteger result))
-        {
-            return result;
-        }
-
-        if (value is string text &&
-            BigInteger.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out result))
-        {
-            return result;
-        }
-
-        throw new InvalidCastException(
-            "Enum Value must be an integral CLR value, BigInteger, or invariant decimal integer string.");
-    }
-
-    private static void ValidateEnumName(CstructEnum enm, string? suppliedName)
-    {
-        if (!string.Equals(enm.Name.Name, suppliedName, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                $"Enum value '{suppliedName}' cannot be written as '{enm.Name.Name}'.");
-        }
-    }
-
-    /// <summary>Rejects moving a self-describing parsed value into an incompatible same-named enum domain.</summary>
-    private static void ValidateEnumDomainMetadata(
-        CompiledEnumType compiled,
-        EnumValueResult parsed)
-    {
-        if (!string.Equals(parsed.StorageType, compiled.Integer.StorageType, StringComparison.Ordinal) ||
-            parsed.BitWidth != compiled.Integer.BitWidth ||
-            parsed.IsSigned != compiled.Integer.IsSigned ||
-            parsed.RawBits != compiled.Integer.ToRawBits(parsed.Value))
-        {
-            throw new InvalidOperationException(
-                $"Enum value '{parsed.Enum}' does not match the target storage domain.");
-        }
-    }
-
-    private static void ValidateEnumMemberMetadata(
-        CompiledEnumType compiled,
-        string? memberName,
-        BigInteger value)
-    {
-        if (memberName is null)
-        {
-            return;
-        }
-
-        if (!compiled.MembersByName.TryGetValue(memberName, out CompiledEnumMember member) ||
-            member.RawBits != compiled.Integer.ToRawBits(value))
-        {
-            throw new InvalidOperationException(
-                $"Enum member metadata '{memberName}' does not match value {value}.");
-        }
-    }
-
-    /// <summary>Gets one item from an array-like value and reports a clear error for an invalid index.</summary>
-    private static object GetIndexedValue(object value, int index)
-    {
-        return value switch
-        {
-            IList<object> list => list[index],
-            Array array => array.GetValue(index) ?? throw new CStructWriteException("Null array element."),
-            string str => str[index],
-            _ => throw new CStructWriteException("Index not supported on value: " + value.GetType().Name),
-        };
-    }
-
-    /// <summary>Gets a required field from an object and explains which layout field is missing when it cannot be found.</summary>
-    private static object GetMemberValueOrThrow(object data, string name, PocoBindingMode bindingMode)
-    {
-        if (TryGetMemberValue(data, name, bindingMode, out object value))
-        {
-            return value;
-        }
-
-        throw new CStructWriteException("Field not found in data: " + name);
     }
 }
