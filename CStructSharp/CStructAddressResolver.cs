@@ -45,14 +45,14 @@ public partial class CStruct
             throw new CStructPathException("Path is empty.");
         }
 
-        if (!this.TryGetCompiledDeclaration(segments[0].Name, out CStructElement? root))
+        if (!this.compiledModelQueries.TryGetCompiledDeclaration(segments[0].Name, out CStructElement? root))
         {
             throw new CStructPathException("Unknown root element: " + segments[0].Name);
         }
 
         long rootStart = stream.Position;
         CStructElement declaredRoot = root;
-        CStructElement? resolvedRoot = this.ResolveCompiledNamedElement(root);
+        CStructElement? resolvedRoot = this.compiledModelQueries.ResolveCompiledNamedElement(root);
         if (segments.Count == 1)
         {
             CStructElement targetElement = resolvedRoot ?? declaredRoot;
@@ -981,7 +981,7 @@ public partial class CStruct
             value = compiledField.Reader?.Invoke(state.Stream) ??
                     throw new InvalidOperationException(
                         "Compiled enum has no storage reader: " + enm.Name.Name);
-            BigInteger exact = this.GetCompiledEnum(enm).Integer.FromStorageValue(value);
+            BigInteger exact = this.compiledModelQueries.GetCompiledEnum(enm).Integer.FromStorageValue(value);
             this.UpdateExactLayoutVariable(state.Variables, field.Name.Name, exact);
             return;
         }

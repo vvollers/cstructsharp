@@ -44,7 +44,7 @@ public sealed partial class CStruct
     {
         return this.ReadValue(
             stream,
-            this.GetFirstCompiledStructName(),
+            this.compiledModelQueries.GetFirstCompiledStructName(),
             null,
             null);
     }
@@ -85,7 +85,7 @@ public sealed partial class CStruct
     {
         return this.ReadValue<T>(
             stream,
-            this.GetFirstCompiledStructName(),
+            this.compiledModelQueries.GetFirstCompiledStructName(),
             null,
             null);
     }
@@ -182,7 +182,7 @@ public sealed partial class CStruct
     {
         return this.TryReadValue(
             stream,
-            this.GetFirstCompiledStructName(),
+            this.compiledModelQueries.GetFirstCompiledStructName(),
             out value);
     }
 
@@ -304,7 +304,7 @@ public sealed partial class CStruct
     /// <summary>Reads any supported root declaration and unwraps its single natural value.</summary>
     private object? ReadRootValue(CStructOperationContext state, string rootName)
     {
-        if (!this.TryGetCompiledDeclaration(rootName, out CStructElement? declaration))
+        if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out CStructElement? declaration))
         {
             throw new CStructPathException("Unknown root element: " + rootName);
         }

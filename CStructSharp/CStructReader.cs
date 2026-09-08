@@ -113,7 +113,7 @@ public partial class CStruct
                     }
 
                     // Root aliases use a precompiled field projection, including aliases of structs and pointers.
-                    fieldDescriptor = this.GetCompiledRootField(t);
+                    fieldDescriptor = this.compiledModelQueries.GetCompiledRootField(t);
                     el = fieldDescriptor.EffectiveField;
 
                     unionPosition = -1;
@@ -122,7 +122,7 @@ public partial class CStruct
 
             case CstructEnum enm:
                 // A direct enum root uses the same synthetic compiled scalar field as an enum typedef.
-                fieldDescriptor = this.GetCompiledRootField(enm);
+                fieldDescriptor = this.compiledModelQueries.GetCompiledRootField(enm);
                 el = fieldDescriptor.EffectiveField;
                 unionPosition = -1;
                 continue;
@@ -130,7 +130,7 @@ public partial class CStruct
             case Defines d:
                 // Definitions do not consume bytes; they prepare an expression value for array lengths and later fields.
                 state.Variables[d.Name.Name] = new Literal(
-                    this.EvaluateLayoutExpression(
+                    this.layoutExpressionEvaluator.Evaluate(
                         d.Value,
                         state.Variables,
                         "definition " + d.Name.Name));
@@ -178,7 +178,7 @@ public partial class CStruct
                         else
                         {
                             // Evaluate the count only after earlier fields have populated the parser variable dictionary.
-                            numFieldValues = this.EvaluateLayoutExpression(
+                            numFieldValues = this.layoutExpressionEvaluator.Evaluate(
                                 compiledField.Array.CountExpression ??
                                 throw new InvalidOperationException(
                                     "Compiled array has no count expression: " + f.Name.Name),
@@ -557,7 +557,7 @@ public partial class CStruct
         }
 
         string rootName = segments[0].Name;
-        if (!this.TryGetCompiledDeclaration(rootName, out _))
+        if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out _))
         {
             throw new CStructPathException("Unknown root element: " + rootName);
         }
@@ -600,7 +600,7 @@ public partial class CStruct
         // Create a container for the named root layout element before constructing all per-read mutable state.
         dynamic root = new ExpandoObject();
 
-        if (!this.TryGetCompiledDeclaration(elementName, out CStructElement? cstructElement))
+        if (!this.compiledModelQueries.TryGetCompiledDeclaration(elementName, out CStructElement? cstructElement))
         {
             throw new CStructPathException("Unknown root element: " + elementName);
         }
@@ -628,7 +628,7 @@ public partial class CStruct
         // Debug mode uses the same root construction as ordinary mode, with one flag enabled in the operation state.
         dynamic root = new ExpandoObject();
 
-        if (!this.TryGetCompiledDeclaration(elementName, out CStructElement? cstructElement))
+        if (!this.compiledModelQueries.TryGetCompiledDeclaration(elementName, out CStructElement? cstructElement))
         {
             throw new CStructPathException("Unknown root element: " + elementName);
         }
@@ -719,7 +719,7 @@ public partial class CStruct
     /// <summary>Decodes one enum through its validated backing domain and declaration-order symbolic table.</summary>
     private EnumValueResult ReadEnumValue(CompiledField field, CstructEnum enm, Stream stream)
     {
-        CompiledEnumType compiled = this.GetCompiledEnum(enm);
+        CompiledEnumType compiled = this.compiledModelQueries.GetCompiledEnum(enm);
         object storageValue = field.Reader?.Invoke(stream) ??
                               throw new InvalidOperationException(
                                   "Compiled enum has no storage reader: " + enm.Name.Name);
