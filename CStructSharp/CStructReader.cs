@@ -51,7 +51,8 @@ public partial class CStruct
         CStructElement[] debugStack,
         long unionPosition = -1,
         bool alignInlineStructStart = false,
-        CompiledField? fieldDescriptor = null)
+        CompiledField? fieldDescriptor = null,
+        CompositeFieldPlacementCursor? cursor = null)
     {
         // A typedef can resolve to another element, so loop until this call reaches a concrete struct, field, or define.
         while (true)
@@ -60,12 +61,23 @@ public partial class CStruct
             {
             case Struct s:
                 {
+                    bool usesCursor = cursor is not null && unionPosition == -1;
                     if (alignInlineStructStart)
                     {
                         // Inline structs arrive here as Struct instances rather than ordinary Field instances. Prepare
                         // their parent boundary explicitly so they follow the same bitfield and alignment rule as a
                         // named struct field.
-                        this.PrepareNestedStructStart(s, state, unionPosition);
+                        if (usesCursor && fieldDescriptor is not null)
+                        {
+                            (long inlineFieldStart, _) = cursor!.AdvanceToField(fieldDescriptor);
+                            state.Stream.Position = inlineFieldStart;
+                            state.CurrentBitOffset = 0;
+                            state.CurrentBitfieldType = null;
+                        }
+                        else
+                        {
+                            this.PrepareNestedStructStart(s, state, unionPosition);
+                        }
                     }
 
                     if (s.IsUnion)
@@ -73,6 +85,11 @@ public partial class CStruct
                         CStructElement[] unionDebugStack = state.Debug ? [.. debugStack, s,] : debugStack;
                         IDictionary<string, object?> currentContainerDict = currentContainer;
                         currentContainerDict[s.Name.Name] = this.ReadUnionValue(s, state, unionDebugStack);
+                        if (usesCursor)
+                        {
+                            cursor!.CompleteField(state.Stream.Position);
+                        }
+
                         break;
                     }
 
@@ -90,6 +107,11 @@ public partial class CStruct
                     }
 
                     this.ReadCompiledStructInto(s, newContainer, state, debugStack);
+
+                    if (usesCursor)
+                    {
+                        cursor!.CompleteField(state.Stream.Position);
+                    }
 
                     break;
                 }
@@ -220,13 +242,40 @@ public partial class CStruct
                         state.CurrentBitfieldType = null;
                     }
 
-                    if (state.CurrentBitOffset > 0 && f.BitSize == 0)
+                    bool useLegacyPlacement = cursor is null || unionPosition != -1;
+
+                    if (useLegacyPlacement)
                     {
-                        // A composite or primitive field after a partially used bitfield unit begins after the complete
-                        // storage unit. Doing this before type dispatch keeps enums and named structs on the same rule.
-                        state.Stream.Position = state.NextPosition;
-                        state.CurrentBitOffset = 0;
-                        state.CurrentBitfieldType = null;
+                        if (state.CurrentBitOffset > 0 && f.BitSize == 0)
+                        {
+                            // A composite or primitive field after a partially used bitfield unit begins after the
+                            // complete storage unit. Doing this before type dispatch keeps enums and named structs on
+                            // the same rule.
+                            state.Stream.Position = state.NextPosition;
+                            state.CurrentBitOffset = 0;
+                            state.CurrentBitfieldType = null;
+                        }
+                    }
+                    else
+                    {
+                        // The cursor already knows this field's start (and, for a bitfield, whether it continues the
+                        // active storage unit or opens a new one) - apply its decision once, for every array element,
+                        // instead of re-deriving it per element or per type branch below.
+                        (long fieldStart, int bitOffset) = cursor!.AdvanceToField(compiledField);
+                        state.Stream.Position = fieldStart;
+                        if (f.BitSize > 0)
+                        {
+                            state.CurrentBitOffset = bitOffset;
+                            state.CurrentBitfieldType = f.Type.Name;
+                            state.CurrentBitfieldSize = compiledField.BitStorageSize ??
+                                                        throw new InvalidOperationException(
+                                                            "Compiled bitfield has no storage size: " + f.Name.Name);
+                        }
+                        else
+                        {
+                            state.CurrentBitOffset = 0;
+                            state.CurrentBitfieldType = null;
+                        }
                     }
 
                     string fieldTypeName = f.Type.Name;
@@ -247,9 +296,11 @@ public partial class CStruct
                             case CstructEnum enm:
                                 {
                                     // Align the enum's primitive storage before reading its numeric representation.
+                                    // The cursor already applied this once per field (not per array element) when
+                                    // it is available; only the legacy single-field/root path still aligns here.
                                     long curPos = state.Stream.Position;
 
-                                    if (state.Aligned && unionPosition == -1)
+                                    if (useLegacyPlacement && state.Aligned && unionPosition == -1)
                                     {
                                         int structAlignment = compiledField.Alignment;
                                         state.Stream.Position = LayoutMath.AlignUp(curPos, structAlignment);
@@ -294,7 +345,10 @@ public partial class CStruct
 
                             case Struct strct:
                                 {
-                                    this.PrepareNestedStructStart(strct, state, unionPosition);
+                                    if (useLegacyPlacement)
+                                    {
+                                        this.PrepareNestedStructStart(strct, state, unionPosition);
+                                    }
 
                                     object nestedValue;
                                     if (strct.IsUnion)
@@ -330,7 +384,7 @@ public partial class CStruct
                         }
                         else
                         {
-                            if (f.BitSize > 0)
+                            if (useLegacyPlacement && f.BitSize > 0)
                             {
                                 int bitCapacity = checked(
                                     (compiledField.BitStorageSize ??
@@ -367,7 +421,7 @@ public partial class CStruct
 
                             long curPos = state.Stream.Position;
 
-                            if (state.Aligned && unionPosition == -1)
+                            if (useLegacyPlacement && state.Aligned && unionPosition == -1)
                             {
                                 // A union's compiled start already establishes its boundary; every member begins exactly
                                 // there, including when a pointer target is not naturally aligned in the containing stream.
@@ -489,6 +543,13 @@ public partial class CStruct
                                 }
                             }
                         }
+                    }
+
+                    if (!useLegacyPlacement && f.BitSize == 0)
+                    {
+                        // Bitfields skip this: the cursor already reserved their whole storage unit's span when it
+                        // opened, mirroring how CStructAddressResolver's own cursor usage never completes a bitfield.
+                        cursor!.CompleteField(state.Stream.Position);
                     }
 
                     if (isArray)

@@ -45,6 +45,8 @@ public partial class CStruct
         CStructOperationContext state,
         CStructElement[] debugStack)
     {
+        var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned);
+
         state.EnterStructure();
         try
         {
@@ -57,7 +59,8 @@ public partial class CStruct
                     debugStack,
                     -1,
                     field.Declaration is Struct,
-                    field);
+                    field,
+                    cursor);
             }
         }
         finally
@@ -65,19 +68,12 @@ public partial class CStruct
             state.ExitStructure();
         }
 
-        if (state.CurrentBitOffset > 0)
-        {
-            state.Stream.Position = state.NextPosition;
-            state.CurrentBitOffset = 0;
-            state.CurrentBitfieldType = null;
-        }
-
-        if (state.Aligned)
-        {
-            int alignment = this.compiledSizeQueries.GetCompiledComposite(strct).Symbol.Alignment;
-            state.Stream.Position = LayoutMath.AlignUp(state.Stream.Position, alignment);
-        }
-
+        // The cursor already tracks the position past any dangling bitfield unit's full reserved span - trust it
+        // rather than state.Stream.Position, which a shared bitfield read may have rewound mid-unit for extraction.
+        int alignment = this.compiledSizeQueries.GetCompiledComposite(strct).Symbol.Alignment;
+        state.Stream.Position = cursor.FinishComposite(alignment);
+        state.CurrentBitOffset = 0;
+        state.CurrentBitfieldType = null;
         state.NextPosition = state.Stream.Position;
     }
 
