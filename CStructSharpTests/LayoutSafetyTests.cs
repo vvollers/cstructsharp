@@ -688,6 +688,104 @@ public class LayoutSafetyTests
         Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { uint8 value const; };"));
     }
 
+    /// <summary>An optional <c>struct</c> keyword (LANG-01) before a type reference compiles to the identical shape.</summary>
+    [TestMethod]
+    public void TagKeyword_StructBeforeAStructReference_CompilesToTheIdenticalShape()
+    {
+        var cstruct = new CStruct("struct child { uint8 value; }; struct root { struct child value; };");
+
+        dynamic parsed = cstruct.ParseStream(new MemoryStream([42,]), "root");
+
+        Assert.AreEqual((byte)42, (byte)parsed.value.value);
+        Assert.AreEqual(1, cstruct.GetStructSizeInBytes("root"));
+    }
+
+    /// <summary>An optional <c>union</c> keyword (LANG-01) before a type reference compiles to the identical shape.</summary>
+    [TestMethod]
+    public void TagKeyword_UnionBeforeAUnionReference_CompilesToTheIdenticalShape()
+    {
+        var cstruct = new CStruct("union choice { uint8 small; uint16 large; }; struct root { union choice value; };");
+
+        Assert.AreEqual(2, cstruct.GetStructSizeInBytes("root"));
+    }
+
+    /// <summary>An optional <c>enum</c> keyword (LANG-01) before a type reference compiles to the identical shape.</summary>
+    [TestMethod]
+    public void TagKeyword_EnumBeforeAnEnumReference_CompilesToTheIdenticalShape()
+    {
+        var cstruct = new CStruct("enum color { red, green, blue }; struct root { enum color value; };");
+
+        Assert.AreEqual(1, cstruct.GetStructSizeInBytes("root"));
+    }
+
+    /// <summary>A tag keyword checked against a typedef alias resolves to the alias chain's terminal kind.</summary>
+    [TestMethod]
+    public void TagKeyword_AgainstATypedefAliasOfAStruct_ResolvesToTheTerminalKind()
+    {
+        var cstruct = new CStruct(
+            "struct child { uint8 value; }; typedef child ChildAlias; struct root { struct ChildAlias value; };");
+
+        dynamic parsed = cstruct.ParseStream(new MemoryStream([9,]), "root");
+
+        Assert.AreEqual((byte)9, (byte)parsed.value.value);
+    }
+
+    /// <summary>Omitting the tag keyword continues to work exactly as before LANG-01.</summary>
+    [TestMethod]
+    public void TagKeyword_OmittedEntirely_StillWorksUnchanged()
+    {
+        var cstruct = new CStruct("struct child { uint8 value; }; struct root { child value; };");
+
+        dynamic parsed = cstruct.ParseStream(new MemoryStream([7,]), "root");
+
+        Assert.AreEqual((byte)7, (byte)parsed.value.value);
+    }
+
+    /// <summary>
+    ///     A tag keyword that does not match the referenced declaration's actual kind is rejected at compile time -
+    ///     this is the test that guards against <c>NormalizeStructExpressions</c> silently dropping the hint and
+    ///     making the whole check dead code.
+    /// </summary>
+    [TestMethod]
+    public void TagKeyword_MismatchedAgainstTheActualDeclarationKind_IsRejected()
+    {
+        CStructLayoutException exception = Assert.Throws<CStructLayoutException>(
+            () => new CStruct("struct child { uint8 value; }; struct root { union child value; };"));
+
+        StringAssert.Contains(exception.Message, "union");
+        StringAssert.Contains(exception.Message, "struct");
+    }
+
+    /// <summary>The tag-alias-without-braces typedef form (<c>typedef struct tag alias;</c>) stays out of LANG-01's scope.</summary>
+    [TestMethod]
+    public void TagKeyword_TypedefTagAliasWithoutBraces_RemainsUnsupported()
+    {
+        Assert.Throws<CStructLayoutException>(
+            () => new CStruct(
+                "struct child { uint8 value; }; typedef struct child alias; struct root { alias value; };"));
+    }
+
+    /// <summary>A tag-keyword field compiles to the identical shape as the bare-name form for every operation.</summary>
+    [TestMethod]
+    public void TagKeyword_SupportsWriteSerializeReadValueAndUpdate()
+    {
+        var cstruct = new CStruct("struct child { uint8 value; }; struct root { struct child value; };");
+
+        using var writeStream = new MemoryStream();
+        cstruct.WriteStream(writeStream, "root", new { value = new { value = (byte)1, }, });
+        CollectionAssert.AreEqual(new byte[] { 1, }, writeStream.ToArray());
+
+        byte[] bytes = cstruct.Serialize("root", new { value = new { value = (byte)1, }, });
+        CollectionAssert.AreEqual(new byte[] { 1, }, bytes);
+
+        using var readStream = new MemoryStream(bytes);
+        Assert.AreEqual((byte)1, Convert.ToByte(cstruct.ReadValue(readStream, "root.value.value")));
+
+        using var updateStream = new MemoryStream(bytes);
+        cstruct.UpdateStream(updateStream, "root.value.value", (byte)9);
+        CollectionAssert.AreEqual(new byte[] { 9, }, updateStream.ToArray());
+    }
+
     /// <summary>Produces a value that is exactly representable by the generated primitive declaration.</summary>
     private static object CreateRandomPrimitiveValue(string typeName, System.Random random)
     {

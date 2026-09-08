@@ -665,6 +665,27 @@
       }
     },
     {
+      "featureId": "tag-keywords",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "A tag keyword is a compile-time hint checked against the referenced declaration's actual kind; once accepted, the field compiles to the identical shape as the bare-name form, so no distinct value contract applies."
+        ],
+        "evidence": [
+          "CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_SupportsWriteSerializeReadValueAndUpdate"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The referenced declaration's own exact-byte contract applies unchanged, regardless of whether a tag keyword was written."
+        ],
+        "evidence": [
+          "CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_SupportsWriteSerializeReadValueAndUpdate"
+        ]
+      }
+    },
+    {
       "featureId": "pointers",
       "value": {
         "status": "conditional",
@@ -1987,6 +2008,95 @@
       "workItems": []
     },
     {
+      "id": "tag-keywords",
+      "manual": "CStructSharp.Docs/language/grammar.md#complete-portable-grammar",
+      "fixture": "tag-keywords",
+      "title": "Optional struct/union/enum keyword before a type reference",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_StructBeforeAStructReference_CompilesToTheIdenticalShape",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_UnionBeforeAUnionReference_CompilesToTheIdenticalShape",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_EnumBeforeAnEnumReference_CompilesToTheIdenticalShape",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_AgainstATypedefAliasOfAStruct_ResolvesToTheTerminalKind",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_MismatchedAgainstTheActualDeclarationKind_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_SupportsWriteSerializeReadValueAndUpdate",
+          "operations": [
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "A tag keyword before a type reference is a hint checked against the referenced declaration's actual kind; it does not create a separate C tag namespace, so struct/union/enum names still share one ordinary-name scope.",
+        "The tag-plus-alias typedef form (typedef struct ExistingTag alias;, without repeating the body) is not a supported declarator; the full typedef struct tag { ... } alias; declaration, or the bare tag name directly, must be used instead."
+      ],
+      "workItems": []
+    },
+    {
       "id": "pointers",
       "manual": "CStructSharp.Docs/language/pointers-and-addressing.md#pointers",
       "fixture": "pointers",
@@ -2453,15 +2563,6 @@
     }
   ],
   "exclusions": [
-    {
-      "id": "standard-tagged-references",
-      "syntax": "struct Foo value; union U value; enum E value;",
-      "rationale": "The current ordinary-name grammar does not implement C tag namespaces.",
-      "diagnosticPolicy": "Reject during layout construction; never reinterpret the tokens as another supported declaration.",
-      "workItems": [
-        "LANG-01"
-      ]
-    },
     {
       "id": "boolean-and-floating-codecs",
       "syntax": "_Bool, bool, float, double, and long double",

@@ -53,9 +53,10 @@ struct-field     = field | inline-struct-field ;
 inline-struct-field
                  = "struct", "{", { struct-field }, "}", identifier, ";" ;
 union-field      = field ;
-field            = { type-qualifier }, type-name, declarator, { ",", declarator }, ";" ;
+field            = { type-qualifier }, [ tag-keyword ], type-name, declarator, { ",", declarator }, ";" ;
 declarator       = { type-qualifier }, pointer-stars, { type-qualifier }, identifier, [ array ], [ bit-width ] ;
 type-qualifier   = "const" | "volatile" | "restrict" ;
+tag-keyword      = "struct" | "union" | "enum" ;
 pointer-stars    = { "*" } ;
 array            = "[", [ expression ], "]" ;
 bit-width        = ":", expression ;
@@ -111,9 +112,13 @@ declarator-list semantics - a leading star belongs only to the declarator it dir
 the list, so `uint8 *a, b;` declares `a` as a pointer and `b` as a plain `uint8`. `const`, `volatile`, and `restrict`
 are recognized before the type or immediately after a pointer star (`const uint8 value;`, `uint8 * const p;`) and
 discarded with no effect on the compiled field; this is a fixed, closed set - other tokens in that position, or a
-qualifier in any other position, are still rejected. A `#define` is one object-like integer expression; there are no
-parameters or textual expansion. Function-call spelling is recognized only so construction can reject it explicitly.
-It is not a supported `primary`, and it never executes user code.
+qualifier in any other position, are still rejected. A field's type reference may optionally be written with a
+leading `struct`, `union`, or `enum` keyword (`struct child value;`), matching how C itself refers to a tagged type;
+the keyword is checked against the referenced declaration's actual kind at construction time and rejected on a
+mismatch, but otherwise has no effect - `struct child value;` and `child value;` compile to the identical field. A
+`#define` is one object-like integer expression; there are no parameters or textual expansion. Function-call
+spelling is recognized only so construction can reject it explicitly. It is not a supported `primary`, and it never
+executes user code.
 
 ## Public path EBNF
 
@@ -152,9 +157,10 @@ The table explains each production and links to the page that defines its additi
 | `struct-field` | Ordinary or named inline-struct member |
 | `inline-struct-field` | Lexically scoped sequential composite |
 | `union-field` | Ordinary field; inline structs/unions are not accepted here |
-| `field` | One optionally qualified type, one or more comma-separated declarators |
+| `field` | One optionally qualified, optionally tagged type, one or more comma-separated declarators |
 | `declarator` | One name with its own optional qualifiers, pointer stars, optional array, and optional bit width |
 | `type-qualifier` | A recognized layout-neutral qualifier, discarded with no effect on the compiled field |
+| `tag-keyword` | An optional struct/union/enum keyword, checked against the referenced declaration's actual kind |
 | `pointer-stars` | Zero or more data-pointer levels |
 | `array` | One fixed/runtime count or character-string marker |
 | `bit-width` | One named nonzero portable bit slice |

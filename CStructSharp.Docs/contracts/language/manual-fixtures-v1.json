@@ -137,7 +137,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "tagged-field-reference",
+        "unsupportedId": "tag-kind-mismatch",
         "errorCode": "InvalidLayout"
       }
     },
@@ -398,6 +398,32 @@
       "invalid": {
         "stage": "compile",
         "unsupportedId": "inline-union",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "tag-keywords",
+      "featureId": "tag-keywords",
+      "manual": "CStructSharp.Docs/language/grammar.md#complete-portable-grammar",
+      "valid": {
+        "definition": "struct child { uint8 value; }; struct root { struct child value; };",
+        "root": "root",
+        "pointerSize": 1,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 1,
+        "alignment": 1,
+        "bytes": "2A",
+        "offsets": {
+          "root.value.value": 0
+        },
+        "values": {
+          "root.value.value": "42"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "tag-kind-mismatch",
         "errorCode": "InvalidLayout"
       }
     },

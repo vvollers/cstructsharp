@@ -39,6 +39,11 @@ For packed bytes `A1 FE FF 05 00`:
 The `nested-structs` fixture checks size 2 for a one-byte child/root case, exact offsets and values, and exact output
 bytes on both frameworks.
 
+A field's type reference may optionally carry a leading `struct`, `union`, or `enum` keyword, matching how C itself
+refers to a tagged type: `record { struct point location; };` compiles to the identical field as
+`record { point location; };`. The keyword is checked against the referenced declaration's actual kind, so
+`union point location;` is rejected when `point` is declared as a `struct` - see the `tag-keywords` fixture.
+
 Duplicate top-level names, duplicate fields in one struct, unknown types, and recursive by-value fields produce
 `InvalidLayout`. A recursive pointer can be valid because the pointer itself has finite width; following it is
 limited during reading.
