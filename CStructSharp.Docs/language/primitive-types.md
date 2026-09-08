@@ -17,6 +17,7 @@ suffix always means little-endian, and `>` always means big-endian.
 | --- | --- | ---: | --- | --- | --- |
 | `byte`, `uint8` | `uint8` | 1 / 1 | Unsigned, 0..255 | Not applicable | `Byte` |
 | `int8` | `int8` | 1 / 1 | Signed, -128..127 | Not applicable | `SByte` |
+| `bool`, `_Bool` | `bool` | 1 / 1 | Boolean, `true`/`false` (any nonzero byte reads as true) | Not applicable | `Boolean` |
 | `char` | `char` | 1 / 1 | Raw code unit, U+0000..U+00FF | Not applicable | `Char` |
 | `wchar` | `wchar` | 2 / 2 | UTF-16 code unit, U+0000..U+FFFF | Layout | `Char` |
 | `wchar<` | `wchar<` | 2 / 2 | UTF-16 code unit, U+0000..U+FFFF | Little | `Char` |
@@ -50,7 +51,7 @@ suffix always means little-endian, and `>` always means big-endian.
 | `int64_t` | `int64` | 8 / 8 | Signed, -9223372036854775808..9223372036854775807 | Layout | `Int64` |
 | `uint64_t` | `uint64` | 8 / 8 | Unsigned, 0..18446744073709551615 | Layout | `UInt64` |
 
-The table groups 52 accepted spellings, including the wider C integer spellings (`unsigned long long`, `uint32_t`,
+The table groups 54 accepted spellings, including the wider C integer spellings (`unsigned long long`, `uint32_t`,
 and similar) accepted as aliases of an existing fixed-width codec — none of these infer a native compiler's data
 model; `signed char`/`unsigned char`/`*_t` forms alias the numeric `int8`/`uint8` codecs, not the raw `char` code
 unit. The complete rows are also stored in
@@ -111,11 +112,13 @@ an early terminator. See [Arrays, character buffers, and strings](arrays-and-str
   Unix-like systems.
 - Portable `short` and `int` are fixed 16- and 32-bit aliases.
 - Stored pointers use the explicit constructor width, not the .NET process width.
-- Floating-point names, C integer suffixes, and multi-word names such as `unsigned long` are not Portable primitives.
+- Floating-point names and C integer suffixes are not Portable primitives.
+- `bool`/`_Bool` is always 1 byte with canonical `0x00`/`0x01` write output; native `_Bool`/C++ `bool` storage width
+  and representation can vary by compiler and ABI.
 
 An enum with no `: storage` uses unsigned one-byte backing. An explicit backing can use the supported integral
-families or aliases, but not character, explicit-endian, pointer, composite, string, or another enum type. See
-[Enums](structs-unions-enums-typedefs.md#enums).
+families or aliases, but not character, boolean, explicit-endian, pointer, composite, string, or another enum type.
+See [Enums](structs-unions-enums-typedefs.md#enums).
 
 ## Common mistakes
 

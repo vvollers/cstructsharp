@@ -20,6 +20,7 @@ public partial class CStruct
                 ["byte"] = stream => BinaryPrimitiveIO.ReadByteExactly(stream),
                 ["int8"] = stream => unchecked((sbyte)BinaryPrimitiveIO.ReadByteExactly(stream)),
                 ["uint8"] = stream => BinaryPrimitiveIO.ReadByteExactly(stream),
+                ["bool"] = stream => BinaryPrimitiveIO.ReadByteExactly(stream) != 0,
                 ["char"] = stream => (char)BinaryPrimitiveIO.ReadByteExactly(stream),
                 ["wchar>"] = stream => BitConverter.ToChar(BinaryPrimitiveIO.ReadIntoBuffer(stream, 2, false)),
                 ["wchar<"] = stream => BitConverter.ToChar(BinaryPrimitiveIO.ReadIntoBuffer(stream, 2, true)),
@@ -115,6 +116,7 @@ public partial class CStruct
                 ["int8"]
                                      = (stream, value) => stream.WriteByte(unchecked((byte)Convert.ToSByte(value))),
                 ["uint8"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
+                ["bool"] = (stream, value) => stream.WriteByte((byte)(Convert.ToBoolean(value) ? 1 : 0)),
                 ["char"] = (stream, value) => stream.WriteByte(PrimitiveCodecs.ConvertToNarrowCharacter(value)),
                 ["wchar>"]
                                      = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(

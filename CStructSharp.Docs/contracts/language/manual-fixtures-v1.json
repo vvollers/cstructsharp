@@ -30,6 +30,34 @@
       }
     },
     {
+      "id": "boolean-primitive",
+      "featureId": "boolean-primitive",
+      "manual": "CStructSharp.Docs/language/primitive-types.md#fixed-primitives",
+      "valid": {
+        "definition": "struct root { bool flag; uint8 tail; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 1,
+        "bytes": "01AA",
+        "offsets": {
+          "root.flag": 0,
+          "root.tail": 1
+        },
+        "values": {
+          "root.flag": "true",
+          "root.tail": "170"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "unrecognized-integer-spelling",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
       "id": "portable-c-integer-spellings",
       "featureId": "portable-c-integer-spellings",
       "manual": "CStructSharp.Docs/language/primitive-types.md#fixed-primitives",

@@ -37,6 +37,26 @@
       "writerDomain": "0..255"
     },
     {
+      "spelling": "bool",
+      "canonical": "bool",
+      "bytes": 1,
+      "alignment": 1,
+      "signedness": "boolean",
+      "endian": "independent",
+      "clr": "Boolean",
+      "writerDomain": "false, true"
+    },
+    {
+      "spelling": "_Bool",
+      "canonical": "bool",
+      "bytes": 1,
+      "alignment": 1,
+      "signedness": "boolean",
+      "endian": "independent",
+      "clr": "Boolean",
+      "writerDomain": "false, true"
+    },
+    {
       "spelling": "char",
       "canonical": "char",
       "bytes": 1,
@@ -813,6 +833,25 @@
         "pointer_sample.target.isNull": "true"
       },
       "bytes": "AA000000"
+    },
+    {
+      "id": "boolean-round-trip",
+      "definition": "struct sample { bool flag; uint8 tail; };",
+      "root": "sample",
+      "pointerSize": 4,
+      "littleEndian": true,
+      "aligned": false,
+      "size": 2,
+      "alignment": 1,
+      "offsets": {
+        "sample.flag": 0,
+        "sample.tail": 1
+      },
+      "values": {
+        "sample.flag": "true",
+        "sample.tail": "170"
+      },
+      "bytes": "01AA"
     }
   ],
   "unsupportedConstructs": [

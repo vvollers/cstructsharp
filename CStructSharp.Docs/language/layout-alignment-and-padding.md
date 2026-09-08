@@ -85,6 +85,7 @@ Padding in newly serialized output is zero. Offsets are relative to the root.
 | `portable-bitfields` | `uint8 low:3=5; uint8 high:5=17; uint16 next=0x1234;` | little, packed | `low=0`, `high=0`, `next=1` | 3 / 2 | `8D 34 12` |
 | `packed-null-pointer` | `struct pointer_sample { uint8 marker; uint16 *target; };`, null pointer | 2-byte pointer, little, packed | marker `0`, pointer `1` | 3 / 2 | `AA 00 00` |
 | `aligned-null-pointer` | Same definition and values | 2-byte pointer, little, aligned | marker `0`, pointer `2` | 4 / 2 | `AA 00 00 00` |
+| `boolean-round-trip` | `struct sample { bool flag; uint8 tail; };` with `flag=true`, `tail=0xAA` | little, packed | `flag=0`, `tail=1` | 2 / 1 | `01 AA` |
 
 `GetStructAlignmentInBytes` returns the alignment column even in packed mode. `GetStructSizeInBytes` works only when
 the selected struct/union has a fixed extent. Runtime arrays and terminated fields need operation variables or actual
