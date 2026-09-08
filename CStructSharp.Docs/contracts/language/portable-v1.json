@@ -857,8 +857,13 @@
       "category": "general flexible-array member"
     },
     {
-      "id": "qualified-field",
-      "definition": "struct root { const uint8 value; };",
+      "id": "qualifier-not-in-closed-set",
+      "definition": "struct root { _Atomic uint8 value; };",
+      "category": "qualifier"
+    },
+    {
+      "id": "trailing-qualifier-position",
+      "definition": "struct root { uint8 value const; };",
       "category": "qualifier"
     },
     {

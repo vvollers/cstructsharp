@@ -81,7 +81,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "qualified-field",
+        "unsupportedId": "qualifier-not-in-closed-set",
         "errorCode": "InvalidLayout"
       }
     },
@@ -315,7 +315,33 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "qualified-field",
+        "unsupportedId": "qualifier-not-in-closed-set",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "qualifiers",
+      "featureId": "qualifiers",
+      "manual": "CStructSharp.Docs/language/grammar.md#complete-portable-grammar",
+      "valid": {
+        "definition": "struct root { const uint8 value; };",
+        "root": "root",
+        "pointerSize": 1,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 1,
+        "alignment": 1,
+        "bytes": "2A",
+        "offsets": {
+          "root.value": 0
+        },
+        "values": {
+          "root.value": "42"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "trailing-qualifier-position",
         "errorCode": "InvalidLayout"
       }
     },

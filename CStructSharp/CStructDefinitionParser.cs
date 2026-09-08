@@ -330,6 +330,24 @@ internal static class CStructDefinitionParser
             Tok(SemiColon).IgnoreResult()).
         Labelled("Field");
 
+    public static readonly Parser<char, string> ConstKeyword = Tok("const");
+    public static readonly Parser<char, string> VolatileKeyword = Tok("volatile");
+    public static readonly Parser<char, string> RestrictKeyword = Tok("restrict");
+
+    /// <summary>One layout-neutral qualifier from the closed accepted set (LANG-13); recognized and discarded.</summary>
+    private static readonly Parser<char, Unit> TypeQualifier =
+        OneOf(ConstKeyword, VolatileKeyword, RestrictKeyword).IgnoreResult();
+
+    /// <summary>
+    ///     An identifier token optionally preceded by zero or more layout-neutral qualifiers, which are consumed
+    ///     and discarded before the token itself is parsed. Handles a qualifier before the type
+    ///     (<c>const uint8 value;</c>) and after a pointer star (<c>uint8 * const value;</c>, since a lone
+    ///     <c>*</c> and <c>const</c> are separate whitespace-separated tokens) uniformly, with no special-casing
+    ///     for either position.
+    /// </summary>
+    private static readonly Parser<char, Identifier> QualifiedIdentifierToken =
+        TypeQualifier.SkipMany().Then(ExtendedIdentifier);
+
     /// <summary>
     ///     Parses one comma-separated declarator after the first (its own pointer stars, optional array, and
     ///     optional bit width), sharing the enclosing <see cref="FieldGroup"/>'s type.
@@ -341,7 +359,7 @@ internal static class CStructDefinitionParser
                 PointerDepth: words.Sum(o => o.PointerDepth),
                 Array: arr,
                 BitSize: bitSize),
-            ExtendedIdentifier.AtLeastOnce(),
+            QualifiedIdentifierToken.AtLeastOnce(),
             Array.Optional(),
             BitSize.Optional());
 
@@ -382,7 +400,7 @@ internal static class CStructDefinitionParser
 
                 return (IEnumerable<Field>)result;
             },
-            ExtendedIdentifier.AtLeastOnce(),
+            QualifiedIdentifierToken.AtLeastOnce(),
             Array.Optional(),
             BitSize.Optional(),
             Comma.Then(Declarator).Many(),

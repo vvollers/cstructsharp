@@ -537,6 +537,27 @@
       }
     },
     {
+      "featureId": "qualifiers",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "A qualifier is discarded during parsing; the compiled field carries no distinct representation of it, so no separate value contract applies."
+        ],
+        "evidence": [
+          "CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_BeforeTheType_AreDiscardedWithNoEffect"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The qualified field's own primitive/array/bitfield codec supplies its exact-byte contract, unaffected by the discarded qualifier."
+        ],
+        "evidence": [
+          "CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_BeforeTheType_AreDiscardedWithNoEffect"
+        ]
+      }
+    },
+    {
       "featureId": "runtime-expression-arrays",
       "value": {
         "status": "conditional",
@@ -1451,6 +1472,84 @@
       ],
       "limitations": [
         "Each declarator carries its own independent pointer stars, array, and bit width, matching C's declarator-list semantics rather than sharing the first declarator's shape."
+      ]
+    },
+    {
+      "id": "qualifiers",
+      "manual": "CStructSharp.Docs/language/grammar.md#complete-portable-grammar",
+      "fixture": "qualifiers",
+      "title": "Layout-neutral const/volatile/restrict qualifiers",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "notApplicable",
+        "write": "notApplicable",
+        "update": "notApplicable",
+        "read-value": "notApplicable"
+      },
+      "evidence": [
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_BeforeTheType_AreDiscardedWithNoEffect",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_AfterAPointerStar_AreDiscardedWithNoEffect",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_InsideALaterDeclarator_AreDiscardedWithNoEffect",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_TokenOutsideTheClosedSet_StillRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_AfterTheDeclaratorName_StillRejected",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "Only const, volatile, and restrict are recognized, before the type or immediately after a pointer star; any other token or position is still rejected rather than silently tolerated.",
+        "A qualifier is discarded with no compiled representation - it cannot be recovered from a compiled field, and no distinct write/update/read-value contract applies."
       ]
     },
     {
@@ -2415,15 +2514,6 @@
       "diagnosticPolicy": "Reject unsupported directives; a future header frontend must be an explicit separate boundary.",
       "workItems": [
         "LANG-11"
-      ]
-    },
-    {
-      "id": "qualifiers",
-      "syntax": "const, volatile, and restrict",
-      "rationale": "Accepted positions and whether layout-neutral qualifiers are preserved have not been decided.",
-      "diagnosticPolicy": "Reject instead of silently ignoring unrecognized tokens.",
-      "workItems": [
-        "LANG-13"
       ]
     },
     {

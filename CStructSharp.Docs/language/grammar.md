@@ -53,8 +53,9 @@ struct-field     = field | inline-struct-field ;
 inline-struct-field
                  = "struct", "{", { struct-field }, "}", identifier, ";" ;
 union-field      = field ;
-field            = type-name, declarator, { ",", declarator }, ";" ;
-declarator       = pointer-stars, identifier, [ array ], [ bit-width ] ;
+field            = { type-qualifier }, type-name, declarator, { ",", declarator }, ";" ;
+declarator       = { type-qualifier }, pointer-stars, { type-qualifier }, identifier, [ array ], [ bit-width ] ;
+type-qualifier   = "const" | "volatile" | "restrict" ;
 pointer-stars    = { "*" } ;
 array            = "[", [ expression ], "]" ;
 bit-width        = ":", expression ;
@@ -107,9 +108,12 @@ Only one array declarator per name is accepted. Empty `[]` has meaning only for 
 then a terminated string. A field declaration may share one type across multiple comma-separated declarators
 (`uint8 first, second;`); each declarator has its own independent pointer stars, array, and bit width, matching C's
 declarator-list semantics - a leading star belongs only to the declarator it directly precedes, not to every name in
-the list, so `uint8 *a, b;` declares `a` as a pointer and `b` as a plain `uint8`. A `#define` is one object-like
-integer expression; there are no parameters or textual expansion. Function-call spelling is recognized only so
-construction can reject it explicitly. It is not a supported `primary`, and it never executes user code.
+the list, so `uint8 *a, b;` declares `a` as a pointer and `b` as a plain `uint8`. `const`, `volatile`, and `restrict`
+are recognized before the type or immediately after a pointer star (`const uint8 value;`, `uint8 * const p;`) and
+discarded with no effect on the compiled field; this is a fixed, closed set - other tokens in that position, or a
+qualifier in any other position, are still rejected. A `#define` is one object-like integer expression; there are no
+parameters or textual expansion. Function-call spelling is recognized only so construction can reject it explicitly.
+It is not a supported `primary`, and it never executes user code.
 
 ## Public path EBNF
 
@@ -148,8 +152,9 @@ The table explains each production and links to the page that defines its additi
 | `struct-field` | Ordinary or named inline-struct member |
 | `inline-struct-field` | Lexically scoped sequential composite |
 | `union-field` | Ordinary field; inline structs/unions are not accepted here |
-| `field` | One type, one or more comma-separated declarators |
-| `declarator` | One name with its own pointer stars, optional array, and optional bit width |
+| `field` | One optionally qualified type, one or more comma-separated declarators |
+| `declarator` | One name with its own optional qualifiers, pointer stars, optional array, and optional bit width |
+| `type-qualifier` | A recognized layout-neutral qualifier, discarded with no effect on the compiled field |
 | `pointer-stars` | Zero or more data-pointer levels |
 | `array` | One fixed/runtime count or character-string marker |
 | `bit-width` | One named nonzero portable bit slice |

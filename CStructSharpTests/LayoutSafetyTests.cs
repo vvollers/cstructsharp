@@ -637,6 +637,57 @@ public class LayoutSafetyTests
         Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { uint8 a, a; };"));
     }
 
+    /// <summary>
+    ///     <c>const</c>, <c>volatile</c>, and <c>restrict</c> (LANG-13) are recognized and discarded before the
+    ///     type, with no effect on the compiled field - the exact promoted shape of the retired qualified-field
+    ///     unsupported-corpus fixture.
+    /// </summary>
+    [TestMethod]
+    public void Qualifiers_BeforeTheType_AreDiscardedWithNoEffect()
+    {
+        var cstruct = new CStruct("struct root { const uint8 value; };");
+
+        dynamic parsed = cstruct.ParseStream(new MemoryStream([5,]), "root");
+
+        Assert.AreEqual((byte)5, (byte)parsed.value);
+        Assert.AreEqual(1, cstruct.GetStructSizeInBytes("root"));
+    }
+
+    /// <summary>A qualifier is also recognized immediately after a pointer star, the other C-standard position.</summary>
+    [TestMethod]
+    public void Qualifiers_AfterAPointerStar_AreDiscardedWithNoEffect()
+    {
+        var cstruct = new CStruct("struct root { uint8 * const p; };", pointerSize: 1);
+
+        Assert.AreEqual(1, cstruct.GetStructSizeInBytes("root"));
+    }
+
+    /// <summary>A qualifier inside a later comma-separated declarator (LANG-12 + LANG-13 together) is also discarded.</summary>
+    [TestMethod]
+    public void Qualifiers_InsideALaterDeclarator_AreDiscardedWithNoEffect()
+    {
+        var cstruct = new CStruct("struct root { uint8 *a, * const b; };", pointerSize: 1);
+
+        Assert.AreEqual(2, cstruct.GetStructSizeInBytes("root"));
+    }
+
+    /// <summary>
+    ///     The accepted qualifier set is closed - a token that is not exactly <c>const</c>/<c>volatile</c>/
+    ///     <c>restrict</c> is still rejected rather than silently tolerated in the same position.
+    /// </summary>
+    [TestMethod]
+    public void Qualifiers_TokenOutsideTheClosedSet_StillRejected()
+    {
+        Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { _Atomic uint8 value; };"));
+    }
+
+    /// <summary>A qualifier after the declarator name (a position C itself does not accept there either) is still rejected.</summary>
+    [TestMethod]
+    public void Qualifiers_AfterTheDeclaratorName_StillRejected()
+    {
+        Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { uint8 value const; };"));
+    }
+
     /// <summary>Produces a value that is exactly representable by the generated primitive declaration.</summary>
     private static object CreateRandomPrimitiveValue(string typeName, System.Random random)
     {
