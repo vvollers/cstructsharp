@@ -480,7 +480,20 @@ public partial class CStruct
         }
     }
 
-    /// <summary>Calculates immutable fixed offsets and bit offsets without making runtime-sized offsets look static.</summary>
+    /// <summary>
+    ///     Calculates immutable fixed offsets and bit offsets without making runtime-sized offsets look static.
+    /// </summary>
+    /// <remarks>
+    ///     Deliberately not consolidated onto <see cref="CompositeFieldPlacementCursor"/> (see ADR-013 and the
+    ///     placement-arithmetic consolidation this session): this method runs once at compile time, before any
+    ///     runtime <c>variables</c> exist, and needs a nullable, one-way "permanently unknown from here on" position
+    ///     the moment any field's size is statically undeterminable - the cursor's non-nullable <c>long</c> position
+    ///     has no such state, since every other consumer only ever drives it when a concrete field end is always
+    ///     computable (a live stream, or pure-math storage sizes). Its output, <see cref="CompiledField.FixedOffset"/>,
+    ///     is currently written but read by nothing else in the codebase - a future implementer wiring up an actual
+    ///     placement override (e.g. LANG-15's <c>@align</c>/<c>@N</c>) should decide whether this finally becomes the
+    ///     load-bearing source of truth, or stays dead compile-time metadata.
+    /// </remarks>
     private ImmutableArray<CompiledField> PlaceCompiledFields(
         Struct strct,
         ImmutableArray<CompiledField> fields,
