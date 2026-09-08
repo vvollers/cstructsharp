@@ -89,4 +89,10 @@ internal sealed class CompositeFieldPlacementCursor
     {
         this.current = fieldEnd;
     }
+
+    /// <summary>Rounds the composite's own tail up to its own alignment, reproducing C-compiler trailing padding.</summary>
+    public long FinishComposite(int structAlignment)
+    {
+        return this.aligned ? LayoutMath.AlignUp(this.current, structAlignment) : this.current;
+    }
 }
