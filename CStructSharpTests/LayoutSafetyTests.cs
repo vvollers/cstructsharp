@@ -168,6 +168,29 @@ public class LayoutSafetyTests
     }
 
     /// <summary>
+    ///     variable_inner has no fixed size of its own, because its trailing array's length depends on a sibling
+    ///     field rather than a compile-time constant. A union member of that type has no fixed storage either.
+    /// </summary>
+    /// <remarks>
+    ///     Validating this must call into the same size-query path used everywhere else in this file, but from
+    ///     inside the constructor itself, before the compiled model it would ordinarily read from exists. This
+    ///     resolves through the union member's own composite lookup, not just its array-count expression, so it
+    ///     specifically exercises composite-size resolution occurring mid-construction.
+    /// </remarks>
+    [TestMethod]
+    public void Constructor_UnionMemberIsAVariablySizedNestedStruct_ThrowsLayoutException()
+    {
+        const string layout = """
+                              struct variable_inner { uint8 len; char data[len]; };
+                              union choice { uint16 fixed_member; variable_inner var_member; };
+                              """;
+
+        CStructLayoutException exception = Assert.Throws<CStructLayoutException>(() => new CStruct(layout));
+
+        StringAssert.Contains(exception.Message, "var_member");
+    }
+
+    /// <summary>
     ///     The first byte requests three elements in values[count].
     /// </summary>
     /// <remarks>

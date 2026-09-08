@@ -67,7 +67,7 @@ public partial class CStruct
                                  : this.TryGetStructFixedSize(rootTargetStruct, state.Variables);
             int alignment = rootTargetStruct is null
                                 ? 1
-                                : this.GetCompiledComposite(rootTargetStruct).Symbol.Alignment;
+                                : this.compiledSizeQueries.GetCompiledComposite(rootTargetStruct).Symbol.Alignment;
             return new ResolvedTarget(
                 rootStart,
                 ResolvedTargetKind.Root,
@@ -148,8 +148,8 @@ public partial class CStruct
         {
             context = context.EnterUnion(
                 structStart,
-                this.GetCompiledStructSizeInBytes(
-                    this.GetCompiledComposite(strct),
+                this.compiledSizeQueries.GetCompiledStructSizeInBytes(
+                    this.compiledSizeQueries.GetCompiledComposite(strct),
                     state.Variables,
                     false));
         }
@@ -182,7 +182,7 @@ public partial class CStruct
         int activeBitUnitAlignment = 0;
         string? activeBitUnitType = null;
 
-        foreach (CompiledField compiledField in this.GetCompiledComposite(strct).Fields)
+        foreach (CompiledField compiledField in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
         {
             Field declaredField = compiledField.Declaration;
             Field field = compiledField.EffectiveField;
@@ -520,7 +520,7 @@ public partial class CStruct
         if (namedElement is Struct { IsUnion: true, } union)
         {
             unionStorageAddress = address;
-            unionStorageSize = this.GetCompiledComposite(union).Symbol.FixedSize;
+            unionStorageSize = this.compiledSizeQueries.GetCompiledComposite(union).Symbol.FixedSize;
         }
 
         if (field.PointerDepth == 0 && namedElement is Struct)
@@ -619,7 +619,7 @@ public partial class CStruct
         if (remainingPointerDepth == 0 && namedElement is Struct { IsUnion: true, } union)
         {
             unionStorageAddress = address;
-            unionStorageSize = this.GetCompiledComposite(union).Symbol.FixedSize;
+            unionStorageSize = this.compiledSizeQueries.GetCompiledComposite(union).Symbol.FixedSize;
         }
 
         if (remainingPointerDepth == 0 && namedElement is Struct)
@@ -675,8 +675,8 @@ public partial class CStruct
     {
         try
         {
-            return this.GetCompiledStructSizeInBytes(
-                this.GetCompiledComposite(strct),
+            return this.compiledSizeQueries.GetCompiledStructSizeInBytes(
+                this.compiledSizeQueries.GetCompiledComposite(strct),
                 variables,
                 true);
         }
@@ -754,14 +754,14 @@ public partial class CStruct
             return current;
         }
 
-        int elementSize = this.GetCompiledFieldElementSize(compiledField, state.Variables, false);
+        int elementSize = this.compiledSizeQueries.GetCompiledFieldElementSize(compiledField, state.Variables, false);
         return checked(fieldStart + ((long)elementSize * index));
     }
 
     /// <summary>Evaluates one fixed array count and rejects it before traversal can loop over excessive elements.</summary>
     private int GetBoundedArrayCount(CompiledField field, CStructOperationContext state)
     {
-        int count = this.GetCompiledArrayCount(field, state.Variables, false);
+        int count = this.compiledSizeQueries.GetCompiledArrayCount(field, state.Variables, false);
         if (count > state.MaxArrayElements)
         {
             throw new CStructReadLimitException(
@@ -827,7 +827,7 @@ public partial class CStruct
                               ? 1
                               : this.GetBoundedArrayCount(compiledField, state);
         int elementSize = compiledField.FixedElementSize ??
-                          this.GetCompiledFieldElementSize(compiledField, state.Variables, false);
+                          this.compiledSizeQueries.GetCompiledFieldElementSize(compiledField, state.Variables, false);
         int storageSize = checked(elementSize * scalarCount);
         return checked(fieldStart + storageSize);
     }
@@ -854,8 +854,8 @@ public partial class CStruct
             this.ValidateCompositeTraversalLimits(strct, state);
             return checked(
                 structStart +
-                this.GetCompiledStructSizeInBytes(
-                    this.GetCompiledComposite(strct),
+                this.compiledSizeQueries.GetCompiledStructSizeInBytes(
+                    this.compiledSizeQueries.GetCompiledComposite(strct),
                     state.Variables,
                     false));
         }
@@ -867,7 +867,7 @@ public partial class CStruct
         int activeBitUnitAlignment = 0;
         string? activeBitUnitType = null;
 
-        foreach (CompiledField compiledField in this.GetCompiledComposite(strct).Fields)
+        foreach (CompiledField compiledField in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
         {
             Field field = compiledField.EffectiveField;
             long fieldStart;
@@ -921,7 +921,7 @@ public partial class CStruct
             }
         }
 
-        int structAlignment = this.GetCompiledComposite(strct).Symbol.Alignment;
+        int structAlignment = this.compiledSizeQueries.GetCompiledComposite(strct).Symbol.Alignment;
         return this.Aligned ? LayoutMath.AlignUp(current, structAlignment) : current;
     }
 
@@ -931,7 +931,7 @@ public partial class CStruct
     /// </summary>
     private void ValidateCompositeTraversalLimits(Struct strct, CStructOperationContext state)
     {
-        foreach (CompiledField compiledField in this.GetCompiledComposite(strct).Fields)
+        foreach (CompiledField compiledField in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
         {
             Field field = compiledField.EffectiveField;
             CStructElement? namedElement = compiledField.NamedElement;
@@ -1015,7 +1015,7 @@ public partial class CStruct
     /// <summary>Finds one exact compiled field name in a struct.</summary>
     private CompiledField FindCompiledField(Struct strct, string name)
     {
-        CompiledCompositeType composite = this.GetCompiledComposite(strct);
+        CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
         if (composite.FieldsByName.TryGetValue(name, out CompiledField? field))
         {
             return field;

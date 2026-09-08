@@ -90,6 +90,11 @@ public partial class CStruct
             }
         }
 
+        // Every composite symbol is discovered by this point and compositeSymbols never gains further entries, so a
+        // size-query view built now stays valid for the rest of construction - including the union-storage check
+        // below, before the final immutable CompiledLayoutModel exists.
+        var sizeQueries = new CompiledSizeQueries(compositeSymbols, this.Aligned, this.layoutExpressionEvaluator);
+
         foreach (KeyValuePair<string, CStructElement> declaration in this.CStructElements)
         {
             if (declaration.Value is Struct strct)
@@ -164,7 +169,8 @@ public partial class CStruct
                 namedTypes,
                 resolvingAliases,
                 compiledFields,
-                compilingComposites);
+                compilingComposites,
+                sizeQueries);
         }
 
         var rootFields = ImmutableDictionary.CreateBuilder<CStructElement, CompiledField>(
@@ -328,7 +334,8 @@ public partial class CStruct
         Dictionary<string, CompiledTypeReference> namedTypes,
         HashSet<string> resolvingAliases,
         ImmutableDictionary<Field, CompiledField>.Builder compiledFields,
-        HashSet<Struct> compiling)
+        HashSet<Struct> compiling,
+        CompiledSizeQueries sizeQueries)
     {
         CompiledTypeSymbol symbol = compositeSymbols[strct];
         if (symbol.Definition is CompiledCompositeType known)
@@ -372,7 +379,8 @@ public partial class CStruct
                         namedTypes,
                         resolvingAliases,
                         compiledFields,
-                        compiling);
+                        compiling,
+                        sizeQueries);
                 }
 
                 var effectiveField = new Field(
@@ -445,7 +453,7 @@ public partial class CStruct
 
             int compositeAlignment = fields.Count == 0 ? 1 : fields.Max(field => field.Alignment);
             ImmutableArray<CompiledField> placedFields =
-                this.PlaceCompiledFields(strct, fields.ToImmutable(), compositeAlignment, out int? fixedSize);
+                this.PlaceCompiledFields(strct, fields.ToImmutable(), compositeAlignment, sizeQueries, out int? fixedSize);
             symbol.CompleteLayout(compositeAlignment, fixedSize);
             var definition = new CompiledCompositeType(symbol, placedFields);
             symbol.Bind(definition);
@@ -467,6 +475,7 @@ public partial class CStruct
         Struct strct,
         ImmutableArray<CompiledField> fields,
         int compositeAlignment,
+        CompiledSizeQueries sizeQueries,
         out int? fixedSize)
     {
         var result = ImmutableArray.CreateBuilder<CompiledField>(fields.Length);
@@ -479,7 +488,7 @@ public partial class CStruct
                 {
                     try
                     {
-                        _ = this.GetCompiledFieldStorageSize(field, this.staticLayoutVariables, true);
+                        _ = sizeQueries.GetCompiledFieldStorageSize(field, this.staticLayoutVariables, true);
                     }
                     catch (CStructLayoutException exception)
                     {
@@ -569,14 +578,6 @@ public partial class CStruct
         return result.ToImmutable();
     }
 
-    /// <summary>Returns the immutable composite descriptor for an exact parsed struct declaration.</summary>
-    private CompiledCompositeType GetCompiledComposite(Struct strct)
-    {
-        CompiledTypeSymbol symbol = this.compiledLayout.Composites[strct];
-        return symbol.Definition as CompiledCompositeType ??
-               throw new InvalidOperationException("Composite type is not bound: " + strct.Name.Name);
-    }
-
     /// <summary>Returns a primitive reader directly or the compiled underlying reader for an enum.</summary>
     private Func<Stream, object>? GetCompiledReader(CompiledTypeSymbol symbol)
     {
@@ -637,152 +638,5 @@ public partial class CStruct
             field.ArrayCount,
             count,
             ImmutableArray<string>.Empty);
-    }
-
-    /// <summary>Calculates one composite extent from compiled field/type facts and runtime count expressions only.</summary>
-    private int GetCompiledStructSizeInBytes(
-        CompiledCompositeType composite,
-        IReadOnlyDictionary<string, Expr> variables,
-        bool requireFixedSize)
-    {
-        if (composite.Fields.Length == 0)
-        {
-            return 0;
-        }
-
-        if (composite.Symbol.Kind == CompiledTypeKind.Union)
-        {
-            int largest = 0;
-            foreach (CompiledField field in composite.Fields)
-            {
-                largest = Math.Max(
-                    largest,
-                    this.GetCompiledFieldStorageSize(field, variables, requireFixedSize));
-            }
-
-            return this.Aligned ? LayoutMath.AlignUp(largest, composite.Symbol.Alignment) : largest;
-        }
-
-        int current = 0;
-        int activeBitUnitSize = 0;
-        int activeBitUnitBitsUsed = 0;
-        int activeBitUnitAlignment = 0;
-        string? activeBitUnitType = null;
-        foreach (CompiledField field in composite.Fields)
-        {
-            if (field.BitStorageSize.HasValue)
-            {
-                int unitSize = field.BitStorageSize.Value;
-                bool startsNew = LayoutMath.StartsNewBitfieldUnit(
-                    activeBitUnitType,
-                    activeBitUnitSize,
-                    activeBitUnitAlignment,
-                    activeBitUnitBitsUsed,
-                    field.EffectiveField,
-                    unitSize,
-                    field.Alignment);
-                if (startsNew)
-                {
-                    current = this.Aligned ? LayoutMath.AlignUp(current, field.Alignment) : current;
-                    current = checked(current + unitSize);
-                    activeBitUnitSize = unitSize;
-                    activeBitUnitAlignment = field.Alignment;
-                    activeBitUnitType = field.EffectiveField.Type.Name;
-                    activeBitUnitBitsUsed = 0;
-                }
-
-                activeBitUnitBitsUsed += field.EffectiveField.BitSize;
-                continue;
-            }
-
-            activeBitUnitSize = 0;
-            activeBitUnitBitsUsed = 0;
-            activeBitUnitAlignment = 0;
-            activeBitUnitType = null;
-            current = this.Aligned ? LayoutMath.AlignUp(current, field.Alignment) : current;
-            current = checked(
-                current + this.GetCompiledFieldStorageSize(field, variables, requireFixedSize));
-        }
-
-        return this.Aligned ? LayoutMath.AlignUp(current, composite.Symbol.Alignment) : current;
-    }
-
-    /// <summary>Calculates one compiled field's complete storage without resolving its parsed type name.</summary>
-    private int GetCompiledFieldStorageSize(
-        CompiledField field,
-        IReadOnlyDictionary<string, Expr> variables,
-        bool requireFixedSize)
-    {
-        int elementSize = this.GetCompiledFieldElementSize(field, variables, requireFixedSize);
-        int count = this.GetCompiledArrayCount(field, variables, requireFixedSize);
-        return checked(elementSize * count);
-    }
-
-    /// <summary>Calculates one compiled element footprint from its direct pointer, codec, enum, or composite target.</summary>
-    private int GetCompiledFieldElementSize(
-        CompiledField field,
-        IReadOnlyDictionary<string, Expr> variables,
-        bool requireFixedSize)
-    {
-        if (field.FixedElementSize.HasValue)
-        {
-            return field.FixedElementSize.Value;
-        }
-
-        if (field.Type.Symbol.Declaration is Struct nested)
-        {
-            return this.GetCompiledStructSizeInBytes(
-                this.GetCompiledComposite(nested),
-                variables,
-                requireFixedSize);
-        }
-
-        throw new CStructLayoutException(
-            "Variable-length type has no fixed storage size: " + field.EffectiveField.Type.Name);
-    }
-
-    /// <summary>Evaluates one compiled array strategy while preserving fixed/flexible error semantics.</summary>
-    private int GetCompiledArrayCount(
-        CompiledField field,
-        IReadOnlyDictionary<string, Expr> variables,
-        bool requireFixedSize)
-    {
-        if (field.Array.Kind == CompiledArrayKind.Scalar)
-        {
-            return 1;
-        }
-
-        if (field.Array.Kind == CompiledArrayKind.Flexible)
-        {
-            throw new CStructLayoutException(
-                "Flexible array has no fixed storage size: " + field.EffectiveField.Name.Name);
-        }
-
-        int count;
-        try
-        {
-            Expr expression = field.Array.CountExpression ??
-                              throw new InvalidOperationException(
-                                  "Compiled array strategy has no count expression: " +
-                                  field.EffectiveField.Name.Name);
-            count = this.layoutExpressionEvaluator.Evaluate(
-                expression,
-                variables,
-                "array length for " + field.EffectiveField.Name.Name);
-        }
-        catch (Exception exception) when (requireFixedSize)
-        {
-            throw new CStructLayoutException(
-                "Cannot calculate fixed array size for field: " + field.EffectiveField.Name.Name,
-                exception);
-        }
-
-        if (count < 0)
-        {
-            throw new CStructLayoutException(
-                "Array length cannot be negative: " + field.EffectiveField.Name.Name);
-        }
-
-        return count;
     }
 }

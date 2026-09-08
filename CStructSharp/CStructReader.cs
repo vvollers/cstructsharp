@@ -36,7 +36,7 @@ public partial class CStruct
             return;
         }
 
-        int alignment = this.GetCompiledComposite(strct).Symbol.Alignment;
+        int alignment = this.compiledSizeQueries.GetCompiledComposite(strct).Symbol.Alignment;
         state.Stream.Position = LayoutMath.AlignUp(state.Stream.Position, alignment);
     }
 

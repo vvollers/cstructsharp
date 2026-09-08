@@ -35,6 +35,7 @@ public sealed partial class CStruct
         new(StringComparer.Ordinal);
 
     private readonly CompiledModelQueries compiledModelQueries;
+    private readonly CompiledSizeQueries compiledSizeQueries;
     private readonly EnumIntegerCodecTable enumIntegerCodecs;
     private readonly ExpressionEvaluator expressionEvaluator;
     private readonly LayoutExpressionEvaluator layoutExpressionEvaluator;
@@ -161,6 +162,10 @@ public sealed partial class CStruct
         // alignment, sizing, placement, and operation descriptors, so no parallel layout cache can drift from it.
         this.compiledLayout = this.CompileIntermediateRepresentation();
         this.compiledModelQueries = new CompiledModelQueries(this.compiledLayout);
+        this.compiledSizeQueries = new CompiledSizeQueries(
+            this.compiledLayout.Composites,
+            this.Aligned,
+            this.layoutExpressionEvaluator);
         foreach (KeyValuePair<string, CStructElement> declaration in this.CStructElements)
         {
             if (this.compiledLayout.Symbols.TryGetValue(
@@ -476,7 +481,7 @@ public sealed partial class CStruct
     public int GetStructAlignmentInBytes(string name)
     {
         // Alignment comes from the compiled model so nested struct fields and aliases share one rule everywhere.
-        return this.GetCompiledComposite(this.GetStruct(name)).Symbol.Alignment;
+        return this.compiledSizeQueries.GetCompiledComposite(this.GetStruct(name)).Symbol.Alignment;
     }
 
     /// <summary>
@@ -490,8 +495,8 @@ public sealed partial class CStruct
     public int GetStructSizeInBytes(string name)
     {
         // A public size query has no runtime field values. Reject flexible/dynamic arrays rather than inventing a size.
-        return this.GetCompiledStructSizeInBytes(
-            this.GetCompiledComposite(this.GetStruct(name)),
+        return this.compiledSizeQueries.GetCompiledStructSizeInBytes(
+            this.compiledSizeQueries.GetCompiledComposite(this.GetStruct(name)),
             this.staticLayoutVariables,
             true);
     }

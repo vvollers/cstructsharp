@@ -171,7 +171,7 @@ public partial class CStruct
                 return;
             }
 
-            foreach (CompiledField field in this.GetCompiledComposite(strct).Fields)
+            foreach (CompiledField field in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
             {
                 // Require every ordinary struct field. Missing values would make the byte layout ambiguous.
                 object fieldValue = PocoDataBinding.GetMemberValueOrThrow(
@@ -207,8 +207,8 @@ public partial class CStruct
                 $"Union value '{unionValue.UnionName}' cannot be written as '{union.Name.Name}'.");
         }
 
-        int unionSize = this.GetCompiledStructSizeInBytes(
-            this.GetCompiledComposite(union),
+        int unionSize = this.compiledSizeQueries.GetCompiledStructSizeInBytes(
+            this.compiledSizeQueries.GetCompiledComposite(union),
             state.Variables,
             false);
         byte[]? rawStorage = unionValue.HasRawStorage ? unionValue.GetRawStorageCopy() : null;
@@ -229,7 +229,7 @@ public partial class CStruct
         }
 
         string selectedMember = unionValue.SelectedMember!;
-        CompiledField? selected = this.GetCompiledComposite(union).Fields.FirstOrDefault(
+        CompiledField? selected = this.compiledSizeQueries.GetCompiledComposite(union).Fields.FirstOrDefault(
             field => string.Equals(
                 field.EffectiveField.Name.Name,
                 selectedMember,
@@ -564,7 +564,7 @@ public partial class CStruct
             return;
         }
 
-        int alignment = this.GetCompiledComposite(strct).Symbol.Alignment;
+        int alignment = this.compiledSizeQueries.GetCompiledComposite(strct).Symbol.Alignment;
         long alignedEnd = LayoutMath.AlignUp(state.Stream.Position, alignment);
         if (alignedEnd == state.Stream.Position)
         {
