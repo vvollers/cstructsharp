@@ -363,30 +363,6 @@ internal static class CStructDefinitionParser
             Optional().
             Select(maybe => maybe.HasValue ? maybe.Value : ((Expr?)null, (Expr?)null));
 
-    public static readonly Parser<char, Field> Field = Map(
-            (fields, arr, bitSize, _) =>
-            {
-                string typeName = string.Join(
-                    " ",
-                    fields.SkipLast(1).Select(o => o.Name).Where(name => !string.IsNullOrWhiteSpace(name)));
-                int pointerDepth = fields.Sum(o => o.PointerDepth);
-                IReadOnlyList<Expr> arrayCount = arr.HasValue
-                    ? arr.Value.HasValue ? [arr.Value.Value,] : [Structure.Field.UnknownArraysize,]
-                    : Structure.Field.NoArray;
-
-                return new Field(
-                    new Identifier(typeName),
-                    fields.Last(),
-                    arrayCount,
-                    bitSize.HasValue ? bitSize.Value : NoneExpr.Instance,
-                    pointerDepth);
-            },
-            ExtendedIdentifier.AtLeastOnce(),
-            Array.Optional(),
-            BitSize.Optional(),
-            Tok(SemiColon).IgnoreResult()).
-        Labelled("Field");
-
     public static readonly Parser<char, string> ConstKeyword = Tok("const");
     public static readonly Parser<char, string> VolatileKeyword = Tok("volatile");
     public static readonly Parser<char, string> RestrictKeyword = Tok("restrict");
