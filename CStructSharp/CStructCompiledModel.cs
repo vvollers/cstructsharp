@@ -524,9 +524,11 @@ public partial class CStruct
     ///     the moment any field's size is statically undeterminable - the cursor's non-nullable <c>long</c> position
     ///     has no such state, since every other consumer only ever drives it when a concrete field end is always
     ///     computable (a live stream, or pure-math storage sizes). Its output, <see cref="CompiledField.FixedOffset"/>,
-    ///     is currently written but read by nothing else in the codebase - a future implementer wiring up an actual
-    ///     placement override (e.g. LANG-15's <c>@align</c>/<c>@N</c>) should decide whether this finally becomes the
-    ///     load-bearing source of truth, or stays dead compile-time metadata.
+    ///     is the "already checked statically at construction time" signal
+    ///     <see cref="CStruct.ValidateOffsetAssertionAtRuntime"/> reads to skip re-validating a
+    ///     field's LANG-15 <c>@N</c> offset assertion whose placement was already known here - a field left with
+    ///     no <see cref="CompiledField.FixedOffset"/> (because its own or a preceding sibling's size is
+    ///     runtime-dependent) is instead checked the first time any operation actually reaches it.
     /// </remarks>
     private ImmutableArray<CompiledField> PlaceCompiledFields(
         Struct strct,
