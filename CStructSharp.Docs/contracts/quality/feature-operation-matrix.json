@@ -647,6 +647,28 @@
       }
     },
     {
+      "featureId": "unnamed-nonzero-width-bitfield",
+      "value": {
+        "status": "notApplicable",
+        "conditions": [
+          "An anonymous declarator has no name, so it never becomes a POCO member, path segment, or JSON field to carry a value into - only its storage bits are observable, covered by the bytes contract below."
+        ],
+        "evidence": [
+          "CStructSharpTests/AnonymousBitfieldTests.cs#PaddingBetweenNamedDeclarators_ConsumesBitsButIsNotExposed"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "New output always writes canonical zero for the padding bits, the same way struct tail padding is zero-filled; bits read from input are not guaranteed to survive a round trip, matching every other padding contract in this library."
+        ],
+        "evidence": [
+          "CStructSharpTests/AnonymousBitfieldTests.cs#WriteStreamAndSerialize_AlwaysWriteZeroForThePadding",
+          "CStructSharpTests/AnonymousBitfieldTests.cs#UpdateStream_OnANamedSibling_DoesNotDisturbThePaddingBits"
+        ]
+      }
+    },
+    {
       "featureId": "runtime-expression-arrays",
       "value": {
         "status": "conditional",
@@ -2038,6 +2060,109 @@
       ]
     },
     {
+      "id": "unnamed-nonzero-width-bitfield",
+      "manual": "CStructSharp.Docs/language/bitfields.md#unnamed-padding-fields",
+      "fixture": "anonymous-bitfield-padding",
+      "title": "Unnamed nonzero-width bitfield used as pure padding (LANG-17)",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "notApplicable",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "notApplicable"
+      },
+      "evidence": [
+        {
+          "test": "CStructSharpTests/AnonymousBitfieldTests.cs#PaddingBetweenNamedDeclarators_ConsumesBitsButIsNotExposed",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousBitfieldTests.cs#WholeFieldAnonymousFromTheStart_Compiles",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousBitfieldTests.cs#MultipleAnonymousFields_DoNotCollide",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousBitfieldTests.cs#WriteStreamAndSerialize_AlwaysWriteZeroForThePadding",
+          "operations": [
+            "serialize",
+            "write"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousBitfieldTests.cs#UpdateStream_OnANamedSibling_DoesNotDisturbThePaddingBits",
+          "operations": [
+            "update"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousBitfieldTests.cs#TwoWordRunWithBitWidth_KeepsExistingLastWordAsNameSplit",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousBitfieldTests.cs#DeclaratorWithNeitherNameNorBitWidth_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousBitfieldTests.cs#DebugOutput_StillRegistersThePaddingsByteRange",
+          "operations": [
+            "debug"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousBitfieldTests.cs#AnonymousField_IsNeverAddressableByPath",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "The anonymous type must be a single word; a multi-word type is not rejected but falls back to the existing last-word-is-the-name rule instead of being treated as anonymous.",
+        "Never becomes an addressable path, POCO member, or JSON field - there is no member to resolve, read, or bind a caller value to.",
+        "New output always writes canonical zero for the padding bits; bits read from input are not guaranteed to survive a round trip, the same as any other padding in this library.",
+        "@align(N) is accepted the same way it is on a named bitfield declarator; @N is rejected the same way it already is on every bitfield declarator, named or not."
+      ]
+    },
+    {
       "id": "runtime-expression-arrays",
       "manual": "CStructSharp.Docs/language/arrays-and-strings.md#runtime-expression-arrays",
       "fixture": "runtime-expression-arrays",
@@ -3070,15 +3195,6 @@
       "diagnosticPolicy": "Reject during layout compilation with a storage-capability diagnostic.",
       "workItems": [
         "LANG-10"
-      ]
-    },
-    {
-      "id": "unnamed-nonzero-width-bitfield",
-      "syntax": "an unnamed but nonzero-width bitfield used as pure padding, e.g. uint8 :3;",
-      "rationale": "No ABI ambiguity exists for a padding-only bit reservation with no exposed field, unlike zero-width separators or ABI-specific storage; this is plausibly core-eligible portable syntax sugar, not yet scheduled.",
-      "diagnosticPolicy": "Currently rejected as a side effect of requiring a declarator name before a bit width, not by a deliberate rule targeting this case specifically.",
-      "workItems": [
-        "LANG-17"
       ]
     },
     {

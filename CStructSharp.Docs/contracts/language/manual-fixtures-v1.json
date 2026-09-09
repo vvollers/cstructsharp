@@ -460,6 +460,34 @@
       }
     },
     {
+      "id": "anonymous-bitfield-padding",
+      "featureId": "unnamed-nonzero-width-bitfield",
+      "manual": "CStructSharp.Docs/language/bitfields.md#unnamed-padding-fields",
+      "valid": {
+        "definition": "struct root { uint8 flag:1, :3, other:4; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 1,
+        "alignment": 1,
+        "bytes": "51",
+        "offsets": {
+          "root.flag": 0,
+          "root.other": 0
+        },
+        "values": {
+          "root.flag": "1",
+          "root.other": "5"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "zero-width-bitfield",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
       "id": "typedefs",
       "featureId": "typedefs",
       "manual": "CStructSharp.Docs/language/structs-unions-enums-typedefs.md#typedefs",

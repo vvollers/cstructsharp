@@ -175,6 +175,14 @@ public partial class CStruct
 
             foreach (CompiledField field in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
             {
+                if (field.EffectiveField.Name.Name.Length == 0)
+                {
+                    // An anonymous nonzero-width bitfield (LANG-17) is pure padding with no caller-supplied value -
+                    // there is no member to look up, so write its canonical zero bits directly.
+                    this.WriteFieldValue(field, 0, state, -1, cursor);
+                    continue;
+                }
+
                 // Require every ordinary struct field. Missing values would make the byte layout ambiguous.
                 object fieldValue = PocoDataBinding.GetMemberValueOrThrow(
                     data,

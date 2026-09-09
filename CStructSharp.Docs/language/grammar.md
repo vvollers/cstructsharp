@@ -54,8 +54,11 @@ inline-struct-field
                  = "struct", [ alignment-override ], "{", { struct-field }, "}", identifier, ";" ;
 union-field      = field ;
 field            = { type-qualifier }, [ tag-keyword ], type-name, declarator, { ",", declarator }, ";" ;
-declarator       = { type-qualifier }, pointer-stars, { type-qualifier }, identifier, [ array ], [ bit-width ],
+declarator       = named-declarator | anonymous-bitfield ;
+named-declarator = { type-qualifier }, pointer-stars, { type-qualifier }, identifier, [ array ], [ bit-width ],
                    [ placement-suffix ] ;
+anonymous-bitfield
+                 = bit-width, [ placement-suffix ] ;
 type-qualifier   = "const" | "volatile" | "restrict" ;
 tag-keyword      = "struct" | "union" | "enum" ;
 pointer-stars    = { "*" } ;
@@ -121,7 +124,17 @@ qualifier in any other position, are still rejected. A field's type reference ma
 leading `struct`, `union`, or `enum` keyword (`struct child value;`), matching how C itself refers to a tagged type;
 the keyword is checked against the referenced declaration's actual kind at construction time and rejected on a
 mismatch, but otherwise has no effect - `struct child value;` and `child value;` compile to the identical field. A
-declarator may carry at most one trailing placement suffix (LANG-15) - either `@align(N)`, overriding that one
+declarator with a bit width and no name at all (`anonymous-bitfield`, LANG-17) reserves storage as pure padding -
+its bits are consumed from the shared storage unit but it never becomes an addressable path, POCO member, or JSON
+field (`uint8 flag:1, :3, other:4;`). This applies to any declarator after the first without ambiguity, since its
+type is already fixed by the field's shared `type-name`. The first declarator is a special case: when exactly one
+word appears before it and a bit width follows, that one word is the whole `type-name` and the first declarator
+itself is the anonymous one (`uint8 :3;`); a run of two or more words before a bit width still splits normally into
+`type-name` plus a named first declarator, even though a bit width follows (`uint8 flag:1;`), since only a
+single-word run has no name token to spare. This means a multi-word anonymous type is not supported directly - it
+falls back to naming the field after its last word instead (`unsigned int :3;` declares a field named `int` of type
+`unsigned`, not an anonymous `unsigned int`). See [bitfields](bitfields.md#unnamed-padding-fields). A declarator may
+carry at most one trailing placement suffix (LANG-15) - either `@align(N)`, overriding that one
 declarator's own natural alignment, or bare `@N`, asserting the declarator's expected byte offset without ever
 changing it. Both accept a full expression, evaluated the same way `bit-width` is, so a `#define`d constant works
 for either. `@align(N)`'s `N` must be a positive power of two; it only has an observable effect when the enclosing
@@ -179,12 +192,14 @@ The table explains each production and links to the page that defines its additi
 | `inline-struct-field` | Lexically scoped sequential composite |
 | `union-field` | Ordinary field; inline structs/unions are not accepted here |
 | `field` | One optionally qualified, optionally tagged type, one or more comma-separated declarators |
-| `declarator` | One name with its own optional qualifiers, pointer stars, optional array, optional bit width, and optional placement suffix |
+| `declarator` | A named declarator or an anonymous nonzero-width bitfield |
+| `named-declarator` | One name with its own optional qualifiers, pointer stars, optional array, optional bit width, and optional placement suffix |
+| `anonymous-bitfield` | A nameless bit-width-only declarator used as pure padding (LANG-17) |
 | `type-qualifier` | A recognized layout-neutral qualifier, discarded with no effect on the compiled field |
 | `tag-keyword` | An optional struct/union/enum keyword, checked against the referenced declaration's actual kind |
 | `pointer-stars` | Zero or more data-pointer levels |
 | `array` | One fixed/runtime count or character-string marker |
-| `bit-width` | One named nonzero portable bit slice |
+| `bit-width` | One named nonzero portable bit slice, or unnamed reserved padding for `anonymous-bitfield` |
 | `placement-suffix` | At most one trailing alignment override or offset assertion per declarator |
 | `alignment-override` | An explicit per-declarator alignment override, effective only when `aligned: true` |
 | `offset-assertion` | An explicit per-declarator byte-offset assertion, checked when statically computable |

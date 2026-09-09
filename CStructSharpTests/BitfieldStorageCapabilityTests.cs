@@ -57,19 +57,14 @@ public class BitfieldStorageCapabilityTests
     }
 
     /// <summary>
-    ///     The two declarations use a zero-width named field and an unnamed four-bit field.
+    ///     A zero-width named field is a C compiler control declaration ("start a new storage unit here") that this
+    ///     library does not support - unlike an unnamed nonzero-width bitfield (LANG-17), which is supported as pure
+    ///     padding (see <c>AnonymousBitfieldTests</c>).
     /// </summary>
-    /// <remarks>
-    ///     Some C compilers use such declarations to control packing, but this library does not support them.
-    ///     Construction must reject both rather than silently treating them as ordinary fields.
-    /// </remarks>
-    /// <param name="layout">A complete layout using one unsupported declaration form.</param>
     [TestMethod]
-    [DataRow("struct root { uint8 flags:0; };")]
-    [DataRow("struct root { uint8 :4; };")]
-    public void UnsupportedPortableBitfieldForms_AreRejectedDuringCompilation(string layout)
+    public void ZeroWidthNamedBitfield_IsRejectedDuringCompilation()
     {
-        Assert.Throws<CStructLayoutException>(() => new CStruct(layout, pointerSize: 1));
+        Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { uint8 flags:0; };", pointerSize: 1));
     }
 
     /// <summary>

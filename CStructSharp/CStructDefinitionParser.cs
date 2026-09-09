@@ -385,17 +385,29 @@ internal static class CStructDefinitionParser
     /// <summary>
     ///     Parses one comma-separated declarator after the first (its own pointer stars, optional array, optional
     ///     bit width, and optional trailing placement suffix), sharing the enclosing <see cref="FieldGroup"/>'s type.
+    ///     A declarator with no name tokens at all is an anonymous nonzero-width bitfield (LANG-17), e.g. the
+    ///     <c>:3</c> in <c>uint8 flag:1, :3, other:4;</c> - allowed only when a bit width is present, since a
+    ///     declarator with neither a name nor a bit width carries no information.
     /// </summary>
-    private static readonly Parser<char, (Identifier Name, int PointerDepth, Maybe<Maybe<Expr>> Array, Maybe<Expr> BitSize, Expr? AlignmentOverride, Expr? OffsetAssertion)>
+    private static readonly Parser<char, (Identifier? Name, int PointerDepth, Maybe<Maybe<Expr>> Array, Maybe<Expr> BitSize, Expr? AlignmentOverride, Expr? OffsetAssertion)>
         Declarator = Map(
-            (words, arr, bitSize, suffix) => (
-                Name: words.Last(),
-                PointerDepth: words.Sum(o => o.PointerDepth),
-                Array: arr,
-                BitSize: bitSize,
-                AlignmentOverride: suffix.AlignmentOverride,
-                OffsetAssertion: suffix.OffsetAssertion),
-            QualifiedIdentifierToken.AtLeastOnce(),
+            (words, arr, bitSize, suffix) =>
+            {
+                List<Identifier> wordList = words.ToList();
+                if (wordList.Count == 0 && !bitSize.HasValue)
+                {
+                    throw new InvalidOperationException("A declarator must have a name, a bit width, or both.");
+                }
+
+                return (
+                    Name: wordList.Count > 0 ? wordList[^1] : null,
+                    PointerDepth: wordList.Sum(o => o.PointerDepth),
+                    Array: arr,
+                    BitSize: bitSize,
+                    AlignmentOverride: suffix.AlignmentOverride,
+                    OffsetAssertion: suffix.OffsetAssertion);
+            },
+            QualifiedIdentifierToken.Many(),
             Array.Optional(),
             BitSize.Optional(),
             PlacementSuffix);
@@ -411,14 +423,24 @@ internal static class CStructDefinitionParser
             (keywordHint, fields, arr, bitSize, suffix, rest, _) =>
             {
                 string? typeKeywordHint = keywordHint.HasValue ? keywordHint.Value : null;
-                string typeName = string.Join(
-                    " ",
-                    fields.SkipLast(1).Select(o => o.Name).Where(name => !string.IsNullOrWhiteSpace(name)));
+                List<Identifier> fieldList = fields.ToList();
+
+                // A one-token word run with a bit width has no name token to spare - that one word is the whole
+                // type and the declarator is an anonymous nonzero-width bitfield (LANG-17), e.g. `uint8 :3;`. A
+                // run of two or more tokens keeps today's "last word is the name" rule unchanged, even when a bit
+                // width follows (`uint8 flag:1;`), since that case is never ambiguous.
+                bool firstDeclaratorIsAnonymous = fieldList.Count == 1 && bitSize.HasValue;
+
+                string typeName = firstDeclaratorIsAnonymous
+                    ? fieldList[0].Name
+                    : string.Join(
+                        " ",
+                        fieldList.SkipLast(1).Select(o => o.Name).Where(name => !string.IsNullOrWhiteSpace(name)));
                 var typeIdentifier = new Identifier(typeName);
-                int firstPointerDepth = fields.Sum(o => o.PointerDepth);
+                int firstPointerDepth = firstDeclaratorIsAnonymous ? 0 : fieldList.Sum(o => o.PointerDepth);
 
                 Field MakeField(
-                    Identifier name,
+                    Identifier? name,
                     int pointerDepth,
                     Maybe<Maybe<Expr>> declaratorArray,
                     Maybe<Expr> declaratorBitSize,
@@ -430,7 +452,7 @@ internal static class CStructDefinitionParser
                         : Structure.Field.NoArray;
                     return new Field(
                         typeIdentifier,
-                        name,
+                        name ?? new Identifier(string.Empty),
                         arrayCount,
                         declaratorBitSize.HasValue ? declaratorBitSize.Value : NoneExpr.Instance,
                         pointerDepth,
@@ -441,9 +463,15 @@ internal static class CStructDefinitionParser
 
                 var result = new List<Field>
                 {
-                    MakeField(fields.Last(), firstPointerDepth, arr, bitSize, suffix.AlignmentOverride, suffix.OffsetAssertion),
+                    MakeField(
+                        firstDeclaratorIsAnonymous ? null : fieldList[^1],
+                        firstPointerDepth,
+                        arr,
+                        bitSize,
+                        suffix.AlignmentOverride,
+                        suffix.OffsetAssertion),
                 };
-                foreach ((Identifier Name, int PointerDepth, Maybe<Maybe<Expr>> Array, Maybe<Expr> BitSize, Expr? AlignmentOverride, Expr? OffsetAssertion) declarator in rest)
+                foreach ((Identifier? Name, int PointerDepth, Maybe<Maybe<Expr>> Array, Maybe<Expr> BitSize, Expr? AlignmentOverride, Expr? OffsetAssertion) declarator in rest)
                 {
                     result.Add(
                         MakeField(
