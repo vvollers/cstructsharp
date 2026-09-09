@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 /// <summary>
 ///     Verifies anonymous promoted struct members (LANG-14, <c>struct { ... };</c> with no trailing name): its own
@@ -105,5 +106,78 @@ public class AnonymousPromotedMemberTests
             pointerSize: 1);
 
         Assert.AreEqual(2, cstruct.GetStructSizeInBytes("root"));
+    }
+
+    /// <summary>
+    ///     A promoted member's fields land directly in the parent's own result object - no intermediate key, no
+    ///     empty key - and sibling ordinary fields around it still read correctly in declaration order.
+    /// </summary>
+    [TestMethod]
+    public void ParseStream_SplicesPromotedMemberFieldsDirectlyIntoTheParentContainer()
+    {
+        var cstruct = new CStruct("struct root { uint8 a; struct { uint8 x; uint8 y; }; uint8 b; };", pointerSize: 1);
+        using var stream = new MemoryStream(new byte[] { 1, 2, 3, 4, });
+
+        dynamic parsed = cstruct.ParseStream(stream, "root");
+
+        Assert.AreEqual((byte)1, (byte)parsed.a);
+        Assert.AreEqual((byte)2, (byte)parsed.x);
+        Assert.AreEqual((byte)3, (byte)parsed.y);
+        Assert.AreEqual((byte)4, (byte)parsed.b);
+        var dictionary = (IDictionary<string, object?>)parsed;
+        Assert.AreEqual(4, dictionary.Count);
+        Assert.IsFalse(dictionary.ContainsKey(string.Empty));
+    }
+
+    /// <summary>Transitive promotion also splices all the way through into the outermost container.</summary>
+    [TestMethod]
+    public void ParseStream_TransitivePromotion_SplicesAllTheWayThrough()
+    {
+        var cstruct = new CStruct("struct root { struct { struct { uint8 x; }; }; };", pointerSize: 1);
+        using var stream = new MemoryStream(new byte[] { 7, });
+
+        dynamic parsed = cstruct.ParseStream(stream, "root");
+
+        Assert.AreEqual((byte)7, (byte)parsed.x);
+        Assert.AreEqual(1, ((IDictionary<string, object?>)parsed).Count);
+    }
+
+    /// <summary>
+    ///     An array-count expression can reference a promoted member's own field by its flat name, proving
+    ///     expression-variable capture works through promotion.
+    /// </summary>
+    [TestMethod]
+    public void ParseStream_ArrayCountExpression_CanReferenceAPromotedMembersField()
+    {
+        var cstruct = new CStruct(
+            "struct root { struct { uint8 count; }; uint8 values[count]; };",
+            pointerSize: 1);
+        using var stream = new MemoryStream(new byte[] { 2, 10, 20, });
+
+        dynamic parsed = cstruct.ParseStream(stream, "root");
+
+        Assert.AreEqual((byte)2, (byte)parsed.count);
+        List<object?> values = (List<object?>)parsed.values;
+        Assert.AreEqual(2, values.Count);
+        Assert.AreEqual((byte)10, (byte)values[0]!);
+        Assert.AreEqual((byte)20, (byte)values[1]!);
+    }
+
+    /// <summary>
+    ///     A descendant's debug path skips a promoted member's own (invisible) level, rendering `root.x` rather
+    ///     than `root..x` - the single most important regression this feature must not introduce.
+    /// </summary>
+    [TestMethod]
+    public void ParseStreamWithDebug_SkipsThePromotedMembersOwnLevelInTheDebugPath()
+    {
+        var cstruct = new CStruct("struct root { struct { uint8 x; }; };", pointerSize: 1);
+        using var stream = new MemoryStream(new byte[] { 9, });
+
+        (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
+
+        DebugData entry = debug.Single(item => item.DebugStackString == "root.x");
+        Assert.AreEqual(0L, entry.CurPos);
+        Assert.AreEqual(1L, entry.EndPos);
+        Assert.IsFalse(debug.Exists(item => item.DebugStackString.Contains("..")));
     }
 }
