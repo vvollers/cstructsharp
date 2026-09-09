@@ -253,6 +253,14 @@
       "uint64",
       "uint64>",
       "uint64<",
+      "float32",
+      "float32>",
+      "float32<",
+      "float64",
+      "float64>",
+      "float64<",
+      "float",
+      "double",
       "short",
       "ushort",
       "int",
@@ -407,6 +415,33 @@
         ],
         "evidence": [
           "CStructSharpTests/BooleanPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate"
+        ]
+      }
+    },
+    {
+      "featureId": "floating-point-primitives",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The codec bit-reinterprets rather than numerically converts, so any bit pattern the caller's float/double value actually holds - including NaN payloads, subnormals, and negative zero - round trips exactly; this is a guarantee about the codec, not about the .NET runtime, since a signaling NaN may already be quieted by an ordinary floating-point operation before the codec ever receives it."
+        ],
+        "evidence": [
+          "CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_QuietNaNPayloadRoundTripsExactly",
+          "CStructSharpTests/FloatingPointPrimitiveTests.cs#Float64_NaNPayloadRoundTripsExactly",
+          "CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_NegativeZeroRoundTripsAsDistinctBitPattern",
+          "CStructSharpTests/FloatingPointPrimitiveTests.cs#Float64_NegativeZeroRoundTripsAsDistinctBitPattern",
+          "CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_SubnormalRoundTripsExactly",
+          "CStructSharpTests/FloatingPointPrimitiveTests.cs#Float64_SubnormalRoundTripsExactly"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "Exact bytes match the documented byte order for both the neutral (layout-default) and explicit float32</float32>/float64</float64> suffix spellings."
+        ],
+        "evidence": [
+          "CStructSharpTests/FloatingPointPrimitiveTests.cs#ExplicitEndianSuffix_ProducesTheDocumentedByteOrder",
+          "CStructSharpTests/FloatingPointPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate"
         ]
       }
     },
@@ -1088,6 +1123,138 @@
       "limitations": [
         "A stored byte outside 0x00/0x01 still reads as true (any nonzero byte); a write or update always replaces it with the canonical 0x01/0x00, so a non-canonical byte does not survive an update cycle.",
         "Not eligible as bitfield storage or enum backing - both already have an exact equivalent via existing integral types."
+      ]
+    },
+    {
+      "id": "floating-point-primitives",
+      "manual": "CStructSharp.Docs/language/primitive-types.md#floating-point-primitives",
+      "fixture": "floating-point-primitives",
+      "title": "IEEE-754 float32/float64 bit-reinterpreting codecs (LANG-04)",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "notApplicable",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_QuietNaNPayloadRoundTripsExactly",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/FloatingPointPrimitiveTests.cs#Float64_NaNPayloadRoundTripsExactly",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_NegativeZeroRoundTripsAsDistinctBitPattern",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_SubnormalRoundTripsExactly",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/FloatingPointPrimitiveTests.cs#ExplicitEndianSuffix_ProducesTheDocumentedByteOrder",
+          "operations": [
+            "serialize"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/FloatingPointPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate",
+          "operations": [
+            "write",
+            "serialize",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32Array_ElementsAreIndependent",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/FloatingPointPrimitiveTests.cs#FloatAlias_CompilesIdenticallyToFloat32",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/FloatingPointPrimitiveTests.cs#DoubleAlias_CompilesIdenticallyToFloat64",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32AsBitfieldStorage_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32AsEnumBacking_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/FloatingPointPrimitiveTests.cs#LongDouble_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "Not eligible as bitfield storage (a bit-width slice of a float has no IEEE-754 meaning) or enum backing (enum members are discrete integral constants in this model).",
+        "long double is not supported - no single portable width exists to standardize on.",
+        "The bit-exact round-trip guarantee is about the codec, not the .NET runtime: a signaling NaN is inherently fragile in managed code and may already be quieted by an ordinary floating-point operation before the codec ever receives it.",
+        "Supplying a differently-sized CLR floating value (e.g. a double into a float32 field) performs a real, potentially lossy numeric narrowing conversion, matching every other numeric codec's generous-input convention."
       ]
     },
     {
@@ -3275,9 +3442,9 @@
   ],
   "exclusions": [
     {
-      "id": "floating-point-codecs",
-      "syntax": "float, double, and long double",
-      "rationale": "No public value, endian, NaN, or ABI representation contract has been approved.",
+      "id": "extended-precision-floating-point",
+      "syntax": "long double",
+      "rationale": "float32/float64 (with float/double aliases) are supported (ADR-015); long double has no single portable width to standardize on - 80-bit extended, 128-bit quad, or 64-bit, depending on compiler and target - so no fixed-width codec could represent it losslessly the way it can for float/double.",
       "diagnosticPolicy": "Reject as an unknown field type during layout construction.",
       "workItems": [
         "LANG-04"

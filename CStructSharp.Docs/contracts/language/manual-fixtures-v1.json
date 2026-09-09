@@ -58,6 +58,34 @@
       }
     },
     {
+      "id": "floating-point-primitives",
+      "featureId": "floating-point-primitives",
+      "manual": "CStructSharp.Docs/language/primitive-types.md#floating-point-primitives",
+      "valid": {
+        "definition": "struct root { float32 a; float64 b; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 12,
+        "alignment": 8,
+        "bytes": "0000C03F0000000000000440",
+        "offsets": {
+          "root.a": 0,
+          "root.b": 4
+        },
+        "values": {
+          "root.a": "1.5",
+          "root.b": "2.5"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "floating-point-field",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
       "id": "portable-c-integer-spellings",
       "featureId": "portable-c-integer-spellings",
       "manual": "CStructSharp.Docs/language/primitive-types.md#fixed-primitives",

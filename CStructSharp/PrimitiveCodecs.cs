@@ -74,6 +74,13 @@ internal static class PrimitiveCodecs
         // Boolean primitive (LANG-04 bool split-out). "_Bool" is the C99 keyword spelling; "bool" (the stdbool.h
         // macro spelling) is the canonical codec name registered directly in CStructPrimitiveCodecs.cs.
         ["_Bool"] = "bool",
+
+        // Floating-point primitives (LANG-04, ADR-015). "float"/"double" are the familiar C spellings, aliasing
+        // the width-explicit canonical names "float32"/"float64" registered directly in CStructPrimitiveCodecs.cs,
+        // the same direction every other C-name numeric alias already points (int -> int32, long -> int64).
+        // "long double" has no single portable width to standardize on and remains unsupported.
+        ["float"] = "float32",
+        ["double"] = "float64",
     };
 
     /// <summary>Returns whether a primitive handler consumes bytes until a terminator instead of having a fixed footprint.</summary>

@@ -68,6 +68,7 @@ Stryker
 struct
 structs
 subdirectory
+subnormals
 signedness
 seekable
 TOC

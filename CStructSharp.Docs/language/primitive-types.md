@@ -28,6 +28,10 @@ suffix always means little-endian, and `>` always means big-endian.
 | `uint32`, `uint32<`, `uint32>` | Matching `uint32` codec | 4 / 4 | Unsigned, 0..4294967295 | Layout / little / big | `UInt32` |
 | `int64`, `int64<`, `int64>` | Matching `int64` codec | 8 / 8 | Signed, -9223372036854775808..9223372036854775807 | Layout / little / big | `Int64` |
 | `uint64`, `uint64<`, `uint64>` | Matching `uint64` codec | 8 / 8 | Unsigned, 0..18446744073709551615 | Layout / little / big | `UInt64` |
+| `float32`, `float32<`, `float32>` | Matching `float32` codec | 4 / 4 | Any IEEE-754 binary32 bit pattern (NaN, ±Infinity, subnormals, ±0.0 included) | Layout / little / big | `Single` |
+| `float64`, `float64<`, `float64>` | Matching `float64` codec | 8 / 8 | Any IEEE-754 binary64 bit pattern (NaN, ±Infinity, subnormals, ±0.0 included) | Layout / little / big | `Double` |
+| `float` | `float32` | 4 / 4 | Same as `float32` | Layout | `Single` |
+| `double` | `float64` | 8 / 8 | Same as `float64` | Layout | `Double` |
 | `short` | `int16` | 2 / 2 | Signed, -32768..32767 | Layout | `Int16` |
 | `ushort` | `uint16` | 2 / 2 | Unsigned, 0..65535 | Layout | `UInt16` |
 | `int` | `int32` | 4 / 4 | Signed, -2147483648..2147483647 | Layout | `Int32` |
@@ -51,7 +55,7 @@ suffix always means little-endian, and `>` always means big-endian.
 | `int64_t` | `int64` | 8 / 8 | Signed, -9223372036854775808..9223372036854775807 | Layout | `Int64` |
 | `uint64_t` | `uint64` | 8 / 8 | Unsigned, 0..18446744073709551615 | Layout | `UInt64` |
 
-The table groups 54 accepted spellings, including the wider C integer spellings (`unsigned long long`, `uint32_t`,
+The table groups 62 accepted spellings, including the wider C integer spellings (`unsigned long long`, `uint32_t`,
 and similar) accepted as aliases of an existing fixed-width codec — none of these infer a native compiler's data
 model; `signed char`/`unsigned char`/`*_t` forms alias the numeric `int8`/`uint8` codecs, not the raw `char` code
 unit. The complete rows are also stored in
@@ -59,6 +63,47 @@ unit. The complete rows are also stored in
 
 Alignment equals byte width for every fixed primitive. Packed placement ignores alignment when choosing the next
 field position; aligned placement uses it. The alignment still appears in size/alignment queries in packed mode.
+
+## Floating-point primitives
+
+`float32`/`float64` (with `float`/`double` as familiar aliases) codecs bit-reinterpret rather than numerically or
+textually convert: a read is exactly `System.Single`/`System.Double`'s IEEE-754 bits taken directly from the
+stream, and a write is exactly the caller's value's own bits, byte-order-adjusted the same way any other multi-byte
+primitive's bytes are. Because `Single`/`Double`'s CLR bit layout already *is* the complete IEEE-754 binary32/64
+encoding space, this guarantees exact round-tripping with no special-case code, for every representable bit
+pattern:
+
+```c
+struct sample {
+    float32 a;
+    float64 b;
+};
+```
+
+- **Every NaN payload the caller's `float`/`double` value actually carries round-trips exactly**, including a
+  negative sign bit - the codec never collapses a specific NaN bit pattern into a single canonical "the" NaN the
+  way `bool` canonicalizes a non-canonical byte (see
+  [Differences from native C types](#differences-from-native-c-types)). This is a guarantee about the codec, not
+  about the .NET runtime: a **signaling** NaN is inherently fragile in managed code and may already be quieted by
+  an ordinary floating-point operation (a JIT-optimized load, an arithmetic step, even a plain variable assignment
+  in a release build) before the codec ever receives it - by the time a `float`/`double` value reaches the codec,
+  whatever bit pattern it actually holds round trips exactly, but the codec cannot restore a signaling bit the
+  runtime already cleared beforehand.
+- **Subnormal values round-trip exactly** - they are just another bit pattern in the encoding space, not a
+  numerically special case the codec treats differently.
+- **Negative zero round-trips as a distinct bit pattern from positive zero**, even though `+0.0 == -0.0` under CLR
+  `==` - a round-trip test that only checks `==` cannot verify this guarantee; compare the raw bits instead
+  (`BitConverter.SingleToInt32Bits`/`DoubleToInt64Bits`).
+- Supplying a differently-sized CLR floating type (e.g. a `double` value into a `float32` field) performs a real,
+  potentially lossy numeric narrowing conversion (`Convert.ToSingle`) - the bit-exact guarantee applies only when
+  the caller already supplies the matching width.
+
+`long double` is not supported: unlike `long`/`ulong` (a single, globally reasonable fixed 64-bit choice for every
+target), `long double` has no single portable width to standardize on - 80-bit extended, 128-bit quad, or 64-bit
+depending on compiler and target - so no fixed-width codec could represent it losslessly.
+
+The `floating-point-primitives` fixture checks `a=1.5` (`float32`), `b=2.5` (`float64`), size 12, alignment 8, and
+bytes `0000C03F0000000000000440` on both frameworks.
 
 ## Endian byte diagrams
 
@@ -112,7 +157,10 @@ an early terminator. See [Arrays, character buffers, and strings](arrays-and-str
   Unix-like systems.
 - Portable `short` and `int` are fixed 16- and 32-bit aliases.
 - Stored pointers use the explicit constructor width, not the .NET process width.
-- Floating-point names and C integer suffixes are not Portable primitives.
+- C integer literal suffixes (`123u`, `123L`, and similar) are not Portable syntax - a `#define` value is a plain
+  expression.
+- `float`/`double` are Portable primitives (`float32`/`float64`); `long double` is not - see
+  [Floating-point primitives](#floating-point-primitives).
 - `bool`/`_Bool` is always 1 byte with canonical `0x00`/`0x01` write output; native `_Bool`/C++ `bool` storage width
   and representation can vary by compiler and ABI.
 

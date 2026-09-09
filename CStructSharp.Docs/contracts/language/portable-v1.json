@@ -277,6 +277,86 @@
       "writerDomain": "0..18446744073709551615"
     },
     {
+      "spelling": "float32",
+      "canonical": "float32",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "floating",
+      "endian": "layout",
+      "clr": "Single",
+      "writerDomain": "Any IEEE-754 binary32 bit pattern, including NaN (any payload), +/-Infinity, subnormals, and negative zero"
+    },
+    {
+      "spelling": "float32>",
+      "canonical": "float32>",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "floating",
+      "endian": "big",
+      "clr": "Single",
+      "writerDomain": "Any IEEE-754 binary32 bit pattern, including NaN (any payload), +/-Infinity, subnormals, and negative zero"
+    },
+    {
+      "spelling": "float32<",
+      "canonical": "float32<",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "floating",
+      "endian": "little",
+      "clr": "Single",
+      "writerDomain": "Any IEEE-754 binary32 bit pattern, including NaN (any payload), +/-Infinity, subnormals, and negative zero"
+    },
+    {
+      "spelling": "float64",
+      "canonical": "float64",
+      "bytes": 8,
+      "alignment": 8,
+      "signedness": "floating",
+      "endian": "layout",
+      "clr": "Double",
+      "writerDomain": "Any IEEE-754 binary64 bit pattern, including NaN (any payload), +/-Infinity, subnormals, and negative zero"
+    },
+    {
+      "spelling": "float64>",
+      "canonical": "float64>",
+      "bytes": 8,
+      "alignment": 8,
+      "signedness": "floating",
+      "endian": "big",
+      "clr": "Double",
+      "writerDomain": "Any IEEE-754 binary64 bit pattern, including NaN (any payload), +/-Infinity, subnormals, and negative zero"
+    },
+    {
+      "spelling": "float64<",
+      "canonical": "float64<",
+      "bytes": 8,
+      "alignment": 8,
+      "signedness": "floating",
+      "endian": "little",
+      "clr": "Double",
+      "writerDomain": "Any IEEE-754 binary64 bit pattern, including NaN (any payload), +/-Infinity, subnormals, and negative zero"
+    },
+    {
+      "spelling": "float",
+      "canonical": "float32",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "floating",
+      "endian": "layout",
+      "clr": "Single",
+      "writerDomain": "Any IEEE-754 binary32 bit pattern, including NaN (any payload), +/-Infinity, subnormals, and negative zero"
+    },
+    {
+      "spelling": "double",
+      "canonical": "float64",
+      "bytes": 8,
+      "alignment": 8,
+      "signedness": "floating",
+      "endian": "layout",
+      "clr": "Double",
+      "writerDomain": "Any IEEE-754 binary64 bit pattern, including NaN (any payload), +/-Infinity, subnormals, and negative zero"
+    },
+    {
       "spelling": "short",
       "canonical": "int16",
       "bytes": 2,
@@ -953,6 +1033,25 @@
         "sample.b": "4"
       },
       "bytes": "01020304"
+    },
+    {
+      "id": "floating-point-primitives",
+      "definition": "struct sample { float32 a; float64 b; };",
+      "root": "sample",
+      "pointerSize": 4,
+      "littleEndian": true,
+      "aligned": false,
+      "size": 12,
+      "alignment": 8,
+      "offsets": {
+        "sample.a": 0,
+        "sample.b": 4
+      },
+      "values": {
+        "sample.a": "1.5",
+        "sample.b": "2.5"
+      },
+      "bytes": "0000C03F0000000000000440"
     }
   ],
   "unsupportedConstructs": [
@@ -1028,7 +1127,7 @@
     },
     {
       "id": "floating-point-field",
-      "definition": "struct root { double value; };",
+      "definition": "struct root { long double value; };",
       "category": "floating-point codec"
     },
     {
