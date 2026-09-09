@@ -27,6 +27,13 @@ public sealed record UpdateOptions : WriteOptions
     public int MaxTraversalPointerDepth { get; init; } = 64;
 
     /// <summary>
+    ///     Gets the greatest number of elements one array field update-path traversal may walk through while
+    ///     locating the selected target - independent of <see cref="WriteOptions.MaxArrayElements"/>, which bounds
+    ///     the array being written, not the arrays traversal passes through on the way to it.
+    /// </summary>
+    public int MaxTraversalArrayElements { get; init; } = 1_000_000;
+
+    /// <summary>
     ///     Gets the greatest fixed-size target, in bytes, that update-path traversal may reach through one
     ///     pointer. Variable-length targets are rejected when a value is configured.
     /// </summary>

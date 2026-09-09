@@ -448,7 +448,7 @@ public class TraversalLimitTests
                     "root.items[2].value",
                     (byte)0x5A,
                     variables: new Dictionary<string, Expr> { ["count"] = new Literal(3), },
-                    options: new UpdateOptions { MaxArrayElements = 2, }));
+                    options: new UpdateOptions { MaxTraversalArrayElements = 2, }));
         }
 
         var nestedStruct = new CStruct(
@@ -500,6 +500,53 @@ public class TraversalLimitTests
                     "root.target",
                     (byte)0x5A,
                     options: new UpdateOptions { MaxTraversalBytesRead = 0, }));
+        }
+    }
+
+    /// <summary>
+    ///     Regression coverage for the architecture-review fix (docs/architecture-improvement-plan.md, AP-2.3)
+    ///     that added a dedicated <see cref="UpdateOptions.MaxTraversalArrayElements"/> instead of update-path
+    ///     traversal silently reusing <see cref="WriteOptions.MaxArrayElements"/> (which is meant to bound the
+    ///     array being written, not the arrays traversal passes through to find it). A generous
+    ///     <see cref="WriteOptions.MaxArrayElements"/> paired with a tight
+    ///     <see cref="UpdateOptions.MaxTraversalArrayElements"/> must still reject; the reverse pairing must
+    ///     succeed, proving the two budgets are independently enforced rather than one silently standing in for
+    ///     the other.
+    /// </summary>
+    [TestMethod]
+    public void UpdateTraversalArrayLimit_IsIndependentFromTheWriteArrayLimit()
+    {
+        var arrayStruct = new CStruct(
+            "struct item { byte value; }; struct root { byte count; item items[count]; };",
+            pointerSize: 1);
+        Dictionary<string, Expr> variables = new() { ["count"] = new Literal(3), };
+
+        using (var stream = new MemoryStream([0xEE, 0x03, 0x11, 0x22, 0x33,]) { Position = 1, })
+        {
+            // A tight traversal limit still rejects even though the write-side array limit is generous - proving
+            // MaxArrayElements alone no longer bounds traversal.
+            AssertUpdateLimit(
+                stream,
+                () => arrayStruct.UpdateStream(
+                    stream,
+                    "root.items[2].value",
+                    (byte)0x5A,
+                    variables: variables,
+                    options: new UpdateOptions { MaxArrayElements = 1_000_000, MaxTraversalArrayElements = 2, }));
+        }
+
+        using (var stream = new MemoryStream([0xEE, 0x03, 0x11, 0x22, 0x33,]) { Position = 1, })
+        {
+            // A tight write-side array limit does not block traversal reaching the same target - proving the two
+            // budgets are independently enforced, not aliases of each other.
+            arrayStruct.UpdateStream(
+                stream,
+                "root.items[2].value",
+                (byte)0x5A,
+                variables: variables,
+                options: new UpdateOptions { MaxArrayElements = 1, MaxTraversalArrayElements = 1_000_000, });
+
+            Assert.AreEqual((byte)0x5A, stream.ToArray()[4]);
         }
     }
 
@@ -559,7 +606,7 @@ public class TraversalLimitTests
                     stream,
                     "root.selected.value",
                     (byte)0x5A,
-                    options: new UpdateOptions { MaxArrayElements = 2, }));
+                    options: new UpdateOptions { MaxTraversalArrayElements = 2, }));
         }
     }
 
