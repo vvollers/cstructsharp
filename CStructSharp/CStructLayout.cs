@@ -29,7 +29,18 @@ public partial class CStruct
             CStructElement? namedElement = compiledField.NamedElement;
             bool isArray = compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime;
             CompiledField writableField = compiledField;
-            if (segment.Index.HasValue)
+
+            // TODO(LANG-05): multidimensional path addressing (more than one index per segment) is not yet
+            // available - real per-dimension peeling lands in a later seam. Until then, 0 or 1 index behaves
+            // exactly as before.
+            if (segment.Indexes.Count > 1)
+            {
+                throw new CStructPathException(
+                    "Multiple indices in one path segment require a multidimensional field, not yet available: " +
+                    segment.Name);
+            }
+
+            if (segment.Indexes.Count == 1)
             {
                 if (!isArray)
                 {
@@ -37,10 +48,10 @@ public partial class CStruct
                 }
 
                 int count = this.compiledSizeQueries.GetCompiledArrayCount(compiledField, variables, false);
-                if (segment.Index.Value >= count)
+                if (segment.Indexes[0] >= count)
                 {
                     throw new CStructPathException(
-                        $"Array index {segment.Index.Value} is out of range for {segment.Name} with length {count}.");
+                        $"Array index {segment.Indexes[0]} is out of range for {segment.Name} with length {count}.");
                 }
 
                 writableField = compiledField.SelectArrayElement();

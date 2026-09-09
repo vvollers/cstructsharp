@@ -30,9 +30,18 @@ internal static class PocoDataBinding
         {
             // A segment may first select a named child and then one item within that child.
             value = GetMemberValueOrThrow(value, segment.Name, bindingMode);
-            if (segment.Index.HasValue)
+            if (segment.Indexes.Count > 1)
             {
-                value = GetIndexedValue(value, segment.Index.Value);
+                // TODO(LANG-05): multidimensional POCO-input indexing is not yet available; only 0 or 1 index per
+                // segment is handled today.
+                throw new CStructPathException(
+                    "Multiple indices in one path segment require a multidimensional field, not yet available: " +
+                    segment.Name);
+            }
+
+            if (segment.Indexes.Count == 1)
+            {
+                value = GetIndexedValue(value, segment.Indexes[0]);
             }
         }
 

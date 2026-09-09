@@ -10,7 +10,7 @@ using System.Linq;
 /// </summary>
 internal static class CStructPathResolver
 {
-    /// <summary>Splits a dotted public path into names and optional array indexes.</summary>
+    /// <summary>Splits a dotted public path into names and zero or more array indexes per segment (LANG-05).</summary>
     public static IReadOnlyList<PathSegment> Parse(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -33,32 +33,44 @@ internal static class CStructPathResolver
             if (bracketStart < 0)
             {
                 ValidateIdentifier(raw, path);
-                segments.Add(new PathSegment(raw, null));
+                segments.Add(new PathSegment(raw, Array.Empty<int>()));
                 continue;
             }
 
-            int bracketEnd = raw.IndexOf(']', bracketStart + 1);
-            if (bracketEnd != raw.Length - 1 ||
-                raw.IndexOf('[', bracketStart + 1) >= 0 ||
-                raw.IndexOf(']', bracketEnd + 1) >= 0)
-            {
-                throw new CStructPathException("Invalid path segment: " + raw);
-            }
-
             string name = raw.Substring(0, bracketStart);
-            string indexText = raw.Substring(bracketStart + 1, bracketEnd - bracketStart - 1);
             ValidateIdentifier(name, path);
 
-            // Only non-negative decimal indexes that fit Int32 are part of the public path grammar.
-            int index = 0;
-            if (indexText.Length == 0 ||
-                indexText.Any(character => character is < '0' or > '9') ||
-                !int.TryParse(indexText, NumberStyles.None, CultureInfo.InvariantCulture, out index))
+            // Repeated brackets - matrix[2][3] - mirror declaration syntax; each pair is its own dimension's index.
+            var indexes = new List<int>();
+            int position = bracketStart;
+            while (position < raw.Length)
             {
-                throw new CStructPathException("Invalid array index: " + raw);
+                if (raw[position] != '[')
+                {
+                    throw new CStructPathException("Invalid path segment: " + raw);
+                }
+
+                int bracketEnd = raw.IndexOf(']', position + 1);
+                if (bracketEnd < 0)
+                {
+                    throw new CStructPathException("Invalid path segment: " + raw);
+                }
+
+                string indexText = raw.Substring(position + 1, bracketEnd - position - 1);
+
+                // Only non-negative decimal indexes that fit Int32 are part of the public path grammar.
+                if (indexText.Length == 0 ||
+                    indexText.Any(character => character is < '0' or > '9') ||
+                    !int.TryParse(indexText, NumberStyles.None, CultureInfo.InvariantCulture, out int index))
+                {
+                    throw new CStructPathException("Invalid array index: " + raw);
+                }
+
+                indexes.Add(index);
+                position = bracketEnd + 1;
             }
 
-            segments.Add(new PathSegment(name, index));
+            segments.Add(new PathSegment(name, indexes));
         }
 
         return segments;

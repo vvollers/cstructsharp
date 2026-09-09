@@ -14,9 +14,9 @@ public class ExceptionContextTests
     {
         PathSegment[] segments =
         [
-            new PathSegment("root", null),
-            new PathSegment("items", 3),
-            new PathSegment("value", null),
+            new PathSegment("root", []),
+            new PathSegment("items", [3]),
+            new PathSegment("value", []),
         ];
 
         string? formatted = ExceptionContext.FormatPath(segments);
@@ -42,7 +42,7 @@ public class ExceptionContextTests
     {
         var exception = new CStructPathException("boom");
         using var stream = new MemoryStream(new byte[8]) { Position = 5, };
-        PathSegment[] segments = [new PathSegment("root", null), new PathSegment("value", 2),];
+        PathSegment[] segments = [new PathSegment("root", []), new PathSegment("value", [2]),];
 
         ExceptionContext.Attach(exception, segments, stream);
 
@@ -59,10 +59,10 @@ public class ExceptionContextTests
     {
         var exception = new CStructPathException("boom");
         using var innerStream = new MemoryStream(new byte[4]) { Position = 1, };
-        ExceptionContext.Attach(exception, [new PathSegment("inner", null),], innerStream);
+        ExceptionContext.Attach(exception, [new PathSegment("inner", []),], innerStream);
 
         using var outerStream = new MemoryStream(new byte[4]) { Position = 3, };
-        ExceptionContext.Attach(exception, [new PathSegment("outer", null),], outerStream);
+        ExceptionContext.Attach(exception, [new PathSegment("outer", []),], outerStream);
 
         Assert.AreEqual("inner", exception.Path);
         Assert.AreEqual(1L, exception.Offset);
@@ -79,7 +79,7 @@ public class ExceptionContextTests
         var stream = new MemoryStream(new byte[4]);
         stream.Dispose();
 
-        ExceptionContext.Attach(exception, [new PathSegment("root", null),], stream);
+        ExceptionContext.Attach(exception, [new PathSegment("root", []),], stream);
 
         Assert.AreEqual("root", exception.Path);
         Assert.IsNull(exception.Offset);
