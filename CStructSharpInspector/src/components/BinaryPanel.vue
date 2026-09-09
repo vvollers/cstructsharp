@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import { useDropZone } from "@vueuse/core";
 import { DEFAULT_ASCII_CATEGORY_CELL_CLASS_RESOLVER, VueHex } from "vuehex";
 
-import { findDebugEntryIndexByOffset } from "../debug-path";
+import { computeFieldGroups, findDebugEntryIndexByOffset } from "../debug-path";
 import type { DebugDataItem } from "../wasm/cstruct-contract";
 
 const props = defineProps<{
@@ -11,6 +11,8 @@ const props = defineProps<{
   debugData: DebugDataItem[];
   selectedIndex: number | null;
 }>();
+
+const fieldGroups = computed(() => computeFieldGroups(props.debugData));
 
 const emit = defineEmits<{
   "update:bytes": [bytes: Uint8Array];
@@ -43,15 +45,21 @@ function handleModelUpdate(next: Uint8Array): void {
  * built-in DEFAULT_ASCII_CATEGORY_CELL_CLASS_RESOLVER (foreground byte-value coloring - digits,
  * upper/lowercase letters, control/high-bit/null bytes) via its multi-resolver array support, so this
  * only needs to return the background/outline classes, not reimplement byte-category coloring itself.
+ *
+ * The background color is keyed by field GROUP (see computeFieldGroups), not by the raw DebugData entry
+ * index, so a whole array highlights as one block instead of every element getting its own color.
+ * Selection (active/dim) still targets the exact clicked entry, so a specific array element can still be
+ * pinpointed precisely even while its array reads as one color at rest.
  */
 function fieldClassForByte(payload: { index: number }): string[] {
-  const fieldIndex = findDebugEntryIndexByOffset(props.debugData, payload.index);
-  if (fieldIndex === -1) {
+  const entryIndex = findDebugEntryIndexByOffset(props.debugData, payload.index);
+  if (entryIndex === -1) {
     return props.selectedIndex === null ? [] : ["field-dim"];
   }
-  const classes = [`field-range-${fieldIndex % 6}`];
+  const groupIndex = fieldGroups.value[entryIndex]!;
+  const classes = [`field-range-${groupIndex % 6}`];
   if (props.selectedIndex !== null) {
-    classes.push(props.selectedIndex === fieldIndex ? "field-active" : "field-dim");
+    classes.push(props.selectedIndex === entryIndex ? "field-active" : "field-dim");
   }
   return classes;
 }
