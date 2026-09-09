@@ -4,38 +4,62 @@ import { serialize, update, parseWithDebug } from "./cstructsharp-wasm.js";
 
 test("public wrapper returns byte arrays for writes, preserves errors and parse JSON", async () => {
   const previous = globalThis.CStructSharpWasm;
-  const result = { ContractVersion: 4, Success: true, Data: "AP+A", DebugData: [], Error: null };
+  const written = new Uint8Array([0, 255, 128]);
   let updateInput;
+  let shouldFail = false;
+  const failure = {
+    Code: "write-failed",
+    Message: "Invalid value",
+    Path: "root.value",
+    Offset: 0,
+  };
   globalThis.CStructSharpWasm = {
     ready: true,
-    serializeToBase64: () => JSON.stringify(result),
-    updateStreamToBase64: (_definition, bytes) => {
-      updateInput = bytes;
-      return JSON.stringify(result);
+    serialize: () => {
+      if (shouldFail) {
+        throw new Error(JSON.stringify(failure));
+      }
+      return written;
     },
-    parseWithDebug: () => JSON.stringify({ ...result, Data: '{"root":{"value":2}}' }),
+    updateStream: (_definition, bytes) => {
+      updateInput = bytes;
+      if (shouldFail) {
+        throw new Error(JSON.stringify(failure));
+      }
+      return written;
+    },
+    parseWithDebug: () => JSON.stringify({
+      ContractVersion: 5,
+      Operation: "parse",
+      Success: true,
+      Data: '{"root":{"value":2}}',
+      DebugData: [],
+      Error: null,
+    }),
   };
   try {
-    const written = await serialize("layout", {});
-    assert.ok(written.Data instanceof Uint8Array);
-    assert.deepEqual(written.Data, new Uint8Array([0, 255, 128]));
-    const updated = await update("layout", written.Data, "root.value", 2);
-    assert.equal(updateInput, "AP+A");
-    assert.deepEqual(updated.Data, written.Data);
-    assert.notEqual(updated.Data, written.Data);
+    const serialized = await serialize("layout", {});
+    assert.equal(serialized.Success, true);
+    assert.ok(serialized.Data instanceof Uint8Array);
+    assert.deepEqual(serialized.Data, written);
+
+    const updated = await update("layout", serialized.Data, "root.value", 2);
+    // No Base64 round trip: the managed export receives the exact same bytes instance.
+    assert.equal(updateInput, serialized.Data);
+    assert.deepEqual(updated.Data, written);
+
     assert.equal((await parseWithDebug("layout", updated.Data)).Data, '{"root":{"value":2}}');
-    result.Data = "";
-    assert.deepEqual((await serialize("layout", {})).Data, new Uint8Array());
-    result.Success = false;
-    result.Data = null;
-    result.Error = {
-      Code: "write-failed",
-      Message: "Invalid value",
-      Path: "root.value",
-      Offset: 0,
-    };
-    assert.deepEqual(await serialize("layout", {}), result);
-    assert.deepEqual(await update("layout", written.Data, "root.value", 999), result);
+
+    shouldFail = true;
+    const failedSerialize = await serialize("layout", {});
+    assert.equal(failedSerialize.Success, false);
+    assert.equal(failedSerialize.Data, null);
+    assert.deepEqual(failedSerialize.Error, failure);
+
+    const failedUpdate = await update("layout", written, "root.value", 999);
+    assert.equal(failedUpdate.Success, false);
+    assert.equal(failedUpdate.Data, null);
+    assert.deepEqual(failedUpdate.Error, failure);
   } finally {
     globalThis.CStructSharpWasm = previous;
   }

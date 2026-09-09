@@ -45,7 +45,7 @@ if ($boundary -notmatch "InteropContractVersion\s*=\s*$($baseline.contractVersio
 }
 
 foreach ($name in $baseline.managedExports) {
-    if ($exports -notmatch "(?s)\[JSExport\]\s+public static string $name\s*\(") {
+    if ($exports -notmatch "(?s)\[JSExport\]\s+public static (?:string|byte\[\]) $name\s*\(") {
         throw "Managed browser export is missing: $name"
     }
     if ($bootstrap -notmatch "['`"]$name['`"]") {
@@ -57,7 +57,10 @@ foreach ($operation in $baseline.operations) {
     if ($contract -notmatch "['`"]$operation['`"]") {
         throw "TypeScript operation is missing: $operation"
     }
-    if ($managedSources -notmatch "['`"]$operation['`"]") {
+    # "parse" still names its own JSON envelope success/failure branches in managed code. "serialize"/"update"
+    # report failure by throwing instead of tagging an envelope, so they no longer appear as string literals in
+    # the managed source - their identity is already enforced above via the Serialize/UpdateStream export check.
+    if ($operation -eq 'parse' -and $managedSources -notmatch "['`"]$operation['`"]") {
         throw "Managed operation is missing: $operation"
     }
 }

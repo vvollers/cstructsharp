@@ -68,7 +68,7 @@ export interface DebugDataItem {
 }
 export type Operation = "parse" | "serialize" | "update";
 export type Result<T, O extends Operation> = {
-  ContractVersion: 4;
+  ContractVersion: 5;
   Operation: O;
   DebugData: DebugDataItem[];
 } & (
@@ -82,24 +82,29 @@ export type Result<T, O extends Operation> = {
 /** JSON-compatible application values; bigint is sent as exact decimal text. */
 export type InputValue =
   null | boolean | number | string | bigint | InputValue[] | { [name: string]: InputValue };
-/** Advanced raw transport API. Its successful write Data is Base64 text, unlike the public functions. */
+/**
+ * Advanced raw transport API. Binary data crosses the boundary as native Uint8Array/MemoryView, never Base64
+ * text. serialize/updateStream report failure by throwing (their JS Error's message is the same JSON-serialized
+ * ErrorDetails shape parseWithDebug's envelope carries in its Error field) rather than through a JSON envelope,
+ * since there is no envelope object left to carry an Error field alongside a native byte-array success payload.
+ */
 export interface RawWasmAdapter {
   ready: true;
   error: null;
   exports: unknown;
   parseWithDebug(
     definition: string,
-    base64: string,
+    bytes: Uint8Array,
     options?: ParseWithDebugOptions | null,
   ): string;
-  serializeToBase64(definition: string, json: string, options?: SerializeOptions | null): string;
-  updateStreamToBase64(
+  serialize(definition: string, json: string, options?: SerializeOptions | null): Uint8Array;
+  updateStream(
     definition: string,
-    base64: string,
+    bytes: Uint8Array,
     path: string,
     json: string,
     options?: UpdateOptions | null,
-  ): string;
+  ): Uint8Array;
   getVersion(): string;
 }
 /** Load the bundle, or reject if the runtime cannot load. Prefer the public operations below. */

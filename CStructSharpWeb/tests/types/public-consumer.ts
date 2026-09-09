@@ -37,5 +37,5 @@ await parseWithDebug(definition, [1, 2]);
 created.Data.subarray(0);
 const version: string = await getVersion();
 const raw = await loadCStructSharpWasm();
-const envelope: string = raw.serializeToBase64(definition, '{"value":"42"}');
-console.log(version, envelope);
+const rawBytes: Uint8Array = raw.serialize(definition, '{"value":"42"}');
+console.log(version, rawBytes);

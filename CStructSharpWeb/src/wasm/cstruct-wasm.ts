@@ -8,6 +8,7 @@
 
 import {
   INTEROP_CONTRACT_VERSION,
+  type ErrorDetails,
   type InteropOperation,
   type InteropResult,
   type ParseWithDebugOptions,
@@ -16,6 +17,7 @@ import {
   type UpdateOptions,
 } from "./cstruct-contract";
 
+export { INTEROP_CONTRACT_VERSION } from "./cstruct-contract";
 export type {
   DebugDataItem,
   ErrorDetails,
@@ -145,42 +147,84 @@ export function parseWithDebug(
   binaryData: Uint8Array,
   options?: ParseWithDebugOptions,
 ): ParseResult {
-  const resultJson = requireReadyWasm().parseWithDebug(
-    cstructDefinition,
-    uint8ArrayToBase64(binaryData),
-    options ?? null,
-  );
+  const resultJson = requireReadyWasm().parseWithDebug(cstructDefinition, binaryData, options ?? null);
   return parseInteropResult(resultJson, "parse");
 }
 
-export function serializeToBase64(
+export function serialize(
   cstructDefinition: string,
   data: unknown,
   options?: SerializeOptions,
 ): InteropResult {
-  const resultJson = requireReadyWasm().serializeToBase64(
-    cstructDefinition,
-    stringifyInteropValue(data ?? {}),
-    options ?? null,
+  return runBinaryOperation("serialize", () =>
+    requireReadyWasm().serialize(cstructDefinition, stringifyInteropValue(data ?? {}), options ?? null),
   );
-  return parseInteropResult(resultJson, "serialize");
 }
 
-export function updateStreamToBase64(
+export function updateStream(
   cstructDefinition: string,
   binaryData: Uint8Array,
   elementNameOrPath: string,
   value: unknown,
   options?: UpdateOptions,
 ): InteropResult {
-  const resultJson = requireReadyWasm().updateStreamToBase64(
-    cstructDefinition,
-    uint8ArrayToBase64(binaryData),
-    elementNameOrPath,
-    stringifyInteropValue(value),
-    options ?? null,
+  return runBinaryOperation("update", () =>
+    requireReadyWasm().updateStream(
+      cstructDefinition,
+      binaryData,
+      elementNameOrPath,
+      stringifyInteropValue(value),
+      options ?? null,
+    ),
   );
-  return parseInteropResult(resultJson, "update");
+}
+
+/**
+ * Runs a byte-returning export: success returns the bytes directly (a native Uint8Array, never Base64 text);
+ * failure is reported by the managed export throwing rather than through the JSON envelope "parse" uses, since
+ * there's no envelope object left to carry an Error field alongside a native byte-array success payload. The
+ * thrown error's message is the same JSON-serialized ErrorDetails shape the "parse" envelope's Error field
+ * already uses, so this reconstructs an identical InteropResult either way.
+ */
+function runBinaryOperation(
+  operation: Exclude<InteropOperation, "parse">,
+  invoke: () => Uint8Array,
+): InteropResult {
+  try {
+    return {
+      ContractVersion: INTEROP_CONTRACT_VERSION,
+      Operation: operation,
+      Success: true,
+      Data: invoke(),
+      DebugData: [],
+      Error: null,
+    };
+  } catch (cause) {
+    return {
+      ContractVersion: INTEROP_CONTRACT_VERSION,
+      Operation: operation,
+      Success: false,
+      Data: null,
+      DebugData: [],
+      Error: parseBridgeError(cause, operation),
+    };
+  }
+}
+
+function parseBridgeError(cause: unknown, operation: InteropOperation): ErrorDetails {
+  const message = cause instanceof Error ? cause.message : String(cause);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(message);
+  } catch {
+    throw new TypeError(`WASM returned an invalid ${operation} error.`);
+  }
+
+  if (parsed === null || !isErrorDetails(parsed)) {
+    throw new TypeError(`WASM returned an invalid ${operation} error.`);
+  }
+
+  return parsed as ErrorDetails;
 }
 
 /**
@@ -280,15 +324,4 @@ function stringifyInteropValue(value: unknown): string {
   return JSON.stringify(value, (_key, current: unknown) =>
     typeof current === "bigint" ? current.toString(10) : current,
   );
-}
-
-function uint8ArrayToBase64(bytes: Uint8Array): string {
-  const chunkSize = 24_576;
-  const encoded: string[] = [];
-  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-    const chunk = bytes.subarray(offset, offset + chunkSize);
-    encoded.push(btoa(String.fromCharCode(...chunk)));
-  }
-
-  return encoded.join("");
 }

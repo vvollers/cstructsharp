@@ -38,12 +38,11 @@ const ranges = computed<DebugRange[]>(() =>
     end: Math.max(item.CurPos + 1, item.EndPos),
   })),
 );
+// Only "parse" results are ever rendered as parsed JSON (the template guards on Operation === "parse"
+// before using this); "serialize"/"update" results carry a Uint8Array here instead of JSON text.
 const parsedData = computed(() => {
-  if (!props.result?.Data) {
+  if (props.result?.Operation !== "parse" || typeof props.result.Data !== "string") {
     return null;
-  }
-  if (props.result.Operation !== "parse") {
-    return props.result.Data;
   }
   try {
     return JSON.parse(props.result.Data) as unknown;

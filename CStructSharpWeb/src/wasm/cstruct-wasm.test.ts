@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { InteropResult, RawWasmAdapter } from "./cstruct-contract";
 
 const validParseResult: InteropResult = {
-  ContractVersion: 4,
+  ContractVersion: 5,
   Operation: "parse",
   Success: true,
   Data: '{"root":{"value":42}}',
@@ -26,22 +26,8 @@ function installAdapter(overrides: Partial<RawWasmAdapter> = {}): RawWasmAdapter
     ready: true,
     error: null,
     parseWithDebug: vi.fn(() => JSON.stringify(validParseResult)),
-    serializeToBase64: vi.fn(() =>
-      JSON.stringify({
-        ...validParseResult,
-        Operation: "serialize",
-        Data: "Kg==",
-        DebugData: [],
-      }),
-    ),
-    updateStreamToBase64: vi.fn(() =>
-      JSON.stringify({
-        ...validParseResult,
-        Operation: "update",
-        Data: "Kg==",
-        DebugData: [],
-      }),
-    ),
+    serialize: vi.fn(() => new Uint8Array([0x2a])),
+    updateStream: vi.fn(() => new Uint8Array([0x2a])),
     getVersion: vi.fn(() => "test"),
     ...overrides,
   };
@@ -77,7 +63,7 @@ describe("CStructSharp WASM browser boundary", () => {
     vi.restoreAllMocks();
   });
 
-  it("forwards the complete v4 option object and preserves large binary input", async () => {
+  it("forwards the complete v5 option object and the binary input unchanged", async () => {
     const adapter = installAdapter();
     const { parseWithDebug } = await import("./cstruct-wasm");
     const bytes = Uint8Array.from({ length: 1_048_576 }, (_, index) => index & 0xff);
@@ -106,14 +92,10 @@ describe("CStructSharp WASM browser boundary", () => {
     );
 
     expect(adapter.parseWithDebug).toHaveBeenCalledOnce();
-    const [, encoded, forwarded] = vi.mocked(adapter.parseWithDebug).mock.calls[0];
-    expect(encoded).toBe(
-      btoa(
-        String.fromCharCode(...Uint8Array.from({ length: 768 }, (_, index) => index & 0xff)),
-      ).repeat(Math.floor(bytes.length / 768)) +
-        btoa(String.fromCharCode(...bytes.subarray(bytes.length - (bytes.length % 768)))),
-    );
-    expect(forwarded).toEqual(options);
+    const [, forwardedBytes, forwardedOptions] = vi.mocked(adapter.parseWithDebug).mock.calls[0];
+    // No Base64 encoding step: the managed export receives the exact same Uint8Array instance.
+    expect(forwardedBytes).toBe(bytes);
+    expect(forwardedOptions).toEqual(options);
   });
 
   it.each([
@@ -136,6 +118,64 @@ describe("CStructSharp WASM browser boundary", () => {
 
     expect(() => parseWithDebug("struct root { byte value; };", new Uint8Array([42]))).toThrow(
       /invalid parse response envelope/i,
+    );
+  });
+
+  it("returns the encoded bytes directly on a successful serialize/update, with no envelope decoding", async () => {
+    const adapter = installAdapter();
+    const { serialize, updateStream } = await import("./cstruct-wasm");
+
+    const serialized = serialize("struct root { byte value; };", { value: 42 });
+    expect(serialized.Success).toBe(true);
+    expect(serialized.Data).toEqual(new Uint8Array([0x2a]));
+    expect(adapter.serialize).toHaveBeenCalledOnce();
+
+    const updated = updateStream(
+      "struct root { byte value; };",
+      new Uint8Array([0]),
+      "root.value",
+      42,
+    );
+    expect(updated.Success).toBe(true);
+    expect(updated.Data).toEqual(new Uint8Array([0x2a]));
+    expect(adapter.updateStream).toHaveBeenCalledOnce();
+  });
+
+  it("reconstructs the structured error from a thrown serialize/update failure", async () => {
+    const errorJson = JSON.stringify({
+      Code: "write-budget",
+      Message: "A binary write safety limit was exceeded.",
+      Offset: 12,
+      Path: "root.value",
+    });
+    installAdapter({
+      serialize: vi.fn(() => {
+        throw new Error(errorJson);
+      }),
+    });
+    const { serialize } = await import("./cstruct-wasm");
+
+    const result = serialize("struct root { byte value; };", { value: 42 });
+    expect(result.Success).toBe(false);
+    expect(result.Data).toBeNull();
+    expect(result.Error).toEqual({
+      Code: "write-budget",
+      Message: "A binary write safety limit was exceeded.",
+      Offset: 12,
+      Path: "root.value",
+    });
+  });
+
+  it("throws a TypeError when a serialize/update failure's message is not a valid ErrorDetails payload", async () => {
+    installAdapter({
+      serialize: vi.fn(() => {
+        throw new Error("not json");
+      }),
+    });
+    const { serialize } = await import("./cstruct-wasm");
+
+    expect(() => serialize("struct root { byte value; };", { value: 42 })).toThrow(
+      /invalid serialize error/i,
     );
   });
 

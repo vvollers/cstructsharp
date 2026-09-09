@@ -9,8 +9,8 @@ using Enum = System.Enum;
 /// <summary>Validates untrusted browser inputs and creates the stable transport envelope.</summary>
 public partial class CStructExports
 {
-    private const int InteropContractVersion = 4;
-    private const int MaximumBase64InputLength = 4 * 1024 * 1024;
+    private const int InteropContractVersion = 5;
+    private const int MaximumBinaryInputLength = 4 * 1024 * 1024;
     private const int MaximumDefinitionLength = 128 * 1024;
     private const int MaximumExpressionNestingDepth = 256;
     private const int MaximumExpressionTokens = 100_000;
@@ -239,18 +239,42 @@ public partial class CStructExports
             CultureInfo.InvariantCulture);
     }
 
-    /// <summary>Checks the browser input limit and decodes Base64 text into bytes.</summary>
-    private static byte[] DecodeBinaryData(string binaryDataBase64)
+    /// <summary>
+    ///     Checks the browser input limit and copies the caller-supplied binary data into a managed array. The
+    ///     supplied span is backed by a JS MemoryView valid only for the duration of this call, so every caller
+    ///     must materialize it before doing anything that could outlive the call (starting a stream, deferring
+    ///     work).
+    /// </summary>
+    private static byte[] ValidateBinaryData(ReadOnlySpan<byte> binaryData)
     {
-        if (string.IsNullOrWhiteSpace(binaryDataBase64) ||
-            binaryDataBase64.Length > MaximumBase64InputLength)
+        if (binaryData.IsEmpty || binaryData.Length > MaximumBinaryInputLength)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(binaryDataBase64),
+                nameof(binaryData),
                 "Binary input exceeds the supported limit.");
         }
 
-        return Convert.FromBase64String(binaryDataBase64);
+        return binaryData.ToArray();
+    }
+
+    /// <summary>
+    ///     Wraps a caught exception as a release-safe categorized error - the same shape <see cref="CreateFailure"/>
+    ///     builds for the JSON-envelope operations - for exports that report failure by throwing instead, so JS
+    ///     can catch it, JSON.parse the message, and reconstruct the exact same structured error.
+    /// </summary>
+    private static Exception CreateBridgeException(Exception exception)
+    {
+        (string code, string message) = GetBrowserError(exception);
+        CStructException? domainException = exception as CStructException;
+        var error = new ErrorDetailsDto
+        {
+            Code = code,
+            Message = message,
+            Offset = domainException?.Offset,
+            Path = domainException?.Path,
+        };
+        return new InvalidOperationException(
+            JsonSerializer.Serialize(error, CStructJsonContext.Default.ErrorDetailsDto));
     }
 
     /// <summary>Rejects empty or overly large layout text before invoking the parser.</summary>

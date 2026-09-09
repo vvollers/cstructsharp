@@ -150,31 +150,40 @@ test("all curated operation presets match real managed results", async ({ page }
             ...lesson.parserOptions,
             ...lesson.options,
           };
-          const base64 = btoa(
-            String.fromCharCode(
-              ...(lesson.binaryHex!.match(/[a-f\d]{2}/gi) ?? []).map((byte) => parseInt(byte, 16)),
-            ),
+          const bytes = Uint8Array.from(
+            (lesson.binaryHex!.match(/[a-f\d]{2}/gi) ?? []).map((byte) => parseInt(byte, 16)),
           );
-          const result = JSON.parse(
-            operation === "parse"
-              ? api.parseWithDebug(lesson.definition!, base64, options)
-              : operation === "serialize"
-                ? api.serializeToBase64(lesson.definition!, preset!.json!, options)
-                : api.updateStreamToBase64(
-                    lesson.definition!,
-                    base64,
-                    preset!.path!,
-                    preset!.json!,
-                    options,
-                  ),
-          );
+          // parse still returns a JSON envelope; serialize/update return bytes directly on success and throw
+          // (their message is the same JSON-serialized ErrorDetails shape) on failure - reconstruct one shape.
+          let result: { Success: true; Data: unknown } | { Success: false; Error: { Code: string } };
+          try {
+            result =
+              operation === "parse"
+                ? JSON.parse(api.parseWithDebug(lesson.definition!, bytes, options))
+                : {
+                    Success: true,
+                    Data:
+                      operation === "serialize"
+                        ? api.serialize(lesson.definition!, preset!.json!, options)
+                        : api.updateStream(
+                            lesson.definition!,
+                            bytes,
+                            preset!.path!,
+                            preset!.json!,
+                            options,
+                          ),
+                  };
+          } catch (cause) {
+            const message = cause instanceof Error ? cause.message : String(cause);
+            result = { Success: false, Error: JSON.parse(message) };
+          }
           const actual = !result.Success
             ? { error: result.Error.Code }
             : operation === "parse"
-              ? { data: JSON.parse(result.Data) }
+              ? { data: JSON.parse(result.Data as string) }
               : {
-                  hex: Array.from(atob(result.Data), (c) =>
-                    c.charCodeAt(0).toString(16).padStart(2, "0"),
+                  hex: Array.from(result.Data as Uint8Array, (b) =>
+                    b.toString(16).padStart(2, "0"),
                   ).join(" "),
                 };
           return { id: `${lesson.id}/${operation}`, actual, expected: preset!.expected };

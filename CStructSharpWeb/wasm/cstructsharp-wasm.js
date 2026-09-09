@@ -5,6 +5,7 @@
  */
 
 let loading;
+const INTEROP_CONTRACT_VERSION = 5;
 
 /** Load the managed CStructSharp exports and return the browser API. */
 export async function loadCStructSharpWasm() {
@@ -31,8 +32,9 @@ export async function loadCStructSharpWasm() {
  * @returns {Promise<import("./cstructsharp-wasm.js").Result<string, "parse">>}
  */
 export async function parseWithDebug(definition, bytes, options = null) {
+  requireBytes(bytes);
   const api = await loadCStructSharpWasm();
-  return parseEnvelope(api.parseWithDebug(definition, toBase64(bytes), options), "parse");
+  return parseEnvelope(api.parseWithDebug(definition, bytes, options), "parse");
 }
 
 /** Serialize root fields (without a parse root wrapper). BigInt values retain exact decimal digits.
@@ -43,9 +45,8 @@ export async function parseWithDebug(definition, bytes, options = null) {
  */
 export async function serialize(definition, value, options = null) {
   const api = await loadCStructSharpWasm();
-  return parseByteEnvelope(
-    api.serializeToBase64(definition, stringifyInteropValue(value), options),
-    "serialize",
+  return runBinaryOperation("serialize", () =>
+    api.serialize(definition, stringifyInteropValue(value), options),
   );
 }
 
@@ -58,16 +59,10 @@ export async function serialize(definition, value, options = null) {
  * @returns {Promise<import("./cstructsharp-wasm.js").Result<Uint8Array, "update">>}
  */
 export async function update(definition, bytes, path, value, options = null) {
+  requireBytes(bytes);
   const api = await loadCStructSharpWasm();
-  return parseByteEnvelope(
-    api.updateStreamToBase64(
-      definition,
-      toBase64(bytes),
-      path,
-      stringifyInteropValue(value),
-      options,
-    ),
-    "update",
+  return runBinaryOperation("update", () =>
+    api.updateStream(definition, bytes, path, stringifyInteropValue(value), options),
   );
 }
 
@@ -87,25 +82,59 @@ function parseEnvelope(value, operation) {
   }
 }
 
-// Base64 is only a transport detail of the raw managed bridge.
-function parseByteEnvelope(value, operation) {
-  const result = parseEnvelope(value, operation);
-  if (result.Success) {
-    result.Data = Uint8Array.from(atob(result.Data), (character) => character.charCodeAt(0));
+/**
+ * Runs a byte-returning managed export: success returns the bytes directly; failure is reported by the managed
+ * export throwing (its message is the same JSON-serialized ErrorDetails shape the "parse" envelope's Error field
+ * uses), since there is no envelope object to carry an Error field alongside a native byte-array success payload.
+ * Reconstructs the same envelope shape parseEnvelope produces either way.
+ */
+function runBinaryOperation(operation, invoke) {
+  try {
+    return {
+      ContractVersion: INTEROP_CONTRACT_VERSION,
+      Operation: operation,
+      Success: true,
+      Data: invoke(),
+      DebugData: [],
+      Error: null,
+    };
+  } catch (cause) {
+    return {
+      ContractVersion: INTEROP_CONTRACT_VERSION,
+      Operation: operation,
+      Success: false,
+      Data: null,
+      DebugData: [],
+      Error: parseBridgeError(cause, operation),
+    };
   }
-  return result;
 }
 
-function toBase64(bytes) {
+function parseBridgeError(cause, operation) {
+  const message = cause instanceof Error ? cause.message : String(cause);
+  let parsed;
+  try {
+    parsed = JSON.parse(message);
+  } catch (parseCause) {
+    throw new TypeError(`CStructSharp returned an invalid ${operation} error.`, { cause: parseCause });
+  }
+
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    typeof parsed.Code !== "string" ||
+    typeof parsed.Message !== "string"
+  ) {
+    throw new TypeError(`CStructSharp returned an invalid ${operation} error.`);
+  }
+
+  return parsed;
+}
+
+function requireBytes(bytes) {
   if (!(bytes instanceof Uint8Array)) {
     throw new TypeError("Binary data must be a Uint8Array.");
   }
-
-  const chunks = [];
-  for (let offset = 0; offset < bytes.length; offset += 24_576) {
-    chunks.push(String.fromCharCode(...bytes.subarray(offset, offset + 24_576)));
-  }
-  return btoa(chunks.join(""));
 }
 
 function stringifyInteropValue(value) {
