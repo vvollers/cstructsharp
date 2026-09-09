@@ -82,7 +82,6 @@ defineExpose({
 <template>
   <section ref="dropZone" class="binary-panel" :class="{ 'drop-active': isOverDropZone }">
     <div class="panel-topbar">
-      <h2>Binary data</h2>
       <span class="byte-count">{{ byteCount.toLocaleString() }} bytes</span>
     </div>
     <!-- data-debug-count/-selected are unused styling hooks; reading debugData/selectedIndices here (not
@@ -122,7 +121,6 @@ defineExpose({
   height: 100%;
   min-height: 0;
   min-width: 0;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
 }
 .binary-panel.drop-active {
@@ -132,14 +130,10 @@ defineExpose({
 .panel-topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
+  justify-content: flex-end;
+  padding: 8px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: var(--color-bg-secondary);
-}
-.panel-topbar h2 {
-  margin: 0;
-  font-size: 13px;
 }
 .byte-count {
   font-size: 11px;
