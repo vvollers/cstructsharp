@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useDropZone } from "@vueuse/core";
-import { VueHex } from "vuehex";
+import { DEFAULT_ASCII_CATEGORY_CELL_CLASS_RESOLVER, VueHex } from "vuehex";
 
 import { findDebugEntryIndexByOffset } from "../debug-path";
 import type { DebugDataItem } from "../wasm/cstruct-contract";
@@ -36,12 +36,15 @@ function handleModelUpdate(next: Uint8Array): void {
 }
 
 /**
- * Colors every parsed field's byte range with one of 6 cycling colors as soon as a parse succeeds - a
- * structure map, not just a single highlight - and dims everything except the selected field once one
- * is selected (matching the range-N/active/dim pattern CStructSharpWeb's own ResultPanel.vue already
- * uses for its field-map/hex cross-highlight).
+ * Colors every parsed field's byte range with one of 6 cycling background colors as soon as a parse
+ * succeeds - a structure map, not just a single highlight - and dims everything except the selected
+ * field once one is selected (matching the range-N/active/dim pattern CStructSharpWeb's own
+ * ResultPanel.vue already uses for its field-map/hex cross-highlight). Combined below with vuehex's own
+ * built-in DEFAULT_ASCII_CATEGORY_CELL_CLASS_RESOLVER (foreground byte-value coloring - digits,
+ * upper/lowercase letters, control/high-bit/null bytes) via its multi-resolver array support, so this
+ * only needs to return the background/outline classes, not reimplement byte-category coloring itself.
  */
-function cellClassForByte(payload: { index: number }): string[] {
+function fieldClassForByte(payload: { index: number }): string[] {
   const fieldIndex = findDebugEntryIndexByOffset(props.debugData, payload.index);
   if (fieldIndex === -1) {
     return props.selectedIndex === null ? [] : ["field-dim"];
@@ -73,8 +76,9 @@ defineExpose({
       <span class="byte-count">{{ byteCount.toLocaleString() }} bytes</span>
     </div>
     <!-- data-debug-count/-selected are unused styling hooks; reading debugData/selectedIndex here (not
-         just inside cellClassForByte's closure) makes this template re-render when either changes, so
-         the inline cell-class-for-byte arrow below gets a fresh identity and VueHex recomputes classes. -->
+         just inside fieldClassForByte's closure) makes this template re-render when either changes, so
+         the cell-class-for-byte array literal below is rebuilt with a fresh identity and VueHex
+         recomputes classes (a stable array reference would otherwise never be re-evaluated). -->
     <div
       class="hex-body"
       data-testid="binary-panel-hex"
@@ -91,7 +95,7 @@ defineExpose({
         :search="true"
         statusbar="bottom"
         :bytes-per-row="16"
-        :cell-class-for-byte="(payload) => cellClassForByte(payload)"
+        :cell-class-for-byte="[DEFAULT_ASCII_CATEGORY_CELL_CLASS_RESOLVER, fieldClassForByte]"
         aria-label="Binary data editor"
         @update:model-value="handleModelUpdate"
         @byte-click="handleByteClick"
