@@ -21,7 +21,8 @@ Paths and layout names are case-sensitive.
 
 ## Segments and indices
 
-Each dot-separated part is a *segment*. A segment may contain one array index. The index is zero or an unpadded
+Each dot-separated part is a *segment*. A segment may contain zero or more array indices, one per repeated `[...]`
+in the field's own declaration (`root.matrix[2][3]`, not comma-separated). Each index is zero or an unpadded
 positive decimal integer that fits `Int32`.
 
 | Path | Result |
@@ -31,16 +32,40 @@ positive decimal integer that fits `Int32`.
 | `root.items[01]` | `InvalidPath`; leading zero |
 | `root.items[-1]` | `InvalidPath`; signs are not allowed |
 | `root.items[0x1]` | `InvalidPath`; decimal only |
-| `root.items[1][2]` | `InvalidPath`; one dimension |
+| `root.items[1][2]` | `InvalidPath`; `items` has only one dimension |
 | `root..value` | `InvalidPath`; empty segment |
 
-The selected field must actually be an array, and the index must be below its evaluated count. Runtime arrays need
-the same variable values as parsing/writing.
+The selected field must actually be an array, and each index must be below its own dimension's evaluated count.
+Runtime arrays need the same variable values as parsing/writing.
 
 Fixed `char[N]` and `wchar[N]` elements can be selected as raw code units. Terminated strings are selected as whole
 fields and do not expose character indices.
 
 The exact syntax appears in [Public path EBNF](grammar.md#public-path-ebnf).
+
+## Multidimensional arrays
+
+A field declared with more than one dimension (`uint8 matrix[3][4]`, LANG-05) accepts up to that many indices in one
+segment, outermost first, matching the declaration's own bracket order:
+
+```text
+root.matrix          ──► every row, as a nested list of rows of columns
+root.matrix[2]        ──► the third row alone, as a list of columns
+root.matrix[2][3]      ──► one scalar/struct element
+```
+
+Supplying fewer indices than the field has dimensions selects the corresponding lower-dimensional sub-array rather
+than one element - `root.matrix[2]` is exactly the third row, not an error, and behaves like an ordinary
+one-dimensional array field from that point on (it can itself be indexed further, has its own
+`GetDynamicArrayLength`, and so on). Traversing into a nested field or pointer accessor still requires every
+dimension to be indexed first (`root.grid[1].member` is rejected the same way `root.grid.member` is for a plain
+array with no index at all; `root.grid[1][2].member` is fine). Supplying more indices than the field has dimensions is
+rejected. A fixed table of fixed-width strings (`char names[10][32]`) selects one row at a time as a whole string,
+exactly like a one-dimensional `char[32]` field, with only the outer dimension nesting.
+
+See [Arrays and strings](arrays-and-strings.md#multidimensional-arrays) for the declaration syntax and its one
+restriction: only the outermost dimension may ever be a runtime expression, and this slice does not yet support
+even that for two or more dimensions.
 
 ## Structs and unions
 

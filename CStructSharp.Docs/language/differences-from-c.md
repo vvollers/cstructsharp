@@ -37,7 +37,7 @@ This example establishes one format's widths; it does not prove equivalence with
 | `tag-kind-mismatch` | `struct root { union child value; };` where `child` is a `struct` | A tag keyword is checked against the referenced declaration's actual kind | Use the matching keyword, or omit it and write `child value;` |
 | `forward-declaration` | `struct child;` | Incomplete type identity/storage is unavailable | Supply the complete named declaration |
 | `inline-union` | `union { ... } value;` inside a struct | Only named top-level unions are accepted | Declare `union choice`, then use `choice value;` |
-| `multidimensional-array` | `value[2][3]` | Public paths have one explicit dimension | Use a named row struct or flatten explicitly |
+| `runtime-sized-multidimensional-array` | `uint8 values[count][3];` | Only the outermost dimension of a multidimensional array may be a runtime expression; a fixed `value[2][3]` is supported (see [Arrays and strings](arrays-and-strings.md#multidimensional-arrays)) | Make every dimension a compile-time-fixed count, or flatten the runtime-sized dimension into a single-dimension array |
 | `general-flexible-array` | `uint16 values[]` | Remaining stream bytes do not define a safe count | Use bounded `values[COUNT]`; empty `[]` is for character strings |
 | `qualifier-not-in-closed-set` | `_Atomic uint8 value;` | Only `const`/`volatile`/`restrict` are recognized and discarded | Remove the unrecognized qualifier before construction |
 | `trailing-qualifier-position` | `uint8 value const;` | Accepted qualifiers appear before the type or after a pointer star, not after the declarator name | Move the qualifier to an accepted position |

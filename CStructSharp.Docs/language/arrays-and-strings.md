@@ -5,7 +5,8 @@ description: Calculate fixed/runtime array extents and choose fixed-capacity or 
 
 # Arrays, character buffers, and strings
 
-Portable supports one-dimensional arrays. Text has two distinct storage shapes:
+Portable supports arrays of one or more dimensions (see [Multidimensional arrays](#multidimensional-arrays)). Text
+has two distinct storage shapes:
 
 - fixed character buffers own an exact number of code units; and
 - terminated strings continue until a NUL or line-feed marker.
@@ -43,8 +44,6 @@ field may begin at the same packed offset or at its own aligned offset.
 
 `GetDynamicArrayLength` returns the evaluated count. Serialization needs exactly that many items, including zero or
 one. The `fixed-arrays` fixture checks values `17`, `34`, and `126` at offsets `0`, `1`, and `2`.
-
-`values[2][3]` is not supported. Model a row as a named struct or flatten the dimensions explicitly.
 
 ## Runtime expression arrays
 
@@ -86,6 +85,42 @@ An embedded zero is ordinary fixed-buffer content.
 A Unicode character outside the Basic Multilingual Plane consumes two UTF-16 code units. Updating one indexed
 `wchar` changes one raw code unit; it does not repair a neighboring surrogate automatically.
 
+## Multidimensional arrays
+
+`T field[a][b]...;` declares an array with more than one dimension, outermost first (LANG-05):
+
+```c
+struct root {
+    uint8 matrix[3][4];
+};
+```
+
+Every dimension's own count is an element count, and elements are laid out in row-major order - the same
+sequential order a flat `uint8[12]` field would use. A read produces an N-deep nested list (`root.matrix` is a list
+of 3 rows, each a list of 4 columns); a write accepts the same nested shape (a list of 3 lists of 4 values each),
+and every row's own length is checked exactly like a one-dimensional array's length. Selecting a partial index
+(`root.matrix[2]`) returns the corresponding lower-dimensional sub-array rather than one element - see
+[Paths, array indices, and pointer access](paths-and-selection.md#multidimensional-arrays).
+
+Only the outermost dimension may ever be a runtime expression, matching real C's `int matrix[rows][10]`
+restriction (`int matrix[10][cols]` is not legal C, for the same reason: every dimension after the first must have
+a compile-time-known stride). This slice does not yet support even that for two or more dimensions - every
+dimension of a declaration with N ≥ 2 dimensions must be compile-time-fixed:
+
+```c
+struct root {
+    uint8 count;
+    uint8 values[count][3];  // InvalidLayout: only a 1-D array may have a runtime-sized dimension
+};
+```
+
+A fixed table of fixed-width strings is an ordinary combination of this feature with
+[fixed character buffers](#fixed-character-buffers) above - `char names[10][32]` declares 10 rows of a 32-code-unit
+buffer each. Reading it produces a list of 10 strings (each exactly like a one-dimensional `char[32]` field's own
+string result); writing accepts a list of 10 strings. An unsized dimension (`char[]`) is permanently restricted to
+being the sole dimension of a one-dimensional declarator - `char names[10][]` is rejected, not silently treated as
+some other shape.
+
 ## Terminated strings
 
 An empty character dimension (`char[]`, `wchar[]`, `wchar<[]`, or `wchar>[]`) scans for a NUL code unit. Named
@@ -126,6 +161,7 @@ fields. A value containing its own terminator is invalid.
 | Fixed `T[N]` | Yes when `N` is fixed | Element count | Yes | Array elements |
 | Runtime `T[N]` | No | Evaluated element count | Yes | Array elements and expression |
 | Fixed `char[N]` / `wchar[N]` | Yes | Code-unit count | Yes | Array elements |
+| Multidimensional `T[a][b]...` | Yes (every dimension fixed) | Current dimension's own count | Yes, up to one index per dimension | Total leaf elements |
 | Terminated string | No | Decoded count | No element indexing | Encoded string bytes |
 
 Do not confuse zero-filled fixed text with a terminated scan, infer an array count from remaining stream bytes, omit

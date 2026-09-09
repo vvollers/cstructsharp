@@ -557,19 +557,22 @@
       "value": {
         "status": "verified",
         "conditions": [
-          "The supplied collection has exactly the declared zero, one, or multiple element shape."
+          "The supplied collection has exactly the declared zero, one, or multiple element shape - an N-dimensional array's supplied value is the matching N-deep nested collection, one dimension of shape checking per level."
         ],
         "evidence": [
-          "CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+          "CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip",
+          "CStructSharpTests/MultidimensionalArrayTests.cs#TwoDimensionalArray_RoundTripsThroughWriteAndParse",
+          "CStructSharpTests/MultidimensionalArrayTests.cs#ThreeDimensionalArray_RoundTripsThroughWriteAndParse"
         ]
       },
       "bytes": {
         "status": "verified",
         "conditions": [
-          "Every element representation has its own applicable exact-byte contract."
+          "Every element representation has its own applicable exact-byte contract; a multidimensional array's elements are laid out in row-major order, the same sequential order a flat array of the same total count would use."
         ],
         "evidence": [
-          "CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+          "CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip",
+          "CStructSharpTests/MultidimensionalArrayTests.cs#TwoDimensionalArray_RoundTripsThroughWriteAndParse"
         ]
       }
     },
@@ -1772,14 +1775,51 @@
           "operations": [
             "read-value"
           ]
+        },
+        {
+          "test": "CStructSharpTests/MultidimensionalArrayTests.cs#TwoDimensionalArray_ParsesIntoANestedListInRowMajorOrder",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/MultidimensionalArrayTests.cs#ParseStreamWithDebug_FullyIndexedStructArrayElement_FiltersToThatElement",
+          "operations": [
+            "debug"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/MultidimensionalArrayTests.cs#ResolveAddress_ResolvesWholeArrayPartialIndexAndFullIndex",
+          "operations": [
+            "address"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/MultidimensionalArrayTests.cs#GetDynamicArrayLength_ReportsTheCurrentDimensionsCount",
+          "operations": [
+            "length"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/MultidimensionalArrayTests.cs#TwoDimensionalArray_RoundTripsThroughWriteAndParse",
+          "operations": [
+            "serialize"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/MultidimensionalArrayTests.cs#UpdateStream_PartialIndex_ReplacesTheSelectedSubArray",
+          "operations": [
+            "update"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/MultidimensionalArrayTests.cs#ReadValue_PartialIndex_ReturnsTheSelectedSubArray",
+          "operations": [
+            "read-value"
+          ]
         }
       ],
-      "limitations": [
-        "Only one array dimension is represented; repeated C dimensions remain unsupported."
-      ],
-      "workItems": [
-        "LANG-05"
-      ]
+      "limitations": []
     },
     {
       "id": "multiple-declarators",
@@ -3451,10 +3491,10 @@
       ]
     },
     {
-      "id": "multidimensional-arrays",
-      "syntax": "value[rows][columns]",
-      "rationale": "The compiled model and public result shape currently represent one dimension.",
-      "diagnosticPolicy": "Reject repeated dimensions rather than silently flattening them.",
+      "id": "runtime-sized-multidimensional-arrays",
+      "syntax": "value[count][columns]",
+      "rationale": "Only the outermost dimension of a multidimensional array may be a runtime expression (matching real C's own restriction); a fixed value[rows][columns] is supported.",
+      "diagnosticPolicy": "Reject a non-fixed dimension anywhere but the outermost, rather than silently misinterpreting the stride.",
       "workItems": [
         "LANG-05"
       ]
