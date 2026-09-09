@@ -8,6 +8,15 @@ using CStructSharp.Structure;
 /// <summary>Keeps stream position, variables, options, and bitfield progress for one write operation.</summary>
 internal sealed class CStructElementWriterState
 {
+    /// <summary>
+    ///     The same instance as <see cref="Stream" />, kept under its concrete type so
+    ///     <see cref="EnsureStringBytes" />/<see cref="WriteZeroes" /> can call its budget-specific members
+    ///     directly instead of downcasting the publicly-typed <see cref="Stream" /> property on every call - the
+    ///     constructor is the only place that needs to know the concrete type is always a
+    ///     <see cref="WriteBudgetStream" />.
+    /// </summary>
+    private readonly WriteBudgetStream budgetStream;
+
     /// <summary>Creates the write state from a stream, compiled lookup tables, and write settings.</summary>
     public CStructElementWriterState(
         Stream stream,
@@ -21,7 +30,8 @@ internal sealed class CStructElementWriterState
 
         // The public boundary has already validated this immutable option value.
         this.Options = options;
-        this.Stream = new WriteBudgetStream(stream, this.Options);
+        this.budgetStream = new WriteBudgetStream(stream, this.Options);
+        this.Stream = this.budgetStream;
         this.PointerOrigin = this.Options.Origin;
         this.AddressingMode = this.Options.AddressingMode;
         this.BindingMode = this.Options.BindingMode;
@@ -150,12 +160,12 @@ internal sealed class CStructElementWriterState
     /// <summary>Checks one fixed or terminated string's complete encoded storage before allocation or output.</summary>
     public void EnsureStringBytes(long encodedByteCount)
     {
-        ((WriteBudgetStream)this.Stream).EnsureStringBytes(encodedByteCount);
+        this.budgetStream.EnsureStringBytes(encodedByteCount);
     }
 
     /// <summary>Preflights and writes structural zero-fill without allocating the complete region.</summary>
     public void WriteZeroes(int count)
     {
-        ((WriteBudgetStream)this.Stream).WriteZeroes(count);
+        this.budgetStream.WriteZeroes(count);
     }
 }
