@@ -242,9 +242,20 @@ public partial class CStruct
         CStructElement? namedElement = compiledField.NamedElement;
         bool isArray = compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime;
         int count = isArray ? this.GetBoundedArrayCount(compiledField, state) : 1;
-        int selectedIndex = segment.Index ?? 0;
 
-        if (segment.Index.HasValue)
+        // TODO(LANG-05): multidimensional path addressing (more than one index per segment) is not yet available -
+        // real per-dimension peeling lands in a later seam. Until then, 0 or 1 index behaves exactly as before.
+        if (segment.Indexes.Count > 1)
+        {
+            throw new CStructPathException(
+                "Multiple indices in one path segment require a multidimensional field, not yet available: " +
+                segment.Name);
+        }
+
+        int? segmentIndex = segment.Indexes.Count > 0 ? segment.Indexes[0] : null;
+        int selectedIndex = segmentIndex ?? 0;
+
+        if (segmentIndex.HasValue)
         {
             if (!isArray)
             {
@@ -262,7 +273,7 @@ public partial class CStruct
             throw new CStructPathException("An array index is required before traversing: " + segment.Name);
         }
 
-        context = context.EnterField(declaredField, segment.Index);
+        context = context.EnterField(declaredField, segmentIndex);
         long elementStart = this.GetArrayElementStart(compiledField, fieldStart, selectedIndex, state);
         if (pathIndex == segments.Count - 1)
         {
@@ -270,7 +281,7 @@ public partial class CStruct
                 compiledField,
                 elementStart,
                 isArray,
-                segment.Index,
+                segmentIndex,
                 bitOffset,
                 bitStorageSize,
                 isArray ? count : null,
@@ -283,7 +294,7 @@ public partial class CStruct
         {
             if (string.Equals(next.Name, "address", StringComparison.Ordinal))
             {
-                if (next.Index.HasValue || pathIndex + 1 != segments.Count - 1)
+                if (next.Indexes.Count > 0 || pathIndex + 1 != segments.Count - 1)
                 {
                     throw new CStructPathException("Pointer .address must be the terminal path segment.");
                 }
@@ -293,12 +304,12 @@ public partial class CStruct
                     elementStart,
                     isArray,
                     isArray ? count : null,
-                    segment.Index,
+                    segmentIndex,
                     state,
                     context);
             }
 
-            if (!string.Equals(next.Name, "value", StringComparison.Ordinal) || next.Index.HasValue)
+            if (!string.Equals(next.Name, "value", StringComparison.Ordinal) || next.Indexes.Count > 0)
             {
                 throw new CStructPathException("Expected pointer accessor '.value' or '.address' after: " + segment.Name);
             }
@@ -312,7 +323,7 @@ public partial class CStruct
                 context,
                 isArray,
                 isArray ? count : null,
-                segment.Index);
+                segmentIndex);
         }
 
         if (namedElement is Struct nestedStruct)
@@ -391,7 +402,7 @@ public partial class CStruct
             if (field.PointerDepth > 1)
             {
                 PathSegment next = segments[valueSegmentIndex + 1];
-                if (next.Index.HasValue)
+                if (next.Indexes.Count > 0)
                 {
                     throw new CStructPathException("Pointer accessors cannot have array indexes.");
                 }

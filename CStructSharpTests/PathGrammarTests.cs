@@ -1,5 +1,6 @@
 namespace CStructSharpTests;
 
+using System.Linq;
 using CStructSharp;
 
 /// <summary>Verifies the complete lexical grammar shared by every public path-based operation.</summary>
@@ -39,13 +40,27 @@ public class PathGrammarTests
 
         Assert.AreEqual(4, segments.Count);
         Assert.AreEqual("_root", segments[0].Name);
-        Assert.IsNull(segments[0].Index);
+        Assert.AreEqual(0, segments[0].Indexes.Count);
         Assert.AreEqual("items_2", segments[1].Name);
-        Assert.AreEqual(int.MaxValue, segments[1].Index);
+        Assert.IsTrue(segments[1].Indexes.SequenceEqual([int.MaxValue,]));
         Assert.AreEqual("Élément", segments[2].Name);
-        Assert.AreEqual(0, segments[2].Index);
+        Assert.IsTrue(segments[2].Indexes.SequenceEqual([0,]));
         Assert.AreEqual("digit", segments[3].Name);
-        Assert.AreEqual(9, segments[3].Index);
+        Assert.IsTrue(segments[3].Indexes.SequenceEqual([9,]));
+    }
+
+    /// <summary>
+    ///     Repeated brackets (LANG-05) parse into one index per bracket pair, in declaration order, mirroring
+    ///     declaration syntax (<c>matrix[2][3]</c>).
+    /// </summary>
+    [TestMethod]
+    public void Parse_RepeatedBrackets_ProduceOneIndexPerDimension()
+    {
+        IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse("root.matrix[2][3][4]");
+
+        Assert.AreEqual(2, segments.Count);
+        Assert.AreEqual("matrix", segments[1].Name);
+        Assert.IsTrue(segments[1].Indexes.SequenceEqual([2, 3, 4,]));
     }
 
     /// <summary>
@@ -79,7 +94,6 @@ public class PathGrammarTests
     [DataRow("root.items[one]")]
     [DataRow("root.items[2147483648]")]
     [DataRow("root.items[0]tail")]
-    [DataRow("root.items[0][1]")]
     [DataRow("root.items[[0]")]
     [DataRow("root.items[0]]")]
     public void Parse_RejectsTextOutsideThePathGrammar(string? path)

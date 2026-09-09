@@ -24,9 +24,8 @@ internal static class ExceptionContext
         return string.Join(
             ".",
             segments.Select(
-                segment => segment.Index is int index
-                               ? segment.Name + "[" + index.ToString(CultureInfo.InvariantCulture) + "]"
-                               : segment.Name));
+                segment => segment.Name + string.Concat(
+                    segment.Indexes.Select(index => "[" + index.ToString(CultureInfo.InvariantCulture) + "]"))));
     }
 
     /// <summary>Reads an optional stream offset while preserving the original operation exception.</summary>

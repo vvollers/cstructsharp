@@ -151,7 +151,7 @@ public class PocoDataBindingTests
 
         object result = PocoDataBinding.ResolveDataPath(
             root,
-            [new PathSegment("inner", null), new PathSegment("values", 2),],
+            [new PathSegment("inner", []), new PathSegment("values", [2]),],
             PocoBindingMode.PublicReadable);
 
         Assert.AreEqual(30, result);
