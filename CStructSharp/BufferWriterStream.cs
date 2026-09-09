@@ -58,14 +58,7 @@ internal sealed class BufferWriterStream : Stream
     /// <summary>Reads bytes retained in the active window for bitfield merging.</summary>
     public override int Read(byte[] destination, int offset, int count)
     {
-        ArgumentNullException.ThrowIfNull(destination);
-        ArgumentOutOfRangeException.ThrowIfNegative(offset);
-        ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (offset > destination.Length - count)
-        {
-            throw new ArgumentException("The destination range is outside the supplied array.", nameof(destination));
-        }
-
+        StreamArgumentValidation.ValidateRange(destination, offset, count, nameof(destination));
         return this.Read(destination.AsSpan(offset, count));
     }
 
@@ -147,14 +140,7 @@ internal sealed class BufferWriterStream : Stream
     /// <summary>Appends or rewrites bytes in the active uncommitted window.</summary>
     public override void Write(byte[] source, int offset, int count)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentOutOfRangeException.ThrowIfNegative(offset);
-        ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (offset > source.Length - count)
-        {
-            throw new ArgumentException("The source range is outside the supplied array.", nameof(source));
-        }
-
+        StreamArgumentValidation.ValidateRange(source, offset, count, nameof(source));
         this.Write(source.AsSpan(offset, count));
     }
 

@@ -59,14 +59,7 @@ internal sealed unsafe class FixedBufferStream : Stream
     /// <summary>Reads initialized bytes from the current region position.</summary>
     public override int Read(byte[] destination, int offset, int count)
     {
-        ArgumentNullException.ThrowIfNull(destination);
-        ArgumentOutOfRangeException.ThrowIfNegative(offset);
-        ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (offset > destination.Length - count)
-        {
-            throw new ArgumentException("The destination range is outside the supplied array.", nameof(destination));
-        }
-
+        StreamArgumentValidation.ValidateRange(destination, offset, count, nameof(destination));
         return this.Read(destination.AsSpan(offset, count));
     }
 
@@ -133,14 +126,7 @@ internal sealed unsafe class FixedBufferStream : Stream
     /// <summary>Writes into caller storage and extends the initialized prefix.</summary>
     public override void Write(byte[] source, int offset, int count)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentOutOfRangeException.ThrowIfNegative(offset);
-        ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (offset > source.Length - count)
-        {
-            throw new ArgumentException("The source range is outside the supplied array.", nameof(source));
-        }
-
+        StreamArgumentValidation.ValidateRange(source, offset, count, nameof(source));
         this.Write(source.AsSpan(offset, count));
     }
 
