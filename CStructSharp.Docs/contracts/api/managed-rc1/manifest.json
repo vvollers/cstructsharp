@@ -4,7 +4,7 @@
   "baselineRevision": 4,
   "status": "frozen",
   "workItem": "QA-07",
-  "packageVersion": "0.2.12",
+  "packageVersion": "0.3.0",
   "assembly": "CStructSharp.dll",
   "exportedTypes": 20,
   "generator": {
@@ -63,7 +63,7 @@
       "revision": 4,
       "kind": "breaking",
       "date": "2026-09-09",
-      "packageVersion": "0.2.12",
+      "packageVersion": "0.3.0",
       "combinedSha256": "041A46DF3FD32D682B70098914F2188CBB27DF56C17F08CF1069F92B2F0C5E1F",
       "rationale": "Product review item 1 (the architecture improvement plan's Phase 5): UpdateOptions.AllowPointerDereference renamed to DereferencePointers, matching ReadOptions.DereferencePointers - both collapse into the identical ReadOperationSettings.DereferencePointers field internally, so the two names for the same concept were a genuine 'not obvious from the name' mismatch. Treated as a clean, immediate rename rather than a deprecate-and-bridge migration: the package is still pre-1.0, and this project's own convention (per this baseline's own review discipline) is to make breaking API changes deliberately and visibly rather than accrue compatibility shims before a stable release.",
       "releaseImpact": "Breaking source change: any caller using the object-initializer syntax `new UpdateOptions { AllowPointerDereference = ... }` will fail to compile against the next published version and must switch to `DereferencePointers`. No [Obsolete] bridge is provided. The WASM browser bridge's InteropOptionsDto and JSON wire option key were renamed identically in the same commit (the previously-separate 'allowPointerDereference' JSON key no longer exists; use 'dereferencePointers' for both parse and update operations)."
