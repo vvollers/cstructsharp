@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findDebugEntryByPath, tokenizePath } from "./debug-path";
+import { findDebugEntryIndexByOffset, findDebugEntryIndexByPath, tokenizePath } from "./debug-path";
 import type { DebugDataItem } from "./wasm/cstruct-contract";
 
 function debugItem(overrides: Partial<DebugDataItem>): DebugDataItem {
@@ -36,29 +36,46 @@ describe("tokenizePath", () => {
   });
 });
 
-describe("findDebugEntryByPath", () => {
+describe("findDebugEntryIndexByPath", () => {
   const debugData = [
     debugItem({ DebugStackString: "root.file_header.signature", CurPos: 0, EndPos: 2 }),
     debugItem({ DebugStackString: "root.info_header.bits_per_pixel", CurPos: 28, EndPos: 30 }),
     debugItem({ DebugStackString: "root.entries[1].width", CurPos: 22, EndPos: 23 }),
   ];
 
-  it("finds the entry whose tokenized path exactly matches", () => {
-    const entry = findDebugEntryByPath(debugData, ["root", "info_header", "bits_per_pixel"]);
-    expect(entry?.CurPos).toBe(28);
-    expect(entry?.EndPos).toBe(30);
+  it("finds the index of the entry whose tokenized path exactly matches", () => {
+    expect(findDebugEntryIndexByPath(debugData, ["root", "info_header", "bits_per_pixel"])).toBe(1);
   });
 
   it("matches an array-indexed path", () => {
-    const entry = findDebugEntryByPath(debugData, ["root", "entries", "1", "width"]);
-    expect(entry?.CurPos).toBe(22);
+    expect(findDebugEntryIndexByPath(debugData, ["root", "entries", "1", "width"])).toBe(2);
   });
 
-  it("returns undefined when no entry matches", () => {
-    expect(findDebugEntryByPath(debugData, ["root", "does_not_exist"])).toBeUndefined();
+  it("returns -1 when no entry matches", () => {
+    expect(findDebugEntryIndexByPath(debugData, ["root", "does_not_exist"])).toBe(-1);
   });
 
-  it("returns undefined for an empty debug data list", () => {
-    expect(findDebugEntryByPath([], ["root"])).toBeUndefined();
+  it("returns -1 for an empty debug data list", () => {
+    expect(findDebugEntryIndexByPath([], ["root"])).toBe(-1);
+  });
+});
+
+describe("findDebugEntryIndexByOffset", () => {
+  const debugData = [
+    debugItem({ DebugStackString: "root.file_header.signature", CurPos: 0, EndPos: 2 }),
+    debugItem({ DebugStackString: "root.info_header.bits_per_pixel", CurPos: 28, EndPos: 30 }),
+  ];
+
+  it("finds the index of the entry covering an offset", () => {
+    expect(findDebugEntryIndexByOffset(debugData, 29)).toBe(1);
+  });
+
+  it("treats CurPos as inclusive and EndPos as exclusive", () => {
+    expect(findDebugEntryIndexByOffset(debugData, 28)).toBe(1);
+    expect(findDebugEntryIndexByOffset(debugData, 30)).toBe(-1);
+  });
+
+  it("returns -1 for an offset covered by no entry", () => {
+    expect(findDebugEntryIndexByOffset(debugData, 10)).toBe(-1);
   });
 });

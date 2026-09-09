@@ -10,11 +10,15 @@ export function tokenizePath(stackString: string): string[] {
   return stackString.match(/[^.[\]]+/g) ?? [];
 }
 
-/** Finds the DebugData entry whose path exactly matches a JSONPath (from a JSON-tree selection). */
-export function findDebugEntryByPath(
-  debugData: DebugDataItem[],
-  path: string[],
-): DebugDataItem | undefined {
+/** Finds the index of the DebugData entry whose path exactly matches a JSONPath (from a JSON-tree selection). */
+export function findDebugEntryIndexByPath(debugData: DebugDataItem[], path: string[]): number {
   const target = JSON.stringify(path);
-  return debugData.find((item) => JSON.stringify(tokenizePath(item.DebugStackString)) === target);
+  return debugData.findIndex(
+    (item) => JSON.stringify(tokenizePath(item.DebugStackString)) === target,
+  );
+}
+
+/** Finds the index of the DebugData entry covering an absolute byte offset (from a hex-view click). */
+export function findDebugEntryIndexByOffset(debugData: DebugDataItem[], offset: number): number {
+  return debugData.findIndex((item) => offset >= item.CurPos && offset < item.EndPos);
 }

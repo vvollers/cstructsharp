@@ -70,6 +70,17 @@ test("loading a file replaces the binary data and shows its name", async ({ page
   await expect(page.locator(".byte-count")).toContainText("4 bytes");
 });
 
+test("every parsed field is colorized in the hex view as soon as a parse succeeds", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: /^Run$/ }).click();
+  await expect(page.locator('[data-testid="result-json"]')).toBeVisible({ timeout: 10_000 });
+
+  const colorized = page.locator('[data-testid="binary-panel-hex"] [class*="field-range-"]');
+  await expect(colorized.first()).toBeVisible();
+  expect(await colorized.count()).toBeGreaterThan(1);
+});
+
 test("clicking a parsed JSON field highlights its bytes, and clicking a highlighted byte selects it back", async ({
   page,
 }) => {
@@ -80,9 +91,11 @@ test("clicking a parsed JSON field highlights its bytes, and clicking a highligh
     .locator('[data-testid="result-json"] .jse-key', { hasText: "bits_per_pixel" })
     .first()
     .click();
-  const highlighted = page.locator('[data-testid="binary-panel-hex"] .field-highlight');
-  await expect(highlighted.first()).toBeVisible();
+  const active = page.locator('[data-testid="binary-panel-hex"] .field-active');
+  await expect(active.first()).toBeVisible();
+  const dimmed = page.locator('[data-testid="binary-panel-hex"] .field-dim');
+  await expect(dimmed.first()).toBeVisible();
 
-  await highlighted.first().click();
+  await active.first().click();
   await expect(page.locator('[data-testid="result-json"] .jse-selected-value')).toBeVisible();
 });
