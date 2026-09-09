@@ -3,9 +3,13 @@ import { computed, ref } from "vue";
 import { useDropZone } from "@vueuse/core";
 import { VueHex } from "vuehex";
 
+import { findDebugEntryIndexByOffset } from "../debug-path";
+import type { DebugDataItem } from "../wasm/cstruct-contract";
+
 const props = defineProps<{
   bytes: Uint8Array;
-  highlightRange: { start: number; end: number } | null;
+  debugData: DebugDataItem[];
+  selectedIndex: number | null;
 }>();
 
 const emit = defineEmits<{
@@ -31,11 +35,22 @@ function handleModelUpdate(next: Uint8Array): void {
   emit("update:bytes", next);
 }
 
+/**
+ * Colors every parsed field's byte range with one of 6 cycling colors as soon as a parse succeeds - a
+ * structure map, not just a single highlight - and dims everything except the selected field once one
+ * is selected (matching the range-N/active/dim pattern CStructSharpWeb's own ResultPanel.vue already
+ * uses for its field-map/hex cross-highlight).
+ */
 function cellClassForByte(payload: { index: number }): string[] {
-  const range = props.highlightRange;
-  return range && payload.index >= range.start && payload.index < range.end
-    ? ["field-highlight"]
-    : [];
+  const fieldIndex = findDebugEntryIndexByOffset(props.debugData, payload.index);
+  if (fieldIndex === -1) {
+    return props.selectedIndex === null ? [] : ["field-dim"];
+  }
+  const classes = [`field-range-${fieldIndex % 6}`];
+  if (props.selectedIndex !== null) {
+    classes.push(props.selectedIndex === fieldIndex ? "field-active" : "field-dim");
+  }
+  return classes;
 }
 
 function handleByteClick(event: { index: number }): void {
@@ -57,14 +72,14 @@ defineExpose({
       <h2>Binary data</h2>
       <span class="byte-count">{{ byteCount.toLocaleString() }} bytes</span>
     </div>
-    <!-- data-highlight-start/-end are unused styling hooks; reading highlightRange here (not just
-         inside cellClassForByte's closure) makes this template re-render when it changes, so the
-         inline cell-class-for-byte arrow below gets a fresh identity and VueHex recomputes classes. -->
+    <!-- data-debug-count/-selected are unused styling hooks; reading debugData/selectedIndex here (not
+         just inside cellClassForByte's closure) makes this template re-render when either changes, so
+         the inline cell-class-for-byte arrow below gets a fresh identity and VueHex recomputes classes. -->
     <div
       class="hex-body"
       data-testid="binary-panel-hex"
-      :data-highlight-start="highlightRange?.start"
-      :data-highlight-end="highlightRange?.end"
+      :data-debug-count="debugData.length"
+      :data-debug-selected="selectedIndex"
     >
       <VueHex
         ref="hexEditor"
@@ -126,9 +141,36 @@ defineExpose({
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-sm);
 }
-.hex-body :deep(.field-highlight) {
-  background: var(--color-accent-glow);
-  outline: 1px solid var(--color-accent);
+.hex-body :deep(.field-range-0) {
+  background-color: rgba(0, 212, 255, 0.22) !important;
+  outline: 1px solid #00d4ff;
+}
+.hex-body :deep(.field-range-1) {
+  background-color: rgba(0, 255, 136, 0.2) !important;
+  outline: 1px solid #00ff88;
+}
+.hex-body :deep(.field-range-2) {
+  background-color: rgba(255, 184, 0, 0.22) !important;
+  outline: 1px solid #ffb800;
+}
+.hex-body :deep(.field-range-3) {
+  background-color: rgba(186, 104, 255, 0.22) !important;
+  outline: 1px solid #ba68ff;
+}
+.hex-body :deep(.field-range-4) {
+  background-color: rgba(255, 105, 180, 0.22) !important;
+  outline: 1px solid #ff69b4;
+}
+.hex-body :deep(.field-range-5) {
+  background-color: rgba(64, 224, 208, 0.22) !important;
+  outline: 1px solid #40e0d0;
+}
+.hex-body :deep(.field-active) {
+  outline-width: 2px !important;
+  filter: brightness(1.35);
+}
+.hex-body :deep(.field-dim) {
+  opacity: 0.32;
 }
 .drop-hint {
   position: absolute;

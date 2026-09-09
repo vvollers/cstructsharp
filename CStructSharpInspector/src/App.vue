@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, shallowRef } from "vue";
+import { computed, onMounted, ref, shallowRef } from "vue";
 import { useFileDialog } from "@vueuse/core";
 
 import ExampleList from "./components/ExampleList.vue";
@@ -7,7 +7,7 @@ import SchemaPanel from "./components/SchemaPanel.vue";
 import BinaryPanel from "./components/BinaryPanel.vue";
 import ResultPanel from "./components/ResultPanel.vue";
 import { formats, type FormatExample } from "./formats";
-import { findDebugEntryByPath, tokenizePath } from "./debug-path";
+import { findDebugEntryIndexByOffset, findDebugEntryIndexByPath, tokenizePath } from "./debug-path";
 import {
   initWasm,
   isLoaded,
@@ -29,8 +29,9 @@ const loadedFileName = ref<string | null>(null);
 const resetCount = ref(0);
 const result = ref<InteropResult | null>(null);
 const isRunning = ref(false);
-const highlightRange = ref<{ start: number; end: number } | null>(null);
+const selectedDebugIndex = ref<number | null>(null);
 const focusPath = ref<string[] | null>(null);
+const debugData = computed(() => (result.value?.Success ? result.value.DebugData : []));
 
 function hexToBytesSafe(hex: string): Uint8Array {
   try {
@@ -46,7 +47,7 @@ function selectExample(example: FormatExample): void {
   loadedFileName.value = null;
   bytes.value = hexToBytesSafe(example.binaryHex);
   result.value = null;
-  highlightRange.value = null;
+  selectedDebugIndex.value = null;
   focusPath.value = null;
   resetCount.value += 1;
 }
@@ -57,7 +58,7 @@ function startNew(): void {
   loadedFileName.value = null;
   bytes.value = new Uint8Array();
   result.value = null;
-  highlightRange.value = null;
+  selectedDebugIndex.value = null;
   focusPath.value = null;
   resetCount.value += 1;
 }
@@ -67,7 +68,7 @@ function loadFile(file: File): void {
     bytes.value = new Uint8Array(buffer);
     loadedFileName.value = file.name;
     result.value = null;
-    highlightRange.value = null;
+    selectedDebugIndex.value = null;
     focusPath.value = null;
   });
 }
@@ -85,7 +86,7 @@ onFileDialogChange((files) => {
 
 async function runParse(options: ParseWithDebugOptions): Promise<void> {
   isRunning.value = true;
-  highlightRange.value = null;
+  selectedDebugIndex.value = null;
   focusPath.value = null;
   try {
     result.value = parseWithDebug(definition.value, bytes.value, options);
@@ -99,18 +100,18 @@ function handleBytesEdited(next: Uint8Array): void {
 }
 
 function handleByteClick(offset: number): void {
-  const debugData = result.value?.Success ? result.value.DebugData : [];
-  const entry = debugData.find((item) => offset >= item.CurPos && offset < item.EndPos);
-  focusPath.value = entry ? tokenizePath(entry.DebugStackString) : null;
+  const index = findDebugEntryIndexByOffset(debugData.value, offset);
+  selectedDebugIndex.value = index === -1 ? null : index;
+  focusPath.value = index === -1 ? null : tokenizePath(debugData.value[index]!.DebugStackString);
 }
 
 function handleSelectPath(path: string[] | null): void {
-  if (!path || !result.value?.Success) {
-    highlightRange.value = null;
+  if (!path) {
+    selectedDebugIndex.value = null;
     return;
   }
-  const entry = findDebugEntryByPath(result.value.DebugData, path);
-  highlightRange.value = entry ? { start: entry.CurPos, end: entry.EndPos } : null;
+  const index = findDebugEntryIndexByPath(debugData.value, path);
+  selectedDebugIndex.value = index === -1 ? null : index;
 }
 
 onMounted(async () => {
@@ -169,7 +170,8 @@ onMounted(async () => {
     />
     <BinaryPanel
       :bytes="bytes"
-      :highlight-range="highlightRange"
+      :debug-data="debugData"
+      :selected-index="selectedDebugIndex"
       @update:bytes="handleBytesEdited"
       @byte-click="handleByteClick"
       @file-dropped="loadFile"
