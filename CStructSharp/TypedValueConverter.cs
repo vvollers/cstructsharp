@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Numerics;
 using System.Reflection;
 
@@ -289,8 +290,14 @@ internal static class TypedValueConverter
                 member.Set(target, converted);
             }
             catch (Exception exception) when (exception is ArgumentException or MethodAccessException or
-                                              TargetInvocationException)
+                                              TargetInvocationException or InvalidCastException or
+                                              InvalidOperationException)
             {
+                // A compiled setter delegate (see BuildSetter) invokes the target member directly, so an
+                // exception the member's own body throws propagates raw instead of wrapped in
+                // TargetInvocationException the way reflection's PropertyInfo.SetValue would wrap it - widened
+                // here so a member that throws its own exception (validation logic, for example) still reports
+                // with this specific member's path, exactly as it did through the reflection-based setter.
                 throw ConversionFailure(sourceValue, member.ValueType, path + "." + sourceName, exception);
             }
         }
@@ -410,6 +417,34 @@ internal static class TypedValueConverter
         return true;
     }
 
+    /// <summary>
+    ///     Compiles a property setter once, at <see cref="ObjectMap" /> build time, instead of invoking
+    ///     <see cref="PropertyInfo.SetValue(object?, object?)" /> reflectively on every mapped value. The
+    ///     compiled delegate calls the setter directly, so an exception the setter's own body throws propagates
+    ///     unwrapped - <see cref="ConvertObject" />'s catch filter is widened accordingly.
+    /// </summary>
+    private static Action<object, object?> BuildPropertySetter(PropertyInfo property)
+    {
+        ParameterExpression target = Expression.Parameter(typeof(object), "target");
+        ParameterExpression value = Expression.Parameter(typeof(object), "value");
+        MethodCallExpression call = Expression.Call(
+            Expression.Convert(target, property.DeclaringType!),
+            property.SetMethod!,
+            Expression.Convert(value, property.PropertyType));
+        return Expression.Lambda<Action<object, object?>>(call, target, value).Compile();
+    }
+
+    /// <summary>Compiles a field setter once, mirroring <see cref="BuildPropertySetter" /> for public instance fields.</summary>
+    private static Action<object, object?> BuildFieldSetter(FieldInfo field)
+    {
+        ParameterExpression target = Expression.Parameter(typeof(object), "target");
+        ParameterExpression value = Expression.Parameter(typeof(object), "value");
+        BinaryExpression assign = Expression.Assign(
+            Expression.Field(Expression.Convert(target, field.DeclaringType!), field),
+            Expression.Convert(value, field.FieldType));
+        return Expression.Lambda<Action<object, object?>>(assign, target, value).Compile();
+    }
+
     /// <summary>Builds immutable constructor and setter metadata once per target CLR type.</summary>
     private static ObjectMap CreateObjectMap(
         [DynamicallyAccessedMembers(MappedMembers)] Type targetType)
@@ -432,7 +467,7 @@ internal static class TypedValueConverter
         {
             if (property.SetMethod is { IsPublic: true, } && property.GetIndexParameters().Length == 0)
             {
-                members.Add(new MappedMember(property.Name, property.PropertyType, property.SetValue));
+                members.Add(new MappedMember(property.Name, property.PropertyType, BuildPropertySetter(property)));
             }
         }
 
@@ -440,7 +475,7 @@ internal static class TypedValueConverter
         {
             if (!field.IsInitOnly && !field.IsStatic)
             {
-                members.Add(new MappedMember(field.Name, field.FieldType, field.SetValue));
+                members.Add(new MappedMember(field.Name, field.FieldType, BuildFieldSetter(field)));
             }
         }
 
