@@ -28,9 +28,15 @@ internal static class WriterVariableProjection
             // Normal scalar values become literal expressions for following array counts and calculations.
             state.Variables[name] = new Literal(Convert.ToInt32(value));
         }
-        catch
+        catch (Exception exception) when (exception is OverflowException or InvalidCastException or FormatException)
         {
-            // The field still shadows a caller/definition value even when it cannot feed the Int32 expression language.
+            // The field still shadows a caller/definition value even when it cannot feed the Int32 expression
+            // language. Unlike CStructReader.cs's equivalent capture sites (which only ever call Convert.ToInt32
+            // on a value already known to be IConvertible, so only OverflowException is reachable there), this
+            // method receives an arbitrary caller-supplied POCO/dynamic value with no such pre-check - a value
+            // that isn't IConvertible at all throws InvalidCastException, and FormatException is Convert's other
+            // documented failure mode for a value it cannot parse into Int32. Both are as expected here as an
+            // overflow; anything else (a bug, not an expected shape of caller data) still propagates.
             state.Variables.Remove(name);
         }
     }
