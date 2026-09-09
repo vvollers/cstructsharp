@@ -180,4 +180,43 @@ public class AnonymousPromotedMemberTests
         Assert.AreEqual(1L, entry.EndPos);
         Assert.IsFalse(debug.Exists(item => item.DebugStackString.Contains("..")));
     }
+
+    /// <summary>
+    ///     A promoted member's own fields are looked up directly on the same flat POCO/dynamic value the parent
+    ///     struct uses, and the resulting bytes match the equivalent named-inline-struct fixture exactly.
+    /// </summary>
+    [TestMethod]
+    public void Serialize_WritesAFlatValueThroughAPromotedMember()
+    {
+        var anon = new CStruct("struct root { uint8 a; struct { uint8 x; uint8 y; }; uint8 b; };", pointerSize: 1);
+        var named = new CStruct(
+            "struct root { uint8 a; struct { uint8 x; uint8 y; } inner; uint8 b; };",
+            pointerSize: 1);
+
+        byte[] anonBytes = anon.Serialize("root", new { a = (byte)1, x = (byte)2, y = (byte)3, b = (byte)4, });
+        byte[] namedBytes = named.Serialize(
+            "root",
+            new { a = (byte)1, inner = new { x = (byte)2, y = (byte)3, }, b = (byte)4, });
+
+        CollectionAssert.AreEqual(namedBytes, anonBytes);
+
+        using var writeStream = new MemoryStream();
+        anon.WriteStream(writeStream, "root", new { a = (byte)1, x = (byte)2, y = (byte)3, b = (byte)4, });
+        CollectionAssert.AreEqual(namedBytes, writeStream.ToArray());
+    }
+
+    /// <summary>
+    ///     A struct with both an anonymous bitfield (LANG-17) and a promoted member (LANG-14) as siblings writes
+    ///     each correctly - the promoted-member check must run before the LANG-17 empty-name check, since both
+    ///     test the same empty declared name.
+    /// </summary>
+    [TestMethod]
+    public void Serialize_AnonymousBitfieldAndPromotedMemberSiblings_BothWriteCorrectly()
+    {
+        var cstruct = new CStruct("struct root { uint8 flag:1, :3, other:4; struct { uint8 x; }; };", pointerSize: 1);
+
+        byte[] bytes = cstruct.Serialize("root", new { flag = 1, other = 0b1111, x = (byte)0xAB, });
+
+        CollectionAssert.AreEqual(new byte[] { 0b1111_0001, 0xAB, }, bytes);
+    }
 }

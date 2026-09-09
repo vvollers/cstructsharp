@@ -171,10 +171,21 @@ public partial class CStruct
                 return;
             }
 
+            CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
             var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned);
 
-            foreach (CompiledField field in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
+            foreach (CompiledField field in composite.Fields)
             {
+                if (composite.PromotedFields.Contains(field))
+                {
+                    // An anonymous promoted member (LANG-14) has no name to look up - splice its own children
+                    // into the same `data` object the parent struct already uses. WriteFieldValue's existing
+                    // Struct dispatch recurses WriteStruct with this same `data`, so the promoted member's own
+                    // fields are looked up directly on it, with no nested member of its own.
+                    this.WriteFieldValue(field, data, state, -1, cursor);
+                    continue;
+                }
+
                 if (field.EffectiveField.Name.Name.Length == 0)
                 {
                     // An anonymous nonzero-width bitfield (LANG-17) is pure padding with no caller-supplied value -
