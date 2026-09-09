@@ -102,8 +102,8 @@ public class FeatureOperationMatrixTests
                 string caseName = typeName + "/" + (layoutLittleEndian ? "little" : "big");
                 bool storedLittleEndian = typeName.EndsWith('<') ||
                                           (!typeName.EndsWith('>') && layoutLittleEndian);
-                byte[] originalValue = EncodeUnsigned(0x12, width, storedLittleEndian);
-                byte[] replacementValue = EncodeUnsigned(0x34, width, storedLittleEndian);
+                byte[] originalValue = RegressionTestSupport.EncodeUnsigned(0x12, width, storedLittleEndian);
+                byte[] replacementValue = RegressionTestSupport.EncodeUnsigned(0x34, width, storedLittleEndian);
                 byte[] original = [.. originalValue, 0x7E,];
                 byte[] replacement = [.. replacementValue, 0x7E,];
                 var cstruct = new CStruct(
@@ -551,18 +551,6 @@ public class FeatureOperationMatrixTests
             (ushort)0x9ABC,
             2,
             [0x12, 0x34, 0xBC, 0x9A,]);
-    }
-
-    private static byte[] EncodeUnsigned(ulong value, int width, bool littleEndian)
-    {
-        byte[] result = new byte[width];
-        for (int index = 0; index < width; index++)
-        {
-            int destination = littleEndian ? index : width - index - 1;
-            result[destination] = (byte)(value >> (index * 8));
-        }
-
-        return result;
     }
 
     private static ExpandoObject GetDebugRoot(ExpandoObject wrapper)

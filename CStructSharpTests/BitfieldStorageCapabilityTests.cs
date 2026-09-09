@@ -147,7 +147,7 @@ public class BitfieldStorageCapabilityTests
                 bool storageIsLittleEndian = !layoutIsLittleEndian;
                 int capacity = size * 8;
                 ulong rawValue = 0x8123456789ABCDEFUL & GetMask(capacity);
-                byte[] bytes = WriteUnsigned(rawValue, size, storageIsLittleEndian);
+                byte[] bytes = RegressionTestSupport.EncodeUnsigned(rawValue, size, storageIsLittleEndian);
                 var cstruct = new CStruct(
                     $"struct root {{ {typeName} low:4; {typeName} high:{capacity - 4}; }};",
                     pointerSize: 1,
@@ -181,7 +181,7 @@ public class BitfieldStorageCapabilityTests
                 cstruct.UpdateStream(stream, "root.low", 3);
                 ulong updatedRawValue = (rawValue & ~0xFUL) | 3UL;
                 CollectionAssert.AreEqual(
-                    WriteUnsigned(updatedRawValue, size, storageIsLittleEndian),
+                    RegressionTestSupport.EncodeUnsigned(updatedRawValue, size, storageIsLittleEndian),
                     stream.ToArray(),
                     typeName + " update");
                 Assert.AreEqual(0L, stream.Position, typeName + " update position");
@@ -235,18 +235,5 @@ public class BitfieldStorageCapabilityTests
     private static ulong GetMask(int width)
     {
         return width == 64 ? ulong.MaxValue : (1UL << width) - 1UL;
-    }
-
-    /// <summary>Encodes an unsigned storage value without using a production primitive writer.</summary>
-    private static byte[] WriteUnsigned(ulong value, int size, bool isLittleEndian)
-    {
-        var bytes = new byte[size];
-        for (int index = 0; index < size; index++)
-        {
-            int destination = isLittleEndian ? index : size - index - 1;
-            bytes[destination] = (byte)(value >> (index * 8));
-        }
-
-        return bytes;
     }
 }

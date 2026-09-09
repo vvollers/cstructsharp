@@ -140,7 +140,7 @@ public class PointerArithmeticTests
             var options = new WriteOptions { AddressingMode = mode, };
             byte[] encoded = cstruct.Serialize("root", CreatePointerData(maximum), options: options);
             CollectionAssert.AreEqual(
-                EncodeUnsigned(Convert.ToUInt64(maximum), pointerSize, isLittleEndian),
+                RegressionTestSupport.EncodeUnsigned(Convert.ToUInt64(maximum), pointerSize, isLittleEndian),
                 encoded,
                 $"size={pointerSize}, endian={isLittleEndian}, mode={mode}");
 
@@ -169,7 +169,7 @@ public class PointerArithmeticTests
             pointerSize: 8,
             isLittleEndian: isLittleEndian);
         byte[] original = Enumerable.Repeat((byte)0xA5, 16).ToArray();
-        EncodeUnsigned(1, 8, isLittleEndian).CopyTo(original, rootStart);
+        RegressionTestSupport.EncodeUnsigned(1, 8, isLittleEndian).CopyTo(original, rootStart);
         var options = new ReadOptions
         {
             AddressingMode = PointerAddressingMode.Relative,
@@ -240,7 +240,7 @@ public class PointerArithmeticTests
     [DataRow(false)]
     public void EightBytePointerReads_RejectValuesBeyondSignedStreamRange(bool isLittleEndian)
     {
-        byte[] original = EncodeUnsigned(1UL << 63, 8, isLittleEndian);
+        byte[] original = RegressionTestSupport.EncodeUnsigned(1UL << 63, 8, isLittleEndian);
         var cstruct = new CStruct(
             "struct root { byte *ptr; };",
             pointerSize: 8,
@@ -287,7 +287,7 @@ public class PointerArithmeticTests
         Assert.AreEqual(0L, updateStream.Position);
 
         using var maximumStream = new MemoryStream(
-            EncodeUnsigned((ulong)long.MaxValue, 8, isLittleEndian));
+            RegressionTestSupport.EncodeUnsigned((ulong)long.MaxValue, 8, isLittleEndian));
         dynamic maximumResult = cstruct.ParseStream(
             maximumStream,
             "root",
@@ -300,7 +300,7 @@ public class PointerArithmeticTests
             pointerSize: 8,
             isLittleEndian: isLittleEndian);
         byte[] dependentBytes = new byte[9];
-        EncodeUnsigned((ulong)long.MaxValue, 8, isLittleEndian).CopyTo(dependentBytes, 0);
+        RegressionTestSupport.EncodeUnsigned((ulong)long.MaxValue, 8, isLittleEndian).CopyTo(dependentBytes, 0);
         var staleOverride = new Dictionary<string, Structure.Expr>
         {
             ["ptr"] = new Structure.Literal(1),
@@ -398,17 +398,5 @@ public class PointerArithmeticTests
         dynamic data = new ExpandoObject();
         data.ptr = value;
         return data;
-    }
-
-    private static byte[] EncodeUnsigned(ulong value, int width, bool isLittleEndian)
-    {
-        byte[] result = new byte[width];
-        for (int index = 0; index < width; index++)
-        {
-            int target = isLittleEndian ? index : width - index - 1;
-            result[target] = (byte)(value >> (index * 8));
-        }
-
-        return result;
     }
 }
