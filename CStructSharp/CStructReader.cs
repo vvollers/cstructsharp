@@ -94,6 +94,23 @@ public partial class CStruct
                         break;
                     }
 
+                    if (s.Name.Name.Length == 0)
+                    {
+                        // An anonymous promoted member (LANG-14) has no name of its own - its children are read
+                        // directly into the parent's own container, with no nested ExpandoObject, and its own
+                        // element is excluded from the debug stack so a descendant's path reads `root.x`, not
+                        // `root..x`. Transitive promotion works for free: a promoted member's own promoted child
+                        // re-enters this same branch with `currentContainer` still the original root container.
+                        this.ReadCompiledStructInto(s, currentContainer, state, debugStack);
+
+                        if (usesCursor)
+                        {
+                            cursor!.CompleteField(state.Stream.Position);
+                        }
+
+                        break;
+                    }
+
                     // Give every struct its own dynamic object, then attach it before reading children so nested paths are preserved.
                     dynamic newContainer = new ExpandoObject();
                     IDictionary<string, object?> structContainer = currentContainer;
