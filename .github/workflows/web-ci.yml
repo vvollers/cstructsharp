@@ -1,0 +1,57 @@
+name: Web CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/web-ci.yml"
+      - "CStructSharpWeb/**"
+  pull_request:
+    paths:
+      - ".github/workflows/web-ci.yml"
+      - "CStructSharpWeb/**"
+
+concurrency:
+  group: web-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Lint and test the WASM bridge and Vue frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: CStructSharpWeb
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.5.0
+          cache: npm
+          cache-dependency-path: CStructSharpWeb/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Run Vue unit tests
+        run: npm run test:unit
+
+      - name: Run WASM bridge interop tests
+        run: npm run test:bootstrap
+
+      - name: Run WASM publication manifest tests
+        run: npm run test:wasm-publication
