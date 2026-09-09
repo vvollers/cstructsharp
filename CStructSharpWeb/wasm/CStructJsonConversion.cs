@@ -108,6 +108,7 @@ public partial class CStructExports
 
                 return expando;
             }
+
         case JsonValueKind.Array:
             {
                 var items = new List<object?>();
@@ -118,6 +119,7 @@ public partial class CStructExports
 
                 return items;
             }
+
         case JsonValueKind.String:
             return element.GetString();
         case JsonValueKind.Number:

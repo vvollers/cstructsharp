@@ -17,6 +17,56 @@ public sealed class FuzzSession
         this.targets = new FuzzTargets(corpus.Limits);
     }
 
+    private static ulong DeriveTargetSeed(ulong seed, string targetName)
+    {
+        ulong value = seed ^ 0xCBF29CE484222325UL;
+        foreach (byte item in Encoding.UTF8.GetBytes(targetName))
+        {
+            value ^= item;
+            value *= 0x100000001B3UL;
+        }
+
+        return value;
+    }
+
+    private static byte[] Mutate(byte[] basis, StableFuzzRandom random, int maximumLength)
+    {
+        var bytes = new List<byte>(basis.Take(maximumLength));
+        int operations = 1 + random.NextInt(8);
+        for (int operation = 0; operation < operations; operation++)
+        {
+            switch (random.NextInt(6))
+            {
+            case 0 when bytes.Count > 0:
+                int flipIndex = random.NextInt(bytes.Count);
+                bytes[flipIndex] ^= (byte)(1 << random.NextInt(8));
+                break;
+            case 1 when bytes.Count > 0:
+                bytes[random.NextInt(bytes.Count)] = random.NextByte();
+                break;
+            case 2 when bytes.Count < maximumLength:
+                bytes.Insert(random.NextInt(bytes.Count + 1), random.NextByte());
+                break;
+            case 3 when bytes.Count > 1:
+                bytes.RemoveAt(random.NextInt(bytes.Count));
+                break;
+            case 4 when bytes.Count > 1:
+                int first = random.NextInt(bytes.Count);
+                int second = random.NextInt(bytes.Count);
+                (bytes[first], bytes[second]) = (bytes[second], bytes[first]);
+                break;
+            case 5 when bytes.Count > 0 && bytes.Count < maximumLength:
+                int source = random.NextInt(bytes.Count);
+                int count = Math.Min(1 + random.NextInt(8), bytes.Count - source);
+                count = Math.Min(count, maximumLength - bytes.Count);
+                bytes.InsertRange(random.NextInt(bytes.Count + 1), bytes.GetRange(source, count));
+                break;
+            }
+        }
+
+        return bytes.ToArray();
+    }
+
     /// <summary>Runs one or every target and returns a deterministic outcome report.</summary>
     public FuzzReport Run(
         string targetName = "all",
@@ -203,117 +253,4 @@ public sealed class FuzzSession
         digest.AppendData(input);
         digest.AppendData([outcome,]);
     }
-
-    private static ulong DeriveTargetSeed(ulong seed, string targetName)
-    {
-        ulong value = seed ^ 0xCBF29CE484222325UL;
-        foreach (byte item in Encoding.UTF8.GetBytes(targetName))
-        {
-            value ^= item;
-            value *= 0x100000001B3UL;
-        }
-
-        return value;
-    }
-
-    private static byte[] Mutate(byte[] basis, StableFuzzRandom random, int maximumLength)
-    {
-        var bytes = new List<byte>(basis.Take(maximumLength));
-        int operations = 1 + random.NextInt(8);
-        for (int operation = 0; operation < operations; operation++)
-        {
-            switch (random.NextInt(6))
-            {
-            case 0 when bytes.Count > 0:
-                int flipIndex = random.NextInt(bytes.Count);
-                bytes[flipIndex] ^= (byte)(1 << random.NextInt(8));
-                break;
-            case 1 when bytes.Count > 0:
-                bytes[random.NextInt(bytes.Count)] = random.NextByte();
-                break;
-            case 2 when bytes.Count < maximumLength:
-                bytes.Insert(random.NextInt(bytes.Count + 1), random.NextByte());
-                break;
-            case 3 when bytes.Count > 1:
-                bytes.RemoveAt(random.NextInt(bytes.Count));
-                break;
-            case 4 when bytes.Count > 1:
-                int first = random.NextInt(bytes.Count);
-                int second = random.NextInt(bytes.Count);
-                (bytes[first], bytes[second]) = (bytes[second], bytes[first]);
-                break;
-            case 5 when bytes.Count > 0 && bytes.Count < maximumLength:
-                int source = random.NextInt(bytes.Count);
-                int count = Math.Min(1 + random.NextInt(8), bytes.Count - source);
-                count = Math.Min(count, maximumLength - bytes.Count);
-                bytes.InsertRange(random.NextInt(bytes.Count + 1), bytes.GetRange(source, count));
-                break;
-            }
-        }
-
-        return bytes.ToArray();
-    }
-}
-
-/// <summary>Describes one stable managed fuzz run.</summary>
-public sealed class FuzzReport
-{
-    public int SchemaVersion { get; init; }
-
-    public string Seed { get; init; } = string.Empty;
-
-    public int IterationsPerTarget { get; init; }
-
-    public int MaxInputBytes { get; init; }
-
-    public FuzzTargetReport[] Targets { get; init; } = [];
-}
-
-/// <summary>Summarizes deterministic outcomes for one target.</summary>
-public sealed class FuzzTargetReport
-{
-    public string Id { get; init; } = string.Empty;
-
-    public int SeedCases { get; init; }
-
-    public int MutationCases { get; init; }
-
-    public int Successes { get; init; }
-
-    public int DocumentedFailures { get; init; }
-
-    public string Digest { get; init; } = string.Empty;
-}
-
-/// <summary>Retains complete replay coordinates when an undocumented exception escapes a target.</summary>
-public sealed class FuzzFailureException : Exception
-{
-    public FuzzFailureException(
-        string target,
-        ulong seed,
-        int iteration,
-        string source,
-        byte[] input,
-        Exception innerException)
-        : base(
-            $"Managed fuzz target '{target}' failed. Replay seed=0x{seed:X16}, iteration={iteration}, " +
-            $"source={source}, input={Convert.ToHexString(input)}.",
-            innerException)
-    {
-        this.Target = target;
-        this.Seed = seed;
-        this.Iteration = iteration;
-        this.CaseSource = source;
-        this.Input = input.ToArray();
-    }
-
-    public string Target { get; }
-
-    public ulong Seed { get; }
-
-    public int Iteration { get; }
-
-    public string CaseSource { get; }
-
-    public byte[] Input { get; }
 }

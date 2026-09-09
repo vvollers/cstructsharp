@@ -1,0 +1,29 @@
+<Project>
+
+  <!--
+    Shared MSBuild defaults for every project in the repository. A project may override any property below by
+    setting it again in its own .csproj; MSBuild evaluates later assignments after this file's, so a project-level
+    value always wins.
+  -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!--
+    Every project is held to the same analyzer gate by default, including the previously-unanalyzed
+    CStructSharp.Fuzz, CStructSharp.Benchmarks, CStructSharp.PackageConsumer, and CStructSharpWeb.Wasm projects
+    (docs/architecture-improvement-plan.md, AP-4.6).
+  -->
+  <ItemGroup>
+    <PackageReference Include="Roslynator.Analyzers" Version="5.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

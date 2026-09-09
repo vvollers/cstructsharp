@@ -11,6 +11,7 @@ internal sealed class FuzzTargets
         "struct leaf { byte value; }; " +
         "union choice { uint16 number; byte raw[2]; }; " +
         "struct root { byte count; uint16 values[4]; leaf nested; choice selected; uint16 *link; char name[]; };";
+
     private const string PointerUnionDefinition =
         "union payload { uint32 number; byte raw[4]; }; " +
         "struct node { byte tag; payload data; node *next; };";
@@ -179,9 +180,3 @@ internal sealed class FuzzTargets
         };
     }
 }
-
-/// <summary>Pairs one target action with its intentionally documented failure predicate.</summary>
-internal sealed record FuzzTarget(
-    string Name,
-    Action<byte[]> Execute,
-    Func<Exception, bool> IsDocumentedFailure);
