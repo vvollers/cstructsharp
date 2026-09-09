@@ -51,16 +51,43 @@ public class OffsetAssertionTests
 
     /// <summary>
     ///     When a field follows a runtime-length sibling, its static offset is unknowable at construction time, so
-    ///     the assertion is accepted without being checked - a documented limitation, not silent success dressed up
-    ///     as validation. Normal reading still works regardless.
+    ///     construction always succeeds regardless of whether the assertion is right - but the gap is closed, not
+    ///     left silently unchecked: the first operation that actually reaches the field (here, ParseStream) performs
+    ///     the check instead, at the point the field's real position finally becomes known.
     /// </summary>
     [TestMethod]
-    public void RuntimeDependentField_ConstructionSucceedsWithTheAssertionUnchecked()
+    public void RuntimeDependentField_ConstructionSucceedsButTheFirstOperationChecksTheAssertion()
+    {
+        var wrong = new CStruct("struct root { uint8 count; uint8 items[count]; uint8 tail @999; };");
+        var right = new CStruct("struct root { uint8 count; uint8 items[count]; uint8 tail @3; };");
+
+        Assert.Throws<CStructLayoutException>(() => wrong.ParseStream(new MemoryStream([2, 10, 20, 42,]), "root"));
+
+        dynamic parsed = right.ParseStream(new MemoryStream([2, 10, 20, 42,]), "root");
+        Assert.AreEqual((byte)42, (byte)parsed.tail);
+    }
+
+    /// <summary>The runtime check fires via every operation, not just whole-struct reads - including a single-path
+    /// resolution through ReadValue, which resolves its target via the address resolver before reading it.</summary>
+    [TestMethod]
+    public void RuntimeDependentField_CheckedViaSinglePathReadValueToo()
+    {
+        var cstruct = new CStruct("struct root { uint8 count; uint8 items[count]; uint8 tail @999; };");
+        using var stream = new MemoryStream([2, 10, 20, 42,]);
+
+        Assert.Throws<CStructLayoutException>(() => cstruct.ReadValue(stream, "root.tail"));
+    }
+
+    /// <summary>The runtime check also fires for a write operation reaching the field, not only reads.</summary>
+    [TestMethod]
+    public void RuntimeDependentField_CheckedOnSerializeToo()
     {
         var cstruct = new CStruct("struct root { uint8 count; uint8 items[count]; uint8 tail @999; };");
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([2, 10, 20, 42,]), "root");
-        Assert.AreEqual((byte)42, (byte)parsed.tail);
+        Assert.Throws<CStructLayoutException>(
+            () => cstruct.Serialize(
+                "root",
+                new { count = (byte)2, items = new byte[] { 10, 20, }, tail = (byte)42, }));
     }
 
     /// <summary>A negative offset is rejected regardless of what the field's actual placement would be.</summary>
