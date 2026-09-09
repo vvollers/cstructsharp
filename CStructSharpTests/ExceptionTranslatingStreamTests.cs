@@ -116,8 +116,48 @@ public class ExceptionTranslatingStreamTests
         }
     }
 
+    /// <summary>
+    ///     Regression coverage for the architecture-review fix (docs/architecture-improvement-plan.md, AP-3.2)
+    ///     that widened both budget streams' physical-failure classification from IOException alone to also
+    ///     include NotSupportedException (an operation the physical stream does not implement) and
+    ///     ObjectDisposedException (a stream disposed out from under an in-progress operation) - matching
+    ///     SparseUpdateStream's own, already-broader classifier. Before this fix, either exception type would
+    ///     leak out of ReadBudgetStream/WriteBudgetStream as a raw BCL exception instead of the documented,
+    ///     bounded CStructReadException/CStructWriteException.
+    /// </summary>
+    [TestMethod]
+    public void BudgetStreams_ClassifyNotSupportedAndObjectDisposedAsPhysicalFailuresToo()
+    {
+        Exception[] causes =
+        [
+            new NotSupportedException("injected not-supported"),
+            new ObjectDisposedException("injected-stream"),
+        ];
+
+        foreach (Exception cause in causes)
+        {
+            using (var inner = new SelectiveFaultStream(cause) { Point = FaultPoint.Flush, })
+            using (var readStream = new ReadBudgetStream(inner, new ReadOptions()))
+            {
+                CStructReadException failure = Assert.Throws<CStructReadException>(
+                    () => readStream.Flush(),
+                    cause.GetType().Name);
+                Assert.AreSame(cause, failure.InnerException, cause.GetType().Name);
+            }
+
+            using (var inner = new SelectiveFaultStream(cause) { Point = FaultPoint.Flush, })
+            using (var writeStream = new WriteBudgetStream(inner, new WriteOptions()))
+            {
+                CStructWriteException failure = Assert.Throws<CStructWriteException>(
+                    () => writeStream.Flush(),
+                    cause.GetType().Name);
+                Assert.AreSame(cause, failure.InnerException, cause.GetType().Name);
+            }
+        }
+    }
+
     /// <summary>Behaves like a tiny seekable stream except at one explicitly selected operation.</summary>
-    private sealed class SelectiveFaultStream(IOException cause) : Stream
+    private sealed class SelectiveFaultStream(Exception cause) : Stream
     {
         private long length;
         private long position;

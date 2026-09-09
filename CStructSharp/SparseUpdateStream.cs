@@ -63,7 +63,7 @@ internal sealed class SparseUpdateStream : Stream
             {
                 destination.Position = range.Start;
             }
-            catch (Exception exception) when (IsPhysicalStreamFailure(exception))
+            catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
             {
                 throw CreateCommitFailure(
                     "Cannot seek to a validated update range in the destination stream.",
@@ -76,7 +76,7 @@ internal sealed class SparseUpdateStream : Stream
             {
                 destination.Write(range.Bytes, 0, range.Length);
             }
-            catch (Exception exception) when (IsPhysicalStreamFailure(exception))
+            catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
             {
                 throw CreateCommitFailure(
                     "Cannot commit a validated update range to the destination stream.",
@@ -271,11 +271,6 @@ internal sealed class SparseUpdateStream : Stream
 
         // Public CStruct operations do not take baseline stream ownership.
         base.Dispose(disposing);
-    }
-
-    private static bool IsPhysicalStreamFailure(Exception exception)
-    {
-        return exception is IOException or NotSupportedException or ObjectDisposedException;
     }
 
     private static CStructWriteException CreateCommitFailure(
