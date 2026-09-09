@@ -46,7 +46,6 @@ This example establishes one format's widths; it does not prove equivalence with
 | `floating-point-field` | `double value;` | Endian/NaN/value rules are not defined | Model reviewed raw integer bits or add a fully specified feature |
 | `function-pointer` | `uint8 (*callback)(uint8)` | Data-pointer grammar cannot describe/invoke functions | Use fixed unsigned storage only when an opaque address is appropriate |
 | `zero-width-bitfield` | `uint8 reserved : 0;` | Native separator/allocation rules vary | Start an explicit new field/storage unit |
-| `unnamed-bitfield` | `uint8 :3;` | A declarator name is currently required before a bit width; unlike zero-width/ABI-specific forms this has no ABI ambiguity and is tracked as plausible future syntax sugar (LANG-17) | Give the field a name even if unused, e.g. `uint8 reserved:3;` |
 | `typedef-array` | `typedef uint8 bytes[4];` | Typedef aliases a name and optional pointer depth, not a declarator | Put `[4]` on the field |
 | `typedef-tag-alias` | `typedef struct ExistingTag alias;` (no braces) | A typedef alias of an already-declared tag, without repeating its body, is not a supported declarator form | Repeat the full `typedef struct tag { ... } alias;` declaration, or use `child alias;` directly |
 | `non-power-of-two-alignment` | `uint8 value @align(3);` | An explicit alignment override must be a positive power of two, matching every native ABI's own alignment rule | Use a power-of-two value, e.g. `@align(4)` |

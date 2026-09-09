@@ -84,11 +84,47 @@ through `(2^width - 1)`. Negative and overflowing values produce `WriteFailed`.
 An update first reads the complete existing unit, changes only the selected mask, and preserves neighboring and
 unused bits. The same rule applies to a bitfield viewed through a union.
 
+## Unnamed padding fields
+
+A declarator may omit its name and keep only a nonzero bit width, reserving storage as pure padding:
+
+```c
+struct flags {
+    uint8 low:3;
+    uint8 :2;
+    uint8 high:3;
+};
+```
+
+The two middle bits are consumed from the shared storage unit exactly like any other bitfield slice, but never
+become an addressable path, a POCO/`ExpandoObject` member, or a JSON field - there is nothing to read, write, or
+resolve a path to. New output (`WriteStream`, `Serialize`) always writes zero for those bits, the same way a
+struct's own tail padding is zero-filled; an update to a named sibling in the same storage unit changes only that
+sibling's own bit range and leaves the padding untouched. Debug output still reports the padding's byte/bit range,
+since it is still storage worth inspecting even though it has no name. `@align(N)` is accepted on an anonymous declarator the
+same way it is on a named one; `@N` is rejected the same way it already is on every bitfield declarator, named or
+not.
+
+A whole field can be anonymous from its own declaration, not only a middle slice of a comma-separated list:
+
+```c
+struct reserved_byte {
+    uint8 :3;
+};
+```
+
+**The anonymous type must be a single word** (`uint8`, `uint16_t`, and so on). A multi-word type
+(`unsigned int :3;`) is not rejected outright - it falls back to the existing "last word is the name" rule that
+already applies to every multi-word type, naming the field after its last word (`unsigned int :3;` declares a field
+named `int` of type `unsigned`, not an anonymous `unsigned int`). Only a single captured word before the bit width
+is unambiguous enough to mean "this word is the whole type, and there is no name."
+
+The `anonymous-bitfield-padding` fixture checks `flag=1`, `other=5`, size 1, and bytes `51` on both frameworks.
+
 ## Unsupported forms
 
 | Form | Result |
 | --- | --- |
-| Unnamed field (`uint8 : 3`) | `InvalidLayout` |
 | Zero-width separator (`uint8 reserved : 0`) | `InvalidLayout` |
 | Array, pointer, typedef, enum, or composite storage | `InvalidLayout` |
 | Width larger than the storage type | `InvalidLayout` |

@@ -61,6 +61,13 @@ internal static class SymbolValidation
         var names = new HashSet<string>(StringComparer.Ordinal);
         foreach (Field field in strct.Fields)
         {
+            // An anonymous nonzero-width bitfield (LANG-17) has no name at all, so multiple of them in one
+            // composite are not duplicates of each other.
+            if (field.Name.Name.Length == 0)
+            {
+                continue;
+            }
+
             if (!names.Add(field.Name.Name))
             {
                 string memberKind = strct.IsUnion ? "member" : "field";

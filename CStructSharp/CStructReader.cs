@@ -501,47 +501,53 @@ public partial class CStruct
                                 state.Stream.Position = finalEndPos;
                             }
 
-                            if (isArray)
+                            // An anonymous nonzero-width bitfield (LANG-17) is pure padding: its bits are read and
+                            // consumed above (and still appear in debug output, registered before this point), but
+                            // it has no name to store into the result container or capture as an expression variable.
+                            if (f.Name.Name.Length > 0)
                             {
-                                ((List<object?>)containerDict[f.Name.Name]!).Add(content);
-                            }
-                            else
-                            {
-                                containerDict[f.Name.Name] = content;
-                            }
+                                if (isArray)
+                                {
+                                    ((List<object?>)containerDict[f.Name.Name]!).Add(content);
+                                }
+                                else
+                                {
+                                    containerDict[f.Name.Name] = content;
+                                }
 
-                            if (content is Pointer p)
-                            {
-                                // Expressions refer to the encoded pointer address, not the Pointer wrapper or target value.
-                                try
+                                if (content is Pointer p)
                                 {
-                                    state.Variables[f.Name.Name] = new Literal(Convert.ToInt32(p.Address));
+                                    // Expressions refer to the encoded pointer address, not the Pointer wrapper or target value.
+                                    try
+                                    {
+                                        state.Variables[f.Name.Name] = new Literal(Convert.ToInt32(p.Address));
+                                    }
+                                    catch (OverflowException)
+                                    {
+                                        // A valid signed stream address may exceed the expression language's Int32 domain.
+                                        // Retain the pointer result, but remove any stale caller/define value shadowed by
+                                        // this field so later expressions fail instead of using data contradicted by the stream.
+                                        state.Variables.Remove(f.Name.Name);
+                                    }
                                 }
-                                catch (OverflowException)
+                                else if (content is string str)
                                 {
-                                    // A valid signed stream address may exceed the expression language's Int32 domain.
-                                    // Retain the pointer result, but remove any stale caller/define value shadowed by
-                                    // this field so later expressions fail instead of using data contradicted by the stream.
-                                    state.Variables.Remove(f.Name.Name);
+                                    // Existing expression semantics preserve strings as identifiers for compatible layouts.
+                                    state.Variables[f.Name.Name] = new Identifier(str);
                                 }
-                            }
-                            else if (content is string str)
-                            {
-                                // Existing expression semantics preserve strings as identifiers for compatible layouts.
-                                state.Variables[f.Name.Name] = new Identifier(str);
-                            }
-                            else if (content is IConvertible)
-                            {
-                                try
+                                else if (content is IConvertible)
                                 {
-                                    // Scalars become literals so following array counts and expressions can use their name.
-                                    state.Variables[f.Name.Name] = new Literal(Convert.ToInt32(content));
-                                }
-                                catch (OverflowException)
-                                {
-                                    // Values outside the layout expression's Int32 range cannot become variables; retain the
-                                    // parsed field, but remove any stale caller/definition value shadowed by this field.
-                                    state.Variables.Remove(f.Name.Name);
+                                    try
+                                    {
+                                        // Scalars become literals so following array counts and expressions can use their name.
+                                        state.Variables[f.Name.Name] = new Literal(Convert.ToInt32(content));
+                                    }
+                                    catch (OverflowException)
+                                    {
+                                        // Values outside the layout expression's Int32 range cannot become variables; retain the
+                                        // parsed field, but remove any stale caller/definition value shadowed by this field.
+                                        state.Variables.Remove(f.Name.Name);
+                                    }
                                 }
                             }
                         }
