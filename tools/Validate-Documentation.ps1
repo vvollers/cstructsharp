@@ -6,6 +6,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'CStructSharp.Tooling.psm1') -Force
 
 $RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $DocumentationRoot = Join-Path $RepositoryRoot 'CStructSharp.Docs'
@@ -28,18 +29,6 @@ $NodeManifestPath = Join-Path $DocumentationRoot 'package.json'
 $NodeLockPath = Join-Path $DocumentationRoot 'package-lock.json'
 $SiteDirectory = Join-Path $DocumentationRoot '_site'
 $ApiDirectory = Join-Path $DocumentationRoot 'api'
-
-function Assert-Condition {
-    param(
-        [bool]$Condition,
-        [string]$Message
-    )
-
-    if (-not $Condition)
-    {
-        throw $Message
-    }
-}
 
 function Get-IgnoredDocumentationDependencies {
     $repositoryFiles = @(

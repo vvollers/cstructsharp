@@ -522,8 +522,7 @@ public class StringEncodingTests
     }
 
     /// <summary>
-    ///     Regression coverage for the architecture-review optimization (docs/architecture-improvement-plan.md,
-    ///     AP-0.5) that rents <c>ReadIntoString</c>'s chunk buffer from a shared <see cref="System.Buffers.ArrayPool{T}"/>
+    ///     Regression coverage for the architecture improvement plan's optimization (AP-0.5) that rents <c>ReadIntoString</c>'s chunk buffer from a shared <see cref="System.Buffers.ArrayPool{T}"/>
     ///     instead of allocating a fresh one per call. Reading many terminated strings of varying lengths in
     ///     immediate succession - including a short string immediately after a long one - must decode each one
     ///     exactly, proving a rented (and possibly reused, larger, or previously dirty) buffer never leaks a

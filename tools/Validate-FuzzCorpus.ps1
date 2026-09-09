@@ -6,20 +6,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-
-function Assert-Condition {
-    param(
-        [Parameter(Mandatory)]
-        [bool]$Condition,
-
-        [Parameter(Mandatory)]
-        [string]$Message
-    )
-
-    if (-not $Condition) {
-        throw $Message
-    }
-}
+Import-Module (Join-Path $PSScriptRoot 'CStructSharp.Tooling.psm1') -Force
 
 Assert-Condition (Test-Path -LiteralPath $CorpusPath -PathType Leaf) `
     "Managed fuzz corpus '$CorpusPath' does not exist."

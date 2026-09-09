@@ -6,25 +6,12 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'CStructSharp.Tooling.psm1') -Force
 
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $resolvedMatrix = (Resolve-Path -LiteralPath $MatrixPath).Path
 $matrix = Get-Content -Raw -LiteralPath $resolvedMatrix | ConvertFrom-Json -Depth 100
 $manualFixtures = Get-Content -Raw -LiteralPath $ManualFixturePath | ConvertFrom-Json -Depth 100
-
-function Assert-Condition {
-    param(
-        [Parameter(Mandatory)]
-        [bool]$Condition,
-
-        [Parameter(Mandatory)]
-        [string]$Message
-    )
-
-    if (-not $Condition) {
-        throw $Message
-    }
-}
 
 function Assert-UniqueIds {
     param(

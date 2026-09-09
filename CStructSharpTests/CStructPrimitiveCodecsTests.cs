@@ -1,8 +1,7 @@
 namespace CStructSharp.Tests;
 
 /// <summary>
-///     Regression coverage for the architecture-review optimization (docs/architecture-improvement-plan.md, AP-0.1)
-///     that hoisted the direction-suffixed primitive reader/writer/alignment tables into process-wide static
+///     Regression coverage for the architecture improvement plan's optimization (AP-0.1) that hoisted the direction-suffixed primitive reader/writer/alignment tables into process-wide static
 ///     fields shared by every <see cref="CStruct"/> instance. These tests exist specifically to prove that
 ///     sharing doesn't leak endianness/behavior across instances - each <see cref="CStruct"/> still resolves its
 ///     own unsuffixed/aliased primitive names against its own <c>IsLittleEndian</c> choice, independent of any

@@ -5,22 +5,11 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'CStructSharp.Tooling.psm1') -Force
 
 $RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $WorkflowPath = Join-Path $RepositoryRoot '.github/workflows/docs.yml'
 $ContractPath = Join-Path $RepositoryRoot 'CStructSharp.Docs/contracts/documentation/pages-v1.json'
-
-function Assert-Condition {
-    param(
-        [bool]$Condition,
-        [string]$Message
-    )
-
-    if (-not $Condition)
-    {
-        throw $Message
-    }
-}
 
 function Get-WorkflowRuleCodes {
     param(

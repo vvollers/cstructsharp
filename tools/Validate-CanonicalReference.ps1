@@ -7,21 +7,8 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'CStructSharp.Tooling.psm1') -Force
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
-
-function Assert-Condition {
-    param(
-        [Parameter(Mandatory)]
-        [bool]$Condition,
-
-        [Parameter(Mandatory)]
-        [string]$Message
-    )
-
-    if (-not $Condition) {
-        throw $Message
-    }
-}
 
 Assert-Condition (Test-Path -LiteralPath $ContractPath -PathType Leaf) `
     "Canonical Portable contract '$ContractPath' does not exist."

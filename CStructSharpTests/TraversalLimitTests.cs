@@ -504,8 +504,7 @@ public class TraversalLimitTests
     }
 
     /// <summary>
-    ///     Regression coverage for the architecture-review fix (docs/architecture-improvement-plan.md, AP-2.3)
-    ///     that added a dedicated <see cref="UpdateOptions.MaxTraversalArrayElements"/> instead of update-path
+    ///     Regression coverage for the architecture improvement plan's fix (AP-2.3) that added a dedicated <see cref="UpdateOptions.MaxTraversalArrayElements"/> instead of update-path
     ///     traversal silently reusing <see cref="WriteOptions.MaxArrayElements"/> (which is meant to bound the
     ///     array being written, not the arrays traversal passes through to find it). A generous
     ///     <see cref="WriteOptions.MaxArrayElements"/> paired with a tight

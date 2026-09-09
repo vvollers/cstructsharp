@@ -4,18 +4,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-
-function Invoke-DotNet {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string[]] $Arguments
-    )
-
-    & dotnet @Arguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "dotnet $($Arguments -join ' ') failed with exit code $LASTEXITCODE."
-    }
-}
+Import-Module (Join-Path $PSScriptRoot 'CStructSharp.Tooling.psm1') -Force
 
 $resolvedPackageDirectory = (Resolve-Path -LiteralPath $PackageDirectory).Path
 $packages = @(
@@ -75,14 +64,14 @@ $previousPackageVersion = [Environment]::GetEnvironmentVariable('CStructSharpPac
 [Environment]::SetEnvironmentVariable('CStructSharpPackageVersion', $packageVersion, 'Process')
 
 try {
-    Invoke-DotNet -Arguments @(
+    [void](Invoke-DotNet -Arguments @(
         'restore',
         $project,
         '--configfile',
         $nugetConfig,
         '--force',
         '--no-cache'
-    )
+    ))
 
     $assetsPath = Join-Path (Join-Path $projectDirectory 'obj') 'project.assets.json'
     $assets = Get-Content -LiteralPath $assetsPath -Raw | ConvertFrom-Json -AsHashtable
@@ -115,15 +104,15 @@ try {
         throw "CStructSharp restored from '$resolvedSource' instead of the package under test."
     }
 
-    Invoke-DotNet -Arguments @(
+    [void](Invoke-DotNet -Arguments @(
         'format',
         $project,
         '--no-restore',
         '--verify-no-changes'
-    )
+    ))
 
     foreach ($framework in @('net8.0', 'net10.0')) {
-        Invoke-DotNet -Arguments @(
+        [void](Invoke-DotNet -Arguments @(
             'run',
             '--project',
             $project,
@@ -132,7 +121,7 @@ try {
             '-f',
             $framework,
             '--no-restore'
-        )
+        ))
     }
 
     Write-Host (

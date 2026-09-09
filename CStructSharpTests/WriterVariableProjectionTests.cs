@@ -68,8 +68,7 @@ public class WriterVariableProjectionTests
     }
 
     /// <summary>
-    ///     Regression coverage for the architecture-review fix (docs/architecture-improvement-plan.md, AP-2.2)
-    ///     that narrowed a bare <c>catch</c> to the specific exception types a value genuinely unable to become an
+    ///     Regression coverage for the architecture improvement plan's fix (AP-2.2) that narrowed a bare <c>catch</c> to the specific exception types a value genuinely unable to become an
     ///     Int32 literal can throw. A value whose own IConvertible implementation throws something else entirely
     ///     (simulating a bug in caller code, not an expected "this value doesn't fit" shape) must propagate rather
     ///     than being silently swallowed and treated the same as an ordinary conversion failure.

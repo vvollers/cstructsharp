@@ -3,24 +3,13 @@ param()
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'CStructSharp.Tooling.psm1') -Force
 
 $RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $SnapshotParent = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
 $SnapshotRoot = Join-Path $SnapshotParent (
     'CStructSharp-documentation-snapshot-' + [Guid]::NewGuid().ToString('N'))
 $completed = $false
-
-function Assert-Condition {
-    param(
-        [bool]$Condition,
-        [string]$Message
-    )
-
-    if (-not $Condition)
-    {
-        throw $Message
-    }
-}
 
 function Assert-SnapshotPath {
     param([string]$Path)

@@ -9,22 +9,8 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'CStructSharp.Tooling.psm1') -Force
 $RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-
-function Assert-Condition {
-    param(
-        [Parameter(Mandatory)]
-        [bool]$Condition,
-
-        [Parameter(Mandatory)]
-        [string]$Message
-    )
-
-    if (-not $Condition)
-    {
-        throw $Message
-    }
-}
 
 function Get-MarkdownAnchor {
     param([Parameter(Mandatory)][string]$Heading)

@@ -139,8 +139,7 @@ public class CStructElementWriterStateTests
     }
 
     /// <summary>
-    ///     Regression coverage for the architecture-review optimization (docs/architecture-improvement-plan.md,
-    ///     AP-2.1) that converted WriteOptions/UpdateOptions to records and replaced their hand-maintained
+    ///     Regression coverage for the architecture improvement plan's optimization (AP-2.1) that converted WriteOptions/UpdateOptions to records and replaced their hand-maintained
     ///     property-by-property snapshot with the record's own <c>with</c> expression. Uses the record's
     ///     auto-generated structural equality as the proof: a snapshot that is value-equal to its source across
     ///     every one of its properties (not just the handful an earlier, more narrowly-listed test happens to

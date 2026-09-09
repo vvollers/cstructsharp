@@ -8,20 +8,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-
-function Assert-Condition {
-    param(
-        [Parameter(Mandatory)]
-        [bool]$Condition,
-
-        [Parameter(Mandatory)]
-        [string]$Message
-    )
-
-    if (-not $Condition) {
-        throw $Message
-    }
-}
+Import-Module (Join-Path $PSScriptRoot 'CStructSharp.Tooling.psm1') -Force
 
 function Get-MutantCount {
     param(

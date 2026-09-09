@@ -16,26 +16,13 @@ CStructSharpWeb.Wasm exclusion, and that CStructSharp.PackageConsumer stays excl
 
 .DESCRIPTION
 The two solution files are hand-maintained; a newly added project could silently land in only one of them
-(docs/architecture-improvement-plan.md, AP-4.5). This asserts CStructSharp.NonWeb.sln's project set equals
+(the architecture improvement plan, AP-4.5). This asserts CStructSharp.NonWeb.sln's project set equals
 CStructSharp.sln's minus $WebOnlyProjects, and that neither solution references $DeliberatelyExcludedProjects.
 #>
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-
-function Assert-Condition {
-    param(
-        [Parameter(Mandatory)]
-        [bool]$Condition,
-
-        [Parameter(Mandatory)]
-        [string]$Message
-    )
-
-    if (-not $Condition) {
-        throw $Message
-    }
-}
+Import-Module (Join-Path $PSScriptRoot 'CStructSharp.Tooling.psm1') -Force
 
 function Get-SolutionProjectPaths {
     param(
