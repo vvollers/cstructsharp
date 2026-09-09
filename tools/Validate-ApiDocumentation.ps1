@@ -49,8 +49,8 @@ function Get-RecordSynthesizedUids {
     a protected copy constructor (a sealed record's copy constructor is private, so DocFX never documents it). A
     record deriving from another record additionally overrides the base record's virtual Equals(TBase), a second
     UID distinct from its own Equals(TSelf). This is exact C# record codegen, not a heuristic: getting it wrong
-    for a future record conversion silently reintroduces the same drift this function exists to prevent
-    (docs/architecture-improvement-plan.md's post-AP-2.1 finding). None of these members can carry a hand-written
+    for a future record conversion silently reintroduces the same drift this function exists to prevent (the
+    architecture improvement plan's post-AP-2.1 finding). None of these members can carry a hand-written
     XML doc comment, so callers must also skip them entirely for summary/parameter/return/exception checks -
     not just count them - exactly like the existing "CStructSharp" module-root exemption below.
     #>
