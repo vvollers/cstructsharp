@@ -100,6 +100,52 @@ test("clicking a parsed JSON field highlights its bytes, and clicking a highligh
   await expect(page.locator('[data-testid="result-json"] .jse-selected-value')).toBeVisible();
 });
 
+test("the schema editor completes primitive types and previously declared type names", async ({
+  page,
+}) => {
+  await page.locator('[data-testid="example-new"]').click();
+  const editor = page.locator('[data-testid="definition-editor"] .monaco-editor').first();
+  await editor.click();
+
+  await page.keyboard.press("Control+End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("uin");
+  await expect(page.locator(".suggest-widget.visible")).toBeVisible();
+  await expect(
+    page.locator(".suggest-widget .monaco-list-row .label-name", { hasText: "uint32" }).first(),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await page.keyboard.press("Home");
+  await page.keyboard.press("Shift+End");
+  await page.keyboard.press("Delete");
+  await page.keyboard.type("struct my_custom_header { uint8 flag; };");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("my_cus");
+  await expect(
+    page
+      .locator(".suggest-widget .monaco-list-row .label-name", { hasText: "my_custom_header" })
+      .first(),
+  ).toBeVisible();
+});
+
+test("hovering a keyword or a declared type name in the schema editor shows its documentation", async ({
+  page,
+}) => {
+  const editor = page.locator('[data-testid="definition-editor"] .monaco-editor').first();
+  await editor.click();
+  await page.keyboard.press("Control+F");
+  await page.keyboard.type("bmp_compression compression");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Home");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Control+K");
+  await page.keyboard.press("Control+I");
+  const hover = page.locator(".monaco-hover:not(.hidden) .monaco-hover-content");
+  await expect(hover).toContainText("enum bmp_compression");
+  await expect(hover).toContainText("Rgb, Rle8, Rle4, Bitfields");
+});
+
 test("clicking a scalar array field activates every element, not just the first", async ({
   page,
 }) => {

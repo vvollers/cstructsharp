@@ -131,7 +131,7 @@ function submit(): void {
     </div>
 
     <div class="editor-body" data-testid="definition-editor">
-      <LayoutEditor v-model="definition" fill label="Binary layout (C-like definition)" />
+      <LayoutEditor v-model="definition" fill label="Binary layout (CStruct definition)" />
     </div>
 
     <div class="panel-bottombar">
