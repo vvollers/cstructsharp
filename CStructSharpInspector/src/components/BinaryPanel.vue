@@ -9,7 +9,7 @@ import type { DebugDataItem } from "../wasm/cstruct-contract";
 const props = defineProps<{
   bytes: Uint8Array;
   debugData: DebugDataItem[];
-  selectedIndex: number | null;
+  selectedIndices: ReadonlySet<number>;
 }>();
 
 const fieldGroups = computed(() => computeFieldGroups(props.debugData));
@@ -48,18 +48,20 @@ function handleModelUpdate(next: Uint8Array): void {
  *
  * The background color is keyed by field GROUP (see computeFieldGroups), not by the raw DebugData entry
  * index, so a whole array highlights as one block instead of every element getting its own color.
- * Selection (active/dim) still targets the exact clicked entry, so a specific array element can still be
- * pinpointed precisely even while its array reads as one color at rest.
+ * Selection (active/dim) targets a *set* of entry indices, not just one: a JSON click on a struct array's
+ * container needs every descendant leaf active, and a scalar array needs every entry sharing its
+ * duplicated un-indexed path active (see findDebugEntryIndicesByPath) - a single index could never
+ * represent either case.
  */
 function fieldClassForByte(payload: { index: number }): string[] {
   const entryIndex = findDebugEntryIndexByOffset(props.debugData, payload.index);
   if (entryIndex === -1) {
-    return props.selectedIndex === null ? [] : ["field-dim"];
+    return props.selectedIndices.size === 0 ? [] : ["field-dim"];
   }
   const groupIndex = fieldGroups.value[entryIndex]!;
   const classes = [`field-range-${groupIndex % 6}`];
-  if (props.selectedIndex !== null) {
-    classes.push(props.selectedIndex === entryIndex ? "field-active" : "field-dim");
+  if (props.selectedIndices.size > 0) {
+    classes.push(props.selectedIndices.has(entryIndex) ? "field-active" : "field-dim");
   }
   return classes;
 }
@@ -83,7 +85,7 @@ defineExpose({
       <h2>Binary data</h2>
       <span class="byte-count">{{ byteCount.toLocaleString() }} bytes</span>
     </div>
-    <!-- data-debug-count/-selected are unused styling hooks; reading debugData/selectedIndex here (not
+    <!-- data-debug-count/-selected are unused styling hooks; reading debugData/selectedIndices here (not
          just inside fieldClassForByte's closure) makes this template re-render when either changes, so
          the cell-class-for-byte array literal below is rebuilt with a fresh identity and VueHex
          recomputes classes (a stable array reference would otherwise never be re-evaluated). -->
@@ -91,7 +93,7 @@ defineExpose({
       class="hex-body"
       data-testid="binary-panel-hex"
       :data-debug-count="debugData.length"
-      :data-debug-selected="selectedIndex"
+      :data-debug-selected="selectedIndices.size"
     >
       <VueHex
         ref="hexEditor"

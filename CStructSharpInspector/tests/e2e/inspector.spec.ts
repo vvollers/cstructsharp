@@ -99,3 +99,20 @@ test("clicking a parsed JSON field highlights its bytes, and clicking a highligh
   await active.first().click();
   await expect(page.locator('[data-testid="result-json"] .jse-selected-value')).toBeVisible();
 });
+
+test("clicking a scalar array field activates every element, not just the first", async ({
+  page,
+}) => {
+  // uint16 e_res[4] in the PE example: the managed debug output records every element under the exact
+  // same un-indexed "root.dos.e_res" path (unlike a struct array's per-index paths), so this exercises a
+  // distinct code path from the struct-array (ICO) and single-leaf (BMP bits_per_pixel) cases above.
+  await page.locator('[data-testid="example-pe-exe"]').click();
+  await page.getByRole("button", { name: /^Run$/ }).click();
+  await expect(page.locator('[data-testid="result-json"]')).toBeVisible({ timeout: 10_000 });
+
+  const eResNode = page.locator('[data-path="%2Froot%2Fdos%2Fe_res"]').first();
+  await eResNode.locator("> .jse-header-outer .jse-header").first().click();
+
+  // 4 elements x 2 bytes x 2 columns (hex + ascii) = 16 active cells; each element is one uint16 (2 bytes).
+  await expect(page.locator('[data-testid="binary-panel-hex"] .field-active')).toHaveCount(16);
+});

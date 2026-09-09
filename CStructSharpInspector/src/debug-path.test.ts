@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeFieldGroups,
   findDebugEntryIndexByOffset,
-  findDebugEntryIndexByPath,
+  findDebugEntryIndicesByPath,
   tokenizePath,
 } from "./debug-path";
 import type { DebugDataItem } from "./wasm/cstruct-contract";
@@ -41,27 +41,55 @@ describe("tokenizePath", () => {
   });
 });
 
-describe("findDebugEntryIndexByPath", () => {
+describe("findDebugEntryIndicesByPath", () => {
   const debugData = [
     debugItem({ DebugStackString: "root.file_header.signature", CurPos: 0, EndPos: 2 }),
     debugItem({ DebugStackString: "root.info_header.bits_per_pixel", CurPos: 28, EndPos: 30 }),
-    debugItem({ DebugStackString: "root.entries[1].width", CurPos: 22, EndPos: 23 }),
+    debugItem({ DebugStackString: "root.entries[0].width", CurPos: 22, EndPos: 23 }),
+    debugItem({ DebugStackString: "root.entries[1].width", CurPos: 30, EndPos: 31 }),
   ];
 
-  it("finds the index of the entry whose tokenized path exactly matches", () => {
-    expect(findDebugEntryIndexByPath(debugData, ["root", "info_header", "bits_per_pixel"])).toBe(1);
+  it("finds the single entry whose tokenized path exactly matches a leaf", () => {
+    expect(
+      findDebugEntryIndicesByPath(debugData, ["root", "info_header", "bits_per_pixel"]),
+    ).toEqual([1]);
   });
 
-  it("matches an array-indexed path", () => {
-    expect(findDebugEntryIndexByPath(debugData, ["root", "entries", "1", "width"])).toBe(2);
+  it("matches a specific array-indexed leaf path", () => {
+    expect(findDebugEntryIndicesByPath(debugData, ["root", "entries", "1", "width"])).toEqual([3]);
   });
 
-  it("returns -1 when no entry matches", () => {
-    expect(findDebugEntryIndexByPath(debugData, ["root", "does_not_exist"])).toBe(-1);
+  it("returns every descendant leaf when the clicked path is their shared container (a struct array)", () => {
+    expect(findDebugEntryIndicesByPath(debugData, ["root", "entries"])).toEqual([2, 3]);
   });
 
-  it("returns -1 for an empty debug data list", () => {
-    expect(findDebugEntryIndexByPath([], ["root"])).toBe(-1);
+  it("returns every entry sharing an identical un-indexed path (a scalar array quirk)", () => {
+    const scalarArrayData = [
+      debugItem({ DebugStackString: "root.dos.e_res", CurPos: 28, EndPos: 30 }),
+      debugItem({ DebugStackString: "root.dos.e_res", CurPos: 30, EndPos: 32 }),
+      debugItem({ DebugStackString: "root.dos.e_res", CurPos: 32, EndPos: 34 }),
+    ];
+    expect(findDebugEntryIndicesByPath(scalarArrayData, ["root", "dos", "e_res"])).toEqual([
+      0, 1, 2,
+    ]);
+  });
+
+  it("still returns the full scalar-array set when the clicked path names a specific index it cannot represent", () => {
+    const scalarArrayData = [
+      debugItem({ DebugStackString: "root.dos.e_res", CurPos: 28, EndPos: 30 }),
+      debugItem({ DebugStackString: "root.dos.e_res", CurPos: 30, EndPos: 32 }),
+    ];
+    expect(findDebugEntryIndicesByPath(scalarArrayData, ["root", "dos", "e_res", "1"])).toEqual([
+      0, 1,
+    ]);
+  });
+
+  it("returns an empty array when no entry is related to the path", () => {
+    expect(findDebugEntryIndicesByPath(debugData, ["root", "does_not_exist"])).toEqual([]);
+  });
+
+  it("returns an empty array for an empty debug data list", () => {
+    expect(findDebugEntryIndicesByPath([], ["root"])).toEqual([]);
   });
 });
 
