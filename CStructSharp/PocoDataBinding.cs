@@ -21,27 +21,23 @@ internal static class PocoDataBinding
         return TryGetMemberValue(data, rootName, bindingMode, out object value) ? value : data;
     }
 
-    /// <summary>Follows a public path through caller-provided write data, including array indexes.</summary>
+    /// <summary>
+    ///     Follows a public path through caller-provided write data, including array indexes. An N-dimensional
+    ///     array (LANG-05) index selects one item per supplied index in turn, walking into the caller's own
+    ///     nested collection one dimension at a time - the same repeated single-dimension operation every other
+    ///     N-D consumer uses (ADR-016 decision 5).
+    /// </summary>
     public static object ResolveDataPath(object data, IReadOnlyList<PathSegment> segments, PocoBindingMode bindingMode)
     {
         // Walk the object one segment at a time so member lookup and array indexing share the same public path rules.
         object value = data;
         foreach (PathSegment segment in segments)
         {
-            // A segment may first select a named child and then one item within that child.
+            // A segment may first select a named child and then one item per index within that child.
             value = GetMemberValueOrThrow(value, segment.Name, bindingMode);
-            if (segment.Indexes.Count > 1)
+            foreach (int index in segment.Indexes)
             {
-                // TODO(LANG-05): multidimensional POCO-input indexing is not yet available; only 0 or 1 index per
-                // segment is handled today.
-                throw new CStructPathException(
-                    "Multiple indices in one path segment require a multidimensional field, not yet available: " +
-                    segment.Name);
-            }
-
-            if (segment.Indexes.Count == 1)
-            {
-                value = GetIndexedValue(value, segment.Indexes[0]);
+                value = GetIndexedValue(value, index);
             }
         }
 

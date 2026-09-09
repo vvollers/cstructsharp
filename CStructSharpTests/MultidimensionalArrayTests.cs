@@ -13,13 +13,13 @@ using CStructSharp.Structure;
 public class MultidimensionalArrayTests
 {
     /// <summary>
-    ///     Multiple indices in one path segment (<c>root.matrix[2][3]</c>) already parse successfully (LANG-05's
-    ///     path grammar accepts repeated brackets), but real per-dimension address resolution has not landed yet
-    ///     in this seam - resolving such a path must fail with a distinct, clear message, not a misleading one,
-    ///     and not silently resolve to the wrong element.
+    ///     Supplying more indices in one path segment than a field actually has dimensions (<c>root.values[0][1]</c>
+    ///     against a 1-D <c>uint8 values[4]</c> field) is rejected with a distinct, clear message - real
+    ///     per-dimension address resolution (seam 7) now resolves every legal index count, so over-indexing is the
+    ///     only remaining rejection, not a placeholder for "not yet available."
     /// </summary>
     [TestMethod]
-    public void MultipleIndicesInOneSegment_IsRejectedWithADistinctMessageUntilRealSupportLands()
+    public void TooManyIndicesInOneSegment_IsRejected()
     {
         var cstruct = new CStruct("struct root { uint8 values[4]; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[4]);
@@ -27,12 +27,12 @@ public class MultidimensionalArrayTests
         CStructPathException exception = Assert.Throws<CStructPathException>(
             () => cstruct.ResolveAddress(stream, "root.values[0][1]"));
 
-        StringAssert.Contains(exception.Message, "multidimensional");
+        StringAssert.Contains(exception.Message, "Too many array indices");
     }
 
-    /// <summary>The same temporary rejection applies to a selected-path write (<c>WriteStream</c>/<c>UpdateStream</c>).</summary>
+    /// <summary>The same over-indexing rejection applies to a selected-path write (<c>WriteStream</c>/<c>UpdateStream</c>).</summary>
     [TestMethod]
-    public void MultipleIndicesInOneSegment_IsRejectedForSelectedPathWrites()
+    public void TooManyIndicesInOneSegment_IsRejectedForSelectedPathWrites()
     {
         var cstruct = new CStruct("struct root { uint8 values[4]; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[4]);
@@ -351,5 +351,168 @@ public class MultidimensionalArrayTests
         ];
 
         Assert.Throws<CStructWriteException>(() => cstruct.Serialize("root", new { matrix, }));
+    }
+
+    /// <summary>
+    ///     ResolveAddress resolves every legal index count for a two-dimensional array: no index (the whole
+    ///     array's own start), a partial index (the selected row's start), and a full index (the selected
+    ///     element's own address) - matching the ADR's own worked example of addressing at both
+    ///     <c>root.matrix</c> and <c>root.matrix[2]</c>.
+    /// </summary>
+    [TestMethod]
+    public void ResolveAddress_ResolvesWholeArrayPartialIndexAndFullIndex()
+    {
+        var cstruct = new CStruct("struct root { uint8 matrix[3][4]; };", pointerSize: 1, aligned: false);
+        using var stream = new MemoryStream(new byte[12]);
+
+        Assert.AreEqual(0, cstruct.ResolveAddress(stream, "root.matrix"));
+        Assert.AreEqual(8, cstruct.ResolveAddress(stream, "root.matrix[2]"));
+        Assert.AreEqual(11, cstruct.ResolveAddress(stream, "root.matrix[2][3]"));
+    }
+
+    /// <summary>
+    ///     GetDynamicArrayLength reports the outer dimension's own count for the whole array, and the selected
+    ///     row's own (inner dimension's) count for a partially indexed sub-array - the ADR's own worked example.
+    /// </summary>
+    [TestMethod]
+    public void GetDynamicArrayLength_ReportsTheCurrentDimensionsCount()
+    {
+        var cstruct = new CStruct("struct root { uint8 matrix[3][4]; };", pointerSize: 1, aligned: false);
+        using var stream = new MemoryStream(new byte[12]);
+
+        Assert.AreEqual(3, cstruct.GetDynamicArrayLength(stream, "root.matrix"));
+        Assert.AreEqual(4, cstruct.GetDynamicArrayLength(stream, "root.matrix[2]"));
+    }
+
+    /// <summary>A fully indexed scalar leaf has no array length of its own to report.</summary>
+    [TestMethod]
+    public void GetDynamicArrayLength_OnAFullyIndexedElement_Throws()
+    {
+        var cstruct = new CStruct("struct root { uint8 matrix[3][4]; };", pointerSize: 1, aligned: false);
+        using var stream = new MemoryStream(new byte[12]);
+
+        Assert.Throws<CStructPathException>(() => cstruct.GetDynamicArrayLength(stream, "root.matrix[2][3]"));
+    }
+
+    /// <summary>ReadValue on a partially indexed path returns just the selected row, as a nested list.</summary>
+    [TestMethod]
+    public void ReadValue_PartialIndex_ReturnsTheSelectedSubArray()
+    {
+        var cstruct = new CStruct("struct root { uint8 matrix[3][4]; };", pointerSize: 1, aligned: false);
+        byte[] bytes = [.. Enumerable.Range(0, 12).Select(i => (byte)i),];
+        using var stream = new MemoryStream(bytes);
+
+        object? row = cstruct.ReadValue(stream, "root.matrix[1]");
+
+        CollectionAssert.AreEqual(new byte[] { 4, 5, 6, 7, }, ((List<object?>)row!).Cast<byte>().ToArray());
+    }
+
+    /// <summary>ReadValue on a fully indexed path returns the one scalar element.</summary>
+    [TestMethod]
+    public void ReadValue_FullIndex_ReturnsTheSelectedScalar()
+    {
+        var cstruct = new CStruct("struct root { uint8 matrix[3][4]; };", pointerSize: 1, aligned: false);
+        byte[] bytes = [.. Enumerable.Range(0, 12).Select(i => (byte)i),];
+        using var stream = new MemoryStream(bytes);
+
+        object? value = cstruct.ReadValue(stream, "root.matrix[1][2]");
+
+        Assert.AreEqual((byte)6, value);
+    }
+
+    /// <summary>UpdateStream to a partially indexed path replaces just the selected row from a nested-list value.</summary>
+    [TestMethod]
+    public void UpdateStream_PartialIndex_ReplacesTheSelectedSubArray()
+    {
+        var cstruct = new CStruct("struct root { uint8 matrix[3][4]; };", pointerSize: 1, aligned: false);
+        byte[] bytes = [.. Enumerable.Range(0, 12).Select(i => (byte)i),];
+        using var stream = new MemoryStream(bytes);
+
+        cstruct.UpdateStream(stream, "root.matrix[1]", new List<object> { 9, 9, 9, 9, });
+
+        CollectionAssert.AreEqual(
+            new byte[] { 0, 1, 2, 3, 9, 9, 9, 9, 8, 9, 10, 11, },
+            stream.ToArray());
+    }
+
+    /// <summary>UpdateStream to a fully indexed path replaces just the selected scalar element.</summary>
+    [TestMethod]
+    public void UpdateStream_FullIndex_ReplacesTheSelectedScalar()
+    {
+        var cstruct = new CStruct("struct root { uint8 matrix[3][4]; };", pointerSize: 1, aligned: false);
+        byte[] bytes = [.. Enumerable.Range(0, 12).Select(i => (byte)i),];
+        using var stream = new MemoryStream(bytes);
+
+        cstruct.UpdateStream(stream, "root.matrix[1][2]", (byte)99);
+
+        CollectionAssert.AreEqual(
+            new byte[] { 0, 1, 2, 3, 4, 5, 99, 7, 8, 9, 10, 11, },
+            stream.ToArray());
+    }
+
+    /// <summary>An out-of-range index at any dimension is rejected with the same exception a 1-D array already uses.</summary>
+    [TestMethod]
+    public void OutOfRangeIndex_AtAnyDimension_IsRejected()
+    {
+        var cstruct = new CStruct("struct root { uint8 matrix[3][4]; };", pointerSize: 1, aligned: false);
+        using var outerStream = new MemoryStream(new byte[12]);
+        using var innerStream = new MemoryStream(new byte[12]);
+
+        Assert.Throws<CStructPathException>(() => cstruct.ResolveAddress(outerStream, "root.matrix[3]"));
+        Assert.Throws<CStructPathException>(() => cstruct.ResolveAddress(innerStream, "root.matrix[0][4]"));
+    }
+
+    /// <summary>Traversing past a still-array (partially indexed) target requires a further index, just like an unindexed array.</summary>
+    [TestMethod]
+    public void TraversingPastAPartiallyIndexedTarget_RequiresAFurtherIndex()
+    {
+        const string layout = """
+                              struct row { uint8 a; uint8 b; };
+                              struct root { row grid[2][3]; };
+                              """;
+        var cstruct = new CStruct(layout, pointerSize: 1, aligned: false);
+        using var stream = new MemoryStream(new byte[12]);
+
+        Assert.Throws<CStructPathException>(() => cstruct.ResolveAddress(stream, "root.grid[1].a"));
+    }
+
+    /// <summary>A fully indexed struct array element can be traversed into normally.</summary>
+    [TestMethod]
+    public void FullyIndexedStructArrayElement_CanBeTraversedInto()
+    {
+        const string layout = """
+                              struct row { uint8 a; uint8 b; };
+                              struct root { row grid[2][3]; };
+                              """;
+        var cstruct = new CStruct(layout, pointerSize: 1, aligned: false);
+        byte[] bytes = [.. Enumerable.Range(0, 12).Select(i => (byte)i),];
+        using var stream = new MemoryStream(bytes);
+
+        long address = cstruct.ResolveAddress(stream, "root.grid[1][2].b");
+
+        Assert.AreEqual(11, address);
+    }
+
+    /// <summary>Debug byte ranges for a fully indexed N-dimensional struct array element stay confined to that element.</summary>
+    [TestMethod]
+    public void ParseStreamWithDebug_FullyIndexedStructArrayElement_FiltersToThatElement()
+    {
+        const string layout = """
+                              struct row { uint8 a; uint8 b; };
+                              struct root { row grid[2][3]; };
+                              """;
+        var cstruct = new CStruct(layout, pointerSize: 1, aligned: false);
+        byte[] bytes = [.. Enumerable.Range(0, 12).Select(i => (byte)i),];
+        using var stream = new MemoryStream(bytes);
+
+        (List<DebugData>? debug, dynamic cell) = cstruct.ParseStreamWithDebug(stream, "root.grid[1][2]");
+
+        Assert.AreEqual((byte)10, cell.a);
+        Assert.AreEqual((byte)11, cell.b);
+        Assert.IsNotNull(debug);
+        Assert.HasCount(2, debug);
+        Assert.IsTrue(debug.All(dbg => dbg.DebugStackString.StartsWith("root.grid", StringComparison.Ordinal)));
+        Assert.AreEqual(10L, debug[0].CurPos);
+        Assert.AreEqual(12L, debug[^1].EndPos);
     }
 }

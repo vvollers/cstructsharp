@@ -60,9 +60,9 @@ public class ManagedFuzzTests
                 128,
                 "6665169390EA6ED68F9870863353BD085EF27B845ED68765FAFCD88FC3428801"),
             ["path"] = (
-                1,
-                131,
-                "8DF27848550CE141FC27DCAAD7542BE08BC4423739D8666E72B4E7A14D294EA5"),
+                0,
+                132,
+                "BFC69FFF247794C3BF1C98874C422D6DBA224558717DE4FC54AA2DA6AAAB91D3"),
             ["pointer-union"] = (
                 26,
                 106,

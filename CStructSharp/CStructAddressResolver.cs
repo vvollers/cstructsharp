@@ -225,7 +225,13 @@ public partial class CStruct
         throw new CStructPathException($"Unknown field '{requested.Name}' in '{strct.Name.Name}'.");
     }
 
-    /// <summary>Resolves array selection, nested structures, and contextual pointer accessors for one field.</summary>
+    /// <summary>
+    ///     Resolves array selection, nested structures, and contextual pointer accessors for one field. An
+    ///     N-dimensional array (LANG-05) peels one dimension per supplied index, exactly mirroring a single
+    ///     dimension's own bounds-check-then-advance step (ADR-016 decision 5); supplying fewer indices than the
+    ///     field has dimensions leaves the target array-shaped, selecting the corresponding lower-dimensional
+    ///     sub-array (ADR-016 decision 4) rather than one scalar/struct element.
+    /// </summary>
     private ResolvedTarget ResolveTargetInField(
         CompiledField compiledField,
         long fieldStart,
@@ -238,57 +244,63 @@ public partial class CStruct
     {
         Field declaredField = compiledField.Declaration;
         PathSegment segment = segments[pathIndex];
-        Field field = compiledField.EffectiveField;
-        CStructElement? namedElement = compiledField.NamedElement;
-        bool isArray = compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime;
-        int count = isArray ? this.GetBoundedArrayCount(compiledField, state) : 1;
+        bool declaredIsArray = compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime;
 
-        // TODO(LANG-05): multidimensional path addressing (more than one index per segment) is not yet available -
-        // real per-dimension peeling lands in a later seam. Until then, 0 or 1 index behaves exactly as before.
-        if (segment.Indexes.Count > 1)
+        if (segment.Indexes.Count > 0 && !declaredIsArray)
+        {
+            throw new CStructPathException("Field is not an indexable fixed array: " + segment.Name);
+        }
+
+        int totalDimensions = compiledField.Array.Dimensions.Length;
+        if (segment.Indexes.Count > totalDimensions)
         {
             throw new CStructPathException(
-                "Multiple indices in one path segment require a multidimensional field, not yet available: " +
-                segment.Name);
+                $"Too many array indices for {segment.Name}: expected at most {totalDimensions}, got " +
+                $"{segment.Indexes.Count}.");
         }
 
-        int? segmentIndex = segment.Indexes.Count > 0 ? segment.Indexes[0] : null;
-        int selectedIndex = segmentIndex ?? 0;
-
-        if (segmentIndex.HasValue)
+        CompiledField resolvedField = compiledField;
+        long elementStart = fieldStart;
+        foreach (int suppliedIndex in segment.Indexes)
         {
-            if (!isArray)
-            {
-                throw new CStructPathException("Field is not an indexable fixed array: " + segment.Name);
-            }
-
-            if (selectedIndex >= count)
+            int dimensionCount = this.GetBoundedArrayCount(resolvedField, state);
+            if (suppliedIndex >= dimensionCount)
             {
                 throw new CStructPathException(
-                    $"Array index {selectedIndex} is out of range for {segment.Name} with length {count}.");
+                    $"Array index {suppliedIndex} is out of range for {segment.Name} with length {dimensionCount}.");
             }
+
+            elementStart = this.GetArrayElementStart(resolvedField, elementStart, suppliedIndex, state);
+            resolvedField = resolvedField.SelectArrayElement();
         }
-        else if (isArray && pathIndex + 1 < segments.Count)
+
+        bool remainingIsArray = resolvedField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime;
+        int? arrayLength = remainingIsArray ? this.GetBoundedArrayCount(resolvedField, state) : null;
+        int? selectedArrayIndex = segment.Indexes.Count > 0 && !remainingIsArray ? segment.Indexes[^1] : null;
+
+        context = context.EnterField(declaredField, segment.Indexes);
+
+        if (remainingIsArray && pathIndex + 1 < segments.Count)
         {
             throw new CStructPathException("An array index is required before traversing: " + segment.Name);
         }
 
-        context = context.EnterField(declaredField, segmentIndex);
-        long elementStart = this.GetArrayElementStart(compiledField, fieldStart, selectedIndex, state);
         if (pathIndex == segments.Count - 1)
         {
             return this.CreateFieldTarget(
-                compiledField,
+                resolvedField,
                 elementStart,
-                isArray,
-                segmentIndex,
+                declaredIsArray,
+                selectedArrayIndex,
                 bitOffset,
                 bitStorageSize,
-                isArray ? count : null,
+                arrayLength,
                 state,
                 context);
         }
 
+        Field field = resolvedField.EffectiveField;
+        CStructElement? namedElement = resolvedField.NamedElement;
         PathSegment next = segments[pathIndex + 1];
         if (field.PointerDepth > 0)
         {
@@ -300,11 +312,11 @@ public partial class CStruct
                 }
 
                 return this.CreatePointerAddressTarget(
-                    compiledField,
+                    resolvedField,
                     elementStart,
-                    isArray,
-                    isArray ? count : null,
-                    segmentIndex,
+                    declaredIsArray,
+                    arrayLength,
+                    selectedArrayIndex,
                     state,
                     context);
             }
@@ -315,15 +327,15 @@ public partial class CStruct
             }
 
             return this.ResolvePointerTarget(
-                compiledField,
+                resolvedField,
                 elementStart,
                 segments,
                 pathIndex + 1,
                 state,
                 context,
-                isArray,
-                isArray ? count : null,
-                segmentIndex);
+                declaredIsArray,
+                arrayLength,
+                selectedArrayIndex);
         }
 
         if (namedElement is Struct nestedStruct)
@@ -468,9 +480,14 @@ public partial class CStruct
         }
     }
 
-    /// <summary>Creates a semantic target for an ordinary field or one selected fixed-array element.</summary>
+    /// <summary>
+    ///     Creates a semantic target for an ordinary field, one fully selected array element (every dimension
+    ///     indexed), or a partially indexed multidimensional sub-array (LANG-05). <paramref name="resolvedField"/>
+    ///     is already peeled exactly once per supplied index by the caller, so it directly describes what this
+    ///     target reads or writes - no further peeling happens here.
+    /// </summary>
     private ResolvedTarget CreateFieldTarget(
-        CompiledField compiledField,
+        CompiledField resolvedField,
         long address,
         bool isArray,
         int? selectedArrayIndex,
@@ -480,18 +497,19 @@ public partial class CStruct
         CStructOperationContext state,
         TargetResolutionContext context)
     {
-        Field field = compiledField.EffectiveField;
-        CStructElement? namedElement = compiledField.NamedElement;
-        CompiledField writableCompiledField = selectedArrayIndex.HasValue
-                                                  ? compiledField.SelectArrayElement()
-                                                  : compiledField;
-        Field writableField = writableCompiledField.EffectiveField;
-        int alignment = writableCompiledField.Alignment;
-        int? fixedSize = selectedArrayIndex.HasValue
-                             ? compiledField.FixedElementSize
-                             : compiledField.FixedElementSize.HasValue
-                                 ? checked(compiledField.FixedElementSize.Value * (arrayLength ?? 1))
-                                 : null;
+        Field field = resolvedField.EffectiveField;
+        CStructElement? namedElement = resolvedField.NamedElement;
+        int alignment = resolvedField.Alignment;
+
+        // The peeled shape's own precomputed storage size is already correct for every case (unindexed, a
+        // multidimensional sub-array, or one fully selected element), since every dimension beyond the outermost
+        // is always fixed (Seam 4) and TotalFixedElementCount already accounts for all of them. Only a genuinely
+        // 1-D runtime/flexible-count array (the one shape whose static storage size is never known) falls back to
+        // multiplying the leaf element size by this specific target's own runtime-evaluated length.
+        int? fixedSize = resolvedField.FixedStorageSize ??
+                         (resolvedField.FixedElementSize.HasValue
+                              ? checked(resolvedField.FixedElementSize.Value * (arrayLength ?? 1))
+                              : null);
         long? unionStorageAddress = context.UnionStorageAddress;
         int? unionStorageSize = context.UnionStorageSize;
         if (namedElement is Struct { IsUnion: true, } union)
@@ -508,12 +526,12 @@ public partial class CStruct
         return new ResolvedTarget(
             address,
             selectedArrayIndex.HasValue ? ResolvedTargetKind.ArrayElement : ResolvedTargetKind.Field,
-            compiledField.Declaration,
+            resolvedField.Declaration,
             field,
-            writableField,
+            field,
             namedElement,
             context.DebugPrefix,
-            writableCompiledField.CodecName,
+            resolvedField.CodecName,
             isArray,
             arrayLength,
             selectedArrayIndex,
@@ -529,8 +547,8 @@ public partial class CStruct
             alignment,
             fixedSize,
             state.StructureDepth,
-            compiledField,
-            writableCompiledField);
+            resolvedField,
+            resolvedField);
     }
 
     /// <summary>Creates a target for pointer storage selected by a contextual <c>.address</c> accessor.</summary>
@@ -694,7 +712,13 @@ public partial class CStruct
         return target;
     }
 
-    /// <summary>Returns one selected array element's start, measuring prior dynamic struct elements when necessary.</summary>
+    /// <summary>
+    ///     Returns one selected array element's start at the current dimension, measuring prior dynamic struct
+    ///     elements when necessary. A caller addressing an N-dimensional array (LANG-05) calls this once per
+    ///     supplied index, against the shape remaining after each prior call's own <see cref="CompiledField.SelectArrayElement"/>
+    ///     peel - the same "repeat the existing single-dimension operation once per dimension" mechanism every
+    ///     other N-D consumer uses (ADR-016 decision 5).
+    /// </summary>
     private long GetArrayElementStart(
         CompiledField compiledField,
         long fieldStart,
@@ -706,24 +730,33 @@ public partial class CStruct
             return fieldStart;
         }
 
-        // A known per-element size means every element - including any nested struct's own fields - has a
-        // statically fixed layout with no runtime-dependent count or size, so the selected element's start is one
-        // multiplication instead of a per-element walk. This is also safe with respect to layout-variable capture:
-        // resolving one array element never continues on to a later sibling field of the containing struct (the
-        // caller returns or recurses into the selected element as soon as this method returns), and nothing inside
-        // a statically fixed-size element can itself depend on a captured variable. So skipping the walk over the
-        // preceding elements cannot omit a variable capture that anything still to be resolved needs.
-        if (compiledField.FixedElementSize is int fixedElementSize)
+        // The peeled shape's own storage size is exactly the stride for one step at the current dimension: for a
+        // 1-D array this is unchanged (peeling reaches Scalar directly, whose storage size is the plain element
+        // size), and for a multidimensional array it is the size of the whole remaining sub-array - a known
+        // per-element size means every element, including any nested struct's own fields, has a statically fixed
+        // layout with no runtime-dependent count or size, so the selected element's start is one multiplication
+        // instead of a per-element walk. This is also safe with respect to layout-variable capture: resolving one
+        // array element never continues on to a later sibling field of the containing struct (the caller returns
+        // or recurses into the selected element as soon as this method returns), and nothing inside a statically
+        // fixed-size element can itself depend on a captured variable. So skipping the walk over the preceding
+        // elements cannot omit a variable capture that anything still to be resolved needs.
+        CompiledField elementField = compiledField.SelectArrayElement();
+        if (elementField.FixedStorageSize is int fixedElementStride)
         {
-            return checked(fieldStart + ((long)fixedElementSize * index));
+            return checked(fieldStart + ((long)fixedElementStride * index));
         }
 
         Field field = compiledField.EffectiveField;
         CStructElement? namedElement = compiledField.NamedElement;
         if (namedElement is Struct nested)
         {
+            // Advancing one index at this dimension skips exactly the number of leaf structs one sub-array
+            // element contains - 1 for every 1-D case (unchanged, since a peeled 1-D shape is Scalar, whose own
+            // total element count is 1), or the peeled shape's own total for a multidimensional one.
+            int leavesPerStep = elementField.Array.TotalFixedElementCount ?? 1;
             long current = fieldStart;
-            for (int i = 0; i < index; i++)
+            int totalLeavesToSkip = checked(index * leavesPerStep);
+            for (int i = 0; i < totalLeavesToSkip; i++)
             {
                 current = this.MeasureStructEnd(nested, current, state);
             }
@@ -748,6 +781,25 @@ public partial class CStruct
         return count;
     }
 
+    /// <summary>
+    ///     Evaluates the total leaf element count across every dimension of a (possibly multidimensional,
+    ///     LANG-05) array and rejects it before a per-leaf walk can loop over excessive elements. Unlike
+    ///     <see cref="GetBoundedArrayCount"/> (the current/outermost dimension's own count, used for per-dimension
+    ///     bounds checks), this is the flat row-major leaf count a full measurement walk must actually visit -
+    ///     the two coincide for every 1-D field, since a 1-D shape's only dimension is both.
+    /// </summary>
+    private int GetBoundedTotalElementCount(CompiledField field, CStructOperationContext state)
+    {
+        int count = this.compiledSizeQueries.GetCompiledFieldTotalElementCount(field, state.Variables, false);
+        if (count > state.MaxArrayElements)
+        {
+            throw new CStructReadLimitException(
+                "Array length exceeds the configured limit: " + field.EffectiveField.Name.Name);
+        }
+
+        return count;
+    }
+
     /// <summary>Measures one complete field without decoding unrelated pointer targets.</summary>
     private long MeasureFieldEnd(CompiledField compiledField, long fieldStart, CStructOperationContext state)
     {
@@ -758,7 +810,7 @@ public partial class CStruct
         {
             int count = compiledField.Array.Kind == CompiledArrayKind.Scalar
                             ? 1
-                            : this.GetBoundedArrayCount(compiledField, state);
+                            : this.GetBoundedTotalElementCount(compiledField, state);
 
             // Unlike GetArrayElementStart, this walk cannot be replaced by FixedElementSize * count even when the
             // element size is statically known: a later sibling field of the containing struct is still to be
@@ -802,7 +854,7 @@ public partial class CStruct
 
         int scalarCount = compiledField.Array.Kind == CompiledArrayKind.Scalar
                               ? 1
-                              : this.GetBoundedArrayCount(compiledField, state);
+                              : this.GetBoundedTotalElementCount(compiledField, state);
         int elementSize = compiledField.FixedElementSize ??
                           this.compiledSizeQueries.GetCompiledFieldElementSize(compiledField, state.Variables, false);
         int storageSize = checked(elementSize * scalarCount);

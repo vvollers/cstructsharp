@@ -79,7 +79,7 @@ public class ResolvedTargetTests
             unionStorageAddress: 100,
             unionStorageSize: 8);
 
-        TargetResolutionContext next = context.EnterField(ScalarField("child"), selectedIndex: 5);
+        TargetResolutionContext next = context.EnterField(ScalarField("child"), selectedIndexes: [5,]);
 
         Assert.HasCount(2, next.DebugPrefix);
         Assert.AreEqual("child", next.DebugPrefix[1].Name.Name);
@@ -94,7 +94,7 @@ public class ResolvedTargetTests
     {
         var context = new TargetResolutionContext(debugPrefix: [], selectedIndexes: [7,]);
 
-        TargetResolutionContext next = context.EnterField(ScalarField("child"), selectedIndex: null);
+        TargetResolutionContext next = context.EnterField(ScalarField("child"), selectedIndexes: []);
 
         CollectionAssert.AreEqual(new[] { 7, }, next.SelectedIndexes.ToArray());
     }

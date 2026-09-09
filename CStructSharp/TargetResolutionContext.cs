@@ -39,16 +39,19 @@ internal sealed class TargetResolutionContext
 
     public int? UnionStorageSize { get; }
 
-    /// <summary>Returns a context with one declared field and optional array selection appended.</summary>
-    public TargetResolutionContext EnterField(Field field, int? selectedIndex)
+    /// <summary>
+    ///     Returns a context with one declared field and every index supplied for it (LANG-05: zero or more, one
+    ///     per dimension actually indexed) appended.
+    /// </summary>
+    public TargetResolutionContext EnterField(Field field, IReadOnlyList<int> selectedIndexes)
     {
         CStructElement[] debugPrefix = Append(this.DebugPrefix, field);
-        IReadOnlyList<int> selectedIndexes = selectedIndex.HasValue
-                                                 ? Append(this.SelectedIndexes, selectedIndex.Value)
-                                                 : this.SelectedIndexes;
+        IReadOnlyList<int> combinedIndexes = selectedIndexes.Count == 0
+                                                 ? this.SelectedIndexes
+                                                 : AppendRange(this.SelectedIndexes, selectedIndexes);
         return new TargetResolutionContext(
             debugPrefix,
-            selectedIndexes,
+            combinedIndexes,
             this.UnionStorageAddress,
             this.UnionStorageSize,
             this.PointerStorageAddress,
@@ -92,6 +95,23 @@ internal sealed class TargetResolutionContext
         }
 
         result[^1] = value;
+        return result;
+    }
+
+    /// <summary>Appends every value from one read-only list to another.</summary>
+    private static T[] AppendRange<T>(IReadOnlyList<T> values, IReadOnlyList<T> newValues)
+    {
+        var result = new T[values.Count + newValues.Count];
+        for (int index = 0; index < values.Count; index++)
+        {
+            result[index] = values[index];
+        }
+
+        for (int index = 0; index < newValues.Count; index++)
+        {
+            result[values.Count + index] = newValues[index];
+        }
+
         return result;
     }
 }
