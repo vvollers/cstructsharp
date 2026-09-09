@@ -7,6 +7,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'CStructSharp.Tooling.psm1') -Force
 
 $RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $DocumentationRoot = Join-Path $RepositoryRoot 'CStructSharp.Docs'
@@ -16,18 +17,6 @@ if ([string]::IsNullOrWhiteSpace($SiteDirectory))
     $SiteDirectory = Join-Path $DocumentationRoot '_site'
 }
 $SiteDirectory = [IO.Path]::GetFullPath($SiteDirectory)
-
-function Assert-Condition {
-    param(
-        [bool]$Condition,
-        [string]$Message
-    )
-
-    if (-not $Condition)
-    {
-        throw $Message
-    }
-}
 
 function Assert-SafeArchiveEntries {
     param([string[]]$Entries)

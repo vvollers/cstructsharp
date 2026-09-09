@@ -117,8 +117,7 @@ public class ExceptionTranslatingStreamTests
     }
 
     /// <summary>
-    ///     Regression coverage for the architecture-review fix (docs/architecture-improvement-plan.md, AP-3.2)
-    ///     that widened both budget streams' physical-failure classification from IOException alone to also
+    ///     Regression coverage for the architecture improvement plan's fix (AP-3.2) that widened both budget streams' physical-failure classification from IOException alone to also
     ///     include NotSupportedException (an operation the physical stream does not implement) and
     ///     ObjectDisposedException (a stream disposed out from under an in-progress operation) - matching
     ///     SparseUpdateStream's own, already-broader classifier. Before this fix, either exception type would

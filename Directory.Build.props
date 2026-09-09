@@ -13,7 +13,7 @@
   <!--
     Every project is held to the same analyzer gate by default, including the previously-unanalyzed
     CStructSharp.Fuzz, CStructSharp.Benchmarks, CStructSharp.PackageConsumer, and CStructSharpWeb.Wasm projects
-    (docs/architecture-improvement-plan.md, AP-4.6).
+    (the architecture improvement plan, AP-4.6).
   -->
   <ItemGroup>
     <PackageReference Include="Roslynator.Analyzers" Version="5.0.0">

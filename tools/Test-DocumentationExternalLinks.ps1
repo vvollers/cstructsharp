@@ -9,22 +9,11 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'CStructSharp.Tooling.psm1') -Force
 
 $RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $DocumentationRoot = Join-Path $RepositoryRoot 'CStructSharp.Docs'
 $AllowlistPath = Join-Path $DocumentationRoot 'contracts/documentation/external-link-allowlist.json'
-
-function Assert-Condition {
-    param(
-        [bool]$Condition,
-        [string]$Message
-    )
-
-    if (-not $Condition)
-    {
-        throw $Message
-    }
-}
 
 function Get-ExternalUrls {
     param([string]$Text)

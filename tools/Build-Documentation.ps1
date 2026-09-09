@@ -11,6 +11,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'CStructSharp.Tooling.psm1') -Force
 
 if ($ExplorerUrl -and (-not $ExplorerUrl.IsAbsoluteUri -or $ExplorerUrl.Scheme -notin @('http', 'https') -or
     $ExplorerUrl.Query -or $ExplorerUrl.Fragment -or $ExplorerUrl.UserInfo)) {
@@ -32,18 +33,6 @@ $SiteDirectory = Join-Path $DocumentationRoot '_site'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 $env:DOTNET_NOLOGO = '1'
 
-function Assert-Condition {
-    param(
-        [bool]$Condition,
-        [string]$Message
-    )
-
-    if (-not $Condition)
-    {
-        throw $Message
-    }
-}
-
 function Assert-NoWebCommand {
     param([string[]]$Arguments)
 
@@ -54,17 +43,6 @@ function Assert-NoWebCommand {
     }
 }
 
-function Format-CommandArgument {
-    param([string]$Argument)
-
-    if ($Argument -match '[\s"]')
-    {
-        return "'" + ($Argument -replace "'", "''") + "'"
-    }
-
-    return $Argument
-}
-
 function Invoke-DotNet {
     param(
         [string]$Label,
@@ -72,23 +50,7 @@ function Invoke-DotNet {
     )
 
     Assert-NoWebCommand -Arguments $Arguments
-    $display = ($Arguments | ForEach-Object { Format-CommandArgument $_ }) -join ' '
-    Write-Host "==> dotnet $display"
-    $stopwatch = [Diagnostics.Stopwatch]::StartNew()
-    $commandOutput = @(& dotnet @Arguments)
-    $exitCode = $LASTEXITCODE
-    $stopwatch.Stop()
-    foreach ($line in $commandOutput)
-    {
-        Write-Host $line
-    }
-    Write-Host ("<== {0}: exit {1}, {2:N3} s" -f $Label, $exitCode, $stopwatch.Elapsed.TotalSeconds)
-    if ($exitCode -ne 0)
-    {
-        throw "$Label failed with exit code $exitCode."
-    }
-
-    return $stopwatch.Elapsed.TotalSeconds
+    return CStructSharp.Tooling\Invoke-DotNet -Label $Label -Arguments $Arguments
 }
 
 function Assert-SafeGeneratedDirectory {

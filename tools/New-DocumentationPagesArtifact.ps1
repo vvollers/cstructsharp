@@ -5,6 +5,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'CStructSharp.Tooling.psm1') -Force
 
 $RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $SiteDirectory = Join-Path $RepositoryRoot 'CStructSharp.Docs/_site'
@@ -15,18 +16,6 @@ if ([string]::IsNullOrWhiteSpace($OutputPath))
 }
 $OutputPath = [IO.Path]::GetFullPath($OutputPath)
 $ValidationScript = Join-Path $PSScriptRoot 'Validate-PagesArtifact.ps1'
-
-function Assert-Condition {
-    param(
-        [bool]$Condition,
-        [string]$Message
-    )
-
-    if (-not $Condition)
-    {
-        throw $Message
-    }
-}
 
 $relativeOutput = [IO.Path]::GetRelativePath($ArtifactDirectory, $OutputPath)
 Assert-Condition (-not [IO.Path]::IsPathRooted($relativeOutput) -and

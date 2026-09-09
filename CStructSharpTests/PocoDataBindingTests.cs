@@ -140,8 +140,7 @@ public class PocoDataBindingTests
     }
 
     /// <summary>
-    ///     Regression coverage for the architecture-review optimization (docs/architecture-improvement-plan.md,
-    ///     AP-0.3) that caches member resolution per (type, name) instead of re-running reflection on every call.
+    ///     Regression coverage for the architecture improvement plan's optimization (AP-0.3) that caches member resolution per (type, name) instead of re-running reflection on every call.
     ///     Reading the same property from many distinct instances of the same type must return each instance's
     ///     own current value, proving the cache stores resolved <c>PropertyInfo</c>/<c>FieldInfo</c> metadata, not
     ///     a stale value from an earlier lookup.
