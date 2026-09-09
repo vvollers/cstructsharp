@@ -175,9 +175,10 @@ public partial class CStruct
                 bitStorageSize);
         }
 
+        CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
         var cursor = new CompositeFieldPlacementCursor(structStart, this.Aligned);
 
-        foreach (CompiledField compiledField in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
+        foreach (CompiledField compiledField in composite.Fields)
         {
             Field declaredField = compiledField.Declaration;
             Field field = compiledField.EffectiveField;
@@ -200,6 +201,18 @@ public partial class CStruct
                     context,
                     bitOffset,
                     selectedBitStorageSize);
+            }
+
+            // An anonymous promoted member (LANG-14) consumes no path segment of its own - retry the same
+            // segment/pathIndex against its own (recursively promoted) fields before giving up. The pre-check
+            // below is a pure, side-effect-free tree walk, so a miss costs nothing and a hit is guaranteed to
+            // succeed (construction already rejected any flattened-namespace collision), meaning a genuine
+            // downstream error inside the matched field can never be misreported as "unknown field" here.
+            if (composite.PromotedFields.Contains(compiledField) &&
+                declaredField is Struct promotedStruct &&
+                this.TryFindCompiledField(promotedStruct, requested.Name, out _))
+            {
+                return this.ResolveTargetInStruct(promotedStruct, fieldStart, segments, pathIndex, state, context);
             }
 
             this.CaptureLayoutVariable(compiledField, fieldStart, bitOffset, state);
@@ -961,12 +974,35 @@ public partial class CStruct
     /// <summary>Finds one exact compiled field name in a struct.</summary>
     private CompiledField FindCompiledField(Struct strct, string name)
     {
+        return this.TryFindCompiledField(strct, name, out CompiledField? field)
+            ? field!
+            : throw new CStructPathException($"Unknown field '{name}' in '{strct.Name.Name}'.");
+    }
+
+    /// <summary>
+    ///     Finds one exact compiled field name in a struct, recursing into every anonymous promoted member's own
+    ///     fields (LANG-14) when the name isn't one of this level's own - never throws. Purely an in-memory,
+    ///     side-effect-free tree walk, so it is safe to call speculatively before attempting a real, I/O-touching
+    ///     resolution.
+    /// </summary>
+    private bool TryFindCompiledField(Struct strct, string name, out CompiledField? field)
+    {
         CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
-        if (composite.FieldsByName.TryGetValue(name, out CompiledField? field))
+        if (composite.FieldsByName.TryGetValue(name, out field))
         {
-            return field;
+            return true;
         }
 
-        throw new CStructPathException($"Unknown field '{name}' in '{strct.Name.Name}'.");
+        foreach (CompiledField promoted in composite.PromotedFields)
+        {
+            if (promoted.Declaration is Struct promotedStruct &&
+                this.TryFindCompiledField(promotedStruct, name, out field))
+            {
+                return true;
+            }
+        }
+
+        field = null;
+        return false;
     }
 }
