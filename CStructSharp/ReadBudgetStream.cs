@@ -44,7 +44,7 @@ internal sealed class ReadBudgetStream : Stream
             {
                 return this.inner.Length;
             }
-            catch (IOException exception)
+            catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
             {
                 throw this.CreateReadFailure("Cannot read the source stream length.", exception);
             }
@@ -59,7 +59,7 @@ internal sealed class ReadBudgetStream : Stream
             {
                 return this.inner.Position;
             }
-            catch (IOException exception)
+            catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
             {
                 throw this.CreateReadFailure("Cannot read the source stream position.", exception);
             }
@@ -71,7 +71,7 @@ internal sealed class ReadBudgetStream : Stream
             {
                 this.inner.Position = value;
             }
-            catch (IOException exception)
+            catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
             {
                 throw this.CreateReadFailure("Cannot change the source stream position.", exception);
             }
@@ -85,7 +85,7 @@ internal sealed class ReadBudgetStream : Stream
         {
             this.inner.Flush();
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateReadFailure("Cannot flush the source stream.", exception);
         }
@@ -99,7 +99,7 @@ internal sealed class ReadBudgetStream : Stream
         {
             read = this.inner.Read(buffer, offset, count);
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateReadFailure("Cannot read from the source stream.", exception);
         }
@@ -116,7 +116,7 @@ internal sealed class ReadBudgetStream : Stream
         {
             read = this.inner.Read(buffer);
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateReadFailure("Cannot read from the source stream.", exception);
         }
@@ -133,7 +133,7 @@ internal sealed class ReadBudgetStream : Stream
         {
             value = this.inner.ReadByte();
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateReadFailure("Cannot read from the source stream.", exception);
         }
@@ -153,7 +153,7 @@ internal sealed class ReadBudgetStream : Stream
         {
             return this.inner.Seek(offset, origin);
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateReadFailure("Cannot seek in the source stream.", exception);
         }
@@ -203,7 +203,7 @@ internal sealed class ReadBudgetStream : Stream
     }
 
     /// <summary>Creates a physical source error and records its position when the stream can still report it.</summary>
-    private CStructReadException CreateReadFailure(string message, IOException exception)
+    private CStructReadException CreateReadFailure(string message, Exception exception)
     {
         var result = new CStructReadException(message, exception);
         result.AttachContext(offset: this.TryGetPosition());

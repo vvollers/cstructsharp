@@ -40,7 +40,7 @@ internal sealed class WriteBudgetStream : Stream
             {
                 return this.inner.Position;
             }
-            catch (IOException exception)
+            catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
             {
                 throw this.CreateWriteFailure("Cannot read the destination stream position.", exception);
             }
@@ -52,7 +52,7 @@ internal sealed class WriteBudgetStream : Stream
             {
                 this.inner.Position = value;
             }
-            catch (IOException exception)
+            catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
             {
                 throw this.CreateWriteFailure("Cannot change the destination stream position.", exception);
             }
@@ -66,7 +66,7 @@ internal sealed class WriteBudgetStream : Stream
         {
             this.inner.Flush();
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateWriteFailure("Cannot flush the destination stream.", exception);
         }
@@ -79,7 +79,7 @@ internal sealed class WriteBudgetStream : Stream
         {
             return this.inner.Read(buffer, offset, count);
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateReadFailure("Cannot read existing destination bytes.", exception);
         }
@@ -92,7 +92,7 @@ internal sealed class WriteBudgetStream : Stream
         {
             return this.inner.Read(buffer);
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateReadFailure("Cannot read existing destination bytes.", exception);
         }
@@ -105,7 +105,7 @@ internal sealed class WriteBudgetStream : Stream
         {
             return this.inner.ReadByte();
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateReadFailure("Cannot read an existing destination byte.", exception);
         }
@@ -118,7 +118,7 @@ internal sealed class WriteBudgetStream : Stream
         {
             return this.inner.Seek(offset, origin);
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateWriteFailure("Cannot seek in the destination stream.", exception);
         }
@@ -133,7 +133,7 @@ internal sealed class WriteBudgetStream : Stream
         {
             this.inner.SetLength(value);
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateWriteFailure("Cannot change the destination stream length.", exception);
         }
@@ -147,7 +147,7 @@ internal sealed class WriteBudgetStream : Stream
         {
             this.inner.Write(buffer, offset, count);
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateWriteFailure("Cannot write to the destination stream.", exception);
         }
@@ -163,7 +163,7 @@ internal sealed class WriteBudgetStream : Stream
         {
             this.inner.Write(buffer);
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateWriteFailure("Cannot write to the destination stream.", exception);
         }
@@ -179,7 +179,7 @@ internal sealed class WriteBudgetStream : Stream
         {
             this.inner.WriteByte(value);
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateWriteFailure("Cannot write to the destination stream.", exception);
         }
@@ -258,14 +258,14 @@ internal sealed class WriteBudgetStream : Stream
         {
             return this.inner.Length;
         }
-        catch (IOException exception)
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {
             throw this.CreateWriteFailure("Cannot read the destination stream length.", exception);
         }
     }
 
     /// <summary>Creates a physical destination error and records its position when the stream can still report it.</summary>
-    private CStructWriteException CreateWriteFailure(string message, IOException exception)
+    private CStructWriteException CreateWriteFailure(string message, Exception exception)
     {
         var result = new CStructWriteException(message, exception);
         result.AttachContext(offset: this.TryGetPosition());
@@ -273,7 +273,7 @@ internal sealed class WriteBudgetStream : Stream
     }
 
     /// <summary>Creates an existing-data read error for update/bitfield operations.</summary>
-    private CStructReadException CreateReadFailure(string message, IOException exception)
+    private CStructReadException CreateReadFailure(string message, Exception exception)
     {
         var result = new CStructReadException(message, exception);
         result.AttachContext(offset: this.TryGetPosition());
