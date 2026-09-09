@@ -981,6 +981,11 @@
       "category": "zero-width bitfield"
     },
     {
+      "id": "unnamed-bitfield",
+      "definition": "struct root { uint8 :3; };",
+      "category": "bitfield padding"
+    },
+    {
       "id": "typedef-array",
       "definition": "typedef uint8 bytes[4]; struct root { bytes value; };",
       "category": "typedef array"

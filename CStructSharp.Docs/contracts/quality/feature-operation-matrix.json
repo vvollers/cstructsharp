@@ -2932,12 +2932,21 @@
       ]
     },
     {
-      "id": "additional-bitfield-forms",
-      "syntax": "unnamed fields, zero-width separators, typedef/enum storage, and ABI-specific allocation",
-      "rationale": "The accepted portable subset requires named fields and direct built-in integral storage.",
+      "id": "abi-specific-bitfield-forms",
+      "syntax": "zero-width separators, typedef/enum storage, and ABI-specific allocation",
+      "rationale": "The accepted portable subset requires direct built-in integral storage; native compilers disagree on zero-width and ABI-specific allocation rules, so these have no single portable meaning until a named ABI profile defines them.",
       "diagnosticPolicy": "Reject during layout compilation with a storage-capability diagnostic.",
       "workItems": [
         "LANG-10"
+      ]
+    },
+    {
+      "id": "unnamed-nonzero-width-bitfield",
+      "syntax": "an unnamed but nonzero-width bitfield used as pure padding, e.g. uint8 :3;",
+      "rationale": "No ABI ambiguity exists for a padding-only bit reservation with no exposed field, unlike zero-width separators or ABI-specific storage; this is plausibly core-eligible portable syntax sugar, not yet scheduled.",
+      "diagnosticPolicy": "Currently rejected as a side effect of requiring a declarator name before a bit width, not by a deliberate rule targeting this case specifically.",
+      "workItems": [
+        "LANG-17"
       ]
     },
     {
