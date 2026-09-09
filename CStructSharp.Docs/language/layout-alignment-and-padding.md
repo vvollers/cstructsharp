@@ -97,7 +97,36 @@ An override on one declarator in a comma-separated list (`uint8 a @align(4), b;`
 own placement and the composite's own reported alignment; it does not affect its sibling declarators' placement.
 
 `@align(N)` changes only which alignment value a field's placement uses. It cannot move a field's placement
-backward. For checking a field's placement without changing it, see the offset assertion below.
+backward. For checking a field's placement without changing it, see the offset assertion below. For overriding an
+entire composite's fields at once, see the composite-level form next.
+
+## Explicit composite alignment override
+
+A `struct`/`union` declaration may itself carry `@align(N)` immediately before its opening brace, clamping every
+one of that composite's own fields' alignment to at most `N` - matching real `#pragma pack(N)` semantics, not
+`alignas(N)`, which can also *increase* alignment (out of scope; only clamping down is supported):
+
+```c
+struct sample @align(1) {
+    uint8 a;
+    uint32 b;
+};
+```
+
+Here `b`'s natural 4-byte alignment is clamped to 1, so it starts immediately after `a` with no padding - `N=1`
+therefore has exactly the effect of "packed" for this one composite, while the rest of the layout can remain
+aligned. A partial clamp (`N` above 1 but below a field's natural alignment) reduces padding without eliminating
+it entirely.
+
+**A field's own explicit `@align(N)` always wins outright**, never further clamped by its enclosing composite's
+own override - the more specific annotation takes precedence. `N` must be a positive power of two, validated the
+same way as the field-level form (`non-power-of-two-composite-alignment` in
+[`portable-v1.json`](../contracts/language/portable-v1.json)). **Like the field-level form, this only has an
+observable effect when the enclosing layout is constructed with `aligned: true`** - in packed mode every field
+already has no padding regardless of any `Alignment` value, so the clamp is inert there too.
+
+Because a nested struct-typed field reads its type's own published alignment, a composite's clamped alignment
+propagates to any containing composite automatically - no separate propagation rule is needed.
 
 ## Explicit byte-offset assertion
 
@@ -143,6 +172,7 @@ Padding in newly serialized output is zero. Offsets are relative to the root.
 | `boolean-round-trip` | `struct sample { bool flag; uint8 tail; };` with `flag=true`, `tail=0xAA` | little, packed | `flag=0`, `tail=1` | 2 / 1 | `01 AA` |
 | `alignment-override` | `struct sample { uint8 a; uint8 value @align(4); };` with `a=1`, `value=2` | little, aligned | `a=0`, `value=4` | 8 / 4 | `01 00 00 00 02 00 00 00` |
 | `offset-assertion` | `struct sample { uint8 a; uint8 b; uint8 value @2; };` with `a=1`, `b=2`, `value=3` | little, packed | `a=0`, `b=1`, `value=2` | 3 / 1 | `01 02 03` |
+| `composite-alignment-override` | `struct sample @align(1) { uint8 a; uint32 b; };` with `a=1`, `b=0x04030201` | little, aligned | `a=0`, `b=1` | 5 / 1 | `01 01 02 03 04` |
 
 `GetStructAlignmentInBytes` returns the alignment column even in packed mode. `GetStructSizeInBytes` works only when
 the selected struct/union has a fixed extent. Runtime arrays and terminated fields need operation variables or actual

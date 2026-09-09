@@ -470,15 +470,25 @@ internal static class CStructDefinitionParser
         Rec(() => Try(InnerStruct!).Select(f => (IEnumerable<Field>)new[] { f, }).Or(FieldGroup));
 
     public static readonly Parser<char, Field> InnerStruct = Map(
-            (fields, name) => new Struct(name, [.. fields.SelectMany(group => group),], false),
-            StructKeyword.Then(SkipWhiteSpacesAndComments).Then(OpenBrace).Then(StructOrField.Many()),
+            (alignOverride, fields, name) => new Struct(
+                name,
+                [.. fields.SelectMany(group => group),],
+                false,
+                alignOverride.HasValue ? alignOverride.Value : null),
+            StructKeyword.Then(SkipWhiteSpacesAndComments).Then(AlignmentOverride.Optional()),
+            SkipWhiteSpacesAndComments.Then(OpenBrace).Then(StructOrField.Many()),
             SkipWhiteSpacesAndComments.Before(CloseBrace).Then(Identifier).Before(SemiColon)).
         Select<Field>(s => s).
         Labelled("Struct");
 
     public static readonly Parser<char, CStructElement> Struct = Map(
-            (name, fields) => new Struct(name, [.. fields.SelectMany(group => group),], false),
+            (name, alignOverride, fields) => new Struct(
+                name,
+                [.. fields.SelectMany(group => group),],
+                false,
+                alignOverride.HasValue ? alignOverride.Value : null),
             StructKeyword.Then(SkipWhiteSpacesAndComments).Then(Identifier),
+            AlignmentOverride.Optional(),
             SkipWhiteSpacesAndComments.Then(OpenBrace).
                 Then(SkipWhiteSpacesAndComments).
                 Then(StructOrField.Many().Before(CloseBrace).Before(SemiColon.Optional()))).
@@ -486,8 +496,13 @@ internal static class CStructDefinitionParser
         Labelled("Struct");
 
     public static readonly Parser<char, CStructElement> Union = Map(
-            (name, fields) => new Struct(name, [.. fields.SelectMany(group => group)], true),
+            (name, alignOverride, fields) => new Struct(
+                name,
+                [.. fields.SelectMany(group => group)],
+                true,
+                alignOverride.HasValue ? alignOverride.Value : null),
             UnionKeyword.Then(SkipWhiteSpacesAndComments).Then(Identifier),
+            AlignmentOverride.Optional(),
             SkipWhiteSpacesAndComments.Then(OpenBrace).
                 Then(SkipWhiteSpacesAndComments).
                 Then(FieldGroup.Many().Before(CloseBrace).Before(SemiColon.Optional()))).
@@ -511,18 +526,32 @@ internal static class CStructDefinitionParser
 
     /// <summary>Parses <c>typedef struct { ... } Name;</c>, the anonymous inline form with no tag between "struct" and "{".</summary>
     public static readonly Parser<char, CStructElement> AnonymousTypedefStruct = Map(
-            (fields, name) => new Typedef(name, new Struct(name, [.. fields.SelectMany(group => group),], false)),
+            (alignOverride, fields, name) => new Typedef(
+                name,
+                new Struct(
+                    name,
+                    [.. fields.SelectMany(group => group),],
+                    false,
+                    alignOverride.HasValue ? alignOverride.Value : null)),
             TypedefKeyword.Then(SkipWhiteSpacesAndComments).Then(StructKeyword).
-                Then(SkipWhiteSpacesAndComments).Then(OpenBrace).Then(StructOrField.Many()),
+                Then(SkipWhiteSpacesAndComments).Then(AlignmentOverride.Optional()),
+            SkipWhiteSpacesAndComments.Then(OpenBrace).Then(StructOrField.Many()),
             SkipWhiteSpacesAndComments.Before(CloseBrace).Then(Identifier).Before(SemiColon)).
         Select<CStructElement>(s => s).
         Labelled("Anonymous Typedef Struct");
 
     /// <summary>Parses <c>typedef union { ... } Name;</c>, the anonymous inline form with no tag between "union" and "{".</summary>
     public static readonly Parser<char, CStructElement> AnonymousTypedefUnion = Map(
-            (fields, name) => new Typedef(name, new Struct(name, [.. fields.SelectMany(group => group),], true)),
+            (alignOverride, fields, name) => new Typedef(
+                name,
+                new Struct(
+                    name,
+                    [.. fields.SelectMany(group => group),],
+                    true,
+                    alignOverride.HasValue ? alignOverride.Value : null)),
             TypedefKeyword.Then(SkipWhiteSpacesAndComments).Then(UnionKeyword).
-                Then(SkipWhiteSpacesAndComments).Then(OpenBrace).Then(FieldGroup.Many()),
+                Then(SkipWhiteSpacesAndComments).Then(AlignmentOverride.Optional()),
+            SkipWhiteSpacesAndComments.Then(OpenBrace).Then(FieldGroup.Many()),
             SkipWhiteSpacesAndComments.Before(CloseBrace).Then(Identifier).Before(SemiColon)).
         Select<CStructElement>(s => s).
         Labelled("Anonymous Typedef Union");

@@ -892,6 +892,25 @@
         "sample.value": "3"
       },
       "bytes": "010203"
+    },
+    {
+      "id": "composite-alignment-override",
+      "definition": "struct sample @align(1) { uint8 a; uint32 b; };",
+      "root": "sample",
+      "pointerSize": 4,
+      "littleEndian": true,
+      "aligned": true,
+      "size": 5,
+      "alignment": 1,
+      "offsets": {
+        "sample.a": 0,
+        "sample.b": 1
+      },
+      "values": {
+        "sample.a": "1",
+        "sample.b": "67305985"
+      },
+      "bytes": "0101020304"
     }
   ],
   "unsupportedConstructs": [
@@ -948,6 +967,11 @@
     {
       "id": "non-power-of-two-alignment",
       "definition": "struct root { uint8 value @align(3); };",
+      "category": "explicit placement"
+    },
+    {
+      "id": "non-power-of-two-composite-alignment",
+      "definition": "struct root @align(3) { uint8 value; };",
       "category": "explicit placement"
     },
     {

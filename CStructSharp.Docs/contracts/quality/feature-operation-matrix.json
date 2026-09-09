@@ -625,6 +625,28 @@
       }
     },
     {
+      "featureId": "composite-alignment-override",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The override changes only which alignment value each unannotated field's placement uses; every field's own codec supplies its value contract unchanged."
+        ],
+        "evidence": [
+          "CStructSharpTests/CompositeAlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Exact bytes match only when the enclosing layout is constructed with aligned: true; in packed mode the override has no effect on placement or padding, the same as the field-level override."
+        ],
+        "evidence": [
+          "CStructSharpTests/CompositeAlignmentOverrideTests.cs#FullClamp_ActsAsPackedForOneComposite",
+          "CStructSharpTests/CompositeAlignmentOverrideTests.cs#PackedMode_HasNoEffect"
+        ]
+      }
+    },
+    {
       "featureId": "runtime-expression-arrays",
       "value": {
         "status": "conditional",
@@ -1903,6 +1925,103 @@
         "Validated only when the field's byte offset is statically computable at construction time; a field following a runtime-length sibling accepts the assertion without checking it.",
         "Not supported on a bitfield declarator - rejected outright at construction rather than applying an under-specified partial rule.",
         "Never repositions a field; it only validates the field's already-computed placement, so it never changes parse, serialize, write, or update output."
+      ]
+    },
+    {
+      "id": "composite-alignment-override",
+      "manual": "CStructSharp.Docs/language/layout-alignment-and-padding.md#explicit-composite-alignment-override",
+      "fixture": "composite-alignment-override",
+      "title": "Explicit per-struct/union alignment override (struct/union @align(N))",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "CStructSharpTests/CompositeAlignmentOverrideTests.cs#FullClamp_ActsAsPackedForOneComposite",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/CompositeAlignmentOverrideTests.cs#PartialClamp_ReducesButDoesNotEliminatePadding",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/CompositeAlignmentOverrideTests.cs#FieldLevelOverride_WinsOverTheCompositeClamp",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/CompositeAlignmentOverrideTests.cs#PackedMode_HasNoEffect",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/CompositeAlignmentOverrideTests.cs#PropagatesToAContainingComposite",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/CompositeAlignmentOverrideTests.cs#NonPowerOfTwo_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/CompositeAlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate",
+          "operations": [
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "N must be a positive power of two; a non-conforming value fails at construction, naming the composite and the rejected value.",
+        "Only has an observable effect when the enclosing layout is constructed with aligned: true - in packed mode it is accepted but has no effect, the same scope decision the field-level override already established.",
+        "Clamps every field relying on its own natural alignment to min(natural, N), matching #pragma pack(N) semantics; a field's own explicit @align(N) always wins outright instead of being further clamped.",
+        "Cannot increase a composite's alignment above what its fields would naturally produce (the alignas-style use case) - only clamping down is supported."
       ]
     },
     {
