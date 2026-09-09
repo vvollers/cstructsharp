@@ -448,8 +448,8 @@ public partial class CStruct
 
                 int? elementSize = pointerDepth > 0 ? this.PointerSize : type.Symbol.FixedSize;
                 CompiledArrayShape arrayShape = this.CompileArrayShape(effectiveField);
-                int? storageSize = elementSize.HasValue && arrayShape.FixedCount.HasValue
-                                       ? checked(elementSize.Value * arrayShape.FixedCount.Value)
+                int? storageSize = elementSize.HasValue && arrayShape.TotalFixedElementCount.HasValue
+                                       ? checked(elementSize.Value * arrayShape.TotalFixedElementCount.Value)
                                        : null;
                 BitfieldCodecTable.Entry? bitfieldStorage = null;
                 if (field.BitSize > 0)
