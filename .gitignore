@@ -48,6 +48,10 @@ CStructSharpWeb/public/wasm*
 CStructSharpWeb/src/generated/test-demos.json
 CStructSharpWeb/vite.config.d.ts
 CStructSharpWeb/vite.config.d.ts.map
+CStructSharpInspector/public/wasm/
+CStructSharpInspector/public/wasm*
+CStructSharpInspector/vite.config.d.ts
+CStructSharpInspector/vite.config.d.ts.map
 
 # Tool caches, telemetry, and machine-local state
 **/.cache/
