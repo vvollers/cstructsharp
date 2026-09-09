@@ -12,16 +12,15 @@ public enum PocoBindingMode
 
 /// <summary>Controls serialization and stream-writing operations performed by <see cref="CStruct"/>.</summary>
 /// <remarks>
-///     Every operation snapshots these values before writing. Budgets are per public operation. Stream operations
-///     use the stream's current position as their output origin; caller-owned memory uses coordinate zero.
+///     Every operation snapshots these values before writing (see <see cref="CStructElementWriterState.SnapshotWriteOptions"/>)
+///     using this record's own <c>with</c> expression rather than a hand-maintained property-by-property copy, so a
+///     newly added property is always included in the snapshot automatically. Budgets are per public operation.
+///     Stream operations use the stream's current position as their output origin; caller-owned memory uses
+///     coordinate zero. Left unsealed only so <see cref="UpdateOptions"/> can derive from it while keeping the
+///     same snapshot-via-<c>with</c> pattern; <see cref="ReadOptions"/> has no such subtype and stays <c>sealed</c>.
 /// </remarks>
-public class WriteOptions
+public record WriteOptions
 {
-    /// <summary>Creates the default bounded write and object-binding policy.</summary>
-    public WriteOptions()
-    {
-    }
-
     /// <summary>Gets whether written pointer values are absolute stream positions or offsets from <see cref="Origin"/>.</summary>
     public PointerAddressingMode AddressingMode { get; init; } = PointerAddressingMode.Absolute;
 

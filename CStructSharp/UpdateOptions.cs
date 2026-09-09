@@ -8,13 +8,8 @@ namespace CStructSharp;
 ///     Update operations snapshot both these traversal settings and the inherited <see cref="WriteOptions"/> values.
 ///     Library-detectable validation failures occur before destination commit and preserve the caller's stream position.
 /// </remarks>
-public sealed class UpdateOptions : WriteOptions
+public sealed record UpdateOptions : WriteOptions
 {
-    /// <summary>Creates the default bounded update, traversal, and replacement policy.</summary>
-    public UpdateOptions()
-    {
-    }
-
     /// <summary>Gets whether an update path may pass through a pointer's <c>.value</c> target.</summary>
     public bool AllowPointerDereference { get; init; } = true;
 
