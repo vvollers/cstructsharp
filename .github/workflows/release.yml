@@ -159,8 +159,14 @@ jobs:
           npm run test:unit
           npm run test:e2e
 
-      # Reuses the Chromium build (and system dependencies) the previous step already installed - same
-      # pinned @playwright/test version as CStructSharpWeb, so no separate browser install is needed.
+      # CStructSharpInspector pins the same @playwright/test range as CStructSharpWeb, but each app's own
+      # lockfile can independently drift to a different resolved patch version - and different patches can
+      # require a different downloaded browser revision. Install this app's own browser build explicitly
+      # rather than assuming the previous step's Chromium download still satisfies it.
+      - name: Install browser for inspector checks
+        working-directory: CStructSharpInspector
+        run: npx playwright install --with-deps chromium
+
       - name: Verify binary inspector
         working-directory: CStructSharpInspector
         run: |
