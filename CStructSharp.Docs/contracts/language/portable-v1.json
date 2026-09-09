@@ -954,11 +954,6 @@
       "category": "incomplete type"
     },
     {
-      "id": "anonymous-member",
-      "definition": "struct root { struct { uint8 value; }; };",
-      "category": "anonymous aggregate member"
-    },
-    {
       "id": "inline-union",
       "definition": "struct root { union { uint8 small; uint16 large; } value; };",
       "category": "inline union"
