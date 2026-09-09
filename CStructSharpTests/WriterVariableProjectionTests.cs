@@ -59,8 +59,64 @@ public class WriterVariableProjectionTests
         CStructElementWriterState state = CreateState();
         state.Variables["field"] = new Literal(1);
 
+        // Convert.ToInt32(object) throws InvalidCastException for a value that is not IConvertible at all - this
+        // is the case a caller-supplied POCO/dynamic value can genuinely hit, unlike CStructReader.cs's own
+        // capture sites, which only ever call Convert.ToInt32 on a value already known to be IConvertible.
         WriterVariableProjection.UpdateVariablesFromValue(state, "field", new object());
 
         Assert.IsFalse(state.Variables.ContainsKey("field"));
+    }
+
+    /// <summary>
+    ///     Regression coverage for the architecture-review fix (docs/architecture-improvement-plan.md, AP-2.2)
+    ///     that narrowed a bare <c>catch</c> to the specific exception types a value genuinely unable to become an
+    ///     Int32 literal can throw. A value whose own IConvertible implementation throws something else entirely
+    ///     (simulating a bug in caller code, not an expected "this value doesn't fit" shape) must propagate rather
+    ///     than being silently swallowed and treated the same as an ordinary conversion failure.
+    /// </summary>
+    [TestMethod]
+    public void UpdateVariablesFromValue_UnexpectedExceptionType_Propagates()
+    {
+        CStructElementWriterState state = CreateState();
+
+        Assert.Throws<InvalidOperationException>(
+            () => WriterVariableProjection.UpdateVariablesFromValue(state, "field", new ThrowsUnexpectedException()));
+    }
+
+    private sealed class ThrowsUnexpectedException : IConvertible
+    {
+        public TypeCode GetTypeCode() => throw new NotSupportedException();
+
+        public bool ToBoolean(IFormatProvider? provider) => throw new NotSupportedException();
+
+        public byte ToByte(IFormatProvider? provider) => throw new NotSupportedException();
+
+        public char ToChar(IFormatProvider? provider) => throw new NotSupportedException();
+
+        public DateTime ToDateTime(IFormatProvider? provider) => throw new NotSupportedException();
+
+        public decimal ToDecimal(IFormatProvider? provider) => throw new NotSupportedException();
+
+        public double ToDouble(IFormatProvider? provider) => throw new NotSupportedException();
+
+        public short ToInt16(IFormatProvider? provider) => throw new NotSupportedException();
+
+        public int ToInt32(IFormatProvider? provider) => throw new InvalidOperationException("Not an overflow, cast, or format failure.");
+
+        public long ToInt64(IFormatProvider? provider) => throw new NotSupportedException();
+
+        public sbyte ToSByte(IFormatProvider? provider) => throw new NotSupportedException();
+
+        public float ToSingle(IFormatProvider? provider) => throw new NotSupportedException();
+
+        public string ToString(IFormatProvider? provider) => throw new NotSupportedException();
+
+        public object ToType(Type conversionType, IFormatProvider? provider) => throw new NotSupportedException();
+
+        public ushort ToUInt16(IFormatProvider? provider) => throw new NotSupportedException();
+
+        public uint ToUInt32(IFormatProvider? provider) => throw new NotSupportedException();
+
+        public ulong ToUInt64(IFormatProvider? provider) => throw new NotSupportedException();
     }
 }
