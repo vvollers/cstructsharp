@@ -16,7 +16,7 @@ internal class Struct : Field
         ImmutableList<Field> fields,
         bool isUnion,
         Expr? compositeAlignmentOverrideExpression = null)
-        : base(STRUCT, name, NoneExpr.Instance, 0)
+        : base(STRUCT, name, Field.NoArray, 0)
     {
         this.Name = name;
         this.Fields = fields;

@@ -114,7 +114,7 @@ public class BitfieldCodecTableTests
     public void ValidateBitField_RejectsAnArrayField()
     {
         BitfieldCodecTable table = CreateValidTable(true, out _, out _, out _);
-        var arrayField = new Field(new Identifier("uint8"), new Identifier("values"), new Literal(4), 3);
+        var arrayField = new Field(new Identifier("uint8"), new Identifier("values"), [new Literal(4),], 3);
 
         Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(arrayField));
     }

@@ -345,7 +345,7 @@ public partial class CStruct
                 unknownArray = true;
                 if (effectiveField.Type.Equals(CharacterFieldTypes.CharType))
                 {
-                    effectiveField = new Field(CharacterFieldTypes.CstringType, effectiveField.Name, NoneExpr.Instance, 0);
+                    effectiveField = new Field(CharacterFieldTypes.CstringType, effectiveField.Name, Field.NoArray, 0);
                     valueField = compiledField.SelectPointerTarget(
                         0,
                         CharacterFieldTypes.CstringType.Name,
@@ -359,7 +359,7 @@ public partial class CStruct
                     effectiveField = new Field(
                         new Identifier(handler),
                         effectiveField.Name,
-                        NoneExpr.Instance,
+                        Field.NoArray,
                         0);
                     valueField = compiledField.SelectPointerTarget(
                         0,

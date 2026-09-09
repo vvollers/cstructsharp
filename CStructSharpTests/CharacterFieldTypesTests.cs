@@ -49,7 +49,7 @@ public class CharacterFieldTypesTests
     [TestMethod]
     public void IsCharArrayField_NonPointerNarrowChar_ReturnsTrue()
     {
-        var field = new Field(new Identifier("char"), new Identifier("label"), new Literal(4), 0);
+        var field = new Field(new Identifier("char"), new Identifier("label"), [new Literal(4),], 0);
 
         Assert.IsTrue(CharacterFieldTypes.IsCharArrayField(field));
     }
@@ -67,7 +67,7 @@ public class CharacterFieldTypesTests
     [TestMethod]
     public void IsCharArrayField_NonPointerWideChar_ReturnsTrue()
     {
-        var field = new Field(new Identifier("wchar"), new Identifier("label"), new Literal(4), 0);
+        var field = new Field(new Identifier("wchar"), new Identifier("label"), [new Literal(4),], 0);
 
         Assert.IsTrue(CharacterFieldTypes.IsCharArrayField(field));
     }

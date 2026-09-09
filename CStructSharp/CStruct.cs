@@ -301,15 +301,21 @@ public sealed partial class CStruct
                 continue;
             }
 
-            if (!ReferenceEquals(field.ArrayCount, Field.NoArray) &&
-                !ReferenceEquals(field.ArrayCount, Field.UnknownArraysize))
+            // Every dimension (LANG-05) gets the same early compile/evaluate pass a single-dimension array's one
+            // count expression already got - the unsized-character-array sentinel is the only dimension value
+            // that is never itself an expression to compile.
+            foreach (Expr dimension in field.ArrayCount)
             {
-                this.expressionEvaluator.Compile(field.ArrayCount);
-                if (this.expressionEvaluator.GetDependencies(field.ArrayCount).
-                    All(this.staticLayoutVariables.ContainsKey))
+                if (ReferenceEquals(dimension, Field.UnknownArraysize))
+                {
+                    continue;
+                }
+
+                this.expressionEvaluator.Compile(dimension);
+                if (this.expressionEvaluator.GetDependencies(dimension).All(this.staticLayoutVariables.ContainsKey))
                 {
                     int count = this.layoutExpressionEvaluator.Evaluate(
-                        field.ArrayCount,
+                        dimension,
                         this.staticLayoutVariables,
                         "array length for " + field.Name.Name);
                     if (count < 0)

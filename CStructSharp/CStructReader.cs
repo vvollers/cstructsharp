@@ -197,12 +197,12 @@ public partial class CStruct
                             // An unsized char array means a terminated string in this layout language.
                             if (f.Type.Equals(CharacterFieldTypes.CharType))
                             {
-                                f = new Field(CharacterFieldTypes.CstringType, f.Name, NoneExpr.Instance, 0);
+                                f = new Field(CharacterFieldTypes.CstringType, f.Name, Field.NoArray, 0);
                                 fieldReader = compiledField.TerminatedReader;
                             }
                             else if (f.Type.Equals(CharacterFieldTypes.WcharType))
                             {
-                                f = new Field(CharacterFieldTypes.StringType, f.Name, NoneExpr.Instance, 0);
+                                f = new Field(CharacterFieldTypes.StringType, f.Name, Field.NoArray, 0);
                                 fieldReader = compiledField.TerminatedReader;
                             }
                             else if (CharacterFieldTypes.IsWideCharacterType(f.Type))
@@ -210,7 +210,7 @@ public partial class CStruct
                                 f = new Field(
                                     new Identifier(CharacterFieldTypes.GetStringPointerHandlerKey(f.Type)),
                                     f.Name,
-                                    NoneExpr.Instance,
+                                    Field.NoArray,
                                     0);
                                 fieldReader = compiledField.TerminatedReader;
                             }
