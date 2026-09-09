@@ -44,7 +44,7 @@ internal sealed unsafe class FixedBufferStream : Stream
         {
             if (value < 0 || value > this.capacity)
             {
-                throw new IOException("The requested position is outside the supplied memory region.");
+                throw this.CreateBoundsException("The requested position is outside the supplied memory region.");
             }
 
             this.position = value;
@@ -95,7 +95,9 @@ internal sealed unsafe class FixedBufferStream : Stream
         }
         catch (OverflowException exception)
         {
-            throw new IOException("The requested position is outside the supplied memory region.", exception);
+            throw this.CreateBoundsException(
+                "The requested position is outside the supplied memory region.",
+                exception);
         }
 
         this.Position = target;
@@ -108,7 +110,7 @@ internal sealed unsafe class FixedBufferStream : Stream
         this.EnsureWritable();
         if (value < 0 || value > this.capacity)
         {
-            throw new IOException("The requested length is outside the supplied memory region.");
+            throw new CStructWriteException("The requested length is outside the supplied memory region.");
         }
 
         if (value > this.length)
@@ -136,7 +138,7 @@ internal sealed unsafe class FixedBufferStream : Stream
         this.EnsureWritable();
         if (source.Length > this.capacity - this.position)
         {
-            throw new IOException("The serialized value exceeds the supplied destination capacity.");
+            throw new CStructWriteException("The serialized value exceeds the supplied destination capacity.");
         }
 
         if (this.position > this.length)
@@ -161,5 +163,21 @@ internal sealed unsafe class FixedBufferStream : Stream
         {
             throw new NotSupportedException("The supplied memory region is read-only.");
         }
+    }
+
+    /// <summary>
+    ///     Reports an out-of-bounds position through the exception family matching this region's direction: a
+    ///     read-only region backs <c>Parse</c>/<c>ReadValue</c>, so it reports <see cref="CStructReadException"/>;
+    ///     a writable region backs <c>Serialize</c>, so it reports <see cref="CStructWriteException"/>.
+    /// </summary>
+    private CStructException CreateBoundsException(string message, Exception? innerException = null)
+    {
+        return (this.writable, innerException) switch
+        {
+            (true, null) => new CStructWriteException(message),
+            (true, not null) => new CStructWriteException(message, innerException),
+            (false, null) => new CStructReadException(message),
+            (false, not null) => new CStructReadException(message, innerException),
+        };
     }
 }

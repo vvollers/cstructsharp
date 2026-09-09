@@ -74,14 +74,14 @@ public class FixedBufferStreamTests
             Assert.Throws<NotSupportedException>(() => stream.Write(array, 0, 1));
             Assert.Throws<NotSupportedException>(() => stream.SetLength(1));
 
-            Assert.Throws<IOException>(() => stream.Position = -1);
-            Assert.Throws<IOException>(() => stream.Position = storage.Length + 1L);
-            Assert.Throws<IOException>(() => stream.Seek(-1, SeekOrigin.Begin));
-            Assert.Throws<IOException>(() => stream.Seek(1, SeekOrigin.End));
+            Assert.Throws<CStructReadException>(() => stream.Position = -1);
+            Assert.Throws<CStructReadException>(() => stream.Position = storage.Length + 1L);
+            Assert.Throws<CStructReadException>(() => stream.Seek(-1, SeekOrigin.Begin));
+            Assert.Throws<CStructReadException>(() => stream.Seek(1, SeekOrigin.End));
             Assert.Throws<ArgumentOutOfRangeException>(() => stream.Seek(0, (SeekOrigin)99));
 
             stream.Position = 1;
-            IOException overflow = Assert.Throws<IOException>(
+            CStructReadException overflow = Assert.Throws<CStructReadException>(
                 () => stream.Seek(long.MaxValue, SeekOrigin.Current));
             Assert.IsInstanceOfType<OverflowException>(overflow.InnerException);
         }
@@ -155,18 +155,18 @@ public class FixedBufferStreamTests
         {
             using var stream = new FixedBufferStream(buffer, storage.Length, writable: true);
 
-            Assert.Throws<IOException>(() => stream.SetLength(-1));
-            Assert.Throws<IOException>(() => stream.SetLength(storage.Length + 1L));
+            Assert.Throws<CStructWriteException>(() => stream.SetLength(-1));
+            Assert.Throws<CStructWriteException>(() => stream.SetLength(storage.Length + 1L));
 
             stream.Write(new byte[] { 1, 2, 3, }, 0, 3);
             stream.Position = 3;
-            Assert.Throws<IOException>(() => stream.Write(new byte[] { 4, 5, }, 0, 2));
+            Assert.Throws<CStructWriteException>(() => stream.Write(new byte[] { 4, 5, }, 0, 2));
             Assert.AreEqual(3L, stream.Length);
             Assert.AreEqual(3L, stream.Position);
             CollectionAssert.AreEqual(new byte[] { 1, 2, 3, 0xA5, }, storage);
 
             stream.Position = storage.Length;
-            Assert.Throws<IOException>(() => stream.WriteByte(4));
+            Assert.Throws<CStructWriteException>(() => stream.WriteByte(4));
             stream.SetLength(storage.Length);
             Assert.AreEqual(storage.Length, stream.Position);
         }

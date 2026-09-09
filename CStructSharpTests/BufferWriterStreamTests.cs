@@ -63,9 +63,9 @@ public class BufferWriterStreamTests
         stream.Write(new byte[4096]);
         stream.WriteByte(1);
 
-        Assert.Throws<IOException>(() => stream.Position = 0);
-        Assert.Throws<IOException>(() => stream.Seek(-4097, SeekOrigin.Current));
-        Assert.Throws<IOException>(() => stream.SetLength(1));
+        Assert.Throws<CStructWriteException>(() => stream.Position = 0);
+        Assert.Throws<CStructWriteException>(() => stream.Seek(-4097, SeekOrigin.Current));
+        Assert.Throws<CStructWriteException>(() => stream.SetLength(1));
         Assert.AreEqual(4097L, stream.Complete());
         Assert.AreEqual(4097, writer.Written.Count);
         Assert.AreEqual((byte)1, writer.Written[^1]);
@@ -146,15 +146,15 @@ public class BufferWriterStreamTests
         var writer = new ArrayBufferWriter<byte>();
         using var stream = new BufferWriterStream(writer);
 
-        Assert.Throws<IOException>(() => stream.Position = -1);
-        Assert.Throws<IOException>(() => stream.Position = (long)int.MaxValue + 1);
-        Assert.Throws<IOException>(() => stream.SetLength(-1));
-        Assert.Throws<IOException>(() => stream.SetLength((long)int.MaxValue + 1));
-        Assert.Throws<IOException>(() => stream.Seek(long.MinValue, SeekOrigin.Begin));
+        Assert.Throws<CStructWriteException>(() => stream.Position = -1);
+        Assert.Throws<CStructWriteException>(() => stream.Position = (long)int.MaxValue + 1);
+        Assert.Throws<CStructWriteException>(() => stream.SetLength(-1));
+        Assert.Throws<CStructWriteException>(() => stream.SetLength((long)int.MaxValue + 1));
+        Assert.Throws<CStructWriteException>(() => stream.Seek(long.MinValue, SeekOrigin.Begin));
         Assert.Throws<ArgumentOutOfRangeException>(() => stream.Seek(0, (SeekOrigin)99));
 
         stream.Position = 1;
-        IOException overflow = Assert.Throws<IOException>(
+        CStructWriteException overflow = Assert.Throws<CStructWriteException>(
             () => stream.Seek(long.MaxValue, SeekOrigin.Current));
         Assert.IsInstanceOfType<OverflowException>(overflow.InnerException);
     }
@@ -228,9 +228,9 @@ public class BufferWriterStreamTests
         stream.Write(new byte[4096]);
         stream.Position = 4095;
 
-        Assert.Throws<IOException>(() => stream.Write(new byte[2]));
-        Assert.Throws<IOException>(() => stream.Position = 4097);
-        Assert.Throws<IOException>(() => stream.SetLength(4097));
+        Assert.Throws<CStructWriteException>(() => stream.Write(new byte[2]));
+        Assert.Throws<CStructWriteException>(() => stream.Position = 4097);
+        Assert.Throws<CStructWriteException>(() => stream.SetLength(4097));
         Assert.AreEqual(4095L, stream.Position);
         Assert.AreEqual(4096L, stream.Length);
         Assert.AreEqual(4096L, stream.Complete());
@@ -240,7 +240,7 @@ public class BufferWriterStreamTests
     ///     The fake IBufferWriter returns less memory than the requested nonzero size.
     /// </summary>
     /// <remarks>
-    ///     The adapter must throw InvalidOperationException rather than write past the returned region. This checks a
+    ///     The adapter must throw CStructWriteException rather than write past the returned region. This checks a
     ///     broken destination implementation, not malformed layout text or binary input.
     /// </remarks>
     [TestMethod]
@@ -248,7 +248,7 @@ public class BufferWriterStreamTests
     {
         using var stream = new BufferWriterStream(new ShortWindowWriter());
 
-        Assert.Throws<InvalidOperationException>(() => stream.Write(new byte[4096]));
+        Assert.Throws<CStructWriteException>(() => stream.Write(new byte[4096]));
     }
 
     /// <summary>Returns exactly the requested active window size and records each advance.</summary>

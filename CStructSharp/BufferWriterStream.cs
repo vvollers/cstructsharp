@@ -95,7 +95,7 @@ internal sealed class BufferWriterStream : Stream
         }
         catch (OverflowException exception)
         {
-            throw new IOException("The requested writer position overflowed.", exception);
+            throw new CStructWriteException("The requested writer position overflowed.", exception);
         }
 
         this.Position = target;
@@ -108,13 +108,13 @@ internal sealed class BufferWriterStream : Stream
         this.EnsureActive();
         if (value < this.committedLength)
         {
-            throw new IOException("Committed IBufferWriter output cannot be truncated.");
+            throw new CStructWriteException("Committed IBufferWriter output cannot be truncated.");
         }
 
         long relative = value - this.committedLength;
         if (relative > int.MaxValue)
         {
-            throw new IOException("The requested writer length is too large for one active window.");
+            throw new CStructWriteException("The requested writer length is too large for one active window.");
         }
 
         int required = (int)relative;
@@ -122,7 +122,7 @@ internal sealed class BufferWriterStream : Stream
         {
             if (this.windowLength != 0 || this.windowPosition != 0)
             {
-                throw new IOException("The requested length crosses an active writer-window boundary.");
+                throw new CStructWriteException("The requested length crosses an active writer-window boundary.");
             }
 
             this.EnsureWindow(required);
@@ -175,7 +175,8 @@ internal sealed class BufferWriterStream : Stream
 
         if (this.windowPosition < this.windowLength)
         {
-            throw new IOException("The shared serializer attempted to cross a committed writer-window boundary.");
+            throw new CStructWriteException(
+                "The shared serializer attempted to cross a committed writer-window boundary.");
         }
 
         int forwardGap = this.windowPosition - this.windowLength;
@@ -183,7 +184,7 @@ internal sealed class BufferWriterStream : Stream
         long requiredWindow = checked((long)forwardGap + count);
         if (requiredWindow > int.MaxValue)
         {
-            throw new IOException("The requested writer range is too large for one active window.");
+            throw new CStructWriteException("The requested writer range is too large for one active window.");
         }
 
         this.EnsureWindow((int)requiredWindow);
@@ -202,7 +203,7 @@ internal sealed class BufferWriterStream : Stream
         this.window = this.writer.GetMemory(sizeHint);
         if (this.window.Length < required)
         {
-            throw new InvalidOperationException("IBufferWriter returned less memory than the requested size hint.");
+            throw new CStructWriteException("IBufferWriter returned less memory than the requested size hint.");
         }
     }
 
@@ -226,13 +227,13 @@ internal sealed class BufferWriterStream : Stream
         this.EnsureActive();
         if (value < this.committedLength)
         {
-            throw new IOException("Committed IBufferWriter output cannot be revisited.");
+            throw new CStructWriteException("Committed IBufferWriter output cannot be revisited.");
         }
 
         long relative = value - this.committedLength;
         if (relative > int.MaxValue)
         {
-            throw new IOException("The requested writer position is too large for one active window.");
+            throw new CStructWriteException("The requested writer position is too large for one active window.");
         }
 
         int requested = (int)relative;
@@ -240,7 +241,8 @@ internal sealed class BufferWriterStream : Stream
         {
             if (this.windowPosition < this.windowLength)
             {
-                throw new IOException("The shared serializer attempted to seek across a writer-window boundary.");
+                throw new CStructWriteException(
+                    "The shared serializer attempted to seek across a writer-window boundary.");
             }
 
             int forward = requested - this.windowLength;
