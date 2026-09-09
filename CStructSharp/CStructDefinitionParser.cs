@@ -307,6 +307,34 @@ internal static class CStructDefinitionParser
         Expr.Optional(),
         Tok(']').IgnoreResult());
 
+    /// <summary>
+    ///     Builds one declarator's <see cref="Field.ArrayCount"/> from zero or more parsed bracket pairs
+    ///     (LANG-05), outermost dimension first. An empty bracket pair (<c>char name[];</c>) is accepted only as
+    ///     the sole dimension of a one-dimensional array - the same restriction this language already enforced
+    ///     before LANG-05, now stated explicitly for the N-dimensional case rather than being structurally
+    ///     impossible to violate.
+    /// </summary>
+    private static IReadOnlyList<Expr> BuildArrayCount(IReadOnlyList<Maybe<Expr>> dimensions)
+    {
+        if (dimensions.Count == 0)
+        {
+            return Structure.Field.NoArray;
+        }
+
+        if (dimensions.Count == 1)
+        {
+            return dimensions[0].HasValue ? [dimensions[0].Value,] : [Structure.Field.UnknownArraysize,];
+        }
+
+        if (dimensions.Any(dimension => !dimension.HasValue))
+        {
+            throw new InvalidOperationException(
+                "An unsized array dimension ([]) is allowed only as the sole dimension of a one-dimensional array.");
+        }
+
+        return dimensions.Select(dimension => dimension.Value).ToArray();
+    }
+
     public static readonly Parser<char, Expr> BitSize = Tok(':').Then(Expr);
 
     /// <summary>
@@ -342,11 +370,14 @@ internal static class CStructDefinitionParser
                     " ",
                     fields.SkipLast(1).Select(o => o.Name).Where(name => !string.IsNullOrWhiteSpace(name)));
                 int pointerDepth = fields.Sum(o => o.PointerDepth);
+                IReadOnlyList<Expr> arrayCount = arr.HasValue
+                    ? arr.Value.HasValue ? [arr.Value.Value,] : [Structure.Field.UnknownArraysize,]
+                    : Structure.Field.NoArray;
 
                 return new Field(
                     new Identifier(typeName),
                     fields.Last(),
-                    arr.HasValue ? arr.Value.HasValue ? arr.Value.Value : Structure.Field.UnknownArraysize : Structure.Field.NoArray,
+                    arrayCount,
                     bitSize.HasValue ? bitSize.Value : NoneExpr.Instance,
                     pointerDepth);
             },
@@ -389,7 +420,7 @@ internal static class CStructDefinitionParser
     ///     <c>:3</c> in <c>uint8 flag:1, :3, other:4;</c> - allowed only when a bit width is present, since a
     ///     declarator with neither a name nor a bit width carries no information.
     /// </summary>
-    private static readonly Parser<char, (Identifier? Name, int PointerDepth, Maybe<Maybe<Expr>> Array, Maybe<Expr> BitSize, Expr? AlignmentOverride, Expr? OffsetAssertion)>
+    private static readonly Parser<char, (Identifier? Name, int PointerDepth, IReadOnlyList<Maybe<Expr>> Array, Maybe<Expr> BitSize, Expr? AlignmentOverride, Expr? OffsetAssertion)>
         Declarator = Map(
             (words, arr, bitSize, suffix) =>
             {
@@ -402,13 +433,13 @@ internal static class CStructDefinitionParser
                 return (
                     Name: wordList.Count > 0 ? wordList[^1] : null,
                     PointerDepth: wordList.Sum(o => o.PointerDepth),
-                    Array: arr,
+                    Array: (IReadOnlyList<Maybe<Expr>>)arr.ToList(),
                     BitSize: bitSize,
                     AlignmentOverride: suffix.AlignmentOverride,
                     OffsetAssertion: suffix.OffsetAssertion);
             },
             QualifiedIdentifierToken.Many(),
-            Array.Optional(),
+            Array.Many(),
             BitSize.Optional(),
             PlacementSuffix);
 
@@ -442,14 +473,12 @@ internal static class CStructDefinitionParser
                 Field MakeField(
                     Identifier? name,
                     int pointerDepth,
-                    Maybe<Maybe<Expr>> declaratorArray,
+                    IReadOnlyList<Maybe<Expr>> declaratorArray,
                     Maybe<Expr> declaratorBitSize,
                     Expr? declaratorAlignmentOverride,
                     Expr? declaratorOffsetAssertion)
                 {
-                    Expr arrayCount = declaratorArray.HasValue
-                        ? declaratorArray.Value.HasValue ? declaratorArray.Value.Value : Structure.Field.UnknownArraysize
-                        : Structure.Field.NoArray;
+                    IReadOnlyList<Expr> arrayCount = BuildArrayCount(declaratorArray);
                     return new Field(
                         typeIdentifier,
                         name ?? new Identifier(string.Empty),
@@ -466,12 +495,12 @@ internal static class CStructDefinitionParser
                     MakeField(
                         firstDeclaratorIsAnonymous ? null : fieldList[^1],
                         firstPointerDepth,
-                        arr,
+                        arr.ToList(),
                         bitSize,
                         suffix.AlignmentOverride,
                         suffix.OffsetAssertion),
                 };
-                foreach ((Identifier? Name, int PointerDepth, Maybe<Maybe<Expr>> Array, Maybe<Expr> BitSize, Expr? AlignmentOverride, Expr? OffsetAssertion) declarator in rest)
+                foreach ((Identifier? Name, int PointerDepth, IReadOnlyList<Maybe<Expr>> Array, Maybe<Expr> BitSize, Expr? AlignmentOverride, Expr? OffsetAssertion) declarator in rest)
                 {
                     result.Add(
                         MakeField(
@@ -487,7 +516,7 @@ internal static class CStructDefinitionParser
             },
             TagKeyword.Optional(),
             QualifiedIdentifierToken.AtLeastOnce(),
-            Array.Optional(),
+            Array.Many(),
             BitSize.Optional(),
             PlacementSuffix,
             Comma.Then(Declarator).Many(),
