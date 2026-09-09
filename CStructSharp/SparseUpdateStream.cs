@@ -95,14 +95,7 @@ internal sealed class SparseUpdateStream : Stream
     /// <summary>Reads existing bytes with staged writes overlaid using last-write-wins behavior.</summary>
     public override int Read(byte[] buffer, int offset, int count)
     {
-        ArgumentNullException.ThrowIfNull(buffer);
-        ArgumentOutOfRangeException.ThrowIfNegative(offset);
-        ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (offset > buffer.Length - count)
-        {
-            throw new ArgumentException("The offset and count exceed the destination buffer.", nameof(count));
-        }
-
+        StreamArgumentValidation.ValidateRange(buffer, offset, count, nameof(buffer));
         return this.Read(buffer.AsSpan(offset, count));
     }
 
@@ -207,14 +200,7 @@ internal sealed class SparseUpdateStream : Stream
     /// <summary>Retains one byte range in sparse chunks after proving it cannot extend the caller stream.</summary>
     public override void Write(byte[] buffer, int offset, int count)
     {
-        ArgumentNullException.ThrowIfNull(buffer);
-        ArgumentOutOfRangeException.ThrowIfNegative(offset);
-        ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (offset > buffer.Length - count)
-        {
-            throw new ArgumentException("The offset and count exceed the source buffer.", nameof(count));
-        }
-
+        StreamArgumentValidation.ValidateRange(buffer, offset, count, nameof(buffer));
         this.Write(buffer.AsSpan(offset, count));
     }
 
