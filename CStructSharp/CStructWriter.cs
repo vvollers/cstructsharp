@@ -232,7 +232,7 @@ public partial class CStruct
             this.compiledSizeQueries.GetCompiledComposite(union),
             state.Variables,
             false);
-        byte[]? rawStorage = unionValue.HasRawStorage ? unionValue.GetRawStorageCopy() : null;
+        byte[]? rawStorage = unionValue.HasRawStorage ? unionValue.GetRawStorageArray() : null;
         if (rawStorage is not null && rawStorage.Length != unionSize)
         {
             throw new CStructWriteException(

@@ -205,12 +205,13 @@ public sealed class UnionValue : DynamicObject, IReadOnlyDictionary<string, obje
         return new UnionValue(unionName, rawStorage, members, null, null);
     }
 
-    /// <summary>Copies the raw storage for validated writer use without exposing the private snapshot publicly.</summary>
-    internal byte[] GetRawStorageCopy()
+    /// <summary>
+    ///     Gets the raw storage array for validated writer use without exposing the private snapshot publicly. The
+    ///     internal writer only reads from the returned array; it never mutates it.
+    /// </summary>
+    internal byte[] GetRawStorageArray()
     {
-        return this.rawStorage is null
-                   ? throw new InvalidOperationException("This union value has no raw storage.")
-                   : (byte[])this.rawStorage.Clone();
+        return this.rawStorage ?? throw new InvalidOperationException("This union value has no raw storage.");
     }
 
     /// <summary>Rejects names that cannot identify a declared union member.</summary>
