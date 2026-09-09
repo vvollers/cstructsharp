@@ -108,21 +108,18 @@ function submit(): void {
 <template>
   <section class="schema-panel">
     <div class="panel-topbar">
-      <div class="topbar-row">
-        <button
-          ref="settingsButton"
-          class="icon-button"
-          type="button"
-          aria-label="Schema settings"
-          title="Schema settings"
-          @click="settingsDialog?.showModal()"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 7h16M4 17h16M8 4v6M16 14v6" />
-          </svg>
-        </button>
-        <h2>Schema</h2>
-      </div>
+      <button
+        ref="settingsButton"
+        class="icon-button"
+        type="button"
+        aria-label="Schema settings"
+        title="Schema settings"
+        @click="settingsDialog?.showModal()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16M4 17h16M8 4v6M16 14v6" />
+        </svg>
+      </button>
       <p class="settings-summary" aria-label="Current schema settings">
         <SettingStatusItem
           v-for="setting in settingsSummary"
@@ -243,24 +240,14 @@ function submit(): void {
   height: 100%;
   min-height: 0;
   min-width: 0;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 .panel-topbar {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 14px;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: var(--color-bg-secondary);
-}
-.topbar-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.topbar-row h2 {
-  margin: 0;
-  font-size: 13px;
 }
 .icon-button {
   display: inline-flex;
@@ -290,9 +277,12 @@ function submit(): void {
 }
 .settings-summary {
   display: flex;
+  flex: 1;
   flex-wrap: wrap;
+  align-items: center;
   gap: 5px 14px;
   margin: 0;
+  padding-top: 5px;
   font-size: 11px;
   line-height: 1.5;
   color: var(--color-text-muted);

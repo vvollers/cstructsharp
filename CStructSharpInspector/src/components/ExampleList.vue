@@ -46,6 +46,7 @@ const emit = defineEmits<{
 <style scoped>
 .example-list {
   display: flex;
+  flex: 0 0 260px;
   flex-direction: column;
   gap: 10px;
   height: 100%;

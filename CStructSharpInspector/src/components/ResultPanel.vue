@@ -98,9 +98,6 @@ watch(
 
 <template>
   <section class="result-panel">
-    <div class="panel-topbar">
-      <h2>Result</h2>
-    </div>
     <div class="result-body">
       <p v-if="!result" class="placeholder">
         Run the schema against the binary data to see a result.
@@ -143,25 +140,15 @@ watch(
 
 <style scoped>
 .result-panel {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
   min-width: 0;
 }
-.panel-topbar {
-  display: flex;
-  align-items: center;
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: var(--color-bg-secondary);
-}
-.panel-topbar h2 {
-  margin: 0;
-  font-size: 13px;
-}
 .result-body {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 12px;
   min-height: 0;

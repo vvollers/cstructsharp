@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, shallowRef } from "vue";
 import { useFileDialog } from "@vueuse/core";
+import {
+  DockviewVue,
+  themeVisualStudio,
+  type DockviewReadyEvent,
+  type VueComponent,
+} from "dockview-vue";
 
 import ExampleList from "./components/ExampleList.vue";
-import SchemaPanel from "./components/SchemaPanel.vue";
-import BinaryPanel from "./components/BinaryPanel.vue";
-import ResultPanel from "./components/ResultPanel.vue";
+import SchemaPanelHost from "./components/SchemaPanelHost.vue";
+import BinaryPanelHost from "./components/BinaryPanelHost.vue";
+import ResultPanelHost from "./components/ResultPanelHost.vue";
 import { formats, type FormatExample } from "./formats";
 import {
   findDebugEntryIndexByOffset,
@@ -36,6 +42,17 @@ const isRunning = ref(false);
 const selectedDebugIndices = ref<ReadonlySet<number>>(new Set());
 const focusPath = ref<string[] | null>(null);
 const debugData = computed(() => (result.value?.Success ? result.value.DebugData : []));
+const schemaDisabled = computed(() => wasmStatus.value !== "ready" || isRunning.value);
+
+// dockview-vue's `components` map wants every entry to be the loosely-typed `VueComponent` (props: any);
+// each host below deliberately requires a specific `params` shape instead, so an explicit cast is needed
+// here - the actual shape passed via `addPanel({ params })` below is still checked against each host's
+// own `defineProps`.
+const dockComponents: Record<string, VueComponent> = {
+  schema: SchemaPanelHost as unknown as VueComponent,
+  binary: BinaryPanelHost as unknown as VueComponent,
+  result: ResultPanelHost as unknown as VueComponent,
+};
 
 function hexToBytesSafe(hex: string): Uint8Array {
   try {
@@ -124,6 +141,56 @@ function handleSelectPath(path: string[] | null): void {
     : new Set();
 }
 
+/**
+ * Lays out the three panels side by side by default (matching the previous fixed 3-column look), but as
+ * real dockview groups: the user can resize, retab (drag one onto another to combine), or rearrange them
+ * freely from here on - dockview owns the layout once created, this only sets its starting shape.
+ *
+ * Each panel's `params` carries the actual refs/computeds/callbacks by reference (not their current
+ * values), so the host components (SchemaPanelHost etc.) stay reactive indefinitely from this one call -
+ * no dockview `updateParameters()` calls are needed as App.vue's own state changes later.
+ */
+function onDockviewReady(event: DockviewReadyEvent): void {
+  event.api.addPanel({
+    id: "schema",
+    component: "schema",
+    title: "Schema",
+    params: {
+      definition,
+      disabled: schemaDisabled,
+      running: isRunning,
+      selectedExample,
+      resetCount,
+      onRun: runParse,
+    },
+  });
+  event.api.addPanel({
+    id: "binary",
+    component: "binary",
+    title: "Binary Data",
+    position: { direction: "right", referencePanel: "schema" },
+    params: {
+      bytes,
+      debugData,
+      selectedIndices: selectedDebugIndices,
+      onBytesEdited: handleBytesEdited,
+      onByteClick: handleByteClick,
+      onFileDropped: loadFile,
+    },
+  });
+  event.api.addPanel({
+    id: "result",
+    component: "result",
+    title: "Result",
+    position: { direction: "right", referencePanel: "binary" },
+    params: {
+      result,
+      focusPath,
+      onSelectPath: handleSelectPath,
+    },
+  });
+}
+
 onMounted(async () => {
   try {
     await initWasm();
@@ -166,27 +233,15 @@ onMounted(async () => {
       @select="selectExample"
       @new="startNew"
     />
-    <SchemaPanel
-      :key="`${selectedExample?.id ?? 'new'}-${resetCount}`"
-      v-model:definition="definition"
-      :disabled="wasmStatus !== 'ready' || isRunning"
-      :running="isRunning"
-      :initial-root-type="selectedExample?.rootType"
-      :initial-aligned="selectedExample?.parserOptions.aligned"
-      :initial-little-endian="selectedExample?.parserOptions.littleEndian"
-      :initial-pointer-size="selectedExample?.parserOptions.pointerSize"
-      :initial-addressing-mode="selectedExample?.parserOptions.addressingMode"
-      @run="runParse"
-    />
-    <BinaryPanel
-      :bytes="bytes"
-      :debug-data="debugData"
-      :selected-indices="selectedDebugIndices"
-      @update:bytes="handleBytesEdited"
-      @byte-click="handleByteClick"
-      @file-dropped="loadFile"
-    />
-    <ResultPanel :result="result" :focus-path="focusPath" @select-path="handleSelectPath" />
+    <div class="dock-area">
+      <DockviewVue
+        class="dock"
+        style="width: 100%; height: 100%"
+        :theme="themeVisualStudio"
+        :components="dockComponents"
+        @ready="onDockviewReady"
+      />
+    </div>
   </main>
 </template>
 
@@ -250,9 +305,13 @@ onMounted(async () => {
   color: var(--color-error);
 }
 .workspace {
-  display: grid;
-  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  display: flex;
   flex: 1;
+  min-height: 0;
+}
+.dock-area {
+  flex: 1;
+  min-width: 0;
   min-height: 0;
 }
 </style>

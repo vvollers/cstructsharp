@@ -1,19 +1,23 @@
+/* VS Code's own Dark Modern palette, so the app chrome (top bar, sidebar, panel headers, buttons) reads
+   as a native-feeling desktop application rather than a marketing/landing-page theme. This intentionally
+   matches dockview's bundled `themeVisualStudio` (see App.vue), which already uses these exact colors for
+   the dockable workspace itself. */
 :root {
-  --color-bg-primary: #0f0f23;
-  --color-bg-secondary: #1a1a2e;
-  --color-bg-tertiary: #252542;
-  --color-accent: #00d4ff;
-  --color-accent-glow: rgba(0, 212, 255, 0.3);
-  --color-success: #00ff88;
-  --color-error: #ff4757;
-  --color-text: #e8e8f0;
-  --color-text-muted: #9090a8;
-  --font-mono: "JetBrains Mono", "Fira Code", "Consolas", monospace;
-  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --shadow-glow: 0 0 30px var(--color-accent-glow);
+  --color-bg-primary: #1e1e1e;
+  --color-bg-secondary: #252526;
+  --color-bg-tertiary: #2d2d30;
+  --color-accent: #007acc;
+  --color-accent-glow: rgba(0, 122, 204, 0.35);
+  --color-success: #89d185;
+  --color-error: #f48771;
+  --color-text: #cccccc;
+  --color-text-muted: #969696;
+  --font-mono: "Consolas", "JetBrains Mono", "Courier New", monospace;
+  --font-sans: "Segoe UI", "Inter", system-ui, sans-serif;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --shadow-glow: none;
 }
 
 * {
@@ -66,44 +70,39 @@ pre {
   font-family: var(--font-mono);
 }
 
-/* Button styles */
+/* Button styles - flat, no gradient/glow/uppercase, matching VS Code's own command buttons */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 24px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  transition:
+    background-color 0.1s ease,
+    opacity 0.1s ease;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-accent), #0099cc);
-  color: var(--color-bg-primary);
-  box-shadow: var(--shadow-glow);
+  background: var(--color-accent);
+  color: #ffffff;
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 0 40px var(--color-accent-glow),
-    0 8px 20px rgba(0, 0, 0, 0.3);
+  background: #1a8cd8;
 }
 
 .btn-primary:active {
-  transform: translateY(0);
+  background: #006bb3;
 }
 
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 
 /* Card styles */
@@ -113,7 +112,6 @@ pre {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-lg);
   padding: 24px;
-  backdrop-filter: blur(10px);
 }
 
 /* Code block styles */
