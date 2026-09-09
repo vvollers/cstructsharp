@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using CStructSharp.Structure;
 
 /// <summary>
@@ -128,5 +130,115 @@ public class MultidimensionalArrayTests
     public void UnsizedInnerDimension_IsRejected()
     {
         Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { char names[10][]; };", pointerSize: 1));
+    }
+
+    /// <summary>
+    ///     A two-dimensional primitive array reads into an N-deep nested list matching the declared shape
+    ///     (<c>root.matrix</c> is a list of 3 rows, each a list of 4 columns), and elements are read in row-major
+    ///     order - the same sequential byte order a flat array of the same total count would use.
+    /// </summary>
+    [TestMethod]
+    public void TwoDimensionalArray_ParsesIntoANestedListInRowMajorOrder()
+    {
+        var cstruct = new CStruct("struct root { uint8 matrix[3][4]; };", pointerSize: 1, aligned: false);
+        byte[] bytes = [.. Enumerable.Range(0, 12).Select(i => (byte)i),];
+        using var stream = new MemoryStream(bytes);
+
+        dynamic result = cstruct.ParseStream(stream, "root");
+        List<object?> matrix = (List<object?>)result.matrix;
+
+        Assert.AreEqual(3, matrix.Count);
+        for (int row = 0; row < 3; row++)
+        {
+            var rowValues = (List<object?>)matrix[row]!;
+            Assert.AreEqual(4, rowValues.Count);
+            for (int column = 0; column < 4; column++)
+            {
+                Assert.AreEqual((byte)((row * 4) + column), rowValues[column]);
+            }
+        }
+    }
+
+    /// <summary>A three-dimensional primitive array nests three levels deep, again in row-major order.</summary>
+    [TestMethod]
+    public void ThreeDimensionalArray_ParsesIntoAThreeLevelNestedList()
+    {
+        var cstruct = new CStruct("struct root { uint8 cube[2][3][4]; };", pointerSize: 1, aligned: false);
+        byte[] bytes = [.. Enumerable.Range(0, 24).Select(i => (byte)i),];
+        using var stream = new MemoryStream(bytes);
+
+        dynamic result = cstruct.ParseStream(stream, "root");
+        List<object?> cube = (List<object?>)result.cube;
+
+        Assert.AreEqual(2, cube.Count);
+        int expected = 0;
+        for (int i = 0; i < 2; i++)
+        {
+            var plane = (List<object?>)cube[i]!;
+            Assert.AreEqual(3, plane.Count);
+            for (int j = 0; j < 3; j++)
+            {
+                var row = (List<object?>)plane[j]!;
+                Assert.AreEqual(4, row.Count);
+                for (int k = 0; k < 4; k++)
+                {
+                    Assert.AreEqual((byte)expected, row[k]);
+                    expected++;
+                }
+            }
+        }
+    }
+
+    /// <summary>A two-dimensional array of structs nests one list level per array dimension around each struct.</summary>
+    [TestMethod]
+    public void TwoDimensionalStructArray_ParsesIntoANestedListOfStructs()
+    {
+        const string layout = """
+                              struct row { uint8 a; uint8 b; };
+                              struct root { row grid[2][3]; };
+                              """;
+        var cstruct = new CStruct(layout, pointerSize: 1, aligned: false);
+        byte[] bytes = [.. Enumerable.Range(0, 12).Select(i => (byte)i),];
+        using var stream = new MemoryStream(bytes);
+
+        dynamic result = cstruct.ParseStream(stream, "root");
+        List<object?> grid = (List<object?>)result.grid;
+
+        Assert.AreEqual(2, grid.Count);
+        int expected = 0;
+        for (int i = 0; i < 2; i++)
+        {
+            var rowOfCells = (List<object?>)grid[i]!;
+            Assert.AreEqual(3, rowOfCells.Count);
+            for (int j = 0; j < 3; j++)
+            {
+                dynamic cell = rowOfCells[j]!;
+                Assert.AreEqual((byte)expected, cell.a);
+                expected++;
+                Assert.AreEqual((byte)expected, cell.b);
+                expected++;
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A fixed table of fixed-width strings (<c>char names[10][32];</c>) reads each row exactly like today's
+    ///     existing <c>char[32]</c> fixed buffer (a single string, NUL padding included up to the fixed width),
+    ///     with only the outer dimension nesting into a list.
+    /// </summary>
+    [TestMethod]
+    public void FixedStringTable_ParsesEachRowAsAStringAndNestsTheOuterDimension()
+    {
+        var cstruct = new CStruct("struct root { char names[3][4]; };", pointerSize: 1, aligned: false);
+        byte[] bytes = "abc\0defgijkl"u8.ToArray();
+        using var stream = new MemoryStream(bytes);
+
+        dynamic result = cstruct.ParseStream(stream, "root");
+        List<object?> names = (List<object?>)result.names;
+
+        Assert.AreEqual(3, names.Count);
+        Assert.AreEqual("abc\0", names[0]);
+        Assert.AreEqual("defg", names[1]);
+        Assert.AreEqual("ijkl", names[2]);
     }
 }

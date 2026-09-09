@@ -17,6 +17,31 @@ using CstructEnum = CStructSharp.Structure.Enum;
 /// </summary>
 public partial class CStruct
 {
+    /// <summary>
+    ///     Groups a flat, row-major list of leaf values into nested lists matching every dimension but the
+    ///     outermost one, which the caller's own loop already accounted for by producing this flat list in the
+    ///     first place. Each pass groups the previous level by one dimension's size, from the innermost dimension
+    ///     outward - the same grouping a single-dimension array already performs once, repeated once per
+    ///     additional dimension.
+    /// </summary>
+    private static List<object?> ReshapeFlatArrayValues(List<object?> flatValues, IReadOnlyList<int> dimensionSizes)
+    {
+        List<object?> currentLevel = flatValues;
+        for (int dimensionIndex = dimensionSizes.Count - 1; dimensionIndex >= 1; dimensionIndex--)
+        {
+            int groupSize = dimensionSizes[dimensionIndex];
+            var nextLevel = new List<object?>(currentLevel.Count / groupSize);
+            for (int start = 0; start < currentLevel.Count; start += groupSize)
+            {
+                nextLevel.Add(currentLevel.GetRange(start, groupSize));
+            }
+
+            currentLevel = nextLevel;
+        }
+
+        return currentLevel;
+    }
+
     /// <summary>Moves a nested struct to the same compiled parent boundary used by size, write, and address operations.</summary>
     private void PrepareNestedStructStart(
         Struct strct,
@@ -213,6 +238,23 @@ public partial class CStruct
                                     Field.NoArray,
                                     0);
                                 fieldReader = compiledField.TerminatedReader;
+                            }
+                        }
+                        else if (compiledField.Array.Dimensions.Length > 1)
+                        {
+                            // Every dimension of a multidimensional array is compile-time-fixed (LANG-05's
+                            // fixed-dimensions-only slice), so the total leaf count is already known without
+                            // re-evaluating any expression against the current stream's variables. Elements are
+                            // still read in the same flat, sequential, row-major order a 1-D array would use; only
+                            // the container shape built after the loop differs (see the reshape step below).
+                            numFieldValues = compiledField.Array.TotalFixedElementCount ??
+                                             throw new InvalidOperationException(
+                                                 "Multidimensional array has no fixed total element count: " +
+                                                 f.Name.Name);
+                            if (numFieldValues > state.MaxArrayElements)
+                            {
+                                throw new CStructReadLimitException(
+                                    "Array length exceeds the configured limit: " + f.Name.Name);
                             }
                         }
                         else
@@ -579,7 +621,56 @@ public partial class CStruct
 
                     if (isArray)
                     {
-                        if (!f.IsPointer && (f.Type.Equals(CharacterFieldTypes.CharType) || CharacterFieldTypes.IsWideCharacterType(f.Type)))
+                        bool isCharacterElement =
+                            !f.IsPointer && (f.Type.Equals(CharacterFieldTypes.CharType) || CharacterFieldTypes.IsWideCharacterType(f.Type));
+
+                        if (compiledField.Array.Dimensions.Length > 1)
+                        {
+                            int[] dimensionSizes = compiledField.Array.Dimensions
+                                .Select(
+                                    dimension => dimension.FixedCount ??
+                                                 throw new InvalidOperationException(
+                                                     "Multidimensional array dimension has no fixed count: " +
+                                                     f.Name.Name))
+                                .ToArray();
+                            var flatValues = (List<object?>)containerDict[f.Name.Name]!;
+
+                            if (isCharacterElement)
+                            {
+                                // The innermost dimension of a fixed string table (char names[10][32]) collapses
+                                // to a string, exactly like today's single-dimension char[32] buffer; every outer
+                                // dimension then nests around that row of strings the same way any other element
+                                // type nests, so only this one step is character-specific.
+                                int rowSize = dimensionSizes[^1];
+                                var rows = new List<object?>(flatValues.Count / rowSize);
+                                for (int start = 0; start < flatValues.Count; start += rowSize)
+                                {
+                                    string row = new(flatValues.GetRange(start, rowSize).Cast<char>().ToArray());
+                                    if (CharacterFieldTypes.IsWideCharacterType(f.Type))
+                                    {
+                                        try
+                                        {
+                                            _ = this.GetWideCharacterEncoding(f.Type).GetByteCount(row);
+                                        }
+                                        catch (EncoderFallbackException exception)
+                                        {
+                                            throw new CStructReadException(
+                                                "Wide-character buffer contains an invalid UTF-16 code-unit sequence.",
+                                                exception);
+                                        }
+                                    }
+
+                                    rows.Add(row);
+                                }
+
+                                containerDict[f.Name.Name] = ReshapeFlatArrayValues(rows, dimensionSizes[..^1]);
+                            }
+                            else
+                            {
+                                containerDict[f.Name.Name] = ReshapeFlatArrayValues(flatValues, dimensionSizes);
+                            }
+                        }
+                        else if (isCharacterElement)
                         {
                             // Expose fixed character arrays as the string callers expect, after every character has been read.
                             var list = (List<object?>)containerDict[f.Name.Name]!;
