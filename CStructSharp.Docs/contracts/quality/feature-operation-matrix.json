@@ -669,6 +669,27 @@
       }
     },
     {
+      "featureId": "anonymous-promoted-member",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "A promoted member's own fields carry a real value the same way a named inline struct's fields do; promotion changes only where that value appears in the result/POCO shape, not the value contract itself."
+        ],
+        "evidence": [
+          "CStructSharpTests/AnonymousPromotedMemberTests.cs#ParseStream_SplicesPromotedMemberFieldsDirectlyIntoTheParentContainer"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "Exact bytes match the equivalent named-inline-struct fixture - promotion never changes placement, size, or alignment, only path/POCO/JSON visibility."
+        ],
+        "evidence": [
+          "CStructSharpTests/AnonymousPromotedMemberTests.cs#Serialize_WritesAFlatValueThroughAPromotedMember"
+        ]
+      }
+    },
+    {
       "featureId": "runtime-expression-arrays",
       "value": {
         "status": "conditional",
@@ -2163,6 +2184,107 @@
       ]
     },
     {
+      "id": "anonymous-promoted-member",
+      "manual": "CStructSharp.Docs/language/structs-unions-enums-typedefs.md#anonymous-promoted-members",
+      "fixture": "anonymous-promoted-member",
+      "title": "Anonymous promoted struct member (LANG-14)",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "CStructSharpTests/AnonymousPromotedMemberTests.cs#SizeAndAlignment_MatchTheEquivalentNamedInlineStruct",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousPromotedMemberTests.cs#Collision_PromotedVsParent_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousPromotedMemberTests.cs#ParseStream_SplicesPromotedMemberFieldsDirectlyIntoTheParentContainer",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousPromotedMemberTests.cs#ParseStreamWithDebug_SkipsThePromotedMembersOwnLevelInTheDebugPath",
+          "operations": [
+            "debug"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousPromotedMemberTests.cs#Serialize_WritesAFlatValueThroughAPromotedMember",
+          "operations": [
+            "serialize",
+            "write"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousPromotedMemberTests.cs#PathOperations_ResolveThroughAPromotedMember",
+          "operations": [
+            "address",
+            "update",
+            "read-value",
+            "write"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousPromotedMemberTests.cs#ReadValueOfT_ReadsAPromotedScalarField",
+          "operations": [
+            "read-value"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/AnonymousPromotedMemberTests.cs#SiblingInteraction_NamedNestedStructPointerAndArray_AllWorkIndependently",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        }
+      ],
+      "limitations": [
+        "Structs only - an anonymous union member requires inline union member support to exist at all first (see the anonymous-promoted-union-members exclusion); a struct cannot nest a union member, named or anonymous, today.",
+        "A name collision anywhere in the flattened, transitively-promoted namespace (own fields, sibling promoted members, or a deeper promoted member) is a construction-time error, not a shadowing/precedence rule.",
+        "Promotion changes only path/POCO/JSON visibility - placement, size, and alignment are identical to the equivalent named inline struct."
+      ]
+    },
+    {
       "id": "runtime-expression-arrays",
       "manual": "CStructSharp.Docs/language/arrays-and-strings.md#runtime-expression-arrays",
       "fixture": "runtime-expression-arrays",
@@ -3207,10 +3329,10 @@
       ]
     },
     {
-      "id": "anonymous-promoted-members",
-      "syntax": "anonymous struct/union members promoted into the containing path",
-      "rationale": "Inline declarations currently require a containing field name and do not promote members.",
-      "diagnosticPolicy": "Reject unnamed containing members.",
+      "id": "anonymous-promoted-union-members",
+      "syntax": "an anonymous union member promoted into the containing path",
+      "rationale": "Anonymous promoted struct members (LANG-14) are supported, but a struct cannot contain an inline union member at all yet, named or anonymous - promoting one requires inline union member support to exist first, which is separate, unimplemented work (ADR-014).",
+      "diagnosticPolicy": "Reject an inline union member of any kind inside a struct.",
       "workItems": [
         "LANG-14"
       ]

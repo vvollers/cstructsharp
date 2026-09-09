@@ -51,7 +51,7 @@ define-declaration
 
 struct-field     = field | inline-struct-field ;
 inline-struct-field
-                 = "struct", [ alignment-override ], "{", { struct-field }, "}", identifier, ";" ;
+                 = "struct", [ alignment-override ], "{", { struct-field }, "}", [ identifier ], ";" ;
 union-field      = field ;
 field            = { type-qualifier }, [ tag-keyword ], type-name, declarator, { ",", declarator }, ";" ;
 declarator       = named-declarator | anonymous-bitfield ;
@@ -112,6 +112,16 @@ Each numeric digit sequence must contain at least one real digit; underscores al
 `unicode-letter` and identifier continuation use .NET Unicode letter/letter-or-digit classification. Block comments
 do not nest. The parser accepts pointer stars adjacent to either token (`uint8* p`, `uint8 *p`, and `uint8 * p`) and
 normalizes the total star count.
+
+An `inline-struct-field`'s trailing `identifier` is optional (LANG-14): when omitted, this is an *anonymous promoted
+member* - its own fields splice directly into the containing struct's addressable path/POCO/JSON namespace
+(`root.x`, not `root.<name>.x`) instead of nesting under a name of their own. The empty declarator name reuses the
+same sentinel `anonymous-bitfield` already established for a nameless field. Promotion is transitive (an anonymous
+member's own anonymous members promote further) and a name collision anywhere in the flattened, transitively-promoted
+namespace is a construction-time error. Placement, size, and alignment are unaffected - this changes only which
+path/POCO/JSON name resolves to a field. Scoped to structs only: a struct cannot nest a `union-field` at all today,
+named or anonymous, so an anonymous inline union is not yet expressible. See
+[Structs, unions, enums, and typedefs](structs-unions-enums-typedefs.md#anonymous-promoted-members).
 
 Only one array declarator per name is accepted. Empty `[]` has meaning only for a supported character type and is
 then a terminated string. A field declaration may share one type across multiple comma-separated declarators
@@ -188,8 +198,8 @@ The table explains each production and links to the page that defines its additi
 | `enum-values` | Comma-separated member sequence |
 | `enum-value` | Member name plus optional bounded expression |
 | `define-declaration` | Object-like integer expression binding |
-| `struct-field` | Ordinary or named inline-struct member |
-| `inline-struct-field` | Lexically scoped sequential composite |
+| `struct-field` | Ordinary, named-inline-struct, or anonymous-promoted-struct member |
+| `inline-struct-field` | Lexically scoped sequential composite; anonymous when the trailing `identifier` is omitted (LANG-14) |
 | `union-field` | Ordinary field; inline structs/unions are not accepted here |
 | `field` | One optionally qualified, optionally tagged type, one or more comma-separated declarators |
 | `declarator` | A named declarator or an anonymous nonzero-width bitfield |

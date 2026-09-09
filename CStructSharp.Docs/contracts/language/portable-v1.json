@@ -930,6 +930,29 @@
         "sample.other": "5"
       },
       "bytes": "51"
+    },
+    {
+      "id": "anonymous-promoted-member",
+      "definition": "struct sample { uint8 a; struct { uint8 x; uint8 y; }; uint8 b; };",
+      "root": "sample",
+      "pointerSize": 4,
+      "littleEndian": true,
+      "aligned": false,
+      "size": 4,
+      "alignment": 1,
+      "offsets": {
+        "sample.a": 0,
+        "sample.x": 1,
+        "sample.y": 2,
+        "sample.b": 3
+      },
+      "values": {
+        "sample.a": "1",
+        "sample.x": "2",
+        "sample.y": "3",
+        "sample.b": "4"
+      },
+      "bytes": "01020304"
     }
   ],
   "unsupportedConstructs": [
