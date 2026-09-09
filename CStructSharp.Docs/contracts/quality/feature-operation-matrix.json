@@ -614,13 +614,13 @@
         ]
       },
       "bytes": {
-        "status": "conditional",
+        "status": "verified",
         "conditions": [
-          "Exact bytes match the unannotated field's own contract; the assertion is checked only when the field's offset is statically computable, so a field following a runtime-length sibling is unaffected either way."
+          "Exact bytes match the unannotated field's own contract; a runtime-dependent field's assertion is validated at the first operation that reaches it instead of at construction, but the byte contract itself is unaffected either way."
         ],
         "evidence": [
           "CStructSharpTests/OffsetAssertionTests.cs#MatchingAssertion_Succeeds",
-          "CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_ConstructionSucceedsWithTheAssertionUnchecked"
+          "CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_ConstructionSucceedsButTheFirstOperationChecksTheAssertion"
         ]
       }
     },
@@ -1900,9 +1900,22 @@
           ]
         },
         {
-          "test": "CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_ConstructionSucceedsWithTheAssertionUnchecked",
+          "test": "CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_ConstructionSucceedsButTheFirstOperationChecksTheAssertion",
           "operations": [
             "parse"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_CheckedViaSinglePathReadValueToo",
+          "operations": [
+            "address",
+            "read-value"
+          ]
+        },
+        {
+          "test": "CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_CheckedOnSerializeToo",
+          "operations": [
+            "serialize"
           ]
         },
         {
@@ -1922,7 +1935,7 @@
         }
       ],
       "limitations": [
-        "Validated only when the field's byte offset is statically computable at construction time; a field following a runtime-length sibling accepts the assertion without checking it.",
+        "Validated eagerly at construction time when the field's byte offset is statically computable; otherwise checked at the first operation that actually reaches the field (parse, serialize, write, update, or path resolution), since a field following a runtime-length sibling has no statically knowable offset. A field never touched by any operation is never checked, the same as any lazy validation.",
         "Not supported on a bitfield declarator - rejected outright at construction rather than applying an under-specified partial rule.",
         "Never repositions a field; it only validates the field's already-computed placement, so it never changes parse, serialize, write, or update output."
       ]

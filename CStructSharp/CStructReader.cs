@@ -70,6 +70,7 @@ public partial class CStruct
                         if (usesCursor && fieldDescriptor is not null)
                         {
                             (long inlineFieldStart, _) = cursor!.AdvanceToField(fieldDescriptor);
+                            this.ValidateOffsetAssertionAtRuntime(fieldDescriptor, inlineFieldStart, state.Variables);
                             state.Stream.Position = inlineFieldStart;
                             state.CurrentBitOffset = 0;
                             state.CurrentBitfieldType = null;
@@ -262,6 +263,7 @@ public partial class CStruct
                         // active storage unit or opens a new one) - apply its decision once, for every array element,
                         // instead of re-deriving it per element or per type branch below.
                         (long fieldStart, int bitOffset) = cursor!.AdvanceToField(compiledField);
+                        this.ValidateOffsetAssertionAtRuntime(compiledField, fieldStart, state.Variables);
                         state.Stream.Position = fieldStart;
                         if (f.BitSize > 0)
                         {

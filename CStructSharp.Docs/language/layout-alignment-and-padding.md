@@ -142,17 +142,21 @@ struct sample {
 ```
 
 `N` is a full expression, evaluated the same way `@align(N)`'s argument is, so a `#define`d constant works. `N`
-must be non-negative. A mismatch between the asserted value and the field's actual computed offset fails at
-construction, naming both values (`offset-assertion-mismatch` in
-[`portable-v1.json`](../contracts/language/portable-v1.json)). Unlike `@align(N)`, `@N` never changes placement -
-it only validates the placement that would already have been computed without it, so parsing, addressing,
-serializing, writing, and updating are all unaffected by whether `@N` is present.
+must be non-negative. A mismatch between the asserted value and the field's actual computed offset fails, naming
+both values (`offset-assertion-mismatch` in [`portable-v1.json`](../contracts/language/portable-v1.json)). Unlike
+`@align(N)`, `@N` never changes placement - it only validates the placement that would already have been computed
+without it, so parsing, addressing, serializing, writing, and updating are all unaffected by whether `@N` is
+present.
 
-**`@N` is checked only when the field's byte offset is statically computable at construction time** - true for the
-overwhelming majority of layouts, but a field following a runtime-length array or terminated-string sibling has no
-statically known offset; on such a field, `@N` is accepted but not checked. **`@N` is not supported on a bitfield
-declarator** (`offset-assertion-on-bitfield`) - rejected outright at construction rather than resolving the
-narrower question of whether it should apply to a whole shared storage unit or only its first member.
+**`@N` is checked eagerly at construction when the field's byte offset is statically computable at that point** -
+true for the overwhelming majority of layouts. A field following a runtime-length array or terminated-string
+sibling has no statically known offset at construction time; for such a field, construction always succeeds
+regardless of whether the assertion is right, but the check is not skipped - it happens instead at the first
+operation that actually reaches the field (parsing, serializing, writing, updating, or resolving a path to it),
+the point at which its real position finally becomes known. A field an operation never reaches is never checked,
+the same as any lazy validation. **`@N` is not supported on a bitfield declarator**
+(`offset-assertion-on-bitfield`) - rejected outright at construction rather than resolving the narrower question of
+whether it should apply to a whole shared storage unit or only its first member.
 
 ## Checked layout examples
 

@@ -462,6 +462,7 @@ public partial class CStruct
             // storage unit or opens a new one) - apply its decision once, for every array element, instead of
             // re-deriving it per element the way the legacy path above does.
             (long fieldStart, int bitOffset) = cursor!.AdvanceToField(valueField);
+            this.ValidateOffsetAssertionAtRuntime(valueField, fieldStart, state.Variables);
             state.Stream.Position = fieldStart;
             if (effectiveField.BitSize > 0)
             {
