@@ -550,5 +550,6 @@ export function compareLessonResult(
       Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(" ") === expected.hex
     );
   }
-  return JSON.stringify(JSON.parse(result.Data ?? "null")) === JSON.stringify(expected.data);
+  const parsedJson = typeof result.Data === "string" ? result.Data : "null";
+  return JSON.stringify(JSON.parse(parsedJson)) === JSON.stringify(expected.data);
 }

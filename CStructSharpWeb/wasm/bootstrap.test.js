@@ -9,13 +9,13 @@ function createExports(calls) {
       calls.push(["ParseWithDebug", args]);
       return "parse-default";
     },
-    SerializeToBase64(...args) {
-      calls.push(["SerializeToBase64", args]);
-      return "serialize";
+    Serialize(...args) {
+      calls.push(["Serialize", args]);
+      return new Uint8Array([0x2a]);
     },
-    UpdateStreamToBase64(...args) {
-      calls.push(["UpdateStreamToBase64", args]);
-      return "update";
+    UpdateStream(...args) {
+      calls.push(["UpdateStream", args]);
+      return new Uint8Array([0x2a]);
     },
     GetVersion() {
       calls.push(["GetVersion", []]);
@@ -35,53 +35,48 @@ function createExports(calls) {
 test("adapter binds every managed export and normalizes boundary values", () => {
   const calls = [];
   const adapter = createCStructSharpWasm(createExports(calls));
+  const bytes = new Uint8Array([0, 0]);
 
-  assert.equal(adapter.parseWithDebug("layout", "AA=="), "parse-default");
+  assert.equal(adapter.parseWithDebug("layout", bytes), "parse-default");
   assert.equal(
-    adapter.parseWithDebug("layout", "AA==", {
+    adapter.parseWithDebug("layout", bytes, {
       rootTypeName: "root",
       aligned: true,
       pointerSize: 4,
     }),
     "parse-default",
   );
-  assert.equal(
-    adapter.serializeToBase64("layout", "{}", {
+  assert.deepEqual(
+    adapter.serialize("layout", "{}", {
       rootTypeName: null,
       aligned: false,
       pointerSize: 8,
     }),
-    "serialize",
+    new Uint8Array([0x2a]),
   );
-  assert.equal(
-    adapter.updateStreamToBase64("layout", "AA==", "root.value", "42", {
+  assert.deepEqual(
+    adapter.updateStream("layout", bytes, "root.value", "42", {
       aligned: false,
       pointerSize: 8,
       addressingMode: "Relative",
       origin: 9_007_199_254_740_993n,
       dereferencePointers: true,
     }),
-    "update",
+    new Uint8Array([0x2a]),
   );
   assert.equal(adapter.getVersion(), "version");
   assert.equal(adapter.ready, true);
   assert.equal(adapter.error, null);
 
   assert.deepEqual(calls, [
-    ["ParseWithDebug", ["layout", "AA==", "{}"]],
+    ["ParseWithDebug", ["layout", bytes, "{}"]],
+    ["ParseWithDebug", ["layout", bytes, '{"rootTypeName":"root","aligned":true,"pointerSize":4}']],
+    ["Serialize", ["layout", "{}", '{"rootTypeName":null,"aligned":false,"pointerSize":8}']],
     [
-      "ParseWithDebug",
-      ["layout", "AA==", '{"rootTypeName":"root","aligned":true,"pointerSize":4}'],
-    ],
-    [
-      "SerializeToBase64",
-      ["layout", "{}", '{"rootTypeName":null,"aligned":false,"pointerSize":8}'],
-    ],
-    [
-      "UpdateStreamToBase64",
+      "UpdateStream",
       [
         "layout",
-        "AA==",
+        bytes,
         "root.value",
         "42",
         '{"aligned":false,"pointerSize":8,"addressingMode":"Relative","origin":"9007199254740993","dereferencePointers":true}',
@@ -93,11 +88,11 @@ test("adapter binds every managed export and normalizes boundary values", () => 
 
 test("adapter rejects a missing managed export at initialization", () => {
   const exports = createExports([]);
-  delete exports.CStructSharpWeb.Wasm.CStructExports.UpdateStreamToBase64;
+  delete exports.CStructSharpWeb.Wasm.CStructExports.UpdateStream;
 
   assert.throws(
     () => createCStructSharpWasm(exports),
-    /Managed CStruct exports are missing: UpdateStreamToBase64/,
+    /Managed CStruct exports are missing: UpdateStream/,
   );
 });
 

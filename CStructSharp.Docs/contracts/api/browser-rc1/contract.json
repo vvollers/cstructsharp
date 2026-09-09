@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "name": "browser-rc1",
   "packageVersion": "0.2.0-preview",
-  "contractVersion": 4,
+  "contractVersion": 5,
   "managedExports": [
     "GetVersion",
     "ParseWithDebug",
-    "SerializeToBase64",
-    "UpdateStreamToBase64"
+    "Serialize",
+    "UpdateStream"
   ],
   "operations": [
     "parse",

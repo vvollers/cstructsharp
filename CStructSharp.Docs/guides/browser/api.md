@@ -59,8 +59,8 @@ Try the [large integer lesson](https://vvollers.github.io/cstructsharp/explorer/
 [fixed text lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=text).
 
 If adapting an older wrapper example, remove the `atob(result.Data)` conversion after serialize or update.
-The public wrapper now handles that conversion internally. Raw managed exports still use the versioned
-text transport contract; parse JSON and union `RawStorage` representations are unchanged.
+Binary data now crosses the boundary as native bytes end to end, so no Base64 decoding step remains. Parse
+JSON and union `RawStorage` representations are unchanged.
 
 ## Diagnose a failure
 

@@ -14,16 +14,20 @@ API because JSON passed between browser code and WebAssembly has different compa
 call.
 
 The reviewed `browser-rc1` description targets package candidate `0.2.0-preview` and uses browser interface version
-4. It records four managed entry points:
+5. It records four managed entry points:
 
 - `GetVersion`
 - `ParseWithDebug`
-- `SerializeToBase64`
-- `UpdateStreamToBase64`
+- `Serialize`
+- `UpdateStream`
 
-Every successful or failed response uses the same outer object, called an *envelope*. Its fields are
-`ContractVersion`, `Operation`, `Success`, `Data`, `DebugData`, and `Error`. Keeping the outer shape stable lets
-browser code check `Success` before interpreting operation-specific data.
+Binary data crosses the boundary as a native `byte[]`/`Uint8Array` (a JS `MemoryView` on the way in), never Base64
+text. `ParseWithDebug` still returns the same outer object, called an *envelope* - its fields are `ContractVersion`,
+`Operation`, `Success`, `Data`, `DebugData`, and `Error` - since its `Data` is genuinely JSON text either way.
+`Serialize`/`UpdateStream` return the encoded bytes directly on success; there is no envelope object left to carry
+an `Error` field alongside a native byte-array success payload, so they report failure by throwing instead. The
+thrown JS `Error`'s message is the same JSON-serialized `Code`/`Message`/`Offset`/`Path` shape the envelope's
+`Error` field already uses, so callers reconstruct an identical error object either way.
 
 The complete list of accepted options and error categories is in the
 [machine-readable browser description](../contracts/api/browser-rc1/contract.json). Use that JSON file when changing

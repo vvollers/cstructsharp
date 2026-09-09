@@ -3,12 +3,7 @@ import { nextTick, ref } from "vue";
 import LayoutEditor from "./LayoutEditor.vue";
 import type { WorkbenchRequest } from "./OperationWorkbench.vue";
 import { generateExample } from "../generate-example";
-import {
-  hexToBytes,
-  parseWithDebug,
-  serializeToBase64,
-  updateStreamToBase64,
-} from "../wasm/cstruct-wasm";
+import { hexToBytes, parseWithDebug, serialize, updateStream } from "../wasm/cstruct-wasm";
 
 type Language = "csharp" | "javascript";
 const dialog = ref<HTMLDialogElement | null>(null);
@@ -31,8 +26,8 @@ function open(request: WorkbenchRequest, tab: Language) {
       request.operation === "parse"
         ? parseWithDebug(request.definition, hexToBytes(request.binaryHex), request.options)
         : request.operation === "serialize"
-          ? serializeToBase64(request.definition, JSON.parse(request.jsonValue), request.options)
-          : updateStreamToBase64(
+          ? serialize(request.definition, JSON.parse(request.jsonValue), request.options)
+          : updateStream(
               request.definition,
               hexToBytes(request.binaryHex),
               request.path,

@@ -16,7 +16,7 @@ export type {
  * these shapes by the Playwright success and failure matrix.
  */
 
-export const INTEROP_CONTRACT_VERSION = 4 as const;
+export const INTEROP_CONTRACT_VERSION = 5 as const;
 
 export interface UnionValue {
   $kind: "union";
@@ -66,11 +66,15 @@ export interface ErrorDetails {
 
 export type InteropOperation = "parse" | "serialize" | "update";
 
+/**
+ * Data is JSON text for "parse" (the decoded value), raw bytes for "serialize"/"update" (a native Uint8Array -
+ * the managed bridge no longer transports binary payloads as Base64 text), or null on failure.
+ */
 export interface InteropResult {
   ContractVersion: typeof INTEROP_CONTRACT_VERSION;
   Operation: InteropOperation;
   Success: boolean;
-  Data: string | null;
+  Data: string | Uint8Array | null;
   DebugData: DebugDataItem[];
   Error: ErrorDetails | null;
 }
@@ -82,20 +86,22 @@ export interface RawWasmAdapter {
   exports: unknown;
   parseWithDebug: (
     cstructDefinition: string,
-    binaryDataBase64: string,
+    binaryData: Uint8Array,
     options?: ParseWithDebugOptions | null,
   ) => string;
-  serializeToBase64: (
+  /** Returns the encoded bytes directly on success; throws (see cstruct-wasm.ts) on failure. */
+  serialize: (
     cstructDefinition: string,
     dataJson: string,
     options?: SerializeOptions | null,
-  ) => string;
-  updateStreamToBase64: (
+  ) => Uint8Array;
+  /** Returns the complete updated bytes directly on success; throws (see cstruct-wasm.ts) on failure. */
+  updateStream: (
     cstructDefinition: string,
-    binaryDataBase64: string,
+    binaryData: Uint8Array,
     elementNameOrPath: string,
     valueJson: string,
     options?: UpdateOptions | null,
-  ) => string;
+  ) => Uint8Array;
   getVersion: () => string;
 }

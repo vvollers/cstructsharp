@@ -29,19 +29,29 @@ public partial class CStructExports
         return "CStructSharp WASM " + version;
     }
 
-    /// <summary>Parses binary data with bounded layout and read options and returns values plus byte mappings.</summary>
+    /// <summary>
+    ///     Parses binary data with bounded layout and read options and returns values plus byte mappings.
+    ///     <paramref name="binaryData"/> crosses the interop boundary as a zero-copy view over the caller's
+    ///     Uint8Array (a JS MemoryView), not a Base64-encoded string.
+    /// </summary>
     [JSExport]
     public static string ParseWithDebug(
         string cstructDefinition,
-        string binaryDataBase64,
+        [JSMarshalAs<JSType.MemoryView>] Span<byte> binaryData,
         string optionsJson)
     {
-        return ParseWithDebugInternal(cstructDefinition, binaryDataBase64, optionsJson);
+        return ParseWithDebugInternal(cstructDefinition, binaryData, optionsJson);
     }
 
-    /// <summary>Serializes browser JSON with a CStruct definition and returns Base64 in the common envelope.</summary>
+    /// <summary>
+    ///     Serializes browser JSON with a CStruct definition and returns the encoded bytes directly - a native
+    ///     Uint8Array on the JS side, not Base64 text. Failure is reported by throwing rather than through the
+    ///     JSON envelope other exports use, since there is no envelope object to carry an Error field alongside a
+    ///     native byte-array success payload; the thrown exception's message is the same JSON-serialized
+    ///     <see cref="ErrorDetailsDto"/> shape, ready for the JS wrapper to reconstruct the familiar error object.
+    /// </summary>
     [JSExport]
-    public static string SerializeToBase64(
+    public static byte[] Serialize(
         string cstructDefinition,
         string dataJson,
         string optionsJson)
@@ -56,20 +66,22 @@ public partial class CStructExports
             string root = string.IsNullOrWhiteSpace(options.RootTypeName)
                               ? cstruct.CStructElements.First(element => element.Value is Struct).Key
                               : options.RootTypeName;
-            byte[] bytes = cstruct.Serialize(root, data!, options: CreateWriteOptions(options));
-            return SerializeInteropResult(CreateSuccess("serialize", Convert.ToBase64String(bytes)));
+            return cstruct.Serialize(root, data!, options: CreateWriteOptions(options));
         }
         catch (Exception exception)
         {
-            return SerializeInteropResult(CreateFailure("serialize", exception));
+            throw CreateBridgeException(exception);
         }
     }
 
-    /// <summary>Updates one public path in existing bytes and returns the complete updated Base64 payload.</summary>
+    /// <summary>
+    ///     Updates one public path in existing bytes and returns the complete updated payload directly - a native
+    ///     Uint8Array on the JS side, not Base64 text. Failure is reported by throwing; see <see cref="Serialize"/>.
+    /// </summary>
     [JSExport]
-    public static string UpdateStreamToBase64(
+    public static byte[] UpdateStream(
         string cstructDefinition,
-        string binaryDataBase64,
+        [JSMarshalAs<JSType.MemoryView>] Span<byte> binaryData,
         string elementNameOrPath,
         string valueJson,
         string optionsJson)
@@ -79,32 +91,32 @@ public partial class CStructExports
             ValidatePath(elementNameOrPath);
             ValidateJson(valueJson);
             InteropOptionsDto options = ParseOptions(optionsJson);
-            byte[] binaryData = DecodeBinaryData(binaryDataBase64);
+            byte[] ownedBinaryData = ValidateBinaryData(binaryData);
             object? value = ParseJsonValue(valueJson);
             CStruct cstruct = CreateCStruct(cstructDefinition, options);
-            using var stream = new MemoryStream(binaryData);
+            using var stream = new MemoryStream(ownedBinaryData);
 
             cstruct.UpdateStream(stream, elementNameOrPath, value!, options: CreateUpdateOptions(options));
-            return SerializeInteropResult(CreateSuccess("update", Convert.ToBase64String(stream.ToArray())));
+            return stream.ToArray();
         }
         catch (Exception exception)
         {
-            return SerializeInteropResult(CreateFailure("update", exception));
+            throw CreateBridgeException(exception);
         }
     }
 
     /// <summary>Performs the shared parse operation and projects internal debug records into transport DTOs.</summary>
     private static string ParseWithDebugInternal(
         string cstructDefinition,
-        string binaryDataBase64,
+        Span<byte> binaryData,
         string optionsJson)
     {
         try
         {
             InteropOptionsDto options = ParseOptions(optionsJson);
-            byte[] binaryData = DecodeBinaryData(binaryDataBase64);
+            byte[] ownedBinaryData = ValidateBinaryData(binaryData);
             CStruct cstruct = CreateCStruct(cstructDefinition, options);
-            using var stream = new MemoryStream(binaryData);
+            using var stream = new MemoryStream(ownedBinaryData);
 
             string root = string.IsNullOrWhiteSpace(options.RootTypeName)
                               ? cstruct.CStructElements.First(element => element.Value is Struct).Key

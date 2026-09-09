@@ -13,10 +13,11 @@ import {
   getVersion,
   hexToBytes,
   initWasm,
+  INTEROP_CONTRACT_VERSION,
   isLoaded,
   parseWithDebug,
-  serializeToBase64,
-  updateStreamToBase64,
+  serialize,
+  updateStream,
   type InteropResult,
 } from "./wasm/cstruct-wasm";
 
@@ -148,7 +149,7 @@ onUnmounted(() => {
 
 function failure(operation: WorkbenchRequest["operation"], error: unknown): InteropResult {
   return {
-    ContractVersion: 4,
+    ContractVersion: INTEROP_CONTRACT_VERSION,
     Operation: operation,
     Success: false,
     Data: null,
@@ -162,12 +163,8 @@ function failure(operation: WorkbenchRequest["operation"], error: unknown): Inte
   };
 }
 
-function base64ToBytes(value: string | null): Uint8Array {
-  if (!value) {
-    return new Uint8Array();
-  }
-  const binary = atob(value);
-  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+function successBytes(result: InteropResult): Uint8Array {
+  return result.Success && result.Data instanceof Uint8Array ? result.Data : new Uint8Array();
 }
 
 function parseJson(value: string): unknown {
@@ -203,25 +200,17 @@ async function run(request: WorkbenchRequest): Promise<void> {
       resultBytes.value = bytes;
       result.value = parseWithDebug(request.definition, bytes, request.options);
     } else if (request.operation === "serialize") {
-      result.value = serializeToBase64(
-        request.definition,
-        parseJson(request.jsonValue),
-        request.options,
-      );
-      resultBytes.value = result.value.Success
-        ? base64ToBytes(result.value.Data)
-        : new Uint8Array();
+      result.value = serialize(request.definition, parseJson(request.jsonValue), request.options);
+      resultBytes.value = successBytes(result.value);
     } else {
-      result.value = updateStreamToBase64(
+      result.value = updateStream(
         request.definition,
         hexToBytes(request.binaryHex),
         request.path,
         parseJson(request.jsonValue),
         request.options,
       );
-      resultBytes.value = result.value.Success
-        ? base64ToBytes(result.value.Data)
-        : new Uint8Array();
+      resultBytes.value = successBytes(result.value);
     }
   } catch (error) {
     result.value = failure(request.operation, error);

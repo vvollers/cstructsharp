@@ -140,7 +140,7 @@ export function generateExample(
       ? `These inputs currently fail in the browser: ${observed.Error?.Code}.\nExpected: the error handler reports the invalid input or exceeded limit.`
       : operation === "parse"
         ? `Observed browser values (C# uses its native value types without the outer root wrapper):\n${observed.Data}`
-        : `Expected output bytes (hex): ${Array.from(atob(observed.Data!), (c) => c.charCodeAt(0).toString(16).padStart(2, "0")).join(" ")}`;
+        : `Expected output bytes (hex): ${Array.from(observed.Data as Uint8Array, (b) => b.toString(16).padStart(2, "0")).join(" ")}`;
   const options = nonDefaultOptions(request);
   const policy = Object.entries(options)
     .filter(([key]) => !layoutOptions.has(key))

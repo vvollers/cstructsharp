@@ -9,6 +9,20 @@ All notable changes to CStructSharp are documented here.
   alias is provided; update any `new UpdateOptions { AllowPointerDereference = ... }` call sites to
   `DereferencePointers`. The WASM browser bridge's option key was renamed identically; use `dereferencePointers`
   for both parse and update requests.
+- **Breaking:** `BufferWriterStream` and `FixedBufferStream` now raise `CStructWriteException`/`CStructReadException`
+  for internal-contract violations (window-boundary crossings, capacity overflow, a misbehaving `IBufferWriter`)
+  instead of plain `IOException`/`InvalidOperationException`. This matches `SparseUpdateStream`'s existing behavior
+  and the library's documented design that every expected failure is `CStructException`-derived; catches written
+  against the old plain exception types should switch to the `CStructException` hierarchy.
+- **Breaking:** Removed Base64 from the WASM interop boundary (browser contract version 5). Binary input now
+  crosses as a native `Uint8Array`/`Span<byte>` (a zero-copy JS `MemoryView`), and `Serialize`/`UpdateStream`
+  return the encoded bytes directly as a `Uint8Array` instead of a Base64 string inside a JSON envelope; failure
+  is reported by throwing rather than through an envelope `Error` field. The public `cstructsharp-wasm.js`
+  wrapper (`parseWithDebug`/`serialize`/`update`) and the explorer's internal `cstruct-wasm.ts` layer both
+  reconstruct the same `{ContractVersion, Operation, Success, Data, DebugData, Error}` envelope shape from the
+  new boundary, so callers of those layers see no shape change; only direct callers of the raw `CStructSharpWasm`
+  export object or `RawWasmAdapter` type are affected. `SerializeToBase64`/`UpdateStreamToBase64` are renamed to
+  `Serialize`/`UpdateStream` accordingly.
 
 ## 0.2.12 - 2026-09-07
 
