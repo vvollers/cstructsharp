@@ -1,6 +1,7 @@
 namespace CStructSharp;
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -102,58 +103,69 @@ internal static class PrimitiveCodecs
         // budget contract observed by a caller is identical to a strictly byte-by-byte reader.
         StringBuilder builder = new();
         Decoder decoder = encoding.GetDecoder();
-        byte[] chunk = new byte[TerminatedStringReadChunkSize];
-        char[] output = new char[2];
-        long encodedByteCount = 0;
-        long? maxStringBytes = stream is ReadBudgetStream budget ? budget.MaxStringBytes : null;
 
-        while (true)
+        // Rented rather than freshly allocated: this method runs once per terminated-string field read, and the
+        // chunk buffer's contents never need to survive past this call, making it a natural ArrayPool candidate
+        // (the same pooling strategy ExpressionEvaluator.cs already uses for its own scratch buffer).
+        byte[] chunk = ArrayPool<byte>.Shared.Rent(TerminatedStringReadChunkSize);
+        try
         {
-            int bytesRead = stream.Read(chunk, 0, chunk.Length);
-            if (bytesRead == 0)
+            Span<char> output = stackalloc char[2];
+            long encodedByteCount = 0;
+            long? maxStringBytes = stream is ReadBudgetStream budget ? budget.MaxStringBytes : null;
+
+            while (true)
             {
-                throw new CStructReadException("Not enough bytes in stream.");
-            }
-
-            for (int i = 0; i < bytesRead; i++)
-            {
-                encodedByteCount++;
-                if (maxStringBytes.HasValue && encodedByteCount > maxStringBytes.Value)
+                int bytesRead = stream.Read(chunk, 0, TerminatedStringReadChunkSize);
+                if (bytesRead == 0)
                 {
-                    // A byte-by-byte reader would already have physically consumed this over-budget byte (it reads
-                    // the byte, then checks the budget), leaving the stream one byte past the limit rather than
-                    // exactly at it. Only seek back the remainder of the chunk that was never inspected at all, so
-                    // the throw-time position matches that exactly.
-                    SeekBackUnconsumedChunkBytes(stream, bytesRead, i + 1);
-                    throw new CStructReadLimitException("String field exceeded the configured encoded-byte limit.");
+                    throw new CStructReadException("Not enough bytes in stream.");
                 }
 
-                int charsUsed;
-                try
+                for (int i = 0; i < bytesRead; i++)
                 {
-                    decoder.Convert(chunk, i, 1, output, 0, output.Length, false, out _, out charsUsed, out _);
-                }
-                catch (DecoderFallbackException exception)
-                {
-                    throw new CStructReadException(
-                        "String field contains bytes that are invalid for its encoding.",
-                        exception);
-                }
-
-                for (int c = 0; c < charsUsed; c++)
-                {
-                    char character = output[c];
-                    if (character == terminator)
+                    encodedByteCount++;
+                    if (maxStringBytes.HasValue && encodedByteCount > maxStringBytes.Value)
                     {
-                        // Do not include the terminator in the public string value, and leave the stream
-                        // immediately after it, exactly as a byte-by-byte reader would.
+                        // A byte-by-byte reader would already have physically consumed this over-budget byte (it reads
+                        // the byte, then checks the budget), leaving the stream one byte past the limit rather than
+                        // exactly at it. Only seek back the remainder of the chunk that was never inspected at all, so
+                        // the throw-time position matches that exactly.
                         SeekBackUnconsumedChunkBytes(stream, bytesRead, i + 1);
-                        return builder.ToString();
+                        throw new CStructReadLimitException("String field exceeded the configured encoded-byte limit.");
                     }
 
-                    builder.Append(character);
+                    int charsUsed;
+                    try
+                    {
+                        decoder.Convert(chunk.AsSpan(i, 1), output, false, out _, out charsUsed, out _);
+                    }
+                    catch (DecoderFallbackException exception)
+                    {
+                        throw new CStructReadException(
+                            "String field contains bytes that are invalid for its encoding.",
+                            exception);
+                    }
+
+                    for (int c = 0; c < charsUsed; c++)
+                    {
+                        char character = output[c];
+                        if (character == terminator)
+                        {
+                            // Do not include the terminator in the public string value, and leave the stream
+                            // immediately after it, exactly as a byte-by-byte reader would.
+                            SeekBackUnconsumedChunkBytes(stream, bytesRead, i + 1);
+                            return builder.ToString();
+                        }
+
+                        builder.Append(character);
+                    }
                 }
             }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(chunk);
         }
     }
 

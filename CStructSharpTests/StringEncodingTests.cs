@@ -521,6 +521,33 @@ public class StringEncodingTests
         Assert.AreEqual(6, stream.Position);
     }
 
+    /// <summary>
+    ///     Regression coverage for the architecture-review optimization (docs/architecture-improvement-plan.md,
+    ///     AP-0.5) that rents <c>ReadIntoString</c>'s chunk buffer from a shared <see cref="System.Buffers.ArrayPool{T}"/>
+    ///     instead of allocating a fresh one per call. Reading many terminated strings of varying lengths in
+    ///     immediate succession - including a short string immediately after a long one - must decode each one
+    ///     exactly, proving a rented (and possibly reused, larger, or previously dirty) buffer never leaks a
+    ///     stale tail byte from an earlier rental into a later, shorter read.
+    /// </summary>
+    [TestMethod]
+    public void TerminatedString_ReadManyBackToBack_EachDecodesExactlyDespiteBufferReuse()
+    {
+        const string layout = "struct root { ascii_string_zero value; };";
+        var cstruct = new CStruct(layout);
+        string[] values = ["ABCDEFGHIJKLMNOPQRSTUVWXYZ", "hi", new string('Q', 500), "x", "mid-length-value",];
+
+        foreach (string expected in values)
+        {
+            byte[] bytes = [.. Encoding.ASCII.GetBytes(expected), 0x00,];
+            using var stream = new MemoryStream(bytes);
+
+            dynamic parsed = cstruct.ParseStream(stream, "root");
+
+            Assert.AreEqual(expected, (string)parsed.value);
+            Assert.AreEqual(bytes.Length, stream.Position);
+        }
+    }
+
     private static byte[] EncodeUtf16(string value, bool littleEndian)
     {
         return new UnicodeEncoding(!littleEndian, false, true).GetBytes(value);
