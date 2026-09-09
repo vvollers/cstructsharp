@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { InteropResult as Envelope, RawWasmAdapter } from "../../src/wasm/cstruct-contract";
 
 /**
- * Wraps the raw JSExport boundary - which transports binary data as a native Uint8Array/MemoryView, not Base64
+ * Wraps the raw JSExport boundary - which transports binary data as a native Uint8Array, not Base64
  * text, and reports serialize/update failure by throwing rather than through a JSON envelope - back into the
  * same Base64-string-in, JSON-envelope-string-out shape this whole test file was already written against. This
  * keeps every one of this file's call sites and JSON.parse(...)-based assertions unchanged; only this adapter

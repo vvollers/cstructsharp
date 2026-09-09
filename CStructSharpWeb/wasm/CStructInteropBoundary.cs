@@ -1,9 +1,12 @@
 namespace CStructSharpWeb.Wasm;
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text.Json;
 using CStructSharp;
+using CStructSharp.Structure;
 using Enum = System.Enum;
 
 /// <summary>Validates untrusted browser inputs and creates the stable transport envelope.</summary>
@@ -240,21 +243,37 @@ public partial class CStructExports
     }
 
     /// <summary>
-    ///     Checks the browser input limit and copies the caller-supplied binary data into a managed array. The
-    ///     supplied span is backed by a JS MemoryView valid only for the duration of this call, so every caller
-    ///     must materialize it before doing anything that could outlive the call (starting a stream, deferring
-    ///     work).
+    ///     Picks the first declared struct when the caller does not name a root type. Prefers a directly declared
+    ///     <see cref="Struct"/>; a <see cref="Typedef"/> wrapping a <see cref="Struct"/> is not itself a usable root
+    ///     path when the underlying struct is also reachable by its own tag (confirmed by
+    ///     <c>CStructPathException: The selected path does not resolve to a composite object.</c>), so it is only
+    ///     used as a fallback for an anonymous <c>typedef struct { ... } Name;</c> alias (LANG-02), which has no
+    ///     separate tagged entry to prefer.
     /// </summary>
-    private static byte[] ValidateBinaryData(ReadOnlySpan<byte> binaryData)
+    private static string ResolveDefaultRootTypeName(CStruct cstruct)
     {
-        if (binaryData.IsEmpty || binaryData.Length > MaximumBinaryInputLength)
+        foreach (KeyValuePair<string, CStructElement> element in cstruct.CStructElements)
+        {
+            if (element.Value is Struct)
+            {
+                return element.Key;
+            }
+        }
+
+        return cstruct.CStructElements.First(element => element.Value is Typedef { Struct: not null }).Key;
+    }
+
+    /// <summary>Checks the browser input limit on the caller-supplied binary data.</summary>
+    private static byte[] ValidateBinaryData(byte[] binaryData)
+    {
+        if (binaryData.Length == 0 || binaryData.Length > MaximumBinaryInputLength)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(binaryData),
                 "Binary input exceeds the supported limit.");
         }
 
-        return binaryData.ToArray();
+        return binaryData;
     }
 
     /// <summary>

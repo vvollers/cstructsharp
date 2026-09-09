@@ -5,12 +5,10 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
 using CStructSharp;
-using CStructSharp.Structure;
 
 /// <summary>
 ///     Exposes CStructSharp read, write, and debug operations to the browser.
@@ -31,14 +29,11 @@ public partial class CStructExports
 
     /// <summary>
     ///     Parses binary data with bounded layout and read options and returns values plus byte mappings.
-    ///     <paramref name="binaryData"/> crosses the interop boundary as a zero-copy view over the caller's
-    ///     Uint8Array (a JS MemoryView), not a Base64-encoded string.
+    ///     <paramref name="binaryData"/> crosses the interop boundary as a native byte array - the caller's
+    ///     Uint8Array is copied directly into it, not encoded as Base64 text.
     /// </summary>
     [JSExport]
-    public static string ParseWithDebug(
-        string cstructDefinition,
-        [JSMarshalAs<JSType.MemoryView>] Span<byte> binaryData,
-        string optionsJson)
+    public static string ParseWithDebug(string cstructDefinition, byte[] binaryData, string optionsJson)
     {
         return ParseWithDebugInternal(cstructDefinition, binaryData, optionsJson);
     }
@@ -64,7 +59,7 @@ public partial class CStructExports
             CStruct cstruct = CreateCStruct(cstructDefinition, options);
 
             string root = string.IsNullOrWhiteSpace(options.RootTypeName)
-                              ? cstruct.CStructElements.First(element => element.Value is Struct).Key
+                              ? ResolveDefaultRootTypeName(cstruct)
                               : options.RootTypeName;
             return cstruct.Serialize(root, data!, options: CreateWriteOptions(options));
         }
@@ -81,7 +76,7 @@ public partial class CStructExports
     [JSExport]
     public static byte[] UpdateStream(
         string cstructDefinition,
-        [JSMarshalAs<JSType.MemoryView>] Span<byte> binaryData,
+        byte[] binaryData,
         string elementNameOrPath,
         string valueJson,
         string optionsJson)
@@ -106,10 +101,7 @@ public partial class CStructExports
     }
 
     /// <summary>Performs the shared parse operation and projects internal debug records into transport DTOs.</summary>
-    private static string ParseWithDebugInternal(
-        string cstructDefinition,
-        Span<byte> binaryData,
-        string optionsJson)
+    private static string ParseWithDebugInternal(string cstructDefinition, byte[] binaryData, string optionsJson)
     {
         try
         {
@@ -119,7 +111,7 @@ public partial class CStructExports
             using var stream = new MemoryStream(ownedBinaryData);
 
             string root = string.IsNullOrWhiteSpace(options.RootTypeName)
-                              ? cstruct.CStructElements.First(element => element.Value is Struct).Key
+                              ? ResolveDefaultRootTypeName(cstruct)
                               : options.RootTypeName;
             (List<DebugData> debugData, dynamic result)
                 = cstruct.ParseStreamWithDebug(stream, root, CreateReadOptions(options));
