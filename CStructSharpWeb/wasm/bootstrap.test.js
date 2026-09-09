@@ -59,7 +59,7 @@ test("adapter binds every managed export and normalizes boundary values", () => 
       pointerSize: 8,
       addressingMode: "Relative",
       origin: 9_007_199_254_740_993n,
-      allowPointerDereference: true,
+      dereferencePointers: true,
     }),
     "update",
   );
@@ -84,7 +84,7 @@ test("adapter binds every managed export and normalizes boundary values", () => 
         "AA==",
         "root.value",
         "42",
-        '{"aligned":false,"pointerSize":8,"addressingMode":"Relative","origin":"9007199254740993","allowPointerDereference":true}',
+        '{"aligned":false,"pointerSize":8,"addressingMode":"Relative","origin":"9007199254740993","dereferencePointers":true}',
       ],
     ],
     ["GetVersion", []],

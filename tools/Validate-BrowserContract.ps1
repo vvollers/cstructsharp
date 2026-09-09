@@ -10,8 +10,14 @@ $boundaryPath = Join-Path $RepositoryRoot 'CStructSharpWeb/wasm/CStructInteropBo
 $exportsPath = Join-Path $RepositoryRoot 'CStructSharpWeb/wasm/CStructExports.cs'
 $bootstrapPath = Join-Path $RepositoryRoot 'CStructSharpWeb/wasm/bootstrap.js'
 $packagePath = Join-Path $RepositoryRoot 'CStructSharpWeb/package.json'
+$dtoPaths = @(
+    'CStructSharpWeb/wasm/InteropOptionsDto.cs',
+    'CStructSharpWeb/wasm/InteropResultDto.cs',
+    'CStructSharpWeb/wasm/ErrorDetailsDto.cs',
+    'CStructSharpWeb/wasm/DebugDataDto.cs',
+    'CStructSharpWeb/wasm/CStructJsonContext.cs') | ForEach-Object { Join-Path $RepositoryRoot $_ }
 
-foreach ($path in @($baselinePath, $contractPath, $boundaryPath, $exportsPath, $bootstrapPath, $packagePath)) {
+foreach ($path in @($baselinePath, $contractPath, $boundaryPath, $exportsPath, $bootstrapPath, $packagePath) + $dtoPaths) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Browser contract input is missing: $path"
     }
@@ -23,7 +29,7 @@ $boundary = Get-Content -LiteralPath $boundaryPath -Raw
 $exports = Get-Content -LiteralPath $exportsPath -Raw
 $bootstrap = Get-Content -LiteralPath $bootstrapPath -Raw
 $package = Get-Content -LiteralPath $packagePath -Raw | ConvertFrom-Json
-$dtoSource = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'CStructSharpWeb/wasm/CStructInteropDtos.cs') -Raw
+$dtoSource = ($dtoPaths | ForEach-Object { Get-Content -LiteralPath $_ -Raw }) -join "`n"
 $managedSources = $exports + $boundary + $dtoSource
 
 if ($baseline.schemaVersion -ne 1 -or $baseline.name -ne 'browser-rc1') {

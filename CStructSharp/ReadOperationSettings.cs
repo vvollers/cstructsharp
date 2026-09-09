@@ -46,7 +46,7 @@ internal readonly record struct ReadOperationSettings(
     {
         return new ReadOperationSettings(
             options.AddressingMode,
-            options.AllowPointerDereference,
+            options.DereferencePointers,
             options.MaxTraversalPointerDepth,
             options.MaxTraversalPointerTargetBytes,
             options.MaxTraversalArrayElements,

@@ -212,7 +212,7 @@ public class ResolvedTargetOperationTests
                 stream,
                 "root.ptr.value.value",
                 (byte)0xA5,
-                options: new UpdateOptions { AllowPointerDereference = false, }));
+                options: new UpdateOptions { DereferencePointers = false, }));
 
         CollectionAssert.AreEqual(new byte[] { 0x04, 0x00, 0x00, 0x00, 0x2A, }, stream.ToArray());
         Assert.AreEqual(0, stream.Position);

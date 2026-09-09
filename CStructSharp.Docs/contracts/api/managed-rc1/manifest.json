@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 3,
+  "baselineRevision": 4,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.2.12",
@@ -15,20 +15,20 @@
   "canonical": {
     "path": "CStructSharp.Docs/contracts/api/managed-rc1/CStructSharp.public-api.txt",
     "lines": 232,
-    "normalizedSha256": "27788FA3DEEF260BE796FCE37B713C150CF59680B7AAE33CFF4FEB0C796FDBE6"
+    "normalizedSha256": "F87A8A8072315B99C902D3EF7DB9836EB1302A52B15E5F048257C6A90335B313"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "0DA459C910814F99D4A5FBF44D2E9C8D750C0B9CBB94C64B09CD7C452C8F3673"
+      "normalizedSha256": "7582D09B5ED808CD227B68D49E8F7B650F41D3226031CA542C1343DEF9505FCB"
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "8B1FC8F71F1CABC6CA0B751D13746E6A8254697985E158A1713900FEA4C0911D"
+      "normalizedSha256": "8C3D47C3B53095EB0686F893A4365756D1F2FDD6C6E3D7912EB74CE77954C79C"
     }
   ],
   "history": [
@@ -58,6 +58,15 @@
       "combinedSha256": "FE394A2AAED6E5B99190B5E977C3754184EC69AE9640E12406F6666A112A7DF5",
       "rationale": "Architecture-improvement AP-2.1 converted WriteOptions and (sealed, derived) UpdateOptions from plain classes to records, both now implementing System.IEquatable<T>, to replace a hand-maintained property-by-property snapshot with the record's own 'with' expression (closing a class of silently-dropped-new-property bugs). Records synthesize public/protected ToString, PrintMembers, GetHashCode, Equals(object), Equals(T), the equality operators, and (WriteOptions only, since it is unsealed) a protected copy constructor, plus a protected EqualityContract property - the same compiler-generated shape as any C# record. AP-2.3 separately added the new UpdateOptions.MaxTraversalArrayElements property (a dedicated update-path array-traversal limit, previously silently reusing WriteOptions.MaxArrayElements) in the same development cycle. No existing member's signature, default, nullability, or attribute changed.",
       "releaseImpact": "Unreleased source addition on the 0.2.12 development version; the next publication must receive a new version through the release process. No existing binary signature changes; every addition is purely additive (new interface implementation, new synthesized members, one new property) and source/binary compatible for existing callers. Callers that already compared WriteOptions/UpdateOptions instances by reference now get value-equality semantics via the new Equals overloads and operators, which is additive behavior, not a breaking change to any documented contract."
+    },
+    {
+      "revision": 4,
+      "kind": "breaking",
+      "date": "2026-09-09",
+      "packageVersion": "0.2.12",
+      "combinedSha256": "041A46DF3FD32D682B70098914F2188CBB27DF56C17F08CF1069F92B2F0C5E1F",
+      "rationale": "Product review item 1 (the architecture improvement plan's Phase 5): UpdateOptions.AllowPointerDereference renamed to DereferencePointers, matching ReadOptions.DereferencePointers - both collapse into the identical ReadOperationSettings.DereferencePointers field internally, so the two names for the same concept were a genuine 'not obvious from the name' mismatch. Treated as a clean, immediate rename rather than a deprecate-and-bridge migration: the package is still pre-1.0, and this project's own convention (per this baseline's own review discipline) is to make breaking API changes deliberately and visibly rather than accrue compatibility shims before a stable release.",
+      "releaseImpact": "Breaking source change: any caller using the object-initializer syntax `new UpdateOptions { AllowPointerDereference = ... }` will fail to compile against the next published version and must switch to `DereferencePointers`. No [Obsolete] bridge is provided. The WASM browser bridge's InteropOptionsDto and JSON wire option key were renamed identically in the same commit (the previously-separate 'allowPointerDereference' JSON key no longer exists; use 'dereferencePointers' for both parse and update operations)."
     }
   ]
 }

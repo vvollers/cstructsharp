@@ -131,7 +131,7 @@ public class PublicExceptionBoundaryTests
                 pointerUpdate,
                 "root.link.value.value",
                 (byte)1,
-                options: new UpdateOptions { AllowPointerDereference = false, }));
+                options: new UpdateOptions { DereferencePointers = false, }));
         Assert.AreEqual(2L, pointerUpdate.Position);
     }
 

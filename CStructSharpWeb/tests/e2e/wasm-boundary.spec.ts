@@ -21,7 +21,7 @@ interface PositionalTestAdapter extends Omit<
     pointerSize: number,
     addressingMode: "Absolute" | "Relative",
     origin: string,
-    allowPointerDereference: boolean,
+    dereferencePointers: boolean,
   ): string;
 }
 
@@ -56,14 +56,14 @@ test.beforeEach(async ({ page }) => {
         pointerSize,
         addressingMode,
         origin,
-        allowPointerDereference,
+        dereferencePointers,
       ) {
         return raw.updateStreamToBase64(definition, binaryBase64, path, valueJson, {
           aligned,
           pointerSize,
           addressingMode,
           origin,
-          allowPointerDereference,
+          dereferencePointers,
         });
       },
     };

@@ -195,7 +195,6 @@ function currentRequest(): WorkbenchRequest {
       addressingMode: addressingMode.value,
       origin: origin.value,
       dereferencePointers: dereferencePointers.value,
-      allowPointerDereference: dereferencePointers.value,
       maxArrayElements: maxArrayElements.value,
       maxStringBytes: maxStringBytes.value,
       maxTotalBytesRead: maxTotalBytes.value,

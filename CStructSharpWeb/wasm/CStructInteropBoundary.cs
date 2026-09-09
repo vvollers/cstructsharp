@@ -157,7 +157,7 @@ public partial class CStructExports
             MaxTotalBytesWritten = write.MaxTotalBytesWritten,
             MaxNestingDepth = write.MaxNestingDepth,
             Origin = write.Origin,
-            AllowPointerDereference = options.AllowPointerDereference ?? true,
+            DereferencePointers = options.DereferencePointers ?? true,
             RequireExistingPointerTarget = options.RequireExistingPointerTarget ?? true,
             ClearUnionStorage = options.ClearUnionStorage ?? true,
             MaxTraversalPointerDepth = Bounded(

@@ -65,7 +65,7 @@ public class ReadOperationSettingsTests
         var options = new UpdateOptions
         {
             AddressingMode = PointerAddressingMode.Relative,
-            AllowPointerDereference = false,
+            DereferencePointers = false,
             MaxTraversalPointerDepth = 2,
             MaxTraversalPointerTargetBytes = 64,
 
