@@ -85,7 +85,7 @@ foreach ($primitive in @($contract.fixedPrimitives)) {
     Assert-Condition ($primitive.bytes -in @(1, 2, 4, 8)) "$context has an invalid byte width."
     Assert-Condition ($primitive.alignment -eq $primitive.bytes) `
         "$context alignment must equal its Portable byte width."
-    Assert-Condition ($primitive.signedness -in @('signed', 'unsigned', 'code-unit', 'boolean')) `
+    Assert-Condition ($primitive.signedness -in @('signed', 'unsigned', 'code-unit', 'boolean', 'floating')) `
         "$context has an invalid signedness classification."
     Assert-Condition ($primitive.endian -in @('independent', 'layout', 'little', 'big')) `
         "$context has an invalid endian classification."

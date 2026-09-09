@@ -42,7 +42,7 @@ This example establishes one format's widths; it does not prove equivalence with
 | `qualifier-not-in-closed-set` | `_Atomic uint8 value;` | Only `const`/`volatile`/`restrict` are recognized and discarded | Remove the unrecognized qualifier before construction |
 | `trailing-qualifier-position` | `uint8 value const;` | Accepted qualifiers appear before the type or after a pointer star, not after the declarator name | Move the qualifier to an accepted position |
 | `unrecognized-integer-spelling` | `intmax_t value;` | The accepted alias table is curated, not a general C type-name parser | Use a documented [primitive spelling](primitive-types.md) |
-| `floating-point-field` | `double value;` | Endian/NaN/value rules are not defined | Model reviewed raw integer bits or add a fully specified feature |
+| `floating-point-field` | `long double value;` | No single portable width exists to standardize on (80-bit extended, 128-bit quad, or 64-bit, depending on compiler/target) | Use `float32`/`float64` (or the `float`/`double` aliases) when 64 bits of precision is enough |
 | `function-pointer` | `uint8 (*callback)(uint8)` | Data-pointer grammar cannot describe/invoke functions | Use fixed unsigned storage only when an opaque address is appropriate |
 | `zero-width-bitfield` | `uint8 reserved : 0;` | Native separator/allocation rules vary | Start an explicit new field/storage unit |
 | `typedef-array` | `typedef uint8 bytes[4];` | Typedef aliases a name and optional pointer depth, not a declarator | Put `[4]` on the field |

@@ -56,6 +56,10 @@ public partial class CStruct
                 ["int64<"] = stream => BitConverter.ToInt64(BinaryPrimitiveIO.ReadIntoBuffer(stream, 8, true)),
                 ["uint64>"] = stream => BitConverter.ToUInt64(BinaryPrimitiveIO.ReadIntoBuffer(stream, 8, false)),
                 ["uint64<"] = stream => BitConverter.ToUInt64(BinaryPrimitiveIO.ReadIntoBuffer(stream, 8, true)),
+                ["float32>"] = stream => BitConverter.ToSingle(BinaryPrimitiveIO.ReadIntoBuffer(stream, 4, false)),
+                ["float32<"] = stream => BitConverter.ToSingle(BinaryPrimitiveIO.ReadIntoBuffer(stream, 4, true)),
+                ["float64>"] = stream => BitConverter.ToDouble(BinaryPrimitiveIO.ReadIntoBuffer(stream, 8, false)),
+                ["float64<"] = stream => BitConverter.ToDouble(BinaryPrimitiveIO.ReadIntoBuffer(stream, 8, true)),
                 ["ascii_string_zero"] = stream => PrimitiveCodecs.ReadIntoString(stream, PrimitiveCodecs.StrictAsciiEncoding, '\0'),
                 ["ascii_string_newline"] = stream => PrimitiveCodecs.ReadIntoString(stream, PrimitiveCodecs.StrictAsciiEncoding, '\n'),
                 ["utf8_string_zero"] = stream => PrimitiveCodecs.ReadIntoString(stream, PrimitiveCodecs.StrictUtf8Encoding, '\0'),
@@ -199,6 +203,30 @@ public partial class CStruct
                                                                            stream,
                                                                            BitConverter.GetBytes(
                                                                             Convert.ToUInt64(value)),
+                                                                           true),
+                ["float32>"]
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
+                                                                           stream,
+                                                                           BitConverter.
+                                                                               GetBytes(Convert.ToSingle(value)),
+                                                                           false),
+                ["float32<"]
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
+                                                                           stream,
+                                                                           BitConverter.
+                                                                               GetBytes(Convert.ToSingle(value)),
+                                                                           true),
+                ["float64>"]
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
+                                                                           stream,
+                                                                           BitConverter.
+                                                                               GetBytes(Convert.ToDouble(value)),
+                                                                           false),
+                ["float64<"]
+                                     = (stream, value) => BinaryPrimitiveIO.WriteEndianBytes(
+                                                                           stream,
+                                                                           BitConverter.
+                                                                               GetBytes(Convert.ToDouble(value)),
                                                                            true),
                 ["ascii_string_zero"]
                                      = (stream, value) => PrimitiveCodecs.WriteTerminatedString(
