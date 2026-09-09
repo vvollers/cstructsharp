@@ -157,6 +157,31 @@ public class CompiledIntermediateRepresentationTests
     }
 
     /// <summary>
+    ///     An anonymous promoted member's own compiled field (LANG-14) is reachable through
+    ///     <see cref="CompiledCompositeType.PromotedFields"/>, a named inline struct's composite has none, and the
+    ///     accessor only ever reports one level - the outer composite's grandchild is not included.
+    /// </summary>
+    [TestMethod]
+    public void CompiledDescriptors_ExposePromotedFieldsOneLevelAtATime()
+    {
+        var named = new CStruct("struct root { struct { uint8 x; } inner; };", pointerSize: 1);
+        var compiledNamed =
+            (CompiledCompositeType)named.CompiledModel.Composites[named.GetStruct("root")].Definition!;
+        Assert.AreEqual(0, compiledNamed.PromotedFields.Count);
+
+        var promoted = new CStruct("struct root { struct { uint8 x; }; };", pointerSize: 1);
+        var compiledPromoted =
+            (CompiledCompositeType)promoted.CompiledModel.Composites[promoted.GetStruct("root")].Definition!;
+        Assert.AreEqual(1, compiledPromoted.PromotedFields.Count);
+        Assert.IsTrue(compiledPromoted.PromotedFields.Contains(compiledPromoted.Fields[0]));
+
+        var transitive = new CStruct("struct root { struct { struct { uint8 x; }; }; };", pointerSize: 1);
+        var compiledTransitive =
+            (CompiledCompositeType)transitive.CompiledModel.Composites[transitive.GetStruct("root")].Definition!;
+        Assert.AreEqual(1, compiledTransitive.PromotedFields.Count);
+    }
+
+    /// <summary>
     ///     The compiled model must record shared low/high bit offsets, uint16 enum storage, and a terminated name[]
     ///     whose length remains variable.
     /// </summary>
