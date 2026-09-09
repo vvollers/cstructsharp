@@ -1,5 +1,6 @@
 namespace CStructSharpTests;
 
+using System.Collections.Immutable;
 using System.Dynamic;
 using System.Reflection;
 using CStructSharp;
@@ -382,6 +383,55 @@ public class CompiledIntermediateRepresentationTests
         Assert.IsFalse(
             typeof(CStruct).GetMethods(PrivateInstance).
                 Any(method => method.Name == "GetStructSizeInBytes"));
+    }
+
+    /// <summary>
+    ///     A hand-built two-dimensional shape (LANG-05) peels one dimension per call, exactly mirroring a 1-D
+    ///     array's existing single-call collapse to <see cref="CompiledArrayShape.Scalar"/> once every dimension
+    ///     has been consumed - no parser/compiled-model integration is exercised here, only the shape peeling
+    ///     mechanism itself.
+    /// </summary>
+    [TestMethod]
+    public void CompiledArrayShape_PeelsOneDimensionPerCall()
+    {
+        var twoDimensional = new CompiledArrayShape(
+            CompiledArrayKind.Fixed,
+            new Literal(3),
+            3,
+            ImmutableArray<string>.Empty,
+            ImmutableArray.Create(
+                new CompiledArrayDimension(new Literal(3), 3),
+                new CompiledArrayDimension(new Literal(4), 4)));
+
+        Assert.AreEqual(12, twoDimensional.TotalFixedElementCount);
+
+        CompiledArrayShape oneDimensional = twoDimensional.PeelOuterDimension();
+        Assert.AreEqual(CompiledArrayKind.Fixed, oneDimensional.Kind);
+        Assert.AreEqual(4, oneDimensional.FixedCount);
+        Assert.AreEqual(1, oneDimensional.Dimensions.Length);
+        Assert.AreEqual(4, oneDimensional.TotalFixedElementCount);
+
+        CompiledArrayShape scalar = oneDimensional.PeelOuterDimension();
+        Assert.AreEqual(CompiledArrayKind.Scalar, scalar.Kind);
+        Assert.AreEqual(0, scalar.Dimensions.Length);
+        Assert.AreEqual(1, scalar.TotalFixedElementCount);
+    }
+
+    /// <summary>Every array shape compiled today (1-D or scalar) has exactly the Dimensions length LANG-05 expects.</summary>
+    [TestMethod]
+    public void CompiledArrayShape_ExistingOneDimensionalShapesHaveASingleDimensionEntry()
+    {
+        var cstruct = new CStruct("struct root { uint8 fixed_values[3]; uint8 tail; };", pointerSize: 1);
+        Struct root = cstruct.GetStruct("root");
+        var compiledRoot = (CompiledCompositeType)cstruct.CompiledModel.Composites[root].Definition!;
+
+        CompiledArrayShape fixedShape = compiledRoot.Fields[0].Array;
+        Assert.AreEqual(1, fixedShape.Dimensions.Length);
+        Assert.AreEqual(3, fixedShape.TotalFixedElementCount);
+
+        CompiledArrayShape scalarShape = compiledRoot.Fields[1].Array;
+        Assert.AreEqual(0, scalarShape.Dimensions.Length);
+        Assert.AreEqual(1, scalarShape.TotalFixedElementCount);
     }
 
     /// <summary>Uses reflection to prove that a private construction table discarded its mutable builder.</summary>
