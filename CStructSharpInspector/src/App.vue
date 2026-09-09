@@ -7,7 +7,11 @@ import SchemaPanel from "./components/SchemaPanel.vue";
 import BinaryPanel from "./components/BinaryPanel.vue";
 import ResultPanel from "./components/ResultPanel.vue";
 import { formats, type FormatExample } from "./formats";
-import { findDebugEntryIndexByOffset, findDebugEntryIndexByPath, tokenizePath } from "./debug-path";
+import {
+  findDebugEntryIndexByOffset,
+  findDebugEntryIndicesByPath,
+  tokenizePath,
+} from "./debug-path";
 import {
   initWasm,
   isLoaded,
@@ -29,7 +33,7 @@ const loadedFileName = ref<string | null>(null);
 const resetCount = ref(0);
 const result = ref<InteropResult | null>(null);
 const isRunning = ref(false);
-const selectedDebugIndex = ref<number | null>(null);
+const selectedDebugIndices = ref<ReadonlySet<number>>(new Set());
 const focusPath = ref<string[] | null>(null);
 const debugData = computed(() => (result.value?.Success ? result.value.DebugData : []));
 
@@ -47,7 +51,7 @@ function selectExample(example: FormatExample): void {
   loadedFileName.value = null;
   bytes.value = hexToBytesSafe(example.binaryHex);
   result.value = null;
-  selectedDebugIndex.value = null;
+  selectedDebugIndices.value = new Set();
   focusPath.value = null;
   resetCount.value += 1;
 }
@@ -58,7 +62,7 @@ function startNew(): void {
   loadedFileName.value = null;
   bytes.value = new Uint8Array();
   result.value = null;
-  selectedDebugIndex.value = null;
+  selectedDebugIndices.value = new Set();
   focusPath.value = null;
   resetCount.value += 1;
 }
@@ -68,7 +72,7 @@ function loadFile(file: File): void {
     bytes.value = new Uint8Array(buffer);
     loadedFileName.value = file.name;
     result.value = null;
-    selectedDebugIndex.value = null;
+    selectedDebugIndices.value = new Set();
     focusPath.value = null;
   });
 }
@@ -86,7 +90,7 @@ onFileDialogChange((files) => {
 
 async function runParse(options: ParseWithDebugOptions): Promise<void> {
   isRunning.value = true;
-  selectedDebugIndex.value = null;
+  selectedDebugIndices.value = new Set();
   focusPath.value = null;
   try {
     result.value = parseWithDebug(definition.value, bytes.value, options);
@@ -101,17 +105,23 @@ function handleBytesEdited(next: Uint8Array): void {
 
 function handleByteClick(offset: number): void {
   const index = findDebugEntryIndexByOffset(debugData.value, offset);
-  selectedDebugIndex.value = index === -1 ? null : index;
-  focusPath.value = index === -1 ? null : tokenizePath(debugData.value[index]!.DebugStackString);
+  if (index === -1) {
+    selectedDebugIndices.value = new Set();
+    focusPath.value = null;
+    return;
+  }
+  const path = tokenizePath(debugData.value[index]!.DebugStackString);
+  // Select every entry sharing this leaf's path too, not just the clicked one: a scalar array (e.g.
+  // uint16 e_res[4]) records every element under the exact same un-indexed path, so one clicked byte
+  // should still activate the whole array, matching what a JSON-side click on it already does.
+  selectedDebugIndices.value = new Set(findDebugEntryIndicesByPath(debugData.value, path));
+  focusPath.value = path;
 }
 
 function handleSelectPath(path: string[] | null): void {
-  if (!path) {
-    selectedDebugIndex.value = null;
-    return;
-  }
-  const index = findDebugEntryIndexByPath(debugData.value, path);
-  selectedDebugIndex.value = index === -1 ? null : index;
+  selectedDebugIndices.value = path
+    ? new Set(findDebugEntryIndicesByPath(debugData.value, path))
+    : new Set();
 }
 
 onMounted(async () => {
@@ -171,7 +181,7 @@ onMounted(async () => {
     <BinaryPanel
       :bytes="bytes"
       :debug-data="debugData"
-      :selected-index="selectedDebugIndex"
+      :selected-indices="selectedDebugIndices"
       @update:bytes="handleBytesEdited"
       @byte-click="handleByteClick"
       @file-dropped="loadFile"

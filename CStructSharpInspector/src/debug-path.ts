@@ -10,12 +10,41 @@ export function tokenizePath(stackString: string): string[] {
   return stackString.match(/[^.[\]]+/g) ?? [];
 }
 
-/** Finds the index of the DebugData entry whose path exactly matches a JSONPath (from a JSON-tree selection). */
-export function findDebugEntryIndexByPath(debugData: DebugDataItem[], path: string[]): number {
-  const target = JSON.stringify(path);
-  return debugData.findIndex(
-    (item) => JSON.stringify(tokenizePath(item.DebugStackString)) === target,
-  );
+/**
+ * Finds every DebugData entry related to a JSONPath (from a JSON-tree selection) - not just the first
+ * one, since a single click can genuinely need more than one entry:
+ *
+ * - A struct array's element leaves each get their own indexed path (e.g. "entries[0].width",
+ *   "entries[1].width", ...), so clicking the array's own container key needs every descendant leaf
+ *   whose path the clicked path is a prefix of.
+ * - A *scalar* array (e.g. `uint16 e_res[4]`) is recorded differently by the managed debug output: every
+ *   element shares the exact same un-indexed path ("root.dos.e_res" four times, once per element, each
+ *   with its own CurPos/EndPos) rather than being indexed per element. A plain first-match lookup here
+ *   would only ever select the first element's 2 bytes - "only the first element is highlighted" - so an
+ *   exact path match must return every entry sharing that path, and a *specific* index the caller cannot
+ *   otherwise distinguish (no per-element path exists for it) still resolves to the same full set via the
+ *   entry's shorter path being a prefix of the clicked (deeper, indexed) one.
+ *
+ * Two tokenized paths are "related" when one is a prefix of the other.
+ */
+export function findDebugEntryIndicesByPath(debugData: DebugDataItem[], path: string[]): number[] {
+  const indices: number[] = [];
+  debugData.forEach((item, index) => {
+    if (isPathRelated(tokenizePath(item.DebugStackString), path)) {
+      indices.push(index);
+    }
+  });
+  return indices;
+}
+
+function isPathRelated(a: string[], b: string[]): boolean {
+  const length = Math.min(a.length, b.length);
+  for (let i = 0; i < length; i++) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /** Finds the index of the DebugData entry covering an absolute byte offset (from a hex-view click). */
