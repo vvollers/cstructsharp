@@ -27,6 +27,10 @@ jobs:
           cache: true
           cache-dependency-path: "**/*.csproj"
 
+      - name: Verify .sln project-list parity
+        shell: pwsh
+        run: ./tools/Validate-SolutionParity.ps1
+
       - name: Restore dependencies
         run: dotnet restore ./CStructSharp.NonWeb.sln
 
