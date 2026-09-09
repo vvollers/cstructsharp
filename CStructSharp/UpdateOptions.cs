@@ -10,6 +10,11 @@ namespace CStructSharp;
 /// </remarks>
 public sealed record UpdateOptions : WriteOptions
 {
+    /// <summary>Creates the default bounded update, traversal, and replacement policy.</summary>
+    public UpdateOptions()
+    {
+    }
+
     /// <summary>Gets whether an update path may pass through a pointer's <c>.value</c> target.</summary>
     public bool AllowPointerDereference { get; init; } = true;
 

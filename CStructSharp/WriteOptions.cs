@@ -21,6 +21,11 @@ public enum PocoBindingMode
 /// </remarks>
 public record WriteOptions
 {
+    /// <summary>Creates the default bounded write and object-binding policy.</summary>
+    public WriteOptions()
+    {
+    }
+
     /// <summary>Gets whether written pointer values are absolute stream positions or offsets from <see cref="Origin"/>.</summary>
     public PointerAddressingMode AddressingMode { get; init; } = PointerAddressingMode.Absolute;
 

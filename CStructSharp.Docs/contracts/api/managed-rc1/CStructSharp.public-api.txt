@@ -205,11 +205,12 @@ namespace CStructSharp
         public static CStructSharp.UnionValue FromMember(string unionName, string memberName, object? value) { }
         public static CStructSharp.UnionValue FromRaw(string unionName, System.ReadOnlySpan<byte> rawStorage) { }
     }
-    public sealed class UpdateOptions : CStructSharp.WriteOptions
+    public sealed class UpdateOptions : CStructSharp.WriteOptions, System.IEquatable<CStructSharp.UpdateOptions>
     {
         public UpdateOptions() { }
         public bool AllowPointerDereference { get; init; }
         public bool ClearUnionStorage { get; init; }
+        public int MaxTraversalArrayElements { get; init; }
         public long MaxTraversalBytesRead { get; init; }
         public int MaxTraversalNestingDepth { get; init; }
         public int MaxTraversalPointerDepth { get; init; }
@@ -217,7 +218,7 @@ namespace CStructSharp
         public long MaxTraversalStringBytes { get; init; }
         public bool RequireExistingPointerTarget { get; init; }
     }
-    public class WriteOptions
+    public class WriteOptions : System.IEquatable<CStructSharp.WriteOptions>
     {
         public WriteOptions() { }
         public CStructSharp.PointerAddressingMode AddressingMode { get; init; }

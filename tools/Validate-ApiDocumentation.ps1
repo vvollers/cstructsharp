@@ -35,11 +35,86 @@ $missingTypes = @(
 Assert-Condition ($missingTypes.Count -eq 0) (
     "Generated API metadata is missing baseline types: " + [string]::Join(', ', $missingTypes))
 
+function Get-RecordSynthesizedUids {
+    <#
+    .SYNOPSIS
+    Returns the exact DocFX UIDs every C# record declaration synthesizes beyond its own hand-authored members,
+    since PublicApiGenerator.Tool's baseline text (unlike DocFX's own reflection) omits compiler-generated record
+    members entirely - both from its UID count and from its documentation-quality expectations.
+
+    .DESCRIPTION
+    Every record synthesizes 7 always-present members visible to DocFX: ToString, PrintMembers, op_Equality,
+    op_Inequality, GetHashCode, Equals(object), and the protected EqualityContract property - plus its own
+    Equals(TSelf) (IEquatable<TSelf> is unconditional for a record). An unsealed record additionally synthesizes
+    a protected copy constructor (a sealed record's copy constructor is private, so DocFX never documents it). A
+    record deriving from another record additionally overrides the base record's virtual Equals(TBase), a second
+    UID distinct from its own Equals(TSelf). This is exact C# record codegen, not a heuristic: getting it wrong
+    for a future record conversion silently reintroduces the same drift this function exists to prevent
+    (docs/architecture-improvement-plan.md's post-AP-2.1 finding). None of these members can carry a hand-written
+    XML doc comment, so callers must also skip them entirely for summary/parameter/return/exception checks -
+    not just count them - exactly like the existing "CStructSharp" module-root exemption below.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [string]$Baseline
+    )
+
+    $declarations = @(
+        [regex]::Matches(
+            $Baseline,
+            '(?m)^\s*public\s+(?<sealed>sealed\s+)?class\s+(?<name>[A-Za-z][A-Za-z0-9]*)' +
+                '(?:\s*:\s*(?<bases>[^\r\n{]+))?'))
+    $recordNames = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($declaration in $declarations) {
+        if ($declaration.Groups['bases'].Success -and
+            $declaration.Groups['bases'].Value -match
+                "System\.IEquatable<CStructSharp\.$($declaration.Groups['name'].Value)>") {
+            [void]$recordNames.Add($declaration.Groups['name'].Value)
+        }
+    }
+
+    $uids = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($declaration in $declarations) {
+        $name = $declaration.Groups['name'].Value
+        if (-not $recordNames.Contains($name)) {
+            continue
+        }
+
+        $qualified = "CStructSharp.$name"
+        foreach ($member in @(
+            'ToString',
+            'PrintMembers(System.Text.StringBuilder)',
+            "op_Inequality($qualified,$qualified)",
+            "op_Equality($qualified,$qualified)",
+            'GetHashCode',
+            'Equals(System.Object)',
+            "Equals($qualified)",
+            'EqualityContract')) {
+            [void]$uids.Add("$qualified.$member")
+        }
+
+        if (-not $declaration.Groups['sealed'].Success) {
+            [void]$uids.Add("$qualified.#ctor($qualified)")
+        }
+
+        if ($declaration.Groups['bases'].Success) {
+            $baseTypeMatch = [regex]::Match($declaration.Groups['bases'].Value, '^\s*CStructSharp\.([A-Za-z][A-Za-z0-9]*)')
+            if ($baseTypeMatch.Success -and $recordNames.Contains($baseTypeMatch.Groups[1].Value)) {
+                [void]$uids.Add("$qualified.Equals(CStructSharp.$($baseTypeMatch.Groups[1].Value))")
+            }
+        }
+    }
+
+    return ,$uids
+}
+
+$recordSynthesizedUids = Get-RecordSynthesizedUids -Baseline $baseline
 $expectedUidCount =
     1 +
     @($baseline -split '\r?\n' | Where-Object { $_ -match '^\s*(?:public|protected) ' }).Count +
     @($baseline -split '\r?\n' |
-        Where-Object { $_ -match '^\s{8}[A-Za-z][A-Za-z0-9]* = -?\d+,' }).Count
+        Where-Object { $_ -match '^\s{8}[A-Za-z][A-Za-z0-9]* = -?\d+,' }).Count +
+    $recordSynthesizedUids.Count
 
 $uids = [Collections.Generic.List[string]]::new()
 $missingSummaries = [Collections.Generic.List[string]]::new()
@@ -82,6 +157,10 @@ foreach ($file in Get-ChildItem -LiteralPath $ApiDirectory -File -Filter '*.yml'
         $uid = $uidMatch.Groups['uid'].Value.Trim()
         $uids.Add($uid)
         $primaryItems[$uid] = $item
+        if ($recordSynthesizedUids.Contains($uid))
+        {
+            continue
+        }
 
         if ($item -notmatch '(?m)^  summary:')
         {
