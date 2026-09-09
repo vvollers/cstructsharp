@@ -687,7 +687,8 @@ public partial class CStruct
                 CompiledArrayKind.Flexible,
                 field.ArrayCount,
                 null,
-                ImmutableArray<string>.Empty);
+                ImmutableArray<string>.Empty,
+                ImmutableArray.Create(new CompiledArrayDimension(field.ArrayCount, null)));
         }
 
         ImmutableArray<string> dependencies = this.expressionEvaluator.GetDependencies(field.ArrayCount).
@@ -699,7 +700,8 @@ public partial class CStruct
                 CompiledArrayKind.Runtime,
                 field.ArrayCount,
                 null,
-                dependencies);
+                dependencies,
+                ImmutableArray.Create(new CompiledArrayDimension(field.ArrayCount, null)));
         }
 
         int count = this.layoutExpressionEvaluator.Evaluate(
@@ -710,6 +712,7 @@ public partial class CStruct
             CompiledArrayKind.Fixed,
             field.ArrayCount,
             count,
-            ImmutableArray<string>.Empty);
+            ImmutableArray<string>.Empty,
+            ImmutableArray.Create(new CompiledArrayDimension(field.ArrayCount, count)));
     }
 }
