@@ -409,11 +409,14 @@ public partial class CStruct
                     field.ArrayCount,
                     field.BitSize,
                     pointerDepth);
-                bool isUnsizedCharacterArray =
-                    ReferenceEquals(effectiveField.ArrayCount, Field.UnknownArraysize) &&
-                    CharacterFieldTypes.IsCharArrayField(effectiveField);
-                if (ReferenceEquals(effectiveField.ArrayCount, Field.UnknownArraysize) &&
-                    !isUnsizedCharacterArray)
+
+                // An unsized dimension (LANG-05 decision 6) can only ever be the sole entry of a one-dimensional
+                // ArrayCount list - the grammar already rejects it as an inner dimension of a multidimensional
+                // field, so a still-empty check here is simply never true for N >= 2.
+                bool isUnsizedArray = effectiveField.ArrayCount.Count == 1 &&
+                                       ReferenceEquals(effectiveField.ArrayCount[0], Field.UnknownArraysize);
+                bool isUnsizedCharacterArray = isUnsizedArray && CharacterFieldTypes.IsCharArrayField(effectiveField);
+                if (isUnsizedArray && !isUnsizedCharacterArray)
                 {
                     throw new CStructLayoutException(
                         "Only character fields can use an unsized array declarator: " + field.Name.Name);
@@ -448,8 +451,8 @@ public partial class CStruct
 
                 int? elementSize = pointerDepth > 0 ? this.PointerSize : type.Symbol.FixedSize;
                 CompiledArrayShape arrayShape = this.CompileArrayShape(effectiveField);
-                int? storageSize = elementSize.HasValue && arrayShape.FixedCount.HasValue
-                                       ? checked(elementSize.Value * arrayShape.FixedCount.Value)
+                int? storageSize = elementSize.HasValue && arrayShape.TotalFixedElementCount.HasValue
+                                       ? checked(elementSize.Value * arrayShape.TotalFixedElementCount.Value)
                                        : null;
                 BitfieldCodecTable.Entry? bitfieldStorage = null;
                 if (field.BitSize > 0)
@@ -681,35 +684,78 @@ public partial class CStruct
             return CompiledArrayShape.Scalar;
         }
 
-        if (ReferenceEquals(field.ArrayCount, Field.UnknownArraysize))
+        if (field.ArrayCount.Count == 1)
+        {
+            return this.CompileSingleArrayDimension(field, field.ArrayCount[0]);
+        }
+
+        // A multidimensional array (LANG-05, fixed-dimensions-only first slice, ADR-016 decision 9): every
+        // dimension must be a compile-time-fixed count - a runtime-sized outermost dimension is a deliberately
+        // separate, smaller follow-on this slice does not implement, and an inner dimension can never be
+        // runtime-sized even once that follow-on lands (ADR-016 decision 2).
+        var dimensions = ImmutableArray.CreateBuilder<CompiledArrayDimension>(field.ArrayCount.Count);
+        foreach (Expr dimensionExpression in field.ArrayCount)
+        {
+            ImmutableArray<string> dependencies =
+                this.expressionEvaluator.GetDependencies(dimensionExpression).ToImmutableArray();
+            if (dependencies.Length != 0)
+            {
+                throw new CStructLayoutException(
+                    "Every dimension of a multidimensional array must be a compile-time-fixed count; a " +
+                    "runtime-sized dimension is not yet supported for two or more dimensions: " + field.Name.Name);
+            }
+
+            int dimensionCount = this.layoutExpressionEvaluator.Evaluate(
+                dimensionExpression,
+                this.staticLayoutVariables,
+                "array length for " + field.Name.Name);
+            dimensions.Add(new CompiledArrayDimension(dimensionExpression, dimensionCount));
+        }
+
+        ImmutableArray<CompiledArrayDimension> dimensionList = dimensions.MoveToImmutable();
+        return new CompiledArrayShape(
+            CompiledArrayKind.Fixed,
+            dimensionList[0].CountExpression,
+            dimensionList[0].FixedCount,
+            ImmutableArray<string>.Empty,
+            dimensionList);
+    }
+
+    /// <summary>Compiles the sole dimension of a one-dimensional array field - unchanged from before LANG-05.</summary>
+    private CompiledArrayShape CompileSingleArrayDimension(Field field, Expr dimensionExpression)
+    {
+        if (ReferenceEquals(dimensionExpression, Field.UnknownArraysize))
         {
             return new CompiledArrayShape(
                 CompiledArrayKind.Flexible,
-                field.ArrayCount,
+                dimensionExpression,
                 null,
-                ImmutableArray<string>.Empty);
+                ImmutableArray<string>.Empty,
+                ImmutableArray.Create(new CompiledArrayDimension(dimensionExpression, null)));
         }
 
-        ImmutableArray<string> dependencies = this.expressionEvaluator.GetDependencies(field.ArrayCount).
+        ImmutableArray<string> dependencies = this.expressionEvaluator.GetDependencies(dimensionExpression).
             OrderBy(name => name, StringComparer.Ordinal).
             ToImmutableArray();
         if (dependencies.Length != 0)
         {
             return new CompiledArrayShape(
                 CompiledArrayKind.Runtime,
-                field.ArrayCount,
+                dimensionExpression,
                 null,
-                dependencies);
+                dependencies,
+                ImmutableArray.Create(new CompiledArrayDimension(dimensionExpression, null)));
         }
 
         int count = this.layoutExpressionEvaluator.Evaluate(
-            field.ArrayCount,
+            dimensionExpression,
             this.staticLayoutVariables,
             "array length for " + field.Name.Name);
         return new CompiledArrayShape(
             CompiledArrayKind.Fixed,
-            field.ArrayCount,
+            dimensionExpression,
             count,
-            ImmutableArray<string>.Empty);
+            ImmutableArray<string>.Empty,
+            ImmutableArray.Create(new CompiledArrayDimension(dimensionExpression, count)));
     }
 }

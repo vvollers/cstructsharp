@@ -345,7 +345,7 @@ public partial class CStruct
                 unknownArray = true;
                 if (effectiveField.Type.Equals(CharacterFieldTypes.CharType))
                 {
-                    effectiveField = new Field(CharacterFieldTypes.CstringType, effectiveField.Name, NoneExpr.Instance, 0);
+                    effectiveField = new Field(CharacterFieldTypes.CstringType, effectiveField.Name, Field.NoArray, 0);
                     valueField = compiledField.SelectPointerTarget(
                         0,
                         CharacterFieldTypes.CstringType.Name,
@@ -359,7 +359,7 @@ public partial class CStruct
                     effectiveField = new Field(
                         new Identifier(handler),
                         effectiveField.Name,
-                        NoneExpr.Instance,
+                        Field.NoArray,
                         0);
                     valueField = compiledField.SelectPointerTarget(
                         0,
@@ -367,6 +367,21 @@ public partial class CStruct
                         compiledField.TerminatedReader,
                         compiledField.TerminatedWriter,
                         this.PointerSize);
+                }
+            }
+            else if (compiledField.Array.Dimensions.Length > 1)
+            {
+                // Every dimension of a multidimensional array is compile-time-fixed (LANG-05's
+                // fixed-dimensions-only slice), so the total leaf count is already known without evaluating any
+                // expression against the current write state.
+                numFieldValues = compiledField.Array.TotalFixedElementCount ??
+                                 throw new InvalidOperationException(
+                                     "Multidimensional array has no fixed total element count: " +
+                                     effectiveField.Name.Name);
+                if (numFieldValues > state.Options.MaxArrayElements)
+                {
+                    throw new CStructWriteLimitException(
+                        "Array length exceeds the configured write limit: " + effectiveField.Name.Name);
                 }
             }
             else
@@ -498,7 +513,43 @@ public partial class CStruct
             }
         }
 
-        if (isArray)
+        if (isArray && compiledField.Array.Dimensions.Length > 1)
+        {
+            // Multidimensional arrays are never Flexible/unknownArray (Seam 4 requires every dimension fixed for
+            // N >= 2), so the caller-supplied value is always an N-deep nested collection to flatten, mirroring
+            // the reader's flat-then-reshape approach in reverse: flatten first, then write the same flat
+            // sequence a 1-D array of the same total count would already write.
+            int[] dimensionSizes = compiledField.Array.Dimensions
+                .Select(
+                    dimension => dimension.FixedCount ??
+                                 throw new InvalidOperationException(
+                                     "Multidimensional array dimension has no fixed count: " +
+                                     effectiveField.Name.Name))
+                .ToArray();
+
+            if (CharacterFieldTypes.IsCharArrayField(effectiveField))
+            {
+                // The innermost dimension of a fixed string table collapses one caller-supplied string per row,
+                // exactly like today's single-dimension char[32] buffer; only the outer dimensions flatten.
+                int rowSize = dimensionSizes[^1];
+                List<object> rows = this.FlattenNestedArrayValues(value!, dimensionSizes[..^1], effectiveField.Name.Name);
+                foreach (object row in rows)
+                {
+                    string rowString = row as string ??
+                                        WriteValueMaterialization.ConvertToBoundedCharString(row, rowSize, effectiveField.Name.Name);
+                    this.WriteFixedCharArray(compiledField, rowString, rowSize, state);
+                }
+            }
+            else
+            {
+                List<object> leaves = this.FlattenNestedArrayValues(value!, dimensionSizes, effectiveField.Name.Name);
+                for (int i = 0; i < leaves.Count; i++)
+                {
+                    _ = this.WriteSingleFieldValue(compiledField, leaves[i], state);
+                }
+            }
+        }
+        else if (isArray)
         {
             if (CharacterFieldTypes.IsCharArrayField(effectiveField))
             {
@@ -559,6 +610,36 @@ public partial class CStruct
         {
             WriterVariableProjection.UpdateVariablesFromValue(state, effectiveField.Name.Name, value!);
         }
+    }
+
+    /// <summary>
+    ///     Materializes a caller-supplied N-deep nested collection into a flat, row-major list of leaf values,
+    ///     validating that every level matches its declared dimension size exactly. Each level is materialized
+    ///     with the same <see cref="WriteValueMaterialization.ConvertToObjectList"/> a single-dimension array
+    ///     already uses once - this just repeats that call once per remaining dimension.
+    /// </summary>
+    private List<object> FlattenNestedArrayValues(object value, IReadOnlyList<int> dimensionSizes, string fieldName)
+    {
+        IList<object> level = WriteValueMaterialization.ConvertToObjectList(value, dimensionSizes[0], fieldName);
+        if (level.Count != dimensionSizes[0])
+        {
+            throw new CStructWriteException(
+                $"Array length mismatch for {fieldName}: expected {dimensionSizes[0]}, got {level.Count}.");
+        }
+
+        if (dimensionSizes.Count == 1)
+        {
+            return level as List<object> ?? level.ToList();
+        }
+
+        int[] remainingDimensions = [.. dimensionSizes.Skip(1),];
+        var flattened = new List<object>();
+        foreach (object item in level)
+        {
+            flattened.AddRange(this.FlattenNestedArrayValues(item, remainingDimensions, fieldName));
+        }
+
+        return flattened;
     }
 
     /// <summary>Writes a fixed character array and fills any remaining slots with zero characters.</summary>

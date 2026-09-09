@@ -253,7 +253,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "multidimensional-array",
+        "unsupportedId": "runtime-sized-multidimensional-array",
         "errorCode": "InvalidLayout"
       }
     },

@@ -2,20 +2,28 @@ namespace CStructSharp.Structure;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>Describes one field in a struct or union, including its type, array length, bit width, and pointer depth.</summary>
 internal class Field : CStructElement
 {
     private readonly int? bitSize;
 
-    public static readonly Expr NoArray = NoneExpr.Instance;
+    /// <summary>The sentinel "not an array" value - an empty dimension list.</summary>
+    public static readonly IReadOnlyList<Expr> NoArray = Array.Empty<Expr>();
+
+    /// <summary>
+    ///     The sentinel unsized-character-array count expression (<c>char name[];</c>) - valid only as the sole
+    ///     entry of a one-dimensional <see cref="ArrayCount"/> list (LANG-05 decision 6: an unsized dimension can
+    ///     never appear as one of several dimensions of a multidimensional array).
+    /// </summary>
     public static readonly Expr UnknownArraysize = new Literal(int.MinValue);
 
     /// <summary>Creates a field definition and derives pointer depth from the type and field name when it is not supplied.</summary>
     public Field(
         Identifier type,
         Identifier name,
-        Expr arraycount,
+        IReadOnlyList<Expr> arraycount,
         int bitSize,
         int pointerDepth = -1,
         string? typeKeywordHint = null,
@@ -39,7 +47,7 @@ internal class Field : CStructElement
     internal Field(
         Identifier type,
         Identifier name,
-        Expr arraycount,
+        IReadOnlyList<Expr> arraycount,
         Expr bitSize,
         int pointerDepth = -1,
         string? typeKeywordHint = null,
@@ -58,7 +66,12 @@ internal class Field : CStructElement
         this.OffsetAssertionExpression = offsetAssertionExpression;
     }
 
-    public Expr ArrayCount { get; }
+    /// <summary>
+    ///     Every array dimension's own count expression, outermost first - empty for a scalar field
+    ///     (<see cref="NoArray"/>), one entry for every array this codebase supported before LANG-05, N entries
+    ///     for a multidimensional (LANG-05) field.
+    /// </summary>
+    public IReadOnlyList<Expr> ArrayCount { get; }
 
     public int BitSize
     {
@@ -109,7 +122,7 @@ internal class Field : CStructElement
         return other is Field f &&
                this.Type.Equals(f.Type) &&
                this.Name.Equals(f.Name) &&
-               this.ArrayCount.Equals(f.ArrayCount) &&
+               this.ArrayCount.SequenceEqual(f.ArrayCount) &&
                this.BitSizeExpression.Equals(f.BitSizeExpression) &&
                this.PointerDepth == f.PointerDepth;
     }
@@ -128,7 +141,13 @@ internal class Field : CStructElement
     /// <summary>Returns a hash code that matches this value's equality rules.</summary>
     public override int GetHashCode()
     {
-        return HashCode.Combine(this.Type, this.Name, this.ArrayCount, this.BitSizeExpression, this.PointerDepth);
+        var arrayCountHash = default(HashCode);
+        foreach (Expr dimension in this.ArrayCount)
+        {
+            arrayCountHash.Add(dimension);
+        }
+
+        return HashCode.Combine(this.Type, this.Name, arrayCountHash.ToHashCode(), this.BitSizeExpression, this.PointerDepth);
     }
 
     /// <summary>Returns whether the field's type is known to the supplied lookup.</summary>
@@ -140,6 +159,6 @@ internal class Field : CStructElement
     /// <summary>Returns a short readable description for debugging and logs.</summary>
     public override string ToString()
     {
-        return $"{this.Name} ({this.Type}) [{this.ArrayCount}]";
+        return $"{this.Name} ({this.Type}) [{string.Join("][", this.ArrayCount)}]";
     }
 }

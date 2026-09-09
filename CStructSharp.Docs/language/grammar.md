@@ -62,7 +62,7 @@ anonymous-bitfield
 type-qualifier   = "const" | "volatile" | "restrict" ;
 tag-keyword      = "struct" | "union" | "enum" ;
 pointer-stars    = { "*" } ;
-array            = "[", [ expression ], "]" ;
+array            = { "[", [ expression ], "]" } ;
 bit-width        = ":", expression ;
 placement-suffix = alignment-override | offset-assertion ;
 alignment-override
@@ -123,8 +123,16 @@ path/POCO/JSON name resolves to a field. Scoped to structs only: a struct cannot
 named or anonymous, so an anonymous inline union is not yet expressible. See
 [Structs, unions, enums, and typedefs](structs-unions-enums-typedefs.md#anonymous-promoted-members).
 
-Only one array declarator per name is accepted. Empty `[]` has meaning only for a supported character type and is
-then a terminated string. A field declaration may share one type across multiple comma-separated declarators
+A declarator accepts zero or more bracketed dimensions, written outermost first (`value[rows][columns]`, LANG-05).
+Only the outermost dimension may be a runtime expression (referencing an earlier field or `#define`, matching real
+C's `int matrix[rows][10]` restriction); every dimension after the first must be a compile-time-fixed count, and a
+declaration with two or more dimensions where any dimension beyond the first is not compile-time-fixed is rejected
+at construction time. Empty `[]` has meaning only for a supported character type and is then a terminated string;
+it is accepted only as the sole dimension of a one-dimensional declarator (`char name[10][]` is rejected - an
+unsized dimension can never be an inner dimension of a multidimensional array). A fixed table of fixed-width
+strings (`char names[10][32]`) is ordinary within this rule: the innermost dimension behaves exactly like today's
+`char[32]` fixed buffer, and every outer dimension nests around it. See
+[Arrays and strings](arrays-and-strings.md#multidimensional-arrays). A field declaration may share one type across multiple comma-separated declarators
 (`uint8 first, second;`); each declarator has its own independent pointer stars, array, and bit width, matching C's
 declarator-list semantics - a leading star belongs only to the declarator it directly precedes, not to every name in
 the list, so `uint8 *a, b;` declares `a` as a pointer and `b` as a plain `uint8`. `const`, `volatile`, and `restrict`
@@ -168,7 +176,7 @@ executes user code.
 
 ```ebnf
 path             = segment, { ".", segment } ;
-segment          = identifier, [ indexer ] ;
+segment          = identifier, { indexer } ;
 indexer          = "[", canonical-decimal-index, "]" ;
 canonical-decimal-index
                  = "0" | nonzero-decimal-digit, { decimal-digit } ;
@@ -178,7 +186,11 @@ pointer-accessor = ".address" | ".value" ;
 `pointer-accessor` describes the special meaning of an ordinary path segment after a pointer: `.address` selects
 pointer storage and `.value` consumes one pointer level. It is not a separate lexical token. A non-pointer field may
 therefore still be named `address` or `value`. Indices have no sign, whitespace, leading zero, base prefix, or
-underscore, and must fit a non-negative 32-bit integer. See [paths and selection](paths-and-selection.md).
+underscore, and must fit a non-negative 32-bit integer. A segment mirrors its field's own declaration syntax: an
+N-dimensional array (LANG-05) accepts up to N repeated `indexer`s in one segment (`root.matrix[2][3]`, not
+comma-separated), one per dimension, outermost first. Supplying fewer than N selects the corresponding
+lower-dimensional sub-array rather than one scalar/struct element; supplying more than N is rejected. See
+[paths and selection](paths-and-selection.md#multidimensional-arrays).
 
 ## Production index
 
@@ -208,7 +220,7 @@ The table explains each production and links to the page that defines its additi
 | `type-qualifier` | A recognized layout-neutral qualifier, discarded with no effect on the compiled field |
 | `tag-keyword` | An optional struct/union/enum keyword, checked against the referenced declaration's actual kind |
 | `pointer-stars` | Zero or more data-pointer levels |
-| `array` | One fixed/runtime count or character-string marker |
+| `array` | Zero or more fixed/runtime dimension counts or character-string markers, outermost first (LANG-05) |
 | `bit-width` | One named nonzero portable bit slice, or unnamed reserved padding for `anonymous-bitfield` |
 | `placement-suffix` | At most one trailing alignment override or offset assertion per declarator |
 | `alignment-override` | An explicit per-declarator alignment override, effective only when `aligned: true` |
@@ -248,7 +260,7 @@ The table explains each production and links to the page that defines its additi
 | `line-end` | CRLF, CR, or LF |
 | `end-of-input` | Requires the parser to consume the complete input |
 | `path` | Dot-separated public selector |
-| `segment` | Named path component with at most one index |
+| `segment` | Named path component with zero or more indices, one per dimension actually indexed (LANG-05) |
 | `indexer` | Normalized decimal array index |
 | `canonical-decimal-index` | Formal production name for `0` or an unpadded positive decimal integer |
 | `pointer-accessor` | `.address`/`.value` selection after a pointer |

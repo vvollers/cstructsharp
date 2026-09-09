@@ -1081,8 +1081,8 @@
       "category": "inline union"
     },
     {
-      "id": "multidimensional-array",
-      "definition": "struct root { uint8 values[2][3]; };",
+      "id": "runtime-sized-multidimensional-array",
+      "definition": "struct root { uint8 count; uint8 values[count][3]; };",
       "category": "multidimensional array"
     },
     {
