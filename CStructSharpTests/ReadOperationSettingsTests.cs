@@ -68,7 +68,11 @@ public class ReadOperationSettingsTests
             AllowPointerDereference = false,
             MaxTraversalPointerDepth = 2,
             MaxTraversalPointerTargetBytes = 64,
-            MaxArrayElements = 13,
+
+            // Deliberately different from MaxTraversalArrayElements below, so a value that leaked from the
+            // unrelated write-side array limit instead of the dedicated traversal one would fail this assertion.
+            MaxArrayElements = 999,
+            MaxTraversalArrayElements = 13,
             MaxTraversalStringBytes = 17,
             MaxTraversalBytesRead = 19,
             MaxTraversalNestingDepth = 4,

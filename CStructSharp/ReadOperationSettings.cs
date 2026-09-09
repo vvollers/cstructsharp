@@ -49,7 +49,7 @@ internal readonly record struct ReadOperationSettings(
             options.AllowPointerDereference,
             options.MaxTraversalPointerDepth,
             options.MaxTraversalPointerTargetBytes,
-            options.MaxArrayElements,
+            options.MaxTraversalArrayElements,
             options.MaxTraversalStringBytes,
             options.MaxTraversalBytesRead,
             options.MaxTraversalNestingDepth,
