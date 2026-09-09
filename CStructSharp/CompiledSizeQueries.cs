@@ -127,32 +127,10 @@ internal sealed class CompiledSizeQueries
                 "Flexible array has no fixed storage size: " + field.EffectiveField.Name.Name);
         }
 
-        int count;
-        try
-        {
-            Expr expression = field.Array.CountExpression ??
-                              throw new InvalidOperationException(
-                                  "Compiled array strategy has no count expression: " +
-                                  field.EffectiveField.Name.Name);
-            count = this.expressionEvaluator.Evaluate(
-                expression,
-                variables,
-                "array length for " + field.EffectiveField.Name.Name);
-        }
-        catch (Exception exception) when (requireFixedSize)
-        {
-            throw new CStructLayoutException(
-                "Cannot calculate fixed array size for field: " + field.EffectiveField.Name.Name,
-                exception);
-        }
-
-        if (count < 0)
-        {
-            throw new CStructLayoutException(
-                "Array length cannot be negative: " + field.EffectiveField.Name.Name);
-        }
-
-        return count;
+        Expr expression = field.Array.CountExpression ??
+                          throw new InvalidOperationException(
+                              "Compiled array strategy has no count expression: " + field.EffectiveField.Name.Name);
+        return this.EvaluateDimensionCount(expression, field.EffectiveField.Name.Name, variables, requireFixedSize);
     }
 
     /// <summary>
@@ -181,34 +159,43 @@ internal sealed class CompiledSizeQueries
         int total = 1;
         foreach (CompiledArrayDimension dimension in field.Array.Dimensions)
         {
-            int count;
-            try
-            {
-                Expr expression = dimension.CountExpression ??
-                                  throw new InvalidOperationException(
-                                      "Compiled array dimension has no count expression: " +
-                                      field.EffectiveField.Name.Name);
-                count = this.expressionEvaluator.Evaluate(
-                    expression,
-                    variables,
-                    "array length for " + field.EffectiveField.Name.Name);
-            }
-            catch (Exception exception) when (requireFixedSize)
-            {
-                throw new CStructLayoutException(
-                    "Cannot calculate fixed array size for field: " + field.EffectiveField.Name.Name,
-                    exception);
-            }
-
-            if (count < 0)
-            {
-                throw new CStructLayoutException(
-                    "Array length cannot be negative: " + field.EffectiveField.Name.Name);
-            }
-
+            Expr expression = dimension.CountExpression ??
+                              throw new InvalidOperationException(
+                                  "Compiled array dimension has no count expression: " + field.EffectiveField.Name.Name);
+            int count = this.EvaluateDimensionCount(expression, field.EffectiveField.Name.Name, variables, requireFixedSize);
             total = checked(total * count);
         }
 
         return total;
+    }
+
+    /// <summary>
+    ///     Evaluates one dimension's own count expression, preserving both the fixed/require-static error wrapping
+    ///     and the negative-length rejection shared identically by <see cref="GetCompiledArrayCount"/> (the
+    ///     current/outermost dimension only) and <see cref="GetCompiledFieldTotalElementCount"/> (once per
+    ///     dimension, accumulated into a product).
+    /// </summary>
+    private int EvaluateDimensionCount(
+        Expr expression,
+        string fieldName,
+        IReadOnlyDictionary<string, Expr> variables,
+        bool requireFixedSize)
+    {
+        int count;
+        try
+        {
+            count = this.expressionEvaluator.Evaluate(expression, variables, "array length for " + fieldName);
+        }
+        catch (Exception exception) when (requireFixedSize)
+        {
+            throw new CStructLayoutException("Cannot calculate fixed array size for field: " + fieldName, exception);
+        }
+
+        if (count < 0)
+        {
+            throw new CStructLayoutException("Array length cannot be negative: " + fieldName);
+        }
+
+        return count;
     }
 }
