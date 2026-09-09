@@ -83,7 +83,7 @@ internal sealed class CompiledSizeQueries
         bool requireFixedSize)
     {
         int elementSize = this.GetCompiledFieldElementSize(field, variables, requireFixedSize);
-        int count = this.GetCompiledArrayCount(field, variables, requireFixedSize);
+        int count = this.GetCompiledFieldTotalElementCount(field, variables, requireFixedSize);
         return checked(elementSize * count);
     }
 
@@ -153,5 +153,62 @@ internal sealed class CompiledSizeQueries
         }
 
         return count;
+    }
+
+    /// <summary>
+    ///     Evaluates the total element count across every dimension of a (possibly multidimensional, LANG-05)
+    ///     array strategy - the product of each dimension's own independently re-evaluated count, mirroring
+    ///     <see cref="GetCompiledArrayCount"/>'s existing single-dimension evaluation exactly for every field this
+    ///     codebase supported before LANG-05, since a 1-D field's <see cref="CompiledArrayShape.Dimensions"/> has
+    ///     exactly the one entry <see cref="GetCompiledArrayCount"/> already evaluates.
+    /// </summary>
+    public int GetCompiledFieldTotalElementCount(
+        CompiledField field,
+        IReadOnlyDictionary<string, Expr> variables,
+        bool requireFixedSize)
+    {
+        if (field.Array.Kind == CompiledArrayKind.Scalar)
+        {
+            return 1;
+        }
+
+        if (field.Array.Kind == CompiledArrayKind.Flexible)
+        {
+            throw new CStructLayoutException(
+                "Flexible array has no fixed storage size: " + field.EffectiveField.Name.Name);
+        }
+
+        int total = 1;
+        foreach (CompiledArrayDimension dimension in field.Array.Dimensions)
+        {
+            int count;
+            try
+            {
+                Expr expression = dimension.CountExpression ??
+                                  throw new InvalidOperationException(
+                                      "Compiled array dimension has no count expression: " +
+                                      field.EffectiveField.Name.Name);
+                count = this.expressionEvaluator.Evaluate(
+                    expression,
+                    variables,
+                    "array length for " + field.EffectiveField.Name.Name);
+            }
+            catch (Exception exception) when (requireFixedSize)
+            {
+                throw new CStructLayoutException(
+                    "Cannot calculate fixed array size for field: " + field.EffectiveField.Name.Name,
+                    exception);
+            }
+
+            if (count < 0)
+            {
+                throw new CStructLayoutException(
+                    "Array length cannot be negative: " + field.EffectiveField.Name.Name);
+            }
+
+            total = checked(total * count);
+        }
+
+        return total;
     }
 }

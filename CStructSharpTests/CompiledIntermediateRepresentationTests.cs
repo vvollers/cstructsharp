@@ -434,6 +434,31 @@ public class CompiledIntermediateRepresentationTests
         Assert.AreEqual(1, scalarShape.TotalFixedElementCount);
     }
 
+    /// <summary>
+    ///     <see cref="CompiledSizeQueries.GetCompiledFieldStorageSize"/> now sources its element count from the
+    ///     new <see cref="CompiledSizeQueries.GetCompiledFieldTotalElementCount"/> (LANG-05) instead of
+    ///     <see cref="CompiledSizeQueries.GetCompiledArrayCount"/> directly - for an existing 1-D field this must
+    ///     produce the exact same result, since a 1-D field's Dimensions list has exactly the one entry
+    ///     <see cref="CompiledSizeQueries.GetCompiledArrayCount"/> already evaluates. A genuine multidimensional
+    ///     field is exercised once the grammar supports declaring one (see the LANG-05 grammar/compiled-model
+    ///     seam).
+    /// </summary>
+    [TestMethod]
+    public void CompiledSizeQueries_StorageSize_UnchangedForExistingOneDimensionalArrays()
+    {
+        var cstruct = new CStruct("struct root { uint8 values[4]; uint8 tail; };", pointerSize: 1, aligned: false);
+
+        Assert.AreEqual(5, cstruct.GetStructSizeInBytes("root"));
+
+        Struct root = cstruct.GetStruct("root");
+        var compiledRoot = (CompiledCompositeType)cstruct.CompiledModel.Composites[root].Definition!;
+        CompiledField valuesField = compiledRoot.Fields[0];
+        Assert.AreEqual(1, valuesField.Array.Dimensions.Length);
+        Assert.AreEqual(4, valuesField.FixedArrayCount);
+        Assert.AreEqual(4, valuesField.Array.TotalFixedElementCount);
+        Assert.AreEqual(4, valuesField.FixedStorageSize);
+    }
+
     /// <summary>Uses reflection to prove that a private construction table discarded its mutable builder.</summary>
     private static void AssertPrivateDictionaryRejectsMutation<TValue>(
         CStruct cstruct,
