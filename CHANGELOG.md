@@ -15,8 +15,8 @@ All notable changes to CStructSharp are documented here.
   and the library's documented design that every expected failure is `CStructException`-derived; catches written
   against the old plain exception types should switch to the `CStructException` hierarchy.
 - **Breaking:** Removed Base64 from the WASM interop boundary (browser contract version 5). Binary input now
-  crosses as a native `Uint8Array`/`Span<byte>` (a zero-copy JS `MemoryView`), and `Serialize`/`UpdateStream`
-  return the encoded bytes directly as a `Uint8Array` instead of a Base64 string inside a JSON envelope; failure
+  crosses as a native `Uint8Array`/`byte[]`, and `Serialize`/`UpdateStream` return the encoded bytes directly
+  as a `Uint8Array` instead of a Base64 string inside a JSON envelope; failure
   is reported by throwing rather than through an envelope `Error` field. The public `cstructsharp-wasm.js`
   wrapper (`parseWithDebug`/`serialize`/`update`) and the explorer's internal `cstruct-wasm.ts` layer both
   reconstruct the same `{ContractVersion, Operation, Success, Data, DebugData, Error}` envelope shape from the

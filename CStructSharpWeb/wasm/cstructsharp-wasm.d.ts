@@ -83,7 +83,7 @@ export type Result<T, O extends Operation> = {
 export type InputValue =
   null | boolean | number | string | bigint | InputValue[] | { [name: string]: InputValue };
 /**
- * Advanced raw transport API. Binary data crosses the boundary as native Uint8Array/MemoryView, never Base64
+ * Advanced raw transport API. Binary data crosses the boundary as a native Uint8Array, never Base64
  * text. serialize/updateStream report failure by throwing (their JS Error's message is the same JSON-serialized
  * ErrorDetails shape parseWithDebug's envelope carries in its Error field) rather than through a JSON envelope,
  * since there is no envelope object left to carry an Error field alongside a native byte-array success payload.

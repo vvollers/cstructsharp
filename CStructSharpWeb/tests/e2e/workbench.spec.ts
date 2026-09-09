@@ -166,9 +166,8 @@ test("every runnable generated demo parses through the WebAssembly bridge", asyn
         const binary = Uint8Array.from(
           compactHex.match(/.{2}/g)?.map((pair) => Number.parseInt(pair, 16)) ?? [],
         );
-        const binaryBase64 = btoa(String.fromCharCode(...binary));
         const result = JSON.parse(
-          window.CStructSharpWasm!.parseWithDebug(entry.definition, binaryBase64, {
+          window.CStructSharpWasm!.parseWithDebug(entry.definition, binary, {
             rootTypeName: entry.rootType,
             aligned: entry.parserOptions.aligned,
             littleEndian: entry.parserOptions.littleEndian,
