@@ -288,4 +288,79 @@ public class AnonymousPromotedMemberTests
         StringAssert.Contains(exception.Message, "values");
         Assert.IsFalse(exception.Message.Contains("Unknown field"));
     }
+
+    /// <summary>
+    ///     A selected multi-segment path (<c>root.inner.x</c>, where <c>inner</c> is named and contains a
+    ///     promoted grandchild) walks a caller-supplied POCO whose <c>inner</c> member already exposes <c>x</c>
+    ///     flattened directly, matching what the reader now produces. The path grammar never emits a segment for
+    ///     a promoted member, so <c>PocoDataBinding.ResolveDataPath</c>'s existing per-segment lookup already
+    ///     resolves this correctly with no promotion-aware change of its own.
+    /// </summary>
+    [TestMethod]
+    public void WriteStream_SelectedMultiSegmentPath_ResolvesAFlatPocoThroughAPromotedGrandchild()
+    {
+        var cstruct = new CStruct("struct root { struct { struct { uint8 x; }; } inner; };", pointerSize: 1);
+        using var stream = new MemoryStream(new byte[1]);
+
+        cstruct.WriteStream(stream, "root.inner.x", new { inner = new { x = (byte)9, }, });
+
+        CollectionAssert.AreEqual(new byte[] { 9, }, stream.ToArray());
+    }
+
+    /// <summary>Typed <c>ReadValue&lt;T&gt;</c> reads a promoted member's own scalar field directly.</summary>
+    [TestMethod]
+    public void ReadValueOfT_ReadsAPromotedScalarField()
+    {
+        var cstruct = new CStruct("struct root { struct { uint8 x; }; };", pointerSize: 1);
+        using var stream = new MemoryStream(new byte[] { 42, });
+
+        Assert.AreEqual((byte)42, cstruct.ReadValue<byte>(stream, "root.x"));
+    }
+
+    /// <summary>
+    ///     A promoted member coexists with a named nested struct, a pointer field, and an array field as
+    ///     siblings - each still reads, addresses, and round-trips independently.
+    /// </summary>
+    [TestMethod]
+    public void SiblingInteraction_NamedNestedStructPointerAndArray_AllWorkIndependently()
+    {
+        const string layout = """
+                              struct root {
+                                  uint8 a;
+                                  struct { uint8 x; };
+                                  struct { uint8 y; } named;
+                                  uint8 *p;
+                                  uint8 values[2];
+                              };
+                              """;
+        var cstruct = new CStruct(layout, pointerSize: 1);
+        byte[] bytes = { 1, 2, 3, 0, 10, 20, };
+        using var stream = new MemoryStream(bytes);
+
+        dynamic parsed = cstruct.ParseStream(stream, "root", null, new ReadOptions { DereferencePointers = false, });
+
+        Assert.AreEqual((byte)1, (byte)parsed.a);
+        Assert.AreEqual((byte)2, (byte)parsed.x);
+        Assert.AreEqual((byte)3, (byte)parsed.named.y);
+        List<object?> values = (List<object?>)parsed.values;
+        Assert.AreEqual((byte)10, (byte)values[0]!);
+        Assert.AreEqual((byte)20, (byte)values[1]!);
+
+        stream.Position = 0;
+        Assert.AreEqual(1L, cstruct.ResolveAddress(stream, "root.x"));
+        stream.Position = 0;
+        Assert.AreEqual(2L, cstruct.ResolveAddress(stream, "root.named.y"));
+
+        byte[] roundTrip = cstruct.Serialize(
+            "root",
+            new
+            {
+                a = (byte)1,
+                x = (byte)2,
+                named = new { y = (byte)3, },
+                p = new Pointer(0, null, 1),
+                values = new byte[] { 10, 20, },
+            });
+        CollectionAssert.AreEqual(bytes, roundTrip);
+    }
 }
