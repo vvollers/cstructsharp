@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests;
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -218,5 +219,73 @@ public class AnonymousPromotedMemberTests
         byte[] bytes = cstruct.Serialize("root", new { flag = 1, other = 0b1111, x = (byte)0xAB, });
 
         CollectionAssert.AreEqual(new byte[] { 0b1111_0001, 0xAB, }, bytes);
+    }
+
+    /// <summary>
+    ///     ResolveAddress, UpdateStream, and ReadValue can all resolve a path segment naming a promoted member's
+    ///     own field directly - the same segment/pathIndex retried against the promoted member's fields without
+    ///     ever consuming a segment for the promoted member itself.
+    /// </summary>
+    [TestMethod]
+    public void PathOperations_ResolveThroughAPromotedMember()
+    {
+        var cstruct = new CStruct("struct root { uint8 a; struct { uint8 x; }; };", pointerSize: 1);
+        using var stream = new MemoryStream(new byte[] { 1, 2, });
+
+        Assert.AreEqual(1L, cstruct.ResolveAddress(stream, "root.x"));
+        stream.Position = 0;
+        Assert.AreEqual((byte)2, Convert.ToByte(cstruct.ReadValue(stream, "root.x")));
+
+        using var updateStream = new MemoryStream(new byte[] { 1, 2, });
+        cstruct.UpdateStream(updateStream, "root.x", (byte)9);
+        CollectionAssert.AreEqual(new byte[] { 1, 9, }, updateStream.ToArray());
+
+        using var writeStream = new MemoryStream(new byte[2]);
+        cstruct.WriteStream(writeStream, "root.x", (byte)7);
+        CollectionAssert.AreEqual(new byte[] { 7, 0, }, writeStream.ToArray());
+    }
+
+    /// <summary>
+    ///     A named nested struct containing a promoted member resolves a path that names both: a real segment
+    ///     for the named level, then straight through to the promoted grandchild's own field with no segment of
+    ///     its own.
+    /// </summary>
+    [TestMethod]
+    public void PathOperations_ResolveThroughANamedStructContainingAPromotedMember()
+    {
+        var cstruct = new CStruct("struct root { struct { struct { uint8 x; }; } inner; };", pointerSize: 1);
+        using var stream = new MemoryStream(new byte[] { 5, });
+
+        Assert.AreEqual(0L, cstruct.ResolveAddress(stream, "root.inner.x"));
+        Assert.AreEqual(1, cstruct.GetStructSizeInBytes("root"));
+    }
+
+    /// <summary>A three-level transitive promotion chain resolves down to the innermost field.</summary>
+    [TestMethod]
+    public void PathOperations_ResolveThroughATransitivePromotionChain()
+    {
+        var cstruct = new CStruct("struct root { struct { struct { struct { uint8 x; }; }; }; };", pointerSize: 1);
+        using var stream = new MemoryStream(new byte[] { 3, });
+
+        Assert.AreEqual(0L, cstruct.ResolveAddress(stream, "root.x"));
+        Assert.AreEqual((byte)3, Convert.ToByte(cstruct.ReadValue(stream, "root.x")));
+    }
+
+    /// <summary>
+    ///     A genuine downstream error inside a correctly-matched promoted field's own descendant (a bad array
+    ///     index one level down) surfaces its own specific message rather than a misleading "unknown field" -
+    ///     proving the pre-check-gated retry design, not a naive try/catch around the whole recursive call.
+    /// </summary>
+    [TestMethod]
+    public void PathOperations_DownstreamErrorInsideAPromotedField_IsNotMisreportedAsUnknownField()
+    {
+        var cstruct = new CStruct("struct root { struct { uint8 values[2]; }; };", pointerSize: 1);
+        using var stream = new MemoryStream(new byte[] { 1, 2, });
+
+        CStructPathException exception = Assert.Throws<CStructPathException>(
+            () => cstruct.ResolveAddress(stream, "root.values[5]"));
+
+        StringAssert.Contains(exception.Message, "values");
+        Assert.IsFalse(exception.Message.Contains("Unknown field"));
     }
 }
