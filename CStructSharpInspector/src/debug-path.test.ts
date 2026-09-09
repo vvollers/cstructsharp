@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { findDebugEntryIndexByOffset, findDebugEntryIndexByPath, tokenizePath } from "./debug-path";
+import {
+  computeFieldGroups,
+  findDebugEntryIndexByOffset,
+  findDebugEntryIndexByPath,
+  tokenizePath,
+} from "./debug-path";
 import type { DebugDataItem } from "./wasm/cstruct-contract";
 
 function debugItem(overrides: Partial<DebugDataItem>): DebugDataItem {
@@ -77,5 +82,48 @@ describe("findDebugEntryIndexByOffset", () => {
 
   it("returns -1 for an offset covered by no entry", () => {
     expect(findDebugEntryIndexByOffset(debugData, 10)).toBe(-1);
+  });
+});
+
+describe("computeFieldGroups", () => {
+  it("puts every element of an array of structs into one shared group", () => {
+    const debugData = [
+      debugItem({ DebugStackString: "root.entries[0].width" }),
+      debugItem({ DebugStackString: "root.entries[0].height" }),
+      debugItem({ DebugStackString: "root.entries[1].width" }),
+      debugItem({ DebugStackString: "root.entries[1].height" }),
+    ];
+    expect(computeFieldGroups(debugData)).toEqual([0, 0, 0, 0]);
+  });
+
+  it("keeps non-array leaf fields in their own individual groups", () => {
+    const debugData = [
+      debugItem({ DebugStackString: "root.file_header.signature" }),
+      debugItem({ DebugStackString: "root.file_header.file_size" }),
+      debugItem({ DebugStackString: "root.info_header.width" }),
+    ];
+    expect(computeFieldGroups(debugData)).toEqual([0, 1, 2]);
+  });
+
+  it("assigns a new group per distinct array field, in order of first appearance", () => {
+    const debugData = [
+      debugItem({ DebugStackString: "root.a[0]" }),
+      debugItem({ DebugStackString: "root.b.leaf" }),
+      debugItem({ DebugStackString: "root.a[1]" }),
+      debugItem({ DebugStackString: "root.b2.leaf" }),
+    ];
+    expect(computeFieldGroups(debugData)).toEqual([0, 1, 0, 2]);
+  });
+
+  it("collapses a multidimensional array to one group regardless of dimension count", () => {
+    const debugData = [
+      debugItem({ DebugStackString: "root.matrix[0][0]" }),
+      debugItem({ DebugStackString: "root.matrix[2][3]" }),
+    ];
+    expect(computeFieldGroups(debugData)).toEqual([0, 0]);
+  });
+
+  it("returns an empty array for no debug data", () => {
+    expect(computeFieldGroups([])).toEqual([]);
   });
 });
