@@ -340,7 +340,7 @@ public class ExpressionSafetyTests
         Assert.Throws<CStructLayoutException>(
             () => new CStruct("#define COUNT 2147483647 + 1\nstruct root { byte values[COUNT]; };"));
 
-        Field zeroWidth = CStructDefinitionParser.Field.ParseOrThrow("uint8 value: 0;");
+        Field zeroWidth = CStructDefinitionParser.FieldGroup.ParseOrThrow("uint8 value: 0;").Single();
         Assert.Throws<InvalidOperationException>(() => _ = zeroWidth.BitSize);
     }
 
