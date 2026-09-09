@@ -315,7 +315,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "anonymous-member",
+        "unsupportedId": "inline-union",
         "errorCode": "InvalidLayout"
       }
     },

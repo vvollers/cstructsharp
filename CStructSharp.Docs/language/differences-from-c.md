@@ -36,7 +36,6 @@ This example establishes one format's widths; it does not prove equivalence with
 | `packing-pragma` | `#pragma pack(push, 1)` | There is no compiler pack stack | Set packed/aligned placement in the constructor |
 | `tag-kind-mismatch` | `struct root { union child value; };` where `child` is a `struct` | A tag keyword is checked against the referenced declaration's actual kind | Use the matching keyword, or omit it and write `child value;` |
 | `forward-declaration` | `struct child;` | Incomplete type identity/storage is unavailable | Supply the complete named declaration |
-| `anonymous-member` | Unnamed inline aggregate | Members are not implicitly promoted | Give the inline struct a field name |
 | `inline-union` | `union { ... } value;` inside a struct | Only named top-level unions are accepted | Declare `union choice`, then use `choice value;` |
 | `multidimensional-array` | `value[2][3]` | Public paths have one explicit dimension | Use a named row struct or flatten explicitly |
 | `general-flexible-array` | `uint16 values[]` | Remaining stream bytes do not define a safe count | Use bounded `values[COUNT]`; empty `[]` is for character strings |

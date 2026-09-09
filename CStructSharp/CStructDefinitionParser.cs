@@ -497,15 +497,22 @@ internal static class CStructDefinitionParser
     public static readonly Parser<char, IEnumerable<Field>> StructOrField =
         Rec(() => Try(InnerStruct!).Select(f => (IEnumerable<Field>)new[] { f, }).Or(FieldGroup));
 
+    /// <summary>
+    ///     A trailing name is optional (LANG-14): when omitted, this inline struct is an anonymous promoted
+    ///     member - its own fields are spliced directly into the containing struct's addressable namespace
+    ///     (<c>root.x</c>, not <c>root.&lt;anonymous&gt;.x</c>) rather than nested under a name of its own. The
+    ///     empty-<see cref="Identifier"/> sentinel reuses the same "no name" representation LANG-17's anonymous
+    ///     bitfields already established.
+    /// </summary>
     public static readonly Parser<char, Field> InnerStruct = Map(
             (alignOverride, fields, name) => new Struct(
-                name,
+                name.HasValue ? name.Value : new Identifier(string.Empty),
                 [.. fields.SelectMany(group => group),],
                 false,
                 alignOverride.HasValue ? alignOverride.Value : null),
             StructKeyword.Then(SkipWhiteSpacesAndComments).Then(AlignmentOverride.Optional()),
             SkipWhiteSpacesAndComments.Then(OpenBrace).Then(StructOrField.Many()),
-            SkipWhiteSpacesAndComments.Before(CloseBrace).Then(Identifier).Before(SemiColon)).
+            SkipWhiteSpacesAndComments.Before(CloseBrace).Then(Identifier.Optional()).Before(SemiColon)).
         Select<Field>(s => s).
         Labelled("Struct");
 
