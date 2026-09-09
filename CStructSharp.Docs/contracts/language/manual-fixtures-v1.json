@@ -320,6 +320,38 @@
       }
     },
     {
+      "id": "anonymous-promoted-member",
+      "featureId": "anonymous-promoted-member",
+      "manual": "CStructSharp.Docs/language/structs-unions-enums-typedefs.md#anonymous-promoted-members",
+      "valid": {
+        "definition": "struct root { uint8 a; struct { uint8 x; uint8 y; }; uint8 b; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 4,
+        "alignment": 1,
+        "bytes": "01020304",
+        "offsets": {
+          "root.a": 0,
+          "root.x": 1,
+          "root.y": 2,
+          "root.b": 3
+        },
+        "values": {
+          "root.a": "1",
+          "root.x": "2",
+          "root.y": "3",
+          "root.b": "4"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "inline-union",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
       "id": "multiple-declarators",
       "featureId": "multiple-declarators",
       "manual": "CStructSharp.Docs/language/grammar.md#complete-portable-grammar",

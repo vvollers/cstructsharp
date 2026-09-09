@@ -61,11 +61,48 @@ struct root {
 };
 ```
 
-Its paths are `root.item.kind` and `root.item.value`. There is no separate type name for the inner declaration, and
-its fields are not promoted to `root.kind` or `root.value`.
+Its paths are `root.item.kind` and `root.item.value`. There is no separate type name for the inner declaration - that
+is already true of every inline struct, named or not.
 
-Inline structs may nest. Inline unions and unnamed containing fields are not supported. Apart from name reuse, an
-inline struct follows the same placement, read, write, and update rules as a named child struct.
+Inline structs may nest. Inline unions are not supported - a struct cannot nest a union member, named or anonymous.
+Apart from name reuse, an inline struct follows the same placement, read, write, and update rules as a named child
+struct.
+
+### Anonymous promoted members
+
+The *member declarator* itself - not the inline struct's own type, which is already always unnamed - may also be
+omitted (LANG-14). When it is, the inline struct's own fields are promoted directly into the containing struct's
+own namespace instead of nesting under a name of their own:
+
+```c
+struct root {
+    uint8 a;
+    struct {
+        uint8 x;
+        uint8 y;
+    };
+    uint8 b;
+};
+```
+
+Here `x` and `y` are addressable directly as `root.x` and `root.y`, not `root.<something>.x`. Placement, size, and
+alignment are completely unaffected - promotion changes only which path/POCO/JSON name resolves to a field, not
+where it lives in the stream. Parsing, serializing, writing, and updating all treat `x` and `y` as if they were
+declared directly on `root`.
+
+Promotion is transitive: an anonymous member's own anonymous members promote all the way up to the nearest named
+container. A promoted member's own field names must not collide with the containing struct's own names, a sibling
+promoted member's names, or a transitively deeper promoted member's names - any collision anywhere in that
+flattened namespace is a construction-time error, naming the struct the collision becomes visible in. A *named*
+nested struct keeps its own independent namespace, unaffected by any of this - reusing a name already used by a
+sibling promoted member is not a collision.
+
+**Anonymous inline unions remain out of scope.** Promoting an inline union member would first require inline union
+member support to exist at all, which is separate, unimplemented work, not a same-shape extension of struct
+promotion - a struct still cannot nest a union member of any kind, named or anonymous, today.
+
+The `anonymous-promoted-member` fixture checks `a=1`, `x=2`, `y=3`, `b=4`, size 4, and bytes `01020304` on both
+frameworks.
 
 ## Unions
 
@@ -172,7 +209,8 @@ size/alignment `3/2`.
 | Declaration | Storage | Direct result | Reusable name | Mistake to avoid |
 | --- | --- | --- | --- | --- |
 | Named struct | Sequential | Dynamic object or mapped POCO | Yes | Assuming host padding |
-| Inline struct | Sequential, nested | Nested dynamic object | No | Assuming member promotion |
+| Inline struct (named member) | Sequential, nested | Nested dynamic object | No | Assuming member promotion |
+| Inline struct (anonymous member) | Sequential, promoted | Spliced into the parent object | No | Assuming a nested container still exists |
 | Union | Overlapping | `UnionValue` | Yes | Guessing an active member |
 | Enum | One backing integer | `EnumValueResult` | Yes | Assuming C `int` backing |
 | Typedef | Same as its target | Same as its target | Alias | Expecting a new ABI/layout |
