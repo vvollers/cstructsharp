@@ -346,7 +346,7 @@ public sealed partial class CStruct
                     field.OffsetAssertionExpression));
         }
 
-        return new Struct(strct.Name, [.. fields,], strct.IsUnion);
+        return new Struct(strct.Name, [.. fields,], strct.IsUnion, strct.CompositeAlignmentOverrideExpression);
     }
 
     /// <summary>

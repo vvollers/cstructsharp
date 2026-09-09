@@ -351,6 +351,16 @@ public partial class CStruct
 
         try
         {
+            int? compositeAlignmentOverride = null;
+            if (strct.CompositeAlignmentOverrideExpression is not null)
+            {
+                int explicitCompositeAlignment = this.layoutExpressionEvaluator.Evaluate(
+                    strct.CompositeAlignmentOverrideExpression,
+                    this.staticLayoutVariables,
+                    "alignment override for " + strct.Name.Name);
+                compositeAlignmentOverride = LayoutMath.ValidateExplicitAlignment(explicitCompositeAlignment, strct.Name.Name);
+            }
+
             var fields = ImmutableArray.CreateBuilder<CompiledField>(strct.Fields.Count);
             foreach (Field field in strct.Fields)
             {
@@ -428,6 +438,12 @@ public partial class CStruct
                         this.staticLayoutVariables,
                         "alignment override for " + field.Name.Name);
                     alignment = LayoutMath.ValidateExplicitAlignment(explicitAlignment, field.Name.Name);
+                }
+                else if (compositeAlignmentOverride.HasValue)
+                {
+                    // The composite's own @align(N) clamps a field relying on its natural alignment, matching
+                    // #pragma pack(N) semantics; a field's own explicit override always wins outright instead.
+                    alignment = Math.Min(alignment, compositeAlignmentOverride.Value);
                 }
 
                 int? elementSize = pointerDepth > 0 ? this.PointerSize : type.Symbol.FixedSize;

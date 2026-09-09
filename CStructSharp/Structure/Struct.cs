@@ -11,12 +11,17 @@ internal class Struct : Field
     public static readonly Identifier STRUCT = new("struct");
 
     /// <summary>Creates a struct or union definition from its name, fields, and union flag.</summary>
-    public Struct(Identifier name, ImmutableList<Field> fields, bool isUnion)
+    public Struct(
+        Identifier name,
+        ImmutableList<Field> fields,
+        bool isUnion,
+        Expr? compositeAlignmentOverrideExpression = null)
         : base(STRUCT, name, NoneExpr.Instance, 0)
     {
         this.Name = name;
         this.Fields = fields;
         this.IsUnion = isUnion;
+        this.CompositeAlignmentOverrideExpression = compositeAlignmentOverrideExpression;
     }
 
     public ImmutableList<Field> Fields { get; }
@@ -24,6 +29,13 @@ internal class Struct : Field
     public override Identifier Name { get; }
 
     public bool IsUnion { get; }
+
+    /// <summary>
+    ///     The optional <c>@align(N)</c> expression written before this composite's opening brace, or null when
+    ///     none was written. Clamps every one of this composite's own fields' alignment to at most N, unless a field
+    ///     carries its own explicit override (which always wins outright).
+    /// </summary>
+    internal Expr? CompositeAlignmentOverrideExpression { get; }
 
     /// <summary>Checks whether another value represents the same layout data.</summary>
     public override bool Equals(CStructElement? other)

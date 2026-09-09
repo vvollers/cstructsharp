@@ -32,13 +32,13 @@ declaration      = struct-declaration
                  | define-declaration ;
 
 struct-declaration
-                 = "struct", identifier, "{", { struct-field }, "}", [ ";" ] ;
+                 = "struct", identifier, [ alignment-override ], "{", { struct-field }, "}", [ ";" ] ;
 union-declaration
-                 = "union", identifier, "{", { union-field }, "}", [ ";" ] ;
+                 = "union", identifier, [ alignment-override ], "{", { union-field }, "}", [ ";" ] ;
 typedef-struct-declaration
-                 = "typedef", "struct", [ identifier ], "{", { struct-field }, "}", identifier, ";" ;
+                 = "typedef", "struct", [ identifier ], [ alignment-override ], "{", { struct-field }, "}", identifier, ";" ;
 typedef-union-declaration
-                 = "typedef", "union", [ identifier ], "{", { union-field }, "}", identifier, ";" ;
+                 = "typedef", "union", [ identifier ], [ alignment-override ], "{", { union-field }, "}", identifier, ";" ;
 typedef-declaration
                  = "typedef", identifier, pointer-stars, identifier, ";" ;
 enum-declaration = "enum", identifier, [ enum-storage ],
@@ -51,7 +51,7 @@ define-declaration
 
 struct-field     = field | inline-struct-field ;
 inline-struct-field
-                 = "struct", "{", { struct-field }, "}", identifier, ";" ;
+                 = "struct", [ alignment-override ], "{", { struct-field }, "}", identifier, ";" ;
 union-field      = field ;
 field            = { type-qualifier }, [ tag-keyword ], type-name, declarator, { ",", declarator }, ";" ;
 declarator       = { type-qualifier }, pointer-stars, { type-qualifier }, identifier, [ array ], [ bit-width ],
@@ -127,9 +127,16 @@ changing it. Both accept a full expression, evaluated the same way `bit-width` i
 for either. `@align(N)`'s `N` must be a positive power of two; it only has an observable effect when the enclosing
 layout is constructed with `aligned: true` - in packed mode it is accepted but has no effect, the same as every
 field's own natural alignment already having none there. `@N`'s value must be non-negative and is checked against
-the declarator's actual computed offset only when that offset is statically known at construction time (a
-declarator following a runtime-length sibling accepts but does not check its assertion); it is not supported on a
-bitfield declarator. See [Layout, alignment, and padding](layout-alignment-and-padding.md#explicit-field-alignment-override).
+the declarator's actual computed offset only when that offset is statically known at construction time; if not
+statically known, it is instead checked the first time any operation actually reaches the field. It is not
+supported on a bitfield declarator. See
+[Layout, alignment, and padding](layout-alignment-and-padding.md#explicit-field-alignment-override). A
+`struct`/`union` declaration may itself carry `[ alignment-override ]` immediately before its opening brace,
+clamping every one of that composite's own fields' alignment to at most `N` (matching `#pragma pack(N)` semantics)
+unless a field carries its own explicit `@align(N)`, which always wins outright instead of being further clamped;
+`N=1` therefore has the effect of "packed" for that one composite. Like the field-level form, it only has an
+observable effect when the enclosing layout is constructed with `aligned: true`. See
+[Layout, alignment, and padding](layout-alignment-and-padding.md#explicit-composite-alignment-override).
 A `#define` is one object-like integer expression; there are no parameters or textual expansion. Function-call
 spelling is recognized only so construction can reject it explicitly. It is not a supported `primary`, and it never
 executes user code.

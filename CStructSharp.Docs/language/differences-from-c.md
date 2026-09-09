@@ -50,6 +50,7 @@ This example establishes one format's widths; it does not prove equivalence with
 | `typedef-array` | `typedef uint8 bytes[4];` | Typedef aliases a name and optional pointer depth, not a declarator | Put `[4]` on the field |
 | `typedef-tag-alias` | `typedef struct ExistingTag alias;` (no braces) | A typedef alias of an already-declared tag, without repeating its body, is not a supported declarator form | Repeat the full `typedef struct tag { ... } alias;` declaration, or use `child alias;` directly |
 | `non-power-of-two-alignment` | `uint8 value @align(3);` | An explicit alignment override must be a positive power of two, matching every native ABI's own alignment rule | Use a power-of-two value, e.g. `@align(4)` |
+| `non-power-of-two-composite-alignment` | `struct root @align(3) { uint8 value; };` | A composite's own explicit alignment override must also be a positive power of two | Use a power-of-two value, e.g. `@align(4)` |
 | `offset-assertion-mismatch` | `struct root { uint8 a; uint8 value @5; };` where `value` naturally lands at offset 1 | An offset assertion is checked against the field's actual computed offset | Correct the asserted value, or omit it if the field's placement is expected to vary |
 | `offset-assertion-on-bitfield` | `uint8 flag : 1 @2;` | An offset assertion is not supported on a bitfield declarator | Assert the offset of a non-bitfield sibling, or omit the assertion |
 

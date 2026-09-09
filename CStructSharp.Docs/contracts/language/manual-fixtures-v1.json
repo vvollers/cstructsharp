@@ -432,6 +432,34 @@
       }
     },
     {
+      "id": "composite-alignment-override",
+      "featureId": "composite-alignment-override",
+      "manual": "CStructSharp.Docs/language/layout-alignment-and-padding.md#explicit-composite-alignment-override",
+      "valid": {
+        "definition": "struct root @align(1) { uint8 a; uint32 b; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": true,
+        "littleEndian": true,
+        "size": 5,
+        "alignment": 1,
+        "bytes": "0101020304",
+        "offsets": {
+          "root.a": 0,
+          "root.b": 1
+        },
+        "values": {
+          "root.a": "1",
+          "root.b": "67305985"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "non-power-of-two-composite-alignment",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
       "id": "typedefs",
       "featureId": "typedefs",
       "manual": "CStructSharp.Docs/language/structs-unions-enums-typedefs.md#typedefs",
