@@ -3,7 +3,6 @@ namespace CStructSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using CStructSharp.Structure;
 
 /// <summary>Keeps stream position, variables, pointer safety data, and optional debug data for one read operation.</summary>
@@ -151,6 +150,15 @@ internal sealed class CStructOperationContext
 
         // Restore the post-value position before adding metadata; debug collection must not change parsing behavior.
         this.Stream.Position = endPos;
+
+        // A plain loop into a preallocated array avoids the delegate/enumerator allocation a LINQ Select().ToArray()
+        // would add here - debug-mode only, but still one allocation-free step cheaper for no behavior change.
+        var intBuffer = new int[buffer.Length];
+        for (int index = 0; index < buffer.Length; index++)
+        {
+            intBuffer[index] = buffer[index];
+        }
+
         this.DebugMapping.Add(
                               new DebugData
                               {
@@ -158,7 +166,7 @@ internal sealed class CStructOperationContext
                                   EndPos = endPos,
                                   DebugStack = debugStack,
                                   Value = value,
-                                  Buffer = buffer.Select(o => (int)o).ToArray(),
+                                  Buffer = intBuffer,
                                   TypeName = fieldTypeName,
                               });
     }
