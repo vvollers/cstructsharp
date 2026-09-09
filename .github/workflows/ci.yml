@@ -31,6 +31,13 @@ jobs:
         shell: pwsh
         run: ./tools/Validate-SolutionParity.ps1
 
+      - name: Restore .NET tools
+        run: dotnet tool restore
+
+      - name: Verify managed API baseline
+        shell: pwsh
+        run: ./tools/Compare-ManagedApiBaseline.ps1
+
       - name: Restore dependencies
         run: dotnet restore ./CStructSharp.NonWeb.sln
 

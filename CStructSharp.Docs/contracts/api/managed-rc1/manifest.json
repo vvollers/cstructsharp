@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 2,
+  "baselineRevision": 3,
   "status": "frozen",
   "workItem": "QA-07",
-  "packageVersion": "0.2.11",
+  "packageVersion": "0.2.12",
   "assembly": "CStructSharp.dll",
   "exportedTypes": 20,
   "generator": {
@@ -14,21 +14,21 @@
   },
   "canonical": {
     "path": "CStructSharp.Docs/contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 231,
-    "normalizedSha256": "A8FE994776A943BCB3A7CF91AF91A97EAD73E5849ECD301A9E8BA73BF5257346"
+    "lines": 232,
+    "normalizedSha256": "27788FA3DEEF260BE796FCE37B713C150CF59680B7AAE33CFF4FEB0C796FDBE6"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "71C964AC39B71FF835B34D6793293AEECA3E4E6CBE83EF74B36BF5D51A143427"
+      "normalizedSha256": "0DA459C910814F99D4A5FBF44D2E9C8D750C0B9CBB94C64B09CD7C452C8F3673"
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "5554DCC785B9AA2C7E44DDEAD00C562B20F1271DFA2C9C24BA12AC95A3DF46F9"
+      "normalizedSha256": "8B1FC8F71F1CABC6CA0B751D13746E6A8254697985E158A1713900FEA4C0911D"
     }
   ],
   "history": [
@@ -49,6 +49,15 @@
       "combinedSha256": "9E737ED34E38701F1E5391E7023337ECF09B9BAD2695F803A596A3EA93A27440",
       "rationale": "Product review item 4: add exactly four byte-array read overloads, retaining all prior signatures and annotations. Each rejects null and forwards without copying to the existing span path. Both C# 12 and current compiler consumers are checked.",
       "releaseImpact": "Unreleased source addition on the 0.2.11 development version; the next publication must receive a new version through the release process. No existing binary signature changes. Explicitly typed null byte arrays now throw ArgumentNullException rather than being converted to empty memory; use empty arrays for empty input."
+    },
+    {
+      "revision": 3,
+      "kind": "additive",
+      "date": "2026-09-09",
+      "packageVersion": "0.2.12",
+      "combinedSha256": "FE394A2AAED6E5B99190B5E977C3754184EC69AE9640E12406F6666A112A7DF5",
+      "rationale": "Architecture-improvement AP-2.1 converted WriteOptions and (sealed, derived) UpdateOptions from plain classes to records, both now implementing System.IEquatable<T>, to replace a hand-maintained property-by-property snapshot with the record's own 'with' expression (closing a class of silently-dropped-new-property bugs). Records synthesize public/protected ToString, PrintMembers, GetHashCode, Equals(object), Equals(T), the equality operators, and (WriteOptions only, since it is unsealed) a protected copy constructor, plus a protected EqualityContract property - the same compiler-generated shape as any C# record. AP-2.3 separately added the new UpdateOptions.MaxTraversalArrayElements property (a dedicated update-path array-traversal limit, previously silently reusing WriteOptions.MaxArrayElements) in the same development cycle. No existing member's signature, default, nullability, or attribute changed.",
+      "releaseImpact": "Unreleased source addition on the 0.2.12 development version; the next publication must receive a new version through the release process. No existing binary signature changes; every addition is purely additive (new interface implementation, new synthesized members, one new property) and source/binary compatible for existing callers. Callers that already compared WriteOptions/UpdateOptions instances by reference now get value-equality semantics via the new Equals overloads and operators, which is additive behavior, not a breaking change to any documented contract."
     }
   ]
 }
