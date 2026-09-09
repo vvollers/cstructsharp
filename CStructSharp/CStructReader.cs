@@ -826,14 +826,10 @@ public partial class CStruct
     /// <summary>Reads a pointer address using the pointer width and byte order chosen for this layout.</summary>
     private long ReadPointerAddress(CStructOperationContext state)
     {
-        // Read exactly the configured pointer width and normalize the bytes to the layout's byte order first.
-        Span<byte> addressData = BinaryPrimitiveIO.ReadIntoBuffer(state.Stream, this.PointerSize, this.IsLittleEndian);
+        // Read exactly the configured pointer width in the layout's byte order, without allocating a buffer.
         ulong rawAddress = this.PointerSize switch
         {
-            1 => addressData[0],
-            2 => BitConverter.ToUInt16(addressData),
-            4 => BitConverter.ToUInt32(addressData),
-            8 => BitConverter.ToUInt64(addressData),
+            1 or 2 or 4 or 8 => BinaryPrimitiveIO.ReadUnsignedBySize(state.Stream, this.PointerSize, this.IsLittleEndian),
             _ => throw new ArgumentOutOfRangeException("Unknown pointer size: " + this.PointerSize),
         };
         try

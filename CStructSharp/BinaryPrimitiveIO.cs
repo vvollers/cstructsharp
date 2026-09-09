@@ -1,35 +1,12 @@
 namespace CStructSharp;
 
 using System;
+using System.Buffers.Binary;
 using System.IO;
 
 /// <summary>Reads and writes fixed-width unsigned integers in a caller-chosen byte order.</summary>
 internal static class BinaryPrimitiveIO
 {
-    /// <summary>Reads exactly a fixed number of bytes and puts them in the requested byte order.</summary>
-    public static Span<byte> ReadIntoBuffer(Stream stream, int len, bool isLittleEndian)
-    {
-        // Allocate exactly the primitive width requested by the caller.
-        byte[] buffer = new byte[len];
-        try
-        {
-            // ReadExactly handles throttled and network-like streams that return fewer bytes per Read call.
-            stream.ReadExactly(buffer);
-        }
-        catch (EndOfStreamException exception)
-        {
-            throw new CStructReadException("Not enough bytes in stream.", exception);
-        }
-
-        // BitConverter follows the current machine. Reverse only when the binary format differs.
-        if (isLittleEndian != BitConverter.IsLittleEndian)
-        {
-            Array.Reverse(buffer);
-        }
-
-        return buffer.AsSpan();
-    }
-
     /// <summary>Reads one required byte and turns an unexpected end of stream into a layout-specific error.</summary>
     public static byte ReadByteExactly(Stream stream)
     {
@@ -42,57 +19,316 @@ internal static class BinaryPrimitiveIO
         return (byte)value;
     }
 
-    /// <summary>Converts one, two, four, or eight bytes into an unsigned number in the layout's byte order.</summary>
-    public static ulong ReadUnsigned(byte[] buffer, bool littleEndian)
+    /// <summary>Reads a two-byte UTF-16 code unit in the requested byte order.</summary>
+    public static char ReadChar(Stream stream, bool isLittleEndian)
     {
-        // Do not reorder the caller's buffer: bitfield and pointer code may still need the original byte sequence.
-        byte[] local = (byte[])buffer.Clone();
-        if (littleEndian != BitConverter.IsLittleEndian)
-        {
-            Array.Reverse(local);
-        }
+        Span<byte> buffer = stackalloc byte[2];
+        ReadExactlyOrThrow(stream, buffer);
+        return (char)(isLittleEndian
+                          ? BinaryPrimitives.ReadUInt16LittleEndian(buffer)
+                          : BinaryPrimitives.ReadUInt16BigEndian(buffer));
+    }
 
-        // BitConverter only needs to handle the four widths supported by CStruct pointer and primitive codecs.
-        return local.Length switch
+    /// <summary>Reads a two-byte signed integer in the requested byte order.</summary>
+    public static short ReadInt16(Stream stream, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[2];
+        ReadExactlyOrThrow(stream, buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadInt16LittleEndian(buffer) : BinaryPrimitives.ReadInt16BigEndian(buffer);
+    }
+
+    /// <summary>Reads a two-byte unsigned integer in the requested byte order.</summary>
+    public static ushort ReadUInt16(Stream stream, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[2];
+        ReadExactlyOrThrow(stream, buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadUInt16LittleEndian(buffer) : BinaryPrimitives.ReadUInt16BigEndian(buffer);
+    }
+
+    /// <summary>Reads a four-byte signed integer in the requested byte order.</summary>
+    public static int ReadInt32(Stream stream, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[4];
+        ReadExactlyOrThrow(stream, buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadInt32LittleEndian(buffer) : BinaryPrimitives.ReadInt32BigEndian(buffer);
+    }
+
+    /// <summary>Reads a four-byte unsigned integer in the requested byte order.</summary>
+    public static uint ReadUInt32(Stream stream, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[4];
+        ReadExactlyOrThrow(stream, buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(buffer) : BinaryPrimitives.ReadUInt32BigEndian(buffer);
+    }
+
+    /// <summary>Reads an eight-byte signed integer in the requested byte order.</summary>
+    public static long ReadInt64(Stream stream, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[8];
+        ReadExactlyOrThrow(stream, buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadInt64LittleEndian(buffer) : BinaryPrimitives.ReadInt64BigEndian(buffer);
+    }
+
+    /// <summary>Reads an eight-byte unsigned integer in the requested byte order.</summary>
+    public static ulong ReadUInt64(Stream stream, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[8];
+        ReadExactlyOrThrow(stream, buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadUInt64LittleEndian(buffer) : BinaryPrimitives.ReadUInt64BigEndian(buffer);
+    }
+
+    /// <summary>Reads a four-byte IEEE 754 value in the requested byte order.</summary>
+    public static float ReadSingle(Stream stream, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[4];
+        ReadExactlyOrThrow(stream, buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadSingleLittleEndian(buffer) : BinaryPrimitives.ReadSingleBigEndian(buffer);
+    }
+
+    /// <summary>Reads an eight-byte IEEE 754 value in the requested byte order.</summary>
+    public static double ReadDouble(Stream stream, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[8];
+        ReadExactlyOrThrow(stream, buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadDoubleLittleEndian(buffer) : BinaryPrimitives.ReadDoubleBigEndian(buffer);
+    }
+
+    /// <summary>
+    ///     Reads a 1, 2, 4, or 8-byte unsigned integer whose width is a runtime value rather than known at the call
+    ///     site - used for the layout's configured pointer width.
+    /// </summary>
+    public static ulong ReadUnsignedBySize(Stream stream, int byteSize, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[8];
+        Span<byte> slice = buffer[..byteSize];
+        ReadExactlyOrThrow(stream, slice);
+        return byteSize switch
         {
-            1 => local[0],
-            2 => BitConverter.ToUInt16(local, 0),
-            4 => BitConverter.ToUInt32(local, 0),
-            8 => BitConverter.ToUInt64(local, 0),
-            _ => throw new InvalidOperationException("Unsupported integer size: " + local.Length),
+            1 => slice[0],
+            2 => isLittleEndian ? BinaryPrimitives.ReadUInt16LittleEndian(slice) : BinaryPrimitives.ReadUInt16BigEndian(slice),
+            4 => isLittleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(slice) : BinaryPrimitives.ReadUInt32BigEndian(slice),
+            8 => isLittleEndian ? BinaryPrimitives.ReadUInt64LittleEndian(slice) : BinaryPrimitives.ReadUInt64BigEndian(slice),
+            _ => throw new InvalidOperationException("Unsupported integer size: " + byteSize),
         };
     }
 
-    /// <summary>Writes bytes in the layout's requested byte order.</summary>
-    public static void WriteEndianBytes(Stream stream, byte[] bytes, bool littleEndian)
+    /// <summary>Converts one, two, four, or eight bytes into an unsigned number in the layout's byte order.</summary>
+    public static ulong ReadUnsigned(byte[] buffer, bool littleEndian)
     {
-        if (littleEndian != BitConverter.IsLittleEndian)
+        return buffer.Length switch
         {
-            Array.Reverse(bytes);
+            1 => buffer[0],
+            2 => littleEndian ? BinaryPrimitives.ReadUInt16LittleEndian(buffer) : BinaryPrimitives.ReadUInt16BigEndian(buffer),
+            4 => littleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(buffer) : BinaryPrimitives.ReadUInt32BigEndian(buffer),
+            8 => littleEndian ? BinaryPrimitives.ReadUInt64LittleEndian(buffer) : BinaryPrimitives.ReadUInt64BigEndian(buffer),
+            _ => throw new InvalidOperationException("Unsupported integer size: " + buffer.Length),
+        };
+    }
+
+    /// <summary>Writes a two-byte UTF-16 code unit in the requested byte order.</summary>
+    public static void WriteChar(Stream stream, char value, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[2];
+        if (isLittleEndian)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer, value);
+        }
+        else
+        {
+            BinaryPrimitives.WriteUInt16BigEndian(buffer, value);
         }
 
-        stream.Write(bytes, 0, bytes.Length);
+        stream.Write(buffer);
+    }
+
+    /// <summary>Writes a two-byte signed integer in the requested byte order.</summary>
+    public static void WriteInt16(Stream stream, short value, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[2];
+        if (isLittleEndian)
+        {
+            BinaryPrimitives.WriteInt16LittleEndian(buffer, value);
+        }
+        else
+        {
+            BinaryPrimitives.WriteInt16BigEndian(buffer, value);
+        }
+
+        stream.Write(buffer);
+    }
+
+    /// <summary>Writes a two-byte unsigned integer in the requested byte order.</summary>
+    public static void WriteUInt16(Stream stream, ushort value, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[2];
+        if (isLittleEndian)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer, value);
+        }
+        else
+        {
+            BinaryPrimitives.WriteUInt16BigEndian(buffer, value);
+        }
+
+        stream.Write(buffer);
+    }
+
+    /// <summary>Writes a four-byte signed integer in the requested byte order.</summary>
+    public static void WriteInt32(Stream stream, int value, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[4];
+        if (isLittleEndian)
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(buffer, value);
+        }
+        else
+        {
+            BinaryPrimitives.WriteInt32BigEndian(buffer, value);
+        }
+
+        stream.Write(buffer);
+    }
+
+    /// <summary>Writes a four-byte unsigned integer in the requested byte order.</summary>
+    public static void WriteUInt32(Stream stream, uint value, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[4];
+        if (isLittleEndian)
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(buffer, value);
+        }
+        else
+        {
+            BinaryPrimitives.WriteUInt32BigEndian(buffer, value);
+        }
+
+        stream.Write(buffer);
+    }
+
+    /// <summary>Writes an eight-byte signed integer in the requested byte order.</summary>
+    public static void WriteInt64(Stream stream, long value, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[8];
+        if (isLittleEndian)
+        {
+            BinaryPrimitives.WriteInt64LittleEndian(buffer, value);
+        }
+        else
+        {
+            BinaryPrimitives.WriteInt64BigEndian(buffer, value);
+        }
+
+        stream.Write(buffer);
+    }
+
+    /// <summary>Writes an eight-byte unsigned integer in the requested byte order.</summary>
+    public static void WriteUInt64(Stream stream, ulong value, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[8];
+        if (isLittleEndian)
+        {
+            BinaryPrimitives.WriteUInt64LittleEndian(buffer, value);
+        }
+        else
+        {
+            BinaryPrimitives.WriteUInt64BigEndian(buffer, value);
+        }
+
+        stream.Write(buffer);
+    }
+
+    /// <summary>Writes a four-byte IEEE 754 value in the requested byte order.</summary>
+    public static void WriteSingle(Stream stream, float value, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[4];
+        if (isLittleEndian)
+        {
+            BinaryPrimitives.WriteSingleLittleEndian(buffer, value);
+        }
+        else
+        {
+            BinaryPrimitives.WriteSingleBigEndian(buffer, value);
+        }
+
+        stream.Write(buffer);
+    }
+
+    /// <summary>Writes an eight-byte IEEE 754 value in the requested byte order.</summary>
+    public static void WriteDouble(Stream stream, double value, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[8];
+        if (isLittleEndian)
+        {
+            BinaryPrimitives.WriteDoubleLittleEndian(buffer, value);
+        }
+        else
+        {
+            BinaryPrimitives.WriteDoubleBigEndian(buffer, value);
+        }
+
+        stream.Write(buffer);
     }
 
     /// <summary>Converts an unsigned value to one, two, four, or eight bytes in the layout's byte order.</summary>
     public static byte[] WriteUnsigned(ulong value, int byteSize, bool littleEndian)
     {
-        // Start with the platform conversion for the requested width.
-        byte[] bytes = byteSize switch
+        byte[] bytes = new byte[byteSize];
+        switch (byteSize)
         {
-            1 => new[] { (byte)value, },
-            2 => BitConverter.GetBytes((ushort)value),
-            4 => BitConverter.GetBytes((uint)value),
-            8 => BitConverter.GetBytes(value),
-            _ => throw new InvalidOperationException("Unsupported integer size: " + byteSize),
-        };
+        case 1:
+            bytes[0] = (byte)value;
+            break;
+        case 2:
+            if (littleEndian)
+            {
+                BinaryPrimitives.WriteUInt16LittleEndian(bytes, (ushort)value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteUInt16BigEndian(bytes, (ushort)value);
+            }
 
-        if (littleEndian != BitConverter.IsLittleEndian)
-        {
-            // Reverse only when the layout's byte order differs from the machine's order.
-            Array.Reverse(bytes);
+            break;
+        case 4:
+            if (littleEndian)
+            {
+                BinaryPrimitives.WriteUInt32LittleEndian(bytes, (uint)value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteUInt32BigEndian(bytes, (uint)value);
+            }
+
+            break;
+        case 8:
+            if (littleEndian)
+            {
+                BinaryPrimitives.WriteUInt64LittleEndian(bytes, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteUInt64BigEndian(bytes, value);
+            }
+
+            break;
+        default:
+            throw new InvalidOperationException("Unsupported integer size: " + byteSize);
         }
 
         return bytes;
+    }
+
+    /// <summary>Reads exactly the requested number of bytes, translating a short read into a layout-specific error.</summary>
+    private static void ReadExactlyOrThrow(Stream stream, Span<byte> buffer)
+    {
+        try
+        {
+            // ReadExactly handles throttled and network-like streams that return fewer bytes per Read call.
+            stream.ReadExactly(buffer);
+        }
+        catch (EndOfStreamException exception)
+        {
+            throw new CStructReadException("Not enough bytes in stream.", exception);
+        }
     }
 }
