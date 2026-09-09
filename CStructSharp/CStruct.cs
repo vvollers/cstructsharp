@@ -579,50 +579,7 @@ public sealed partial class CStruct
         LayoutVariableInput variables,
         ReadOptions? options)
     {
-        ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
-        IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
-        if (segments.Count == 1)
-        {
-            (ExpandoObject root, _) = this.ParseStreamInternal(
-                stream,
-                elementNameOrPath,
-                variables,
-                effectiveOptions,
-                false,
-                out _);
-            var rootValues = (IDictionary<string, object?>)root;
-            return rootValues.TryGetValue(segments[0].Name, out object? selected) && selected is not null
-                       ? selected
-                       : throw new CStructPathException("The selected path does not resolve to a composite object.");
-        }
-
-        Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
-        var state = new CStructOperationContext(
-            stream,
-            effectiveVariables,
-            this.Aligned,
-            effectiveOptions);
-        ResolvedTarget resolvedTarget = this.ResolveTargetFromLayout(
-            state,
-            segments);
-        Struct target = ResolveStructTarget(resolvedTarget);
-
-        try
-        {
-            return this.ParseCompiledStructAt(
-                state,
-                resolvedTarget.Address,
-                target,
-                resolvedTarget.DebugPrefix.ToArray(),
-                resolvedTarget.ContainingStructureDepth,
-                resolvedTarget.PointerAccessorsConsumed,
-                false).Result;
-        }
-        catch (CStructException exception)
-        {
-            ExceptionContext.Attach(exception, segments, stream);
-            throw;
-        }
+        return this.ParseStreamCoreImpl(stream, elementNameOrPath, variables, options, false).Result;
     }
 
     /// <summary>Reads the first declared struct or union and also returns the byte ranges used for each value.</summary>
@@ -708,6 +665,27 @@ public sealed partial class CStruct
         LayoutVariableInput variables,
         ReadOptions? options)
     {
+        return this.ParseStreamCoreImpl(stream, elementNameOrPath, variables, options, true);
+    }
+
+    /// <summary>
+    ///     Reads a selected object, optionally recording debug byte ranges - the shared implementation behind
+    ///     <see cref="ParseStreamCore" /> and <see cref="ParseStreamWithDebugCore" />, which previously carried
+    ///     two independently-maintained ~50-line copies of this same segment-resolution/parse/exception-attachment
+    ///     structure, differing only by the <paramref name="debug" /> flag threaded through
+    ///     <see cref="ParseStreamInternal" /> and <see cref="ParseCompiledStructAt" />. The one genuine behavioral
+    ///     difference between the two modes - a single-segment root path returns the unwrapped selected value in
+    ///     non-debug mode, but the whole root container (unless it is itself a <see cref="UnionValue" />) in debug
+    ///     mode, so debug callers can see the root's own debug stack - is preserved explicitly below rather than
+    ///     flattened away.
+    /// </summary>
+    private (List<DebugData> DebugData, dynamic Result) ParseStreamCoreImpl(
+        Stream stream,
+        string elementNameOrPath,
+        LayoutVariableInput variables,
+        ReadOptions? options,
+        bool debug)
+    {
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
         if (segments.Count == 1)
@@ -717,12 +695,16 @@ public sealed partial class CStruct
                 elementNameOrPath,
                 variables,
                 effectiveOptions,
-                true,
+                debug,
                 out List<DebugData> rootDebugData);
             var rootValues = (IDictionary<string, object?>)root;
-            return rootValues.TryGetValue(segments[0].Name, out object? selected) && selected is not null
-                       ? (rootDebugData, selected is UnionValue ? selected : root)
-                       : throw new CStructPathException("The selected path does not resolve to a composite object.");
+            if (!rootValues.TryGetValue(segments[0].Name, out object? selected) || selected is null)
+            {
+                throw new CStructPathException("The selected path does not resolve to a composite object.");
+            }
+
+            dynamic returnedValue = debug ? (selected is UnionValue ? selected : root) : selected;
+            return (rootDebugData, returnedValue);
         }
 
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
@@ -745,7 +727,7 @@ public sealed partial class CStruct
                 resolvedTarget.DebugPrefix.ToArray(),
                 resolvedTarget.ContainingStructureDepth,
                 resolvedTarget.PointerAccessorsConsumed,
-                true);
+                debug);
             return (debugData, result);
         }
         catch (CStructException exception)
