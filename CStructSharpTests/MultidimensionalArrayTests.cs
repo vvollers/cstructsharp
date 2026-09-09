@@ -241,4 +241,115 @@ public class MultidimensionalArrayTests
         Assert.AreEqual("defg", names[1]);
         Assert.AreEqual("ijkl", names[2]);
     }
+
+    /// <summary>
+    ///     Writing a two-dimensional primitive array from nested lists, then reading it back, round-trips to the
+    ///     exact same nested shape and values - proving the writer's flatten step is the correct inverse of the
+    ///     reader's reshape step.
+    /// </summary>
+    [TestMethod]
+    public void TwoDimensionalArray_RoundTripsThroughWriteAndParse()
+    {
+        var cstruct = new CStruct("struct root { uint8 matrix[3][4]; };", pointerSize: 1, aligned: false);
+        List<object> matrix =
+        [
+            new List<object> { 0, 1, 2, 3, },
+            new List<object> { 4, 5, 6, 7, },
+            new List<object> { 8, 9, 10, 11, },
+        ];
+
+        byte[] bytes = cstruct.Serialize("root", new { matrix, });
+
+        Assert.AreEqual(12, bytes.Length);
+        CollectionAssert.AreEqual(Enumerable.Range(0, 12).Select(i => (byte)i).ToArray(), bytes);
+
+        using var stream = new MemoryStream(bytes);
+        dynamic parsed = cstruct.ParseStream(stream, "root");
+        List<object?> roundTripped = (List<object?>)parsed.matrix;
+        Assert.AreEqual(3, roundTripped.Count);
+        for (int row = 0; row < 3; row++)
+        {
+            CollectionAssert.AreEqual(
+                ((List<object>)matrix[row]).Select(v => (byte)(int)v).ToArray(),
+                ((List<object?>)roundTripped[row]!).Cast<byte>().ToArray());
+        }
+    }
+
+    /// <summary>A three-dimensional array round-trips through three levels of nested-list flattening and reshaping.</summary>
+    [TestMethod]
+    public void ThreeDimensionalArray_RoundTripsThroughWriteAndParse()
+    {
+        var cstruct = new CStruct("struct root { uint8 cube[2][3][4]; };", pointerSize: 1, aligned: false);
+        int expected = 0;
+        List<object> cube = [];
+        for (int i = 0; i < 2; i++)
+        {
+            List<object> plane = [];
+            for (int j = 0; j < 3; j++)
+            {
+                List<object> row = [];
+                for (int k = 0; k < 4; k++)
+                {
+                    row.Add((byte)expected);
+                    expected++;
+                }
+
+                plane.Add(row);
+            }
+
+            cube.Add(plane);
+        }
+
+        byte[] bytes = cstruct.Serialize("root", new { cube, });
+
+        Assert.AreEqual(24, bytes.Length);
+        CollectionAssert.AreEqual(Enumerable.Range(0, 24).Select(i => (byte)i).ToArray(), bytes);
+    }
+
+    /// <summary>A fixed string table writes each caller-supplied string as one row, matching the read-side shape.</summary>
+    [TestMethod]
+    public void FixedStringTable_WritesEachRowAsAStringAndRoundTrips()
+    {
+        var cstruct = new CStruct("struct root { char names[3][4]; };", pointerSize: 1, aligned: false);
+        List<object> names = ["abc", "defg", "ij",];
+
+        byte[] bytes = cstruct.Serialize("root", new { names, });
+
+        Assert.AreEqual(12, bytes.Length);
+        using var stream = new MemoryStream(bytes);
+        dynamic parsed = cstruct.ParseStream(stream, "root");
+        List<object?> roundTripped = (List<object?>)parsed.names;
+        Assert.AreEqual(3, roundTripped.Count);
+        Assert.AreEqual("abc\0", roundTripped[0]);
+        Assert.AreEqual("defg", roundTripped[1]);
+        Assert.AreEqual("ij\0\0", roundTripped[2]);
+    }
+
+    /// <summary>A row with too few or too many elements is rejected with the same mismatch exception a 1-D array uses.</summary>
+    [TestMethod]
+    public void MismatchedRowLength_IsRejected()
+    {
+        var cstruct = new CStruct("struct root { uint8 matrix[2][3]; };", pointerSize: 1, aligned: false);
+        List<object> matrix =
+        [
+            new List<object> { 0, 1, 2, },
+            new List<object> { 3, 4, },
+        ];
+
+        Assert.Throws<CStructWriteException>(() => cstruct.Serialize("root", new { matrix, }));
+    }
+
+    /// <summary>Supplying too few or too many rows is rejected the same way.</summary>
+    [TestMethod]
+    public void MismatchedOuterDimensionLength_IsRejected()
+    {
+        var cstruct = new CStruct("struct root { uint8 matrix[3][4]; };", pointerSize: 1, aligned: false);
+        List<object> matrix =
+        [
+            new List<object> { 0, 1, 2, 3, },
+            new List<object> { 4, 5, 6, 7, },
+        ];
+
+        Assert.Throws<CStructWriteException>(() => cstruct.Serialize("root", new { matrix, }));
+    }
 }
