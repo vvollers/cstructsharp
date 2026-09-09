@@ -140,4 +140,20 @@ internal static class RegressionTestSupport
             target[destination] = (byte)(value >> (index * 8));
         }
     }
+
+    /// <summary>
+    ///     Encodes an unsigned fixture value into a freshly allocated array, without invoking the production codec
+    ///     under test - the array-returning shape several test files independently reimplemented before this was
+    ///     added; delegates to <see cref="WriteUnsigned(byte[], int, int, ulong, bool)"/> for the actual encoding
+    ///     and its existing bounds validation.
+    /// </summary>
+    /// <param name="value">The unsigned value to encode.</param>
+    /// <param name="width">The encoded width in bytes.</param>
+    /// <param name="isLittleEndian">Whether the least-significant byte is stored first.</param>
+    public static byte[] EncodeUnsigned(ulong value, int width, bool isLittleEndian)
+    {
+        var result = new byte[width];
+        WriteUnsigned(result, 0, width, value, isLittleEndian);
+        return result;
+    }
 }
