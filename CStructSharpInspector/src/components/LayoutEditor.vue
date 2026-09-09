@@ -17,9 +17,9 @@ let instance: editor.IStandaloneCodeEditor | undefined;
 let model: editor.ITextModel | undefined;
 let disposed = false;
 onMounted(async () => {
-  const { monaco } = await import("../monaco-layout");
+  const { monaco, CSTRUCT_LANGUAGE_ID } = await import("../monaco-layout");
   if (disposed || !host.value) return;
-  model = monaco.editor.createModel(props.modelValue, props.language ?? "c");
+  model = monaco.editor.createModel(props.modelValue, props.language ?? CSTRUCT_LANGUAGE_ID);
   model.updateOptions({ tabSize: 4, insertSpaces: true });
   instance = monaco.editor.create(host.value, {
     model,
@@ -36,7 +36,7 @@ onMounted(async () => {
     folding: true,
     tabSize: 4,
     insertSpaces: true,
-    ariaLabel: props.label ?? "Binary layout (C-like definition)",
+    ariaLabel: props.label ?? "Binary layout (CStruct definition)",
     stickyScroll: { enabled: false },
   });
   const resize = () => {
@@ -44,7 +44,7 @@ onMounted(async () => {
   };
   instance.onDidContentSizeChange(resize);
   instance.onDidChangeModelContent(() => emit("update:modelValue", instance!.getValue()));
-  if (!props.language || props.language === "c")
+  if (!props.language || props.language === CSTRUCT_LANGUAGE_ID)
     instance.addAction({
       id: "format-binary-layout",
       label: "Format binary layout",
