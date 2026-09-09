@@ -79,25 +79,10 @@ internal sealed class CStructElementWriterState
     /// <summary>Copies every update choice before variable enumeration, payload access, or stream traversal.</summary>
     public static UpdateOptions SnapshotUpdateOptions(UpdateOptions? options)
     {
-        UpdateOptions source = options ?? new UpdateOptions();
-        return new UpdateOptions
-        {
-            AddressingMode = source.AddressingMode,
-            BindingMode = source.BindingMode,
-            MaxArrayElements = source.MaxArrayElements,
-            MaxStringBytes = source.MaxStringBytes,
-            MaxTotalBytesWritten = source.MaxTotalBytesWritten,
-            MaxNestingDepth = source.MaxNestingDepth,
-            Origin = source.Origin,
-            AllowPointerDereference = source.AllowPointerDereference,
-            RequireExistingPointerTarget = source.RequireExistingPointerTarget,
-            ClearUnionStorage = source.ClearUnionStorage,
-            MaxTraversalPointerDepth = source.MaxTraversalPointerDepth,
-            MaxTraversalPointerTargetBytes = source.MaxTraversalPointerTargetBytes,
-            MaxTraversalStringBytes = source.MaxTraversalStringBytes,
-            MaxTraversalBytesRead = source.MaxTraversalBytesRead,
-            MaxTraversalNestingDepth = source.MaxTraversalNestingDepth,
-        };
+        // The record's own `with` expression clones every current and future property in one step, instead of a
+        // hand-maintained property-by-property copy that silently reverts a newly added property to its default
+        // on every call until someone remembers to list it here too.
+        return (options ?? new UpdateOptions()) with { };
     }
 
     /// <summary>Copies normal write choices while retaining update semantics when that derived value was supplied.</summary>
@@ -108,17 +93,7 @@ internal sealed class CStructElementWriterState
             return SnapshotUpdateOptions(updateOptions);
         }
 
-        WriteOptions source = options ?? new WriteOptions();
-        return new WriteOptions
-        {
-            AddressingMode = source.AddressingMode,
-            BindingMode = source.BindingMode,
-            MaxArrayElements = source.MaxArrayElements,
-            MaxStringBytes = source.MaxStringBytes,
-            MaxTotalBytesWritten = source.MaxTotalBytesWritten,
-            MaxNestingDepth = source.MaxNestingDepth,
-            Origin = source.Origin,
-        };
+        return (options ?? new WriteOptions()) with { };
     }
 
     /// <summary>Validates finite write budgets once at the public operation boundary.</summary>

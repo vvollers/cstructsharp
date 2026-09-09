@@ -138,6 +138,65 @@ public class CStructElementWriterStateTests
         Assert.AreEqual(2, snapshot.MaxTraversalPointerDepth);
     }
 
+    /// <summary>
+    ///     Regression coverage for the architecture-review optimization (docs/architecture-improvement-plan.md,
+    ///     AP-2.1) that converted WriteOptions/UpdateOptions to records and replaced their hand-maintained
+    ///     property-by-property snapshot with the record's own <c>with</c> expression. Uses the record's
+    ///     auto-generated structural equality as the proof: a snapshot that is value-equal to its source across
+    ///     every one of its properties (not just the handful an earlier, more narrowly-listed test happens to
+    ///     assert on) is exactly the guarantee `with` is meant to provide - and, unlike a hand-picked property
+    ///     list, this assertion could never silently start passing again if a future property were added and
+    ///     accidentally left out of a hand-maintained copy.
+    /// </summary>
+    [TestMethod]
+    public void SnapshotUpdateOptions_ProducesARecordValueEqualToTheSource()
+    {
+        var options = new UpdateOptions
+        {
+            AddressingMode = PointerAddressingMode.Relative,
+            BindingMode = PocoBindingMode.PublicReadWrite,
+            MaxArrayElements = 3,
+            MaxStringBytes = 11,
+            MaxTotalBytesWritten = 22,
+            MaxNestingDepth = 33,
+            Origin = 44,
+            AllowPointerDereference = false,
+            RequireExistingPointerTarget = false,
+            ClearUnionStorage = false,
+            MaxTraversalPointerDepth = 2,
+            MaxTraversalPointerTargetBytes = 55,
+            MaxTraversalStringBytes = 66,
+            MaxTraversalBytesRead = 77,
+            MaxTraversalNestingDepth = 88,
+        };
+
+        UpdateOptions snapshot = CStructElementWriterState.SnapshotUpdateOptions(options);
+
+        Assert.AreEqual(options, snapshot);
+        Assert.AreNotSame(options, snapshot);
+    }
+
+    /// <summary>The same record-equality proof for the plain WriteOptions snapshot path (a non-UpdateOptions source).</summary>
+    [TestMethod]
+    public void SnapshotWriteOptions_ProducesARecordValueEqualToTheSource()
+    {
+        var options = new WriteOptions
+        {
+            AddressingMode = PointerAddressingMode.Relative,
+            BindingMode = PocoBindingMode.PublicReadWrite,
+            MaxArrayElements = 3,
+            MaxStringBytes = 11,
+            MaxTotalBytesWritten = 22,
+            MaxNestingDepth = 33,
+            Origin = 44,
+        };
+
+        WriteOptions snapshot = CStructElementWriterState.SnapshotWriteOptions(options);
+
+        Assert.AreEqual(options, snapshot);
+        Assert.AreNotSame(options, snapshot);
+    }
+
     /// <summary>A negative array-element limit is not a valid write budget.</summary>
     [TestMethod]
     public void ValidateWriteOptions_NegativeMaxArrayElements_Throws()
