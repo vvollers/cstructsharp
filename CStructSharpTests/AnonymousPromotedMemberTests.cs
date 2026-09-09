@@ -50,4 +50,60 @@ public class AnonymousPromotedMemberTests
         var cstruct = new CStruct("struct root { struct { struct { uint8 x; }; }; };", pointerSize: 1);
         Assert.AreEqual(1, cstruct.GetStructSizeInBytes("root"));
     }
+
+    /// <summary>A promoted member's own field name colliding with the parent's own field name is rejected.</summary>
+    [TestMethod]
+    public void Collision_PromotedVsParent_IsRejected()
+    {
+        Assert.Throws<CStructLayoutException>(
+            () => new CStruct("struct root { uint8 x; struct { uint8 x; }; };", pointerSize: 1));
+    }
+
+    /// <summary>Two sibling promoted members declaring the same field name are rejected.</summary>
+    [TestMethod]
+    public void Collision_SiblingPromotedVsSiblingPromoted_IsRejected()
+    {
+        Assert.Throws<CStructLayoutException>(
+            () => new CStruct("struct root { struct { uint8 x; }; struct { uint8 x; }; };", pointerSize: 1));
+    }
+
+    /// <summary>A transitively-deep promoted member colliding with a shallower one is rejected.</summary>
+    [TestMethod]
+    public void Collision_TransitiveDeepVsShallow_IsRejected()
+    {
+        Assert.Throws<CStructLayoutException>(
+            () => new CStruct(
+                "struct root { struct { struct { uint8 x; }; }; struct { uint8 x; }; };",
+                pointerSize: 1));
+    }
+
+    /// <summary>Two fields declared by the same promoted member colliding with each other is rejected.</summary>
+    [TestMethod]
+    public void Collision_WithinOnePromotedMember_IsRejected()
+    {
+        Assert.Throws<CStructLayoutException>(
+            () => new CStruct("struct root { struct { uint8 x; uint8 x; }; };", pointerSize: 1));
+    }
+
+    /// <summary>A named nested struct's own namespace stays independent - reusing a promoted name is not a collision.</summary>
+    [TestMethod]
+    public void NamedNestedStruct_ReusingAPromotedName_IsNotACollision()
+    {
+        var cstruct = new CStruct(
+            "struct root { struct { uint8 x; }; struct { uint8 x; } inner; };",
+            pointerSize: 1);
+
+        Assert.AreEqual(2, cstruct.GetStructSizeInBytes("root"));
+    }
+
+    /// <summary>Multiple sibling promoted members with distinct names all coexist without error.</summary>
+    [TestMethod]
+    public void MultipleSiblingPromotedMembers_WithDistinctNames_AllCoexist()
+    {
+        var cstruct = new CStruct(
+            "struct root { struct { uint8 x; }; struct { uint8 y; }; };",
+            pointerSize: 1);
+
+        Assert.AreEqual(2, cstruct.GetStructSizeInBytes("root"));
+    }
 }
