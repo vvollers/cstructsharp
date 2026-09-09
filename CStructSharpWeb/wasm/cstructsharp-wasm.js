@@ -116,7 +116,9 @@ function parseBridgeError(cause, operation) {
   try {
     parsed = JSON.parse(message);
   } catch (parseCause) {
-    throw new TypeError(`CStructSharp returned an invalid ${operation} error.`, { cause: parseCause });
+    throw new TypeError(`CStructSharp returned an invalid ${operation} error.`, {
+      cause: parseCause,
+    });
   }
 
   if (
