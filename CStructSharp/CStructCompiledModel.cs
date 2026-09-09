@@ -409,6 +409,7 @@ public partial class CStruct
                     field.ArrayCount,
                     field.BitSize,
                     pointerDepth);
+
                 // An unsized dimension (LANG-05 decision 6) can only ever be the sole entry of a one-dimensional
                 // ArrayCount list - the grammar already rejects it as an inner dimension of a multidimensional
                 // field, so a still-empty check here is simply never true for N >= 2.
