@@ -4,6 +4,12 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- **Breaking:** Renamed `UpdateOptions.AllowPointerDereference` to `DereferencePointers`, matching
+  `ReadOptions.DereferencePointers` (both already collapsed into the same internal setting). No compatibility
+  alias is provided; update any `new UpdateOptions { AllowPointerDereference = ... }` call sites to
+  `DereferencePointers`. The WASM browser bridge's option key was renamed identically; use `dereferencePointers`
+  for both parse and update requests.
+
 ## 0.2.12 - 2026-09-07
 
 - Add byte-array overloads for Parse, untyped and typed ReadValue, and TryReadValue. Ordinary array calls

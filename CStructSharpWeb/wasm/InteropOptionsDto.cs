@@ -7,8 +7,6 @@ public sealed class InteropOptionsDto
 
     public bool? Aligned { get; set; }
 
-    public bool? AllowPointerDereference { get; set; }
-
     public string? BindingMode { get; set; }
 
     public bool? ClearUnionStorage { get; set; }

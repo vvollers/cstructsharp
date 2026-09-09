@@ -25,7 +25,6 @@
   "optionFields": [
     "addressingMode",
     "aligned",
-    "allowPointerDereference",
     "bindingMode",
     "clearUnionStorage",
     "dereferencePointers",

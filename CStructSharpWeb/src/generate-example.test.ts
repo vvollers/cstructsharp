@@ -16,7 +16,6 @@ const request: WorkbenchRequest = {
     addressingMode: "Absolute",
     origin: "0",
     dereferencePointers: true,
-    allowPointerDereference: true,
     maxArrayElements: 1000000,
     maxStringBytes: 16777216,
     maxTotalBytesRead: 67108864,
@@ -70,14 +69,22 @@ describe("generated option defaults", () => {
         origin: 0n,
         dereferencePointers: false,
         maxTotalBytesRead: 3,
-        allowPointerDereference: false,
         maxTraversalBytesRead: 4,
       },
     });
-    expect(source.csharp).toContain("AllowPointerDereference = false");
+    expect(source.csharp).toContain("DereferencePointers = false");
     expect(source.csharp).toContain("MaxTraversalBytesRead = 4L");
+    expect(source.javascript).toContain('"dereferencePointers": false');
     expect(source.javascript).not.toContain('"origin"');
-    expect(source.javascript).not.toContain('"dereferencePointers"');
     expect(source.javascript).not.toContain('"maxTotalBytesRead"');
+  });
+  it("shares dereferencePointers between parse and update, but omits it for serialize", () => {
+    const options = { ...request.options, dereferencePointers: false };
+    const parsed = generateExample({ ...request, operation: "parse", options });
+    const updated = generateExample({ ...request, operation: "update", options });
+    const serialized = generateExample({ ...request, operation: "serialize", options });
+    expect(parsed.csharp).toContain("DereferencePointers = false");
+    expect(updated.csharp).toContain("DereferencePointers = false");
+    expect(serialized.csharp).not.toContain("DereferencePointers");
   });
 });

@@ -39,7 +39,7 @@ export interface SerializeOptions extends LayoutOptions {
 }
 
 export interface UpdateOptions extends SerializeOptions {
-  allowPointerDereference?: boolean;
+  dereferencePointers?: boolean;
   requireExistingPointerTarget?: boolean;
   clearUnionStorage?: boolean;
   maxTraversalPointerDepth?: number;

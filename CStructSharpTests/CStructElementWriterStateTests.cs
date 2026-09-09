@@ -108,12 +108,12 @@ public class CStructElementWriterStateTests
     [TestMethod]
     public void SnapshotWriteOptions_GivenUpdateOptions_RetainsUpdateSemantics()
     {
-        var update = new UpdateOptions { AllowPointerDereference = false, };
+        var update = new UpdateOptions { DereferencePointers = false, };
 
         WriteOptions snapshot = CStructElementWriterState.SnapshotWriteOptions(update);
 
         Assert.IsInstanceOfType<UpdateOptions>(snapshot);
-        Assert.IsFalse(((UpdateOptions)snapshot).AllowPointerDereference);
+        Assert.IsFalse(((UpdateOptions)snapshot).DereferencePointers);
     }
 
     /// <summary>Every field of a caller-supplied UpdateOptions, including inherited WriteOptions fields, must carry over.</summary>
@@ -123,7 +123,7 @@ public class CStructElementWriterStateTests
         var options = new UpdateOptions
         {
             MaxArrayElements = 3,
-            AllowPointerDereference = false,
+            DereferencePointers = false,
             RequireExistingPointerTarget = false,
             ClearUnionStorage = false,
             MaxTraversalPointerDepth = 2,
@@ -132,7 +132,7 @@ public class CStructElementWriterStateTests
         UpdateOptions snapshot = CStructElementWriterState.SnapshotUpdateOptions(options);
 
         Assert.AreEqual(3, snapshot.MaxArrayElements);
-        Assert.IsFalse(snapshot.AllowPointerDereference);
+        Assert.IsFalse(snapshot.DereferencePointers);
         Assert.IsFalse(snapshot.RequireExistingPointerTarget);
         Assert.IsFalse(snapshot.ClearUnionStorage);
         Assert.AreEqual(2, snapshot.MaxTraversalPointerDepth);
@@ -159,7 +159,7 @@ public class CStructElementWriterStateTests
             MaxTotalBytesWritten = 22,
             MaxNestingDepth = 33,
             Origin = 44,
-            AllowPointerDereference = false,
+            DereferencePointers = false,
             RequireExistingPointerTarget = false,
             ClearUnionStorage = false,
             MaxTraversalPointerDepth = 2,

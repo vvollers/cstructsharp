@@ -32,8 +32,8 @@ and `Error`. Check `Success` before using `Data`. A failure has an error `Code`,
 | `addressingMode` | `"Absolute"` | Use `"Relative"` when addresses are measured from an origin |
 | `origin` | `0` | Address origin; use a decimal string for a large exact integer |
 
-Reading also accepts `dereferencePointers`, `maxArrayElements`, `maxStringBytes`, `maxTotalBytesRead`, and
-`maxNestingDepth`. Writing has `maxTotalBytesWritten`; updating adds traversal limits and `allowPointerDereference`.
+Reading and updating both accept `dereferencePointers`; reading also accepts `maxArrayElements`, `maxStringBytes`,
+`maxTotalBytesRead`, and `maxNestingDepth`. Writing has `maxTotalBytesWritten`; updating adds traversal limits.
 The bridge enforces upper bounds, so arbitrary increases are not accepted. The
 [versioned contract](../../contracts/api/browser-rc1/contract.json) lists exact option bounds and error categories.
 

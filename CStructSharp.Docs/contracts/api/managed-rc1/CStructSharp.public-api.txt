@@ -208,8 +208,8 @@ namespace CStructSharp
     public sealed class UpdateOptions : CStructSharp.WriteOptions, System.IEquatable<CStructSharp.UpdateOptions>
     {
         public UpdateOptions() { }
-        public bool AllowPointerDereference { get; init; }
         public bool ClearUnionStorage { get; init; }
+        public bool DereferencePointers { get; init; }
         public int MaxTraversalArrayElements { get; init; }
         public long MaxTraversalBytesRead { get; init; }
         public int MaxTraversalNestingDepth { get; init; }

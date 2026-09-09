@@ -29,7 +29,6 @@ const defaults: Record<string, unknown> = {
   maxNestingDepth: 256,
   maxTotalBytesRead: 67108864,
   maxTotalBytesWritten: 67108864,
-  allowPointerDereference: true,
   requireExistingPointerTarget: true,
   clearUnionStorage: true,
   maxTraversalPointerDepth: 64,
@@ -38,14 +37,8 @@ const defaults: Record<string, unknown> = {
   maxTraversalBytesRead: 67108864,
   maxTraversalNestingDepth: 256,
 };
-const readOnlyOptions = new Set([
-  "dereferencePointers",
-  "maxPointerDepth",
-  "maxPointerTargetBytes",
-  "maxTotalBytesRead",
-]);
+const readOnlyOptions = new Set(["maxPointerDepth", "maxPointerTargetBytes", "maxTotalBytesRead"]);
 const updateOnlyOptions = new Set([
-  "allowPointerDereference",
   "requireExistingPointerTarget",
   "clearUnionStorage",
   "maxTraversalPointerDepth",
@@ -61,6 +54,9 @@ function nonDefaultOptions(request: WorkbenchRequest): Record<string, unknown> {
     Object.entries(request.options).filter(([key, value]) => {
       if (request.operation !== "parse" && readOnlyOptions.has(key)) return false;
       if (request.operation !== "update" && updateOnlyOptions.has(key)) return false;
+      // Pointer dereferencing applies to parse and update (both traverse to locate a target); serialize never
+      // reads through a pointer, so it never has a use for this option.
+      if (key === "dereferencePointers" && request.operation === "serialize") return false;
       if (
         request.operation === "parse" &&
         (key === "bindingMode" || key === "maxTotalBytesWritten")

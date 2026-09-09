@@ -16,7 +16,7 @@ public sealed record UpdateOptions : WriteOptions
     }
 
     /// <summary>Gets whether an update path may pass through a pointer's <c>.value</c> target.</summary>
-    public bool AllowPointerDereference { get; init; } = true;
+    public bool DereferencePointers { get; init; } = true;
 
     /// <summary>
     ///     Gets whether an update through <c>.value</c> requires a non-null pointer target.
