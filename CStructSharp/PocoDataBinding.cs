@@ -2,6 +2,7 @@ namespace CStructSharp;
 
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Reflection;
@@ -9,6 +10,15 @@ using System.Reflection;
 /// <summary>Reads named and indexed values from caller-supplied POCO, dictionary, or dynamic data.</summary>
 internal static class PocoDataBinding
 {
+    /// <summary>
+    ///     Caches the reflective member resolution for one (type, requested name) pair - the case-sensitive-then-
+    ///     case-insensitive property/field lookup a POCO write already re-ran on every single field of every
+    ///     single call, even though the result never changes for a given type and requested spelling. Both
+    ///     <see cref="CachedMember.Property"/> and <see cref="CachedMember.Field"/> are null for a name that
+    ///     resolves to neither, so a genuine miss is cached too, not just a hit.
+    /// </summary>
+    private static readonly ConcurrentDictionary<(Type Type, string Name), CachedMember> MemberCache = new();
+
     /// <summary>Accepts either a root object or an object that contains the root under its layout name.</summary>
     public static object NormalizeRootData(object data, string rootName, PocoBindingMode bindingMode)
     {
@@ -72,9 +82,9 @@ internal static class PocoDataBinding
 
         // Match the dynamic API first, then let ordinary objects participate through simple public members.
         Type type = data.GetType();
-        PropertyInfo? property = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance) ??
-                                 type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-        if (property != null && property.CanRead)
+        CachedMember cached = MemberCache.GetOrAdd((type, name), static key => ResolveMember(key.Type, key.Name));
+
+        if (cached.Property is PropertyInfo property && property.CanRead)
         {
             // PublicReadWrite intentionally excludes read-only properties for callers that want a stricter POCO contract.
             if (bindingMode == PocoBindingMode.PublicReadWrite && !property.CanWrite)
@@ -88,9 +98,7 @@ internal static class PocoDataBinding
             return true;
         }
 
-        FieldInfo? field = type.GetField(name, BindingFlags.Public | BindingFlags.Instance) ??
-                           type.GetField(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-        if (field != null)
+        if (cached.Field is FieldInfo field)
         {
             // Public fields are the final POCO fallback when no matching property exists.
             value = field.GetValue(data)!;
@@ -99,6 +107,23 @@ internal static class PocoDataBinding
 
         value = null!;
         return false;
+    }
+
+    /// <summary>
+    ///     Resolves the public property and field a name maps to, case-sensitively first, then case-insensitively.
+    ///     Both are resolved unconditionally (not just the property, falling back to the field only when the
+    ///     property lookup fails) because the caller falls back to <see cref="CachedMember.Field"/> whenever the
+    ///     resolved property exists but is not readable (a write-only property), not only when no property was
+    ///     found at all - resolving both up front lets one cached result serve every future call correctly.
+    /// </summary>
+    private static CachedMember ResolveMember(Type type, string name)
+    {
+        PropertyInfo? property = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance) ??
+                                 type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+        FieldInfo? field = type.GetField(name, BindingFlags.Public | BindingFlags.Instance) ??
+                           type.GetField(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+
+        return new CachedMember(property, field);
     }
 
     /// <summary>Gets one item from an array-like value and reports a clear error for an invalid index.</summary>
@@ -123,4 +148,7 @@ internal static class PocoDataBinding
 
         throw new CStructWriteException("Field not found in data: " + name);
     }
+
+    /// <summary>One cached member-resolution outcome; both members are null when the name resolves to neither.</summary>
+    private readonly record struct CachedMember(PropertyInfo? Property, FieldInfo? Field);
 }

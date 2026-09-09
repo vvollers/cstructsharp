@@ -139,6 +139,41 @@ public class PocoDataBindingTests
         Assert.Throws<CStructWriteException>(() => PocoDataBinding.GetIndexedValue(42, 0));
     }
 
+    /// <summary>
+    ///     Regression coverage for the architecture-review optimization (docs/architecture-improvement-plan.md,
+    ///     AP-0.3) that caches member resolution per (type, name) instead of re-running reflection on every call.
+    ///     Reading the same property from many distinct instances of the same type must return each instance's
+    ///     own current value, proving the cache stores resolved <c>PropertyInfo</c>/<c>FieldInfo</c> metadata, not
+    ///     a stale value from an earlier lookup.
+    /// </summary>
+    [TestMethod]
+    public void TryGetMemberValue_SameTypeReadRepeatedly_ReturnsEachInstancesOwnCurrentValue()
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            var sample = new Sample { ReadWriteValue = i * 10, };
+
+            Assert.IsTrue(
+                PocoDataBinding.TryGetMemberValue(sample, "ReadWriteValue", PocoBindingMode.PublicReadable, out object value));
+            Assert.AreEqual(i * 10, value);
+        }
+    }
+
+    /// <summary>
+    ///     A write-only property must still fall back to a differently-cased field of the same requested name,
+    ///     exactly as before caching - the cached resolution stores both the property and the field, not just
+    ///     whichever was found first, so this fallback keeps working from the cache too.
+    /// </summary>
+    [TestMethod]
+    public void TryGetMemberValue_WriteOnlyProperty_FallsBackToField()
+    {
+        var sample = new WriteOnlyPropertyWithField();
+
+        Assert.IsTrue(
+            PocoDataBinding.TryGetMemberValue(sample, "writeonly", PocoBindingMode.PublicReadable, out object value));
+        Assert.AreEqual(99, value);
+    }
+
     /// <summary>A multi-segment path walks named members and array indexes in sequence.</summary>
     [TestMethod]
     public void ResolveDataPath_NamedAndIndexedSegments_WalksToTheTarget()
@@ -158,6 +193,7 @@ public class PocoDataBindingTests
     }
 
 #pragma warning disable SA1401 // Public test fixture fields intentionally exercise field binding.
+#pragma warning disable SA1307 // A lower-case field name is required to test case-insensitive property/field fallback.
     private sealed class Sample
     {
         public int PublicField = 9;
@@ -166,5 +202,16 @@ public class PocoDataBindingTests
 
         public int ReadWriteValue { get; set; } = 7;
     }
+
+    private sealed class WriteOnlyPropertyWithField
+    {
+        public int writeonly = 99;
+
+        public int WriteOnly
+        {
+            set { }
+        }
+    }
+#pragma warning restore SA1307
 #pragma warning restore SA1401
 }
