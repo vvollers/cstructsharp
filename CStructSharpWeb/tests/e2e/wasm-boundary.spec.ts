@@ -61,7 +61,10 @@ test.beforeEach(async ({ page }) => {
       }
       return btoa(chunks.join(""));
     };
-    const toEnvelopeJson = (operation: "serialize" | "update", invoke: () => Uint8Array): string => {
+    const toEnvelopeJson = (
+      operation: "serialize" | "update",
+      invoke: () => Uint8Array,
+    ): string => {
       try {
         return JSON.stringify({
           ContractVersion: CONTRACT_VERSION,
@@ -615,8 +618,7 @@ test("all signed and unsigned JavaScript precision boundaries round-trip exactly
 
   for (const result of results) {
     const parsedValue = JSON.parse((result.parsed.Data as string) ?? "{}").root.value as
-      | number
-      | string;
+      number | string;
     expect(String(parsedValue)).toBe(result.expected);
     expect(result.parsed).toMatchObject({
       ContractVersion: 5,

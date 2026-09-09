@@ -147,7 +147,11 @@ export function parseWithDebug(
   binaryData: Uint8Array,
   options?: ParseWithDebugOptions,
 ): ParseResult {
-  const resultJson = requireReadyWasm().parseWithDebug(cstructDefinition, binaryData, options ?? null);
+  const resultJson = requireReadyWasm().parseWithDebug(
+    cstructDefinition,
+    binaryData,
+    options ?? null,
+  );
   return parseInteropResult(resultJson, "parse");
 }
 
@@ -157,7 +161,11 @@ export function serialize(
   options?: SerializeOptions,
 ): InteropResult {
   return runBinaryOperation("serialize", () =>
-    requireReadyWasm().serialize(cstructDefinition, stringifyInteropValue(data ?? {}), options ?? null),
+    requireReadyWasm().serialize(
+      cstructDefinition,
+      stringifyInteropValue(data ?? {}),
+      options ?? null,
+    ),
   );
 }
 

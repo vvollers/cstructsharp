@@ -28,14 +28,15 @@ test("public wrapper returns byte arrays for writes, preserves errors and parse 
       }
       return written;
     },
-    parseWithDebug: () => JSON.stringify({
-      ContractVersion: 5,
-      Operation: "parse",
-      Success: true,
-      Data: '{"root":{"value":2}}',
-      DebugData: [],
-      Error: null,
-    }),
+    parseWithDebug: () =>
+      JSON.stringify({
+        ContractVersion: 5,
+        Operation: "parse",
+        Success: true,
+        Data: '{"root":{"value":2}}',
+        DebugData: [],
+        Error: null,
+      }),
   };
   try {
     const serialized = await serialize("layout", {});

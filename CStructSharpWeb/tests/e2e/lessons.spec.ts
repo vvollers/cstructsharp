@@ -155,7 +155,8 @@ test("all curated operation presets match real managed results", async ({ page }
           );
           // parse still returns a JSON envelope; serialize/update return bytes directly on success and throw
           // (their message is the same JSON-serialized ErrorDetails shape) on failure - reconstruct one shape.
-          let result: { Success: true; Data: unknown } | { Success: false; Error: { Code: string } };
+          let result:
+            { Success: true; Data: unknown } | { Success: false; Error: { Code: string } };
           try {
             result =
               operation === "parse"
