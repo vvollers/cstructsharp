@@ -36,6 +36,9 @@ jobs:
 
       - name: Verify managed API baseline
         shell: pwsh
+        env:
+          # PublicApiGenerator.Tool targets net6.0; the runner only has 8.x/9.x/10.x shared runtimes installed.
+          DOTNET_ROLL_FORWARD: LatestMajor
         run: ./tools/Compare-ManagedApiBaseline.ps1
 
       - name: Restore dependencies
