@@ -44,7 +44,7 @@ function handleModelUpdate(next: Uint8Array): void {
  * ResultPanel.vue already uses for its field-map/hex cross-highlight). Combined below with vuehex's own
  * built-in DEFAULT_ASCII_CATEGORY_CELL_CLASS_RESOLVER (foreground byte-value coloring - digits,
  * upper/lowercase letters, control/high-bit/null bytes) via its multi-resolver array support, so this
- * only needs to return the background/outline classes, not reimplement byte-category coloring itself.
+ * only needs to return the field background classes, not reimplement byte-category coloring itself.
  *
  * The background color is keyed by field GROUP (see computeFieldGroups), not by the raw DebugData entry
  * index, so a whole array highlights as one block instead of every element getting its own color.
@@ -149,36 +149,58 @@ defineExpose({
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-sm);
 }
+/* Fill the spacing between hex cells so a field reads as a band, not a row of boxes.
+   Preserve the editor's wider middle-column gutter and its original cell widths. */
+.hex-body :deep(.vuehex-byte) {
+  min-width: 2.5ch;
+  margin-inline: 0;
+  padding-inline: 0.25ch;
+}
+.hex-body :deep(.vuehex-byte--column-start) {
+  margin-left: var(--vuehex-mid-column-gutter);
+}
 .hex-body :deep(.field-range-0) {
-  background-color: rgba(0, 212, 255, 0.22) !important;
-  outline: 1px solid #00d4ff;
+  --field-color: 0, 212, 255;
 }
 .hex-body :deep(.field-range-1) {
-  background-color: rgba(0, 255, 136, 0.2) !important;
-  outline: 1px solid #00ff88;
+  --field-color: 0, 255, 136;
 }
 .hex-body :deep(.field-range-2) {
-  background-color: rgba(255, 184, 0, 0.22) !important;
-  outline: 1px solid #ffb800;
+  --field-color: 255, 184, 0;
 }
 .hex-body :deep(.field-range-3) {
-  background-color: rgba(186, 104, 255, 0.22) !important;
-  outline: 1px solid #ba68ff;
+  --field-color: 186, 104, 255;
 }
 .hex-body :deep(.field-range-4) {
-  background-color: rgba(255, 105, 180, 0.22) !important;
-  outline: 1px solid #ff69b4;
+  --field-color: 255, 105, 180;
 }
 .hex-body :deep(.field-range-5) {
-  background-color: rgba(64, 224, 208, 0.22) !important;
-  outline: 1px solid #40e0d0;
+  --field-color: 64, 224, 208;
+}
+.hex-body :deep([class*="field-range-"]) {
+  background-color: rgba(var(--field-color), 0.14);
 }
 .hex-body :deep(.field-active) {
-  outline-width: 2px !important;
-  filter: brightness(1.35);
+  background-color: rgba(var(--field-color), 0.28);
+  box-shadow: inset 0 -2px rgba(var(--field-color), 0.85);
+  opacity: 1;
 }
 .hex-body :deep(.field-dim) {
-  opacity: 0.32;
+  opacity: 0.5;
+}
+/* Byte selection remains separate from the parsed-field highlight. Only the editing
+   cursor gets a full outline; a multi-byte selection stays a continuous soft band. */
+.hex-body :deep(.vuehex-selected) {
+  background-color: #365c82;
+  color: #f4f8ff;
+  box-shadow: inset 0 -2px #b8d8ff;
+  outline: none;
+  opacity: 1;
+}
+.hex-body :deep(.vuehex-cursor) {
+  outline: 2px solid #dcecff;
+  outline-offset: -2px;
+  opacity: 1;
 }
 .drop-hint {
   position: absolute;
