@@ -46,6 +46,9 @@ jobs:
 
       - name: Run the complete documentation gate
         shell: pwsh
+        env:
+          # DocFX otherwise replaces SourceLink commits with a PR's invalid N/merge ref.
+          DOCFX_SOURCE_BRANCH_NAME: ${{ github.sha }}
         run: ./tools/documentation/Validate-Documentation.ps1
 
       - name: Upload documentation review artifact
