@@ -4,54 +4,8 @@ on:
   push:
     branches:
       - main
-    paths:
-      - ".config/dotnet-tools.json"
-      - ".github/workflows/docs.yml"
-      - "CStructSharp/**"
-      - "CStructSharp.Docs/**"
-      - "CStructSharpTests/**"
-      - "Directory.Build.props"
-      - "global.json"
-      - "tools/Build-Documentation.ps1"
-      - "tools/New-DocumentationPagesArtifact.ps1"
-      - "tools/Test-DocumentationExternalLinks.ps1"
-      - "tools/Test-DocumentationSourceSnapshot.ps1"
-      - "tools/Validate-ApiDocumentation.ps1"
-      - "tools/Validate-CanonicalReference.ps1"
-      - "tools/Validate-Documentation.ps1"
-      - "tools/Validate-DocumentationQuality.ps1"
-      - "tools/Validate-DocumentationWorkflow.ps1"
-      - "tools/Validate-FeatureOperationMatrix.ps1"
-      - "tools/Validate-LanguageDocumentation.ps1"
-      - "tools/Validate-PagesArtifact.ps1"
   pull_request:
-    paths:
-      - ".config/dotnet-tools.json"
-      - ".github/workflows/docs.yml"
-      - "CStructSharp/**"
-      - "CStructSharp.Docs/**"
-      - "CStructSharpTests/**"
-      - "Directory.Build.props"
-      - "global.json"
-      - "tools/Build-Documentation.ps1"
-      - "tools/New-DocumentationPagesArtifact.ps1"
-      - "tools/Test-DocumentationExternalLinks.ps1"
-      - "tools/Test-DocumentationSourceSnapshot.ps1"
-      - "tools/Validate-ApiDocumentation.ps1"
-      - "tools/Validate-CanonicalReference.ps1"
-      - "tools/Validate-Documentation.ps1"
-      - "tools/Validate-DocumentationQuality.ps1"
-      - "tools/Validate-DocumentationWorkflow.ps1"
-      - "tools/Validate-FeatureOperationMatrix.ps1"
-      - "tools/Validate-LanguageDocumentation.ps1"
-      - "tools/Validate-PagesArtifact.ps1"
   workflow_dispatch:
-    inputs:
-      deploy:
-        description: Deploy the validated artifact to GitHub Pages
-        required: true
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -80,10 +34,10 @@ jobs:
         with:
           node-version: 26.5.0
           cache: npm
-          cache-dependency-path: CStructSharp.Docs/package-lock.json
+          cache-dependency-path: docs/package-lock.json
 
       - name: Install browser system dependencies
-        working-directory: CStructSharp.Docs
+        working-directory: docs
         run: |
           sudo apt-get update
           sudo apt-get install --yes ripgrep
@@ -92,44 +46,15 @@ jobs:
 
       - name: Run the complete documentation gate
         shell: pwsh
-        run: ./tools/Validate-Documentation.ps1
+        run: ./tools/documentation/Validate-Documentation.ps1
 
       - name: Upload documentation review artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: cstructsharp-documentation-${{ github.sha }}
           path: |
-            CStructSharp.Docs/_site/
-            CStructSharp.Docs/docfx-build.log
+            docs/_site/
+            docs/docfx-build.log
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 14
-
-      - name: Upload validated GitHub Pages artifact
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy }}
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: CStructSharp.Docs/_site
-
-  deploy:
-    name: Deploy validated documentation
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy }}
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    concurrency:
-      group: documentation-pages
-      cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-
-      - name: Deploy validated artifact
-        id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

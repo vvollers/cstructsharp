@@ -29,7 +29,7 @@ jobs:
         with:
           node-version: 26.5.0
       - name: Install documentation browser dependencies
-        working-directory: CStructSharp.Docs
+        working-directory: docs
         run: |
           sudo apt-get update
           sudo apt-get install --yes ripgrep
@@ -37,11 +37,11 @@ jobs:
           npm exec -- playwright install-deps chromium
       - name: Validate documentation
         shell: pwsh
-        run: ./tools/Validate-Documentation.ps1
+        run: ./tools/documentation/Validate-Documentation.ps1
       - name: Install WebAssembly workload
-        run: dotnet workload restore ./CStructSharpWeb/wasm/CStructSharpWeb.Wasm.csproj
+        run: dotnet workload restore ./src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
       - name: Build and test explorer
-        working-directory: CStructSharpWeb
+        working-directory: apps/workshop
         run: |
           npm ci
           npm run build
@@ -49,7 +49,7 @@ jobs:
           npm run test:unit
           npm run test:e2e
       - name: Build and test inspector
-        working-directory: CStructSharpInspector
+        working-directory: apps/inspector
         run: |
           npm ci
           npm run build
@@ -57,16 +57,8 @@ jobs:
           npm run test:unit
           npm run test:e2e
       - name: Assemble complete website
-        run: |
-          mkdir -p artifacts/pages/docs artifacts/pages/explorer artifacts/pages/inspector
-          cp -R CStructSharp.Docs/_site/. artifacts/pages/docs/
-          cp -R CStructSharpWeb/dist/. artifacts/pages/explorer/
-          cp -R CStructSharpInspector/dist/. artifacts/pages/inspector/
-          cp CStructSharp.Docs/landing/index.html artifacts/pages/index.html
-          touch artifacts/pages/.nojekyll
-          test -s artifacts/pages/docs/index.html
-          test -s artifacts/pages/explorer/index.html
-          test -s artifacts/pages/inspector/index.html
+        run: node tools/packaging/assemble-site.mjs
+
       - name: Upload website
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

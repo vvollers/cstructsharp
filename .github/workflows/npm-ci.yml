@@ -3,27 +3,7 @@ name: npm package CI
 on:
   push:
     branches: [main]
-    paths:
-      [
-        "packages/cstructsharp/**",
-        "CStructSharp/**",
-        "CStructSharpWeb/**",
-        "Directory.Build.props",
-        "global.json",
-        ".github/workflows/npm-ci.yml",
-        ".github/workflows/release.yml",
-      ]
   pull_request:
-    paths:
-      [
-        "packages/cstructsharp/**",
-        "CStructSharp/**",
-        "CStructSharpWeb/**",
-        "Directory.Build.props",
-        "global.json",
-        ".github/workflows/npm-ci.yml",
-        ".github/workflows/release.yml",
-      ]
 
 permissions:
   contents: read
@@ -43,14 +23,14 @@ jobs:
         with:
           node-version: 26.5.0
           cache: npm
-          cache-dependency-path: CStructSharpWeb/package-lock.json
-      - run: dotnet workload restore CStructSharpWeb/wasm/CStructSharpWeb.Wasm.csproj
+          cache-dependency-path: apps/workshop/package-lock.json
+      - run: dotnet workload restore src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
       - run: npm ci
-        working-directory: CStructSharpWeb
+        working-directory: apps/workshop
       - run: npx playwright install --with-deps chromium
-        working-directory: CStructSharpWeb
+        working-directory: apps/workshop
       - name: Build once and test the actual tarball
-        working-directory: CStructSharpWeb
+        working-directory: apps/workshop
         run: |
           npm run build:wasm
           npm run pack:npm
@@ -58,6 +38,29 @@ jobs:
           npm run test:npm-release
           npm run test:bootstrap
           npm run test:wasm-publication
+      - name: Verify workshop catalog and browser integration
+        working-directory: apps/workshop
+        run: |
+          npm run copy:wasm
+          npm run build:frontend
+          npm run test:demos
+          npm run test:unit
+          npm run test:e2e
+          npm run test:generated-csharp
+          npm run test:wasm-reproducibility
+      - name: Verify independent inspector against the same WASM
+        working-directory: apps/inspector
+        run: |
+          npm ci
+          npm run build
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - name: Verify standalone WASM onboarding
+        shell: pwsh
+        run: |
+          node tools/packaging/create-wasm-package.mjs
+          Compress-Archive -Path artifacts/wasm-package/* -DestinationPath artifacts/wasm-onboarding.zip
+          ./tools/packaging/Test-OnboardingBrowser.ps1 -ArchivePath artifacts/wasm-onboarding.zip
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: npm-package
@@ -84,4 +87,4 @@ jobs:
           name: npm-package
           path: artifacts/npm
       - run: npm run test:npm:node
-        working-directory: CStructSharpWeb
+        working-directory: apps/workshop

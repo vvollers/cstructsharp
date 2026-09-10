@@ -9,13 +9,6 @@
       ],
       "rollForward": false
     },
-    "sourcelink": {
-      "version": "3.1.1",
-      "commands": [
-        "sourcelink"
-      ],
-      "rollForward": false
-    },
     "publicapigenerator.tool": {
       "version": "11.5.4",
       "commands": [

@@ -71,14 +71,14 @@ jobs:
 
       # Nothing below this step may run against an untested build: this is the release's test gate.
       - name: Run managed test suite
-        run: dotnet test ./CStructSharpTests/CStructSharpTests.csproj -c Release
+        run: dotnet test ./tests/CStructSharpTests/tests/CStructSharpTests.csproj -c Release
 
       - name: Set up Node.js for documentation
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 26.5.0
           cache: npm
-          cache-dependency-path: CStructSharp.Docs/package-lock.json
+          cache-dependency-path: docs/package-lock.json
 
       # Computes the next version and writes it into the working tree so every build/pack step below embeds the
       # correct version, without committing or tagging anything yet. Nothing here mutates shared/remote state.
@@ -90,7 +90,7 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs');
           const bump = process.env.BUMP;
-          const projectPath = 'CStructSharp/CStructSharp.csproj';
+          const projectPath = 'src/CStructSharp/CStructSharp.csproj';
           const project = fs.readFileSync(projectPath, 'utf8');
           const current = project.match(/<VersionPrefix>(\d+)\.(\d+)\.(\d+)<\/VersionPrefix>/);
           if (!current) throw new Error('VersionPrefix was not found.');
@@ -104,7 +104,7 @@ jobs:
             .replace(/<VersionPrefix>[^<]+<\/VersionPrefix>/, `<VersionPrefix>${version}</VersionPrefix>`)
             .replace(/\s*<VersionSuffix>[^<]+<\/VersionSuffix>/, '');
           fs.writeFileSync(projectPath, updatedProject);
-          for (const dir of ['CStructSharpWeb', 'CStructSharpInspector', 'packages/cstructsharp']) {
+          for (const dir of ['apps/workshop', 'apps/inspector', 'packages/cstructsharp']) {
             const packagePath = `${dir}/package.json`;
             const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
             packageJson.version = version;
@@ -137,81 +137,89 @@ jobs:
           echo "Tag ${TAG} does not exist on origin yet; continuing."
 
       - name: Install documentation dependencies
-        working-directory: CStructSharp.Docs
+        working-directory: docs
         run: npm ci --ignore-scripts
 
       - name: Build documentation
         shell: pwsh
-        run: ./tools/Build-Documentation.ps1
+        run: ./tools/documentation/Build-Documentation.ps1
 
       - name: Install WebAssembly workload
-        run: dotnet workload restore ./CStructSharpWeb/wasm/CStructSharpWeb.Wasm.csproj
+        run: dotnet workload restore ./src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
 
       - name: Install explorer dependencies
-        working-directory: CStructSharpWeb
+        working-directory: apps/workshop
         run: npm ci
 
       - name: Pack NuGet package for all target frameworks
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: dotnet pack ./CStructSharp/CStructSharp.csproj -c Release -o ./artifacts/package -p:Version=${VERSION}
+        run: dotnet pack ./src/CStructSharp/CStructSharp.csproj -c Release -o ./artifacts/package -p:Version=${VERSION}
+
+      - name: Verify NuGet metadata, symbols, and framework selection
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          ./tools/packaging/Validate-Package.ps1 -PackagePath "artifacts/package/CStructSharp.$env:VERSION.nupkg" -SymbolPackagePath "artifacts/package/CStructSharp.$env:VERSION.snupkg"
+          ./tools/packaging/Test-PackageConsumer.ps1 -PackageDirectory artifacts/package
 
       - name: Verify onboarding against the NuGet artifact
         shell: pwsh
-        run: ./tools/Test-OnboardingPackage.ps1 -PackageDirectory ./artifacts/package
+        run: ./tools/packaging/Test-OnboardingPackage.ps1 -PackageDirectory ./artifacts/package
 
       - name: Build WebAssembly explorer
-        working-directory: CStructSharpWeb
+        working-directory: apps/workshop
         run: npm run build
 
       # The inspector shares the explorer's already-built, already-validated WASM bundle (see
-      # CStructSharpInspector/scripts/copy-wasm.mjs) instead of publishing its own, so it must build after
-      # CStructSharpWeb/public/wasm exists.
+      # apps/inspector/scripts/copy-wasm.mjs) instead of publishing its own, so it must build after
+      # apps/workshop/public/wasm exists.
       - name: Install inspector dependencies
-        working-directory: CStructSharpInspector
+        working-directory: apps/inspector
         run: npm ci
 
       - name: Build binary inspector
-        working-directory: CStructSharpInspector
+        working-directory: apps/inspector
         run: npm run build
 
       - name: Create standalone WASM bundle
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          node CStructSharpWeb/scripts/create-wasm-package.mjs
-          (cd CStructSharpWeb/artifacts/wasm-package && zip -r "../../../artifacts/cstructsharp-wasm-v${VERSION}.zip" .)
+          node tools/packaging/create-wasm-package.mjs
+          (cd artifacts/wasm-package && zip -r "../cstructsharp-wasm-v${VERSION}.zip" .)
 
       - name: Install browser for onboarding checks
-        working-directory: CStructSharpWeb
+        working-directory: apps/workshop
         run: npx playwright install --with-deps chromium
 
       - name: Pack and verify the npm consumer artifact
-        working-directory: CStructSharpWeb
+        working-directory: apps/workshop
         run: |
           npm run pack:npm
           npm run test:npm
           npm run test:bootstrap
           npm run test:wasm-publication
           npm run test:npm-release
-          node scripts/npm-release.mjs --require-missing
+          node ../../tools/release/npm-release.mjs --require-missing
 
       - name: Verify explorer lessons
-        working-directory: CStructSharpWeb
+        working-directory: apps/workshop
         run: |
           npm run test:unit
           npm run test:e2e
 
-      # CStructSharpInspector pins the same @playwright/test range as CStructSharpWeb, but each app's own
+      # apps/inspector pins the same @playwright/test range as apps/workshop, but each app's own
       # lockfile can independently drift to a different resolved patch version - and different patches can
       # require a different downloaded browser revision. Install this app's own browser build explicitly
       # rather than assuming the previous step's Chromium download still satisfies it.
       - name: Install browser for inspector checks
-        working-directory: CStructSharpInspector
+        working-directory: apps/inspector
         run: npx playwright install --with-deps chromium
 
       - name: Verify binary inspector
-        working-directory: CStructSharpInspector
+        working-directory: apps/inspector
         run: |
           npm run test:unit
           npm run test:e2e
@@ -220,20 +228,13 @@ jobs:
         shell: pwsh
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: ./tools/Test-OnboardingBrowser.ps1 -ArchivePath "./artifacts/cstructsharp-wasm-v$env:VERSION.zip"
+        run: ./tools/packaging/Test-OnboardingBrowser.ps1 -ArchivePath "./artifacts/cstructsharp-wasm-v$env:VERSION.zip"
 
       - name: Assemble GitHub Pages site
-        run: |
-          rm -rf artifacts/pages
-          mkdir -p artifacts/pages/docs artifacts/pages/explorer artifacts/pages/inspector
-          cp -R CStructSharp.Docs/_site/. artifacts/pages/docs/
-          cp -R CStructSharpWeb/dist/. artifacts/pages/explorer/
-          cp -R CStructSharpInspector/dist/. artifacts/pages/inspector/
-          cp CStructSharp.Docs/landing/index.html artifacts/pages/index.html
-          touch artifacts/pages/.nojekyll
+        run: node tools/packaging/assemble-site.mjs
 
       - name: Record release artifact hashes and source identity
-        run: node CStructSharpWeb/scripts/release-artifacts.mjs create
+        run: node tools/release/release-artifacts.mjs create
 
       - name: Upload npm package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -260,11 +261,11 @@ jobs:
         with:
           name: version-bump-files
           path: |
-            CStructSharp/CStructSharp.csproj
-            CStructSharpWeb/package.json
-            CStructSharpWeb/package-lock.json
-            CStructSharpInspector/package.json
-            CStructSharpInspector/package-lock.json
+            src/CStructSharp/CStructSharp.csproj
+            apps/workshop/package.json
+            apps/workshop/package-lock.json
+            apps/inspector/package.json
+            apps/inspector/package-lock.json
             packages/cstructsharp/package.json
           retention-days: 90
           if-no-files-found: error
@@ -315,7 +316,7 @@ jobs:
           name: npm-package
           path: artifacts/npm
       - name: Test the installed tarball without the SDK or browser
-        working-directory: CStructSharpWeb
+        working-directory: apps/workshop
         run: npm run test:npm:node
 
   publish:
@@ -412,22 +413,22 @@ jobs:
           github-token: ${{ github.token }}
       - name: Verify original run, test gates, versions and every artifact hash
         id: release
-        run: node CStructSharpWeb/scripts/release-artifacts.mjs verify
+        run: node tools/release/release-artifacts.mjs verify
       - name: Check npm identity before any publication
         id: npm
-        run: node CStructSharpWeb/scripts/npm-release.mjs
+        run: node tools/release/npm-release.mjs
       - name: Commit and tag the exact verified version, or verify the existing tag
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          node CStructSharpWeb/scripts/release-artifacts.mjs tag
+          node tools/release/release-artifacts.mjs tag
       - name: Publish the tested npm tarball through OIDC
         if: steps.npm.outputs.status == 'missing'
         env:
           NPM_TARBALL: ${{ steps.npm.outputs.filename }}
         run: npm publish "artifacts/npm/${NPM_TARBALL}" --access public --tag latest --registry=https://registry.npmjs.org/ --ignore-scripts
       - name: Confirm npm publication integrity
-        run: node CStructSharpWeb/scripts/npm-release.mjs --require-published
+        run: node tools/release/npm-release.mjs --require-published
       - name: Set up .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:

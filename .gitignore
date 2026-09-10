@@ -1,6 +1,6 @@
 # Local-only project records
 /.local-docs/
-/docs/
+/agentdocs/
 
 # .NET SDK/tool state and build outputs
 /.dotnet/
@@ -46,15 +46,15 @@
 *.stylelintcache
 
 # Generated WebAssembly/frontend assets
-CStructSharpWeb/public/wasm/
-CStructSharpWeb/public/wasm*
-CStructSharpWeb/src/generated/test-demos.json
-CStructSharpWeb/vite.config.d.ts
-CStructSharpWeb/vite.config.d.ts.map
-CStructSharpInspector/public/wasm/
-CStructSharpInspector/public/wasm*
-CStructSharpInspector/vite.config.d.ts
-CStructSharpInspector/vite.config.d.ts.map
+apps/workshop/public/wasm/
+apps/workshop/public/wasm*
+apps/workshop/src/generated/test-demos.json
+apps/workshop/vite.config.d.ts
+apps/workshop/vite.config.d.ts.map
+apps/inspector/public/wasm/
+apps/inspector/public/wasm*
+apps/inspector/vite.config.d.ts
+apps/inspector/vite.config.d.ts.map
 
 # Tool caches, telemetry, and machine-local state
 **/.cache/
@@ -102,3 +102,10 @@ pnpm-debug.log*
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Generated documentation exports
+/docs/examples/recipes/*.cs
+/docs/examples/recipes/*.md
+!/docs/examples/recipes/index.md
+/docs/examples/recipes/toc.yml
+/docs/guides/recipes/index.md

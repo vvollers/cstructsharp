@@ -1,0 +1,15 @@
+[
+  "api/browser-rc1/contract.json",
+  "api/managed-rc1/CStructSharp.public-api.txt",
+  "api/managed-rc1/manifest.json",
+  "documentation/external-link-allowlist.json",
+  "documentation/pages-v1.json",
+  "documentation/validator-fixtures.json",
+  "language/manual-fixtures-v1.json",
+  "language/portable-v1.json",
+  "performance/non-web-rc1.json",
+  "performance/web-rc1.json",
+  "quality/compiler-fixtures/baselines/windows-x64-clang-21.1.7.json",
+  "quality/compiler-fixtures/baselines/windows-x64-gcc-14.2.0.json",
+  "quality/feature-operation-matrix.json"
+]

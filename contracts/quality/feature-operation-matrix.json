@@ -1,0 +1,3567 @@
+{
+  "schemaVersion": 2,
+  "operations": [
+    {
+      "id": "parse",
+      "api": "CStruct.ParseStream / CStruct.Parse",
+      "contract": "Read a root or selected struct object from a stream, span, or read-only memory region."
+    },
+    {
+      "id": "debug",
+      "api": "CStruct.ParseStreamWithDebug",
+      "contract": "Read values and exact source byte ranges."
+    },
+    {
+      "id": "address",
+      "api": "CStruct.ResolveAddress",
+      "contract": "Resolve a root, field, array element, or pointer target without changing the caller's position."
+    },
+    {
+      "id": "length",
+      "api": "CStruct.GetDynamicArrayLength",
+      "contract": "Return a fixed/runtime array count or terminated-string character count."
+    },
+    {
+      "id": "serialize",
+      "api": "CStruct.Serialize",
+      "contract": "Serialize a root or selected value to an owned array, caller-owned span, or IBufferWriter<byte>."
+    },
+    {
+      "id": "write",
+      "api": "CStruct.WriteStream",
+      "contract": "Write a root or selected value at the caller's current position."
+    },
+    {
+      "id": "update",
+      "api": "CStruct.UpdateStream",
+      "contract": "Locate and replace an existing root or selected value while restoring the caller's position."
+    },
+    {
+      "id": "read-value",
+      "api": "CStruct.ReadValue / CStruct.TryReadValue",
+      "contract": "Read a natural scalar or composite value from a stream or memory region, optionally mapping it to a checked CLR type."
+    }
+  ],
+  "statuses": {
+    "verified": "Supported and backed by executable evidence for this operation.",
+    "limited": "Supported only under the row's documented limitations and backed by executable evidence.",
+    "notApplicable": "The operation has no meaningful contract for this feature row.",
+    "blocked": "The intended contract requires an unresolved decision or planned implementation."
+  },
+  "variableInputContract": {
+    "operations": [
+      "parse",
+      "debug",
+      "address",
+      "length",
+      "serialize",
+      "write",
+      "update",
+      "read-value"
+    ],
+    "inputType": "IReadOnlyDictionary<string, int>",
+    "snapshot": "Caller entries are copied into isolated mutable operation state and are never modified.",
+    "precedence": "Caller entries override matching layout #define names.",
+    "compatibility": "The greenfield public API exposes one read-only integer shape; parser expression nodes remain internal.",
+    "evidence": "tests/CStructSharpTests/ReadOnlyVariableInputTests.cs#PublicOperations_AcceptReadOnlyVariablesAndPreserveCallerState",
+    "workItem": "API-06"
+  },
+  "memoryIoContract": {
+    "inputApis": [
+      "Parse(ReadOnlySpan<byte>)",
+      "Parse(ReadOnlyMemory<byte>)",
+      "ReadValue(ReadOnlySpan<byte>)",
+      "ReadValue(ReadOnlyMemory<byte>)",
+      "ReadValue<T>(ReadOnlySpan<byte>)",
+      "ReadValue<T>(ReadOnlyMemory<byte>)",
+      "TryReadValue<T>(ReadOnlySpan<byte>)",
+      "TryReadValue<T>(ReadOnlyMemory<byte>)"
+    ],
+    "outputApis": [
+      "Serialize(Span<byte>)",
+      "Serialize(IBufferWriter<byte>)"
+    ],
+    "lifetime": "Every memory operation is synchronous and retains no caller buffer after returning.",
+    "pointerCoordinates": "Pointer positions are zero-based within the supplied input region or newly serialized output region, including sliced memory and appends to an existing writer.",
+    "partialFailure": "Span output can leave an initialized prefix changed, and IBufferWriter output can retain advanced windows, when a later write fails; neither caller-owned destination promises rollback.",
+    "evidence": [
+      "tests/CStructSharpTests/MemoryIoTests.cs#MemoryInput_ParsesNaturalAndTypedValuesWithoutStreamConstruction",
+      "tests/CStructSharpTests/MemoryIoTests.cs#MemoryInput_PointersStayInsideTheSuppliedRegion",
+      "tests/CStructSharpTests/MemoryIoTests.cs#SpanSerialization_MatchesOwnedSerializationAndEnforcesCapacity",
+      "tests/CStructSharpTests/MemoryIoTests.cs#SpanSerialization_CapacityFailureDoesNotPromiseRollback",
+      "tests/CStructSharpTests/MemoryIoTests.cs#BufferWriterSerialization_MatchesSharedWriterAcrossChunksAndVariables",
+      "tests/CStructSharpTests/MemoryIoTests.cs#MemorySerialization_UsesRegionRelativeAppendAndZeroInitialization",
+      "tests/CStructSharpTests/FixedBufferStreamTests.cs#WritableRegion_WritesReadsAndClearsNewlyInitializedBytes",
+      "tests/CStructSharpTests/BufferWriterStreamTests.cs#ForwardGapAcrossWindowBoundary_IsZeroInitialized"
+    ],
+    "webIntegration": "Browser contract v4 accepts Uint8Array input and Base64 output through the shared parse/serialize/update bridge; bridge copying is measured separately from the zero-adapter managed memory APIs.",
+    "workItem": "API-02"
+  },
+  "compiledExecutionContract": {
+    "readRoutes": [
+      "root",
+      "nested-field",
+      "selected-struct",
+      "struct-array-element",
+      "pointer-target",
+      "union-member"
+    ],
+    "writeRoutes": [
+      "root",
+      "nested-field",
+      "selected-field",
+      "array-element",
+      "pointer-value",
+      "union-member"
+    ],
+    "structTraversal": "Every non-union read route executes declaration-order fields through one compiled struct executor and consumes the actual runtime extent plus compiled tail alignment.",
+    "unionTraversal": "Every union read route uses one overlapping-member executor; a struct member begins at the union address but its own child fields advance sequentially.",
+    "debug": "Debug capture observes the same compiled read and does not interpret a second field loop.",
+    "evidence": [
+      "tests/CStructSharpTests/CompiledExecutionParityTests.cs#AlignedCompositeSelections_ConsumeTheCompleteCompiledExtent",
+      "tests/CStructSharpTests/CompiledExecutionParityTests.cs#UnionStructMember_UsesSequentialCompiledFieldTraversal",
+      "tests/CStructSharpTests/CompiledIntermediateRepresentationTests.cs#PrimitiveTypedefSlice_UsesCompiledFactsAcrossEveryOperation",
+      "tests/CStructSharpTests/ReviewRegressionTests.cs#ParseStream_PointerToUnion_RewindsEveryMemberToTargetAddress"
+    ],
+    "workItem": "IR-02"
+  },
+  "operationContextContract": {
+    "readLikeRoutes": [
+      "parse",
+      "debug",
+      "address",
+      "length",
+      "read-value",
+      "update-address"
+    ],
+    "snapshotBoundary": "Read, write, and update settings are copied before variable enumeration, payload access, stream access, or another caller-controlled callback.",
+    "readState": "One CStructOperationContext owns resolved variables, the physical-read budget stream, addressing policy, structure and pointer depth, pointer-cycle tracking, bitfield progress, and optional debug diagnostics.",
+    "selectedState": "Target location and selected-target consumption reuse the same context and cannot reset byte, array, structure, pointer, string, or cycle accounting.",
+    "cycleKey": "Active pointer targets use value-tuple keys of address, compiled type name, and remaining pointer depth without allocating composite strings.",
+    "evidence": [
+      "tests/CStructSharpTests/OperationContextTests.cs#ReadLikeOperations_SnapshotOptionsBeforeVariableEnumeration",
+      "tests/CStructSharpTests/OperationContextTests.cs#WriteOperation_SnapshotsOptionsBeforeCallerCallbacks",
+      "tests/CStructSharpTests/OperationContextTests.cs#UpdateOperation_SnapshotsTraversalOptionsBeforeVariableEnumeration",
+      "tests/CStructSharpTests/TraversalLimitTests.cs#SelectedRead_UsesOneTotalByteBudget",
+      "tests/CStructSharpTests/TraversalLimitTests.cs#SelectedPointerTarget_PreservesPathDereferenceDepth"
+    ],
+    "workItem": "IR-03"
+  },
+  "managedApiCompatibilityContract": {
+    "baselineId": "managed-rc1",
+    "baselineRevision": 1,
+    "status": "frozen",
+    "packageVersion": "0.2.0-preview",
+    "frameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "exportedTypes": 20,
+    "canonicalLines": 227,
+    "manifest": "contracts/api/managed-rc1/manifest.json",
+    "canonical": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
+    "gate": "tools/quality/Compare-ManagedApiBaseline.ps1",
+    "policy": "docs/api/index.md",
+    "browserIntegration": "Paired with the independent frozen browser-rc1 contract v4 baseline and validator; managed and browser changes remain reviewed independently.",
+    "workItem": "QA-07"
+  },
+  "browserApiCompatibilityContract": {
+    "baselineId": "browser-rc1",
+    "status": "frozen",
+    "packageVersion": "0.2.0-preview",
+    "contractVersion": 4,
+    "managedExports": 4,
+    "operations": 3,
+    "optionFields": 27,
+    "errorCodes": 9,
+    "manifest": "contracts/api/browser-rc1/contract.json",
+    "gate": "tools/quality/Validate-BrowserContract.ps1",
+    "policy": "docs/api/index.md",
+    "evidence": [
+      "apps/workshop/src/wasm/cstruct-wasm.test.ts",
+      "src/CStructSharp.Wasm/bootstrap.test.js",
+      "apps/workshop/tests/e2e/wasm-boundary.spec.ts",
+      "apps/workshop/tests/e2e/workbench.spec.ts"
+    ],
+    "workItem": "QA-07"
+  },
+  "dimensions": {
+    "endian": [
+      "little",
+      "big",
+      "explicit-little",
+      "explicit-big",
+      "independent"
+    ],
+    "alignment": [
+      "unaligned",
+      "aligned",
+      "not-applicable"
+    ],
+    "cardinality": [
+      "scalar",
+      "fixed-array",
+      "runtime-array",
+      "flexible-string",
+      "overlapping"
+    ],
+    "indirection": [
+      "direct",
+      "pointer",
+      "multi-pointer"
+    ],
+    "placement": [
+      "root",
+      "nested",
+      "inline",
+      "typedef"
+    ],
+    "dataState": [
+      "valid",
+      "truncated",
+      "over-budget",
+      "invalid-layout",
+      "invalid-value"
+    ]
+  },
+  "primitiveSpellings": {
+    "fixed": [
+      "byte",
+      "int8",
+      "uint8",
+      "bool",
+      "_Bool",
+      "char",
+      "wchar",
+      "wchar>",
+      "wchar<",
+      "int16",
+      "int16>",
+      "int16<",
+      "uint16",
+      "uint16>",
+      "uint16<",
+      "int32",
+      "int32>",
+      "int32<",
+      "uint32",
+      "uint32>",
+      "uint32<",
+      "int64",
+      "int64>",
+      "int64<",
+      "uint64",
+      "uint64>",
+      "uint64<",
+      "float32",
+      "float32>",
+      "float32<",
+      "float64",
+      "float64>",
+      "float64<",
+      "float",
+      "double",
+      "short",
+      "ushort",
+      "int",
+      "uint",
+      "long",
+      "ulong",
+      "signed",
+      "unsigned",
+      "signed int",
+      "unsigned int",
+      "signed short",
+      "unsigned short",
+      "signed long",
+      "unsigned long",
+      "long long",
+      "signed long long",
+      "unsigned long long",
+      "signed char",
+      "unsigned char",
+      "int8_t",
+      "uint8_t",
+      "int16_t",
+      "uint16_t",
+      "int32_t",
+      "uint32_t",
+      "int64_t",
+      "uint64_t"
+    ],
+    "terminated": [
+      "ascii_string_zero",
+      "ascii_string_newline",
+      "utf8_string_zero",
+      "utf8_string_newline",
+      "unicode_string_zero",
+      "unicode_string_zero>",
+      "unicode_string_zero<",
+      "unicode_string_newline",
+      "unicode_string_newline>",
+      "unicode_string_newline<",
+      "string",
+      "string>",
+      "string<",
+      "cstring"
+    ]
+  },
+  "canonicalReference": {
+    "profile": "Portable",
+    "contractRevision": 1,
+    "contract": "contracts/language/portable-v1.json",
+    "manualFixtures": "contracts/language/manual-fixtures-v1.json",
+    "reference": "docs/language/index.md",
+    "validator": "tools/documentation/Validate-CanonicalReference.ps1",
+    "tests": [
+      "tests/CStructSharpTests/CanonicalPortableReferenceTests.cs#PrimitiveTables_AgreeWithCompiledCodecs",
+      "tests/CStructSharpTests/CanonicalPortableReferenceTests.cs#LayoutExamples_PredictCompiledBytesAndOffsets",
+      "tests/CStructSharpTests/CanonicalPortableReferenceTests.cs#UnsupportedConstructs_FailDuringLayoutConstruction",
+      "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+      "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories"
+    ],
+    "workItem": "DOC-01"
+  },
+  "compilerEvidence": {
+    "schemaVersion": 1,
+    "claim": "observation-only",
+    "source": "tools/compiler-fixtures/portable-host-facts.c",
+    "runner": "tools/quality/Invoke-CompilerDifferentialFixture.ps1",
+    "validator": "tools/quality/Validate-CompilerFixture.ps1",
+    "guide": "docs/project/testing.md",
+    "baselines": [
+      "contracts/quality/compiler-fixtures/baselines/windows-x64-clang-21.1.7.json",
+      "contracts/quality/compiler-fixtures/baselines/windows-x64-gcc-14.2.0.json"
+    ],
+    "tests": [
+      "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#Baselines_AreObservationOnlyAndHaveCompleteProvenance",
+      "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#FixedWidthAggregates_MatchExactPortableExamples",
+      "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#NativeScalarDifferences_DoNotBecomePortableClaims",
+      "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#Bitfields_RetainNativeByteImagesWithoutPortableParityClaim"
+    ],
+    "workItem": "QA-03"
+  },
+  "fuzzEvidence": {
+    "schemaVersion": 1,
+    "corpus": "tests/CStructSharp.Fuzz/corpus/fuzz-corpus.json",
+    "project": "tests/CStructSharp.Fuzz/CStructSharp.Fuzz.csproj",
+    "validator": "tools/quality/Validate-FuzzCorpus.ps1",
+    "guide": "docs/project/testing.md",
+    "targets": [
+      "binary-roundtrip",
+      "definition",
+      "expression",
+      "path",
+      "pointer-union"
+    ],
+    "tests": [
+      "tests/CStructSharpTests/ManagedFuzzTests.cs#Corpus_DefinesEveryBoundedManagedTarget",
+      "tests/CStructSharpTests/ManagedFuzzTests.cs#ReviewedRun_MatchesTheFrozenReplayManifest",
+      "tests/CStructSharpTests/ManagedFuzzTests.cs#CustomSeed_ReplaysIdentically",
+      "tests/CStructSharpTests/ManagedFuzzTests.cs#SingleInput_ReplaysSuccessAndDocumentedFailure",
+      "tests/CStructSharpTests/ManagedFuzzTests.cs#Run_RejectsUnreviewedBoundsAndUnknownTargets",
+      "tests/CStructSharpTests/ManagedFuzzCliTests.cs#Run_SupportsDiscoveryReportsAndSingleInputReplay",
+      "tests/CStructSharpTests/ManagedFuzzCliTests.cs#Run_RejectsInvalidOptionsAndValues",
+      "tests/CStructSharpTests/ManagedFuzzCliTests.cs#Corpus_RejectsMalformedDocumentsAndSeedModels"
+    ],
+    "deferredTargets": [
+      "json-wasm"
+    ],
+    "workItem": "QA-04"
+  },
+  "roundTripStatuses": {
+    "verified": "Continuously proved for every value inside the listed supported domain.",
+    "conditional": "Continuously proved only under the listed normalization, representation, or caller-context conditions.",
+    "blocked": "No safe promise is made until the listed work item or design decision is complete.",
+    "notApplicable": "The feature describes a failure rather than a serializable value representation."
+  },
+  "roundTripContracts": [
+    {
+      "featureId": "fixed-primitives",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The caller supplies a CLR value representable by the declared primitive codec."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedFixedLayouts_ValueAndCanonicalBytesRoundTrip"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The same layout byte order and explicit endian override are used for parsing and serialization."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedFixedLayouts_ValueAndCanonicalBytesRoundTrip"
+        ]
+      }
+    },
+    {
+      "featureId": "boolean-primitive",
+      "value": {
+        "status": "conditional",
+        "conditions": [
+          "A parsed non-canonical nonzero byte reads as true; writing that same value back always produces the canonical 0x01, so a value round trip is exact only starting from an already-canonical 0x00/0x01 byte."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/BooleanPrimitiveTests.cs#UpdateStream_CanonicalizesEvenOverANonCanonicalByte"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "A canonical 0x00/0x01 byte round trips exactly; byte order does not apply, since the codec is one byte wide."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/BooleanPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate"
+        ]
+      }
+    },
+    {
+      "featureId": "floating-point-primitives",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The codec bit-reinterprets rather than numerically converts, so any bit pattern the caller's float/double value actually holds - including NaN payloads, subnormals, and negative zero - round trips exactly; this is a guarantee about the codec, not about the .NET runtime, since a signaling NaN may already be quieted by an ordinary floating-point operation before the codec ever receives it."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_QuietNaNPayloadRoundTripsExactly",
+          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float64_NaNPayloadRoundTripsExactly",
+          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_NegativeZeroRoundTripsAsDistinctBitPattern",
+          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float64_NegativeZeroRoundTripsAsDistinctBitPattern",
+          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_SubnormalRoundTripsExactly",
+          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float64_SubnormalRoundTripsExactly"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "Exact bytes match the documented byte order for both the neutral (layout-default) and explicit float32</float32>/float64</float64> suffix spellings."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#ExplicitEndianSuffix_ProducesTheDocumentedByteOrder",
+          "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate"
+        ]
+      }
+    },
+    {
+      "featureId": "portable-c-integer-spellings",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The caller supplies a CLR value representable by the aliased fixed-width codec."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "An alternate spelling produces identical bytes to its documented canonical spelling."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
+        ]
+      }
+    },
+    {
+      "featureId": "character-buffers",
+      "value": {
+        "status": "conditional",
+        "conditions": [
+          "Fixed character buffers normalize a shorter input string to the declared width by appending NUL characters."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Bytes are exact after the first canonical serialization, including the declared-width NUL padding."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+        ]
+      }
+    },
+    {
+      "featureId": "terminated-strings",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Text is valid for the selected encoding and does not contain that codec's terminator."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedTerminatedStrings_ValueAndCanonicalBytesRoundTrip"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The input is the canonical encoding of valid text followed by exactly one complete codec terminator."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedTerminatedStrings_ValueAndCanonicalBytesRoundTrip"
+        ]
+      }
+    },
+    {
+      "featureId": "enums",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The declaration resolves to a signed or unsigned 8/16/32/64-bit integral backing domain and supplied writes are exact in-domain integers or declared symbolic names."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip",
+          "tests/CStructSharpTests/EnumDomainTests.cs#IntegerDomains_RoundTripBoundariesAcrossOperations"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "Known and unknown payloads use the complete declared signed/unsigned backing domain and the layout instance byte order."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip",
+          "tests/CStructSharpTests/EnumDomainTests.cs#IntegerDomains_RoundTripBoundariesAcrossOperations"
+        ]
+      }
+    },
+    {
+      "featureId": "portable-bitfields",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Declared unsigned slices obey the portable bitfield semantics and each supplied value fits its declared width."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Every bit in the storage unit is represented by declared portable slices; unnamed and zero-width forms remain excluded."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip"
+        ]
+      }
+    },
+    {
+      "featureId": "fixed-arrays",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The supplied collection has exactly the declared zero, one, or multiple element shape - an N-dimensional array's supplied value is the matching N-deep nested collection, one dimension of shape checking per level."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip",
+          "tests/CStructSharpTests/MultidimensionalArrayTests.cs#TwoDimensionalArray_RoundTripsThroughWriteAndParse",
+          "tests/CStructSharpTests/MultidimensionalArrayTests.cs#ThreeDimensionalArray_RoundTripsThroughWriteAndParse"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "Every element representation has its own applicable exact-byte contract; a multidimensional array's elements are laid out in row-major order, the same sequential order a flat array of the same total count would use."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip",
+          "tests/CStructSharpTests/MultidimensionalArrayTests.cs#TwoDimensionalArray_RoundTripsThroughWriteAndParse"
+        ]
+      }
+    },
+    {
+      "featureId": "multiple-declarators",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Each declarator is treated as an ordinary field of its own compiled shape; no distinct value contract applies."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_SupportWriteSerializeReadValueAndUpdate"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "Each declarator's own primitive/array/bitfield codec supplies its exact-byte contract."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_SupportWriteSerializeReadValueAndUpdate"
+        ]
+      }
+    },
+    {
+      "featureId": "qualifiers",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "A qualifier is discarded during parsing; the compiled field carries no distinct representation of it, so no separate value contract applies."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_BeforeTheType_AreDiscardedWithNoEffect"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The qualified field's own primitive/array/bitfield codec supplies its exact-byte contract, unaffected by the discarded qualifier."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_BeforeTheType_AreDiscardedWithNoEffect"
+        ]
+      }
+    },
+    {
+      "featureId": "field-alignment-override",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The override replaces which alignment value the field's placement uses; the field's own codec supplies its value contract unchanged."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/AlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Exact bytes match only when the enclosing layout is constructed with aligned: true; in packed mode the override has no effect on placement or padding."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/AlignmentOverrideTests.cs#BasicOverride_PadsToTheOverriddenAlignment",
+          "tests/CStructSharpTests/AlignmentOverrideTests.cs#PackedMode_HasNoEffect"
+        ]
+      }
+    },
+    {
+      "featureId": "field-offset-assertion",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The assertion never changes placement; it only validates the field's already-computed offset, so the field's own codec supplies its value contract unchanged."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/OffsetAssertionTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "Exact bytes match the unannotated field's own contract; a runtime-dependent field's assertion is validated at the first operation that reaches it instead of at construction, but the byte contract itself is unaffected either way."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/OffsetAssertionTests.cs#MatchingAssertion_Succeeds",
+          "tests/CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_ConstructionSucceedsButTheFirstOperationChecksTheAssertion"
+        ]
+      }
+    },
+    {
+      "featureId": "composite-alignment-override",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The override changes only which alignment value each unannotated field's placement uses; every field's own codec supplies its value contract unchanged."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Exact bytes match only when the enclosing layout is constructed with aligned: true; in packed mode the override has no effect on placement or padding, the same as the field-level override."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#FullClamp_ActsAsPackedForOneComposite",
+          "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#PackedMode_HasNoEffect"
+        ]
+      }
+    },
+    {
+      "featureId": "unnamed-nonzero-width-bitfield",
+      "value": {
+        "status": "notApplicable",
+        "conditions": [
+          "An anonymous declarator has no name, so it never becomes a POCO member, path segment, or JSON field to carry a value into - only its storage bits are observable, covered by the bytes contract below."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/AnonymousBitfieldTests.cs#PaddingBetweenNamedDeclarators_ConsumesBitsButIsNotExposed"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "New output always writes canonical zero for the padding bits, the same way struct tail padding is zero-filled; bits read from input are not guaranteed to survive a round trip, matching every other padding contract in this library."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/AnonymousBitfieldTests.cs#WriteStreamAndSerialize_AlwaysWriteZeroForThePadding",
+          "tests/CStructSharpTests/AnonymousBitfieldTests.cs#UpdateStream_OnANamedSibling_DoesNotDisturbThePaddingBits"
+        ]
+      }
+    },
+    {
+      "featureId": "anonymous-promoted-member",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "A promoted member's own fields carry a real value the same way a named inline struct's fields do; promotion changes only where that value appears in the result/POCO shape, not the value contract itself."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#ParseStream_SplicesPromotedMemberFieldsDirectlyIntoTheParentContainer"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "Exact bytes match the equivalent named-inline-struct fixture - promotion never changes placement, size, or alignment, only path/POCO/JSON visibility."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#Serialize_WritesAFlatValueThroughAPromotedMember"
+        ]
+      }
+    },
+    {
+      "featureId": "runtime-expression-arrays",
+      "value": {
+        "status": "conditional",
+        "conditions": [
+          "Parsing and serialization receive the same layout-variable bindings and the supplied collection matches the evaluated count."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "The same variables produce the same element count and every element representation has its own applicable exact-byte contract."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+        ]
+      }
+    },
+    {
+      "featureId": "nested-structs",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Every nested member representation has its own applicable value contract."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Every nested member is byte-stable and any aligned padding is already canonical."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+        ]
+      }
+    },
+    {
+      "featureId": "inline-structs",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Every inline member representation has its own applicable value contract."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Every inline member is byte-stable and any aligned padding is already canonical."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+        ]
+      }
+    },
+    {
+      "featureId": "typedefs",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The resolved underlying representation has its own applicable value contract."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The resolved underlying representation has its own applicable byte contract."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+        ]
+      }
+    },
+    {
+      "featureId": "unions",
+      "value": {
+        "status": "conditional",
+        "conditions": [
+          "An untagged parse returns complete raw storage and decoded member views with no selected member; a new or edited write must explicitly select one member, and parsing the resulting bytes returns to the neutral unselected representation."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#ExplicitUnionCase_PreservesRawStorageAndWriteSelection",
+          "tests/CStructSharpTests/UnionValueTests.cs#UnionValue_SelectionCanBeAddedAndRemovedWithoutLosingRawStorage"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "An unchanged parsed or FromRaw union writes its complete extent exactly; explicit selected-member serialization produces canonical zero-filled storage, while whole-union updates follow the documented clear/preserve policy."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/ReviewRegressionTests.cs#Serialize_ParsedUnion_PreservesCompleteRawStorage",
+          "tests/CStructSharpTests/UnionValueTests.cs#ExplicitMemberWrite_UsesCompleteUnionStoragePolicy"
+        ]
+      }
+    },
+    {
+      "featureId": "tag-keywords",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "A tag keyword is a compile-time hint checked against the referenced declaration's actual kind; once accepted, the field compiles to the identical shape as the bare-name form, so no distinct value contract applies."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_SupportsWriteSerializeReadValueAndUpdate"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The referenced declaration's own exact-byte contract applies unchanged, regardless of whether a tag keyword was written."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_SupportsWriteSerializeReadValueAndUpdate"
+        ]
+      }
+    },
+    {
+      "featureId": "pointers",
+      "value": {
+        "status": "conditional",
+        "conditions": [
+          "The stored address and optional dereferenced view are parsed, but root serialization writes the pointer address rather than relocating or serializing the target graph."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedPointerStorage_AddressAndCanonicalRootBytesRoundTrip"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Exact-byte round-trip applies to pointer storage inside the selected root extent; external target bytes are outside that serialization."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedPointerStorage_AddressAndCanonicalRootBytesRoundTrip"
+        ]
+      }
+    },
+    {
+      "featureId": "multi-pointers",
+      "value": {
+        "status": "conditional",
+        "conditions": [
+          "Every parsed pointer level preserves its stored address, but root serialization writes only the top-level pointer storage."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedPointerStorage_AddressAndCanonicalRootBytesRoundTrip"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Exact-byte round-trip applies only to pointer storage inside the selected root extent, not the external pointer chain or final target."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedPointerStorage_AddressAndCanonicalRootBytesRoundTrip"
+        ]
+      }
+    },
+    {
+      "featureId": "alignment-and-endian-overrides",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Parsing and serialization use the same aligned mode, layout byte order, and explicit field overrides."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedFixedLayouts_ValueAndCanonicalBytesRoundTrip",
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "New serialization canonicalizes alignment gaps and tail padding to zero; arbitrary source padding bytes are not represented by the value model and are not promised to survive."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedFixedLayouts_ValueAndCanonicalBytesRoundTrip",
+          "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip"
+        ]
+      }
+    },
+    {
+      "featureId": "bounded-failures",
+      "value": {
+        "status": "notApplicable",
+        "conditions": [
+          "A bounded failure has no successfully materialized value to round-trip."
+        ],
+        "evidence": []
+      },
+      "bytes": {
+        "status": "notApplicable",
+        "conditions": [
+          "Read failure behavior is covered by safety and atomicity contracts rather than serialization equivalence."
+        ],
+        "evidence": []
+      }
+    },
+    {
+      "featureId": "invalid-layouts",
+      "value": {
+        "status": "notApplicable",
+        "conditions": [
+          "An invalid layout is rejected before a value representation exists."
+        ],
+        "evidence": []
+      },
+      "bytes": {
+        "status": "notApplicable",
+        "conditions": [
+          "An invalid layout has no supported byte representation."
+        ],
+        "evidence": []
+      }
+    }
+  ],
+  "knownContractLimits": [
+    {
+      "id": "debug-root-wrapper",
+      "summary": "Root ParseStream returns the selected struct, while root ParseStreamWithDebug retains the declaration-name wrapper used by the legacy debug API.",
+      "workItems": [
+        "API-04",
+        "QA-07"
+      ]
+    },
+    {
+      "id": "primitive-pointer-target-debug-range",
+      "summary": "Debug parsing records pointer storage and fields inside composite targets, but not the final primitive target range of a pointer or multi-pointer chain.",
+      "workItems": [
+        "PERF-06",
+        "API-04"
+      ]
+    }
+  ],
+  "features": [
+    {
+      "id": "fixed-primitives",
+      "manual": "docs/language/primitive-types.md#fixed-primitives",
+      "fixture": "fixed-primitives",
+      "title": "Fixed-width integer and character scalars",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/RobustnessTests.cs#ParseStream_RejectsTruncatedPrimitiveValues",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "Portable aliases have repository-defined widths; they do not infer the host C ABI."
+      ]
+    },
+    {
+      "id": "boolean-primitive",
+      "manual": "docs/language/primitive-types.md#fixed-primitives",
+      "fixture": "boolean-primitive",
+      "title": "Boolean scalar, always 1 byte with canonical write output",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/BooleanPrimitiveTests.cs#ZeroAndOne_ParseAsFalseAndTrue",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/BooleanPrimitiveTests.cs#NonCanonicalNonzeroByte_ParsesAsTrue",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/BooleanPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate",
+          "operations": [
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/BooleanPrimitiveTests.cs#BoolArray_ElementsAreIndependent",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/BooleanPrimitiveTests.cs#UnderscoreBoolAlias_CompilesIdenticallyToBool",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "A stored byte outside 0x00/0x01 still reads as true (any nonzero byte); a write or update always replaces it with the canonical 0x01/0x00, so a non-canonical byte does not survive an update cycle.",
+        "Not eligible as bitfield storage or enum backing - both already have an exact equivalent via existing integral types."
+      ]
+    },
+    {
+      "id": "floating-point-primitives",
+      "manual": "docs/language/primitive-types.md#floating-point-primitives",
+      "fixture": "floating-point-primitives",
+      "title": "IEEE-754 float32/float64 bit-reinterpreting codecs (LANG-04)",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "notApplicable",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_QuietNaNPayloadRoundTripsExactly",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float64_NaNPayloadRoundTripsExactly",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_NegativeZeroRoundTripsAsDistinctBitPattern",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32_SubnormalRoundTripsExactly",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#ExplicitEndianSuffix_ProducesTheDocumentedByteOrder",
+          "operations": [
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#FullRoundTrip_WriteSerializeReadValueUpdate",
+          "operations": [
+            "write",
+            "serialize",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32Array_ElementsAreIndependent",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#FloatAlias_CompilesIdenticallyToFloat32",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#DoubleAlias_CompilesIdenticallyToFloat64",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32AsBitfieldStorage_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#Float32AsEnumBacking_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FloatingPointPrimitiveTests.cs#LongDouble_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "Not eligible as bitfield storage (a bit-width slice of a float has no IEEE-754 meaning) or enum backing (enum members are discrete integral constants in this model).",
+        "long double is not supported - no single portable width exists to standardize on.",
+        "The bit-exact round-trip guarantee is about the codec, not the .NET runtime: a signaling NaN is inherently fragile in managed code and may already be quieted by an ordinary floating-point operation before the codec ever receives it.",
+        "Supplying a differently-sized CLR floating value (e.g. a double into a float32 field) performs a real, potentially lossy numeric narrowing conversion, matching every other numeric codec's generous-input convention."
+      ]
+    },
+    {
+      "id": "portable-c-integer-spellings",
+      "manual": "docs/language/primitive-types.md#fixed-primitives",
+      "fixture": "portable-c-integer-spellings",
+      "title": "Wider C integer type spellings and integer literal suffixes",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/Literals.cs#TestIntegerLiteralSuffix",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ExpressionSafetyTests.cs#Define_WithSuffixedLiteral_EvaluatesTheSameAsUnsuffixed",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "The accepted alias table is curated; general C type-name spellings outside the documented list are still rejected.",
+        "An integer-literal suffix is recognized as any combination of u/U/l/L and discarded; it does not validate C's exact suffix grammar."
+      ]
+    },
+    {
+      "id": "character-buffers",
+      "manual": "docs/language/arrays-and-strings.md#fixed-character-buffers",
+      "fixture": "character-buffers",
+      "title": "Narrow and UTF-16 character scalars and fixed buffers",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "over-budget",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "verified",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/StringEncodingTests.cs#ExplicitEndianWideBuffers_OverrideLayoutAndRoundTrip",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "char is one byte and wchar is one UTF-16 code unit; neither width follows the host platform."
+      ]
+    },
+    {
+      "id": "terminated-strings",
+      "manual": "docs/language/arrays-and-strings.md#terminated-strings",
+      "fixture": "terminated-strings",
+      "title": "Strict ASCII, UTF-8, and UTF-16 terminated strings",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned"
+        ],
+        "cardinality": [
+          "flexible-string"
+        ],
+        "indirection": [
+          "direct",
+          "pointer",
+          "multi-pointer"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "over-budget",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "verified",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "limited",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#NamedStringLength_CoversEveryHandlerAndRejectsScalars",
+          "operations": [
+            "length"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/StringEncodingTests.cs#NamedTerminatedEncodings_ValidTextRoundTripsWithoutFallback",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/TraversalLimitTests.cs#WideStringLimit_AgreesAcrossReadAddressLengthAndUpdate",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "In-place replacement is non-extending and does not resize or relocate following layout fields; variable-length replacement must fit the caller's existing storage plan."
+      ],
+      "workItems": [
+        "SAF-03"
+      ]
+    },
+    {
+      "id": "enums",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#enums",
+      "fixture": "enums",
+      "title": "Named enums with explicit primitive backing",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/RobustnessTests.cs#ParseStream_PreservesUnknownEnumValues",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/EnumDomainTests.cs#IntegerDomains_RoundTripBoundariesAcrossOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/EnumDomainTests.cs#Shapes_UseOneExactEnumCodec",
+          "operations": [
+            "parse",
+            "serialize",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [],
+      "workItems": [
+        "COR-06",
+        "LANG-09"
+      ]
+    },
+    {
+      "id": "portable-bitfields",
+      "manual": "docs/language/bitfields.md#portable-bitfields",
+      "fixture": "portable-bitfields",
+      "title": "Portable unsigned bit slices in integral storage",
+      "support": "limited",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "overlapping"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "inline"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "over-budget",
+          "invalid-layout",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/BitfieldSemanticsTests.cs#BitfieldOperations_FirstMiddleAndLastSlices_Agree",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "Unnamed, zero-width, array, typedef-backed, enum-backed, and compiler-profile bitfield forms are deliberately rejected."
+      ],
+      "workItems": [
+        "LANG-10",
+        "LANG-16"
+      ]
+    },
+    {
+      "id": "fixed-arrays",
+      "manual": "docs/language/arrays-and-strings.md#fixed-arrays",
+      "fixture": "fixed-arrays",
+      "title": "Zero-, one-, and many-element fixed arrays",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "fixed-array"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "inline",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "over-budget",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "verified",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FixedArrayShapeTests.cs#FixedArrays_ZeroOneTwoMatrixAgreesAcrossOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/IndexedPointerUpdateTests.cs#PrimitiveArrayElement_OperationsAgree",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/MultidimensionalArrayTests.cs#TwoDimensionalArray_ParsesIntoANestedListInRowMajorOrder",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/MultidimensionalArrayTests.cs#ParseStreamWithDebug_FullyIndexedStructArrayElement_FiltersToThatElement",
+          "operations": [
+            "debug"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/MultidimensionalArrayTests.cs#ResolveAddress_ResolvesWholeArrayPartialIndexAndFullIndex",
+          "operations": [
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/MultidimensionalArrayTests.cs#GetDynamicArrayLength_ReportsTheCurrentDimensionsCount",
+          "operations": [
+            "length"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/MultidimensionalArrayTests.cs#TwoDimensionalArray_RoundTripsThroughWriteAndParse",
+          "operations": [
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/MultidimensionalArrayTests.cs#UpdateStream_PartialIndex_ReplacesTheSelectedSubArray",
+          "operations": [
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/MultidimensionalArrayTests.cs#ReadValue_PartialIndex_ReturnsTheSelectedSubArray",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "multiple-declarators",
+      "manual": "docs/language/grammar.md#complete-portable-grammar",
+      "fixture": "multiple-declarators",
+      "title": "Comma-separated declarators sharing one field type",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_ReadTheSameAsSeparateFieldDeclarations",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_SupportWriteSerializeReadValueAndUpdate",
+          "operations": [
+            "write",
+            "serialize",
+            "read-value",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_LeadingPointerStarAppliesOnlyToItsOwnDeclarator",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_EachDeclaratorHasItsOwnArrayAndBitWidth",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_WorkInsideAUnion",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#MultipleDeclarators_DuplicateNameAcrossDeclarators_StillRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        }
+      ],
+      "limitations": [
+        "Each declarator carries its own independent pointer stars, array, and bit width, matching C's declarator-list semantics rather than sharing the first declarator's shape."
+      ]
+    },
+    {
+      "id": "qualifiers",
+      "manual": "docs/language/grammar.md#complete-portable-grammar",
+      "fixture": "qualifiers",
+      "title": "Layout-neutral const/volatile/restrict qualifiers",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "notApplicable",
+        "write": "notApplicable",
+        "update": "notApplicable",
+        "read-value": "notApplicable"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_BeforeTheType_AreDiscardedWithNoEffect",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_AfterAPointerStar_AreDiscardedWithNoEffect",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_InsideALaterDeclarator_AreDiscardedWithNoEffect",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_TokenOutsideTheClosedSet_StillRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#Qualifiers_AfterTheDeclaratorName_StillRejected",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "Only const, volatile, and restrict are recognized, before the type or immediately after a pointer star; any other token or position is still rejected rather than silently tolerated.",
+        "A qualifier is discarded with no compiled representation - it cannot be recovered from a compiled field, and no distinct write/update/read-value contract applies."
+      ]
+    },
+    {
+      "id": "field-alignment-override",
+      "manual": "docs/language/layout-alignment-and-padding.md#explicit-field-alignment-override",
+      "fixture": "field-alignment-override",
+      "title": "Explicit per-field alignment override (@align(N))",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/AlignmentOverrideTests.cs#BasicOverride_PadsToTheOverriddenAlignment",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AlignmentOverrideTests.cs#PackedMode_HasNoEffect",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AlignmentOverrideTests.cs#DefineDrivenOverride_Works",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AlignmentOverrideTests.cs#PerDeclaratorScoping_OnlyAffectsItsOwnName",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AlignmentOverrideTests.cs#PointerFieldOverride_Works",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AlignmentOverrideTests.cs#NonPowerOfTwo_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate",
+          "operations": [
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "N must be a positive power of two; a non-conforming value fails at construction, naming the field and the rejected value.",
+        "Only has an observable effect when the enclosing layout is constructed with aligned: true - in packed mode it is accepted but has no effect, consistent with a field's own natural alignment already having none there.",
+        "Changes only which alignment value a field's placement uses; it cannot move a field's placement backward or authoritatively assert an exact byte offset - both remain future work."
+      ]
+    },
+    {
+      "id": "field-offset-assertion",
+      "manual": "docs/language/layout-alignment-and-padding.md#explicit-byte-offset-assertion",
+      "fixture": "offset-assertion",
+      "title": "Explicit per-field byte-offset assertion (@N)",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#MatchingAssertion_Succeeds",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#Mismatch_IsRejectedNamingBothValues",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#ModeSensitivity_ChecksTheActualComputedOffsetForEachMode",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_ConstructionSucceedsButTheFirstOperationChecksTheAssertion",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_CheckedViaSinglePathReadValueToo",
+          "operations": [
+            "address",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#RuntimeDependentField_CheckedOnSerializeToo",
+          "operations": [
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#DefineDrivenAssertion_Works",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/OffsetAssertionTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate",
+          "operations": [
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "Validated eagerly at construction time when the field's byte offset is statically computable; otherwise checked at the first operation that actually reaches the field (parse, serialize, write, update, or path resolution), since a field following a runtime-length sibling has no statically knowable offset. A field never touched by any operation is never checked, the same as any lazy validation.",
+        "Not supported on a bitfield declarator - rejected outright at construction rather than applying an under-specified partial rule.",
+        "Never repositions a field; it only validates the field's already-computed placement, so it never changes parse, serialize, write, or update output."
+      ]
+    },
+    {
+      "id": "composite-alignment-override",
+      "manual": "docs/language/layout-alignment-and-padding.md#explicit-composite-alignment-override",
+      "fixture": "composite-alignment-override",
+      "title": "Explicit per-struct/union alignment override (struct/union @align(N))",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#FullClamp_ActsAsPackedForOneComposite",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#PartialClamp_ReducesButDoesNotEliminatePadding",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#FieldLevelOverride_WinsOverTheCompositeClamp",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#PackedMode_HasNoEffect",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#PropagatesToAContainingComposite",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#NonPowerOfTwo_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/CompositeAlignmentOverrideTests.cs#FullRoundTrip_WriteSerializeReadValueAndUpdate",
+          "operations": [
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "N must be a positive power of two; a non-conforming value fails at construction, naming the composite and the rejected value.",
+        "Only has an observable effect when the enclosing layout is constructed with aligned: true - in packed mode it is accepted but has no effect, the same scope decision the field-level override already established.",
+        "Clamps every field relying on its own natural alignment to min(natural, N), matching #pragma pack(N) semantics; a field's own explicit @align(N) always wins outright instead of being further clamped.",
+        "Cannot increase a composite's alignment above what its fields would naturally produce (the alignas-style use case) - only clamping down is supported."
+      ]
+    },
+    {
+      "id": "unnamed-nonzero-width-bitfield",
+      "manual": "docs/language/bitfields.md#unnamed-padding-fields",
+      "fixture": "anonymous-bitfield-padding",
+      "title": "Unnamed nonzero-width bitfield used as pure padding (LANG-17)",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "notApplicable",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "notApplicable"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#PaddingBetweenNamedDeclarators_ConsumesBitsButIsNotExposed",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#WholeFieldAnonymousFromTheStart_Compiles",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#MultipleAnonymousFields_DoNotCollide",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#WriteStreamAndSerialize_AlwaysWriteZeroForThePadding",
+          "operations": [
+            "serialize",
+            "write"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#UpdateStream_OnANamedSibling_DoesNotDisturbThePaddingBits",
+          "operations": [
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#TwoWordRunWithBitWidth_KeepsExistingLastWordAsNameSplit",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#DeclaratorWithNeitherNameNorBitWidth_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#DebugOutput_StillRegistersThePaddingsByteRange",
+          "operations": [
+            "debug"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#AnonymousField_IsNeverAddressableByPath",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "The anonymous type must be a single word; a multi-word type is not rejected but falls back to the existing last-word-is-the-name rule instead of being treated as anonymous.",
+        "Never becomes an addressable path, POCO member, or JSON field - there is no member to resolve, read, or bind a caller value to.",
+        "New output always writes canonical zero for the padding bits; bits read from input are not guaranteed to survive a round trip, the same as any other padding in this library.",
+        "@align(N) is accepted the same way it is on a named bitfield declarator; @N is rejected the same way it already is on every bitfield declarator, named or not."
+      ]
+    },
+    {
+      "id": "anonymous-promoted-member",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#anonymous-promoted-members",
+      "fixture": "anonymous-promoted-member",
+      "title": "Anonymous promoted struct member (LANG-14)",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#SizeAndAlignment_MatchTheEquivalentNamedInlineStruct",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#Collision_PromotedVsParent_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#ParseStream_SplicesPromotedMemberFieldsDirectlyIntoTheParentContainer",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#ParseStreamWithDebug_SkipsThePromotedMembersOwnLevelInTheDebugPath",
+          "operations": [
+            "debug"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#Serialize_WritesAFlatValueThroughAPromotedMember",
+          "operations": [
+            "serialize",
+            "write"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#PathOperations_ResolveThroughAPromotedMember",
+          "operations": [
+            "address",
+            "update",
+            "read-value",
+            "write"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#ReadValueOfT_ReadsAPromotedScalarField",
+          "operations": [
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/AnonymousPromotedMemberTests.cs#SiblingInteraction_NamedNestedStructPointerAndArray_AllWorkIndependently",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        }
+      ],
+      "limitations": [
+        "Structs only - an anonymous union member requires inline union member support to exist at all first (see the anonymous-promoted-union-members exclusion); a struct cannot nest a union member, named or anonymous, today.",
+        "A name collision anywhere in the flattened, transitively-promoted namespace (own fields, sibling promoted members, or a deeper promoted member) is a construction-time error, not a shadowing/precedence rule.",
+        "Promotion changes only path/POCO/JSON visibility - placement, size, and alignment are identical to the equivalent named inline struct."
+      ]
+    },
+    {
+      "id": "runtime-expression-arrays",
+      "manual": "docs/language/arrays-and-strings.md#runtime-expression-arrays",
+      "fixture": "runtime-expression-arrays",
+      "title": "One-dimensional arrays sized by bounded expressions or caller variables",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "runtime-array"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "over-budget",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "verified",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ExpressionSafetyTests.cs#RuntimeCount_OperationsAgreeThroughPointersAndEndianness",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "Counts use bounded checked signed Int32 expressions and one-dimensional collection shape."
+      ]
+    },
+    {
+      "id": "nested-structs",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#named-structs",
+      "fixture": "nested-structs",
+      "title": "Named nested structs",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "over-budget",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/CompositeAlignmentTests.cs#AlignedNestedStruct_UsesParentFieldBoundaryEverywhere",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "inline-structs",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#inline-structs",
+      "fixture": "inline-structs",
+      "title": "Lexically scoped inline structs",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "inline"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ScopedInlineTypeTests.cs#RepeatedDeepInlineNames_AgreeAcrossEveryOperation",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "Anonymous inline type identities are not exported names and cannot be referenced from unrelated fields."
+      ]
+    },
+    {
+      "id": "typedefs",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#typedefs",
+      "fixture": "typedefs",
+      "title": "Primitive, composite, array, and pointer typedef chains",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array",
+          "runtime-array"
+        ],
+        "indirection": [
+          "direct",
+          "pointer",
+          "multi-pointer"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/TypedefResolutionTests.cs#Typedefs_WorkForStructPointersAndArraysAndRejectInvalidChains",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ScopedInlineTypeTests.cs#AnonymousTypedefStruct_IsAcceptedAndUsableAtTheRootPath",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ScopedInlineTypeTests.cs#AnonymousTypedefUnion_IsAcceptedAndReadsWritesLikeANamedUnion",
+          "operations": [
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ScopedInlineTypeTests.cs#NamedTagTypedefUnion_IsAcceptedAndReadsWritesLikeANamedUnion",
+          "operations": [
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ScopedInlineTypeTests.cs#AnonymousTypedefStruct_SupportsNestedInlineStructFields",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "A typedef alias of an already-declared tag without repeating its body (typedef struct ExistingTag alias;, no braces) is not a supported declarator form."
+      ]
+    },
+    {
+      "id": "unions",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#unions",
+      "fixture": "unions",
+      "title": "Overlapping named unions",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array",
+          "overlapping"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#ExplicitUnionCase_PreservesRawStorageAndWriteSelection",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/UnionValueTests.cs#ParseStream_UnionArraysAndNestedUnionsUseCompleteStride",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/UnionValueTests.cs#ParseStreamWithDebug_RecordsCompleteUnionStorage",
+          "operations": [
+            "debug"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/UnionValueTests.cs#ExplicitMemberWrite_UsesCompleteUnionStoragePolicy",
+          "operations": [
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ResolvedTargetOperationTests.cs#PathOperations_UnionMember_Agree",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#ExplicitUnionCase_PreservesRawStorageAndWriteSelection",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [],
+      "workItems": []
+    },
+    {
+      "id": "tag-keywords",
+      "manual": "docs/language/grammar.md#complete-portable-grammar",
+      "fixture": "tag-keywords",
+      "title": "Optional struct/union/enum keyword before a type reference",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "notApplicable",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_StructBeforeAStructReference_CompilesToTheIdenticalShape",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_UnionBeforeAUnionReference_CompilesToTheIdenticalShape",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_EnumBeforeAnEnumReference_CompilesToTheIdenticalShape",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_AgainstATypedefAliasOfAStruct_ResolvesToTheTerminalKind",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_MismatchedAgainstTheActualDeclarationKind_IsRejected",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#TagKeyword_SupportsWriteSerializeReadValueAndUpdate",
+          "operations": [
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "A tag keyword before a type reference is a hint checked against the referenced declaration's actual kind; it does not create a separate C tag namespace, so struct/union/enum names still share one ordinary-name scope.",
+        "The tag-plus-alias typedef form (typedef struct ExistingTag alias;, without repeating the body) is not a supported declarator; the full typedef struct tag { ... } alias; declaration, or the bare tag name directly, must be used instead."
+      ],
+      "workItems": []
+    },
+    {
+      "id": "pointers",
+      "manual": "docs/language/pointers-and-addressing.md#pointers",
+      "fixture": "pointers",
+      "title": "Direct, relative, nullable, and typed data pointers",
+      "support": "limited",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array",
+          "flexible-string"
+        ],
+        "indirection": [
+          "pointer"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "inline",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "over-budget",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "limited",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "limited",
+        "write": "limited",
+        "update": "verified",
+        "read-value": "limited"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/IndexedPointerUpdateTests.cs#PointerTargets_UseTheirFinalDeclaredCodecs",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/NullPointerBindingTests.cs#Serialize_NullPointerMembers_AgreeAcrossBindingShapes",
+          "operations": [
+            "serialize",
+            "write"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/NullPointerBindingTests.cs#SelectedAndRootPointerWrites_AcceptNull",
+          "operations": [
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PublicResultModelTests.cs#PointerResult_ExposesThreeUnambiguousStates",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "Dereference is policy/budget controlled, and serialization writes stored pointer addresses without relocating or emitting external target graphs.",
+        "Null encodes zero only for a scalar pointer value or selected pointer-array element; a null pointer collection and every null non-pointer/composite value fail with CStructWriteException across all supported binding shapes.",
+        "A parsed pointer is always an explicit Pointer result: address zero is null and never dereferenced, while a non-null pointer is either unresolved with no Value or dereferenced with its target."
+      ]
+    },
+    {
+      "id": "multi-pointers",
+      "manual": "docs/language/pointers-and-addressing.md#multi-level-pointers",
+      "fixture": "multi-pointers",
+      "title": "Multi-level data-pointer chains",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array",
+          "flexible-string"
+        ],
+        "indirection": [
+          "multi-pointer"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "over-budget",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "limited",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/IndexedPointerUpdateTests.cs#MultiLevelPointerTargets_AgreeAcrossWidthsAndEndianness",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "Pointer traversal is limited by explicit depth, target-range, nesting, and physical-read budgets.",
+        "Debug data records the pointer storage but does not yet add a range for a final primitive pointer target."
+      ]
+    },
+    {
+      "id": "alignment-and-endian-overrides",
+      "manual": "docs/language/layout-alignment-and-padding.md#alignment-and-endian",
+      "fixture": "alignment-and-endian-overrides",
+      "title": "Natural alignment and field-level endian overrides",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array",
+          "overlapping"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "inline",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/CompositeAlignmentTests.cs#AlignedCompositeFields_ShareOneParentBoundaryRule",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "The portable natural-alignment policy is global; source-level pack/alignment directives and named compiler profiles are not yet supported."
+      ],
+      "workItems": [
+        "LANG-15",
+        "LANG-16"
+      ]
+    },
+    {
+      "id": "bounded-failures",
+      "manual": "docs/language/limits-and-diagnostics.md#bounded-failures",
+      "fixture": "bounded-failures",
+      "title": "Truncation, traversal budgets, and write budgets",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "independent"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array",
+          "runtime-array",
+          "flexible-string",
+          "overlapping"
+        ],
+        "indirection": [
+          "direct",
+          "pointer",
+          "multi-pointer"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "inline",
+          "typedef"
+        ],
+        "dataState": [
+          "truncated",
+          "over-budget",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "verified",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/TraversalLimitTests.cs#RuntimeArrayLimit_AgreesAcrossReadLikeOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/WriteBudgetTests.cs#InvalidWriteBudgets_AreRejectedBeforeOutput",
+          "operations": [
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/RobustnessTests.cs#ParseStream_RejectsTruncatedPrimitiveValues",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/UpdateAtomicityTests.cs#LateBindingFailures_DoNotReachDestination_ForEveryObjectShape",
+          "operations": [
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/UpdateAtomicityTests.cs#ValueFamilyFailures_DoNotReachDestination",
+          "operations": [
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/UpdateAtomicityTests.cs#PhysicalCommitFailure_HasTheDocumentedPartialBoundary",
+          "operations": [
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ReadValueTests.cs#ReadValue_EnforcesReadBudgets",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [],
+      "workItems": [
+        "SAF-03"
+      ]
+    },
+    {
+      "id": "invalid-layouts",
+      "manual": "docs/language/limits-and-diagnostics.md#invalid-layouts",
+      "fixture": "invalid-layouts",
+      "title": "Invalid syntax, names, types, recursion, and storage combinations",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "independent"
+        ],
+        "alignment": [
+          "not-applicable"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array",
+          "runtime-array",
+          "overlapping"
+        ],
+        "indirection": [
+          "direct",
+          "pointer",
+          "multi-pointer"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "inline",
+          "typedef"
+        ],
+        "dataState": [
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "verified",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/DuplicateNameValidationTests.cs#DuplicateLayout_BlocksEveryOperationBeforeStreamAccess",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#Constructor_UsesLayoutExceptionForSyntaxAndDuplicateTopLevelNames",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PublicExceptionBoundaryTests.cs#Compilation_SeparatesLayoutFailuresFromArgumentFailures",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/LayoutSafetyTests.cs#Constructor_UsesLayoutExceptionForSyntaxAndDuplicateTopLevelNames",
+          "operations": [
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [],
+      "workItems": [
+        "SAF-06",
+        "API-04"
+      ]
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "extended-precision-floating-point",
+      "syntax": "long double",
+      "rationale": "float32/float64 (with float/double aliases) are supported (ADR-015); long double has no single portable width to standardize on - 80-bit extended, 128-bit quad, or 64-bit, depending on compiler and target - so no fixed-width codec could represent it losslessly the way it can for float/double.",
+      "diagnosticPolicy": "Reject as an unknown field type during layout construction.",
+      "workItems": [
+        "LANG-04"
+      ]
+    },
+    {
+      "id": "runtime-sized-multidimensional-arrays",
+      "syntax": "value[count][columns]",
+      "rationale": "Only the outermost dimension of a multidimensional array may be a runtime expression (matching real C's own restriction); a fixed value[rows][columns] is supported.",
+      "diagnosticPolicy": "Reject a non-fixed dimension anywhere but the outermost, rather than silently misinterpreting the stride.",
+      "workItems": [
+        "LANG-05"
+      ]
+    },
+    {
+      "id": "general-flexible-array-members",
+      "syntax": "non-character T values[]",
+      "rationale": "There is no implicit safe count or byte extent for a general flexible member.",
+      "diagnosticPolicy": "Reject until an explicit extent policy is supplied.",
+      "workItems": [
+        "LANG-06"
+      ]
+    },
+    {
+      "id": "function-pointers",
+      "syntax": "return_type (*callback)(arguments)",
+      "rationale": "The current data-pointer grammar cannot safely distinguish or invoke function pointers.",
+      "diagnosticPolicy": "Reject rather than treating the declaration as a data pointer.",
+      "workItems": [
+        "LANG-08"
+      ]
+    },
+    {
+      "id": "abi-specific-bitfield-forms",
+      "syntax": "zero-width separators, typedef/enum storage, and ABI-specific allocation",
+      "rationale": "The accepted portable subset requires direct built-in integral storage; native compilers disagree on zero-width and ABI-specific allocation rules, so these have no single portable meaning until a named ABI profile defines them.",
+      "diagnosticPolicy": "Reject during layout compilation with a storage-capability diagnostic.",
+      "workItems": [
+        "LANG-10"
+      ]
+    },
+    {
+      "id": "full-preprocessor",
+      "syntax": "includes, function macros, conditionals, token pasting, and stringification",
+      "rationale": "CStructSharp consumes standalone layout definitions and is not a general C preprocessor.",
+      "diagnosticPolicy": "Reject unsupported directives; a future header frontend must be an explicit separate boundary.",
+      "workItems": [
+        "LANG-11"
+      ]
+    },
+    {
+      "id": "anonymous-promoted-union-members",
+      "syntax": "an anonymous union member promoted into the containing path",
+      "rationale": "Anonymous promoted struct members (LANG-14) are supported, but a struct cannot contain an inline union member at all yet, named or anonymous - promoting one requires inline union member support to exist first, which is separate, unimplemented work (ADR-014).",
+      "diagnosticPolicy": "Reject an inline union member of any kind inside a struct.",
+      "workItems": [
+        "LANG-14"
+      ]
+    },
+    {
+      "id": "source-packing-controls",
+      "syntax": "#pragma pack, packed attributes, and explicit alignas/declspec alignment",
+      "rationale": "Only the constructor's portable aligned/unaligned policy is currently available.",
+      "diagnosticPolicy": "Reject unknown directives/attributes; never infer host packing.",
+      "workItems": [
+        "LANG-15"
+      ]
+    },
+    {
+      "id": "compiler-abi-profiles",
+      "syntax": "named compiler/target layout behavior",
+      "rationale": "No compiler profile may be claimed without approved identity/version rules and differential fixtures.",
+      "diagnosticPolicy": "Use only the documented portable policy; never infer the host compiler or process ABI.",
+      "workItems": [
+        "LANG-16",
+        "QA-03"
+      ]
+    }
+  ]
+}

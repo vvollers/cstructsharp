@@ -35,7 +35,7 @@ dotnet stryker `
   --output .\artifacts\mutation\permanent `
   --skip-version-check
 
-.\tools\Validate-MutationReport.ps1 `
+.\tools\quality\Validate-MutationReport.ps1 `
   -ReportPath .\artifacts\mutation\permanent\reports\mutation-report.json
 ```
 
@@ -49,8 +49,8 @@ are written below `artifacts/mutation/permanent/`. The `artifacts/` directory is
 
 `stryker-config.json`:
 
-- mutates the main `CStructSharp` library;
-- uses `CStructSharpTests` to test each mutation;
+- mutates the main `src/CStructSharp` library;
+- uses `tests/CStructSharpTests` to test each mutation;
 - limits mutation to 34 files that contain the main parsing and binary-data logic;
 - runs the complete test project instead of selecting tests from coverage data;
 - writes progress, JSON, and HTML reports; and

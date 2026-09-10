@@ -23,11 +23,11 @@ All notable changes to CStructSharp are documented here.
   new boundary, so callers of those layers see no shape change; only direct callers of the raw `CStructSharpWasm`
   export object or `RawWasmAdapter` type are affected. `SerializeToBase64`/`UpdateStreamToBase64` are renamed to
   `Serialize`/`UpdateStream` accordingly.
-- Added a third GitHub Pages application, the binary inspector (`CStructSharpInspector`, deployed to
+- Added a third GitHub Pages application, the binary inspector (`apps/inspector`, deployed to
   `inspector/`): a desktop-focused, VS Code-style 4-column tool for parsing a real binary file against an
   editable CStruct schema. Ships a 9-entry well-known-format catalog (BMP, WAV, ZIP, PNG, JPG/JFIF, PE
   EXE/DLL, TAR, ICO), each verified against the real managed library by a matching
-  `CStructSharpTests/WellKnownFormatFixtures.cs` test. The result panel (`json-editor-vue`) and the hex
+  `tests/CStructSharpTests/WellKnownFormatFixtures.cs` test. The result panel (`json-editor-vue`) and the hex
   panel (`vuehex`) cross-highlight: selecting a parsed field highlights its byte range, and clicking a byte
   selects its field. Shares the explorer's already-published WASM bundle rather than publishing its own.
 

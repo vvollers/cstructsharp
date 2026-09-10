@@ -1,0 +1,3 @@
+# Managed quality projects
+
+`CStructSharpTests/` contains unit, regression, property, concurrency, and fixture tests and is also the source of workshop demonstrations. `CStructSharp.Fuzz/` contains bounded fuzzing and the tracked replay corpus. `CStructSharp.PackageConsumer/` checks an actual NuGet package and deliberately stays outside initial solution restore. Run `dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release` at the repository root. Tests consume reviewed inputs from `contracts/`; do not regenerate expectations to hide regressions. Reports and build outputs are ignored.

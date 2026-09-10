@@ -54,7 +54,7 @@ export default defineConfig({ plugins: [cstructsharp()] });
 
 Use the same public API imports as the Node example. The plugin serves the runtime in development and emits
 its assets in production. Set an absolute Vite `base`, such as `/my-app/`, for nested deployments. Relative
-`base: './'` is not supported by this integration. Vite 8 is tested; other bundlers use the static-asset route below.
+`base: '.'` is not supported by this integration. Vite 8 is tested; other bundlers use the static-asset route below.
 
 ## Other browser build tools and static hosting
 

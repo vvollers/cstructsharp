@@ -92,7 +92,7 @@ Node loads the installed runtime from disk; no .NET SDK or server is needed. Bro
 API with the `cstructsharp/vite` plugin or an explicit static-asset directory. See the
 [npm package README](packages/cstructsharp/README.md) for complete setup, write/update examples, and supported hosts.
 Until the first npm publication, contributors can install the tested `.tgz` produced by `npm run pack:npm`
-in `CStructSharpWeb`. The [release guide](CStructSharp.Docs/project/release-process.md) covers the first publication.
+in `apps/workshop`. The [release guide](docs/project/release-process.md) covers the first publication.
 
 ## Use the standalone browser bundle
 
@@ -113,7 +113,7 @@ JavaScript API, result conversion, and common loading errors.
 - [Read release notes](https://github.com/vvollers/CStructSharp/blob/main/CHANGELOG.md)
 
 The package targets .NET 8 and .NET 10. Release assets describe published versions; the repository's
-`CStructSharp/CStructSharp.csproj` records the development version. Historical compatibility snapshots have their
+`src/CStructSharp/CStructSharp.csproj` records the development version. Historical compatibility snapshots have their
 own labels and do not identify the latest release.
 
 ## Work on the project

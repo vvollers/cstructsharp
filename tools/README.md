@@ -1,0 +1,9 @@
+# Repository tooling
+
+`documentation/` builds DocFX, exports executable recipes, validates content, and packages the site. `packaging/` publishes and verifies WASM, assembles npm/ZIP/NuGet consumer artifacts, and checks onboarding. `release/` handles version state, release manifests, and npm publication identity. `quality/` checks API, fuzz, compiler fixtures, coverage, mutation, solutions, and performance. `CStructSharp.Tooling.psm1` supplies shared PowerShell helpers; `compiler-fixtures/` and `fixtures/` contain authored test inputs. Run scripts from the root; output belongs in ignored `artifacts/` or documented app build folders. Start with `pwsh -File tools/documentation/Validate-Documentation.ps1`, `pwsh -File tools/quality/Compare-ManagedApiBaseline.ps1`, and the package commands in [release guidance](../docs/project/release-process.md). Publication scripts are invoked only by explicitly requested release workflows.
+
+## Manual measurements
+
+Use `quality/Measure-ArtifactBaseline.ps1 -PackageDirectory artifacts/package -OutputPath artifacts/package-sizes.json` to capture raw and gzip-equivalent package sizes. Pass that report to `quality/Validate-NonWebReleaseBudgets.ps1 -PackageArtifactPath artifacts/package-sizes.json`. The same meter accepts `-WasmDirectory` and `-FrontendDirectory`. Benchmark JSON conversion is documented in [benchmarks](../benchmarks/README.md). Reports are generated output; historical raw measurements are not required inputs.
+
+Run `node tools/packaging/measure-web-artifacts.mjs` after building to record current web sizes without historical report dependencies. Add `--check` to enforce all historical frontend/gzip budgets; these are manual checks and may expose existing budget drift. The 6 MiB WASM publication limit and browser startup limit remain automatic gates.

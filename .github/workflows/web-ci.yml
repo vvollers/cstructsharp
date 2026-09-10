@@ -4,13 +4,7 @@ on:
   push:
     branches:
       - main
-    paths:
-      - ".github/workflows/web-ci.yml"
-      - "CStructSharpWeb/**"
   pull_request:
-    paths:
-      - ".github/workflows/web-ci.yml"
-      - "CStructSharpWeb/**"
 
 concurrency:
   group: web-ci-${{ github.workflow }}-${{ github.ref }}
@@ -25,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: CStructSharpWeb
+        working-directory: apps/workshop
 
     steps:
       - name: Check out source
@@ -36,13 +30,16 @@ jobs:
         with:
           node-version: 26.5.0
           cache: npm
-          cache-dependency-path: CStructSharpWeb/package-lock.json
+          cache-dependency-path: apps/workshop/package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
       - name: Lint
         run: npm run lint
+
+      - name: Lint relocated WASM and repository scripts
+        run: node node_modules/eslint/bin/eslint.js --config ../../tools/eslint.config.mjs "../../tools/**/*.mjs" "../../src/CStructSharp.Wasm/**/*.js" --max-warnings 0
 
       - name: Check formatting
         run: npm run format:check

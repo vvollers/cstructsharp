@@ -13,7 +13,7 @@ Run the normal build and test commands from the repository root:
 ```powershell
 dotnet restore .\CStructSharp.NonWeb.sln
 dotnet build .\CStructSharp.NonWeb.sln -c Release --no-restore
-dotnet test .\CStructSharpTests\CStructSharpTests.csproj -c Release --no-build
+dotnet test .\tests\CStructSharpTests\CStructSharpTests.csproj -c Release --no-build
 ```
 
 The test command runs on both `net8.0` and `net10.0`. If it fails before you make a change, save the first error and
@@ -43,13 +43,13 @@ describes a public promise. If the promise has intentionally changed, replace th
 Run the full managed test suite:
 
 ```powershell
-dotnet test .\CStructSharpTests\CStructSharpTests.csproj -c Release
+dotnet test .\tests\CStructSharpTests\CStructSharpTests.csproj -c Release
 ```
 
 When a change only affects one class, use a test filter while you work, then finish with the full suite. For example:
 
 ```powershell
-dotnet test .\CStructSharpTests\CStructSharpTests.csproj `
+dotnet test .\tests\CStructSharpTests\CStructSharpTests.csproj `
   -c Release -f net10.0 `
   --filter "FullyQualifiedName~WriteBudgetTests"
 ```
@@ -60,8 +60,8 @@ Repeat a focused test with `-f net8.0` before you finish.
 
 Changes in this area can affect files, protocols, and stored data. Update the parts that describe the behavior:
 
-- the relevant pages in `CStructSharp.Docs/language/`;
-- the Portable contract in `CStructSharp.Docs/contracts/language/portable-v1.json`;
+- the relevant pages in `docs/language/`;
+- the Portable contract in `contracts/language/portable-v1.json`;
 - the valid and invalid language fixtures;
 - the feature-operation matrix; and
 - tests on both supported .NET versions.
@@ -69,8 +69,8 @@ Changes in this area can affect files, protocols, and stored data. Update the pa
 Then run:
 
 ```powershell
-.\tools\Validate-CanonicalReference.ps1
-.\tools\Validate-FeatureOperationMatrix.ps1
+.\tools\documentation\Validate-CanonicalReference.ps1
+.\tools\quality\Validate-FeatureOperationMatrix.ps1
 ```
 
 The feature-operation matrix records which types and operations are supported. Update it when you change accepted
@@ -78,14 +78,14 @@ syntax, a codec, a returned value shape, field placement, or the behavior of a p
 
 Keep the difference between a value and its bytes clear. Two byte sequences can sometimes represent the same value,
 while a round-trip test may require the exact original bytes. The
-[writing and updating guide](CStructSharp.Docs/language/writing-and-updating.md) explains this distinction.
+[writing and updating guide](docs/language/writing-and-updating.md) explains this distinction.
 
 ### Public .NET API
 
-The public .NET API is compared with the files in `CStructSharp.Docs/contracts/api/managed-rc1/`. Run:
+The public .NET API is compared with the files in `contracts/api/managed-rc1/`. Run:
 
 ```powershell
-.\tools\Compare-ManagedApiBaseline.ps1
+.\tools\quality\Compare-ManagedApiBaseline.ps1
 ```
 
 If the comparison fails, check whether a public type, member, parameter, return type, or exception has changed. Do
@@ -98,11 +98,11 @@ not replace the baseline simply to make the check green. For an intentional publ
 
 ### Browser bridge and web workbench
 
-The browser API has its own compatibility files in `CStructSharp.Docs/contracts/api/browser-rc1/`. Run the browser
+The browser API has its own compatibility files in `contracts/api/browser-rc1/`. Run the browser
 contract check when exports, options, result envelopes, error categories, or number handling change:
 
 ```powershell
-.\tools\Validate-BrowserContract.ps1
+.\tools\quality\Validate-BrowserContract.ps1
 ```
 
 A browser change must also pass the relevant frontend checks locally. The release workflow builds the production
@@ -123,7 +123,7 @@ Do not hide a failure by changing the stable seed, lowering the iteration count,
 review, or treating a new exception as expected. Check the corpus file with:
 
 ```powershell
-.\tools\Validate-FuzzCorpus.ps1
+.\tools\quality\Validate-FuzzCorpus.ps1
 ```
 
 ### Mutation testing
@@ -141,7 +141,7 @@ If you change that C file, regenerate and review results from both compilers, ru
 both .NET versions, and then run:
 
 ```powershell
-.\tools\Validate-CompilerFixture.ps1
+.\tools\quality\Validate-CompilerFixture.ps1
 ```
 
 Keep the compiler name, version, platform, command, and source hash with regenerated results.
@@ -158,14 +158,14 @@ The normal CI checks these minimums:
 These numbers are a backstop, not the goal of a test. A useful test should explain behavior and fail for a clear
 reason. Do not exclude difficult files, lower a threshold, or count a mutation compile error as a detected behavior
 just to improve a score. The
-[testing guide](CStructSharp.Docs/project/testing.md) explains how the measurements are made.
+[testing guide](docs/project/testing.md) explains how the measurements are made.
 
 ## Documentation ownership and update triggers
 
-Run the full documentation check whenever you change files in `CStructSharp.Docs/`:
+Run the full documentation check whenever you change files in `docs/`:
 
 ```powershell
-.\tools\Validate-Documentation.ps1
+.\tools\documentation\Validate-Documentation.ps1
 ```
 
 Update documentation alongside the code when you change:
@@ -205,13 +205,13 @@ compiler would do on the current machine.
 
 Most contributions do not need this section. Before preparing a release candidate, maintainers should:
 
-- follow the [project documentation](CStructSharp.Docs/project/index.md);
+- follow the [project documentation](docs/project/index.md);
 - pass managed tests on both target frameworks;
 - pass formatting, coverage, risk, mutation, dependency-audit, API, language, fuzz, and documentation checks;
 - pass package, symbol-package, and package-consumer validation;
 - pass the benchmark and package limits in
-  `CStructSharp.Docs/contracts/performance/non-web-rc1.json`;
-- run `.\tools\Validate-NonWebReleaseBudgets.ps1 -SelfTest`;
+  `contracts/performance/non-web-rc1.json`;
+- run `.\tools\quality\Validate-NonWebReleaseBudgets.ps1 -SelfTest`;
 - build the full WebAssembly and Vue application and pass its audit, browser, compatibility, reproducibility, and
   size checks when the browser is part of the release;
 - update `CHANGELOG.md` and check the package version, license, repository URL, documentation URL, release notes, and
@@ -223,4 +223,4 @@ artifact (managed tests, packages, documentation, WebAssembly bundle, onboarding
 access to the repository, then — only if that verification succeeds — commits and tags the version bump, publishes
 the NuGet package, deploys the documentation/explorer site, and creates the GitHub Release. There is no separate,
 manually-approved publish step after triggering; see
-[the release process guide](CStructSharp.Docs/project/release-process.md) for detail.
+[the release process guide](docs/project/release-process.md) for detail.

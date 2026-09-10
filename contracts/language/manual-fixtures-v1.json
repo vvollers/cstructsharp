@@ -1,0 +1,782 @@
+{
+  "schemaVersion": 1,
+  "contractRevision": 1,
+  "profile": "Portable",
+  "featurePairs": [
+    {
+      "id": "fixed-primitives",
+      "featureId": "fixed-primitives",
+      "manual": "docs/language/primitive-types.md#fixed-primitives",
+      "valid": {
+        "definition": "struct root { uint16< value; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 2,
+        "bytes": "3412",
+        "offsets": {
+          "root.value": 0
+        },
+        "values": {
+          "root.value": "4660"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "unrecognized-integer-spelling",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "boolean-primitive",
+      "featureId": "boolean-primitive",
+      "manual": "docs/language/primitive-types.md#fixed-primitives",
+      "valid": {
+        "definition": "struct root { bool flag; uint8 tail; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 1,
+        "bytes": "01AA",
+        "offsets": {
+          "root.flag": 0,
+          "root.tail": 1
+        },
+        "values": {
+          "root.flag": "true",
+          "root.tail": "170"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "unrecognized-integer-spelling",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "floating-point-primitives",
+      "featureId": "floating-point-primitives",
+      "manual": "docs/language/primitive-types.md#floating-point-primitives",
+      "valid": {
+        "definition": "struct root { float32 a; float64 b; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 12,
+        "alignment": 8,
+        "bytes": "0000C03F0000000000000440",
+        "offsets": {
+          "root.a": 0,
+          "root.b": 4
+        },
+        "values": {
+          "root.a": "1.5",
+          "root.b": "2.5"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "floating-point-field",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "portable-c-integer-spellings",
+      "featureId": "portable-c-integer-spellings",
+      "manual": "docs/language/primitive-types.md#fixed-primitives",
+      "valid": {
+        "definition": "struct root { uint32_t value; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 4,
+        "alignment": 4,
+        "bytes": "78563412",
+        "offsets": {
+          "root.value": 0
+        },
+        "values": {
+          "root.value": "305419896"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "unrecognized-integer-spelling",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "character-buffers",
+      "featureId": "character-buffers",
+      "manual": "docs/language/arrays-and-strings.md#fixed-character-buffers",
+      "valid": {
+        "definition": "struct root { char value[2]; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 3,
+        "alignment": 1,
+        "bytes": "41427E",
+        "offsets": {
+          "root.value": 0,
+          "root.value[1]": 1,
+          "root.tail": 2
+        },
+        "values": {
+          "root.value[0]": "A",
+          "root.value[1]": "B",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "qualifier-not-in-closed-set",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "terminated-strings",
+      "featureId": "terminated-strings",
+      "manual": "docs/language/arrays-and-strings.md#terminated-strings",
+      "valid": {
+        "definition": "struct root { utf8_string_zero value; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "alignment": 1,
+        "bytes": "41007E",
+        "offsets": {
+          "root.value": 0,
+          "root.tail": 2
+        },
+        "values": {
+          "root.value": "A",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "general-flexible-array",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "enums",
+      "featureId": "enums",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#enums",
+      "valid": {
+        "definition": "enum mode : uint8 { One=1, Two=2 }; struct root { mode value; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 1,
+        "bytes": "027E",
+        "offsets": {
+          "root.value": 0,
+          "root.tail": 1
+        },
+        "values": {
+          "root.value.name": "Two",
+          "root.value.value": "2",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "tag-kind-mismatch",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "portable-bitfields",
+      "featureId": "portable-bitfields",
+      "manual": "docs/language/bitfields.md#portable-bitfields",
+      "valid": {
+        "definition": "struct root { uint8 low:4; uint8 high:4; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 1,
+        "bytes": "A57E",
+        "offsets": {
+          "root.low": 0,
+          "root.high": 0,
+          "root.tail": 1
+        },
+        "values": {
+          "root.low": "5",
+          "root.high": "10",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "zero-width-bitfield",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "fixed-arrays",
+      "featureId": "fixed-arrays",
+      "manual": "docs/language/arrays-and-strings.md#fixed-arrays",
+      "valid": {
+        "definition": "struct root { uint8 values[2]; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 3,
+        "alignment": 1,
+        "bytes": "11227E",
+        "offsets": {
+          "root.values": 0,
+          "root.values[1]": 1,
+          "root.tail": 2
+        },
+        "values": {
+          "root.values[0]": "17",
+          "root.values[1]": "34",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "runtime-sized-multidimensional-array",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "runtime-expression-arrays",
+      "featureId": "runtime-expression-arrays",
+      "manual": "docs/language/arrays-and-strings.md#runtime-expression-arrays",
+      "valid": {
+        "definition": "struct root { uint8 values[N]; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "alignment": 1,
+        "bytes": "11227E",
+        "variables": {
+          "N": 2
+        },
+        "offsets": {
+          "root.values": 0,
+          "root.values[1]": 1,
+          "root.tail": 2
+        },
+        "values": {
+          "root.values[0]": "17",
+          "root.values[1]": "34",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "general-flexible-array",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "nested-structs",
+      "featureId": "nested-structs",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#named-structs",
+      "valid": {
+        "definition": "struct child { uint8 value; }; struct root { child item; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 1,
+        "bytes": "117E",
+        "offsets": {
+          "root.item": 0,
+          "root.item.value": 0,
+          "root.tail": 1
+        },
+        "values": {
+          "root.item.value": "17",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "forward-declaration",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "inline-structs",
+      "featureId": "inline-structs",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#inline-structs",
+      "valid": {
+        "definition": "struct root { struct { uint8 value; } item; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 1,
+        "bytes": "117E",
+        "offsets": {
+          "root.item": 0,
+          "root.item.value": 0,
+          "root.tail": 1
+        },
+        "values": {
+          "root.item.value": "17",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "inline-union",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "anonymous-promoted-member",
+      "featureId": "anonymous-promoted-member",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#anonymous-promoted-members",
+      "valid": {
+        "definition": "struct root { uint8 a; struct { uint8 x; uint8 y; }; uint8 b; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 4,
+        "alignment": 1,
+        "bytes": "01020304",
+        "offsets": {
+          "root.a": 0,
+          "root.x": 1,
+          "root.y": 2,
+          "root.b": 3
+        },
+        "values": {
+          "root.a": "1",
+          "root.x": "2",
+          "root.y": "3",
+          "root.b": "4"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "inline-union",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "multiple-declarators",
+      "featureId": "multiple-declarators",
+      "manual": "docs/language/grammar.md#complete-portable-grammar",
+      "valid": {
+        "definition": "struct root { uint8 first, second; };",
+        "root": "root",
+        "pointerSize": 1,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 1,
+        "bytes": "0102",
+        "offsets": {
+          "root.first": 0,
+          "root.second": 1
+        },
+        "values": {
+          "root.first": "1",
+          "root.second": "2"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "qualifier-not-in-closed-set",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "qualifiers",
+      "featureId": "qualifiers",
+      "manual": "docs/language/grammar.md#complete-portable-grammar",
+      "valid": {
+        "definition": "struct root { const uint8 value; };",
+        "root": "root",
+        "pointerSize": 1,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 1,
+        "alignment": 1,
+        "bytes": "2A",
+        "offsets": {
+          "root.value": 0
+        },
+        "values": {
+          "root.value": "42"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "trailing-qualifier-position",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "field-alignment-override",
+      "featureId": "field-alignment-override",
+      "manual": "docs/language/layout-alignment-and-padding.md#explicit-field-alignment-override",
+      "valid": {
+        "definition": "struct root { uint8 a; uint8 value @align(4); };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": true,
+        "littleEndian": true,
+        "size": 8,
+        "alignment": 4,
+        "bytes": "0100000002000000",
+        "offsets": {
+          "root.a": 0,
+          "root.value": 4
+        },
+        "values": {
+          "root.a": "1",
+          "root.value": "2"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "non-power-of-two-alignment",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "offset-assertion",
+      "featureId": "field-offset-assertion",
+      "manual": "docs/language/layout-alignment-and-padding.md#explicit-byte-offset-assertion",
+      "valid": {
+        "definition": "struct root { uint8 a; uint8 b; uint8 value @2; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 3,
+        "alignment": 1,
+        "bytes": "010203",
+        "offsets": {
+          "root.a": 0,
+          "root.b": 1,
+          "root.value": 2
+        },
+        "values": {
+          "root.a": "1",
+          "root.b": "2",
+          "root.value": "3"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "offset-assertion-mismatch",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "composite-alignment-override",
+      "featureId": "composite-alignment-override",
+      "manual": "docs/language/layout-alignment-and-padding.md#explicit-composite-alignment-override",
+      "valid": {
+        "definition": "struct root @align(1) { uint8 a; uint32 b; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": true,
+        "littleEndian": true,
+        "size": 5,
+        "alignment": 1,
+        "bytes": "0101020304",
+        "offsets": {
+          "root.a": 0,
+          "root.b": 1
+        },
+        "values": {
+          "root.a": "1",
+          "root.b": "67305985"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "non-power-of-two-composite-alignment",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "anonymous-bitfield-padding",
+      "featureId": "unnamed-nonzero-width-bitfield",
+      "manual": "docs/language/bitfields.md#unnamed-padding-fields",
+      "valid": {
+        "definition": "struct root { uint8 flag:1, :3, other:4; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 1,
+        "alignment": 1,
+        "bytes": "51",
+        "offsets": {
+          "root.flag": 0,
+          "root.other": 0
+        },
+        "values": {
+          "root.flag": "1",
+          "root.other": "5"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "zero-width-bitfield",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "typedefs",
+      "featureId": "typedefs",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#typedefs",
+      "valid": {
+        "definition": "typedef uint16 word; struct root { word value; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 3,
+        "alignment": 2,
+        "bytes": "34127E",
+        "offsets": {
+          "root.value": 0,
+          "root.tail": 2
+        },
+        "values": {
+          "root.value": "4660",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "typedef-array",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "unions",
+      "featureId": "unions",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#unions",
+      "valid": {
+        "definition": "union choice { uint8 narrow; uint16 wide; };",
+        "root": "choice",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 2,
+        "bytes": "A512",
+        "offsets": {
+          "choice.narrow": 0,
+          "choice.wide": 0
+        },
+        "values": {
+          "choice.narrow": "165",
+          "choice.wide": "4773"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "inline-union",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "tag-keywords",
+      "featureId": "tag-keywords",
+      "manual": "docs/language/grammar.md#complete-portable-grammar",
+      "valid": {
+        "definition": "struct child { uint8 value; }; struct root { struct child value; };",
+        "root": "root",
+        "pointerSize": 1,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 1,
+        "alignment": 1,
+        "bytes": "2A",
+        "offsets": {
+          "root.value.value": 0
+        },
+        "values": {
+          "root.value.value": "42"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "tag-kind-mismatch",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "pointers",
+      "featureId": "pointers",
+      "manual": "docs/language/pointers-and-addressing.md#pointers",
+      "valid": {
+        "definition": "struct root { uint16 *target; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 3,
+        "alignment": 2,
+        "bytes": "00007E",
+        "offsets": {
+          "root.target.address": 0,
+          "root.tail": 2
+        },
+        "values": {
+          "root.target.address": "0",
+          "root.target.depth": "1",
+          "root.target.isNull": "true",
+          "root.target.isDereferenced": "false",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "function-pointer",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "multi-pointers",
+      "featureId": "multi-pointers",
+      "manual": "docs/language/pointers-and-addressing.md#multi-level-pointers",
+      "valid": {
+        "definition": "struct root { uint8 **target; byte tail; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 3,
+        "alignment": 2,
+        "bytes": "00007E",
+        "offsets": {
+          "root.target.address": 0,
+          "root.tail": 2
+        },
+        "values": {
+          "root.target.address": "0",
+          "root.target.depth": "2",
+          "root.target.isNull": "true",
+          "root.target.isDereferenced": "false",
+          "root.tail": "126"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "forward-declaration",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "alignment-and-endian-overrides",
+      "featureId": "alignment-and-endian-overrides",
+      "manual": "docs/language/layout-alignment-and-padding.md#alignment-and-endian",
+      "valid": {
+        "definition": "struct root { uint8 head; uint16> big; uint16< little; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": true,
+        "littleEndian": true,
+        "size": 6,
+        "alignment": 2,
+        "bytes": "110012347856",
+        "offsets": {
+          "root.head": 0,
+          "root.big": 2,
+          "root.little": 4
+        },
+        "values": {
+          "root.head": "17",
+          "root.big": "4660",
+          "root.little": "22136"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "packing-pragma",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "bounded-failures",
+      "featureId": "bounded-failures",
+      "manual": "docs/language/limits-and-diagnostics.md#bounded-failures",
+      "valid": {
+        "definition": "struct root { utf8_string_zero text; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "alignment": 1,
+        "bytes": "414200",
+        "offsets": {
+          "root.text": 0
+        },
+        "values": {
+          "root.text": "AB"
+        }
+      },
+      "invalid": {
+        "stage": "read",
+        "definition": "struct root { utf8_string_zero text; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "bytes": "414200",
+        "maxStringBytes": 2,
+        "errorCode": "ReadLimitExceeded"
+      }
+    },
+    {
+      "id": "invalid-layouts",
+      "featureId": "invalid-layouts",
+      "manual": "docs/language/limits-and-diagnostics.md#invalid-layouts",
+      "valid": {
+        "definition": "struct root { uint8 value; };",
+        "root": "root",
+        "pointerSize": 2,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 1,
+        "alignment": 1,
+        "bytes": "2A",
+        "offsets": {
+          "root.value": 0
+        },
+        "values": {
+          "root.value": "42"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "include-directive",
+        "errorCode": "InvalidLayout"
+      }
+    }
+  ]
+}
