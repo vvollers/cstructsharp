@@ -99,6 +99,10 @@ JavaScript entry point. It does not substitute the explorer's internal adapter.
 
 ## Preview matching documentation and explorer sources
 
+For the public npm package, its Node.js loader, and the Vite integration, use the
+[npm build and consumer checks](release-process.md#build-and-test-npm-locally). Application users should start with
+the [JavaScript quick start](../guides/browser/index.md); they do not need to build this repository.
+
 For source review, run the documentation server with local explorer links in one PowerShell terminal:
 
 ```powershell

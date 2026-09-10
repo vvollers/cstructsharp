@@ -46,13 +46,12 @@ export default defineConfig({ plugins: [cstructsharp()] });
 ```
 
 The plugin handles runtime assets in development and production. For other tools and nested deployment paths,
-see [deployment](deployment.md). TypeScript declarations ship with the package. Before the first npm release,
-the generated `cstructsharp-VERSION.tgz` can be installed locally instead of the registry package.
+see [deployment](deployment.md). TypeScript declarations ship with the package.
 
 For a first experiment with no setup, [open the header lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=header).
 Read the six bytes, change the first byte to `03`, and read again. The kind changes from `2` to `3`.
 
-## Run the included starter
+## Alternative: run the standalone browser starter
 
 You need a browser and Node.js to run the included local server. Download `cstructsharp-wasm-v<VERSION>.zip` from
 [GitHub Releases](https://github.com/vvollers/cstructsharp/releases). Use a release containing the `starter` directory;

@@ -67,7 +67,7 @@ function download() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = language.value === "csharp" ? "Program.cs" : "app.js";
+  link.download = language.value === "csharp" ? "Program.cs" : "example.mjs";
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

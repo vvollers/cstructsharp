@@ -94,6 +94,11 @@ frontend and browser checks locally when changing that application. Release auto
 WASM explorer and runs frontend unit tests, explorer end-to-end tests, and the extracted browser starter checks.
 It also runs the starter and recipe programs against the candidate NuGet package.
 
+The npm package CI and release workflow test the installed tarball in Node.js 22.14 and 24.0 on Windows,
+Linux, and macOS, plus TypeScript and browser consumers. The browser checks cover Vite development and production,
+nested deployment paths, server rendering, and static assets. See [npm package checks](release-process.md#build-and-test-npm-locally)
+for the local commands.
+
 ## Documentation
 
 ```powershell

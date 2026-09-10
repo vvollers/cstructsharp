@@ -3,7 +3,7 @@ items:
   href: index.md
 - name: Guides
   href: guides/
-- name: Browser and WASM
+- name: JavaScript and WASM
   href: guides/browser/
 - name: Layout language
   href: language/

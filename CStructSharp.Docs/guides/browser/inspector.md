@@ -5,7 +5,7 @@ description: Open a local teaching file, inspect field ranges, update flags, and
 
 # Build a browser binary inspector
 
-This advanced example builds on the [browser starter](index.md). It uses the same teaching format as the
+This advanced example builds on the [standalone browser starter](index.md#alternative-run-the-standalone-browser-starter). It uses the same teaching format as the
 [C# file walkthrough](../binary-file-walkthrough.md), with a fixed count of two records. The browser API does not
 accept the C# runtime-variable dictionary, so this page explicitly checks that the stored count is 2.
 

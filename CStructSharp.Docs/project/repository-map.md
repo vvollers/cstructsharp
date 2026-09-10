@@ -17,6 +17,7 @@ and which direction their dependencies point.
 | `CStructSharp.PackageConsumer/` | A small external-style app that installs a built package | Uses the packed NuGet file, not the core project |
 | `CStructSharp.Docs/` | DocFX pages, examples, site assets, browser checks, and machine-readable reference data | Reads a prebuilt core net10 assembly |
 | `CStructSharpWeb/wasm/` | Optional managed WebAssembly adapter source | References core |
+| `packages/cstructsharp/` | Public npm package loaders, Vite plugin, and package README | Packages the prebuilt WASM adapter for Node.js and browsers |
 | `CStructSharpWeb/` | Optional Vue/Vite UI and browser integration | Loads the published WASM adapter output |
 | `tools/` | Validation, measurement, package, and documentation scripts | Takes explicit files/projects as inputs |
 | `.github/workflows/` | Continuous integration, scheduled mutation, docs, and release-candidate automation | Runs pinned actions and repository scripts |

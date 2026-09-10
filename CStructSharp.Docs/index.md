@@ -1,6 +1,6 @@
 ---
 title: CStructSharp documentation
-description: Describe binary data with a small C-like layout, then read, write, inspect, or update it from .NET.
+description: Describe binary data with a small C-like layout, then read, write, inspect, or update it from .NET, Node.js, or browsers.
 ---
 
 # CStructSharp documentation
@@ -34,7 +34,7 @@ the library API.
 ## Where to start
 
 - [Try a browser lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=header) with no installation.
-- [Use the JavaScript/WASM bundle](guides/browser/index.md) in your own browser application.
+- [Install the JavaScript/WASM npm package](guides/browser/index.md) with `npm install cstructsharp` for Node.js or a browser application.
 
 - To read your first value, follow [Install and make a first parse](guides/install-and-first-parse.md).
 - To decide between a stream, a byte array, a typed C# object, or a dynamic result, see
