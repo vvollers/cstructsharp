@@ -18,11 +18,11 @@
     "@axe-core/playwright": "4.12.1",
     "@playwright/test": "1.61.1",
     "cspell": "10.0.1",
-    "js-yaml": "5.2.2",
+    "js-yaml": "5.4.1",
     "markdownlint-cli2": "0.23.2"
   },
   "overrides": {
-    "js-yaml": "5.2.2",
+    "js-yaml": "5.4.1",
     "smol-toml": "1.8.0"
   }
 }
