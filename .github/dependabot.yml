@@ -16,6 +16,10 @@ updates:
 
   - package-ecosystem: npm
     directory: /apps/workshop
+    # Keep the supported TypeScript 6 toolchain; ignore every TypeScript 7 release.
+    ignore:
+      - dependency-name: typescript
+        versions: [">=7.0.0 <8.0.0"]
     schedule:
       interval: weekly
     groups:
@@ -30,9 +34,15 @@ updates:
 
   - package-ecosystem: npm
     directory: /apps/inspector
+    ignore:
+      - dependency-name: typescript
+        versions: [">=7.0.0 <8.0.0"]
     schedule:
       interval: weekly
   - package-ecosystem: npm
     directory: /docs
+    ignore:
+      - dependency-name: typescript
+        versions: [">=7.0.0 <8.0.0"]
     schedule:
       interval: weekly
