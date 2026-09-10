@@ -90,8 +90,12 @@ $packageVersion = if ([string]::IsNullOrWhiteSpace($versionSuffix)) {
 else {
     "$versionPrefix-$versionSuffix"
 }
-Assert-Condition ($manifest.packageVersion -eq $packageVersion) `
-    "Managed API baseline version '$($manifest.packageVersion)' does not match package '$packageVersion'."
+# The frozen version records when the API was reviewed, not the current release number.
+# Later releases must still pass the exact generated API comparison below; a version-only
+# release must not require relabeling historical baseline files or their review history.
+$baselineVersionPrefix = ([string]$manifest.packageVersion -split '[-+]')[0]
+Assert-Condition ([version]$versionPrefix -ge [version]$baselineVersionPrefix) `
+    "Managed API baseline '$($manifest.packageVersion)' is newer than package '$packageVersion'."
 
 $entries = @($manifest.frameworks)
 $frameworks = @($entries | ForEach-Object { [string]$_.tfm })

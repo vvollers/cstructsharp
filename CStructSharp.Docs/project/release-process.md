@@ -47,7 +47,7 @@ available to your publishing account. Then:
    `npm publish "FULL-PATH/cstructsharp-VERSION.tgz" --access public --registry=https://registry.npmjs.org/`.
    Substitute the actual path and version. Complete npm's authentication prompt. Do not publish the repository
    or private explorer directory. A first package must exist before trust can be configured.
-6. On npmjs.com open the package's **Settings**, then **Trusted Publisher**, and select **GitHub Actions**.
+6. On the [npm website](https://www.npmjs.com/) open the package's **Settings**, then **Trusted Publisher**, and select **GitHub Actions**.
    Enter user `vvollers`, repository `cstructsharp`, workflow `release.yml`, and environment `github-pages`.
    Enable direct `npm publish` and save. A staged-only publisher requires manual approval of every npm release.
 7. Run **Release** again with mode `recover` and `recovery_run_id` set to the prepared run's number. The bump
