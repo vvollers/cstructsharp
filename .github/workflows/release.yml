@@ -3,6 +3,16 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: Release normally, prepare the first npm artifact, or recover a verified run
+        required: true
+        default: release
+        type: choice
+        options: [release, prepare, recover]
+      recovery_run_id:
+        description: Original Actions run ID (required only for recover)
+        required: false
+        type: string
       bump:
         description: Version component to increment
         required: true
@@ -21,7 +31,24 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate release inputs
+        env:
+          MODE: ${{ inputs.mode }}
+          RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/main || { echo 'Run releases from main'; exit 1; }
+          if [ "$MODE" = recover ]; then
+            [[ "$RECOVERY_RUN_ID" =~ ^[0-9]+$ ]] || { echo 'Recovery requires the original numeric run ID'; exit 1; }
+          elif [ -n "$RECOVERY_RUN_ID" ]; then
+            echo 'Only recover mode accepts a recovery run ID'; exit 1
+          fi
+
   verify:
+    needs: validate
+    if: inputs.mode != 'recover' && github.ref == 'refs/heads/main'
     name: Build, test, and verify release artifacts
     runs-on: ubuntu-latest
     permissions:
@@ -33,7 +60,7 @@ jobs:
       - name: Check out main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - name: Set up .NET
@@ -77,12 +104,13 @@ jobs:
             .replace(/<VersionPrefix>[^<]+<\/VersionPrefix>/, `<VersionPrefix>${version}</VersionPrefix>`)
             .replace(/\s*<VersionSuffix>[^<]+<\/VersionSuffix>/, '');
           fs.writeFileSync(projectPath, updatedProject);
-          for (const dir of ['CStructSharpWeb', 'CStructSharpInspector']) {
+          for (const dir of ['CStructSharpWeb', 'CStructSharpInspector', 'packages/cstructsharp']) {
             const packagePath = `${dir}/package.json`;
             const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
             packageJson.version = version;
             fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
             const lockPath = `${dir}/package-lock.json`;
+            if (!fs.existsSync(lockPath)) continue;
             const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
             lock.version = version;
             if (lock.packages?.['']) lock.packages[''].version = version;
@@ -91,8 +119,7 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\ntag=v${version}\n`);
           NODE
 
-      # Fails fast, before any expensive build work, if a previous run already published this tag (e.g. a prior
-      # release run partially completed). Re-checked in the publish job immediately before tagging.
+      # A normal/prepare run cannot reuse a tag. Recovery validates the original tag and artifacts instead.
       - name: Reject a version/tag that already exists
         env:
           TAG: ${{ steps.version.outputs.tag }}
@@ -100,6 +127,12 @@ jobs:
           if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" > /dev/null 2>&1; then
             echo "::error::Tag ${TAG} already exists on origin. A previous release run may have partially completed; investigate before re-running." >&2
             exit 1
+          else
+            status=$?
+            if [ "$status" -ne 2 ]; then
+              echo "::error::Unable to check remote tags (exit ${status})." >&2
+              exit "$status"
+            fi
           fi
           echo "Tag ${TAG} does not exist on origin yet; continuing."
 
@@ -153,6 +186,16 @@ jobs:
         working-directory: CStructSharpWeb
         run: npx playwright install --with-deps chromium
 
+      - name: Pack and verify the npm consumer artifact
+        working-directory: CStructSharpWeb
+        run: |
+          npm run pack:npm
+          npm run test:npm
+          npm run test:bootstrap
+          npm run test:wasm-publication
+          npm run test:npm-release
+          node scripts/npm-release.mjs --require-missing
+
       - name: Verify explorer lessons
         working-directory: CStructSharpWeb
         run: |
@@ -189,6 +232,27 @@ jobs:
           cp CStructSharp.Docs/landing/index.html artifacts/pages/index.html
           touch artifacts/pages/.nojekyll
 
+      - name: Record release artifact hashes and source identity
+        run: node CStructSharpWeb/scripts/release-artifacts.mjs create
+
+      - name: Upload npm package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: npm-package
+          path: |
+            artifacts/npm/*.tgz
+            artifacts/npm/package-info.json
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Upload release manifest
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release-manifest
+          path: artifacts/release-manifest.json
+          retention-days: 90
+          if-no-files-found: error
+
       # The files below are handed to the publish job so it commits the *exact* version already built and
       # verified above, rather than recomputing (and potentially diverging from) the version bump.
       - name: Upload version-bump files
@@ -201,7 +265,8 @@ jobs:
             CStructSharpWeb/package-lock.json
             CStructSharpInspector/package.json
             CStructSharpInspector/package-lock.json
-          retention-days: 1
+            packages/cstructsharp/package.json
+          retention-days: 90
           if-no-files-found: error
 
       - name: Upload NuGet package artifacts
@@ -209,7 +274,7 @@ jobs:
         with:
           name: nuget-package
           path: artifacts/package
-          retention-days: 1
+          retention-days: 90
           if-no-files-found: error
 
       - name: Upload standalone WASM bundle
@@ -217,7 +282,7 @@ jobs:
         with:
           name: wasm-bundle
           path: artifacts/cstructsharp-wasm-v*.zip
-          retention-days: 1
+          retention-days: 90
           if-no-files-found: error
 
       - name: Upload GitHub Pages site
@@ -225,119 +290,174 @@ jobs:
         with:
           name: pages-site
           path: artifacts/pages
-          retention-days: 1
+          include-hidden-files: true
+          retention-days: 90
           if-no-files-found: error
 
-  # Nothing in this job runs unless every build/test/verification step in `verify` succeeded. This job is the
-  # only one with write access to the repository, NuGet, and GitHub Pages.
-  publish:
-    name: Publish release
+  npm-node:
+    name: npm on ${{ matrix.os }} / Node ${{ matrix.node }}
     needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [22.14.0, 24.0.0]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: npm-package
+          path: artifacts/npm
+      - name: Test the installed tarball without the SDK or browser
+        working-directory: CStructSharpWeb
+        run: npm run test:npm:node
+
+  publish:
+    name: Publish or recover the verified release
+    needs: [validate, verify, npm-node]
+    if: >-
+      always() && !cancelled() && needs.validate.result == 'success' && github.ref == 'refs/heads/main' &&
+      ((inputs.mode == 'release' && needs.verify.result == 'success' && needs.npm-node.result == 'success') ||
+       (inputs.mode == 'recover' && inputs.recovery_run_id != ''))
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: write
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      ARTIFACT_RUN_ID: ${{ inputs.mode == 'recover' && inputs.recovery_run_id || github.run_id }}
+      GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Check out main
+      - name: Check out workflow source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
           fetch-depth: 0
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - name: Set up publishing Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          global-json-file: global.json
-          dotnet-version: 8.0.x
-
-      # Re-checked here (not just in `verify`) as a last-moment guard against a concurrent or re-triggered run.
-      - name: Reject a version/tag that already exists
-        env:
-          TAG: ${{ needs.verify.outputs.tag }}
+          node-version: 26.5.0
+          registry-url: https://registry.npmjs.org/
+      - name: Pin the OIDC-capable npm CLI
+        run: npm install --global npm@12.0.2
+      - name: Download release manifest
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-manifest
+          path: artifacts
+          run-id: ${{ env.ARTIFACT_RUN_ID }}
+          github-token: ${{ github.token }}
+      - name: Read verified source SHA
+        id: source
         run: |
-          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" > /dev/null 2>&1; then
-            echo "::error::Tag ${TAG} already exists on origin. A previous release run may have partially completed; investigate before re-running." >&2
-            exit 1
-          fi
-
-      - name: Download version-bump files
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+          const manifest = JSON.parse(fs.readFileSync('artifacts/release-manifest.json', 'utf8'));
+          if (!/^[a-f0-9]{40}$/.test(manifest.sourceSha)) throw Error('Invalid source SHA');
+          if (!/^\d+$/.test(process.env.ARTIFACT_RUN_ID) || manifest.runId !== process.env.ARTIFACT_RUN_ID) throw Error('Invalid original run');
+          const run = JSON.parse(execFileSync('gh', ['api', `repos/${process.env.GITHUB_REPOSITORY}/actions/runs/${manifest.runId}`], {encoding:'utf8'}));
+          if (run.head_sha !== manifest.sourceSha || run.head_branch !== 'main' || run.event !== 'workflow_dispatch' || run.path !== '.github/workflows/release.yml') throw Error('Artifacts must originate from the main-branch Release workflow');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `sha=${manifest.sourceSha}\n`);
+          NODE
+      - name: Check out the exact original source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+          clean: false
+          fetch-depth: 0
+      - name: Download version files
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: version-bump-files
           path: .
-
-      - name: Commit and tag version bump
-        env:
-          VERSION: ${{ needs.verify.outputs.version }}
-          TAG: ${{ needs.verify.outputs.tag }}
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add CStructSharp/CStructSharp.csproj CStructSharpWeb/package.json CStructSharpWeb/package-lock.json CStructSharpInspector/package.json CStructSharpInspector/package-lock.json
-          git commit -m "chore: release ${VERSION}"
-          git push origin HEAD:main
-          git tag -a "${TAG}" -m "Release ${VERSION}"
-          git push origin "${TAG}"
-
-      - name: Download NuGet package artifacts
+          run-id: ${{ env.ARTIFACT_RUN_ID }}
+          github-token: ${{ github.token }}
+      - name: Download npm package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: npm-package
+          path: artifacts/npm
+          run-id: ${{ env.ARTIFACT_RUN_ID }}
+          github-token: ${{ github.token }}
+      - name: Download NuGet packages
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: nuget-package
           path: artifacts/package
-
+          run-id: ${{ env.ARTIFACT_RUN_ID }}
+          github-token: ${{ github.token }}
       - name: Download standalone WASM bundle
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: wasm-bundle
           path: artifacts
-
-      - name: Download GitHub Pages site
+          run-id: ${{ env.ARTIFACT_RUN_ID }}
+          github-token: ${{ github.token }}
+      - name: Download Pages site
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: pages-site
           path: artifacts/pages
-
+          run-id: ${{ env.ARTIFACT_RUN_ID }}
+          github-token: ${{ github.token }}
+      - name: Verify original run, test gates, versions and every artifact hash
+        id: release
+        run: node CStructSharpWeb/scripts/release-artifacts.mjs verify
+      - name: Check npm identity before any publication
+        id: npm
+        run: node CStructSharpWeb/scripts/npm-release.mjs
+      - name: Commit and tag the exact verified version, or verify the existing tag
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          node CStructSharpWeb/scripts/release-artifacts.mjs tag
+      - name: Publish the tested npm tarball through OIDC
+        if: steps.npm.outputs.status == 'missing'
+        env:
+          NPM_TARBALL: ${{ steps.npm.outputs.filename }}
+        run: npm publish "artifacts/npm/${NPM_TARBALL}" --access public --tag latest --registry=https://registry.npmjs.org/ --ignore-scripts
+      - name: Confirm npm publication integrity
+        run: node CStructSharpWeb/scripts/npm-release.mjs --require-published
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          dotnet-version: 8.0.x
       - name: NuGet login through Trusted Publishing
         id: nuget-login
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         with:
           user: ${{ vars.NUGET_USER }}
-
       - name: Publish NuGet package and symbols
         env:
-          VERSION: ${{ needs.verify.outputs.version }}
+          VERSION: ${{ steps.release.outputs.version }}
           NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: |
-          dotnet nuget push "artifacts/package/CStructSharp.${VERSION}.nupkg" \
-            --api-key "${NUGET_API_KEY}" \
-            --source https://api.nuget.org/v3/index.json
-          dotnet nuget push "artifacts/package/CStructSharp.${VERSION}.snupkg" \
-            --api-key "${NUGET_API_KEY}" \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
-
+          dotnet nuget push "artifacts/package/CStructSharp.${VERSION}.nupkg" --api-key "${NUGET_API_KEY}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push "artifacts/package/CStructSharp.${VERSION}.snupkg" --api-key "${NUGET_API_KEY}" --source https://api.nuget.org/v3/index.json --skip-duplicate
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: artifacts/pages
-
       - name: Deploy GitHub Pages
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
-
-      - name: Create GitHub Release
+      - name: Create or complete GitHub Release
         env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.verify.outputs.version }}
-          TAG: ${{ needs.verify.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+          TAG: ${{ steps.release.outputs.tag }}
         run: |
-          gh release create "${TAG}" \
-            artifacts/package/*.nupkg \
-            artifacts/package/*.snupkg \
-            "artifacts/cstructsharp-wasm-v${VERSION}.zip" \
-            --title "CStructSharp ${VERSION}" \
-            --generate-notes
+          if ! gh release view "${TAG}" > /dev/null 2>&1; then
+            gh release create "${TAG}" --verify-tag --title "CStructSharp ${VERSION}" --generate-notes
+          fi
+          gh release upload "${TAG}" artifacts/package/*.nupkg artifacts/package/*.snupkg "artifacts/cstructsharp-wasm-v${VERSION}.zip" "artifacts/npm/cstructsharp-${VERSION}.tgz" artifacts/release-manifest.json --clobber

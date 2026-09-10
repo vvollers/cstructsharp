@@ -45,7 +45,7 @@ Also exported: `serialize(definition, value, options)`, `update(definition, byte
 Use it directly; older examples that call `atob(result.Data)` should remove that conversion.
 Pass the selected struct's fields when serializing, without the debug root wrapper.
 
-Keep `cstructsharp-wasm.js`, `main.js`, `bootstrap.js`, the runtime configuration, and `_framework/` together.
+Keep `cstructsharp-wasm.js`, `cstructsharp-api.js`, `main.js`, `bootstrap.js`, the runtime configuration, and `_framework/` together.
 Serve over HTTP(S), not `file://`, with `.wasm` served as `application/wasm`. Relative imports work under a deployment
 subdirectory when the complete bundle is kept together. The included server is for local development.
 

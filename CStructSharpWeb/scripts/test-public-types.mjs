@@ -9,7 +9,7 @@ const bundle = path.resolve(process.argv[2] ?? path.join(webRoot, "artifacts/was
 const work = fs.mkdtempSync(path.join(os.tmpdir(), "cstructsharp-types-"));
 try {
   // Use only files from the packaged distribution, never the explorer's internal types.
-  for (const name of ["cstructsharp-wasm.js", "cstructsharp-wasm.d.ts"])
+  for (const name of ["cstructsharp-wasm.js", "cstructsharp-api.js", "cstructsharp-wasm.d.ts"])
     fs.copyFileSync(path.join(bundle, name), path.join(work, name));
   fs.writeFileSync(path.join(work, "package.json"), '{"type":"module"}');
   fs.copyFileSync(

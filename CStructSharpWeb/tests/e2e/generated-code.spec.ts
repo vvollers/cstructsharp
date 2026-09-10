@@ -51,6 +51,10 @@ test("generation uses edited inputs, opens either language, and downloads the co
 
 test("generated JavaScript runs every lesson through the public WASM wrapper", async ({ page }) => {
   const publicWrapper = await readFile("wasm/cstructsharp-wasm.js", "utf8");
+  const publicOperations = await readFile("wasm/cstructsharp-api.js", "utf8");
+  await page.route("**/cstructsharp-api.js", (route) =>
+    route.fulfill({ contentType: "text/javascript", body: publicOperations }),
+  );
   await page.route("**/generated-public-api.js", (route) =>
     route.fulfill({ contentType: "text/javascript", body: publicWrapper }),
   );

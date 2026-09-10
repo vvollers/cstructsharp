@@ -1,32 +1,92 @@
 ---
 title: Release process
-description: Build and review the NuGet, documentation, and WebAssembly explorer artifacts.
+description: Build, verify, publish, and recover NuGet, npm, WebAssembly, and website releases.
 ---
 
 # Release process
 
-The release workflow (`.github/workflows/release.yml`) is manually triggered by a maintainer, who picks a major,
-minor, or patch bump. It runs as two jobs:
+The manually triggered `.github/workflows/release.yml` releases NuGet, the `cstructsharp` npm package,
+the standalone WASM ZIP, and the documentation/explorer/inspector Pages site at one version.
 
-1. **`verify`** — computes the next version, runs the managed test suite (`CStructSharpTests`), builds the
-   multi-target NuGet package and symbol package, the generated DocFX documentation site, and the production
-   WebAssembly test explorer and standalone WASM bundle, then checks the exact NuGet and WASM artifacts using the
-   onboarding programs and runs the explorer's unit and Playwright end-to-end tests. This job has no write access
-   to the repository, NuGet, or GitHub Pages.
-2. **`publish`** — runs only if `verify` succeeded (`needs: verify`). It commits and tags the version bump on
-   `main`, publishes the NuGet package and symbols, deploys the combined GitHub Pages site (a landing page at the
-   root, documentation at `/docs/`, and the interactive explorer at `/explorer/`), and creates a GitHub Release
-   containing the NuGet package and the standalone `cstructsharp-wasm-v<VERSION>.zip` download. The WASM archive
-   contains the browser JavaScript entry point, the required .NET WebAssembly runtime and assemblies, and a README
-   with a copy-and-import example. It is intended for embedding CStructSharp in another static browser project; it
-   is separate from the full explorer website.
+| Mode | Behavior |
+| --- | --- |
+| `release` | Calculate a bump, build and test all artifacts, then publish |
+| `prepare` | Calculate a bump and verify artifacts; do not commit, tag, or publish |
+| `recover` | Reuse artifacts from `recovery_run_id`; do not bump or rebuild |
 
-A release should still be started only after CI has passed for the current `main` revision — `verify` re-running
-the managed test suite is a safety net against a stale or racing `main`, not a substitute for a green CI run. See
-[onboarding review](onboarding-review.md) for the human sessions and artifact checks, and
-[browser development](web-development.md) for local explorer commands.
+`verify` checks out the workflow's exact main-branch source SHA, updates version files, builds the managed and
+WASM artifacts, and tests the installed npm tarball in Node, TypeScript, Vite development/production, SSR, and
+static hosting. Six additional jobs execute that tarball on Windows, Linux, and macOS with Node 22.14 and 24.0.
+No installation scripts or .NET SDK are required by those consumers. npm preflight failures stop verification;
+only an explicit 404 is treated as a missing registry version.
 
-## Validate the consumer experience
+The publish job runs after those gates pass, or resumes a verified original run. It verifies downloaded artifact
+hashes and the original workflow, source SHA, and completed test jobs. The version commit may only change the
+six version files on top of the verified source; unexpected advances on main stop publication. The job publishes
+the exact npm tarball using OIDC and attaches it to the GitHub Release. Existing npm versions are skipped only
+after integrity comparison. NuGet pushes handle duplicates; Pages can be deployed again, and GitHub Release
+attachments can be completed on recovery. Publishing is not atomic across services.
+
+Artifacts and the source/hash manifest are retained for 90 days. Recover before they expire; after expiration,
+the workflow cannot promise publication of identical tested artifacts. Release actions remain pinned to
+immutable commits. Start a release only after CI has passed on main.
+
+## First npm publication: maintainer steps
+
+Account login and 2FA are one-time prerequisites. Confirm your email is verified and that `cstructsharp` is
+available to your publishing account. Then:
+
+1. Merge the implementation and wait for CI to pass on `main`.
+2. In GitHub Actions select **Release**, **Run workflow**, branch `main`, mode `prepare`, and the desired bump.
+   Wait for verification and all six Node jobs to succeed. The publish job is intentionally skipped.
+3. Record the run ID from the Actions URL (`/actions/runs/NUMBER`). Download its **npm-package** artifact and
+   extract the downloaded ZIP. It contains `cstructsharp-VERSION.tgz` and `package-info.json`. Keep the `.tgz` intact.
+4. In PowerShell run `npm login --registry=https://registry.npmjs.org/`, complete authentication, and confirm
+   your account with `npm whoami --registry=https://registry.npmjs.org/`.
+5. Publish the downloaded file with
+   `npm publish "FULL-PATH/cstructsharp-VERSION.tgz" --access public --registry=https://registry.npmjs.org/`.
+   Substitute the actual path and version. Complete npm's authentication prompt. Do not publish the repository
+   or private explorer directory. A first package must exist before trust can be configured.
+6. On npmjs.com open the package's **Settings**, then **Trusted Publisher**, and select **GitHub Actions**.
+   Enter user `vvollers`, repository `cstructsharp`, workflow `release.yml`, and environment `github-pages`.
+   Enable direct `npm publish` and save. A staged-only publisher requires manual approval of every npm release.
+7. Run **Release** again with mode `recover` and `recovery_run_id` set to the prepared run's number. The bump
+   input is ignored. Recovery compares the manually published npm integrity, skips uploading it again,
+   and completes the version commit/tag, NuGet, Pages, and GitHub Release.
+8. Verify installation of the explicit registry version in a clean Node and browser consumer. Subsequent
+   normal releases use mode `release` and require no interactive npm login or npm token secret.
+
+The first interactive publication has no CI-generated provenance. Subsequent direct OIDC publications from the
+public repository generate provenance. The publishing job pins Node 26.5.0 and npm 12.0.2, satisfying npm's OIDC
+minimums. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) and
+[npm trust prerequisites](https://docs.npmjs.com/cli/v11/commands/npm-trust/).
+
+## Recover a partial release
+
+Choose mode `recover` and the **original verified run ID**, not the failed recovery run. Recovery stops if an npm
+version has different integrity, any artifact changed, required tests did not pass, or the tag has unexpected
+changes. It accepts an existing matching tag or a matching version commit pushed before a previous tag push
+failed. A bad immutable package needs a new version; it must not be overwritten.
+
+## Build and test npm locally
+
+From `CStructSharpWeb`:
+
+```sh
+npm ci
+npm run build:wasm
+npm run pack:npm
+npm run test:npm
+npm run test:npm-release
+```
+
+Install Chromium with `npx playwright install chromium` if needed. Outputs at the repository root are
+`artifacts/npm/cstructsharp-VERSION.tgz` and `artifacts/npm/package-info.json`. The pack step requires npm metadata
+to match the managed version and rejects stale WASM. It includes the selected .NET runtime pack's notices and
+Pidgin's MIT license. Package size is recorded; the existing 6 MiB runtime budget remains enforced.
+`npm run test:npm:node` runs the host-only consumer checks.
+
+## Validate the other consumer artifacts
 
 From the repository root:
 
@@ -35,10 +95,9 @@ From the repository root:
 ./tools/Test-OnboardingBrowser.ps1 -ArchivePath ./artifacts/cstructsharp-wasm-vVERSION.zip
 ```
 
-Replace VERSION with the actual archive version. These checks use isolated package consumers and an extracted
-browser bundle. The old `contracts/release/rc1.json` and its validator describe the historical build-only release
-candidate policy; they do not describe the current publishing workflow. Release actions remain pinned to immutable
-commits. Do not update old compatibility snapshots merely to make them appear current.
+Replace VERSION with the archive version. These checks use isolated package consumers and an extracted browser
+bundle. Historical `contracts/release/rc1.json` snapshots do not describe the current publishing workflow.
+See [onboarding review](onboarding-review.md) and [browser development](web-development.md).
 
 ## Release URLs
 
@@ -46,3 +105,4 @@ commits. Do not update old compatibility snapshots merely to make them appear cu
 - [Documentation](https://vvollers.github.io/cstructsharp/docs/)
 - [Interactive WASM explorer](https://vvollers.github.io/cstructsharp/explorer/)
 - [GitHub releases](https://github.com/vvollers/cstructsharp/releases)
+- [npm package](https://www.npmjs.com/package/cstructsharp)

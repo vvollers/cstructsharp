@@ -12,6 +12,7 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <WasmDebugLevel Condition="'$(Configuration)' == 'Release'">0</WasmDebugLevel>
     <WasmEmitSourceMap Condition="'$(Configuration)' == 'Release'">false</WasmEmitSourceMap>
+    <WasmEmitSymbolMap Condition="'$(Configuration)' == 'Release'">false</WasmEmitSymbolMap>
     
     <!-- The browser bridge uses source-generated JSON metadata and explicit value projection. -->
     <PublishTrimmed>true</PublishTrimmed>

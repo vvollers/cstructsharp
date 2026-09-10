@@ -5,6 +5,33 @@ description: Keep browser runtime files together and diagnose missing files, med
 
 # Load and deploy the browser bundle
 
+## npm consumers
+
+With Vite, register `cstructsharp()` from `cstructsharp/vite`. It serves runtime files in development and copies
+them to a content-specific directory in production. Set Vite's `base` to `/` or an absolute deployment path such
+as `/tools/binary/`; relative `./` bases are rejected. Vite 8 is tested.
+
+For other browser build tools:
+
+```sh
+npx --no-install cstructsharp-copy --out public/cstructsharp
+```
+
+```js
+import { loadCStructSharpWasm } from "cstructsharp/browser";
+await loadCStructSharpWasm({ runtimeUrl: "/cstructsharp/" });
+```
+
+Use your application's actual static-output directory and public URL. Copying refuses an existing destination
+to protect application files. Copy upgrades into a new versioned directory, then update the URL. Serve WASM as
+`application/wasm` and JS as JavaScript. A same-origin CSP can use `script-src 'self' 'wasm-unsafe-eval'` and
+`connect-src 'self'`; this build does not need cross-origin isolation headers. The runtime is about 5.2 MB unpacked.
+
+Node consumers use `import ... from "cstructsharp"` without copying or serving files. Keep the package external
+in server bundles; the Vite plugin does this for SSR. `cstructsharp/node` is available for explicit host selection.
+
+## Standalone ZIP consumers
+
 Complete the [starter](index.md) before integrating the bundle into a larger application.
 Copy the entire extracted bundle into your static assets and import its public JavaScript entry point using a
 relative URL. A Vue, React, or other framework is not required. Building the bridge from C# source requires the
@@ -15,7 +42,7 @@ relative URL. A Vue, React, or other framework is not required. Building the bri
 Use HTTP(S). Opening `index.html` with `file://` prevents normal module and runtime loading. Serve `.js` as JavaScript
 and `.wasm` as `application/wasm`. The included `serve.mjs` provides those types for local development.
 
-Keep `main.js`, `bootstrap.js`, the runtime configuration, and `_framework` beside the public entry point. Publish
+Keep `cstructsharp-api.js`, `main.js`, `bootstrap.js`, the runtime configuration, and `_framework` beside the public entry point. Publish
 one complete release together; mixing cached files from different releases can prevent startup. When deploying
 under a path such as `/tools/binary/`, keep relative imports inside that path instead of using domain-root URLs.
 
