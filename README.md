@@ -2,13 +2,13 @@
 
 CStructSharp reads and writes binary data using a description that looks like a C struct. Give it a layout and
 some bytes, and it gives you named values. Give it values, and it can create bytes or change a field in existing
-data. Use it from C# or JavaScript in a browser.
+data. Use it from C#, Node.js, or JavaScript in a browser.
 
 ## Choose your starting point
 
 - [Try the browser lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=header): no installation.
 - [Use C#](https://vvollers.github.io/cstructsharp/docs/guides/install-and-first-parse.html): create a console app.
-- [Use JavaScript and WASM](https://vvollers.github.io/cstructsharp/docs/guides/browser/index.html): run a complete browser starter.
+- [Use JavaScript and WASM](https://vvollers.github.io/cstructsharp/docs/guides/browser/index.html): install the npm package for Node.js or browsers.
 
 ## Read your first value in C#
 
@@ -66,7 +66,35 @@ Supported features include integers, structs, unions, enums, arrays, text, bitfi
 You can read dynamic objects or C# classes, write new bytes, and update a path such as `packet.header.length`.
 Advanced APIs support streams, spans, memory, buffer writers, explicit limits, and reuse of a compiled layout.
 
-## Use the browser bundle
+## Use JavaScript in Node.js or a browser
+
+The npm package includes the prebuilt WebAssembly runtime and TypeScript declarations:
+
+```sh
+npm install cstructsharp
+```
+
+Save this as `example.mjs` and run `node example.mjs` with Node.js 22.14 or later:
+
+```js
+import { parseWithDebug } from "cstructsharp";
+
+const result = await parseWithDebug(
+  "struct header { uint16 kind; uint32 length; };",
+  new Uint8Array([2, 0, 6, 0, 0, 0]),
+  { rootTypeName: "header" },
+);
+if (!result.Success) throw new Error(result.Error.Message);
+console.log(JSON.parse(result.Data).header.kind); // 2
+```
+
+Node loads the installed runtime from disk; no .NET SDK or server is needed. Browser applications use the same
+API with the `cstructsharp/vite` plugin or an explicit static-asset directory. See the
+[npm package README](packages/cstructsharp/README.md) for complete setup, write/update examples, and supported hosts.
+Until the first npm publication, contributors can install the tested `.tgz` produced by `npm run pack:npm`
+in `CStructSharpWeb`. The [release guide](CStructSharp.Docs/project/release-process.md) covers the first publication.
+
+## Use the standalone browser bundle
 
 Download `cstructsharp-wasm-v<VERSION>.zip` from [GitHub Releases](https://github.com/vvollers/cstructsharp/releases).
 Extract the complete archive. With Node.js installed, run `node serve.mjs` in that directory and open

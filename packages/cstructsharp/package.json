@@ -1,0 +1,73 @@
+{
+  "name": "cstructsharp",
+  "version": "0.3.1",
+  "private": true,
+  "description": "Read, serialize, and update binary data from C-style struct layouts in Node.js and browsers, powered by WebAssembly.",
+  "type": "module",
+  "main": "./node.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "node": "./node.js",
+      "browser": "./browser.js",
+      "default": "./browser.js"
+    },
+    "./node": {
+      "types": "./index.d.ts",
+      "default": "./node.js"
+    },
+    "./browser": {
+      "types": "./index.d.ts",
+      "default": "./browser.js"
+    },
+    "./vite": {
+      "types": "./vite.d.ts",
+      "default": "./vite.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "cstructsharp-copy": "./copy-assets.js"
+  },
+  "files": [
+    "node.js",
+    "browser.js",
+    "runtime-loader.js",
+    "cstructsharp-api.js",
+    "assets.js",
+    "copy-assets.js",
+    "vite.js",
+    "index.d.ts",
+    "vite.d.ts",
+    "runtime/",
+    "runtime-manifest.json",
+    "THIRD-PARTY-NOTICES.txt"
+  ],
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "license": "MIT",
+  "author": "Vincent Vollers",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vvollers/cstructsharp.git",
+    "directory": "packages/cstructsharp"
+  },
+  "homepage": "https://vvollers.github.io/cstructsharp/docs/guides/browser/",
+  "bugs": {
+    "url": "https://github.com/vvollers/cstructsharp/issues"
+  },
+  "keywords": [
+    "binary",
+    "parser",
+    "struct",
+    "serialization",
+    "wasm",
+    "webassembly"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

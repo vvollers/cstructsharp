@@ -5,9 +5,16 @@ description: Read, create, and update bytes using the public browser bundle and 
 
 # JavaScript API and value conversion
 
-Start with the [complete browser application](index.md). Import public functions from `cstructsharp-wasm.js`.
+Start with the [JavaScript quick start](index.md). Import public functions from `cstructsharp` when using npm,
+or from `cstructsharp-wasm.js` when using the standalone ZIP.
 These functions return promises and load the runtime when first used. The explorer's TypeScript adapter and the raw
 managed exports are implementation details; their signatures differ from this public entry point.
+
+The npm browser loader additionally accepts `loadCStructSharpWasm({ runtimeUrl: "/cstructsharp/" })` for
+custom static hosting. Configure it before operations; the URL must end in `/` and cannot change after startup.
+Vite users register `cstructsharp/vite` instead. Node requires no runtime URL. Imports do not start WASM, and
+concurrent calls share initialization. Failed startup remains failed until the process/page restarts. The runtime
+lives for the process/page lifetime; no explicit disposal is needed for normal Node process exit.
 
 | Function | Input | Successful result |
 | --- | --- | --- |
