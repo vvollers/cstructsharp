@@ -29,7 +29,7 @@ jobs:
 
       - name: Verify .sln project-list parity
         shell: pwsh
-        run: ./tools/Validate-SolutionParity.ps1
+        run: ./tools/quality/Validate-SolutionParity.ps1
 
       - name: Restore .NET tools
         run: dotnet tool restore
@@ -39,7 +39,7 @@ jobs:
         env:
           # PublicApiGenerator.Tool targets net6.0; the runner only has 8.x/9.x/10.x shared runtimes installed.
           DOTNET_ROLL_FORWARD: LatestMajor
-        run: ./tools/Compare-ManagedApiBaseline.ps1
+        run: ./tools/quality/Compare-ManagedApiBaseline.ps1
 
       - name: Restore dependencies
         run: dotnet restore ./CStructSharp.NonWeb.sln
@@ -49,11 +49,32 @@ jobs:
 
       - name: Test
         run: >-
-          dotnet test ./CStructSharpTests/CStructSharpTests.csproj
+          dotnet test ./tests/CStructSharpTests/tests/CStructSharpTests.csproj
           -c Release
           --no-build
           --logger trx
           --results-directory ./artifacts/test-results
+
+      - name: Set up Node for documentation recipe export
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.5.0
+      - name: Verify quality contracts
+        shell: pwsh
+        run: |
+          ./tools/quality/Validate-BrowserContract.ps1
+          ./tools/quality/Validate-FuzzCorpus.ps1
+          ./tools/quality/Validate-CompilerFixture.ps1
+          ./tools/quality/Validate-NonWebReleaseBudgets.ps1 -SelfTest
+      - name: Pack and verify actual NuGet consumers
+        shell: pwsh
+        run: |
+          dotnet pack src/CStructSharp/CStructSharp.csproj -c Release -o artifacts/package
+          $package = Get-ChildItem artifacts/package/*.nupkg | Select-Object -First 1
+          $symbols = Get-ChildItem artifacts/package/*.snupkg | Select-Object -First 1
+          ./tools/packaging/Validate-Package.ps1 -PackagePath $package.FullName -SymbolPackagePath $symbols.FullName
+          ./tools/packaging/Test-PackageConsumer.ps1 -PackageDirectory artifacts/package
+          ./tools/packaging/Test-OnboardingPackage.ps1 -PackageDirectory artifacts/package
 
       - name: Upload test results
         if: always()

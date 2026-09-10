@@ -4,13 +4,7 @@ on:
   push:
     branches:
       - main
-    paths:
-      - ".github/workflows/inspector-ci.yml"
-      - "CStructSharpInspector/**"
   pull_request:
-    paths:
-      - ".github/workflows/inspector-ci.yml"
-      - "CStructSharpInspector/**"
 
 concurrency:
   group: inspector-ci-${{ github.workflow }}-${{ github.ref }}
@@ -25,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: CStructSharpInspector
+        working-directory: apps/inspector
 
     steps:
       - name: Check out source
@@ -36,7 +30,7 @@ jobs:
         with:
           node-version: 26.5.0
           cache: npm
-          cache-dependency-path: CStructSharpInspector/package-lock.json
+          cache-dependency-path: apps/inspector/package-lock.json
 
       - name: Install dependencies
         run: npm ci

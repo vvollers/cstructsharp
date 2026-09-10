@@ -23,7 +23,7 @@ jobs:
       - name: Restore tools and projects
         run: |
           dotnet tool restore
-          dotnet restore ./CStructSharpTests/CStructSharpTests.csproj
+          dotnet restore ./tests/CStructSharpTests/tests/CStructSharpTests.csproj
 
       - name: Mutate the reviewed permanent non-Web scope
         run: >-
@@ -39,7 +39,7 @@ jobs:
         if: always()
         shell: pwsh
         run: >-
-          ./tools/Validate-MutationReport.ps1
+          ./tools/quality/Validate-MutationReport.ps1
           -ReportPath ./artifacts/mutation/permanent/reports/mutation-report.json
 
       - name: Upload mutation report

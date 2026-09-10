@@ -1,9 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-net/master/src/Stryker.CLI/Stryker.CLI/Resources/stryker.schema.json",
   "stryker-config": {
-    "project": "CStructSharp/CStructSharp.csproj",
+    "project": "src/CStructSharp/CStructSharp.csproj",
     "test-projects": [
-      "CStructSharpTests/CStructSharpTests.csproj"
+      "tests/CStructSharpTests/CStructSharpTests.csproj"
     ],
     "coverage-analysis": "off",
     "mutate": [

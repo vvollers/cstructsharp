@@ -1,7 +1,12 @@
 version: 2
 updates:
   - package-ecosystem: nuget
-    directory: /
+    directories:
+      - /src/*
+      - /tests/*
+      - /benchmarks/*
+      - /docs/examples
+      - /docs/examples/starter
     schedule:
       interval: weekly
     groups:
@@ -10,7 +15,7 @@ updates:
           - "*"
 
   - package-ecosystem: npm
-    directory: /CStructSharpWeb
+    directory: /apps/workshop
     schedule:
       interval: weekly
     groups:
@@ -20,5 +25,14 @@ updates:
 
   - package-ecosystem: github-actions
     directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /apps/inspector
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /docs
     schedule:
       interval: weekly

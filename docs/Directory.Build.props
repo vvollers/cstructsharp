@@ -1,0 +1,14 @@
+<Project>
+
+  <!--
+    Deliberately empty and deliberately does not import the repository root's Directory.Build.props. MSBuild only
+    imports the nearest Directory.Build.props found while walking up from a project's directory, so this file
+    isolates every project under docs/ (examples, examples/starter) from the root file's
+    analyzer references (the architecture improvement plan, AP-4.6).
+
+    These example projects use #region blocks as named snippet-extraction markers for the documentation build
+    (tools/documentation/Build-Documentation.ps1); StyleCop's SA1124 ("do not use regions") would flag every one of them, and
+    "fixing" that by removing the regions would break snippet extraction. They were never in AP-4.6's scope.
+  -->
+
+</Project>

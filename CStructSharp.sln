@@ -1,14 +1,14 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharp", "CStructSharp\CStructSharp.csproj", "{EF1FDDFF-5608-4063-BA6D-830ADEB16FD1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharp", "src\CStructSharp\CStructSharp.csproj", "{EF1FDDFF-5608-4063-BA6D-830ADEB16FD1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharpTests", "CStructSharpTests\CStructSharpTests.csproj", "{D4402660-66FE-4F53-9755-C93F05656231}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharpTests", "tests\CStructSharpTests\CStructSharpTests.csproj", "{D4402660-66FE-4F53-9755-C93F05656231}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharpWeb.Wasm", "CStructSharpWeb\wasm\CStructSharpWeb.Wasm.csproj", "{76507A4F-8732-4703-B6F0-B9E8258E646E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharpWeb.Wasm", "src\CStructSharp.Wasm\CStructSharpWeb.Wasm.csproj", "{76507A4F-8732-4703-B6F0-B9E8258E646E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharp.Benchmarks", "CStructSharp.Benchmarks\CStructSharp.Benchmarks.csproj", "{8C35B7E8-16A5-4E96-B85E-7DEAD14F22D7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharp.Benchmarks", "benchmarks\CStructSharp.Benchmarks\CStructSharp.Benchmarks.csproj", "{8C35B7E8-16A5-4E96-B85E-7DEAD14F22D7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharp.Fuzz", "CStructSharp.Fuzz\CStructSharp.Fuzz.csproj", "{E7A36D0E-1206-4F23-8D18-C02A6A5383F9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharp.Fuzz", "tests\CStructSharp.Fuzz\CStructSharp.Fuzz.csproj", "{E7A36D0E-1206-4F23-8D18-C02A6A5383F9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
