@@ -23,7 +23,7 @@ jobs:
       - name: Restore tools and projects
         run: |
           dotnet tool restore
-          dotnet restore ./tests/CStructSharpTests/tests/CStructSharpTests.csproj
+          dotnet restore ./tests/CStructSharpTests/CStructSharpTests.csproj
 
       - name: Mutate the reviewed permanent non-Web scope
         run: >-

@@ -39,7 +39,8 @@ jobs:
         run: npm run lint
 
       - name: Lint relocated WASM and repository scripts
-        run: node node_modules/eslint/bin/eslint.js --config ../../tools/eslint.config.mjs "../../tools/**/*.mjs" "../../src/CStructSharp.Wasm/**/*.js" --max-warnings 0
+        working-directory: .
+        run: node apps/workshop/node_modules/eslint/bin/eslint.js --config tools/eslint.config.mjs "tools/**/*.mjs" "src/CStructSharp.Wasm/**/*.js" --max-warnings 0
 
       - name: Check formatting
         run: npm run format:check

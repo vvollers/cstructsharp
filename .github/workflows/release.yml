@@ -71,7 +71,7 @@ jobs:
 
       # Nothing below this step may run against an untested build: this is the release's test gate.
       - name: Run managed test suite
-        run: dotnet test ./tests/CStructSharpTests/tests/CStructSharpTests.csproj -c Release
+        run: dotnet test ./tests/CStructSharpTests/CStructSharpTests.csproj -c Release
 
       - name: Set up Node.js for documentation
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -172,9 +172,8 @@ jobs:
         working-directory: apps/workshop
         run: npm run build
 
-      # The inspector shares the explorer's already-built, already-validated WASM bundle (see
-      # apps/inspector/scripts/copy-wasm.mjs) instead of publishing its own, so it must build after
-      # apps/workshop/public/wasm exists.
+      # Both independent apps stage the repository-owned validated WASM publication.
+      # The workshop's full build above has already populated artifacts/wasm.
       - name: Install inspector dependencies
         working-directory: apps/inspector
         run: npm ci

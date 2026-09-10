@@ -22,7 +22,7 @@ npm --prefix ./apps/workshop ci
 npm --prefix ./apps/workshop run build
 ```
 
-The production build publishes the C# bridge into `apps/workshop/public/wasm` and builds Vue into
+The production build publishes the C# bridge into `artifacts/wasm`, stages it into the workshop's `public/wasm`, and builds Vue into
 `apps/workshop/dist`. It verifies the copied runtime publication. The managed solution alone does not build Vue.
 
 After the first build:
@@ -89,8 +89,8 @@ Install Playwright Chromium from the web directory with `npx playwright install 
 For the exact released bundle, create and test an archive:
 
 ```powershell
-node ./apps/workshop/scripts/create-wasm-package.mjs
-Compress-Archive -Path ./apps/workshop/artifacts/wasm-package/* -DestinationPath ./artifacts/onboarding-browser.zip -Force
+node ./tools/packaging/create-wasm-package.mjs
+Compress-Archive -Path ./artifacts/wasm-package/* -DestinationPath ./artifacts/onboarding-browser.zip -Force
 ./tools/packaging/Test-OnboardingBrowser.ps1 -ArchivePath ./artifacts/onboarding-browser.zip
 ```
 
