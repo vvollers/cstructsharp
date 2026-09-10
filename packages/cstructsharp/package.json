@@ -1,6 +1,6 @@
 {
   "name": "cstructsharp",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "description": "Read, serialize, and update binary data from C-style struct layouts in Node.js and browsers, powered by WebAssembly.",
   "type": "module",
