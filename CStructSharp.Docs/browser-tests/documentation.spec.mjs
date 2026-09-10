@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 const representativePages = [
-  { path: "guides/browser/index.html", heading: "Use CStructSharp in a browser" },
+  { path: "guides/browser/index.html", heading: "Use CStructSharp from JavaScript" },
   { path: "guides/browser/inspector.html", heading: "Build a browser binary inspector" },
   { path: "guides/header-next-steps.html", heading: "Write, update, and use a C# class" },
   {
