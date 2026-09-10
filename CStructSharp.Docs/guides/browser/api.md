@@ -1,6 +1,6 @@
 ---
 title: JavaScript API and value conversion
-description: Read, create, and update bytes using the public browser bundle and preserve exact values across JSON.
+description: Read, create, and update bytes in Node.js and browsers and preserve exact values across JSON.
 ---
 
 # JavaScript API and value conversion
@@ -81,12 +81,12 @@ for the distinction between validation failures and physical write failures, and
 
 ## TypeScript and editor help
 
-The current source distribution includes `cstructsharp-wasm.d.ts` beside `cstructsharp-wasm.js`.
-Keep the declaration file with the JavaScript file when copying the bundle. TypeScript resolves it from the
-same import; no separate type package or reference to the explorer source is needed.
+The npm package includes TypeScript declarations, resolved from the same import. No separate type package or
+reference to the explorer source is needed. For the standalone ZIP, keep `cstructsharp-wasm.d.ts` beside
+`cstructsharp-wasm.js` and use that local entry point instead.
 
 ```typescript
-import { serialize } from './cstructsharp-wasm.js';
+import { serialize } from 'cstructsharp';
 
 const result = await serialize('struct header { uint16 kind; };', { kind: 3 }, { rootTypeName: 'header' });
 if (result.Success) {

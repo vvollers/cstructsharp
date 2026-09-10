@@ -7,7 +7,7 @@ items:
   href: install-and-first-parse.md
 - name: Continue with the header
   href: header-next-steps.md
-- name: Browser and WASM
+- name: JavaScript and WASM
   href: browser/
 - name: Glossary
   href: glossary.md

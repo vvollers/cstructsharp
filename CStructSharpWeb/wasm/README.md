@@ -3,6 +3,10 @@
 This bundle reads and writes binary data in a browser using a C-like layout. The browser runs the managed library
 locally; its user does not need .NET installed.
 
+For Node.js or a browser app with a build tool, install the npm package with `npm install cstructsharp`.
+Follow the [JavaScript quick start](https://vvollers.github.io/cstructsharp/docs/guides/browser/index.html)
+for Node.js and Vite examples. The instructions below are for this optional standalone browser ZIP.
+
 ## Run your first example
 
 Keep the complete extracted archive together. With Node.js installed, open a terminal in this directory and run:

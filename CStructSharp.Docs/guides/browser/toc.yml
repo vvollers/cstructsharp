@@ -1,5 +1,5 @@
 items:
-- name: Browser starter
+- name: Node.js and browser quick start
   href: index.md
 - name: JavaScript API and values
   href: api.md

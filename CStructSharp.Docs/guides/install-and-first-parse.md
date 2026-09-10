@@ -6,7 +6,7 @@ description: Create a console project and read six bytes using a complete CStruc
 # Install and make a first parse
 
 This lesson reads a six-byte header into C# values. You need basic C# and a stable .NET 10 SDK.
-You do not need to clone CStructSharp. For JavaScript, use the separate [browser starter](browser/index.md).
+You do not need to clone CStructSharp. For JavaScript, use the separate [Node.js and browser quick start](browser/index.md).
 
 ## Create an application
 

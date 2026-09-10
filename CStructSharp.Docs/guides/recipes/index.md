@@ -5,7 +5,7 @@ description: Choose a complete executable recipe by task, difficulty, and platfo
 
 # Tested recipes
 
-Start with the [first C# program](../install-and-first-parse.md) or the [browser starter](../browser/index.md).
+Start with the [first C# program](../install-and-first-parse.md) or the [Node.js and browser quick start](../browser/index.md).
 These 22 recipes include complete programs, exact byte/value checks, exercises, and answers. Browser links identify
 related lessons; C# streams, spans, typed classes, and runtime-variable dictionaries have no direct browser equivalent.
 

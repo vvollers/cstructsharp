@@ -1,6 +1,6 @@
 ---
 title: Documentation deployment
-description: Build and review the Pages artifact, then deploy it only through the separately authorized workflow.
+description: Validate documentation and deploy the complete project website without creating a library release.
 ---
 
 # Documentation deployment
@@ -52,16 +52,21 @@ The artifact is built only from Git-visible inputs. Ignored local planning files
 
 ## Authorize deployment
 
+Use the **Publish website** workflow (`.github/workflows/site.yml`) for documentation and frontend updates.
+It builds and tests the documentation, explorer, and inspector and includes the project landing page. It keeps
+the current library version and does not publish npm or NuGet packages.
+
 Deployment is manual:
 
 1. Confirm that the target commit is on protected `main` and has a successful documentation run.
-2. Open the `Documentation` workflow and choose **Run workflow**.
-3. Select the reviewed `main` ref and set `deploy` to `true`.
+2. Open the `Publish website` workflow and choose **Run workflow**.
+3. Select the reviewed `main` ref.
 4. Approve the `github-pages` environment when its protection rules request approval.
 5. Wait for the deploy job to report the environment URL.
 
-The deploy job consumes only the artifact produced by its successful build job. Its concurrency settings do not
-cancel a publication already in progress.
+The deploy job consumes only the complete artifact produced by its successful build job. It shares the release
+workflow's concurrency group so those deployments cannot overlap. The older `Documentation` workflow's `deploy`
+option uploads only the documentation directory and must not be used for this combined project website.
 
 ## Verify the live site
 

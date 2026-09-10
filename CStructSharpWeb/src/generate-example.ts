@@ -228,9 +228,11 @@ catch (Exception error)
 }
 `;
   const api = operation === "parse" ? "parseWithDebug" : operation;
-  const javascript = `// Save as app.js beside cstructsharp-wasm.js and the complete WASM bundle.
-// Load it with <script type="module" src="./app.js"></script> on a page served over HTTP.
-import { ${api} } from "./cstructsharp-wasm.js";
+  const javascript = `// Install: npm install cstructsharp
+// Node.js 22.14+: save as example.mjs and run node example.mjs.
+// Browsers: register the cstructsharp/vite plugin before using this import.
+// Setup: https://vvollers.github.io/cstructsharp/docs/guides/browser/index.html
+import { ${api} } from "cstructsharp";
 
 // These are the live inputs captured when you clicked Generate.
 const definition = ${jsText(definition)};

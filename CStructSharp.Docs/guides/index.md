@@ -21,7 +21,7 @@ If this is your first binary-format library, read these pages in order:
 
 The remaining guides cover data shapes and operational concerns:
 
-For JavaScript, take the separate [browser and WASM route](browser/index.md). Use the [glossary](glossary.md)
+For JavaScript, take the separate [Node.js and browser quick start](browser/index.md). Use the [glossary](glossary.md)
 when a term is new. The [binary file walkthrough](binary-file-walkthrough.md) combines the concepts in a larger task.
 
 - [C# type mapping](typed-values.md), [strings](strings-and-encodings.md), [enums](enums.md),

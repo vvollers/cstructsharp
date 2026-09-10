@@ -1,0 +1,90 @@
+name: Publish website
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and verify complete website
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require main
+        run: test "$GITHUB_REF" = refs/heads/main
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          dotnet-version: 8.0.x
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.5.0
+      - name: Install documentation browser dependencies
+        working-directory: CStructSharp.Docs
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ripgrep
+          npm ci --ignore-scripts
+          npm exec -- playwright install-deps chromium
+      - name: Validate documentation
+        shell: pwsh
+        run: ./tools/Validate-Documentation.ps1
+      - name: Install WebAssembly workload
+        run: dotnet workload restore ./CStructSharpWeb/wasm/CStructSharpWeb.Wasm.csproj
+      - name: Build and test explorer
+        working-directory: CStructSharpWeb
+        run: |
+          npm ci
+          npm run build
+          npx playwright install --with-deps chromium
+          npm run test:unit
+          npm run test:e2e
+      - name: Build and test inspector
+        working-directory: CStructSharpInspector
+        run: |
+          npm ci
+          npm run build
+          npx playwright install --with-deps chromium
+          npm run test:unit
+          npm run test:e2e
+      - name: Assemble complete website
+        run: |
+          mkdir -p artifacts/pages/docs artifacts/pages/explorer artifacts/pages/inspector
+          cp -R CStructSharp.Docs/_site/. artifacts/pages/docs/
+          cp -R CStructSharpWeb/dist/. artifacts/pages/explorer/
+          cp -R CStructSharpInspector/dist/. artifacts/pages/inspector/
+          cp CStructSharp.Docs/landing/index.html artifacts/pages/index.html
+          touch artifacts/pages/.nojekyll
+          test -s artifacts/pages/docs/index.html
+          test -s artifacts/pages/explorer/index.html
+          test -s artifacts/pages/inspector/index.html
+      - name: Upload website
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: artifacts/pages
+
+  deploy:
+    name: Deploy complete website
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Deploy website
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

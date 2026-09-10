@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="CStructSharp: describe a binary layout with a compact C-like language, then parse, inspect, serialize, and update it from .NET or directly in your browser."
+      content="CStructSharp: describe a binary layout with a compact C-like language, then parse, inspect, serialize, and update it from .NET, Node.js, or your browser."
     />
     <title>CStructSharp</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -381,7 +381,7 @@
         <p class="intro">
           CStructSharp reads and writes binary data using a description that looks like a C struct. Give it a
           layout and some bytes, and it gives you named values. Give it values, and it creates bytes or changes a
-          field in existing data — from C# or from JavaScript in a browser, using the exact same layout language.
+          field in existing data — from C#, Node.js, or JavaScript in a browser, using the exact same layout language.
         </p>
       </section>
 
@@ -438,7 +438,7 @@
           <h2>Parse the same six bytes twice</h2>
           <p>
             The same layout string works on both sides — describe it once, and read it from a .NET process or a
-            browser tab.
+            Node.js process or browser tab.
           </p>
         </div>
         <div class="snippets">
@@ -458,18 +458,17 @@
           </div>
           <div class="snippet">
             <div class="snippet-head">
-              <span class="filename">app.js</span>
+              <span class="filename">example.mjs</span>
               <button class="copy-btn" type="button" data-copy-target="snippet-js">Copy</button>
             </div>
-            <pre id="snippet-js"><code><span class="tok-kw">import</span> { loadCStructSharpWasm, parseWithDebug } <span class="tok-kw">from</span> <span class="tok-str">"./cstructsharp-wasm.js"</span>;
-
-<span class="tok-kw">await</span> <span class="tok-fn">loadCStructSharpWasm</span>();
+            <pre id="snippet-js"><code><span class="tok-kw">import</span> { parseWithDebug } <span class="tok-kw">from</span> <span class="tok-str">"cstructsharp"</span>;
 
 <span class="tok-kw">const</span> definition = <span class="tok-str">"struct header { uint16 kind; uint32 length; };"</span>;
 <span class="tok-kw">const</span> bytes = <span class="tok-kw">new</span> <span class="tok-type">Uint8Array</span>([<span class="tok-num">0x02</span>, <span class="tok-num">0x00</span>, <span class="tok-num">0x06</span>, <span class="tok-num">0x00</span>, <span class="tok-num">0x00</span>, <span class="tok-num">0x00</span>]);
 
 <span class="tok-kw">const</span> result = <span class="tok-kw">await</span> <span class="tok-fn">parseWithDebug</span>(definition, bytes, { rootTypeName: <span class="tok-str">"header"</span> });
-<span class="tok-kw">const</span> header = <span class="tok-var">JSON</span>.<span class="tok-fn">parse</span>(result.Data);
+<span class="tok-kw">if</span> (!result.Success) <span class="tok-kw">throw new</span> Error(result.Error.Message);
+<span class="tok-kw">const</span> header = <span class="tok-var">JSON</span>.<span class="tok-fn">parse</span>(result.Data).header;
 
 <span class="tok-var">console</span>.<span class="tok-fn">log</span>(<span class="tok-str">`kind = ${header.kind}`</span>);
 <span class="tok-var">console</span>.<span class="tok-fn">log</span>(<span class="tok-str">`length = ${header.length}`</span>);</code></pre>
@@ -491,12 +490,12 @@
           </div>
           <div class="install-card">
             <h3>JavaScript / WebAssembly</h3>
-            <p class="sub">No npm package yet — the WASM bundle ships as a self-contained download.</p>
-            <code class="code-inline">node serve.mjs</code>
+            <p class="sub">Node.js 22.14+ and browsers. Includes the WASM runtime; no .NET installation required.</p>
+            <code class="code-inline">npm install cstructsharp</code>
             <p class="step">
-              Download <code>cstructsharp-wasm-&lt;version&gt;.zip</code> from
-              <a href="https://github.com/vvollers/cstructsharp/releases">GitHub Releases</a>, extract it, run the
-              command above, then open <code>http://127.0.0.1:8080/starter/</code>.
+              Save the example above as <code>example.mjs</code> and run <code>node example.mjs</code>, or follow the
+              <a href="docs/guides/browser/index.html">JavaScript quick start</a> to configure the included Vite
+              plugin for a browser app. The guide also covers the optional standalone browser ZIP.
             </p>
           </div>
         </div>
