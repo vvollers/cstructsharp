@@ -1,6 +1,7 @@
 // Copied into an isolated installed consumer. No repository imports or mock managed exports.
 import assert from "node:assert/strict";
-import { parseWithDebug, serialize, update, getVersion, loadCStructSharpWasm } from "cstructsharp";
+import { parse, parseWithDebug, serialize, update, getVersion, loadCStructSharpWasm } from "cstructsharp";
+import { Readable } from "node:stream";
 
 globalThis.fetch = () => {
   throw new Error("Node runtime must not access the network");
@@ -37,7 +38,20 @@ const largeRead = await parseWithDebug("struct large { uint64 value; };", large.
   rootTypeName: "large",
 });
 assert.equal(JSON.parse(largeRead.Data).large.value, "18446744073709551615");
-await assert.rejects(parseWithDebug(definition, [2]), /Uint8Array/);
+await assert.rejects(parseWithDebug(definition, [2]), /Binary chunks/);
+const largeInput = new Uint8Array(8 * 1024 * 1024);
+largeInput.set(input);
+for (const source of [largeInput, new DataView(largeInput.buffer), new Blob([largeInput]),
+  Readable.from([Buffer.from(input.subarray(0, 3)), Buffer.from(input.subarray(3))]),
+  new Response(input)]) {
+  const parsed = await parse(definition, source, options);
+  assert.equal(parsed.Success, true);
+  assert.deepEqual(JSON.parse(parsed.Data), { header: { kind: 2, length: 6 } });
+  assert.deepEqual(parsed.DebugData, []);
+}
+const largeDebug = await parseWithDebug(definition, largeInput, options);
+assert.equal(largeDebug.Success, true);
+assert.equal(largeInput[0], 2);
 await assert.rejects(loadCStructSharpWasm({ runtimeUrl: "/wrong/" }), /browser option/);
 const version = await getVersion();
 assert.ok(

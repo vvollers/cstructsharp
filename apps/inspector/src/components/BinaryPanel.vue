@@ -1,13 +1,21 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, nextTick, ref, shallowRef, watch } from "vue";
 import { useDropZone } from "@vueuse/core";
-import { DEFAULT_ASCII_CATEGORY_CELL_CLASS_RESOLVER, VueHex } from "vuehex";
+import {
+  DEFAULT_ASCII_CATEGORY_CELL_CLASS_RESOLVER,
+  VueHex,
+  type VueHexWindowRequest,
+  type VueHexEditIntent,
+  type VueHexSearchRequest,
+} from "vuehex";
+import { editBlob, searchBlob } from "../blob-hex";
 
 import { computeFieldGroups, findDebugEntryIndexByOffset } from "../debug-path";
 import type { DebugDataItem } from "../wasm/cstruct-contract";
 
 const props = defineProps<{
   bytes: Uint8Array;
+  source: Blob | null;
   debugData: DebugDataItem[];
   selectedIndices: ReadonlySet<number>;
 }>();
@@ -16,12 +24,101 @@ const fieldGroups = computed(() => computeFieldGroups(props.debugData));
 
 const emit = defineEmits<{
   "update:bytes": [bytes: Uint8Array];
+  "update:source": [source: Blob];
   "byte-click": [offset: number];
   "file-dropped": [file: File];
 }>();
 
 const dropZone = ref<HTMLElement | null>(null);
 const hexEditor = ref<InstanceType<typeof VueHex> | null>(null);
+const windowBytes = shallowRef(new Uint8Array());
+const windowOffset = ref(0);
+const windowError = ref("");
+const jumpOffset = ref("");
+let windowVersion = 0;
+const undo: Blob[] = [];
+const redo: Blob[] = [];
+let editedSource: Blob | null = null;
+
+async function loadWindow({ offset, length }: VueHexWindowRequest): Promise<void> {
+  const source = props.source;
+  const version = ++windowVersion;
+  if (!source) return;
+  try {
+    const start = Math.max(0, Math.min(offset, source.size));
+    const bytes = new Uint8Array(
+      await source
+        .slice(start, start + Math.min(Math.max(length, 65536), 1024 * 1024))
+        .arrayBuffer(),
+    );
+    if (version !== windowVersion || source !== props.source) return;
+    windowOffset.value = start;
+    windowBytes.value = bytes;
+    windowError.value = "";
+  } catch {
+    if (version === windowVersion)
+      windowError.value = "Could not read this file range. Reload the file and try again.";
+  }
+}
+
+watch(
+  () => props.source,
+  (source) => {
+    if (source !== editedSource) {
+      undo.length = 0;
+      redo.length = 0;
+      windowOffset.value = 0;
+    }
+    if (source) void loadWindow({ offset: windowOffset.value, length: 65536 });
+    else windowVersion++;
+  },
+  { immediate: true },
+);
+
+function handleEdit(intent: VueHexEditIntent): void {
+  const source = props.source;
+  if (!source) return;
+  let next: Blob | undefined;
+  if (intent.kind === "undo") {
+    next = undo.pop();
+    if (next) redo.push(source);
+  } else if (intent.kind === "redo") {
+    next = redo.pop();
+    if (next) undo.push(source);
+  } else {
+    next = editBlob(source, intent);
+    undo.push(source);
+    if (undo.length > 100) undo.shift();
+    redo.length = 0;
+  }
+  if (next) {
+    editedSource = next;
+    emit("update:source", next);
+  }
+}
+
+function searchSource(request: VueHexSearchRequest) {
+  return searchBlob(props.source!, request);
+}
+
+async function jumpToByte(): Promise<void> {
+  const text = jumpOffset.value.trim();
+  const offset = Number(text);
+  if (
+    !/^(?:[0-9]+|0x[0-9a-f]+)$/i.test(text) ||
+    !Number.isSafeInteger(offset) ||
+    offset < 0 ||
+    offset >= byteCount.value
+  ) {
+    windowError.value = "Enter a decimal or 0x hexadecimal byte offset within the file.";
+    return;
+  }
+  windowError.value = "";
+  hexEditor.value?.scrollToByte?.(offset);
+  // Crossing a virtual chunk changes its scroll height; apply the position after Vue renders it.
+  await nextTick();
+  hexEditor.value?.scrollToByte?.(offset);
+}
 
 const { isOverDropZone } = useDropZone(dropZone, {
   multiple: false,
@@ -34,7 +131,7 @@ const { isOverDropZone } = useDropZone(dropZone, {
 });
 
 function handleModelUpdate(next: Uint8Array): void {
-  emit("update:bytes", next);
+  if (!props.source) emit("update:bytes", next);
 }
 
 /**
@@ -70,7 +167,7 @@ function handleByteClick(event: { index: number }): void {
   emit("byte-click", event.index);
 }
 
-const byteCount = computed(() => props.bytes.length);
+const byteCount = computed(() => props.source?.size ?? props.bytes.length);
 
 defineExpose({
   scrollToByte(offset: number): void {
@@ -82,6 +179,10 @@ defineExpose({
 <template>
   <section ref="dropZone" class="binary-panel" :class="{ 'drop-active': isOverDropZone }">
     <div class="panel-topbar">
+      <form v-if="source" class="byte-jump" @submit.prevent="jumpToByte">
+        <input v-model="jumpOffset" aria-label="Go to byte" placeholder="Byte offset / 0x…" />
+        <button type="submit">Go</button>
+      </form>
       <span class="byte-count">{{ byteCount.toLocaleString() }} bytes</span>
     </div>
     <!-- data-debug-count/-selected are unused styling hooks; reading debugData/selectedIndices here (not
@@ -94,10 +195,15 @@ defineExpose({
       :data-debug-count="debugData.length"
       :data-debug-selected="selectedIndices.size"
     >
+      <!-- Commit the window offset with its bytes after the asynchronous read, not on the request event. -->
       <VueHex
         ref="hexEditor"
-        :model-value="bytes"
-        data-mode="buffer"
+        :model-value="source ? windowBytes : bytes"
+        :data-mode="source ? 'window' : 'buffer'"
+        :total-size="byteCount"
+        :window-offset="source ? windowOffset : 0"
+        @update:window-offset="() => {}"
+        :search-provider="source ? searchSource : undefined"
         theme="dark"
         :editable="true"
         :cursor="true"
@@ -107,10 +213,13 @@ defineExpose({
         :cell-class-for-byte="[DEFAULT_ASCII_CATEGORY_CELL_CLASS_RESOLVER, fieldClassForByte]"
         aria-label="Binary data editor"
         @update:model-value="handleModelUpdate"
+        @update-virtual-data="loadWindow"
+        @edit="handleEdit"
         @byte-click="handleByteClick"
       />
     </div>
     <p v-if="isOverDropZone" class="drop-hint">Drop to load this file</p>
+    <p v-if="windowError" role="alert">{{ windowError }}</p>
   </section>
 </template>
 
@@ -135,6 +244,23 @@ defineExpose({
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: var(--color-bg-secondary);
 }
+.byte-jump {
+  display: flex;
+  gap: 4px;
+  margin-right: auto;
+}
+.byte-jump input {
+  width: 140px;
+  min-width: 0;
+}
+.byte-jump input,
+.byte-jump button {
+  padding: 4px;
+  color: var(--color-text);
+  background: var(--color-bg-tertiary);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
 .byte-count {
   font-size: 11px;
   color: var(--color-text-muted);
@@ -148,6 +274,19 @@ defineExpose({
   height: 100%;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-sm);
+}
+/* Fixed whole-pixel rows keep virtual chunk coordinates stable when a new window arrives. */
+.hex-body :deep(.vuehex-table) {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.hex-body :deep(.vuehex-table td),
+.hex-body :deep(.vuehex-table th) {
+  line-height: 20px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+  border-top: 0;
+  border-bottom: 0;
 }
 /* Fill the spacing between hex cells so a field reads as a band, not a row of boxes.
    Preserve the editor's wider middle-column gutter and its original cell widths. */

@@ -45,6 +45,11 @@ const recovery = computed(() => {
     "read-failed":
       "Check that all required bytes are present and that the root, byte order, and pointer settings match the format.",
     "read-budget": "Compare the expected field sizes with Safety limits in the schema settings.",
+    "invalid-input":
+      "Check the input and schema settings. File size is independent of the read safety limits.",
+    "format-mismatch":
+      "This example reads the first local file header, not the entire ZIP archive. See the example description for its scope.",
+    "file-read-failed": "Reload the file after checking its location and access permissions.",
   };
   return (
     hints[props.result?.Error?.Code ?? ""] ??
@@ -117,7 +122,9 @@ watch(
           </div>
           <div v-if="result.Error.Offset !== null">
             <dt>Offset</dt>
-            <dd>{{ result.Error.Offset }}</dd>
+            <dd>
+              {{ result.Error.Offset }} (0x{{ result.Error.Offset.toString(16).toUpperCase() }})
+            </dd>
           </div>
         </dl>
         <p v-if="!result.Success" class="recovery">{{ recovery }}</p>

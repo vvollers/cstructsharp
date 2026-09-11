@@ -58,7 +58,11 @@ under a path such as `/tools/binary/`, keep relative imports inside that path in
 | Works at root but fails under a directory | Import URLs | Use paths relative to the bundle and deploy the complete directory |
 | Works locally but fails after an update | Mixed assets or cache | Deploy a complete bundle into a versioned directory and update the application import |
 
-Load the runtime once and reuse it. The public convenience calls are asynchronous, but parsing itself runs managed
-work in the browser; a large operation can still delay the page. Keep input and traversal limits appropriate to the
-format. For large interactive workloads, assess a worker integration separately rather than assuming `await` moves
-work off the UI thread.
+Keep the complete runtime directory together, including `large-source.js` and `source-worker.js`. Source parsing
+automatically starts a module worker relative to those assets. Host them on the application origin and allow that
+origin in `worker-src` if you use a Content Security Policy. No SharedArrayBuffer or cross-origin isolation is
+required. Stream staging also needs HTTPS/localhost and origin-private file storage.
+
+`parse` uses worker execution. `parseWithDebug` uses it for large or non-Uint8Array sources and when `signal` is
+supplied. Small byte-array debug calls and in-memory write operations still use the shared runtime directly.
+See [large data](large-data.md) for memory, cancellation, and storage behavior.

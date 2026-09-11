@@ -1,4 +1,5 @@
 import {
+  parse,
   parseWithDebug,
   serialize,
   update,
@@ -31,7 +32,7 @@ if (created.Success) {
 }
 // @ts-expect-error Unknown option should be caught by editor/type checker.
 await parseWithDebug(definition, new Uint8Array(), { littleEdnian: true });
-// @ts-expect-error Bytes must be Uint8Array, not a numeric array.
+// @ts-expect-error Chunk collections contain buffers/views, not numbers.
 await parseWithDebug(definition, [1, 2]);
 // @ts-expect-error Successful serialize Data must be narrowed before use.
 created.Data.subarray(0);
@@ -39,3 +40,10 @@ const version: string = await getVersion();
 const raw = await loadCStructSharpWasm();
 const rawBytes: Uint8Array = raw.serialize(definition, '{"value":"42"}');
 console.log(version, rawBytes);
+
+await parse(definition, new Blob([new Uint8Array(8)]));
+await parse(definition, new DataView(new ArrayBuffer(8)), { signal: AbortSignal.abort() });
+await parseWithDebug(definition, new Response(new Uint8Array(8)), { maxSpoolBytes: 1024 });
+await parse(definition, [new Uint8Array(4), new Uint8Array(4)]);
+async function* chunks() { yield new Uint8Array(8); }
+await parse(definition, chunks());

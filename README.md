@@ -83,6 +83,10 @@ an existing header.
 
 ## Use JavaScript in Node.js or a browser
 
+Read large files, buffers, and streamed binary input with automatic paging and worker execution. The
+[large-data guide](https://vvollers.github.io/cstructsharp/docs/guides/browser/large-data.html) shows how to pass
+`File`, `Blob`, byte views, fetch responses, and Node streams directly to `parse` or `parseWithDebug`.
+
 The npm package includes the prebuilt WebAssembly runtime and TypeScript declarations:
 
 ```sh

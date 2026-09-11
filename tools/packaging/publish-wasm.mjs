@@ -111,6 +111,9 @@ function stagePublication(stagingDirectory) {
 
   copyFile(path.join(webRoot, "../../src/CStructSharp.Wasm", "main.js"), path.join(stagingDirectory, "main.js"));
   copyFile(path.join(webRoot, "../../src/CStructSharp.Wasm", "bootstrap.js"), path.join(stagingDirectory, "bootstrap.js"));
+  for (const name of ["large-source.js", "source-worker.js"]) {
+    copyFile(path.join(repositoryRoot, "src/CStructSharp.Wasm", name), path.join(stagingDirectory, name));
+  }
   copyFile(path.join(appBundle, runtimeConfigName), path.join(stagingDirectory, runtimeConfigName));
   return validateWasmPublication(stagingDirectory);
 }

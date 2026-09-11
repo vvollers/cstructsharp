@@ -151,6 +151,7 @@ public class WellKnownFormatFixtures
                                       uint16 file_name_length;
                                       uint16 extra_field_length;
                                       char file_name[file_name_length];
+                                      uint8 extra_field[extra_field_length];
                                   };
                                   """;
         byte[] bytes =

@@ -3,6 +3,8 @@ items:
   href: index.md
 - name: JavaScript API and values
   href: api.md
+- name: Large files, buffers, and streams
+  href: large-data.md
 - name: Loading and deployment
   href: deployment.md
 - name: Build a binary inspector

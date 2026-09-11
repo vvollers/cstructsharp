@@ -41,5 +41,5 @@ export function loadCStructSharpWasm(options) {
   })();
   return loading;
 }
-export const { parseWithDebug, serialize, update, getVersion } =
+export const { parse, parseWithDebug, serialize, update, getVersion } =
   createPublicApi(loadCStructSharpWasm);

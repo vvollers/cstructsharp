@@ -106,5 +106,6 @@ Answer: the updated bytes start with `05`; the final read reports kind `5`. The 
 To see a failure, remove the final zero from the input array. The page reports `read-failed`. Restore it to fix the
 input. If the page never reaches Ready, follow [Loading and deployment](deployment.md).
 
-Continue with the [JavaScript API and value guide](api.md). The C# API has additional stream and memory operations;
+Continue with the [JavaScript API and value guide](api.md) and [large files, buffers, and streams](large-data.md).
+The C# API has additional stream and memory operations;
 the browser API offers parse, serialize, and update rather than every managed method.

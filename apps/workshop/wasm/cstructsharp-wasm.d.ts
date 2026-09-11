@@ -15,6 +15,10 @@ export interface LayoutOptions {
 }
 
 export interface ParseWithDebugOptions extends LayoutOptions {
+  /** Cancel source staging or worker parsing. Cancellation rejects with AbortError. */
+  signal?: AbortSignal;
+  /** Maximum temporary storage for a one-pass source. Default: 1 GiB. Not a File/Blob size limit in browsers. */
+  maxSpoolBytes?: number;
   addressingMode?: "Absolute" | "Relative";
   /** Address origin. Use a decimal string or bigint for an exact large integer. */
   origin?: number | string | bigint;
@@ -92,6 +96,8 @@ export interface RawWasmAdapter {
   ready: true;
   error: null;
   exports: unknown;
+  /** Asynchronous paged source API. Prefer public parse/parseWithDebug. */
+  parseSource(definition: string, source: BinarySource, options?: ParseWithDebugOptions | null, debug?: boolean): Promise<Result<string, "parse">>;
   parseWithDebug(
     definition: string,
     bytes: Uint8Array,
@@ -109,12 +115,21 @@ export interface RawWasmAdapter {
 }
 /** Load the bundle, or reject if the runtime cannot load. Prefer the public operations below. */
 export function loadCStructSharpWasm(): Promise<RawWasmAdapter>;
+/** Raw bytes of a view are used, respecting byteOffset/byteLength; no numeric element conversion. */
+export type BinaryChunk = ArrayBufferLike | ArrayBufferView;
+/** Streams/iterables yield binary chunks only and are staged to temporary storage before parsing. */
+export type BinarySource = BinaryChunk | Blob | Response | ReadableStream<BinaryChunk>
+  | Iterable<BinaryChunk> | AsyncIterable<BinaryChunk> | { getFile(): Promise<File> };
+/** Parse a binary source without debug byte copies. Data is JSON text with the selected root wrapper.
+ * Large source length is independent of the read/array/string limits and returned value size.
+ */
+export function parse(definition: string, source: BinarySource, options?: ParseWithDebugOptions | null): Promise<Result<string, "parse">>;
 /** Read bytes. Successful Data is JSON text with a root wrapper, e.g. values.header.kind.
  * Large integers in that JSON may be decimal strings; do not coerce them to Number.
  */
 export function parseWithDebug(
   definition: string,
-  bytes: Uint8Array,
+  bytes: BinarySource,
   options?: ParseWithDebugOptions | null,
 ): Promise<Result<string, "parse">>;
 /** Create bytes. Pass the selected root's fields without the parse result's root wrapper. */

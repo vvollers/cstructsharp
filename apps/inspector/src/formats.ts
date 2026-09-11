@@ -137,6 +137,7 @@ struct root {
     uint16 file_name_length;
     uint16 extra_field_length;
     char file_name[file_name_length];
+    uint8 extra_field[extra_field_length];
 };`,
     binaryHex:
       "50 4b 03 04 14 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 08 00 00 00 74 65 73 74 2e 74 78 74",
@@ -144,7 +145,7 @@ struct root {
     parserOptions: defaultParserOptions,
     documentation: {
       summary:
-        'A ZIP local file header for an empty stored entry named "test.txt" - bitflags via an inline anonymous struct of bitfields, and a filename array whose length is a runtime expression (an earlier field).',
+        'Reads the first ZIP local file header at byte 0, including its filename and raw extra fields. Files of any supported size are read on demand. This is not an archive extractor: empty archives, self-extracting prefixes, and split archives need a different starting layout. Data-descriptor entries can leave CRC/sizes unset here; ZIP64 sizes live in extra fields. Filename bytes are shown as raw characters, without UTF-8/CP437 decoding.',
     },
     sourceFixture:
       "WellKnownFormatFixtures.Zip_LocalFileHeader_DecodesBitflagsAndRuntimeLengthName",

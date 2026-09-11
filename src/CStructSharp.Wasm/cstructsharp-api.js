@@ -4,14 +4,29 @@ const INTEROP_CONTRACT_VERSION = 5;
 export function createPublicApi(loadCStructSharpWasm) {
   /** Parse bytes; successful Data is JSON text with the selected root wrapper.
    * @param {string} definition Portable layout source.
-   * @param {Uint8Array} bytes Input bytes.
+   * @param {import("./cstructsharp-wasm.js").BinarySource} bytes Binary source.
    * @param {import("./cstructsharp-wasm.js").ParseWithDebugOptions | null} [options]
    * @returns {Promise<import("./cstructsharp-wasm.js").Result<string, "parse">>}
    */
   async function parseWithDebug(definition, bytes, options = null) {
-    requireBytes(bytes);
     const api = await loadCStructSharpWasm();
-    return parseEnvelope(api.parseWithDebug(definition, bytes, options), "parse");
+    if (
+      !(bytes instanceof Uint8Array) ||
+      bytes.byteLength > 4 * 1024 * 1024 ||
+      options?.signal
+    ) {
+      return api.parseSource(definition, bytes, options, true);
+    }
+    return parseEnvelope(
+      api.parseWithDebug(definition, bytes, options),
+      "parse",
+    );
+  }
+
+  /** Parse any supported binary source without allocating debug byte copies. */
+  async function parse(definition, source, options = null) {
+    const api = await loadCStructSharpWasm();
+    return api.parseSource(definition, source, options, false);
   }
 
   /** Serialize root fields (without a parse root wrapper). BigInt values retain exact decimal digits.
@@ -39,7 +54,13 @@ export function createPublicApi(loadCStructSharpWasm) {
     requireBytes(bytes);
     const api = await loadCStructSharpWasm();
     return runBinaryOperation("update", () =>
-      api.updateStream(definition, bytes, path, stringifyInteropValue(value), options),
+      api.updateStream(
+        definition,
+        bytes,
+        path,
+        stringifyInteropValue(value),
+        options,
+      ),
     );
   }
 
@@ -49,16 +70,26 @@ export function createPublicApi(loadCStructSharpWasm) {
     return api.getVersion();
   }
 
-  return { loadCStructSharpWasm, parseWithDebug, serialize, update, getVersion };
+  return {
+    loadCStructSharpWasm,
+    parse,
+    parseWithDebug,
+    serialize,
+    update,
+    getVersion,
+  };
 }
 
 function parseEnvelope(value, operation) {
   try {
     return JSON.parse(value);
   } catch (cause) {
-    throw new TypeError(`CStructSharp returned an invalid ${operation} response envelope.`, {
-      cause,
-    });
+    throw new TypeError(
+      `CStructSharp returned an invalid ${operation} response envelope.`,
+      {
+        cause,
+      },
+    );
   }
 }
 
@@ -96,9 +127,12 @@ function parseBridgeError(cause, operation) {
   try {
     parsed = JSON.parse(message);
   } catch (parseCause) {
-    throw new TypeError(`CStructSharp returned an invalid ${operation} error.`, {
-      cause: parseCause,
-    });
+    throw new TypeError(
+      `CStructSharp returned an invalid ${operation} error.`,
+      {
+        cause: parseCause,
+      },
+    );
   }
 
   if (

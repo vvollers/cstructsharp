@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, shallowRef } from "vue";
+import { computed, onMounted, onBeforeUnmount, ref, shallowRef } from "vue";
 import { useFileDialog } from "@vueuse/core";
 import {
   DockviewVue,
@@ -13,6 +13,7 @@ import SchemaPanelHost from "./components/SchemaPanelHost.vue";
 import BinaryPanelHost from "./components/BinaryPanelHost.vue";
 import ResultPanelHost from "./components/ResultPanelHost.vue";
 import { formats, type FormatExample } from "./formats";
+import { parseFailure, validateZipHeader } from "./parse-diagnostics";
 import {
   findDebugEntryIndexByOffset,
   findDebugEntryIndicesByPath,
@@ -22,7 +23,7 @@ import {
   initWasm,
   isLoaded,
   getVersion,
-  parseWithDebug,
+  parseSourceWithDebug,
   hexToBytes,
   type InteropResult,
   type ParseWithDebugOptions,
@@ -36,6 +37,11 @@ const selectedExample = shallowRef<FormatExample | null>(formats[0] ?? null);
 const definition = ref(selectedExample.value?.definition ?? "");
 const bytes = shallowRef<Uint8Array>(hexToBytesSafe(selectedExample.value?.binaryHex ?? ""));
 const loadedFileName = ref<string | null>(null);
+const fileSource = shallowRef<Blob | null>(null);
+let parseController: AbortController | null = null;
+onBeforeUnmount(() => parseController?.abort());
+const fileNotice = ref("");
+let fileLoadVersion = 0;
 const resetCount = ref(0);
 const result = ref<InteropResult | null>(null);
 const isRunning = ref(false);
@@ -63,6 +69,10 @@ function hexToBytesSafe(hex: string): Uint8Array {
 }
 
 function selectExample(example: FormatExample): void {
+  parseController?.abort();
+  fileSource.value = null;
+  fileLoadVersion += 1;
+  fileNotice.value = "";
   selectedExample.value = example;
   definition.value = example.definition;
   loadedFileName.value = null;
@@ -74,6 +84,10 @@ function selectExample(example: FormatExample): void {
 }
 
 function startNew(): void {
+  parseController?.abort();
+  fileSource.value = null;
+  fileLoadVersion += 1;
+  fileNotice.value = "";
   selectedExample.value = null;
   definition.value = "struct root {\n    uint8 value;\n};";
   loadedFileName.value = null;
@@ -84,14 +98,26 @@ function startNew(): void {
   resetCount.value += 1;
 }
 
-function loadFile(file: File): void {
-  void file.arrayBuffer().then((buffer) => {
+async function loadFile(file: File): Promise<void> {
+  parseController?.abort();
+  const version = ++fileLoadVersion;
+  try {
+    const buffer = await file.slice(0, 65536).arrayBuffer();
+    if (version !== fileLoadVersion) return;
     bytes.value = new Uint8Array(buffer);
     loadedFileName.value = file.name;
+    fileSource.value = file;
+    fileNotice.value = `Full file available: ${file.size.toLocaleString()} bytes. Parsing and the hex view load byte ranges on demand. Edits remain in this session.`;
     result.value = null;
     selectedDebugIndices.value = new Set();
     focusPath.value = null;
-  });
+  } catch {
+    if (version !== fileLoadVersion) return;
+    result.value = parseFailure(
+      "The selected file could not be read. Check that it is still available and try loading it again.",
+      "file-read-failed",
+    );
+  }
 }
 
 const { open: openFileDialog, onChange: onFileDialogChange } = useFileDialog({
@@ -106,18 +132,63 @@ onFileDialogChange((files) => {
 });
 
 async function runParse(options: ParseWithDebugOptions): Promise<void> {
+  parseController?.abort();
+  const controller = new AbortController();
+  parseController = controller;
   isRunning.value = true;
   selectedDebugIndices.value = new Set();
   focusPath.value = null;
   try {
-    result.value = parseWithDebug(definition.value, bytes.value, options);
+    if (
+      selectedExample.value?.id === "zip" &&
+      definition.value === selectedExample.value.definition
+    ) {
+      const header = fileSource.value
+        ? new Uint8Array(await fileSource.value.slice(0, 131100).arrayBuffer())
+        : bytes.value;
+      if (controller.signal.aborted) return;
+      const failure = validateZipHeader(header);
+      if (failure) {
+        result.value = failure;
+        return;
+      }
+    }
+    const parsed = await parseSourceWithDebug(definition.value, fileSource.value ?? bytes.value, {
+      ...options,
+      signal: controller.signal,
+    });
+    if (!controller.signal.aborted) result.value = parsed;
+  } catch (error) {
+    if (controller.signal.aborted) return;
+    result.value = parseFailure(
+      error instanceof Error ? error.message : String(error),
+      "operation-failed",
+    );
   } finally {
-    isRunning.value = false;
+    if (parseController === controller) isRunning.value = false;
   }
 }
 
+function cancelParse(): void {
+  parseController?.abort();
+  result.value = parseFailure("Parsing was cancelled.", "cancelled");
+}
+
 function handleBytesEdited(next: Uint8Array): void {
+  parseController?.abort();
   bytes.value = next;
+  result.value = null;
+  selectedDebugIndices.value = new Set();
+  focusPath.value = null;
+}
+
+function handleSourceEdited(next: Blob): void {
+  parseController?.abort();
+  fileSource.value = next;
+  result.value = null;
+  selectedDebugIndices.value = new Set();
+  focusPath.value = null;
+  fileNotice.value = `Full file available: ${next.size.toLocaleString()} bytes. Parsing and the hex view load byte ranges on demand. Edits remain in this session.`;
 }
 
 function handleByteClick(offset: number): void {
@@ -171,9 +242,11 @@ function onDockviewReady(event: DockviewReadyEvent): void {
     position: { direction: "right", referencePanel: "schema" },
     params: {
       bytes,
+      source: fileSource,
       debugData,
       selectedIndices: selectedDebugIndices,
       onBytesEdited: handleBytesEdited,
+      onSourceEdited: handleSourceEdited,
       onByteClick: handleByteClick,
       onFileDropped: loadFile,
     },
@@ -213,6 +286,9 @@ onMounted(async () => {
       <button class="btn load-file-button" type="button" @click="openFileDialog()">
         Load file
       </button>
+      <button v-if="isRunning" class="btn load-file-button" type="button" @click="cancelParse">
+        Cancel parse
+      </button>
       <span class="file-name">
         {{ loadedFileName ?? `Sample data · ${selectedExample?.title ?? "New schema"}` }}
       </span>
@@ -226,6 +302,7 @@ onMounted(async () => {
       <span v-else>Unavailable · {{ wasmError }}</span>
     </div>
   </header>
+  <p v-if="fileNotice" class="file-notice" role="status">{{ fileNotice }}</p>
   <main class="workspace">
     <ExampleList
       :examples="formats"
@@ -246,6 +323,13 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.file-notice {
+  margin: 0;
+  padding: 8px 20px;
+  color: var(--color-text);
+  background: var(--color-bg-secondary);
+  font-size: 12px;
+}
 .top-bar {
   display: flex;
   align-items: center;
