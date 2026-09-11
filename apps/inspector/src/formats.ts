@@ -21,6 +21,8 @@ export interface FormatExample {
   parserOptions: FormatParserOptions;
   documentation: { summary: string };
   sourceFixture: string;
+  extension?: string;
+  schemaOnly?: boolean;
 }
 
 const defaultParserOptions: FormatParserOptions = {
