@@ -155,6 +155,14 @@ export function parseWithDebug(
   return parseInteropResult(resultJson, "parse");
 }
 
+export async function parseSourceWithDebug(
+  definition: string,
+  source: Blob | Uint8Array,
+  options?: ParseWithDebugOptions,
+): Promise<ParseResult> {
+  return requireReadyWasm().parseSource(definition, source, options ?? null, true);
+}
+
 export function serialize(
   cstructDefinition: string,
   data: unknown,

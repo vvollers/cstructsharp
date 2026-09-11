@@ -84,6 +84,7 @@ export interface RawWasmAdapter {
   ready: true;
   error: null;
   exports: unknown;
+  parseSource: import("../../wasm/cstructsharp-wasm.js").RawWasmAdapter["parseSource"];
   parseWithDebug: (
     cstructDefinition: string,
     binaryData: Uint8Array,

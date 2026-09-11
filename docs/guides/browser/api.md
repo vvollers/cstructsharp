@@ -20,13 +20,18 @@ lives for the process/page lifetime; no explicit disposal is needed for normal N
 | --- | --- | --- |
 | `await loadCStructSharpWasm()` | None | Loaded raw API, for advanced integration |
 | `await getVersion()` | None | Version string from the loaded managed library |
-| `await parseWithDebug(definition, bytes, options)` | Layout string, `Uint8Array`, options | Result with JSON text in `Data` and field ranges in `DebugData` |
+| `await parse(definition, source, options)` | Layout string, binary source, options | Result with root-wrapped JSON text in `Data`, without debug capture |
+| `await parseWithDebug(definition, source, options)` | Layout string, binary source, options | Result with JSON text in `Data` and field ranges in `DebugData` |
 | `await serialize(definition, value, options)` | Layout, JavaScript value, options | Result with a `Uint8Array` in `Data` |
 | `await update(definition, bytes, path, value, options)` | Layout, original bytes, field path, replacement, options | Result with the complete updated `Uint8Array` in `Data` |
 
 The result object, also called an envelope, contains `ContractVersion`, `Operation`, `Success`, `Data`, `DebugData`,
 and `Error`. Check `Success` before using `Data`. A failure has an error `Code`, `Message`, and optional `Path` and
 `Offset`. Loading problems and invalid JavaScript arguments can instead throw; keep a `try`/`catch` around calls.
+
+See [large files, buffers, and streams](large-data.md) for `File`/`Blob`, views, responses, streams, and iterable
+inputs, plus `signal` cancellation and the `maxSpoolBytes` staging limit. These read APIs automatically page data
+through a worker; the legacy synchronous raw byte adapter and `update` retain their 4 MiB input ceiling.
 
 ## Choose layout options
 
@@ -44,7 +49,7 @@ Reading and updating both accept `dereferencePointers`; reading also accepts `ma
 The bridge enforces upper bounds, so arbitrary increases are not accepted. The
 [versioned contract](../../../contracts/api/browser-rc1/contract.json) lists exact option bounds and error categories.
 
-The browser API does not expose the C# runtime-variable dictionary, streams, spans, or typed class mapping.
+The browser API does not expose the C# runtime-variable dictionary, CLR streams/spans, or typed class mapping.
 Use fixed array counts or layout constants in browser examples. Do not assume a runtime-sized C# recipe can be
 copied unchanged into JavaScript.
 

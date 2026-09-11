@@ -5,7 +5,7 @@ import path from "node:path";
 export const runtimeConfigName = "CStructSharpWeb.Wasm.runtimeconfig.json";
 export const defaultRawByteLimit = 6 * 1024 * 1024;
 
-const requiredRootFiles = new Set(["bootstrap.js", "main.js", runtimeConfigName]);
+const requiredRootFiles = new Set(["bootstrap.js", "main.js", "large-source.js", "source-worker.js", runtimeConfigName]);
 const requiredFrameworkEntrypoints = new Set(["dotnet.boot.js", "dotnet.js"]);
 const rejectedProductionExtensions = new Set([
   ".a",

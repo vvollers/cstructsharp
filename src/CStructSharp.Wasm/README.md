@@ -22,6 +22,26 @@ Press Ctrl+C to stop the local server. Open `http://127.0.0.1:8080/starter/inspe
 `starter/index.html` and `starter/app.js` are the complete beginner application. Copy and adapt them for your own
 page. They check operation success, decode read JSON, use output byte arrays, and report runtime loading errors separately.
 
+## Large binary sources
+
+Import `parse` or `parseWithDebug` from `./cstructsharp-wasm.js` and pass a `File`, `Blob`, buffer/view,
+`Response`, or stream/iterable of binary chunks. Browser files are read in pages by an automatically managed
+worker; one-pass sources are staged to origin-private storage before parsing. `parse` skips debug byte copies.
+Use `signal` to cancel and `maxSpoolBytes` to control staging (default 1 GiB). Keep `large-source.js` and
+`source-worker.js` beside the runtime and allow same-origin workers in your CSP. File length is independent of
+the old synchronous byte-array transport ceiling; returned values and read budgets are still bounded.
+
+```js
+import { parse } from "./cstructsharp-wasm.js";
+const result = await parse("struct header { uint32 signature; };", file, { rootTypeName: "header" });
+if (!result.Success) throw new Error(result.Error.Message);
+console.log(JSON.parse(result.Data).header.signature);
+```
+
+See [large files, buffers, and streams](https://vvollers.github.io/cstructsharp/docs/guides/browser/large-data.html)
+for source types, Node streams, decompression, cancellation, and memory/storage behavior. Streamed writes are
+not part of these read APIs.
+
 ## Use from your JavaScript
 
 ```js

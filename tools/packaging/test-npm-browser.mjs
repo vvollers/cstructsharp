@@ -16,6 +16,10 @@ const read = await api.parseWithDebug(def, bytes, opts);
 const written = await api.serialize(def, {kind:3,length:6}, opts);
 const changed = await api.update(def, bytes, "header.kind", 4, opts);
 const invalid = await api.parseWithDebug(def, new Uint8Array(), opts);
+const fileBytes = new Uint8Array(8 * 1024 * 1024); fileBytes.set(bytes);
+const sourceRead = await api.parse(def, new Blob([fileBytes]), opts);
+const streamRead = await api.parseWithDebug(def, new Response(bytes), opts);
+if (!sourceRead.Success || JSON.parse(sourceRead.Data).header.kind !== 2 || sourceRead.DebugData.length || !streamRead.Success) throw Error("Large source parity failed");
 const large = await api.serialize("struct large { uint64 value; };", {value:18446744073709551615n}, {rootTypeName:"large"});
 if (JSON.parse(read.Data).header.kind !== 2 || !written.Success || written.Data[0] !== 3 || !changed.Success || changed.Data[0] !== 4 || bytes[0] !== 2 || invalid.Success || !large.Success || !large.Data.every(v=>v===255)) throw Error("Operation parity failed");
 try { await api.loadCStructSharpWasm({runtimeUrl:"/different/"}); throw Error("Reconfiguration accepted"); }

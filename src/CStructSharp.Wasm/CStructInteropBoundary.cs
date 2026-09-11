@@ -65,7 +65,7 @@ public partial class CStructExports
         int pointerSize = options.PointerSize ?? 8;
         if (pointerSize is not (1 or 2 or 4 or 8))
         {
-            throw new ArgumentOutOfRangeException(nameof(options.PointerSize), "Pointer size is invalid.");
+            throw new BrowserInputException($"PointerSize must be 1, 2, 4, or 8 bytes; received {pointerSize}.");
         }
 
         return new CStruct(
@@ -195,7 +195,7 @@ public partial class CStructExports
         int result = value ?? fallback;
         return result > 0 && result <= maximum
                    ? result
-                   : throw new ArgumentOutOfRangeException(name, "Option is outside the browser safety limit.");
+                   : throw new BrowserInputException($"Option {name} must be between 1 and {maximum}; received {result}.");
     }
 
     private static long Bounded(long? value, long fallback, long maximum, string name)
@@ -203,7 +203,7 @@ public partial class CStructExports
         long result = value ?? fallback;
         return result > 0 && result <= maximum
                    ? result
-                   : throw new ArgumentOutOfRangeException(name, "Option is outside the browser safety limit.");
+                   : throw new BrowserInputException($"Option {name} must be between 1 and {maximum}; received {result}.");
     }
 
     private static long? BoundedNullable(long? value, long maximum, string name)
@@ -268,9 +268,9 @@ public partial class CStructExports
     {
         if (binaryData.Length == 0 || binaryData.Length > MaximumBinaryInputLength)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(binaryData),
-                "Binary input exceeds the supported limit.");
+            throw new BrowserInputException(binaryData.Length == 0
+                ? "No binary data was supplied. Load a file or enter bytes before parsing."
+                : $"Binary input contains {binaryData.Length} bytes; the browser limit is {MaximumBinaryInputLength} bytes (4 MiB). Load a header slice or use the C# stream API for the full file. Read safety settings do not raise this input limit.");
         }
 
         return binaryData;
@@ -301,9 +301,9 @@ public partial class CStructExports
     {
         if (string.IsNullOrWhiteSpace(definition) || definition.Length > MaximumDefinitionLength)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(definition),
-                "Definition input exceeds the supported limit.");
+            throw new BrowserInputException(string.IsNullOrWhiteSpace(definition)
+                ? "The layout definition is empty. Enter at least one struct declaration."
+                : $"The layout contains {definition.Length} characters; the browser limit is {MaximumDefinitionLength} characters.");
         }
     }
 
@@ -312,7 +312,7 @@ public partial class CStructExports
     {
         if (json.Length > MaximumJsonInputLength)
         {
-            throw new ArgumentOutOfRangeException(nameof(json), "JSON input exceeds the supported limit.");
+            throw new BrowserInputException($"JSON input contains {json.Length} characters; the browser limit is {MaximumJsonInputLength} characters.");
         }
     }
 
@@ -321,7 +321,9 @@ public partial class CStructExports
     {
         if (string.IsNullOrWhiteSpace(path) || path.Length > MaximumPathLength)
         {
-            throw new ArgumentOutOfRangeException(nameof(path), "Path input exceeds the supported limit.");
+            throw new BrowserInputException(string.IsNullOrWhiteSpace(path)
+                ? "The update path is empty. Supply a root and field path."
+                : $"The update path contains {path.Length} characters; the browser limit is {MaximumPathLength} characters.");
         }
     }
 
@@ -361,12 +363,13 @@ public partial class CStructExports
         };
     }
 
-    /// <summary>Maps implementation exceptions to stable browser categories and input-independent messages.</summary>
+    /// <summary>Maps failures to stable categories, exposing only controlled diagnostics, never raw exception text.</summary>
     private static (string Code, string Message) GetBrowserError(Exception exception)
     {
         return exception switch
         {
-            CStructException cstructException => GetDomainBrowserError(cstructException.Code),
+            BrowserInputException inputException => ("invalid-input", inputException.Message),
+            CStructException cstructException => GetDomainBrowserError(cstructException),
             JsonException => ("invalid-json", "The JSON input is invalid."),
             FormatException => ("invalid-input", "An input value has an invalid format."),
             ArgumentException => ("invalid-input", "An input argument or option is invalid."),
@@ -375,9 +378,24 @@ public partial class CStructExports
     }
 
     /// <summary>Projects the public CLR code model directly into the browser wire vocabulary.</summary>
-    private static (string Code, string Message) GetDomainBrowserError(CStructErrorCode code)
+    private static (string Code, string Message) GetDomainBrowserError(CStructException exception)
     {
-        return code switch
+        // Exact known diagnostics preserve useful causes without echoing layout text, values, or stack traces.
+        string? detail = exception.Message switch
+        {
+            "Not enough bytes in stream." => "Unexpected end of binary input. The field needs more bytes, or a terminated string is missing its terminator. Check the field length and the loaded data range.",
+            "String field contains bytes that are invalid for its encoding." => "The string contains invalid bytes for its declared encoding. Check whether the format uses ASCII, UTF-8, UTF-16, or a raw character buffer.",
+            "String field exceeded the configured encoded-byte limit." => "The string exceeds MaxStringBytes. Check its terminator and encoding, or raise that safety limit within the browser maximum.",
+            "Read operation exceeded the configured total read-byte limit." => "Reading the layout exceeds MaxTotalBytesRead. Check array lengths and pointer traversal, or raise that safety limit within the browser maximum.",
+            "Maximum nested struct depth exceeded." => "The structure exceeds MaxNestingDepth. Check nested records or raise that safety limit within the browser maximum.",
+            "Maximum pointer dereference depth exceeded." => "Pointer traversal exceeds MaxPointerDepth. Check pointer chains or disable pointer dereferencing.",
+            "Pointer target exceeds the configured size limit." => "The pointer target exceeds MaxPointerTargetBytes. Check its type and address, or raise that safety limit within the browser maximum.",
+            var message when message.StartsWith("Array length exceeds the configured limit:", StringComparison.Ordinal) => "The array length exceeds MaxArrayElements. Check the count field and byte order, or raise that safety limit within the browser maximum.",
+            var message when message.StartsWith("Pointer target is outside the readable stream range:", StringComparison.Ordinal) => "The pointer target is outside the loaded data. Check pointer width, byte order, addressing mode, and origin. A header preview may not include the target.",
+            var message when message.StartsWith("Cyclic pointer target detected at stream address ", StringComparison.Ordinal) => "Pointer traversal encountered a cycle. Check the pointer layout or disable pointer dereferencing to inspect stored addresses.",
+            _ => null,
+        };
+        (string Code, string Message) category = exception.Code switch
         {
             CStructErrorCode.InvalidLayout => ("invalid-layout", "The CStruct layout is invalid."),
             CStructErrorCode.InvalidPath => ("invalid-path", "The requested layout path is invalid."),
@@ -387,6 +405,7 @@ public partial class CStructExports
             CStructErrorCode.WriteLimitExceeded => ("write-budget", "A binary write safety limit was exceeded."),
             _ => ("operation-failed", "The operation failed unexpectedly."),
         };
+        return (category.Code, detail ?? category.Message);
     }
 
     /// <summary>Serializes the shared envelope through source-generated JSON metadata.</summary>
@@ -394,4 +413,7 @@ public partial class CStructExports
     {
         return JsonSerializer.Serialize(result, CStructJsonContext.Default.InteropResultDto);
     }
+
+    /// <summary>A controlled bridge diagnostic containing only fixed text and numeric limits.</summary>
+    private sealed class BrowserInputException(string message) : Exception(message);
 }

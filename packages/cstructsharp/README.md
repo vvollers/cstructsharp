@@ -41,6 +41,41 @@ Node `Buffer` inputs are also supported. The installed runtime loads from disk i
 working directory, with no HTTP server or runtime downloads. CommonJS applications can use
 `const api = await import("cstructsharp")` inside an async function; synchronous `require()` is not part of the API.
 
+## Large files, buffers, and streams
+
+`parse` and `parseWithDebug` accept `File`/`Blob`, `ArrayBuffer`/`SharedArrayBuffer`, typed-array views,
+`DataView`, Node `Buffer`, `Response`, `ReadableStream`, and iterables/async iterables of binary chunks.
+Browser file handles with `getFile()` are also supported. The view's exact byte range is used, without numeric
+conversion or detaching the caller's buffer.
+
+```js
+import { parse } from "cstructsharp";
+
+// Browser: pass the selected File, without reading it all into an ArrayBuffer.
+const controller = new AbortController();
+const fileInput = document.querySelector('input[type="file"]');
+const result = await parse(
+  "struct header { uint16 kind; uint32 length; };",
+  fileInput.files[0],
+  { rootTypeName: "header", signal: controller.signal },
+);
+if (!result.Success) throw new Error(result.Error.Message);
+console.log(JSON.parse(result.Data).header);
+```
+
+In Node, pass `createReadStream("capture.bin")` from `node:fs`, or a resident `Buffer`. For a network response,
+pass `await fetch(url)`; a decompression pipeline can supply its readable output directly. One-pass sources are
+fully staged to temporary storage before parsing, preserving pointer/seek behavior. The default `maxSpoolBytes`
+is 1 GiB and can be increased. Browsers use origin-private storage (HTTPS/localhost required); Node uses a private
+temporary directory and also stages Blob inputs. Normal completion, failures, and cancellation clean up staging.
+
+Large-source parsing runs in a worker and passes 64 KiB pages to WASM. Browser files are read on demand regardless
+of full-file size. `parse` avoids debug byte copies; `parseWithDebug` also returns field ranges. Small Uint8Array
+debug calls retain the direct path unless `signal` is supplied. Decoded results still use memory, and read limits
+still apply. `serialize`/`update` remain in-memory APIs. See the
+[large-data guide](https://vvollers.github.io/cstructsharp/docs/guides/browser/large-data.html)
+for complete examples, memory behavior, cancellation, and storage limits.
+
 ## Browser with Vite
 
 Register the supplied plugin in `vite.config.js`:

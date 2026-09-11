@@ -38,6 +38,22 @@ public partial class CStructExports
         return ParseWithDebugInternal(cstructDefinition, binaryData, optionsJson);
     }
 
+    /// <summary>Reads a seekable JavaScript source without copying the complete source into WASM memory.</summary>
+    [JSExport]
+    public static string ParseSource(string definition, JSObject source, string optionsJson, bool debug)
+    {
+        try
+        {
+            InteropOptionsDto options = ParseOptions(optionsJson);
+            using var stream = new JavaScriptSourceStream(source);
+            return ParseStreamResult(definition, stream, options, debug);
+        }
+        catch (Exception exception)
+        {
+            return SerializeInteropResult(CreateFailure("parse", exception));
+        }
+    }
+
     /// <summary>
     ///     Serializes browser JSON with a CStruct definition and returns the encoded bytes directly - a native
     ///     Uint8Array on the JS side, not Base64 text. Failure is reported by throwing rather than through the
@@ -107,39 +123,55 @@ public partial class CStructExports
         {
             InteropOptionsDto options = ParseOptions(optionsJson);
             byte[] ownedBinaryData = ValidateBinaryData(binaryData);
-            CStruct cstruct = CreateCStruct(cstructDefinition, options);
             using var stream = new MemoryStream(ownedBinaryData);
-
-            string root = string.IsNullOrWhiteSpace(options.RootTypeName)
-                              ? ResolveDefaultRootTypeName(cstruct)
-                              : options.RootTypeName;
-            (List<DebugData> debugData, dynamic result)
-                = cstruct.ParseStreamWithDebug(stream, root, CreateReadOptions(options));
-
-            var debugDataDtos = new List<DebugDataDto>(debugData.Count);
-            foreach (DebugData item in debugData)
-            {
-                debugDataDtos.Add(
-                    new DebugDataDto
-                    {
-                        CurPos = item.CurPos,
-                        EndPos = item.EndPos,
-                        DebugStackString = item.DebugStackString,
-                        Type = item.TypeName ?? "unknown",
-                        Value = item.Value is IFormattable formattable
-                                    ? formattable.ToString(null, CultureInfo.InvariantCulture)
-                                    : item.Value?.ToString(),
-                        Buffer = item.Buffer is null ? null : string.Join(",", item.Buffer),
-                    });
-            }
-
-            InteropResultDto response = CreateSuccess("parse", SerializeParsedValue(result));
-            response.DebugData = debugDataDtos;
-            return SerializeInteropResult(response);
+            return ParseStreamResult(cstructDefinition, stream, options, true);
         }
         catch (Exception exception)
         {
             return SerializeInteropResult(CreateFailure("parse", exception));
         }
+    }
+
+    /// <summary>Projects either a values-only or debug stream read into the common result envelope.</summary>
+    private static string ParseStreamResult(string definition, Stream stream, InteropOptionsDto options, bool debug)
+    {
+        CStruct cstruct = CreateCStruct(definition, options);
+        string root = string.IsNullOrWhiteSpace(options.RootTypeName)
+                          ? ResolveDefaultRootTypeName(cstruct)
+                          : options.RootTypeName;
+        List<DebugData> debugData = [];
+        dynamic result;
+        if (debug)
+        {
+            (debugData, result) = cstruct.ParseStreamWithDebug(stream, root, CreateReadOptions(options));
+        }
+        else
+        {
+            result = new Dictionary<string, object?>
+            {
+                [root] = cstruct.ParseStream(stream, root, options: CreateReadOptions(options)),
+            };
+        }
+
+        var debugDataDtos = new List<DebugDataDto>(debugData.Count);
+        foreach (DebugData item in debugData)
+        {
+            debugDataDtos.Add(
+                new DebugDataDto
+                {
+                    CurPos = item.CurPos,
+                    EndPos = item.EndPos,
+                    DebugStackString = item.DebugStackString,
+                    Type = item.TypeName ?? "unknown",
+                    Value = item.Value is IFormattable formattable
+                                ? formattable.ToString(null, CultureInfo.InvariantCulture)
+                                : item.Value?.ToString(),
+                    Buffer = item.Buffer is null ? null : string.Join(",", item.Buffer),
+                });
+        }
+
+        InteropResultDto response = CreateSuccess("parse", SerializeParsedValue(result));
+        response.DebugData = debugDataDtos;
+        return SerializeInteropResult(response);
     }
 }

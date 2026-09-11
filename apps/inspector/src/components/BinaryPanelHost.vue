@@ -7,9 +7,11 @@ const props = defineProps<{
   params: {
     params: {
       bytes: { value: Uint8Array };
+      source: { value: Blob | null };
       debugData: { value: DebugDataItem[] };
       selectedIndices: { value: ReadonlySet<number> };
       onBytesEdited: (bytes: Uint8Array) => void;
+      onSourceEdited: (source: Blob) => void;
       onByteClick: (offset: number) => void;
       onFileDropped: (file: File) => void;
     };
@@ -22,9 +24,11 @@ const data = props.params.params;
 <template>
   <BinaryPanel
     :bytes="data.bytes.value"
+    :source="data.source.value"
     :debug-data="data.debugData.value"
     :selected-indices="data.selectedIndices.value"
     @update:bytes="data.onBytesEdited"
+    @update:source="data.onSourceEdited"
     @byte-click="data.onByteClick"
     @file-dropped="data.onFileDropped"
   />
