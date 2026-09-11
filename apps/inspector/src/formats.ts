@@ -145,7 +145,7 @@ struct root {
     parserOptions: defaultParserOptions,
     documentation: {
       summary:
-        'Reads the first ZIP local file header at byte 0, including its filename and raw extra fields. Files of any supported size are read on demand. This is not an archive extractor: empty archives, self-extracting prefixes, and split archives need a different starting layout. Data-descriptor entries can leave CRC/sizes unset here; ZIP64 sizes live in extra fields. Filename bytes are shown as raw characters, without UTF-8/CP437 decoding.',
+        "Reads the first ZIP local file header at byte 0, including its filename and raw extra fields. Files of any supported size are read on demand. This is not an archive extractor: empty archives, self-extracting prefixes, and split archives need a different starting layout. Data-descriptor entries can leave CRC/sizes unset here; ZIP64 sizes live in extra fields. Filename bytes are shown as raw characters, without UTF-8/CP437 decoding.",
     },
     sourceFixture:
       "WellKnownFormatFixtures.Zip_LocalFileHeader_DecodesBitflagsAndRuntimeLengthName",

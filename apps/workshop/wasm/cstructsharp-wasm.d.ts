@@ -97,7 +97,12 @@ export interface RawWasmAdapter {
   error: null;
   exports: unknown;
   /** Asynchronous paged source API. Prefer public parse/parseWithDebug. */
-  parseSource(definition: string, source: BinarySource, options?: ParseWithDebugOptions | null, debug?: boolean): Promise<Result<string, "parse">>;
+  parseSource(
+    definition: string,
+    source: BinarySource,
+    options?: ParseWithDebugOptions | null,
+    debug?: boolean,
+  ): Promise<Result<string, "parse">>;
   parseWithDebug(
     definition: string,
     bytes: Uint8Array,
@@ -118,12 +123,22 @@ export function loadCStructSharpWasm(): Promise<RawWasmAdapter>;
 /** Raw bytes of a view are used, respecting byteOffset/byteLength; no numeric element conversion. */
 export type BinaryChunk = ArrayBufferLike | ArrayBufferView;
 /** Streams/iterables yield binary chunks only and are staged to temporary storage before parsing. */
-export type BinarySource = BinaryChunk | Blob | Response | ReadableStream<BinaryChunk>
-  | Iterable<BinaryChunk> | AsyncIterable<BinaryChunk> | { getFile(): Promise<File> };
+export type BinarySource =
+  | BinaryChunk
+  | Blob
+  | Response
+  | ReadableStream<BinaryChunk>
+  | Iterable<BinaryChunk>
+  | AsyncIterable<BinaryChunk>
+  | { getFile(): Promise<File> };
 /** Parse a binary source without debug byte copies. Data is JSON text with the selected root wrapper.
  * Large source length is independent of the read/array/string limits and returned value size.
  */
-export function parse(definition: string, source: BinarySource, options?: ParseWithDebugOptions | null): Promise<Result<string, "parse">>;
+export function parse(
+  definition: string,
+  source: BinarySource,
+  options?: ParseWithDebugOptions | null,
+): Promise<Result<string, "parse">>;
 /** Read bytes. Successful Data is JSON text with a root wrapper, e.g. values.header.kind.
  * Large integers in that JSON may be decimal strings; do not coerce them to Number.
  */

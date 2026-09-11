@@ -45,5 +45,7 @@ await parse(definition, new Blob([new Uint8Array(8)]));
 await parse(definition, new DataView(new ArrayBuffer(8)), { signal: AbortSignal.abort() });
 await parseWithDebug(definition, new Response(new Uint8Array(8)), { maxSpoolBytes: 1024 });
 await parse(definition, [new Uint8Array(4), new Uint8Array(4)]);
-async function* chunks() { yield new Uint8Array(8); }
+async function* chunks() {
+  yield new Uint8Array(8);
+}
 await parse(definition, chunks());

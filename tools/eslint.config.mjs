@@ -10,4 +10,8 @@ export default [
   { ignores: ["**/bin/**", "**/obj/**", "**/node_modules/**"] },
   js.configs.recommended,
   { languageOptions: { globals: { ...globals.node, ...globals.browser }, sourceType: "module" } },
+  {
+    files: ["src/CStructSharp.Wasm/source-worker.js"],
+    languageOptions: { globals: globals.worker },
+  },
 ];
