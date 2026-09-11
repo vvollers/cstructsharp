@@ -27,6 +27,7 @@ const emit = defineEmits<{
   "update:source": [source: Blob];
   "byte-click": [offset: number];
   "file-dropped": [file: File];
+  "load-file": [];
 }>();
 
 const dropZone = ref<HTMLElement | null>(null);
@@ -179,6 +180,20 @@ defineExpose({
 <template>
   <section ref="dropZone" class="binary-panel" :class="{ 'drop-active': isOverDropZone }">
     <div class="panel-topbar">
+      <button class="btn btn-primary load-file-button" type="button" @click="emit('load-file')">
+        <svg
+          class="button-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M3 10V5h6l2 2h9v3M3 10h19l-3 10H5L3 10Z" />
+        </svg>
+        Load file
+      </button>
       <form v-if="source" class="byte-jump" @submit.prevent="jumpToByte">
         <input v-model="jumpOffset" aria-label="Go to byte" placeholder="Byte offset / 0x…" />
         <button type="submit">Go</button>
@@ -238,11 +253,17 @@ defineExpose({
 }
 .panel-topbar {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
   justify-content: flex-end;
   padding: 8px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: var(--color-bg-secondary);
+}
+.load-file-button {
+  padding: 5px 12px;
+  font-size: 12px;
 }
 .byte-jump {
   display: flex;
@@ -262,6 +283,7 @@ defineExpose({
   border-radius: 3px;
 }
 .byte-count {
+  margin-left: auto;
   font-size: 11px;
   color: var(--color-text-muted);
 }

@@ -136,6 +136,9 @@ function submit(): void {
 
     <div class="panel-bottombar">
       <button class="btn btn-primary run-button" type="button" :disabled="disabled" @click="submit">
+        <svg class="button-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M7 4v16l13-8L7 4Z" />
+        </svg>
         {{ running ? "Running…" : disabled ? "WebAssembly is not ready" : "Run" }}
       </button>
     </div>

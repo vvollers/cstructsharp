@@ -18,13 +18,13 @@ test("large ZIP files retain the full source and parse", async ({ page }) => {
     page.getByRole("button", { name: "Load file" }).click(),
   ]);
   await chooser.setFiles({ name: "large.zip", mimeType: "application/zip", buffer: bytes });
-  await expect(page.locator(".file-notice")).toContainText("Full file available:");
+  await expect(page.locator(".file-name")).toContainText("large.zip");
   await expect(page.locator(".byte-count")).toContainText("4,194,305 bytes");
   await page.getByRole("button", { name: /^Run$/ }).click();
   await expect(page.locator(".result-status")).toHaveText("Parse completed");
   await expect(page.getByTestId("result-json")).toContainText("test.txt");
   await page.getByTestId("example-bmp").click();
-  await expect(page.locator(".file-notice")).toHaveCount(0);
+  await expect(page.locator(".file-name")).toContainText("Sample data");
 });
 
 test("empty ZIP archives explain the example's scope", async ({ page }) => {

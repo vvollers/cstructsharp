@@ -14,6 +14,7 @@ const props = defineProps<{
       onSourceEdited: (source: Blob) => void;
       onByteClick: (offset: number) => void;
       onFileDropped: (file: File) => void;
+      onLoadFile: () => void;
     };
   };
 }>();
@@ -31,5 +32,6 @@ const data = props.params.params;
     @update:source="data.onSourceEdited"
     @byte-click="data.onByteClick"
     @file-dropped="data.onFileDropped"
+    @load-file="data.onLoadFile"
   />
 </template>
