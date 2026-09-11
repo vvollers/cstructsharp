@@ -51,20 +51,35 @@ By default, fields are packed together, numbers use little-endian byte order, an
 The [binary layout basics](https://vvollers.github.io/cstructsharp/docs/guides/binary-layout-basics.html) explain these choices.
 Try changing `0x02` to `0x03`: `kind` becomes `3`.
 
-## When to use it
+## A portable C struct definition language
 
-Use CStructSharp to read a documented device message, inspect a file header, or change a fixed field in a binary
-record. A hand-written `BinaryReader` may be sufficient for a few fixed fields. A reusable layout description is
-useful when several operations share a format or the format is supplied at runtime.
+Turn a binary format into an executable specification. CStructSharp combines familiar C struct syntax with
+portable layout rules, giving you one definition for decoding records, generating bytes, inspecting offsets, and
+updating individual fields. Load definitions at runtime and use the same format description from C#, Node.js, or
+a browser to build protocol tools, file inspectors, and binary editors.
 
-The language has its own portable rules. It does not compile C, import arbitrary C headers, discover an unknown
-format, or automatically match a native compiler's struct layout. Floating-point and boolean fields are currently
-unsupported. See [differences from C](https://vvollers.github.io/cstructsharp/docs/language/differences-from-c.html)
-before translating a header.
+- **Model rich binary data.** Compose nested structs, overlapping union views, enums with explicit integer storage,
+  and reusable `typedef` aliases. Represent values with fixed-width integers, IEEE-754 floats, booleans, bitfields,
+  fixed character buffers, and terminated ASCII, UTF-8, or UTF-16 strings.
+- **Let the data determine the shape.** Use arithmetic and bitwise expressions, `#define` constants, earlier fields,
+  and caller-supplied variables to size arrays. Describe count-prefixed payloads, multidimensional tables with
+  runtime-sized outer dimensions, and arrays of structured records directly in the definition.
+- **Control the bytes precisely.** Mix little- and big-endian primitives in one record with `<` and `>` suffixes.
+  Choose packed or aligned layout, refine alignment with `@align(N)`, reserve bits with unnamed bitfields, and
+  assert expected field offsets with `@N`. Type widths follow portable rules, and pointer width is configured
+  explicitly, so the format's interpretation stays independent of the host process.
+- **Navigate beyond sequential records.** Describe stored pointers, pointer arrays, and multiple levels of
+  indirection. Read targets using absolute or relative addressing, or inspect stored addresses without following
+  them. Select nested values with paths such as `packet.samples[2].value` or `root.ptr.value`.
 
-Supported features include integers, structs, unions, enums, arrays, text, bitfields, expressions, and stored pointers.
-You can read dynamic objects or C# classes, write new bytes, and update a path such as `packet.header.length`.
-Advanced APIs support streams, spans, memory, buffer writers, explicit limits, and reuse of a compiled layout.
+Prepare a layout once and reuse it to read dynamic objects or C# classes, write new records, and update selected
+fields in existing data. The definition keeps the format's structure and byte-level rules together as your tools
+grow from a single header parser into a complete format workbench.
+
+Start with the [language tutorial](https://vvollers.github.io/cstructsharp/docs/language/tutorial/index.html),
+explore the [language reference](https://vvollers.github.io/cstructsharp/docs/language/index.html), or consult
+[differences from C](https://vvollers.github.io/cstructsharp/docs/language/differences-from-c.html) when adapting
+an existing header.
 
 ## Use JavaScript in Node.js or a browser
 
