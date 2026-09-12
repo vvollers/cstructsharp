@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "name": "browser-rc1",
   "packageVersion": "0.2.0-preview",
-  "contractVersion": 5,
+  "contractVersion": 6,
   "managedExports": [
     "GetVersion",
     "ParseWithDebug",
@@ -67,5 +67,12 @@
     "bootstrapTests": 3,
     "browserTests": 8,
     "browserEngine": "Playwright Chromium"
-  }
+  },
+  "history": [
+    {
+      "contractVersion": 6,
+      "date": "2026-09-12",
+      "change": "Performance plan E3.3/E3.7: the parse envelope is written without indentation straight from the parse result, and DebugData items no longer carry the field bytes as a comma-separated decimal string (Buffer removed); CurPos/EndPos identify the byte range in the caller's own input. Data stays JSON text with the selected root wrapper; every value is unchanged."
+    }
+  ]
 }

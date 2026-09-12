@@ -416,7 +416,7 @@ public class UnionValueTests
         Assert.AreEqual("root.value", storage.DebugStackString);
         Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.value.small" && item.CurPos == 0 && item.EndPos == 1));
         Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.value.large" && item.CurPos == 0 && item.EndPos == 2));
-        CollectionAssert.AreEqual(new[] { 0x34, 0x12, }, storage.Buffer);
+        CollectionAssert.AreEqual(new byte[] { 0x34, 0x12, }, storage.Buffer);
         Assert.IsTrue(debug.Count(item => item.CurPos == 0) >= 3);
 
         stream.Position = 0;

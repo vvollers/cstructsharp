@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 [JsonSerializable(typeof(DebugDataDto))]
 [JsonSerializable(typeof(ErrorDetailsDto))]
 [JsonSerializable(typeof(InteropOptionsDto))]
-[JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true, WriteIndented = true)]
+[JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true, WriteIndented = false)]
 public partial class CStructJsonContext : JsonSerializerContext
 {
 }

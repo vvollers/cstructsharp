@@ -1,5 +1,5 @@
 /** Shared operation conversions for the ZIP, Node, and browser adapters. */
-const INTEROP_CONTRACT_VERSION = 5;
+const INTEROP_CONTRACT_VERSION = 6;
 
 export function createPublicApi(loadCStructSharpWasm) {
   /** Parse bytes; successful Data is JSON text with the selected root wrapper.

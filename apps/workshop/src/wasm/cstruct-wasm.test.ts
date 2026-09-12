@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { InteropResult, RawWasmAdapter } from "./cstruct-contract";
 
 const validParseResult: InteropResult = {
-  ContractVersion: 5,
+  ContractVersion: 6,
   Operation: "parse",
   Success: true,
   Data: '{"root":{"value":42}}',
@@ -14,7 +14,6 @@ const validParseResult: InteropResult = {
       DebugStackString: "root.value",
       Type: "byte",
       Value: "42",
-      Buffer: "42",
     },
   ],
   Error: null,

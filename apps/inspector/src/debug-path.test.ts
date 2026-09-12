@@ -15,7 +15,6 @@ function debugItem(overrides: Partial<DebugDataItem>): DebugDataItem {
     DebugStackString: "root",
     Type: "uint8",
     Value: "0",
-    Buffer: null,
     ...overrides,
   };
 }

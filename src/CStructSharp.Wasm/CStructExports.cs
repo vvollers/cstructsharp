@@ -203,7 +203,6 @@ public partial class CStructExports
                     Value = item.Value is IFormattable formattable
                                 ? formattable.ToString(null, CultureInfo.InvariantCulture)
                                 : item.Value?.ToString(),
-                    Buffer = item.Buffer is null ? null : string.Join(",", item.Buffer),
                 });
         }
 

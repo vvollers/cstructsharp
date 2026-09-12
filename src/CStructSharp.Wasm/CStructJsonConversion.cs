@@ -1,6 +1,7 @@
 namespace CStructSharpWeb.Wasm;
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Globalization;
@@ -234,15 +235,28 @@ public partial class CStructExports
     }
 
     /// <summary>Serializes a parsed struct or union through the boundary's exact recursive number policy.</summary>
+    [ThreadStatic]
+    private static ArrayBufferWriter<byte>? projectionBuffer;
+
     private static string SerializeParsedValue(object value)
     {
-        using var stream = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(stream))
+        // Written straight from the parse result (E3.3): the former dictionary copy of the whole tree, the
+        // MemoryStream, and the ToArray() are gone; the pooled buffer is reused across calls on this thread.
+        ArrayBufferWriter<byte> buffer = projectionBuffer ??= new ArrayBufferWriter<byte>(16 * 1024);
+        buffer.ResetWrittenCount();
+        using (var writer = new Utf8JsonWriter(buffer))
         {
-            WriteJsonValue(writer, ConvertParsedValue(value));
+            WriteJsonValue(writer, value);
         }
 
-        return Encoding.UTF8.GetString(stream.ToArray());
+        string json = Encoding.UTF8.GetString(buffer.WrittenSpan);
+        if (buffer.Capacity > 4 * 1024 * 1024)
+        {
+            // Do not pin a multi-megabyte buffer to the thread after one unusually large result.
+            projectionBuffer = null;
+        }
+
+        return json;
     }
 
     /// <summary>Writes supported .NET values without reflection or lossy Int64-to-JavaScript conversion.</summary>
@@ -302,13 +316,59 @@ public partial class CStructExports
             writer.WriteBase64StringValue(bytes);
             return;
         case ExpandoObject dynamicObject:
-            WriteJsonValue(writer, ConvertExpandoToDictionary(dynamicObject));
+            writer.WriteStartObject();
+            foreach (KeyValuePair<string, object?> member in (IDictionary<string, object?>)dynamicObject)
+            {
+                writer.WritePropertyName(member.Key);
+                WriteJsonValue(writer, member.Value);
+            }
+
+            writer.WriteEndObject();
             return;
         case UnionValue unionValue:
-            WriteJsonValue(writer, ConvertUnionToDictionary(unionValue));
+            writer.WriteStartObject();
+            writer.WriteString("$kind", "union");
+            writer.WriteString("Union", unionValue.UnionName);
+            writer.WritePropertyName("RawStorage");
+            if (unionValue.HasRawStorage)
+            {
+                writer.WriteBase64StringValue(unionValue.RawStorage!.Value.Span);
+            }
+            else
+            {
+                writer.WriteNullValue();
+            }
+
+            writer.WritePropertyName("Members");
+            writer.WriteStartObject();
+            foreach (KeyValuePair<string, object?> member in unionValue.Members)
+            {
+                writer.WritePropertyName(member.Key);
+                WriteJsonValue(writer, member.Value);
+            }
+
+            writer.WriteEndObject();
+            writer.WritePropertyName("SelectedMember");
+            WriteJsonValue(writer, unionValue.SelectedMember);
+            writer.WriteEndObject();
+            return;
+        case Pointer pointer:
+            writer.WriteStartObject();
+            writer.WriteNumber("Address", pointer.Address);
+            writer.WriteNumber("Depth", pointer.Depth);
+            writer.WriteBoolean("IsDereferenced", pointer.IsDereferenced);
+            writer.WritePropertyName("Value");
+            WriteJsonValue(writer, pointer.Value);
+            writer.WriteEndObject();
             return;
         case EnumValueResult enumValue:
-            WriteJsonValue(writer, ConvertParsedValue(enumValue));
+            writer.WriteStartObject();
+            writer.WriteString("Enum", enumValue.Enum);
+            writer.WritePropertyName("Name");
+            WriteJsonValue(writer, enumValue.Name);
+            writer.WritePropertyName("Value");
+            WriteJavaScriptSafeInteger(writer, enumValue.Value);
+            writer.WriteEndObject();
             return;
         case IDictionary<string, object?> dictionary:
             writer.WriteStartObject();

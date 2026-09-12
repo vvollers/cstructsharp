@@ -190,7 +190,7 @@ public partial class CStruct
                     EndPos = unionEnd,
                     DebugStack = debugStack,
                     Value = result,
-                    Buffer = rawStorage.Select(value => (int)value).ToArray(),
+                    Buffer = rawStorage.ToArray(),
                     TypeName = union.Name.Name,
                 });
         }

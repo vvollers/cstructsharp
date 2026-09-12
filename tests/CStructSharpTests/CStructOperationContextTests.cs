@@ -128,7 +128,7 @@ public class CStructOperationContextTests
         Assert.AreEqual(1L, entry.CurPos);
         Assert.AreEqual(3L, entry.EndPos);
         Assert.AreEqual("uint16", entry.TypeName);
-        CollectionAssert.AreEqual(new[] { 0x22, 0x33, }, entry.Buffer);
+        CollectionAssert.AreEqual(new byte[] { 0x22, 0x33, }, entry.Buffer);
         Assert.AreEqual(3L, context.Stream.Position);
     }
 

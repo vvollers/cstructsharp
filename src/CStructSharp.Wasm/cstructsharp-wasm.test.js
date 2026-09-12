@@ -30,7 +30,7 @@ test("public wrapper returns byte arrays for writes, preserves errors and parse 
     },
     parseWithDebug: () =>
       JSON.stringify({
-        ContractVersion: 5,
+        ContractVersion: 6,
         Operation: "parse",
         Success: true,
         Data: '{"root":{"value":2}}',

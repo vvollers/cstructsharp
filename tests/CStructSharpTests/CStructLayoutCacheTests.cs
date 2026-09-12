@@ -11,6 +11,7 @@ public class CStructLayoutCacheTests
 {
     private const string Layout = "struct root { uint16 kind; uint32 length; };";
 
+    /// <summary>Identical source and options yield the same shared, still-usable compiled instance; null and default options are one key.</summary>
     [TestMethod]
     public void GetOrCompile_ReturnsSameInstance_ForIdenticalInputs()
     {
@@ -26,6 +27,7 @@ public class CStructLayoutCacheTests
         Assert.AreEqual((ushort)2, (ushort)parsed.kind);
     }
 
+    /// <summary>Every constructor input is part of the key: pointer size, alignment, byte order, any compilation limit, or the source text forces a fresh compile.</summary>
     [TestMethod]
     public void GetOrCompile_Misses_WhenAnyConstructorInputDiffers()
     {
@@ -47,6 +49,7 @@ public class CStructLayoutCacheTests
         Assert.AreEqual(6u, (uint)parsed.length);
     }
 
+    /// <summary>Invalid layouts and unsupported pointer sizes throw exactly as the constructor does and leave nothing behind in the cache.</summary>
     [TestMethod]
     public void GetOrCompile_DoesNotCacheFailures()
     {
@@ -57,6 +60,7 @@ public class CStructLayoutCacheTests
         Assert.AreEqual(0, cache.Count);
     }
 
+    /// <summary>Above capacity the least recently used layout is evicted; touching an entry keeps it alive.</summary>
     [TestMethod]
     public void GetOrCompile_EvictsLeastRecentlyUsed_WhenOverCapacity()
     {
@@ -74,6 +78,7 @@ public class CStructLayoutCacheTests
         Assert.AreNotSame(b, cache.GetOrCompile("struct b { uint8 v; };", 8, false, true, null), "b was evicted");
     }
 
+    /// <summary>Sources larger than the retained-character budget are compiled but never retained, so one huge definition cannot evict the working set.</summary>
     [TestMethod]
     public void GetOrCompile_DoesNotRetainOversizedSources()
     {
@@ -90,6 +95,7 @@ public class CStructLayoutCacheTests
         Assert.AreEqual(1, cache.Count);
     }
 
+    /// <summary>Concurrent requests for overlapping layouts always receive correct compiled instances and never exceed capacity.</summary>
     [TestMethod]
     public void GetOrCompile_IsSafeUnderConcurrentUse()
     {
@@ -108,6 +114,7 @@ public class CStructLayoutCacheTests
         }
     }
 
+    /// <summary>The public CStruct.GetOrCompile shares instances until ClearCompiledCache, after which earlier instances remain valid.</summary>
     [TestMethod]
     public void SharedFactory_ReturnsSameInstance_UntilCleared()
     {

@@ -28,6 +28,9 @@ lives for the process/page lifetime; no explicit disposal is needed for normal N
 The result object, also called an envelope, contains `ContractVersion`, `Operation`, `Success`, `Data`, `DebugData`,
 and `Error`. Check `Success` before using `Data`. A failure has an error `Code`, `Message`, and optional `Path` and
 `Offset`. Loading problems and invalid JavaScript arguments can instead throw; keep a `try`/`catch` around calls.
+Each `DebugData` item names a field path (`DebugStackString`), its `Type`, its `Value` as text, and the byte range
+`CurPos`–`EndPos` (end exclusive) in the input you supplied; slice your own bytes to inspect them. The current
+`ContractVersion` is 6.
 
 See [large files, buffers, and streams](large-data.md) for `File`/`Blob`, views, responses, streams, and iterable
 inputs, plus `signal` cancellation and the `maxSpoolBytes` staging limit. These read APIs automatically page data

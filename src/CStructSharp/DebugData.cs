@@ -37,5 +37,5 @@ public struct DebugData()
 
     /// <summary>Gets or sets the exact captured bytes as unsigned integer values suitable for JSON.</summary>
     [JsonPropertyName("buffer")]
-    public int[] Buffer { get; set; } = new int[] { };
+    public byte[] Buffer { get; set; } = [];
 }

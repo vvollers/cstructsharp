@@ -67,12 +67,10 @@ export interface DebugDataItem {
   Type: string;
   /** Decimal text preserves exact 64-bit integer values. */
   Value: string | null;
-  /** Comma-separated decimal field bytes, when available. */
-  Buffer: string | null;
 }
 export type Operation = "parse" | "serialize" | "update";
 export type Result<T, O extends Operation> = {
-  ContractVersion: 5;
+  ContractVersion: 6;
   Operation: O;
   DebugData: DebugDataItem[];
 } & (

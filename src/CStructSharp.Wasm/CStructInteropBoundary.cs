@@ -12,7 +12,7 @@ using Enum = System.Enum;
 /// <summary>Validates untrusted browser inputs and creates the stable transport envelope.</summary>
 public partial class CStructExports
 {
-    private const int InteropContractVersion = 5;
+    private const int InteropContractVersion = 6;
     private const int MaximumBinaryInputLength = 4 * 1024 * 1024;
     private const int MaximumDefinitionLength = 128 * 1024;
     private const int MaximumExpressionNestingDepth = 256;

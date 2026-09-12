@@ -4,6 +4,11 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- **Breaking (browser contract version 6):** `DebugData` items returned by `parseWithDebug` no longer carry a
+  `Buffer` field (the field's bytes as comma-separated decimal text); use `CurPos`/`EndPos` to slice the input you
+  supplied. The parse envelope is now written without indentation directly from the parse result, which makes
+  result projection 35–45 % faster and allocates about 80 % less; `Data` is still JSON text with the root wrapper
+  and every value is unchanged. The managed `DebugData.Buffer` is now a `byte[]` (previously `int[]`).
 - Added `CStruct.GetOrCompile(...)` (same parameters and defaults as the constructor) and `CStruct.ClearCompiledCache()`:
   a process-wide, bounded (64 layouts / 8 M source characters), most-recently-used cache keyed by the definition
   text and every option. The JavaScript/WASM bridge now uses it for every `parse`, `parseWithDebug`, `serialize`,

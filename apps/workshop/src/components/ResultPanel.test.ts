@@ -35,7 +35,7 @@ describe("ResultPanel", () => {
       props: {
         bytes: new Uint8Array(),
         result: {
-          ContractVersion: 5,
+          ContractVersion: 6,
           Operation: "parse",
           Success: true,
           Data: '{"value":42}',
@@ -46,7 +46,6 @@ describe("ResultPanel", () => {
             CurPos: index,
             EndPos: index + 1,
             DebugStackString: `root.field${index}`,
-            Buffer: null,
           })),
         },
       },
@@ -67,7 +66,7 @@ describe("ResultPanel", () => {
       props: {
         bytes,
         result: {
-          ContractVersion: 5,
+          ContractVersion: 6,
           Operation: "parse",
           Success: true,
           Data: '{"value":42}',

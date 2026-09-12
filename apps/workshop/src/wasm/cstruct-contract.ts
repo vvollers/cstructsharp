@@ -16,7 +16,7 @@ export type {
  * these shapes by the Playwright success and failure matrix.
  */
 
-export const INTEROP_CONTRACT_VERSION = 5 as const;
+export const INTEROP_CONTRACT_VERSION = 6 as const;
 
 export interface UnionValue {
   $kind: "union";
@@ -54,7 +54,6 @@ export interface DebugDataItem {
   DebugStackString: string;
   Type: string;
   Value: string | null;
-  Buffer: string | null;
 }
 
 export interface ErrorDetails {

@@ -311,8 +311,7 @@ function isDebugDataItem(value: unknown): boolean {
     Number.isSafeInteger(item.EndPos) &&
     typeof item.DebugStackString === "string" &&
     typeof item.Type === "string" &&
-    (typeof item.Value === "string" || item.Value === null) &&
-    (typeof item.Buffer === "string" || item.Buffer === null)
+    (typeof item.Value === "string" || item.Value === null)
   );
 }
 
