@@ -19,7 +19,12 @@ internal sealed class CompiledCompositeType : CompiledType
             var groups = new Dictionary<ConditionalGroup, int>();
             foreach (CompiledField field in fields)
             {
-                var branches = ImmutableArray.CreateBuilder<CompiledConditionalBranch>();
+                if (field.Declaration.BranchConditions.Count == 0)
+                {
+                    continue;
+                }
+
+                var branches = ImmutableArray.CreateBuilder<CompiledConditionalBranch>(field.Declaration.BranchConditions.Count);
                 foreach (ConditionalBranch branch in field.Declaration.BranchConditions)
                 {
                     if (!groups.TryGetValue(branch.Group, out int slot))
@@ -31,7 +36,7 @@ internal sealed class CompiledCompositeType : CompiledType
                     branches.Add(new CompiledConditionalBranch(branch.Group, slot, branch.Arm));
                 }
 
-                field.ConditionalBranches = branches.ToImmutable();
+                field.ConditionalBranches = branches.MoveToImmutable();
             }
 
             this.ConditionalGroupCount = groups.Count;
@@ -73,16 +78,35 @@ internal sealed class CompiledCompositeType : CompiledType
             return;
         }
 
+        var names = ImmutableArray.CreateBuilder<string>();
+        var slots = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (CompiledField field in this.Fields)
         {
-            field.VisibleNames = ConditionalVariableScope.GetVisibleNames(field).ToImmutableArray();
+            string fieldName = field.Declaration.Name.Name;
+            field.VisibleNames = fieldName.Length > 0
+                ? [fieldName]
+                : ConditionalVariableScope.GetVisibleNames(field).ToImmutableArray();
+            foreach (string name in field.VisibleNames)
+            {
+                if (slots.TryAdd(name, names.Count))
+                {
+                    names.Add(name);
+                }
+            }
         }
 
-        this.ConditionalLocalNames = this.Fields.SelectMany(field => field.VisibleNames).Distinct(StringComparer.Ordinal).ToImmutableArray();
-        var slots = this.ConditionalLocalNames.Select((name, index) => (name, index)).ToDictionary(item => item.name, item => item.index, StringComparer.Ordinal);
+        this.ConditionalLocalNames = names.ToImmutable();
         foreach (CompiledField field in this.Fields)
         {
-            field.CapturedLocalSlots = field.VisibleNames.Select(name => slots[name]).ToImmutableArray();
+            field.CapturedLocalSlots = field.VisibleNames.Length == 1
+                ? [slots[field.VisibleNames[0]]]
+                : field.VisibleNames.Select(name => slots[name]).ToImmutableArray();
+            if (field.Type.Symbol.Definition is not CompiledCompositeType)
+            {
+                // Primitive/enum storage cannot introduce a nested declaration that shadows a sibling.
+                continue;
+            }
+
             var overwritten = new HashSet<string>(StringComparer.Ordinal);
             var visited = new HashSet<CompiledTypeSymbol>();
             var pending = new Stack<CompiledTypeSymbol>();
