@@ -8,7 +8,7 @@ var processWarmup = Stopwatch.StartNew();
 while (processWarmup.Elapsed.TotalSeconds < 5) GC.KeepAlive(new CStruct(fixtures[0].Definition, aligned: false));
 foreach (var f in fixtures.Where(f => args[1] != "main" || !f.Conditional))
 {
-    var bytes = Enumerable.Repeat((byte)f.Fill, f.Size).ToArray();
+    var bytes = f.Bytes?.Select(value => checked((byte)value)).ToArray() ?? Enumerable.Repeat((byte)f.Fill, f.Size).ToArray();
     var layout = new CStruct(f.Definition, aligned: false);
     using var stream = new MemoryStream(bytes, writable: false);
     object expected = layout.ParseStream(stream, "root");
@@ -43,4 +43,4 @@ foreach (var f in fixtures.Where(f => args[1] != "main" || !f.Conditional))
     }
 }
 File.WriteAllText(args[2], JsonSerializer.Serialize(results, new JsonSerializerOptions { WriteIndented = true }));
-record Fixture(string Name, string Definition, int Size, bool Conditional, int Fill);
+record Fixture(string Name, string Definition, int Size, bool Conditional, int Fill, int[]? Bytes);
