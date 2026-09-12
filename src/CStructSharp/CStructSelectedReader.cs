@@ -46,15 +46,16 @@ public partial class CStruct
         CStructElement[] debugStack)
     {
         var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned);
-        var variableScope = new ConditionalVariableScope(this.compiledSizeQueries.GetCompiledComposite(strct), state.Variables);
-        var selection = new ConditionalFieldSelection(this.layoutExpressionEvaluator);
+        CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
+        var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
+        var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator) : null;
 
         state.EnterStructure();
         try
         {
             foreach (CompiledField field in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
             {
-                bool active = selection.IsActive(field, state.Variables);
+                bool active = selection?.IsActive(field, state.Variables) ?? true;
                 if (field.Declaration.Condition is not null)
                 {
                     state.ConditionalLayoutTrace?.Add((field.Declaration.Name.Name, state.Stream.Position, active ? 1L : 0L));
@@ -74,7 +75,7 @@ public partial class CStruct
                     field.Declaration is Struct,
                     field,
                     cursor);
-                variableScope.CompleteField(field, state.Variables);
+                variableScope?.CompleteField(field, state.Variables);
             }
         }
         finally

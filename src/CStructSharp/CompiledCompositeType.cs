@@ -13,6 +13,7 @@ internal sealed class CompiledCompositeType : CompiledType
         : base(symbol)
     {
         this.Fields = fields;
+        this.HasDirectConditionalFields = fields.Any(field => field.Declaration.Condition is not null);
 
         // An anonymous nonzero-width bitfield (LANG-17) has no name to key by, and several may coexist in one
         // composite without colliding with each other - exclude them rather than deduplicate on an empty key.
@@ -31,6 +32,8 @@ internal sealed class CompiledCompositeType : CompiledType
     }
 
     public ImmutableArray<CompiledField> Fields { get; }
+
+    public bool HasDirectConditionalFields { get; }
 
     public ImmutableDictionary<string, CompiledField> FieldsByName { get; }
 
