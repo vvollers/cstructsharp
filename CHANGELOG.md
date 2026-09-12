@@ -4,6 +4,10 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Performance: terminated strings (`char[]`, `utf8_string_*`, `unicode_string_*`, `ascii_string_*`) are scanned
+  per chunk and decoded once per chunk instead of byte by byte, making string-heavy reads up to 8× faster;
+  terminator, budget, and invalid-sequence behavior is unchanged and now pinned by tests. Writing terminated
+  strings allocates about 35 % less.
 - Performance: compiling a layout no longer builds frozen dictionaries for its symbol tables; small definitions
   compile about 30 % faster and allocate a third less. The tables stay immutable after construction.
 - Performance: field paths are parsed without intermediate strings and cached per process, and per-operation

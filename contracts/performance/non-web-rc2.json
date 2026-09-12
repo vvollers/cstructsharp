@@ -2005,27 +2005,27 @@
         "parameters": "Fixture=real-tar",
         "runtime": ".NET 10.0",
         "samples": 5,
-        "baselineMedianNanoseconds": 31384.947,
-        "baselineMeanNanoseconds": 31016.221,
-        "baselineP95Nanoseconds": 31494.534,
-        "baselineStandardDeviationNanoseconds": 602.18,
-        "relativeStandardDeviation": 0.019,
-        "baselineAllocatedBytes": 58400,
-        "gen0Collections": 114
+        "baselineMedianNanoseconds": 35041.12,
+        "baselineMeanNanoseconds": 34937.007,
+        "baselineP95Nanoseconds": 35949.438,
+        "baselineStandardDeviationNanoseconds": 820.523,
+        "relativeStandardDeviation": 0.023,
+        "baselineAllocatedBytes": 57921,
+        "gen0Collections": 113
       },
       {
         "type": "ParseBenchmarks",
         "method": "ParseSpan",
         "parameters": "Fixture=real-tar",
         "runtime": ".NET 8.0",
-        "samples": 4,
-        "baselineMedianNanoseconds": 48263.127,
-        "baselineMeanNanoseconds": 48252.598,
-        "baselineP95Nanoseconds": 48621.699,
-        "baselineStandardDeviationNanoseconds": 357.148,
-        "relativeStandardDeviation": 0.007,
-        "baselineAllocatedBytes": 78811,
-        "gen0Collections": 154
+        "samples": 5,
+        "baselineMedianNanoseconds": 52532.875,
+        "baselineMeanNanoseconds": 52187.39,
+        "baselineP95Nanoseconds": 53888.131,
+        "baselineStandardDeviationNanoseconds": 1712.718,
+        "relativeStandardDeviation": 0.033,
+        "baselineAllocatedBytes": 78330,
+        "gen0Collections": 153
       },
       {
         "type": "ParseBenchmarks",
@@ -2089,27 +2089,27 @@
         "parameters": "Fixture=strings-1024",
         "runtime": ".NET 10.0",
         "samples": 5,
-        "baselineMedianNanoseconds": 89683.378,
-        "baselineMeanNanoseconds": 89313.372,
-        "baselineP95Nanoseconds": 90155.287,
-        "baselineStandardDeviationNanoseconds": 911.366,
-        "relativeStandardDeviation": 0.01,
-        "baselineAllocatedBytes": 24391,
-        "gen0Collections": 23
+        "baselineMedianNanoseconds": 11963.552,
+        "baselineMeanNanoseconds": 12345.441,
+        "baselineP95Nanoseconds": 13386.607,
+        "baselineStandardDeviationNanoseconds": 854.97,
+        "relativeStandardDeviation": 0.071,
+        "baselineAllocatedBytes": 24145,
+        "gen0Collections": 189
       },
       {
         "type": "ParseBenchmarks",
         "method": "ParseSpan",
         "parameters": "Fixture=strings-1024",
         "runtime": ".NET 8.0",
-        "samples": 5,
-        "baselineMedianNanoseconds": 91280.09,
-        "baselineMeanNanoseconds": 91392.887,
-        "baselineP95Nanoseconds": 91754.39,
-        "baselineStandardDeviationNanoseconds": 296.773,
-        "relativeStandardDeviation": 0.003,
-        "baselineAllocatedBytes": 25869,
-        "gen0Collections": 25
+        "samples": 4,
+        "baselineMedianNanoseconds": 17650.131,
+        "baselineMeanNanoseconds": 17638.923,
+        "baselineP95Nanoseconds": 17786.477,
+        "baselineStandardDeviationNanoseconds": 161.425,
+        "relativeStandardDeviation": 0.009,
+        "baselineAllocatedBytes": 25624,
+        "gen0Collections": 100
       },
       {
         "type": "ParseBenchmarks",
@@ -2117,13 +2117,13 @@
         "parameters": "Fixture=strings-65536",
         "runtime": ".NET 10.0",
         "samples": 5,
-        "baselineMedianNanoseconds": 6047952.43,
-        "baselineMeanNanoseconds": 6072620.847,
-        "baselineP95Nanoseconds": 6158750.598,
-        "baselineStandardDeviationNanoseconds": 70518.629,
-        "relativeStandardDeviation": 0.012,
-        "baselineAllocatedBytes": 1113508,
-        "gen0Collections": 21
+        "baselineMedianNanoseconds": 753658.927,
+        "baselineMeanNanoseconds": 752988.447,
+        "baselineP95Nanoseconds": 773061.73,
+        "baselineStandardDeviationNanoseconds": 20900.122,
+        "relativeStandardDeviation": 0.028,
+        "baselineAllocatedBytes": 1103293,
+        "gen0Collections": 170
       },
       {
         "type": "ParseBenchmarks",
@@ -2131,13 +2131,13 @@
         "parameters": "Fixture=strings-65536",
         "runtime": ".NET 8.0",
         "samples": 5,
-        "baselineMedianNanoseconds": 6357124.27,
-        "baselineMeanNanoseconds": 6342262.02,
-        "baselineP95Nanoseconds": 6441262.499,
-        "baselineStandardDeviationNanoseconds": 93697.669,
-        "relativeStandardDeviation": 0.015,
-        "baselineAllocatedBytes": 1114933,
-        "gen0Collections": 21
+        "baselineMedianNanoseconds": 1030752.688,
+        "baselineMeanNanoseconds": 1024504.088,
+        "baselineP95Nanoseconds": 1066120.521,
+        "baselineStandardDeviationNanoseconds": 40779.011,
+        "relativeStandardDeviation": 0.04,
+        "baselineAllocatedBytes": 1104719,
+        "gen0Collections": 85
       },
       {
         "type": "ParseBenchmarks",
@@ -2145,13 +2145,13 @@
         "parameters": "Fixture=strings-8",
         "runtime": ".NET 10.0",
         "samples": 5,
-        "baselineMedianNanoseconds": 4087.599,
-        "baselineMeanNanoseconds": 4102.338,
-        "baselineP95Nanoseconds": 4159.177,
-        "baselineStandardDeviationNanoseconds": 50.547,
-        "relativeStandardDeviation": 0.012,
-        "baselineAllocatedBytes": 6465,
-        "gen0Collections": 101
+        "baselineMedianNanoseconds": 3284.016,
+        "baselineMeanNanoseconds": 3290.235,
+        "baselineP95Nanoseconds": 3356.274,
+        "baselineStandardDeviationNanoseconds": 64.308,
+        "relativeStandardDeviation": 0.02,
+        "baselineAllocatedBytes": 5513,
+        "gen0Collections": 172
       },
       {
         "type": "ParseBenchmarks",
@@ -2159,13 +2159,13 @@
         "parameters": "Fixture=strings-8",
         "runtime": ".NET 8.0",
         "samples": 5,
-        "baselineMedianNanoseconds": 5192.808,
-        "baselineMeanNanoseconds": 5174.523,
-        "baselineP95Nanoseconds": 5235.403,
-        "baselineStandardDeviationNanoseconds": 67.393,
-        "relativeStandardDeviation": 0.013,
-        "baselineAllocatedBytes": 7945,
-        "gen0Collections": 124
+        "baselineMedianNanoseconds": 4382.064,
+        "baselineMeanNanoseconds": 4382.681,
+        "baselineP95Nanoseconds": 4439.697,
+        "baselineStandardDeviationNanoseconds": 51.415,
+        "relativeStandardDeviation": 0.012,
+        "baselineAllocatedBytes": 6993,
+        "gen0Collections": 109
       },
       {
         "type": "ParseBenchmarks",
@@ -4553,13 +4553,13 @@
         "parameters": "",
         "runtime": ".NET 10.0",
         "samples": 5,
-        "baselineMedianNanoseconds": 7769.225,
-        "baselineMeanNanoseconds": 7690.967,
-        "baselineP95Nanoseconds": 8070.241,
-        "baselineStandardDeviationNanoseconds": 352.65,
-        "relativeStandardDeviation": 0.045,
-        "baselineAllocatedBytes": 43648,
-        "gen0Collections": 342
+        "baselineMedianNanoseconds": 6187.715,
+        "baselineMeanNanoseconds": 6159.173,
+        "baselineP95Nanoseconds": 6293.445,
+        "baselineStandardDeviationNanoseconds": 164.153,
+        "relativeStandardDeviation": 0.027,
+        "baselineAllocatedBytes": 28360,
+        "gen0Collections": 444
       },
       {
         "type": "WriteBenchmarks",
@@ -4567,27 +4567,27 @@
         "parameters": "",
         "runtime": ".NET 8.0",
         "samples": 5,
-        "baselineMedianNanoseconds": 10526.119,
-        "baselineMeanNanoseconds": 10500.252,
-        "baselineP95Nanoseconds": 10736.893,
-        "baselineStandardDeviationNanoseconds": 211.145,
-        "relativeStandardDeviation": 0.02,
-        "baselineAllocatedBytes": 43968,
-        "gen0Collections": 344
+        "baselineMedianNanoseconds": 9108.07,
+        "baselineMeanNanoseconds": 9179.414,
+        "baselineP95Nanoseconds": 9660.808,
+        "baselineStandardDeviationNanoseconds": 404.669,
+        "relativeStandardDeviation": 0.044,
+        "baselineAllocatedBytes": 28680,
+        "gen0Collections": 224
       },
       {
         "type": "WriteBenchmarks",
         "method": "Serialize_Strings64K_ToArray",
         "parameters": "",
         "runtime": ".NET 10.0",
-        "samples": 5,
-        "baselineMedianNanoseconds": 470749.08,
-        "baselineMeanNanoseconds": 480436.535,
-        "baselineP95Nanoseconds": 497528.582,
-        "baselineStandardDeviationNanoseconds": 14901.281,
-        "relativeStandardDeviation": 0.032,
-        "baselineAllocatedBytes": 2536982,
-        "gen0Collections": 868
+        "samples": 4,
+        "baselineMedianNanoseconds": 306297.099,
+        "baselineMeanNanoseconds": 305385.856,
+        "baselineP95Nanoseconds": 308108.636,
+        "baselineStandardDeviationNanoseconds": 3378.745,
+        "relativeStandardDeviation": 0.011,
+        "baselineAllocatedBytes": 1591582,
+        "gen0Collections": 547
       },
       {
         "type": "WriteBenchmarks",
@@ -4595,13 +4595,13 @@
         "parameters": "",
         "runtime": ".NET 8.0",
         "samples": 5,
-        "baselineMedianNanoseconds": 645489.422,
-        "baselineMeanNanoseconds": 654036.316,
-        "baselineP95Nanoseconds": 679442.888,
-        "baselineStandardDeviationNanoseconds": 21342.056,
-        "relativeStandardDeviation": 0.033,
-        "baselineAllocatedBytes": 2538035,
-        "gen0Collections": 512
+        "baselineMedianNanoseconds": 526817.966,
+        "baselineMeanNanoseconds": 524304.687,
+        "baselineP95Nanoseconds": 535831.089,
+        "baselineStandardDeviationNanoseconds": 12326.809,
+        "relativeStandardDeviation": 0.023,
+        "baselineAllocatedBytes": 1592245,
+        "gen0Collections": 319
       },
       {
         "type": "CompileBenchmarks",
@@ -5073,6 +5073,22 @@
             "sha256": "B236DD4D6595EC02FAE517DFE0FF94485C8F49255984CAD8A8322AAF86B11D80",
             "source": "CStructSharp.Benchmarks.Baseline0.CompileBenchmarks-report-full.json;CStructSharp.Benchmarks.Baseline0.ParseBenchmarks-report-full.json;CStructSharp.Benchmarks.CompilationBenchmarks-report-full.json",
             "revision": "bf908cdb14bbf7002c76ad20cbec11a3fbec16c2",
+            "worktreeDirty": true
+          }
+        ]
+      },
+      {
+        "date": "2026-09-12",
+        "note": "E2.9 accepted: chunk-scanned terminated strings",
+        "replacedCases": 24,
+        "revision": "5a8be39e5cec1457b33db616ec352c0f10a08051",
+        "worktreeDirty": true,
+        "summaries": [
+          {
+            "file": "artifacts/experiments/E2.9-summary.json",
+            "sha256": "1171B28F88EEC7C454CF60C32EEFC78497CC90C47458EB5354910939F0CDA444",
+            "source": "CStructSharp.Benchmarks.Baseline0.ParseBenchmarks-report-full.json;CStructSharp.Benchmarks.Baseline0.WriteBenchmarks-report-full.json;CStructSharp.Benchmarks.StringReadBenchmarks-report-full.json;CStructSharp.Benchmarks.WriteAndUpdateBenchmarks-report-full.json",
+            "revision": "5a8be39e5cec1457b33db616ec352c0f10a08051",
             "worktreeDirty": true
           }
         ]

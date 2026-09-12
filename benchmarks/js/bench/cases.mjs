@@ -104,9 +104,15 @@ export async function coreCases(env) {
     const { document, bytes } = await env.loadFixture(id);
     const options = stringify(fixtureOptions(document));
     const root = document.root;
+    // core.compile measures the bridge path (a cache hit after E3.2); core.compileFresh the actual compilation.
     cases.push({
       name: `core.compile.${id}`,
       fn: () => { env.managed.BenchCompile(document.definition, options); return 1; },
+      tags: ["compile"],
+    });
+    cases.push({
+      name: `core.compileFresh.${id}`,
+      fn: () => { env.managed.BenchCompileFresh(document.definition, options); return 1; },
       tags: ["compile"],
     });
     cases.push({

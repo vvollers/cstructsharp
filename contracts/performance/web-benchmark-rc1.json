@@ -585,19 +585,13 @@
             "compile"
           ],
           "batches": 9,
-          "batchSize": 28,
-          "medianNanoseconds": 1552600,
-          "meanNanoseconds": 1587384,
-          "relativeStandardDeviation": 0.058,
+          "batchSize": 8359,
+          "medianNanoseconds": 7210,
+          "meanNanoseconds": 7438,
+          "relativeStandardDeviation": 0.0598,
           "unstable": false,
-          "latency": {
-            "samples": 1077,
-            "p50Nanoseconds": 1261006,
-            "p95Nanoseconds": 1900464,
-            "p99Nanoseconds": 2836791,
-            "maxNanoseconds": 42845855
-          },
-          "managedAllocatedBytesPerOp": 25536,
+          "latency": null,
+          "managedAllocatedBytesPerOp": 0,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -688,19 +682,13 @@
             "compile"
           ],
           "batches": 9,
-          "batchSize": 45,
-          "medianNanoseconds": 2202717,
-          "meanNanoseconds": 2181348,
-          "relativeStandardDeviation": 0.0452,
+          "batchSize": 11957,
+          "medianNanoseconds": 8156,
+          "meanNanoseconds": 8159,
+          "relativeStandardDeviation": 0.0096,
           "unstable": false,
-          "latency": {
-            "samples": 682,
-            "p50Nanoseconds": 2051950,
-            "p95Nanoseconds": 2825446,
-            "p99Nanoseconds": 4313775,
-            "maxNanoseconds": 11648335
-          },
-          "managedAllocatedBytesPerOp": 54422,
+          "latency": null,
+          "managedAllocatedBytesPerOp": 800,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -797,19 +785,13 @@
             "compile"
           ],
           "batches": 9,
-          "batchSize": 137,
-          "medianNanoseconds": 748761,
-          "meanNanoseconds": 730152,
-          "relativeStandardDeviation": 0.0439,
+          "batchSize": 13933,
+          "medianNanoseconds": 7039,
+          "meanNanoseconds": 7061,
+          "relativeStandardDeviation": 0.0128,
           "unstable": false,
-          "latency": {
-            "samples": 1986,
-            "p50Nanoseconds": 708234,
-            "p95Nanoseconds": 916430,
-            "p99Nanoseconds": 1315080,
-            "maxNanoseconds": 13112378
-          },
-          "managedAllocatedBytesPerOp": 30553,
+          "latency": null,
+          "managedAllocatedBytesPerOp": 821,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -906,19 +888,13 @@
             "compile"
           ],
           "batches": 9,
-          "batchSize": 140,
-          "medianNanoseconds": 691480,
-          "meanNanoseconds": 695861,
-          "relativeStandardDeviation": 0.0215,
+          "batchSize": 9588,
+          "medianNanoseconds": 9329,
+          "meanNanoseconds": 9387,
+          "relativeStandardDeviation": 0.0174,
           "unstable": false,
-          "latency": {
-            "samples": 2064,
-            "p50Nanoseconds": 698501,
-            "p95Nanoseconds": 861645,
-            "p99Nanoseconds": 1048316,
-            "maxNanoseconds": 1916699
-          },
-          "managedAllocatedBytesPerOp": 28302,
+          "latency": null,
+          "managedAllocatedBytesPerOp": 0,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -1015,19 +991,13 @@
             "compile"
           ],
           "batches": 9,
-          "batchSize": 26,
-          "medianNanoseconds": 3694702,
-          "meanNanoseconds": 3683313,
-          "relativeStandardDeviation": 0.0562,
+          "batchSize": 10088,
+          "medianNanoseconds": 10047,
+          "meanNanoseconds": 9957,
+          "relativeStandardDeviation": 0.0234,
           "unstable": false,
-          "latency": {
-            "samples": 415,
-            "p50Nanoseconds": 3489433,
-            "p95Nanoseconds": 4463159,
-            "p99Nanoseconds": 5248010,
-            "maxNanoseconds": 7914242
-          },
-          "managedAllocatedBytesPerOp": 61071,
+          "latency": null,
+          "managedAllocatedBytesPerOp": 819,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -1118,19 +1088,13 @@
             "compile"
           ],
           "batches": 9,
-          "batchSize": 73,
-          "medianNanoseconds": 1349904,
-          "meanNanoseconds": 1352661,
-          "relativeStandardDeviation": 0.0208,
+          "batchSize": 12236,
+          "medianNanoseconds": 8249,
+          "meanNanoseconds": 8253,
+          "relativeStandardDeviation": 0.0223,
           "unstable": false,
-          "latency": {
-            "samples": 1086,
-            "p50Nanoseconds": 1343751,
-            "p95Nanoseconds": 1608408,
-            "p99Nanoseconds": 1827848,
-            "maxNanoseconds": 2952253
-          },
-          "managedAllocatedBytesPerOp": 33534,
+          "latency": null,
+          "managedAllocatedBytesPerOp": 816,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -1145,19 +1109,19 @@
             "core"
           ],
           "batches": 9,
-          "batchSize": 55,
-          "medianNanoseconds": 1750953,
-          "meanNanoseconds": 1731937,
-          "relativeStandardDeviation": 0.0439,
+          "batchSize": 179,
+          "medianNanoseconds": 442792,
+          "meanNanoseconds": 444641,
+          "relativeStandardDeviation": 0.0343,
           "unstable": false,
           "latency": {
-            "samples": 849,
-            "p50Nanoseconds": 1726151,
-            "p95Nanoseconds": 2081376,
-            "p99Nanoseconds": 2498307,
-            "maxNanoseconds": 3538919
+            "samples": 3515,
+            "p50Nanoseconds": 404531,
+            "p95Nanoseconds": 493078,
+            "p99Nanoseconds": 938905,
+            "maxNanoseconds": 4518616
           },
-          "managedAllocatedBytesPerOp": 28733,
+          "managedAllocatedBytesPerOp": 28602,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -1172,17 +1136,17 @@
             "projection"
           ],
           "batches": 9,
-          "batchSize": 1393,
-          "medianNanoseconds": 67993,
-          "meanNanoseconds": 68439,
-          "relativeStandardDeviation": 0.0146,
+          "batchSize": 1389,
+          "medianNanoseconds": 67525,
+          "meanNanoseconds": 68021,
+          "relativeStandardDeviation": 0.0252,
           "unstable": false,
           "latency": {
-            "samples": 21750,
-            "p50Nanoseconds": 65692,
-            "p95Nanoseconds": 77451,
-            "p99Nanoseconds": 100473,
-            "maxNanoseconds": 1475250
+            "samples": 22642,
+            "p50Nanoseconds": 62899,
+            "p95Nanoseconds": 75016,
+            "p99Nanoseconds": 96701,
+            "maxNanoseconds": 1869255
           },
           "managedAllocatedBytesPerOp": 13574,
           "copies": {
@@ -1200,19 +1164,19 @@
             "projection"
           ],
           "batches": 9,
-          "batchSize": 54,
-          "medianNanoseconds": 1705705,
-          "meanNanoseconds": 1705670,
-          "relativeStandardDeviation": 0.0301,
+          "batchSize": 203,
+          "medianNanoseconds": 475933,
+          "meanNanoseconds": 478288,
+          "relativeStandardDeviation": 0.0161,
           "unstable": false,
           "latency": {
-            "samples": 877,
-            "p50Nanoseconds": 1680250,
-            "p95Nanoseconds": 1932273,
-            "p99Nanoseconds": 2405197,
-            "maxNanoseconds": 2817664
+            "samples": 3124,
+            "p50Nanoseconds": 468922,
+            "p95Nanoseconds": 543017,
+            "p99Nanoseconds": 703249,
+            "maxNanoseconds": 1982292
           },
-          "managedAllocatedBytesPerOp": 58592,
+          "managedAllocatedBytesPerOp": 41152,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -1227,19 +1191,13 @@
             "compile"
           ],
           "batches": 9,
-          "batchSize": 57,
-          "medianNanoseconds": 1756738,
-          "meanNanoseconds": 1762687,
-          "relativeStandardDeviation": 0.0534,
+          "batchSize": 11730,
+          "medianNanoseconds": 8510,
+          "meanNanoseconds": 8566,
+          "relativeStandardDeviation": 0.0615,
           "unstable": false,
-          "latency": {
-            "samples": 868,
-            "p50Nanoseconds": 1662072,
-            "p95Nanoseconds": 2015443,
-            "p99Nanoseconds": 2941992,
-            "maxNanoseconds": 6260583
-          },
-          "managedAllocatedBytesPerOp": 28433,
+          "latency": null,
+          "managedAllocatedBytesPerOp": 817,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -1664,19 +1622,19 @@
             "public"
           ],
           "batches": 9,
-          "batchSize": 52,
-          "medianNanoseconds": 1724113,
-          "meanNanoseconds": 1746404,
-          "relativeStandardDeviation": 0.0264,
+          "batchSize": 166,
+          "medianNanoseconds": 565182,
+          "meanNanoseconds": 567186,
+          "relativeStandardDeviation": 0.0083,
           "unstable": false,
           "latency": {
-            "samples": 844,
-            "p50Nanoseconds": 1731090,
-            "p95Nanoseconds": 1979788,
-            "p99Nanoseconds": 2657891,
-            "maxNanoseconds": 5637080
+            "samples": 2549,
+            "p50Nanoseconds": 566414,
+            "p95Nanoseconds": 693481,
+            "p99Nanoseconds": 868686,
+            "maxNanoseconds": 3490273
           },
-          "managedAllocatedBytesPerOp": 54095,
+          "managedAllocatedBytesPerOp": 48669,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -1692,19 +1650,19 @@
             "debug"
           ],
           "batches": 9,
-          "batchSize": 48,
-          "medianNanoseconds": 1988653,
-          "meanNanoseconds": 2008021,
-          "relativeStandardDeviation": 0.0202,
+          "batchSize": 123,
+          "medianNanoseconds": 770878,
+          "meanNanoseconds": 770634,
+          "relativeStandardDeviation": 0.0226,
           "unstable": false,
           "latency": {
-            "samples": 715,
-            "p50Nanoseconds": 2039139,
-            "p95Nanoseconds": 2419533,
-            "p99Nanoseconds": 2826558,
-            "maxNanoseconds": 6790930
+            "samples": 2020,
+            "p50Nanoseconds": 729913,
+            "p95Nanoseconds": 776431,
+            "p99Nanoseconds": 1010272,
+            "maxNanoseconds": 2205548
           },
-          "managedAllocatedBytesPerOp": 98517,
+          "managedAllocatedBytesPerOp": 88324,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -1719,24 +1677,24 @@
             "direct"
           ],
           "batches": 9,
-          "batchSize": 55,
-          "medianNanoseconds": 1887487,
-          "meanNanoseconds": 1876825,
-          "relativeStandardDeviation": 0.0345,
+          "batchSize": 156,
+          "medianNanoseconds": 582394,
+          "meanNanoseconds": 598887,
+          "relativeStandardDeviation": 0.0712,
           "unstable": false,
           "latency": {
-            "samples": 827,
-            "p50Nanoseconds": 1776972,
-            "p95Nanoseconds": 2031358,
-            "p99Nanoseconds": 2297868,
-            "maxNanoseconds": 3983061
+            "samples": 2589,
+            "p50Nanoseconds": 563749,
+            "p95Nanoseconds": 651505,
+            "p99Nanoseconds": 894281,
+            "maxNanoseconds": 2207002
           },
-          "managedAllocatedBytesPerOp": 84782,
+          "managedAllocatedBytesPerOp": 54921,
           "copies": {
             "pageReads": 1,
             "pageBytes": 6592,
             "inputBytes": 6592,
-            "outputChars": 7020
+            "outputChars": 6995
           }
         },
         {
@@ -2289,6 +2247,195 @@
           "unstable": false,
           "latency": null,
           "managedAllocatedBytesPerOp": 0,
+          "copies": {
+            "pageReads": 0,
+            "pageBytes": 0,
+            "inputBytes": 0,
+            "outputChars": null
+          }
+        },
+        {
+          "name": "core.compileFresh.prim-le-record",
+          "group": "core",
+          "tags": [
+            "compile"
+          ],
+          "batches": 9,
+          "batchSize": 56,
+          "medianNanoseconds": 1329619,
+          "meanNanoseconds": 1380652,
+          "relativeStandardDeviation": 0.092,
+          "unstable": false,
+          "latency": {
+            "samples": 1345,
+            "p50Nanoseconds": 1045620,
+            "p95Nanoseconds": 1383608,
+            "p99Nanoseconds": 2051776,
+            "maxNanoseconds": 10638219
+          },
+          "managedAllocatedBytesPerOp": 21928,
+          "copies": {
+            "pageReads": 0,
+            "pageBytes": 0,
+            "inputBytes": 0,
+            "outputChars": null
+          }
+        },
+        {
+          "name": "core.compileFresh.nested-x256",
+          "group": "core",
+          "tags": [
+            "compile"
+          ],
+          "batches": 9,
+          "batchSize": 43,
+          "medianNanoseconds": 2201263,
+          "meanNanoseconds": 2221828,
+          "relativeStandardDeviation": 0.0714,
+          "unstable": false,
+          "latency": {
+            "samples": 717,
+            "p50Nanoseconds": 2012510,
+            "p95Nanoseconds": 2554183,
+            "p99Nanoseconds": 3304214,
+            "maxNanoseconds": 6768255
+          },
+          "managedAllocatedBytesPerOp": 36128,
+          "copies": {
+            "pageReads": 0,
+            "pageBytes": 0,
+            "inputBytes": 0,
+            "outputChars": null
+          }
+        },
+        {
+          "name": "core.compileFresh.array-u8-1024",
+          "group": "core",
+          "tags": [
+            "compile"
+          ],
+          "batches": 9,
+          "batchSize": 146,
+          "medianNanoseconds": 728412,
+          "meanNanoseconds": 730178,
+          "relativeStandardDeviation": 0.0724,
+          "unstable": false,
+          "latency": {
+            "samples": 2158,
+            "p50Nanoseconds": 648040,
+            "p95Nanoseconds": 884820,
+            "p99Nanoseconds": 1248180,
+            "maxNanoseconds": 3034232
+          },
+          "managedAllocatedBytesPerOp": 17945,
+          "copies": {
+            "pageReads": 0,
+            "pageBytes": 0,
+            "inputBytes": 0,
+            "outputChars": null
+          }
+        },
+        {
+          "name": "core.compileFresh.array-u32-le-262144",
+          "group": "core",
+          "tags": [
+            "compile"
+          ],
+          "batches": 9,
+          "batchSize": 154,
+          "medianNanoseconds": 673863,
+          "meanNanoseconds": 670755,
+          "relativeStandardDeviation": 0.019,
+          "unstable": false,
+          "latency": {
+            "samples": 2241,
+            "p50Nanoseconds": 631264,
+            "p95Nanoseconds": 892451,
+            "p99Nanoseconds": 1104813,
+            "maxNanoseconds": 1871358
+          },
+          "managedAllocatedBytesPerOp": 16427,
+          "copies": {
+            "pageReads": 0,
+            "pageBytes": 0,
+            "inputBytes": 0,
+            "outputChars": null
+          }
+        },
+        {
+          "name": "core.compileFresh.real-png",
+          "group": "core",
+          "tags": [
+            "compile"
+          ],
+          "batches": 9,
+          "batchSize": 26,
+          "medianNanoseconds": 3540763,
+          "meanNanoseconds": 3495135,
+          "relativeStandardDeviation": 0.0389,
+          "unstable": false,
+          "latency": {
+            "samples": 421,
+            "p50Nanoseconds": 3433164,
+            "p95Nanoseconds": 4185157,
+            "p99Nanoseconds": 5562092,
+            "maxNanoseconds": 10017250
+          },
+          "managedAllocatedBytesPerOp": 58214,
+          "copies": {
+            "pageReads": 0,
+            "pageBytes": 0,
+            "inputBytes": 0,
+            "outputChars": null
+          }
+        },
+        {
+          "name": "core.compileFresh.strings-1024",
+          "group": "core",
+          "tags": [
+            "compile"
+          ],
+          "batches": 9,
+          "batchSize": 71,
+          "medianNanoseconds": 1374013,
+          "meanNanoseconds": 1388574,
+          "relativeStandardDeviation": 0.0479,
+          "unstable": false,
+          "latency": {
+            "samples": 1018,
+            "p50Nanoseconds": 1345143,
+            "p95Nanoseconds": 2083128,
+            "p99Nanoseconds": 2551881,
+            "maxNanoseconds": 3996772
+          },
+          "managedAllocatedBytesPerOp": 22524,
+          "copies": {
+            "pageReads": 0,
+            "pageBytes": 0,
+            "inputBytes": 0,
+            "outputChars": null
+          }
+        },
+        {
+          "name": "core.compileFresh.cond-if128",
+          "group": "core",
+          "tags": [
+            "compile"
+          ],
+          "batches": 9,
+          "batchSize": 52,
+          "medianNanoseconds": 1966546,
+          "meanNanoseconds": 1977090,
+          "relativeStandardDeviation": 0.0595,
+          "unstable": false,
+          "latency": {
+            "samples": 690,
+            "p50Nanoseconds": 1956276,
+            "p95Nanoseconds": 3079823,
+            "p99Nanoseconds": 3589447,
+            "maxNanoseconds": 6836890
+          },
+          "managedAllocatedBytesPerOp": 32508,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -5157,6 +5304,500 @@
             "runtimeTimings": {
               "runtimeCreateMs": 72.44815700000001,
               "exportsReadyMs": 17.87654599999999
+            },
+            "verifiedFixtures": [
+              "prim-le-record",
+              "prim-le-x1k",
+              "nested-x256",
+              "aligned-x256",
+              "array-u8-1024",
+              "array-u32-be-256",
+              "dynamic-64",
+              "bitfield-x1k",
+              "enum-x1k",
+              "union-x1k",
+              "strings-1024",
+              "pointer-depth-8",
+              "cond-if128",
+              "real-bmp",
+              "real-png",
+              "real-pe-exe",
+              "real-tar"
+            ]
+          },
+          "settings": {
+            "warmupTime": 600,
+            "batchTargetMs": 100,
+            "batches": 9,
+            "latencyTime": 1500
+          }
+        },
+        "browser": {
+          "file": "artifacts/js-bench/results/browser-latest.json",
+          "sha256": "A8CD4C5CEFD1AF081D08B63A32F57263A88C743A94EE2A9DF9B353E729F221FC",
+          "environment": {
+            "capturedAtUtc": "2026-09-12T19:49:24.482Z",
+            "revision": "670ee92a92575ca0f1bcdd56ab1a59a77deac339",
+            "worktreeDirty": true,
+            "os": {
+              "platform": "linux",
+              "release": "7.0.0-31-generic",
+              "arch": "x64"
+            },
+            "cpu": {
+              "model": "AMD EPYC 9645 96-Core Processor",
+              "count": 8,
+              "speedMHz": 0
+            },
+            "totalMemoryBytes": 16757460992,
+            "node": {
+              "node": "26.5.0",
+              "acorn": "8.17.0",
+              "ada": "3.4.4",
+              "amaro": "1.1.10",
+              "ares": "1.34.6",
+              "brotli": "1.2.0",
+              "cldr": "48.0",
+              "icu": "78.3",
+              "libffi": "3.6.0",
+              "lief": "0.17.0",
+              "llhttp": "9.4.2",
+              "merve": "1.2.2",
+              "modules": "147",
+              "napi": "10",
+              "nbytes": "0.1.4",
+              "ncrypto": "0.0.1",
+              "nghttp2": "1.69.0",
+              "nghttp3": "",
+              "ngtcp2": "",
+              "openssl": "3.5.7",
+              "simdjson": "4.6.4",
+              "simdutf": "7.7.0",
+              "sqlite": "3.53.3",
+              "tz": "2026b",
+              "undici": "8.7.0",
+              "unicode": "17.0",
+              "uv": "1.52.1",
+              "uvwasi": "0.0.23",
+              "v8": "14.6.202.34-node.24",
+              "zlib": "1.3.2.1-motley-3246f1b",
+              "zstd": "1.5.7"
+            },
+            "dotnetSdk": "10.0.302",
+            "wasmBundle": {
+              "sha256": "5850c1dc7a01f80820a72759dc079420922b4dcb302c1b8afac15ed1c6686792",
+              "totalFrameworkBytes": 5306887,
+              "builtAtUtc": "2026-09-12T19:46:36.443Z",
+              "extraProperties": []
+            },
+            "browser": {
+              "name": "chromium",
+              "version": "153.0.8010.12",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+              "hardwareConcurrency": 8
+            },
+            "runtimeTimings": {
+              "runtimeCreateMs": 116.95000000111759,
+              "exportsReadyMs": 20.219999998807907
+            },
+            "verifiedFixtures": [
+              "prim-le-record",
+              "nested-x256",
+              "array-u8-1024",
+              "union-x1k",
+              "strings-1024",
+              "pointer-depth-8",
+              "cond-if128",
+              "real-png",
+              "real-pe-exe"
+            ],
+            "pageMemory": {
+              "usedJSHeapSize": 23444198,
+              "totalJSHeapSize": 66236498
+            }
+          },
+          "settings": {
+            "warmupTime": 600,
+            "batchTargetMs": 100,
+            "batches": 9,
+            "latencyTime": 1500
+          }
+        },
+        "cold": {
+          "file": "artifacts/js-bench/results/cold-latest.json",
+          "sha256": "327063D58BD57D4ACA7C2230225F959391594AFAA70E1EF3C55247DE490CF652",
+          "environment": {
+            "capturedAtUtc": "2026-09-12T18:11:04.763Z",
+            "revision": "08ffc4f761c05441028e9e8ab091187d7c9fa5f1",
+            "worktreeDirty": true,
+            "os": {
+              "platform": "linux",
+              "release": "7.0.0-31-generic",
+              "arch": "x64"
+            },
+            "cpu": {
+              "model": "AMD EPYC 9645 96-Core Processor",
+              "count": 8,
+              "speedMHz": 0
+            },
+            "totalMemoryBytes": 16757460992,
+            "node": {
+              "node": "26.5.0",
+              "acorn": "8.17.0",
+              "ada": "3.4.4",
+              "amaro": "1.1.10",
+              "ares": "1.34.6",
+              "brotli": "1.2.0",
+              "cldr": "48.0",
+              "icu": "78.3",
+              "libffi": "3.6.0",
+              "lief": "0.17.0",
+              "llhttp": "9.4.2",
+              "merve": "1.2.2",
+              "modules": "147",
+              "napi": "10",
+              "nbytes": "0.1.4",
+              "ncrypto": "0.0.1",
+              "nghttp2": "1.69.0",
+              "nghttp3": "",
+              "ngtcp2": "",
+              "openssl": "3.5.7",
+              "simdjson": "4.6.4",
+              "simdutf": "7.7.0",
+              "sqlite": "3.53.3",
+              "tz": "2026b",
+              "undici": "8.7.0",
+              "unicode": "17.0",
+              "uv": "1.52.1",
+              "uvwasi": "0.0.23",
+              "v8": "14.6.202.34-node.24",
+              "zlib": "1.3.2.1-motley-3246f1b",
+              "zstd": "1.5.7"
+            },
+            "dotnetSdk": "10.0.302",
+            "wasmBundle": {
+              "sha256": "e0e817dd2624bfdece3209061b861f7b9026c91b300463f8789f2a97c6cb1b1c",
+              "totalFrameworkBytes": 5291015,
+              "builtAtUtc": "2026-09-12T16:29:45.089Z",
+              "extraProperties": []
+            }
+          }
+        }
+      }
+    },
+    {
+      "date": "2026-09-12",
+      "note": "E2.9 accepted (strings cases re-measured in Node)",
+      "replacedCases": 13,
+      "evidence": {
+        "node": {
+          "file": "artifacts/js-bench/results/node-latest.json",
+          "sha256": "6906AD4AE2F8C73EB01091E1C2B38BF6095E45A971341BA31B25790188EEFABF",
+          "environment": {
+            "capturedAtUtc": "2026-09-12T20:29:33.202Z",
+            "revision": "5a8be39e5cec1457b33db616ec352c0f10a08051",
+            "worktreeDirty": true,
+            "os": {
+              "platform": "linux",
+              "release": "7.0.0-31-generic",
+              "arch": "x64"
+            },
+            "cpu": {
+              "model": "AMD EPYC 9645 96-Core Processor",
+              "count": 8,
+              "speedMHz": 0
+            },
+            "totalMemoryBytes": 16757460992,
+            "node": {
+              "node": "26.5.0",
+              "acorn": "8.17.0",
+              "ada": "3.4.4",
+              "amaro": "1.1.10",
+              "ares": "1.34.6",
+              "brotli": "1.2.0",
+              "cldr": "48.0",
+              "icu": "78.3",
+              "libffi": "3.6.0",
+              "lief": "0.17.0",
+              "llhttp": "9.4.2",
+              "merve": "1.2.2",
+              "modules": "147",
+              "napi": "10",
+              "nbytes": "0.1.4",
+              "ncrypto": "0.0.1",
+              "nghttp2": "1.69.0",
+              "nghttp3": "",
+              "ngtcp2": "",
+              "openssl": "3.5.7",
+              "simdjson": "4.6.4",
+              "simdutf": "7.7.0",
+              "sqlite": "3.53.3",
+              "tz": "2026b",
+              "undici": "8.7.0",
+              "unicode": "17.0",
+              "uv": "1.52.1",
+              "uvwasi": "0.0.23",
+              "v8": "14.6.202.34-node.24",
+              "zlib": "1.3.2.1-motley-3246f1b",
+              "zstd": "1.5.7"
+            },
+            "dotnetSdk": "10.0.302",
+            "wasmBundle": {
+              "sha256": "d1a0741132f30b8cc38c2ac0e1962239e9a6b29405f7c7f8eb5a80f4c2aaa259",
+              "totalFrameworkBytes": 5298183,
+              "builtAtUtc": "2026-09-12T20:29:10.255Z",
+              "extraProperties": []
+            },
+            "runtimeTimings": {
+              "runtimeCreateMs": 76.400219,
+              "exportsReadyMs": 18.19251
+            },
+            "verifiedFixtures": [
+              "prim-le-record",
+              "prim-le-x1k",
+              "nested-x256",
+              "aligned-x256",
+              "array-u8-1024",
+              "array-u32-be-256",
+              "dynamic-64",
+              "bitfield-x1k",
+              "enum-x1k",
+              "union-x1k",
+              "strings-1024",
+              "pointer-depth-8",
+              "cond-if128",
+              "real-bmp",
+              "real-png",
+              "real-pe-exe",
+              "real-tar"
+            ]
+          },
+          "settings": {
+            "warmupTime": 600,
+            "batchTargetMs": 100,
+            "batches": 9,
+            "latencyTime": 1500
+          }
+        },
+        "browser": {
+          "file": "artifacts/js-bench/results/browser-latest.json",
+          "sha256": "A8CD4C5CEFD1AF081D08B63A32F57263A88C743A94EE2A9DF9B353E729F221FC",
+          "environment": {
+            "capturedAtUtc": "2026-09-12T19:49:24.482Z",
+            "revision": "670ee92a92575ca0f1bcdd56ab1a59a77deac339",
+            "worktreeDirty": true,
+            "os": {
+              "platform": "linux",
+              "release": "7.0.0-31-generic",
+              "arch": "x64"
+            },
+            "cpu": {
+              "model": "AMD EPYC 9645 96-Core Processor",
+              "count": 8,
+              "speedMHz": 0
+            },
+            "totalMemoryBytes": 16757460992,
+            "node": {
+              "node": "26.5.0",
+              "acorn": "8.17.0",
+              "ada": "3.4.4",
+              "amaro": "1.1.10",
+              "ares": "1.34.6",
+              "brotli": "1.2.0",
+              "cldr": "48.0",
+              "icu": "78.3",
+              "libffi": "3.6.0",
+              "lief": "0.17.0",
+              "llhttp": "9.4.2",
+              "merve": "1.2.2",
+              "modules": "147",
+              "napi": "10",
+              "nbytes": "0.1.4",
+              "ncrypto": "0.0.1",
+              "nghttp2": "1.69.0",
+              "nghttp3": "",
+              "ngtcp2": "",
+              "openssl": "3.5.7",
+              "simdjson": "4.6.4",
+              "simdutf": "7.7.0",
+              "sqlite": "3.53.3",
+              "tz": "2026b",
+              "undici": "8.7.0",
+              "unicode": "17.0",
+              "uv": "1.52.1",
+              "uvwasi": "0.0.23",
+              "v8": "14.6.202.34-node.24",
+              "zlib": "1.3.2.1-motley-3246f1b",
+              "zstd": "1.5.7"
+            },
+            "dotnetSdk": "10.0.302",
+            "wasmBundle": {
+              "sha256": "5850c1dc7a01f80820a72759dc079420922b4dcb302c1b8afac15ed1c6686792",
+              "totalFrameworkBytes": 5306887,
+              "builtAtUtc": "2026-09-12T19:46:36.443Z",
+              "extraProperties": []
+            },
+            "browser": {
+              "name": "chromium",
+              "version": "153.0.8010.12",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+              "hardwareConcurrency": 8
+            },
+            "runtimeTimings": {
+              "runtimeCreateMs": 116.95000000111759,
+              "exportsReadyMs": 20.219999998807907
+            },
+            "verifiedFixtures": [
+              "prim-le-record",
+              "nested-x256",
+              "array-u8-1024",
+              "union-x1k",
+              "strings-1024",
+              "pointer-depth-8",
+              "cond-if128",
+              "real-png",
+              "real-pe-exe"
+            ],
+            "pageMemory": {
+              "usedJSHeapSize": 23444198,
+              "totalJSHeapSize": 66236498
+            }
+          },
+          "settings": {
+            "warmupTime": 600,
+            "batchTargetMs": 100,
+            "batches": 9,
+            "latencyTime": 1500
+          }
+        },
+        "cold": {
+          "file": "artifacts/js-bench/results/cold-latest.json",
+          "sha256": "327063D58BD57D4ACA7C2230225F959391594AFAA70E1EF3C55247DE490CF652",
+          "environment": {
+            "capturedAtUtc": "2026-09-12T18:11:04.763Z",
+            "revision": "08ffc4f761c05441028e9e8ab091187d7c9fa5f1",
+            "worktreeDirty": true,
+            "os": {
+              "platform": "linux",
+              "release": "7.0.0-31-generic",
+              "arch": "x64"
+            },
+            "cpu": {
+              "model": "AMD EPYC 9645 96-Core Processor",
+              "count": 8,
+              "speedMHz": 0
+            },
+            "totalMemoryBytes": 16757460992,
+            "node": {
+              "node": "26.5.0",
+              "acorn": "8.17.0",
+              "ada": "3.4.4",
+              "amaro": "1.1.10",
+              "ares": "1.34.6",
+              "brotli": "1.2.0",
+              "cldr": "48.0",
+              "icu": "78.3",
+              "libffi": "3.6.0",
+              "lief": "0.17.0",
+              "llhttp": "9.4.2",
+              "merve": "1.2.2",
+              "modules": "147",
+              "napi": "10",
+              "nbytes": "0.1.4",
+              "ncrypto": "0.0.1",
+              "nghttp2": "1.69.0",
+              "nghttp3": "",
+              "ngtcp2": "",
+              "openssl": "3.5.7",
+              "simdjson": "4.6.4",
+              "simdutf": "7.7.0",
+              "sqlite": "3.53.3",
+              "tz": "2026b",
+              "undici": "8.7.0",
+              "unicode": "17.0",
+              "uv": "1.52.1",
+              "uvwasi": "0.0.23",
+              "v8": "14.6.202.34-node.24",
+              "zlib": "1.3.2.1-motley-3246f1b",
+              "zstd": "1.5.7"
+            },
+            "dotnetSdk": "10.0.302",
+            "wasmBundle": {
+              "sha256": "e0e817dd2624bfdece3209061b861f7b9026c91b300463f8789f2a97c6cb1b1c",
+              "totalFrameworkBytes": 5291015,
+              "builtAtUtc": "2026-09-12T16:29:45.089Z",
+              "extraProperties": []
+            }
+          }
+        }
+      }
+    },
+    {
+      "date": "2026-09-12",
+      "note": "core.compileFresh cases added (uncached compilation); core.compile now measures the cached bridge path",
+      "replacedCases": 13,
+      "evidence": {
+        "node": {
+          "file": "artifacts/js-bench/results/node-latest.json",
+          "sha256": "2F3BC7E639BC3785A8D75F713FCE4BAD780BE6EB218977E93D9D8A0E7A96AFCE",
+          "environment": {
+            "capturedAtUtc": "2026-09-12T20:30:30.136Z",
+            "revision": "5a8be39e5cec1457b33db616ec352c0f10a08051",
+            "worktreeDirty": true,
+            "os": {
+              "platform": "linux",
+              "release": "7.0.0-31-generic",
+              "arch": "x64"
+            },
+            "cpu": {
+              "model": "AMD EPYC 9645 96-Core Processor",
+              "count": 8,
+              "speedMHz": 0
+            },
+            "totalMemoryBytes": 16757460992,
+            "node": {
+              "node": "26.5.0",
+              "acorn": "8.17.0",
+              "ada": "3.4.4",
+              "amaro": "1.1.10",
+              "ares": "1.34.6",
+              "brotli": "1.2.0",
+              "cldr": "48.0",
+              "icu": "78.3",
+              "libffi": "3.6.0",
+              "lief": "0.17.0",
+              "llhttp": "9.4.2",
+              "merve": "1.2.2",
+              "modules": "147",
+              "napi": "10",
+              "nbytes": "0.1.4",
+              "ncrypto": "0.0.1",
+              "nghttp2": "1.69.0",
+              "nghttp3": "",
+              "ngtcp2": "",
+              "openssl": "3.5.7",
+              "simdjson": "4.6.4",
+              "simdutf": "7.7.0",
+              "sqlite": "3.53.3",
+              "tz": "2026b",
+              "undici": "8.7.0",
+              "unicode": "17.0",
+              "uv": "1.52.1",
+              "uvwasi": "0.0.23",
+              "v8": "14.6.202.34-node.24",
+              "zlib": "1.3.2.1-motley-3246f1b",
+              "zstd": "1.5.7"
+            },
+            "dotnetSdk": "10.0.302",
+            "wasmBundle": {
+              "sha256": "30d28848f398b0c6aa59dd6da624eb2f851582da55eb17adfd6cc21e7c1a5180",
+              "totalFrameworkBytes": 5298695,
+              "builtAtUtc": "2026-09-12T20:29:54.350Z",
+              "extraProperties": []
+            },
+            "runtimeTimings": {
+              "runtimeCreateMs": 81.715598,
+              "exportsReadyMs": 21.087835999999996
             },
             "verifiedFixtures": [
               "prim-le-record",

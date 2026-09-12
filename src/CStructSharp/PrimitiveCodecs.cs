@@ -120,21 +120,21 @@ internal static class PrimitiveCodecs
     /// <summary>Reads characters until a terminator and leaves the stream immediately after that terminator.</summary>
     public static string ReadIntoString(Stream stream, Encoding encoding, char terminator)
     {
-        // Decode one byte at a time instead of using StreamReader: StreamReader may read ahead, which makes byte
-        // budgets and exact binary stream positions impossible to enforce reliably. I/O is still requested in
-        // chunks - only the decode granularity, budget accounting, and terminator search stay byte-by-byte - and
-        // any bytes read but not yet decoded are seeked back before returning or throwing so the exact-position and
-        // budget contract observed by a caller is identical to a strictly byte-by-byte reader.
-        StringBuilder builder = new();
+        // Chunked reads, one decode per chunk prefix (E2.9). The observable contract of the former byte-by-byte
+        // reader is preserved exactly: the stream ends immediately after the terminator, an over-budget read leaves
+        // the stream one byte past the limit, a decode failure leaves it at the end of the chunk being decoded, and
+        // invalid sequences that straddle chunks still fail because the decoder keeps its state across chunks.
         Decoder decoder = encoding.GetDecoder();
+        int unitSize = encoding is UnicodeEncoding ? 2 : 1;
+        Span<byte> terminatorBytes = stackalloc byte[4];
+        int terminatorLength = encoding.GetBytes(new ReadOnlySpan<char>(in terminator), terminatorBytes);
+        terminatorBytes = terminatorBytes[..terminatorLength];
 
-        // Rented rather than freshly allocated: this method runs once per terminated-string field read, and the
-        // chunk buffer's contents never need to survive past this call, making it a natural ArrayPool candidate
-        // (the same pooling strategy ExpressionEvaluator.cs already uses for its own scratch buffer).
         byte[] chunk = ArrayPool<byte>.Shared.Rent(TerminatedStringReadChunkSize);
+        char[] decoded = ArrayPool<char>.Shared.Rent(TerminatedStringReadChunkSize + 2);
         try
         {
-            Span<char> output = stackalloc char[2];
+            StringBuilder? builder = null;
             long encodedByteCount = 0;
             long? maxStringBytes = stream is ReadBudgetStream budget ? budget.MaxStringBytes : null;
 
@@ -146,54 +146,83 @@ internal static class PrimitiveCodecs
                     throw new CStructReadException("Not enough bytes in stream.");
                 }
 
-                for (int i = 0; i < bytesRead; i++)
+                // Search from the first position that starts an encoding unit relative to the string's own start.
+                int alignmentOffset = (int)((unitSize - (encodedByteCount % unitSize)) % unitSize);
+                int terminatorIndex = FindTerminator(chunk.AsSpan(0, bytesRead), terminatorBytes, unitSize, alignmentOffset);
+
+                // Budget arithmetic equivalent to counting every consumed byte, including the terminator's own bytes.
+                if (maxStringBytes.HasValue)
                 {
-                    encodedByteCount++;
-                    if (maxStringBytes.HasValue && encodedByteCount > maxStringBytes.Value)
+                    long allowed = maxStringBytes.Value - encodedByteCount;
+                    long consumedIfFound = terminatorIndex < 0 ? bytesRead : terminatorIndex + terminatorLength;
+                    if (consumedIfFound > allowed)
                     {
-                        // A byte-by-byte reader would already have physically consumed this over-budget byte (it reads
-                        // the byte, then checks the budget), leaving the stream one byte past the limit rather than
-                        // exactly at it. Only seek back the remainder of the chunk that was never inspected at all, so
-                        // the throw-time position matches that exactly.
-                        SeekBackUnconsumedChunkBytes(stream, bytesRead, i + 1);
+                        // The byte-by-byte reader consumed the over-budget byte before checking, so the stream is left
+                        // exactly one byte past the limit; only the never-inspected remainder is seeked back.
+                        SeekBackUnconsumedChunkBytes(stream, bytesRead, (int)Math.Min(bytesRead, allowed + 1));
                         throw new CStructReadLimitException("String field exceeded the configured encoded-byte limit.");
                     }
-
-                    int charsUsed;
-                    try
-                    {
-                        decoder.Convert(chunk.AsSpan(i, 1), output, false, out _, out charsUsed, out _);
-                    }
-                    catch (DecoderFallbackException exception)
-                    {
-                        throw new CStructReadException(
-                            "String field contains bytes that are invalid for its encoding.",
-                            exception);
-                    }
-
-                    for (int c = 0; c < charsUsed; c++)
-                    {
-                        char character = output[c];
-                        if (character == terminator)
-                        {
-                            // Do not include the terminator in the public string value, and leave the stream
-                            // immediately after it, exactly as a byte-by-byte reader would.
-                            SeekBackUnconsumedChunkBytes(stream, bytesRead, i + 1);
-                            return builder.ToString();
-                        }
-
-                        builder.Append(character);
-                    }
                 }
+
+                int prefixLength = terminatorIndex < 0 ? bytesRead : terminatorIndex;
+                int charsUsed;
+                try
+                {
+                    // Flushing at the terminator surfaces an incomplete multi-byte sequence right before it, which the
+                    // byte-by-byte reader rejected when the terminator byte arrived.
+                    decoder.Convert(chunk.AsSpan(0, prefixLength), decoded, terminatorIndex >= 0, out _, out charsUsed, out _);
+                }
+                catch (DecoderFallbackException exception)
+                {
+                    throw new CStructReadException(
+                        "String field contains bytes that are invalid for its encoding.",
+                        exception);
+                }
+
+                if (terminatorIndex < 0)
+                {
+                    encodedByteCount += bytesRead;
+                    (builder ??= new StringBuilder()).Append(decoded, 0, charsUsed);
+                    continue;
+                }
+
+                // Do not include the terminator in the public string value, and leave the stream immediately after it.
+                SeekBackUnconsumedChunkBytes(stream, bytesRead, terminatorIndex + terminatorLength);
+                if (builder is null)
+                {
+                    return new string(decoded, 0, charsUsed);
+                }
+
+                builder.Append(decoded, 0, charsUsed);
+                return builder.ToString();
             }
         }
         finally
         {
             ArrayPool<byte>.Shared.Return(chunk);
+            ArrayPool<char>.Shared.Return(decoded);
         }
     }
 
-    /// <summary>Encodes a string and appends the layout's required terminator.</summary>
+    /// <summary>Finds the encoded terminator on an encoding-unit boundary, or -1.</summary>
+    private static int FindTerminator(ReadOnlySpan<byte> data, ReadOnlySpan<byte> terminator, int unitSize, int alignmentOffset)
+    {
+        if (unitSize == 1)
+        {
+            return data.IndexOf(terminator[0]);
+        }
+
+        for (int index = alignmentOffset; index + terminator.Length <= data.Length; index += unitSize)
+        {
+            if (data.Slice(index, terminator.Length).SequenceEqual(terminator))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
     public static void WriteTerminatedString(Stream stream, Encoding encoding, string value, char terminator)
     {
         if (value.Contains(terminator, StringComparison.Ordinal))
@@ -201,25 +230,34 @@ internal static class PrimitiveCodecs
             throw new CStructWriteException("String value contains its encoded terminator.");
         }
 
-        byte[] payload;
+        // Encode into a pooled buffer instead of concatenating the terminator and allocating a fresh byte[] (E2.9).
+        byte[]? payload = null;
         try
         {
-            long encodedByteCount = checked(
-                (long)encoding.GetByteCount(value) +
-                encoding.GetByteCount(new[] { terminator, }));
+            int valueBytes = encoding.GetByteCount(value);
+            int terminatorBytes = encoding.GetByteCount(new ReadOnlySpan<char>(in terminator));
+            long encodedByteCount = checked((long)valueBytes + terminatorBytes);
             if (stream is WriteBudgetStream budget)
             {
                 budget.EnsureStringBytes(encodedByteCount);
             }
 
-            payload = encoding.GetBytes(value + terminator);
+            payload = ArrayPool<byte>.Shared.Rent(valueBytes + terminatorBytes);
+            int written = encoding.GetBytes(value, payload.AsSpan(0, valueBytes));
+            written += encoding.GetBytes(new ReadOnlySpan<char>(in terminator), payload.AsSpan(written, terminatorBytes));
+            stream.Write(payload, 0, written);
         }
         catch (EncoderFallbackException exception)
         {
             throw new CStructWriteException("String value contains characters that are invalid for its encoding.", exception);
         }
-
-        stream.Write(payload, 0, payload.Length);
+        finally
+        {
+            if (payload is not null)
+            {
+                ArrayPool<byte>.Shared.Return(payload);
+            }
+        }
     }
 
     /// <summary>Converts one CLR character to the raw one-byte domain used by the layout's <c>char</c> type.</summary>

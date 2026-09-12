@@ -64,10 +64,23 @@ public partial class CStructExports
         return total;
     }
 
+    /// <summary>Compiles through the bridge's own path (a cache hit after the first call since E3.2).</summary>
     [JSExport]
     public static void BenchCompile(string definition, string optionsJson)
     {
         benchLayout = CreateCStruct(definition, ParseOptions(optionsJson));
+    }
+
+    /// <summary>Compiles bypassing the layout cache: the cost of an actual compilation under the interpreter.</summary>
+    [JSExport]
+    public static void BenchCompileFresh(string definition, string optionsJson)
+    {
+        InteropOptionsDto options = ParseOptions(optionsJson);
+        benchLayout = new CStruct(
+            definition,
+            (byte)(options.PointerSize ?? 8),
+            options.Aligned ?? false,
+            options.LittleEndian ?? true);
     }
 
     /// <summary>Core parse from a managed byte[] with no projection; returns the consumed position.</summary>
