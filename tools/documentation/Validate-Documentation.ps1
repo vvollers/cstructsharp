@@ -62,7 +62,7 @@ function Get-IgnoredDocumentationDependencies {
         # Keep the ignored-input guard on all other repository source, including normal benchmarks.
         $normalizedPath = $relativePath.Replace('\', '/')
         if ($normalizedPath.StartsWith('benchmarks/ConditionalComparison/', [StringComparison]::Ordinal) -or
-            $normalizedPath.StartsWith('agentdocs/', [StringComparison]::Ordinal))
+            $normalizedPath.StartsWith(('agentdocs' + '/'), [StringComparison]::Ordinal))
         {
             continue
         }
