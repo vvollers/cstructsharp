@@ -1,0 +1,14 @@
+npm notice run cstruct-sharp-web@0.3.3 test:wasm-publication
+npm notice run node --test ../../tools/packaging/wasm-publication.test.mjs
+✔ manifest accepts only root entrypoints and boot-referenced framework assets (15.8862ms)
+✔ manifest rejects stale and non-deployable files (5.1971ms)
+✔ manifest rejects a missing boot resource (3.972ms)
+✔ manifest enforces the raw production payload budget (4.6739ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 72.2851

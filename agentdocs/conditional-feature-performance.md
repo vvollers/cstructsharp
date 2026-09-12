@@ -1,5 +1,7 @@
 # Conditional-feature performance comparison and improvement plan
 
+This is the preserved pre-optimization report for `d30ee60`. See the [implementation report](conditional-feature-performance-implementation.md) for completed changes, final measurements and validation limitations.
+
 The branch has material regressions on existing layouts, and conditional records have a substantial additional cost. Across eight common fixtures, C# compiled stream parsing is **6–21% slower** and JavaScript/WASM core parsing is **21–34% slower**. C# debug parsing of the tested nested/128-record arrays is **48–52% slower**, partly because it now produces correct indexed field paths.
 
 For an equivalent 128-record layout, `if`/`switch` cost **6.5–6.8× C# compiled parsing** and **5.3× WASM core parsing**. Compiling that conditional layout costs **23–30% more in C#** and **25–31% more in WASM** than its plain variant. With one record, fixed per-call work dilutes the parse ratio to 3.3–3.4× C# / 2.5× WASM. These ratios describe equal active payloads with tag 1, not every possible conditional layout.

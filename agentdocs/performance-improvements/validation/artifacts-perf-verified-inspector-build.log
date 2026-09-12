@@ -1,0 +1,28 @@
+npm notice run cstruct-sharp-inspector@0.3.3 build
+npm notice run node scripts/build-production.mjs
+npm notice run cstruct-sharp-inspector@0.3.3 copy:wasm
+npm notice run node scripts/copy-wasm.mjs
+Copied 33 validated WASM files.
+npm notice run cstruct-sharp-inspector@0.3.3 build:frontend
+npm notice run vue-tsc -b && vite build
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 1919 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                               0.60 kB │ gzip:   0.34 kB
+dist/assets/detection.worker-BVoM3K9k.js     63.25 kB
+dist/assets/codicon-Brq4_Ui5.ttf            140.95 kB
+dist/assets/editor.worker-DKXjC3Lf.js       300.34 kB
+dist/assets/index-DXykTqcL.css              161.10 kB │ gzip:  17.25 kB
+dist/assets/monaco-layout-z4JhZn2-.css      161.84 kB │ gzip:  24.58 kB
+dist/assets/vanilla-picker-DRFJl8Wg.js       18.47 kB │ gzip:   6.54 kB
+dist/assets/index-DPF8raIn.js             1,733.07 kB │ gzip: 512.35 kB
+dist/assets/monaco-layout-C-01PKsw.js     3,812.63 kB │ gzip: 974.20 kB
+
+✓ built in 671ms
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.

@@ -1,0 +1,16 @@
+npm notice run cstruct-sharp-web@0.3.3 pack:npm
+npm notice run node ../../tools/packaging/create-wasm-npm-package.mjs
+Packed cstructsharp-0.3.3.tgz: 2039775 compressed / 5424470 unpacked bytes.
+sha512-EUAEPykRct/Pb4phMz79RYVRD/OYIYb3UPTNJ5pyLp5SFBYb7Mf23Y8E11NCUZ+4Em2Wmg1++/XCMQrTfOz/mQ==
+npm notice run cstruct-sharp-web@0.3.3 test:npm
+npm notice run node ../../tools/packaging/test-npm-package.mjs
+Node consumer passed CStructSharp WASM 0.3.3+caefd64746d6adc718244d81a3e39c07b5a6040c
+
+SSR import passed
+
+Missing asset rejected without terminating the host
+
+Corrupt assembly rejected without terminating the host
+
+Browser consumers passed: Vite dev/build, root/nested base, SSR, static copy, CSP.
+Verified installed tarball cstructsharp-0.3.3.tgz in C:\projects\github\cstructsharp\artifacts\npm\consumer space-u9rTk7

@@ -1,0 +1,12 @@
+npm notice run cstruct-sharp-inspector@0.3.3 lint
+npm notice run eslint . --max-warnings 0
+npm notice run cstruct-sharp-inspector@0.3.3 format:check
+npm notice run prettier --check .
+Checking formatting...
+All matched files use Prettier code style!
+npm notice run cstruct-sharp-web@0.3.3 lint
+npm notice run eslint . --max-warnings 0
+npm notice run cstruct-sharp-web@0.3.3 format:check
+npm notice run prettier --check .
+Checking formatting...
+All matched files use Prettier code style!

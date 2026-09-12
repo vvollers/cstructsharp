@@ -1,0 +1,3 @@
+PASS compiled layouts: mixed branches, concurrency, debug parity, limits, cancellation, recovery, disposal, isolation
+PASS ordinary source staging remains independent
+PASS compiled root defaults and per-read root overrides
