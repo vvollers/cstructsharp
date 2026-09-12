@@ -418,6 +418,11 @@ public class UnionValueTests
         Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.value.large" && item.CurPos == 0 && item.EndPos == 2));
         CollectionAssert.AreEqual(new[] { 0x34, 0x12, }, storage.Buffer);
         Assert.IsTrue(debug.Count(item => item.CurPos == 0) >= 3);
+
+        stream.Position = 0;
+        (List<DebugData> rootDebug, _) = cstruct.ParseStreamWithDebug(stream, "choice");
+        Assert.AreEqual("choice", rootDebug.Single(item => item.Value is UnionValue).DebugStackString);
+        Assert.IsTrue(rootDebug.Any(item => item.DebugStackString == "choice.small" && item.CurPos == 0 && item.EndPos == 1));
     }
 
     /// <summary>
