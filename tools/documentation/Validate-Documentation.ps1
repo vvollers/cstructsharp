@@ -57,6 +57,14 @@ function Get-IgnoredDocumentationDependencies {
 
     foreach ($relativePath in $repositoryFiles)
     {
+        # This opt-in comparison harness writes/reports explicitly saved diagnostic evidence.
+        # It is not an input to the library, application, package or documentation builds.
+        # Keep the ignored-input guard on all other repository source, including normal benchmarks.
+        if ($relativePath.Replace('\', '/').StartsWith('benchmarks/ConditionalComparison/', [StringComparison]::Ordinal))
+        {
+            continue
+        }
+
         if ([IO.Path]::GetExtension($relativePath) -notin $textExtensions)
         {
             continue
@@ -124,6 +132,21 @@ function Get-BrokenRepositoryMarkdownLinks {
 
 if ($SelfTest)
 {
+    $testName = 'ignored-dependency-self-test-' + [Guid]::NewGuid().ToString('N') + '.txt'
+    $productionProbe = Join-Path $PSScriptRoot $testName
+    $diagnosticProbe = Join-Path $RepositoryRoot ('benchmarks/ConditionalComparison/' + $testName)
+    try {
+        Set-Content -LiteralPath $productionProbe -Value ('agentdocs' + '/prohibited-build-input.md')
+        Set-Content -LiteralPath $diagnosticProbe -Value ('agentdocs' + '/diagnostic-output.md')
+        $violations = @(Get-IgnoredDocumentationDependencies)
+        Assert-Condition (@($violations | Where-Object { $_ -like "tools/documentation/$testName`:*" }).Count -eq 1) `
+            'The ignored-input guard must reject production dependencies.'
+        Assert-Condition (@($violations | Where-Object { $_ -like "benchmarks/ConditionalComparison/$testName`:*" }).Count -eq 0) `
+            'The opt-in comparison harness may record local diagnostic evidence.'
+    } finally {
+        Remove-Item -LiteralPath $productionProbe, $diagnosticProbe -Force -ErrorAction SilentlyContinue
+    }
+
     $caught = $false
     try
     {
