@@ -29,6 +29,18 @@ public class CompiledSizeQueriesTests
         return (new CompiledSizeQueries(cstruct.CompiledModel.Composites, aligned, evaluator), cstruct);
     }
 
+    /// <summary>Variables-only sizing includes exactly the selected conditional storage.</summary>
+    [TestMethod]
+    public void ConditionalCompositeSize_UsesCurrentSelector()
+    {
+        var layout = new CStruct("struct root { uint8 tag; if (tag) { uint8 small; } else { uint16 wide; } };", aligned: false);
+        var evaluator = new LayoutExpressionEvaluator(new ExpressionEvaluator(new ExpressionEvaluationLimits(64, 10_000)));
+        var queries = new CompiledSizeQueries(layout.CompiledModel.Composites, false, evaluator);
+        CompiledCompositeType root = queries.GetCompiledComposite(layout.GetStruct("root"));
+        Assert.AreEqual(2, queries.GetCompiledStructSizeInBytes(root, new Dictionary<string, Expr> { ["tag"] = new Literal(1) }, false));
+        Assert.AreEqual(3, queries.GetCompiledStructSizeInBytes(root, new Dictionary<string, Expr> { ["tag"] = new Literal(0) }, false));
+    }
+
     /// <summary>A known struct declaration resolves to its bound composite descriptor.</summary>
     [TestMethod]
     public void GetCompiledComposite_KnownStruct_ReturnsBoundDescriptor()

@@ -6,6 +6,14 @@ using CStructSharp;
 [TestClass]
 public class FixedPointTests
 {
+    /// <summary>An integer writer input does not make fixed-point storage a legal array count.</summary>
+    [TestMethod]
+    public void IntegerInput_StillMasksFixedPointLayoutVariables()
+    {
+        var layout = new CStruct("struct root { fixed16_16 count; uint8 values[count]; };", aligned: false);
+        Assert.Throws<CStructException>(() => layout.Serialize("root", new { count = 1, values = new byte[] { 42 } }));
+    }
+
     /// <summary>A decimal fraction must not disappear through a preliminary Double conversion.</summary>
     [TestMethod]
     public void DecimalInputs_RejectHiddenRounding()
