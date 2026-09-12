@@ -83,16 +83,12 @@ public class UpdateBenchmarks
         return this.array1MStream.Position;
     }
 
-    /// <summary>
-    ///     Updates a field inside the pointer target. The target's pointer field is used rather than its scalar
-    ///     because updating `root.head.value.value` on this self-referential layout currently fails with
-    ///     "Maximum nested struct depth exceeded" (recorded as a Phase 0 finding; not a benchmark concern).
-    /// </summary>
+    /// <summary>Updates the scalar inside the pointer target (the pointer-extent bug that blocked this path is fixed).</summary>
     [Benchmark]
     public long Update_PointerTarget()
     {
         this.pointerStream.Position = 0;
-        this.pointer.Layout.UpdateStream(this.pointerStream, "root.head.value.next", 0U);
+        this.pointer.Layout.UpdateStream(this.pointerStream, "root.head.value.value", 0xBEEFU);
         return this.pointerStream.Position;
     }
 

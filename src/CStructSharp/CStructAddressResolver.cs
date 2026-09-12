@@ -827,7 +827,10 @@ public partial class CStruct
         Field field = compiledField.EffectiveField;
         CStructElement? namedElement = compiledField.NamedElement;
 
-        if (namedElement is Struct nested)
+        // A pointer to a struct occupies the pointer width, never the pointee's extent: measuring the pointee here
+        // placed every sibling after `item *p` at the wrong offset and recursed until the nesting limit for a
+        // self-referential `node *next`. Pointer fields fall through to the fixed-size arithmetic below.
+        if (namedElement is Struct nested && field.PointerDepth == 0)
         {
             int count = compiledField.Array.Kind == CompiledArrayKind.Scalar
                             ? 1

@@ -4,6 +4,9 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Fixed: address resolution and `UpdateStream` measured a pointer-to-struct field by the pointee's size instead
+  of the pointer width, so a sibling after `item *p` resolved to the wrong offset and updating a field inside a
+  self-referential `node *next` target failed with "Maximum nested struct depth exceeded".
 - Performance: arrays of fixed-width numeric primitives (`uint8`…`uint64`, `int8`…`int64`, `bool`, `float32`,
   `float64`, either byte order) are read in blocks and decoded from memory instead of element by element; large
   byte and integer arrays parse 3–5× faster natively and about 8× faster in the browser with half to two-thirds
