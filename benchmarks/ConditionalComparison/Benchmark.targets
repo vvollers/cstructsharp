@@ -1,0 +1,1 @@
+<Project><ItemGroup Condition="'$(MSBuildProjectName)' == 'CStructSharpWeb.Wasm'"><Compile Include="$(MSBuildThisFileDirectory)BenchmarkExports.cs" /></ItemGroup></Project>
