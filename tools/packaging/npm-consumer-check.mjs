@@ -38,6 +38,30 @@ const largeRead = await parseWithDebug("struct large { uint64 value; };", large.
   rootTypeName: "large",
 });
 assert.equal(JSON.parse(largeRead.Data).large.value, "18446744073709551615");
+const metadataDefinition = "struct root { uint8 kind; int24< delta; uleb128_64 count; fixed16_16> revision; uuid network; guid windows; latin1 western[1]; cp437 dos[1]; utf16le little[4]; utf16be big[4]; if(kind == 1) { utf8 label[3]; } else { uint8 raw[3]; } };";
+const metadataOptions = { rootTypeName: "root", aligned: false };
+const identifier = "00112233-4455-6677-8899-aabbccddeeff";
+const metadata = {
+  kind: 1, delta: -2, count: "18446744073709551615", revision: -1.5,
+  network: identifier, windows: identifier, western: "é", dos: "é",
+  little: "😀", big: "😀", label: "€",
+};
+const metadataBytes = await serialize(metadataDefinition, metadata, metadataOptions);
+assert.equal(metadataBytes.Success, true);
+assert.deepEqual(Array.from(metadataBytes.Data.slice(0, 4)), [1, 254, 255, 255]);
+const metadataRead = await parseWithDebug(metadataDefinition, metadataBytes.Data, metadataOptions);
+assert.equal(metadataRead.Success, true);
+assert.deepEqual(JSON.parse(metadataRead.Data).root, metadata);
+const metadataRoundTrip = await serialize(metadataDefinition, JSON.parse(metadataRead.Data).root, metadataOptions);
+assert.deepEqual(metadataRoundTrip.Data, metadataBytes.Data);
+const metadataUpdate = await update(metadataDefinition, metadataBytes.Data, "root.label", "£", metadataOptions);
+assert.equal(metadataUpdate.Success, true);
+const metadataUpdatedRead = await parse(metadataDefinition, metadataUpdate.Data, metadataOptions);
+assert.equal(JSON.parse(metadataUpdatedRead.Data).root.label, "£\0");
+const changedBranch = await update(metadataDefinition, metadataBytes.Data, "root.kind", 0, metadataOptions);
+assert.equal(changedBranch.Success, false);
+assert.equal(changedBranch.Error.Code, "write-failed");
+assert.equal(metadataBytes.Data[0], 1);
 await assert.rejects(parseWithDebug(definition, [2]), /Binary chunks/);
 const largeInput = new Uint8Array(8 * 1024 * 1024);
 largeInput.set(input);

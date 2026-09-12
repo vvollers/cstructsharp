@@ -1,7 +1,7 @@
 {
-  "totalTests": 804,
-  "runnableTests": 81,
-  "testInputsSha256": "afb56ec0e7bab6963c06d1cd9152bcd3561ece2ac2b81f491a1fe5f4a2bea3e9",
+  "totalTests": 842,
+  "runnableTests": 86,
+  "testInputsSha256": "d932bdc56bafd166a3a2372d97fb8d275c18ad44f17a8e408824942c713d0693",
   "lessonIds": [
     "header",
     "header-serialize",
@@ -31,7 +31,25 @@
     "pointer",
     "limits",
     "large-integer",
-    "large-integer-serialize"
+    "large-integer-serialize",
+    "integers-24",
+    "integers-24-serialize",
+    "integers-24-update",
+    "bounded-encodings",
+    "bounded-encodings-serialize",
+    "bounded-encodings-update",
+    "variable-integers",
+    "variable-integers-serialize",
+    "variable-integers-update",
+    "fixed-point",
+    "fixed-point-serialize",
+    "fixed-point-update",
+    "identifier-order",
+    "identifier-order-serialize",
+    "identifier-order-update",
+    "conditional-records",
+    "conditional-records-serialize",
+    "conditional-records-update"
   ],
-  "lessonTopics": 15
+  "lessonTopics": 21
 }

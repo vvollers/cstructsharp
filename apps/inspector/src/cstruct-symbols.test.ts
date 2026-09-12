@@ -2,6 +2,25 @@ import { describe, expect, it } from "vitest";
 import { collectSymbols } from "./cstruct-symbols";
 
 describe("collectSymbols", () => {
+  it("counts conditional declarations while keeping nested composites as single members", () => {
+    const symbols = collectSymbols(`
+      struct root {
+        uint8 tag;
+        if (tag) { utf8 label[3]; struct { uint8 a; uint8 b; } child; }
+        else { switch (tag) { case 0: { guid id; } default: { uint24> number; } } }
+        uint8 tail;
+      };
+      typedef struct { if (enabled) { uint8 one; } else { uint16 two; } } choice;
+    `);
+    expect(symbols.find((symbol) => symbol.name === "root")?.documentation).toBe(
+      "6 fields declared across all branches; active fields depend on the data",
+    );
+    expect(symbols.find((symbol) => symbol.name === "choice")?.documentation).toContain(
+      "2 fields declared across all branches",
+    );
+    expect(symbols.map((symbol) => symbol.name)).toEqual(["root", "choice"]);
+  });
+
   it("finds a named struct and counts its top-level fields", () => {
     const symbols = collectSymbols(`
       struct bitmap_file_header {
@@ -67,9 +86,15 @@ describe("collectSymbols", () => {
     const symbols = collectSymbols(`
       typedef uint32 offset_t;
       typedef uint8 *byte_ptr;
+      typedef int24< little_delta;
+      typedef fixed16_16> revision;
     `);
     expect(symbols.find((s) => s.name === "offset_t")?.detail).toBe("typedef uint32 offset_t");
     expect(symbols.find((s) => s.name === "byte_ptr")?.detail).toBe("typedef uint8* byte_ptr");
+    expect(symbols.find((s) => s.name === "little_delta")?.detail).toBe(
+      "typedef int24< little_delta",
+    );
+    expect(symbols.find((s) => s.name === "revision")?.detail).toBe("typedef fixed16_16> revision");
   });
 
   it("finds #define constants with their expression", () => {

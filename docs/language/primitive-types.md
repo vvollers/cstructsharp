@@ -19,11 +19,18 @@ suffix always means little-endian, and `>` always means big-endian.
 | `int8` | `int8` | 1 / 1 | Signed, -128..127 | Not applicable | `SByte` |
 | `bool`, `_Bool` | `bool` | 1 / 1 | Boolean, `true`/`false` (any nonzero byte reads as true) | Not applicable | `Boolean` |
 | `char` | `char` | 1 / 1 | Raw code unit, U+0000..U+00FF | Not applicable | `Char` |
+| `utf8` | `utf8` | 1 / 1 | Raw UTF-8 byte; counted arrays decode to strings | Not applicable | `Byte` |
+| `latin1` | `latin1` | 1 / 1 | Raw byte; counted arrays decode strict text | Explicit in name / independent | `Byte` |
+| `cp437` | `cp437` | 1 / 1 | Raw byte; counted arrays decode strict text | Explicit in name / independent | `Byte` |
+| `utf16le` | `utf16le` | 1 / 1 | Raw byte; counted arrays decode strict text | Explicit in name / independent | `Byte` |
+| `utf16be` | `utf16be` | 1 / 1 | Raw byte; counted arrays decode strict text | Explicit in name / independent | `Byte` |
 | `wchar` | `wchar` | 2 / 2 | UTF-16 code unit, U+0000..U+FFFF | Layout | `Char` |
 | `wchar<` | `wchar<` | 2 / 2 | UTF-16 code unit, U+0000..U+FFFF | Little | `Char` |
 | `wchar>` | `wchar>` | 2 / 2 | UTF-16 code unit, U+0000..U+FFFF | Big | `Char` |
 | `int16`, `int16<`, `int16>` | Matching `int16` codec | 2 / 2 | Signed, -32768..32767 | Layout / little / big | `Int16` |
 | `uint16`, `uint16<`, `uint16>` | Matching `uint16` codec | 2 / 2 | Unsigned, 0..65535 | Layout / little / big | `UInt16` |
+| `int24`, `int24<`, `int24>` | Matching `int24` codec | 3 / 1 | Signed, -8388608..8388607 | Layout / little / big | `Int32` |
+| `uint24`, `uint24<`, `uint24>` | Matching `uint24` codec | 3 / 1 | Unsigned, 0..16777215 | Layout / little / big | `UInt32` |
 | `int32`, `int32<`, `int32>` | Matching `int32` codec | 4 / 4 | Signed, -2147483648..2147483647 | Layout / little / big | `Int32` |
 | `uint32`, `uint32<`, `uint32>` | Matching `uint32` codec | 4 / 4 | Unsigned, 0..4294967295 | Layout / little / big | `UInt32` |
 | `int64`, `int64<`, `int64>` | Matching `int64` codec | 8 / 8 | Signed, -9223372036854775808..9223372036854775807 | Layout / little / big | `Int64` |
@@ -126,6 +133,9 @@ types have no byte-order choice.
 
 ## Terminated primitives
 
+For a known byte length, use `utf8 text[length];` instead of a terminated primitive.
+See [byte-bounded UTF-8 buffers](arrays-and-strings.md#byte-bounded-utf-8-buffers).
+
 Terminated types scan until a NUL or line-feed marker. Their encoded size is known only while reading/writing, their
 alignment is one, and the direct CLR result is `String`.
 
@@ -178,3 +188,68 @@ See [Enums](structs-unions-enums-typedefs.md#enums).
 
 Fixed primitives work with parse, debug, address, serialize, stream write, update, and selected reads. A scalar has no
 dynamic length. Terminated types also support `GetDynamicArrayLength`.
+
+Three-byte integers use alignment 1 even in aligned layouts, and arrays have a three-byte stride.
+They support ordinary numeric fields and scalar typedefs, but cannot back enums or bitfields.
+Out-of-range writes fail before the value is committed.
+
+## Variable-length integers
+
+`uleb128_32` and `uleb128_64` decode unsigned LEB128 into `UInt32` and `UInt64`.
+`sleb128_32` and `sleb128_64` decode signed LEB128 into `Int32` and `Int64`.
+They have alignment 1, no endian suffix, and a maximum of five or ten encoded
+bytes respectively. Legal padded encodings are accepted; unused terminal bits
+must agree with the declared width and sign. Writers emit the shortest encoding.
+
+Arrays may contain differently sized encodings. Addresses of following fields and
+array elements require the original stream; static byte sizing is unavailable.
+Numeric values may supply checked array counts. These types cannot back enums or
+bitfields and are not terminated strings. A scalar has no string/array length.
+
+In-place updates require the replacement to have the same encoded byte length.
+A canonical rewrite of a padded value can therefore fail even when the numeric
+value is unchanged. Serialize into a new buffer when changing encoded widths.
+LEB128 does not describe EBML VINT, BER lengths, SQLite varints, or MIDI VLQ.
+
+```c
+struct section {
+    uint8 id;
+    uleb128_32 length;
+    uint8 payload[length];
+};
+```
+
+## Fixed-point values
+
+Decimal inputs are checked before conversion to `Double`, so a decimal fraction
+outside the storage grid cannot disappear during conversion and silently become an accepted value.
+
+| Type | Integer storage | Fractional bits | Bytes / alignment | CLR |
+| --- | --- | --- | --- | --- |
+| `fixed16_16`, `fixed16_16<`, `fixed16_16>` | Signed 32-bit | 16 | 4 / 4 | Double |
+| `ufixed16_16`, `ufixed16_16<`, `ufixed16_16>` | Unsigned 32-bit | 16 | 4 / 4 | Double |
+| `fixed2_30`, `fixed2_30<`, `fixed2_30>` | Signed 32-bit | 30 | 4 / 4 | Double |
+| `ufixed8_8`, `ufixed8_8<`, `ufixed8_8>` | Unsigned 16-bit | 8 | 2 / 2 | Double |
+
+The stored integer is divided by 2 to the power of the fractional-bit count.
+All supported raw values are exactly representable as Double. Neutral spellings
+use layout byte order; `<` and `>` select explicit byte order. Writers reject
+NaN, infinity, out-of-range values and values outside the storage grid instead
+of rounding. For example, signed 16.16 encodes -1.5 as the integer -98304.
+Fixed-point fields cannot supply integer layout expressions or back enums or bitfields.
+
+## UUID and GUID identifiers
+
+`uuid` and `guid` each occupy 16 bytes with alignment 1 and return `System.Guid`.
+The enclosing layout byte order does not affect them; endian suffixes are not
+accepted. Writers accept Guid values or canonical hyphenated D-format strings.
+All bit patterns are allowed, including nil and nonstandard version bits.
+WASM JSON represents these values as canonical lowercase identifier strings.
+
+For `00112233-4455-6677-8899-aabbccddeeff`, the storage is:
+
+- `uuid`: `00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff`
+- `guid`: `33 22 11 00 55 44 77 66 88 99 aa bb cc dd ee ff`
+
+Use `guid` for Windows GUID fields and `uuid` for network-order UUID fields.
+Hashes and arbitrary sixteen-byte payloads should remain byte arrays.

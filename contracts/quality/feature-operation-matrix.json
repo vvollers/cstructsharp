@@ -225,16 +225,47 @@
     ]
   },
   "primitiveSpellings": {
+    "dynamicNumeric": [
+      "uleb128_32",
+      "uleb128_64",
+      "sleb128_32",
+      "sleb128_64"
+    ],
     "fixed": [
+      "uuid",
+      "guid",
+      "fixed16_16",
+      "fixed16_16<",
+      "fixed16_16>",
+      "ufixed16_16",
+      "ufixed16_16<",
+      "ufixed16_16>",
+      "fixed2_30",
+      "fixed2_30<",
+      "fixed2_30>",
+      "ufixed8_8",
+      "ufixed8_8<",
+      "ufixed8_8>",
       "byte",
       "int8",
       "uint8",
       "bool",
       "_Bool",
       "char",
+      "utf8",
+      "latin1",
+      "cp437",
+      "utf16le",
+      "utf16be",
       "wchar",
       "wchar>",
       "wchar<",
+      "int24",
+      "int24<",
+      "int24>",
+      "uint24",
+      "uint24<",
+      "uint24>",
       "int16",
       "int16>",
       "int16<",
@@ -952,6 +983,132 @@
           "An invalid layout has no supported byte representation."
         ],
         "evidence": []
+      }
+    },
+    {
+      "featureId": "integers-24",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Valid representable values with the documented type and byte order; see the executable representative cases."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Canonical encodings, including any zero padding in bounded text buffers."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+        ]
+      }
+    },
+    {
+      "featureId": "bounded-encodings",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Valid representable values with the documented type and byte order; see the executable representative cases."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Canonical encodings, including any zero padding in bounded text buffers."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+        ]
+      }
+    },
+    {
+      "featureId": "leb128-integers",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Valid representable values with the documented type and byte order; see the executable representative cases."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Only canonical encodings are byte-stable. Permitted padded LEB128 encodings are canonicalized during serialization."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+        ]
+      }
+    },
+    {
+      "featureId": "fixed-point-values",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Valid representable values with the documented type and byte order; see the executable representative cases."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Canonical encodings, including any zero padding in bounded text buffers."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+        ]
+      }
+    },
+    {
+      "featureId": "identifier-values",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Valid representable values with the documented type and byte order; see the executable representative cases."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Canonical encodings, including any zero padding in bounded text buffers."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+        ]
+      }
+    },
+    {
+      "featureId": "conditional-fields",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Valid representable values with the documented type and byte order; see the executable representative cases."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+        ]
+      },
+      "bytes": {
+        "status": "conditional",
+        "conditions": [
+          "Canonical encodings, including any zero padding in bounded text buffers."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
+        ]
       }
     }
   ],
@@ -3477,6 +3634,532 @@
       "workItems": [
         "SAF-06",
         "API-04"
+      ]
+    },
+    {
+      "id": "integers-24",
+      "manual": "docs/language/primitive-types.md#fixed-primitives",
+      "fixture": "integers-24",
+      "title": "Three-byte integers",
+      "support": "limited",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array",
+          "runtime-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "verified",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/BinaryTypePropertyTests.cs#FixedStorage_GeneratedBitPatternsRoundTrip",
+          "operations": [
+            "parse",
+            "serialize",
+            "address"
+          ]
+        }
+      ],
+      "limitations": [
+        "No enum or bitfield backing; alignment is 1."
+      ]
+    },
+    {
+      "id": "bounded-encodings",
+      "manual": "docs/language/arrays-and-strings.md#other-byte-bounded-encodings",
+      "fixture": "bounded-encodings",
+      "title": "Byte-bounded text encodings",
+      "support": "limited",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array",
+          "runtime-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "verified",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/BinaryTypePropertyTests.cs#BoundedText_GeneratedCutsNeverBorrowFollowingBytes",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        }
+      ],
+      "limitations": [
+        "Counts are encoded bytes; strict decoding; shorter writes zero-pad. One-dimensional bounded arrays only."
+      ]
+    },
+    {
+      "id": "leb128-integers",
+      "manual": "docs/language/primitive-types.md#variable-length-integers",
+      "fixture": "leb128-integers",
+      "title": "Width-bounded LEB128 integers",
+      "support": "limited",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array",
+          "runtime-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "verified",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "limited",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/BinaryTypePropertyTests.cs#Leb128_FinalOctetsMatchIntegerDomain",
+          "operations": [
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/BinaryTypePropertyTests.cs#Leb128_GeneratedValuesAndTruncations",
+          "operations": [
+            "read-value",
+            "serialize"
+          ]
+        }
+      ],
+      "limitations": [
+        "Legal padded reads are accepted; canonical writes can change byte width. Updates require unchanged encoded extent. Static size is unknown."
+      ]
+    },
+    {
+      "id": "fixed-point-values",
+      "manual": "docs/language/primitive-types.md#fixed-point-values",
+      "fixture": "fixed-point-values",
+      "title": "Exact fixed-point values",
+      "support": "limited",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array",
+          "runtime-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/BinaryTypePropertyTests.cs#FixedStorage_GeneratedBitPatternsRoundTrip",
+          "operations": [
+            "parse",
+            "serialize",
+            "address"
+          ]
+        }
+      ],
+      "limitations": [
+        "No rounding, integer-expression projection, enum backing or bitfield backing."
+      ]
+    },
+    {
+      "id": "identifier-values",
+      "manual": "docs/language/primitive-types.md#uuid-and-guid-identifiers",
+      "fixture": "identifier-values",
+      "title": "UUID and Windows GUID values",
+      "support": "limited",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array",
+          "runtime-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "verified",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/BinaryTypePropertyTests.cs#FixedStorage_GeneratedBitPatternsRoundTrip",
+          "operations": [
+            "parse",
+            "serialize",
+            "address"
+          ]
+        }
+      ],
+      "limitations": [
+        "Storage order is chosen by the type, not layout endianness. Identifiers cannot supply integer expressions."
+      ]
+    },
+    {
+      "id": "conditional-fields",
+      "manual": "docs/language/grammar.md#conditional-field-groups",
+      "fixture": "conditional-fields",
+      "title": "Conditional fields and tagged records",
+      "support": "limited",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array",
+          "runtime-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "verified",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "limited",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#InvalidFixtures_ReportStableErrorCategories",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/BinaryTypePropertyTests.cs#ConditionalTags_ExhaustiveSelectionAndAtomicUpdates",
+          "operations": [
+            "parse",
+            "debug",
+            "serialize",
+            "update"
+          ]
+        }
+      ],
+      "limitations": [
+        "Only active fields exist. Inactive selection fails and updates cannot change branch decisions or storage ranges. Update validation reads the complete root."
       ]
     }
   ],

@@ -44,5 +44,17 @@
   "examples/recipes/terminated-text.cs",
   "examples/recipes/terminated-text.md",
   "examples/recipes/toc.yml",
-  "guides/recipes/index.md"
+  "guides/recipes/index.md",
+  "examples/recipes/integers-24.cs",
+  "examples/recipes/integers-24.md",
+  "examples/recipes/bounded-encodings.cs",
+  "examples/recipes/bounded-encodings.md",
+  "examples/recipes/variable-integers.cs",
+  "examples/recipes/variable-integers.md",
+  "examples/recipes/fixed-point.cs",
+  "examples/recipes/fixed-point.md",
+  "examples/recipes/identifier-order.cs",
+  "examples/recipes/identifier-order.md",
+  "examples/recipes/conditional-records.cs",
+  "examples/recipes/conditional-records.md"
 ]

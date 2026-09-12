@@ -19,7 +19,7 @@ import { parseFailure, validateZipHeader } from "./parse-diagnostics";
 import {
   findDebugEntryIndexByOffset,
   findDebugEntryIndicesByPath,
-  tokenizePath,
+  debugEntryJsonPath,
 } from "./debug-path";
 import {
   initWasm,
@@ -59,6 +59,14 @@ const isRunning = ref(false);
 const selectedDebugIndices = ref<ReadonlySet<number>>(new Set());
 const focusPath = ref<string[] | null>(null);
 const debugData = computed(() => (result.value?.Success ? result.value.DebugData : []));
+const parsedResult = computed<unknown>(() => {
+  if (!result.value?.Success || typeof result.value.Data !== "string") return undefined;
+  try {
+    return JSON.parse(result.value.Data);
+  } catch {
+    return undefined;
+  }
+});
 const schemaDisabled = computed(() => wasmStatus.value !== "ready" || isRunning.value);
 
 // dockview-vue's `components` map wants every entry to be the loosely-typed `VueComponent` (props: any);
@@ -277,17 +285,19 @@ function handleByteClick(offset: number): void {
     focusPath.value = null;
     return;
   }
-  const path = tokenizePath(debugData.value[index]!.DebugStackString);
+  const path = debugEntryJsonPath(debugData.value[index]!, parsedResult.value);
   // Select every entry sharing this leaf's path too, not just the clicked one: a scalar array (e.g.
   // uint16 e_res[4]) records every element under the exact same un-indexed path, so one clicked byte
   // should still activate the whole array, matching what a JSON-side click on it already does.
-  selectedDebugIndices.value = new Set(findDebugEntryIndicesByPath(debugData.value, path));
+  selectedDebugIndices.value = new Set(
+    findDebugEntryIndicesByPath(debugData.value, path, parsedResult.value),
+  );
   focusPath.value = path;
 }
 
 function handleSelectPath(path: string[] | null): void {
   selectedDebugIndices.value = path
-    ? new Set(findDebugEntryIndicesByPath(debugData.value, path))
+    ? new Set(findDebugEntryIndicesByPath(debugData.value, path, parsedResult.value))
     : new Set();
 }
 

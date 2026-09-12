@@ -259,6 +259,9 @@ public partial class CStructExports
         case bool boolean:
             writer.WriteBooleanValue(boolean);
             return;
+        case Guid identifier:
+            writer.WriteStringValue(identifier.ToString("D"));
+            return;
         case byte number:
             writer.WriteNumberValue(number);
             return;

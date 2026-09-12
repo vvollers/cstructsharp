@@ -3,6 +3,11 @@
 // without pulling in Monaco's browser-only runtime.
 
 export const CSTRUCT_KEYWORDS = [
+  "if",
+  "else",
+  "switch",
+  "case",
+  "default",
   "struct",
   "union",
   "enum",
@@ -13,6 +18,11 @@ export const CSTRUCT_KEYWORDS = [
 ];
 
 export const CSTRUCT_KEYWORD_DOCS: Record<string, string> = {
+  if: "Includes a field group when its integer predicate is nonzero.",
+  else: "Includes the alternative field group when the if predicate is zero.",
+  switch: "Selects a tagged field group without fall-through.",
+  case: "A switch tag followed by : { fields }.",
+  default: "Fallback switch group: default: { fields }.",
   struct: "Declares a named sequential composite type.",
   union: "Declares a named overlapping composite type - every field starts at offset 0.",
   enum: "Declares a named integral enum. Defaults to 1-byte unsigned backing unless `: type` is given.",
@@ -34,7 +44,45 @@ export const CSTRUCT_PRIMITIVE_TYPES: { name: string; detail: string }[] = [
   { name: "bool", detail: "1 byte boolean - any nonzero byte reads as true" },
   { name: "_Bool", detail: "bool alias" },
   { name: "char", detail: "1 byte raw code unit, U+0000..U+00FF" },
+  {
+    name: "utf8",
+    detail: "UTF-8 byte code unit; utf8 text[N] decodes exactly N bytes as a string",
+  },
   { name: "wchar", detail: "2 byte UTF-16 code unit" },
+  { name: "latin1", detail: "Byte-counted strict Latin-1 text buffer; scalar/index is a raw byte" },
+  { name: "cp437", detail: "Byte-counted strict CP437 text buffer; scalar/index is a raw byte" },
+  {
+    name: "utf16le",
+    detail: "Byte-counted strict UTF-16LE text buffer; scalar/index is a raw byte",
+  },
+  {
+    name: "utf16be",
+    detail: "Byte-counted strict UTF-16BE text buffer; scalar/index is a raw byte",
+  },
+  {
+    name: "uleb128_32",
+    detail: "Unsigned 32-bit LEB128; dynamic byte width, alignment 1; canonical writes",
+  },
+  {
+    name: "uleb128_64",
+    detail: "Unsigned 64-bit LEB128; dynamic byte width, alignment 1; canonical writes",
+  },
+  {
+    name: "sleb128_32",
+    detail: "Signed 32-bit LEB128; dynamic byte width, alignment 1; canonical writes",
+  },
+  {
+    name: "sleb128_64",
+    detail: "Signed 64-bit LEB128; dynamic byte width, alignment 1; canonical writes",
+  },
+  { name: "fixed16_16", detail: "Signed 32-bit storage / 65536; exact Double" },
+  { name: "ufixed16_16", detail: "Unsigned 32-bit storage / 65536; exact Double" },
+  { name: "fixed2_30", detail: "Signed 32-bit storage / 1073741824; exact Double" },
+  { name: "ufixed8_8", detail: "Unsigned 16-bit storage / 256; exact Double" },
+  { name: "uuid", detail: "16-byte network-order identifier; alignment 1" },
+  { name: "guid", detail: "16-byte Windows GUID; alignment 1" },
+  { name: "int24", detail: "3 bytes, alignment 1, signed -8388608..8388607 (supports < / >)" },
+  { name: "uint24", detail: "3 bytes, alignment 1, unsigned 0..16777215 (supports < / >)" },
   { name: "int16", detail: "2 bytes, signed -32768..32767 (supports < / > endianness suffix)" },
   { name: "uint16", detail: "2 bytes, unsigned 0..65535 (supports < / > endianness suffix)" },
   { name: "int32", detail: "4 bytes, signed (supports < / > endianness suffix)" },
@@ -117,18 +165,39 @@ function findMatchingBrace(text: string, openIndex: number): number {
 }
 
 function countTopLevelFields(body: string): number {
-  let depth = 0;
+  // Conditional braces group declarations without introducing a result member.
+  // Composite braces do introduce a member; skip their children when counting
+  // the enclosing type. This is a tolerant editor scan, not layout validation.
+  const compositeBraces: boolean[] = [];
+  let compositeDepth = 0;
   let count = 0;
-  let sawTokenSinceSemicolon = false;
-  for (const ch of body) {
-    if (ch === "{") depth++;
-    else if (ch === "}") depth--;
-    else if (ch === ";" && depth === 0) {
-      if (sawTokenSinceSemicolon) count++;
-      sawTokenSinceSemicolon = false;
-    } else if (!/\s/.test(ch)) sawTokenSinceSemicolon = true;
+  let prefix = "";
+  for (const token of body.matchAll(/[A-Za-z_]\w*|[{};]|[^\s]/g)) {
+    const value = token[0];
+    if (value === "{") {
+      const composite = /\b(struct|union|enum)\b/.test(prefix);
+      compositeBraces.push(composite);
+      if (composite) compositeDepth++;
+      prefix = "";
+    } else if (value === "}") {
+      const composite = compositeBraces.pop();
+      if (composite) compositeDepth--;
+      prefix = composite ? "member" : "";
+    } else if (value === ";") {
+      if (compositeDepth === 0 && prefix.length > 0) count++;
+      prefix = "";
+    } else {
+      prefix += ` ${value}`;
+    }
   }
   return count;
+}
+
+function describeFields(body: string): string {
+  const fields = pluralize(countTopLevelFields(body), "field");
+  return /\b(if|switch)\s*\(/.test(body)
+    ? `${fields} declared across all branches; active fields depend on the data`
+    : fields;
 }
 
 function pluralize(count: number, noun: string): string {
@@ -157,8 +226,8 @@ export function collectSymbols(source: string): CStructSymbol[] {
     const openBrace = match.index + whole.length - 1;
     const closeBrace = findMatchingBrace(text, openBrace);
     if (closeBrace === -1) continue;
-    const fieldCount = countTopLevelFields(text.slice(openBrace + 1, closeBrace));
-    add({ kind, name, detail: `${kind} ${name}`, documentation: pluralize(fieldCount, "field") });
+    const fieldDescription = describeFields(text.slice(openBrace + 1, closeBrace));
+    add({ kind, name, detail: `${kind} ${name}`, documentation: fieldDescription });
 
     const isTypedefBody = /\btypedef\s+(struct|union)\s*$/.test(text.slice(0, match.index));
     const aliasMatch = /^\s*([A-Za-z_]\w*)\s*;/.exec(text.slice(closeBrace + 1));
@@ -167,7 +236,7 @@ export function collectSymbols(source: string): CStructSymbol[] {
         kind: "typedef",
         name: aliasMatch[1]!,
         detail: `typedef ${kind} ${name} ${aliasMatch[1]}`,
-        documentation: `Alias for ${kind} ${name} (${pluralize(fieldCount, "field")})`,
+        documentation: `Alias for ${kind} ${name} (${fieldDescription})`,
       });
     }
   }
@@ -189,12 +258,12 @@ export function collectSymbols(source: string): CStructSymbol[] {
     if (closeBrace === -1) continue;
     const aliasMatch = /^\s*([A-Za-z_]\w*)\s*;/.exec(text.slice(closeBrace + 1));
     if (!aliasMatch) continue;
-    const fieldCount = countTopLevelFields(text.slice(openBrace + 1, closeBrace));
+    const fieldDescription = describeFields(text.slice(openBrace + 1, closeBrace));
     add({
       kind: "typedef",
       name: aliasMatch[1]!,
       detail: `typedef ${kind} ${aliasMatch[1]}`,
-      documentation: `Alias for an anonymous ${kind} (${pluralize(fieldCount, "field")})`,
+      documentation: `Alias for an anonymous ${kind} (${fieldDescription})`,
     });
   }
 
@@ -217,7 +286,7 @@ export function collectSymbols(source: string): CStructSymbol[] {
     });
   }
 
-  const typedefAliasRe = /\btypedef\s+([A-Za-z_]\w*)\s*((?:\*\s*)*)([A-Za-z_]\w*)\s*;/g;
+  const typedefAliasRe = /\btypedef\s+([A-Za-z_]\w*[<>]?)\s*((?:\*\s*)*)([A-Za-z_]\w*)\s*;/g;
   for (let match = typedefAliasRe.exec(text); match; match = typedefAliasRe.exec(text)) {
     const [, underlying, stars, name] = match;
     add({

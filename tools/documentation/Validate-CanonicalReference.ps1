@@ -55,6 +55,21 @@ $fixedSpellings = @($contract.fixedPrimitives | ForEach-Object { [string]$_.spel
 $terminatedSpellings = @($contract.terminatedPrimitives | ForEach-Object { [string]$_.spelling })
 $matrixFixed = @($matrix.primitiveSpellings.fixed | ForEach-Object { [string]$_ })
 $matrixTerminated = @($matrix.primitiveSpellings.terminated | ForEach-Object { [string]$_ })
+$dynamicSpellings = @($contract.dynamicNumericPrimitives | ForEach-Object { [string]$_.spelling })
+$matrixDynamic = @($matrix.primitiveSpellings.dynamicNumeric | ForEach-Object { [string]$_ })
+Assert-Condition ($dynamicSpellings.Count -eq 4 -and @($dynamicSpellings | Select-Object -Unique).Count -eq 4) `
+    'The canonical dynamic integer table must contain four distinct width/signedness combinations.'
+Assert-Condition (@(Compare-Object $matrixDynamic $dynamicSpellings).Count -eq 0) `
+    'The canonical dynamic integer spellings differ from the feature-operation matrix.'
+foreach ($primitive in @($contract.dynamicNumericPrimitives)) {
+    Assert-Condition ($primitive.spelling -match '^([us])leb128_(32|64)$') 'Unsupported dynamic integer spelling.'
+    $expectedClr = if ($Matches[1] -eq 'u') { "UInt$($Matches[2])" } else { "Int$($Matches[2])" }
+    $expectedMaximum = if ($Matches[2] -eq '32') { 5 } else { 10 }
+    Assert-Condition ($primitive.clr -eq $expectedClr -and $primitive.maximumBytes -eq $expectedMaximum -and $primitive.alignment -eq 1) `
+        "Incorrect LEB128 width/result/alignment contract: $($primitive.spelling)"
+    Assert-Condition (-not [string]::IsNullOrWhiteSpace($primitive.reader) -and -not [string]::IsNullOrWhiteSpace($primitive.writer)) `
+        "Missing LEB128 read/write policy: $($primitive.spelling)"
+}
 
 Assert-Condition ($fixedSpellings.Count -eq @($fixedSpellings | Select-Object -Unique).Count) `
     'The canonical fixed-primitive table contains duplicate spellings.'
@@ -69,10 +84,23 @@ foreach ($primitive in @($contract.fixedPrimitives)) {
     $context = "Fixed primitive '$($primitive.spelling)'"
     Assert-Condition (-not [string]::IsNullOrWhiteSpace([string]$primitive.canonical)) `
         "$context has no canonical codec."
-    Assert-Condition ($primitive.bytes -in @(1, 2, 4, 8)) "$context has an invalid byte width."
-    Assert-Condition ($primitive.alignment -eq $primitive.bytes) `
-        "$context alignment must equal its Portable byte width."
-    Assert-Condition ($primitive.signedness -in @('signed', 'unsigned', 'code-unit', 'boolean', 'floating')) `
+    Assert-Condition ($primitive.bytes -in @(1, 2, 3, 4, 8, 16)) "$context has an invalid byte width."
+    $expectedAlignment = if ($primitive.bytes -in @(3, 16)) { 1 } else { $primitive.bytes }
+    Assert-Condition ($primitive.alignment -eq $expectedAlignment) `
+        "$context has an incorrect Portable alignment."
+    if ($primitive.bytes -eq 3) {
+        Assert-Condition ($primitive.spelling -match '^(?:u?int24)[<>]?$') "$context is not a supported three-byte integer."
+        Assert-Condition ($primitive.clr -in @('Int32', 'UInt32')) "$context must use a 32-bit CLR result."
+    }
+    if ($primitive.bytes -eq 16) {
+        Assert-Condition ($primitive.spelling -in @('uuid', 'guid')) "$context is not a supported identifier."
+        Assert-Condition ($primitive.clr -eq 'Guid' -and $primitive.endian -eq 'independent') "$context must use explicit identifier byte order."
+    }
+    if ($primitive.signedness -eq 'fixed-point') {
+        Assert-Condition ($primitive.spelling -match '^(?:u?fixed16_16|fixed2_30|ufixed8_8)[<>]?$') "$context has an unsupported fixed-point scale."
+        Assert-Condition ($primitive.clr -eq 'Double') "$context must preserve fixed-point values as Double."
+    }
+    Assert-Condition ($primitive.signedness -in @('signed', 'unsigned', 'code-unit', 'boolean', 'floating', 'fixed-point', 'identifier')) `
         "$context has an invalid signedness classification."
     Assert-Condition ($primitive.endian -in @('independent', 'layout', 'little', 'big')) `
         "$context has an invalid endian classification."

@@ -290,14 +290,38 @@ public sealed partial class CStruct
     }
 
     /// <summary>Rebuilds a composite with precompiled array expressions and statically evaluated bit widths.</summary>
-    private Struct NormalizeStructExpressions(Struct strct)
+    private Struct NormalizeStructExpressions(Struct strct, Dictionary<Expr, Expr>? inheritedCaseConstants = null)
     {
+        var caseConstants = inheritedCaseConstants is null
+            ? new Dictionary<Expr, Expr>(ReferenceEqualityComparer.Instance)
+            : new Dictionary<Expr, Expr>(inheritedCaseConstants, ReferenceEqualityComparer.Instance);
         var fields = new List<Field>(strct.Fields.Count);
-        foreach (Field field in strct.Fields)
+        foreach (SwitchCaseValidation validation in strct.Fields.OfType<SwitchCaseValidation>())
         {
+            var values = new HashSet<int>();
+            foreach (Expr tag in validation.Tags)
+            {
+                int value = this.layoutExpressionEvaluator.Evaluate(
+                    tag, this.staticLayoutVariables, "switch case constant");
+                if (!values.Add(value))
+                {
+                    throw new CStructLayoutException("Duplicate switch case value: " + value);
+                }
+
+                caseConstants.Add(tag, new Literal(value));
+            }
+        }
+
+        foreach (Field field in strct.Fields.Where(field => field is not SwitchCaseValidation))
+        {
+            if (field.Condition is not null)
+            {
+                this.expressionEvaluator.Compile(field.Condition);
+            }
+
             if (field is Struct nested)
             {
-                fields.Add(this.NormalizeStructExpressions(nested));
+                fields.Add(this.NormalizeStructExpressions(nested, caseConstants));
                 continue;
             }
 
@@ -349,10 +373,20 @@ public sealed partial class CStruct
                     field.PointerDepth,
                     field.TypeKeywordHint,
                     field.AlignmentOverrideExpression,
-                    field.OffsetAssertionExpression));
+                    field.OffsetAssertionExpression)
+                {
+                    Condition = NormalizeCaseConstants(field.Condition, caseConstants),
+                    BranchConditions = field.BranchConditions.Select(item =>
+                        (item.Group, NormalizeCaseConstants(item.Predicate, caseConstants)!)).ToArray(),
+                });
         }
 
-        return new Struct(strct.Name, [.. fields,], strct.IsUnion, strct.CompositeAlignmentOverrideExpression);
+        return new Struct(strct.Name, [.. fields,], strct.IsUnion, strct.CompositeAlignmentOverrideExpression)
+        {
+            Condition = NormalizeCaseConstants(strct.Condition, caseConstants),
+            BranchConditions = strct.BranchConditions.Select(item =>
+                (item.Group, NormalizeCaseConstants(item.Predicate, caseConstants)!)).ToArray(),
+        };
     }
 
     /// <summary>

@@ -85,6 +85,36 @@ An embedded zero is ordinary fixed-buffer content.
 A Unicode character outside the Basic Multilingual Plane consumes two UTF-16 code units. Updating one indexed
 `wchar` changes one raw code unit; it does not repair a neighboring surrogate automatically.
 
+## Byte-bounded UTF-8 buffers
+
+`utf8 name[byte_count];` reads exactly the declared number of bytes and returns one strictly decoded
+UTF-8 string. The count may be fixed or use an earlier field, define, or caller variable:
+
+```c
+struct root {
+    uint16 byte_count;
+    utf8 name[byte_count];
+    uint8 tail;
+};
+```
+
+For little-endian bytes `02 00 C3 A9 7E`, `name` is `"é"` and `tail` is `126` at offset 4.
+The count is **encoded bytes**, not Unicode characters or UTF-16 code units. Embedded NULs are
+preserved. No terminator is required, searched for, or added. A zero-length buffer returns `""`.
+Malformed UTF-8, including a sequence cut off at the declared boundary, fails with `ReadFailed`.
+The decoder never borrows bytes from the next field to complete a sequence.
+
+Writing uses strict UTF-8, rejects encoded text larger than the declared capacity, and zero-pads
+shorter text to fill that capacity. Invalid UTF-16 input (such as an unpaired surrogate) fails.
+Read and write string-byte limits apply to the full declared capacity, alongside ordinary array
+and total-byte limits. Reads preserve padding as NUL characters; they do not trim it.
+
+`GetDynamicArrayLength` reports the byte capacity. An indexed read such as `root.name[1]` returns
+the raw byte at that position; individual indexed updates can make the full string invalid.
+A scalar `utf8` is likewise a one-byte code unit, returned as `Byte`. It has no endian suffix.
+`utf8[]` and multidimensional `utf8` declarations are unsupported: use `utf8_string_zero` for
+NUL-terminated text, or an array of structs containing bounded UTF-8 fields for multiple strings.
+
 ## Multidimensional arrays
 
 `T field[a][b]...;` declares an array with more than one dimension, outermost first (LANG-05):
@@ -169,3 +199,22 @@ runtime variables on a later operation, or assume UTF-16 code units equal user-p
 
 See the [text guide](../guides/strings-and-encodings.md), [selected-read guide](../guides/reading-values.md), and
 [update guide](../guides/updating-existing-data.md).
+
+## Other byte-bounded encodings
+
+`latin1 name[N]`, `cp437 name[N]`, `utf16le name[N]`, and `utf16be name[N]`
+use the same byte-counted contract as `utf8`. N can be a constant or a runtime
+expression. Reads preserve embedded NULs and BOM characters; writes add no BOM,
+reject unmappable or malformed text, and zero-pad unused capacity. UTF-16 requires
+an even byte capacity and valid surrogate pairs. The byte order is explicit in the
+type name and does not depend on the enclosing layout.
+
+Scalar values and indexed elements are raw bytes with alignment 1. Unsized and
+multidimensional buffers are rejected; use arrays of containing structs for tables
+of text. String-byte and array-element limits both apply. Existing `wchar[N]`
+continues to count UTF-16 code units, so `wchar[4]` occupies eight bytes while
+`utf16le[4]` occupies four.
+
+CP437 follows the Unicode mapping (including control characters for bytes 0–31),
+not the old display-font glyphs. It is deterministic in managed and browser builds.
+Latin-1 is ISO-8859-1, not Windows-1252.

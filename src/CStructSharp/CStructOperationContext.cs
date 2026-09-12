@@ -78,6 +78,9 @@ internal sealed class CStructOperationContext
 
     public List<DebugData> DebugMapping { get; } = new();
 
+    /// <summary>Optional active-branch trace used only for staged update validation.</summary>
+    internal List<(string Path, long Start, long End)>? ConditionalLayoutTrace { get; set; }
+
     public HashSet<(long Address, string TypeName, int PointerDepth)> ActivePointerTargets { get; } = new();
 
     public long PointerOrigin { get; }

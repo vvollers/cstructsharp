@@ -24,6 +24,9 @@ internal sealed class WriteBudgetStream : Stream
     /// <summary>Gets the configured per-string encoded-byte budget.</summary>
     public long MaxStringBytes { get; }
 
+    /// <summary>Identifies an atomic in-place update underneath the output budget wrapper.</summary>
+    internal bool IsSparseUpdate => this.inner is SparseUpdateStream;
+
     public override bool CanRead => this.inner.CanRead;
 
     public override bool CanSeek => this.inner.CanSeek;

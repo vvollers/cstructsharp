@@ -176,10 +176,17 @@ public partial class CStruct
         }
 
         CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
+        var variableScope = new ConditionalVariableScope(composite, state.Variables);
+        var selection = new ConditionalFieldSelection(this.layoutExpressionEvaluator);
         var cursor = new CompositeFieldPlacementCursor(structStart, this.Aligned);
 
         foreach (CompiledField compiledField in composite.Fields)
         {
+            if (!selection.IsActive(compiledField, state.Variables))
+            {
+                continue;
+            }
+
             Field declaredField = compiledField.Declaration;
             Field field = compiledField.EffectiveField;
             (long fieldStart, int bitOffset) = cursor.AdvanceToField(compiledField);
@@ -220,6 +227,8 @@ public partial class CStruct
             {
                 cursor.CompleteField(this.MeasureFieldEnd(compiledField, fieldStart, state));
             }
+
+            variableScope.CompleteField(compiledField, state.Variables);
         }
 
         throw new CStructPathException($"Unknown field '{requested.Name}' in '{strct.Name.Name}'.");
@@ -764,6 +773,18 @@ public partial class CStruct
             return current;
         }
 
+        if (Leb128Codec.IsType(compiledField.CodecName) && field.PointerDepth == 0)
+        {
+            state.Stream.Position = fieldStart;
+            int leaves = checked(index * (elementField.Array.TotalFixedElementCount ?? 1));
+            for (int i = 0; i < leaves; i++)
+            {
+                _ = compiledField.Reader!(state.Stream);
+            }
+
+            return state.Stream.Position;
+        }
+
         int elementSize = this.compiledSizeQueries.GetCompiledFieldElementSize(compiledField, state.Variables, false);
         return checked(fieldStart + ((long)elementSize * index));
     }
@@ -852,6 +873,18 @@ public partial class CStruct
             return state.Stream.Position;
         }
 
+        if (Leb128Codec.IsType(compiledField.CodecName) && field.PointerDepth == 0)
+        {
+            int count = compiledField.Array.Kind == CompiledArrayKind.Scalar ? 1 : this.GetBoundedTotalElementCount(compiledField, state);
+            state.Stream.Position = fieldStart;
+            for (int i = 0; i < count; i++)
+            {
+                _ = compiledField.Reader!(state.Stream);
+            }
+
+            return state.Stream.Position;
+        }
+
         int scalarCount = compiledField.Array.Kind == CompiledArrayKind.Scalar
                               ? 1
                               : this.GetBoundedTotalElementCount(compiledField, state);
@@ -891,8 +924,15 @@ public partial class CStruct
 
         var cursor = new CompositeFieldPlacementCursor(structStart, this.Aligned);
 
+        var variableScope = new ConditionalVariableScope(this.compiledSizeQueries.GetCompiledComposite(strct), state.Variables);
+        var selection = new ConditionalFieldSelection(this.layoutExpressionEvaluator);
         foreach (CompiledField compiledField in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
         {
+            if (!selection.IsActive(compiledField, state.Variables))
+            {
+                continue;
+            }
+
             Field field = compiledField.EffectiveField;
             (long fieldStart, int bitOffset) = cursor.AdvanceToField(compiledField);
             this.ValidateOffsetAssertionAtRuntime(compiledField, fieldStart, state.Variables);
@@ -902,6 +942,8 @@ public partial class CStruct
             {
                 cursor.CompleteField(this.MeasureFieldEnd(compiledField, fieldStart, state));
             }
+
+            variableScope.CompleteField(compiledField, state.Variables);
         }
 
         int structAlignment = this.compiledSizeQueries.GetCompiledComposite(strct).Symbol.Alignment;
@@ -987,6 +1029,12 @@ public partial class CStruct
         Field field = compiledField.EffectiveField;
         if (compiledField.Array.Kind != CompiledArrayKind.Scalar)
         {
+            return;
+        }
+
+        if (field.PointerDepth == 0 && FixedPointCodec.IsType(compiledField.CodecName))
+        {
+            state.Variables.Remove(field.Name.Name);
             return;
         }
 

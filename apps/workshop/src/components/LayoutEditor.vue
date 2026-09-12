@@ -19,7 +19,7 @@ let disposed = false;
 onMounted(async () => {
   const { monaco } = await import("../monaco-layout");
   if (disposed || !host.value) return;
-  model = monaco.editor.createModel(props.modelValue, props.language ?? "c");
+  model = monaco.editor.createModel(props.modelValue, props.language ?? "cstruct");
   model.updateOptions({ tabSize: 4, insertSpaces: true });
   instance = monaco.editor.create(host.value, {
     model,

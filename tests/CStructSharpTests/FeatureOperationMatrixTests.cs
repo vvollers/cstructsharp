@@ -23,6 +23,7 @@ public class FeatureOperationMatrixTests
         JsonElement spellings = document.RootElement.GetProperty("primitiveSpellings");
         string[] catalog =
         [
+            .. spellings.GetProperty("dynamicNumeric").EnumerateArray().Select(item => item.GetString()!),
             .. spellings.GetProperty("fixed").EnumerateArray().Select(item => item.GetString()!),
             .. spellings.GetProperty("terminated").EnumerateArray().Select(item => item.GetString()!),
         ];
@@ -214,6 +215,13 @@ public class FeatureOperationMatrixTests
                     item.UpdatePath,
                     variables),
                 item.Id + "/memory-read-value");
+            if (item.ExpectedValue is not null)
+            {
+                Assert.AreEqual(
+                    item.ExpectedValue,
+                    cstruct.ReadValue((ReadOnlyMemory<byte>)item.Input, item.UpdatePath, variables),
+                    item.Id + "/selected-value");
+            }
 
             using var debugStream = new MemoryStream((byte[])item.Input.Clone());
             (List<DebugData> debug, dynamic debugWrapper) =
@@ -423,6 +431,136 @@ public class FeatureOperationMatrixTests
 
     private static IEnumerable<MatrixCase> RepresentativeCases()
     {
+        foreach ((string declaration, object value, object replacement, byte[] original, byte[] updated) in new (string, object, object, byte[], byte[])[]
+        {
+            ("int24> value", -2, -3, [255, 255, 254], [255, 255, 253]),
+            ("uleb128_32 value", 128U, 129U, [128, 1], [129, 1]),
+            ("sleb128_64 value", -128L, -127L, [128, 127], [129, 127]),
+            ("fixed16_16> value", -1.5, -1.25, [255, 254, 128, 0], [255, 254, 192, 0]),
+            ("utf8 value[2]", "é", "ø", [195, 169], [195, 184]),
+            ("cp437 value[1]", "é", "ü", [130], [129]),
+            ("latin1 value[1]", "é", "ø", [233], [248]),
+            ("utf16le value[4]", "😀", "😁", [61, 216, 0, 222], [61, 216, 1, 222]),
+            ("utf16be value[4]", "😀", "😁", [216, 61, 222, 0], [216, 61, 222, 1]),
+            ("uuid value", Guid.Parse("00112233-4455-6677-8899-aabbccddeeff"), Guid.Empty,
+                Convert.FromHexString("00112233445566778899AABBCCDDEEFF"), new byte[16]),
+            ("guid value", Guid.Parse("00112233-4455-6677-8899-aabbccddeeff"), Guid.Empty,
+                Convert.FromHexString("33221100554477668899AABBCCDDEEFF"), new byte[16]),
+        })
+        {
+            yield return new MatrixCase(
+                "metadata-pointer/" + declaration,
+                $"struct child {{ {declaration}; }}; struct root {{ child *ptr; uint8 tail; }};",
+                [2, 99, .. original],
+                [2, 99],
+                "root.ptr.value.value",
+                replacement,
+                2,
+                [2, 99, .. updated],
+                ExpectedValue: value);
+        }
+
+        yield return new MatrixCase(
+            "integers-24",
+            "typedef int24< item; struct root { item values[2]; uint8 tail; };",
+            [1, 0, 0, 254, 255, 255, 99],
+            [1, 0, 0, 254, 255, 255, 99],
+            "root.values[1]",
+            -3,
+            3,
+            [1, 0, 0, 253, 255, 255, 99],
+            "root.values",
+            2,
+            Aligned: true,
+            ExpectedValue: -2);
+        foreach ((string type, string text, string replacement, byte[] original, byte[] updated) in new[]
+        {
+            ("utf8", "é", "ø", new byte[] { 195, 169 }, new byte[] { 195, 184 }),
+            ("latin1", "é", "ø", new byte[] { 233 }, new byte[] { 248 }),
+            ("cp437", "é", "ü", new byte[] { 130 }, new byte[] { 129 }),
+            ("utf16le", "😀", "😁", new byte[] { 61, 216, 0, 222 }, new byte[] { 61, 216, 1, 222 }),
+            ("utf16be", "😀", "😁", new byte[] { 216, 61, 222, 0 }, new byte[] { 216, 61, 222, 1 }),
+        })
+        {
+            yield return new MatrixCase(
+                "bounded-" + type,
+                $"typedef {type} text; struct root {{ uint8 prefix; text label[{original.Length}]; uint8 tail; }};",
+                [1, .. original, 99],
+                [1, .. original, 99],
+                "root.label",
+                replacement,
+                1,
+                [1, .. updated, 99],
+                "root.label",
+                original.Length,
+                ExpectedValue: text);
+        }
+
+        yield return new MatrixCase(
+            "leb128",
+            "typedef uleb128_32 number; struct root { uint8 count; number values[count]; sleb128_32 delta; uint8 tail; };",
+            [2, 127, 128, 1, 191, 127, 99],
+            [2, 127, 128, 1, 191, 127, 99],
+            "root.values[1]",
+            129U,
+            2,
+            [2, 127, 129, 1, 191, 127, 99],
+            "root.values",
+            2,
+            ExpectedValue: 128U);
+        yield return new MatrixCase(
+            "leb128-padded",
+            "struct root { uleb128_32 value; uint8 tail; };",
+            [129, 0, 99],
+            [1, 99],
+            "root.tail",
+            (byte)88,
+            2,
+            [129, 0, 88],
+            ExpectedValue: (byte)99);
+        yield return new MatrixCase(
+            "fixed-point",
+            "typedef fixed16_16> revision; struct root { revision value; ufixed8_8< volume; };",
+            [255, 254, 128, 0, 128, 0],
+            [255, 254, 128, 0, 128, 0],
+            "root.value",
+            -1.25,
+            0,
+            [255, 254, 192, 0, 128, 0],
+            ExpectedValue: -1.5);
+        foreach (string type in new[] { "uuid", "guid" })
+        {
+            byte[] id = Convert.FromHexString(type == "uuid"
+                ? "00112233445566778899AABBCCDDEEFF" : "33221100554477668899AABBCCDDEEFF");
+            byte[] original = [.. new byte[16], .. id, 99];
+            yield return new MatrixCase(
+                type + "-array",
+                $"typedef {type} identifier; struct root {{ identifier ids[2]; uint8 tail; }};",
+                original,
+                original,
+                "root.ids[1]",
+                Guid.Empty,
+                16,
+                [.. new byte[32], 99],
+                "root.ids",
+                2,
+                Aligned: true,
+                ExpectedValue: Guid.Parse("00112233-4455-6677-8899-aabbccddeeff"));
+        }
+
+        yield return new MatrixCase(
+            "conditional-records",
+            "struct entry { uint8 kind; switch(kind) { case 1: { utf8 label[3]; } default: { uint24< number; } } if(kind == 1) { uint8 flags; } }; struct root { uleb128_32 count; entry items[count]; };",
+            [2, 1, 226, 130, 172, 7, 2, 42, 0, 0],
+            [2, 1, 226, 130, 172, 7, 2, 42, 0, 0],
+            "root.items[1].number",
+            43U,
+            7,
+            [2, 1, 226, 130, 172, 7, 2, 43, 0, 0],
+            "root.items",
+            2,
+            ExpectedValue: 42U);
+
         yield return new MatrixCase(
             "fixed-character-buffer",
             "struct root { char value[2]; byte tail; };",
@@ -485,7 +623,8 @@ public class FeatureOperationMatrixTests
             [0x11, 0x33, 0x7E,],
             "root.values",
             2,
-            Variables: new Dictionary<string, int> { ["N"] = 2, });
+            Variables: new Dictionary<string,
+            int> { ["N"] = 2, });
         yield return new MatrixCase(
             "nested-struct",
             "struct child { uint8 value; }; struct root { child item; byte tail; };",
@@ -583,5 +722,6 @@ public class FeatureOperationMatrixTests
         byte PointerSize = 1,
         bool Aligned = false,
         bool LittleEndian = true,
-        bool RequireDebugRange = true);
+        bool RequireDebugRange = true,
+        object? ExpectedValue = null);
 }

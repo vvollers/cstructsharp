@@ -109,6 +109,7 @@ function Assert-EvidenceReference {
 }
 
 $allPrimitiveSpellings = @(
+    @($matrix.primitiveSpellings.dynamicNumeric | ForEach-Object { [string]$_ }) +
     @($matrix.primitiveSpellings.fixed | ForEach-Object { [string]$_ }) +
     @($matrix.primitiveSpellings.terminated | ForEach-Object { [string]$_ })
 )

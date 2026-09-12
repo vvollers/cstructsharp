@@ -69,10 +69,11 @@ function byteClass(index: number): string[] {
 function formatDebug(item: DebugDataItem): string {
   let value = item.Value ?? "null";
   const isText =
-    /^(?:w?char[<>]?|cstring|(?:ascii_|utf8_|unicode_)?string(?:_zero|_newline)?[<>]?)$/.test(
+    /^(?:w?char[<>]?|utf8|latin1|cp437|utf16le|utf16be|cstring|(?:ascii_|utf8_|unicode_)?string(?:_zero|_newline)?[<>]?)$/.test(
       item.Type,
     );
-  if (!isText && /^-?\d+$/.test(value)) {
+  const isFixedPoint = /^(?:u?fixed16_16|fixed2_30|ufixed8_8)[<>]?$/.test(item.Type);
+  if (!isText && !isFixedPoint && /^-?\d+$/.test(value)) {
     // Debug values arrive as decimal strings; BigInt preserves all 64-bit integer digits.
     const integer = BigInt(value);
     const magnitude = integer < 0n ? -integer : integer;

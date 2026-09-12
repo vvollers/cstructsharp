@@ -18,16 +18,21 @@ not that the entire file is valid. The comments at the top of each generated sch
 
 ## What the schemas read
 
+Text fields use explicit bounded `utf8`, `latin1`, `cp437` or UTF-16 encodings where the
+format specifies them. ZIP filenames honor each entry's UTF-8 flag; legacy names use CP437.
+Registry filenames retain UTF-16LE `wchar<` arrays. Other `char` arrays preserve raw one-byte
+code units without assuming an encoding. See the [text-field audit](SCHEMA-REVIEW.md#text-field-audit) for changes and exceptions.
+
 The [schema-by-schema review](SCHEMA-REVIEW.md) records all 184 detector types and the DLL sample,
 including the 110 expanded registrations, their language features and remaining opportunities.
 
 - ZIP containers: named flags/compression and up to 16 complete local entries; empty archives use EOCD.
-- PNG/APNG, RIFF, ISO media/JPEG2000, GLB and PCAP: bounded chunks, boxes or packet records.
+- PNG/APNG, RIFF, GLB: native chunk alternatives, bounded text and typed metadata. ISO media/QuickTime adds bounded movie-header timestamps, fixed-point rate and mixed-scale matrices; PCAP exposes packet records.
 - TIFF: named tag/type enums and first IFD, including BigTIFF widths. PE: optional headers and data directories. ELF: typed program/section table pointers.
 - SFNT/WOFF: directories with typed pointers to uncompressed `head` tables when visible.
-- FLAC/Ogg/GIF/BMP: packed parameters, metadata/identification fields and selected image header variants.
+- FLAC/Ogg/GIF/BMP: packed parameters, metadata/identification fields and selected image header variants. Complete supported Ogg comment packets expose bounded UTF-8 vendor and comment strings.
 - SQLite: first B-tree page header and cell offsets. STL: normals and triangle vertices as float arrays.
-- WebAssembly: bounded section framing with file-specialized LEB128 lengths. LZ4/Zstandard: frame descriptor variants and first block framing.
+- WebAssembly: LEB128 section lengths/counts, function/start indexes and bounded UTF-8 custom names. LZ4/Zstandard: frame descriptor variants and first block framing.
 - Photoshop, CRX, Blender, FBX, KTX, DICOM, CHM, MIDI, AIFF and ICNS: selected additional metadata or records.
 - Other formats retain their documented headers or directories; the review identifies possible next steps.
 
@@ -40,7 +45,8 @@ Compressed member contents, image/audio/video codecs, encryption, arbitrary text
 possible format revisions are not decoded. Header/container support must not be described as complete
 file-format support. The registry is an extensible starting point for deeper CStruct layouts.
 
-Variant-specific layouts are selected from the first 64 KiB of a file. Reload detection when changing
+The first 64 KiB selects bounded record coverage and any preview-dependent layouts. Native
+conditions select supported per-record variants from the bytes during parsing. Reload detection when changing
 format-defining bytes. Pointer reads still use the full file. Detection itself uses a Blob-backed
 tokenizer in a worker and can seek beyond the preview; a 15-second timeout stops stalled detection.
 Starting another load or selecting a sample discards the previous detection result.

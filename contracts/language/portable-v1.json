@@ -7,6 +7,246 @@
   ],
   "fixedPrimitives": [
     {
+      "spelling": "fixed16_16",
+      "canonical": "fixed16_16",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "fixed-point",
+      "endian": "layout",
+      "clr": "Double",
+      "writerDomain": "exact signed 32-bit integer divided by 2^16; no rounding"
+    },
+    {
+      "spelling": "fixed16_16<",
+      "canonical": "fixed16_16<",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "fixed-point",
+      "endian": "little",
+      "clr": "Double",
+      "writerDomain": "exact signed 32-bit integer divided by 2^16; no rounding"
+    },
+    {
+      "spelling": "fixed16_16>",
+      "canonical": "fixed16_16>",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "fixed-point",
+      "endian": "big",
+      "clr": "Double",
+      "writerDomain": "exact signed 32-bit integer divided by 2^16; no rounding"
+    },
+    {
+      "spelling": "ufixed16_16",
+      "canonical": "ufixed16_16",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "fixed-point",
+      "endian": "layout",
+      "clr": "Double",
+      "writerDomain": "exact unsigned 32-bit integer divided by 2^16; no rounding"
+    },
+    {
+      "spelling": "ufixed16_16<",
+      "canonical": "ufixed16_16<",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "fixed-point",
+      "endian": "little",
+      "clr": "Double",
+      "writerDomain": "exact unsigned 32-bit integer divided by 2^16; no rounding"
+    },
+    {
+      "spelling": "ufixed16_16>",
+      "canonical": "ufixed16_16>",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "fixed-point",
+      "endian": "big",
+      "clr": "Double",
+      "writerDomain": "exact unsigned 32-bit integer divided by 2^16; no rounding"
+    },
+    {
+      "spelling": "fixed2_30",
+      "canonical": "fixed2_30",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "fixed-point",
+      "endian": "layout",
+      "clr": "Double",
+      "writerDomain": "exact signed 32-bit integer divided by 2^30; no rounding"
+    },
+    {
+      "spelling": "fixed2_30<",
+      "canonical": "fixed2_30<",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "fixed-point",
+      "endian": "little",
+      "clr": "Double",
+      "writerDomain": "exact signed 32-bit integer divided by 2^30; no rounding"
+    },
+    {
+      "spelling": "fixed2_30>",
+      "canonical": "fixed2_30>",
+      "bytes": 4,
+      "alignment": 4,
+      "signedness": "fixed-point",
+      "endian": "big",
+      "clr": "Double",
+      "writerDomain": "exact signed 32-bit integer divided by 2^30; no rounding"
+    },
+    {
+      "spelling": "ufixed8_8",
+      "canonical": "ufixed8_8",
+      "bytes": 2,
+      "alignment": 2,
+      "signedness": "fixed-point",
+      "endian": "layout",
+      "clr": "Double",
+      "writerDomain": "exact unsigned 16-bit integer divided by 2^8; no rounding"
+    },
+    {
+      "spelling": "ufixed8_8<",
+      "canonical": "ufixed8_8<",
+      "bytes": 2,
+      "alignment": 2,
+      "signedness": "fixed-point",
+      "endian": "little",
+      "clr": "Double",
+      "writerDomain": "exact unsigned 16-bit integer divided by 2^8; no rounding"
+    },
+    {
+      "spelling": "ufixed8_8>",
+      "canonical": "ufixed8_8>",
+      "bytes": 2,
+      "alignment": 2,
+      "signedness": "fixed-point",
+      "endian": "big",
+      "clr": "Double",
+      "writerDomain": "exact unsigned 16-bit integer divided by 2^8; no rounding"
+    },
+    {
+      "spelling": "uuid",
+      "canonical": "uuid",
+      "bytes": 16,
+      "alignment": 1,
+      "signedness": "identifier",
+      "endian": "independent",
+      "clr": "Guid",
+      "writerDomain": "Guid or canonical D-format string; all 128-bit patterns"
+    },
+    {
+      "spelling": "guid",
+      "canonical": "guid",
+      "bytes": 16,
+      "alignment": 1,
+      "signedness": "identifier",
+      "endian": "independent",
+      "clr": "Guid",
+      "writerDomain": "Guid or canonical D-format string; all 128-bit patterns"
+    },
+    {
+      "spelling": "latin1",
+      "canonical": "latin1",
+      "bytes": 1,
+      "alignment": 1,
+      "signedness": "code-unit",
+      "endian": "independent",
+      "clr": "Byte",
+      "writerDomain": "0..255; counted arrays use strict bounded text encoding"
+    },
+    {
+      "spelling": "cp437",
+      "canonical": "cp437",
+      "bytes": 1,
+      "alignment": 1,
+      "signedness": "code-unit",
+      "endian": "independent",
+      "clr": "Byte",
+      "writerDomain": "0..255; counted arrays use strict bounded text encoding"
+    },
+    {
+      "spelling": "utf16le",
+      "canonical": "utf16le",
+      "bytes": 1,
+      "alignment": 1,
+      "signedness": "code-unit",
+      "endian": "independent",
+      "clr": "Byte",
+      "writerDomain": "0..255; counted arrays use strict bounded text encoding"
+    },
+    {
+      "spelling": "utf16be",
+      "canonical": "utf16be",
+      "bytes": 1,
+      "alignment": 1,
+      "signedness": "code-unit",
+      "endian": "independent",
+      "clr": "Byte",
+      "writerDomain": "0..255; counted arrays use strict bounded text encoding"
+    },
+    {
+      "spelling": "int24",
+      "canonical": "int24",
+      "bytes": 3,
+      "alignment": 1,
+      "signedness": "signed",
+      "endian": "layout",
+      "clr": "Int32",
+      "writerDomain": "-8388608..8388607"
+    },
+    {
+      "spelling": "int24>",
+      "canonical": "int24>",
+      "bytes": 3,
+      "alignment": 1,
+      "signedness": "signed",
+      "endian": "big",
+      "clr": "Int32",
+      "writerDomain": "-8388608..8388607"
+    },
+    {
+      "spelling": "int24<",
+      "canonical": "int24<",
+      "bytes": 3,
+      "alignment": 1,
+      "signedness": "signed",
+      "endian": "little",
+      "clr": "Int32",
+      "writerDomain": "-8388608..8388607"
+    },
+    {
+      "spelling": "uint24",
+      "canonical": "uint24",
+      "bytes": 3,
+      "alignment": 1,
+      "signedness": "unsigned",
+      "endian": "layout",
+      "clr": "UInt32",
+      "writerDomain": "0..16777215"
+    },
+    {
+      "spelling": "uint24>",
+      "canonical": "uint24>",
+      "bytes": 3,
+      "alignment": 1,
+      "signedness": "unsigned",
+      "endian": "big",
+      "clr": "UInt32",
+      "writerDomain": "0..16777215"
+    },
+    {
+      "spelling": "uint24<",
+      "canonical": "uint24<",
+      "bytes": 3,
+      "alignment": 1,
+      "signedness": "unsigned",
+      "endian": "little",
+      "clr": "UInt32",
+      "writerDomain": "0..16777215"
+    },
+    {
       "spelling": "byte",
       "canonical": "uint8",
       "bytes": 1,
@@ -65,6 +305,16 @@
       "endian": "independent",
       "clr": "Char",
       "writerDomain": "U+0000..U+00FF"
+    },
+    {
+      "spelling": "utf8",
+      "canonical": "utf8",
+      "bytes": 1,
+      "alignment": 1,
+      "signedness": "code-unit",
+      "endian": "independent",
+      "clr": "Byte",
+      "writerDomain": "0..255; counted arrays encode/decode strict UTF-8"
     },
     {
       "spelling": "wchar",
@@ -625,6 +875,40 @@
       "endian": "layout",
       "clr": "UInt64",
       "writerDomain": "0..18446744073709551615"
+    }
+  ],
+  "dynamicNumericPrimitives": [
+    {
+      "spelling": "uleb128_32",
+      "alignment": 1,
+      "maximumBytes": 5,
+      "clr": "UInt32",
+      "reader": "width-bounded; legal padded encodings accepted",
+      "writer": "canonical; in-place updates require unchanged encoded length"
+    },
+    {
+      "spelling": "uleb128_64",
+      "alignment": 1,
+      "maximumBytes": 10,
+      "clr": "UInt64",
+      "reader": "width-bounded; legal padded encodings accepted",
+      "writer": "canonical; in-place updates require unchanged encoded length"
+    },
+    {
+      "spelling": "sleb128_32",
+      "alignment": 1,
+      "maximumBytes": 5,
+      "clr": "Int32",
+      "reader": "width-bounded; legal padded encodings accepted",
+      "writer": "canonical; in-place updates require unchanged encoded length"
+    },
+    {
+      "spelling": "sleb128_64",
+      "alignment": 1,
+      "maximumBytes": 10,
+      "clr": "Int64",
+      "reader": "width-bounded; legal padded encodings accepted",
+      "writer": "canonical; in-place updates require unchanged encoded length"
     }
   ],
   "terminatedPrimitives": [

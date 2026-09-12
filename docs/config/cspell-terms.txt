@@ -94,3 +94,9 @@ unsuffixed
 unpadded
 unrooting
 Naur
+
+EBML
+VINT
+varint
+varints
+unmappable

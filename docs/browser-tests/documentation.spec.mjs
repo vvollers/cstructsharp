@@ -2,6 +2,8 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 const representativePages = [
+  { path: "guides/binary-metadata-types.html", heading: "Decode common binary metadata" },
+  { path: "examples/recipes/conditional-records.html", heading: "Parse tagged records with native branches" },
   { path: "guides/browser/index.html", heading: "Use CStructSharp from JavaScript" },
   { path: "guides/browser/inspector.html", heading: "Build a browser binary inspector" },
   { path: "guides/header-next-steps.html", heading: "Write, update, and use a C# class" },
