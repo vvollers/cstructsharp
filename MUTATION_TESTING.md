@@ -51,7 +51,7 @@ are written below `artifacts/mutation/permanent/`. The `artifacts/` directory is
 
 - mutates the main `src/CStructSharp` library;
 - uses `tests/CStructSharpTests` to test each mutation;
-- limits mutation to 34 files that contain the main parsing and binary-data logic;
+- limits mutation to 46 files that contain the main parsing and binary-data logic;
 - runs the complete test project instead of selecting tests from coverage data;
 - writes progress, JSON, and HTML reports; and
 - requires a mutation score of at least 75%.
@@ -100,3 +100,11 @@ than adding a test that knows too much about private code.
 
 Do not improve the score by removing difficult files, lowering the threshold, or counting compile errors as killed
 mutations. The goal is to find weak tests, not to make the percentage look better.
+
+## Performance implementation scope refresh
+
+The reviewed scope replaces six obsolete partial-class filenames with their current enum, exception, bitfield,
+layout-math, read/write-state and symbol-validation implementations. It also includes the new conditional-selection,
+compiled scope/field/size metadata, debug-path and fixed-point helpers. This expands semantic coverage; the 75%
+threshold and zero surviving/uncovered/runtime-error requirements remain unchanged. Compiler-rejected mutations
+remain tool limitations, not detected behavior.

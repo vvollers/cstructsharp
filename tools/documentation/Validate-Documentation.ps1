@@ -57,10 +57,12 @@ function Get-IgnoredDocumentationDependencies {
 
     foreach ($relativePath in $repositoryFiles)
     {
-        # This opt-in comparison harness writes/reports explicitly saved diagnostic evidence.
-        # It is not an input to the library, application, package or documentation builds.
+        # The opt-in comparison harness and archived agent reports are diagnostic evidence,
+        # not inputs to the library, application, package or documentation builds.
         # Keep the ignored-input guard on all other repository source, including normal benchmarks.
-        if ($relativePath.Replace('\', '/').StartsWith('benchmarks/ConditionalComparison/', [StringComparison]::Ordinal))
+        $normalizedPath = $relativePath.Replace('\', '/')
+        if ($normalizedPath.StartsWith('benchmarks/ConditionalComparison/', [StringComparison]::Ordinal) -or
+            $normalizedPath.StartsWith('agentdocs/', [StringComparison]::Ordinal))
         {
             continue
         }

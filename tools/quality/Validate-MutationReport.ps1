@@ -51,8 +51,8 @@ Assert-Condition ([int]$config.thresholds.break -eq 75) `
     'The permanent mutation break threshold must be 75%.'
 
 $configuredFiles = @($config.mutate | ForEach-Object { ([string]$_).Replace('\', '/') })
-Assert-Condition ($configuredFiles.Count -eq 34) `
-    "The permanent mutation allowlist must contain exactly 34 semantic files; found $($configuredFiles.Count)."
+Assert-Condition ($configuredFiles.Count -eq 46) `
+    "The permanent mutation allowlist must contain exactly 46 semantic files; found $($configuredFiles.Count)."
 Assert-Condition ($configuredFiles.Count -eq @($configuredFiles | Select-Object -Unique).Count) `
     'The permanent mutation allowlist contains duplicate files.'
 Assert-Condition ($configuredFiles -contains 'CStructDefinitionParser.cs') `
@@ -161,4 +161,4 @@ Write-Output (
     "($scoreText%), $killed killed, $timedOut timed out, " +
     "$survived survived, $noCoverage uncovered, $runtimeErrors runtime errors; " +
     "$compileErrors compile errors ($parserCompileErrors in CStructDefinitionParser.cs), " +
-    "$ignored ignored; $testCount tests; 34 configured files; SHA-256 $hash.")
+    "$ignored ignored; $testCount tests; 46 configured files; SHA-256 $hash.")
