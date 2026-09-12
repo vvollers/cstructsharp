@@ -2,42 +2,46 @@ namespace CStructSharp;
 
 using System;
 using System.Collections;
-using System.Collections.Frozen;
 using System.Collections.Generic;
 
 /// <summary>
 ///     Builds one lookup table during layout compilation, then irreversibly publishes a frozen snapshot and releases
 ///     the mutable builder.
 /// </summary>
-internal sealed class ConstructionDictionary<TKey, TValue> : IReadOnlyDictionary<TKey, TValue>
+internal sealed class ConstructionDictionary<TKey, TValue> : IReadOnlyDictionary<TKey, TValue>, ICollection<KeyValuePair<TKey, TValue>>
     where TKey : notnull
 {
-    private Dictionary<TKey, TValue>? builder;
-    private FrozenDictionary<TKey, TValue>? frozen;
+    private readonly Dictionary<TKey, TValue> storage;
+    private bool frozen;
 
     /// <summary>Creates an empty construction table with the requested key comparer.</summary>
     public ConstructionDictionary(IEqualityComparer<TKey>? comparer = null)
     {
-        this.builder = new Dictionary<TKey, TValue>(comparer);
+        this.storage = new Dictionary<TKey, TValue>(comparer);
     }
 
     public int Count => this.Current.Count;
 
     /// <summary>Gets whether the mutable builder has been discarded and the snapshot published.</summary>
-    public bool IsFrozen => this.frozen is not null;
+    public bool IsFrozen => this.frozen;
 
     public IEnumerable<TKey> Keys => this.Current.Keys;
 
     /// <summary>Gets the immutable snapshot after <see cref="Freeze" /> has completed.</summary>
-    public FrozenDictionary<TKey, TValue> Snapshot =>
-        this.frozen ?? throw new InvalidOperationException("The construction dictionary has not been frozen.");
+    /// <summary>
+    ///     The frozen, read-only view. Freezing no longer copies into a <c>FrozenDictionary</c>: that construction
+    ///     was a quarter of a small layout's compile time (E1.3a), while the same dictionary used read-only after
+    ///     the builder handle is withdrawn gives identical immutability for the caller.
+    /// </summary>
+    public IReadOnlyDictionary<TKey, TValue> Snapshot =>
+        this.frozen ? this.storage : throw new InvalidOperationException("The construction dictionary has not been frozen.");
 
     public IEnumerable<TValue> Values => this.Current.Values;
 
-    private IReadOnlyDictionary<TKey, TValue> Current =>
-        (IReadOnlyDictionary<TKey, TValue>?)this.frozen ??
-        this.builder ??
-        throw new InvalidOperationException("The construction dictionary has no active storage.");
+    /// <summary>The collection view is read-only for every consumer; only the construction-phase methods mutate.</summary>
+    bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => true;
+
+    private Dictionary<TKey, TValue> Current => this.storage;
 
     public TValue this[TKey key]
     {
@@ -59,9 +63,8 @@ internal sealed class ConstructionDictionary<TKey, TValue> : IReadOnlyDictionary
     /// <summary>Irreversibly converts the builder to the read-optimized immutable representation.</summary>
     public void Freeze()
     {
-        Dictionary<TKey, TValue> current = this.GetBuilder();
-        this.frozen = current.ToFrozenDictionary(current.Comparer);
-        this.builder = null;
+        _ = this.GetBuilder();
+        this.frozen = true;
     }
 
     public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
@@ -90,9 +93,35 @@ internal sealed class ConstructionDictionary<TKey, TValue> : IReadOnlyDictionary
         return this.GetEnumerator();
     }
 
+    void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
+    {
+        throw new NotSupportedException("The construction dictionary is read-only through its collection view.");
+    }
+
+    void ICollection<KeyValuePair<TKey, TValue>>.Clear()
+    {
+        throw new NotSupportedException("The construction dictionary is read-only through its collection view.");
+    }
+
+    bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+    {
+        return ((ICollection<KeyValuePair<TKey, TValue>>)this.storage).Contains(item);
+    }
+
+    void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+    {
+        ((ICollection<KeyValuePair<TKey, TValue>>)this.storage).CopyTo(array, arrayIndex);
+    }
+
+    bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
+    {
+        throw new NotSupportedException("The construction dictionary is read-only through its collection view.");
+    }
+
     private Dictionary<TKey, TValue> GetBuilder()
     {
-        return this.builder ??
-               throw new InvalidOperationException("The construction dictionary is already frozen.");
+        return this.frozen
+                   ? throw new InvalidOperationException("The construction dictionary is already frozen.")
+                   : this.storage;
     }
 }

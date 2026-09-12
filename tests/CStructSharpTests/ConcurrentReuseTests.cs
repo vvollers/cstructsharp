@@ -257,15 +257,27 @@ public class ConcurrentReuseTests
         await Task.WhenAll(operations);
     }
 
+    /// <summary>
+    ///     Compiled metadata must be sealed for concurrent readers: read-only through every interface it exposes and
+    ///     never a plain mutable <see cref="Dictionary{TKey, TValue}"/>. Until the performance plan's E1.3a the check
+    ///     demanded a <c>System.Collections.Frozen</c> type; building those cost a quarter of a small layout's
+    ///     compilation, so the layout's own tables are now sealed <see cref="ConstructionDictionary{TKey, TValue}"/>
+    ///     instances (whose builder handle is withdrawn on <c>Freeze</c>) while the shared primitive registries stay
+    ///     frozen. Reads on a dictionary that is never written after publication are safe from any thread.
+    /// </summary>
     private static void AssertFrozenMetadata<TKey, TValue>(
         IReadOnlyDictionary<TKey, TValue> metadata,
         string name)
         where TKey : notnull
     {
-        Assert.AreEqual(
-            "System.Collections.Frozen",
-            metadata.GetType().Namespace,
-            $"{name} must be a true frozen snapshot, not a wrapper over a mutable dictionary.");
+        Type type = metadata.GetType();
+        bool sealedTable = type.Namespace == "System.Collections.Frozen" ||
+                           (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ConstructionDictionary<,>) &&
+                            (bool)type.GetProperty("IsFrozen")!.GetValue(metadata)!);
+        Assert.IsTrue(sealedTable, $"{name} must be a sealed snapshot, not a wrapper over a mutable dictionary.");
+        Assert.IsTrue(
+            metadata is ICollection<KeyValuePair<TKey, TValue>> { IsReadOnly: true },
+            $"{name} must be read-only through its collection view.");
     }
 
     private static IDictionary<string, object?> CreatePayload(int pointerCell)

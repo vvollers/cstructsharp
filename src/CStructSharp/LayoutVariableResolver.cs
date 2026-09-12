@@ -1,7 +1,6 @@
 namespace CStructSharp;
 
 using System;
-using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -10,12 +9,14 @@ using CStructSharp.Structure;
 /// <summary>Caches static definitions and recomputes only values affected by caller overrides.</summary>
 internal sealed class LayoutVariableResolver
 {
-    private readonly FrozenDictionary<string, ImmutableArray<string>> definitionDependencies;
-    private readonly FrozenDictionary<string, Defines> definitions;
+    // Plain collections used read-only after construction: FrozenDictionary/FrozenSet construction dominated small
+    // layout compilation (E1.3a) for key sets of a handful of names.
+    private readonly Dictionary<string, ImmutableArray<string>> definitionDependencies;
+    private readonly Dictionary<string, Defines> definitions;
     private readonly ExpressionEvaluator evaluator;
-    private readonly FrozenSet<string> exactEnumDefinitions;
-    private readonly FrozenDictionary<string, ImmutableArray<string>> reverseDependents;
-    private readonly FrozenDictionary<string, Expr> staticValues;
+    private readonly HashSet<string> exactEnumDefinitions;
+    private readonly Dictionary<string, ImmutableArray<string>> reverseDependents;
+    private readonly Dictionary<string, Expr> staticValues;
 
     /// <summary>Compiles definition dependencies and resolves the immutable no-override baseline once.</summary>
     public LayoutVariableResolver(
@@ -27,21 +28,21 @@ internal sealed class LayoutVariableResolver
         IEnumerable<string> enumDefinitions = exactEnumDefinitions is null
                                                   ? Array.Empty<string>()
                                                   : exactEnumDefinitions;
-        this.exactEnumDefinitions = enumDefinitions.ToFrozenSet(StringComparer.Ordinal);
-        this.definitions = definitions.ToFrozenDictionary(
+        this.exactEnumDefinitions = new HashSet<string>(enumDefinitions, StringComparer.Ordinal);
+        this.definitions = definitions.ToDictionary(
             define => define.Name.Name,
             define => define,
             StringComparer.Ordinal);
 
         try
         {
-            this.definitionDependencies = this.definitions.ToFrozenDictionary(
+            this.definitionDependencies = this.definitions.ToDictionary(
                 entry => entry.Key,
                 entry => this.evaluator.GetDependencies(entry.Value.Value).ToImmutableArray(),
                 StringComparer.Ordinal);
             this.reverseDependents = this.BuildReverseDependents();
             this.staticValues = this.BuildStaticValues(this.GetTopologicallySortedDefinitions()).
-                ToFrozenDictionary(StringComparer.Ordinal);
+                ToDictionary(StringComparer.Ordinal);
         }
         catch (CStructLayoutException)
         {
@@ -138,7 +139,7 @@ internal sealed class LayoutVariableResolver
     }
 
     /// <summary>Builds reverse dependency edges once so override invalidation is a small graph walk.</summary>
-    private FrozenDictionary<string, ImmutableArray<string>> BuildReverseDependents()
+    private Dictionary<string, ImmutableArray<string>> BuildReverseDependents()
     {
         var reverse = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         foreach (KeyValuePair<string, ImmutableArray<string>> definition in this.definitionDependencies)
@@ -155,7 +156,7 @@ internal sealed class LayoutVariableResolver
             }
         }
 
-        return reverse.ToFrozenDictionary(
+        return reverse.ToDictionary(
             entry => entry.Key,
             entry => entry.Value.ToImmutableArray(),
             StringComparer.Ordinal);

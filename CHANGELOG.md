@@ -4,6 +4,8 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Performance: compiling a layout no longer builds frozen dictionaries for its symbol tables; small definitions
+  compile about 30 % faster and allocate a third less. The tables stay immutable after construction.
 - Performance: field paths are parsed without intermediate strings and cached per process, and per-operation
   debug and pointer-cycle bookkeeping is allocated only when used; selected-value reads, address resolution, and
   updates allocate 20–45 % less and run 20–50 % faster on small inputs.

@@ -183,15 +183,13 @@ public sealed partial class CStruct
     ///     Gets the exported top-level declarations by their case-sensitive names. Anonymous inline declarations remain
     ///     attached to their containing fields and are not promoted into this namespace.
     /// </summary>
-    internal IReadOnlyDictionary<string, CStructElement> CStructElements =>
-        this.cStructElements.IsFrozen ? this.cStructElements.Snapshot : this.cStructElements;
+    internal IReadOnlyDictionary<string, CStructElement> CStructElements => this.cStructElements;
 
     /// <summary>Gets whether composite fields use their portable alignment boundaries.</summary>
     public bool Aligned { get; }
 
     /// <summary>Gets primitive-codec and exported-type alignments without exposing anonymous or backing-tag identities.</summary>
-    internal IReadOnlyDictionary<string, byte> FieldAlignments =>
-        this.fieldAlignments.IsFrozen ? this.fieldAlignments.Snapshot : this.fieldAlignments;
+    internal IReadOnlyDictionary<string, byte> FieldAlignments => this.fieldAlignments;
 
     internal IReadOnlyDictionary<string, Func<Stream, object>> FieldHandlers =>
         this.fieldHandlers;
