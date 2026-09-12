@@ -250,11 +250,11 @@ public sealed partial class CStruct
                            target.RemainingPointerDepth,
                            pointerTarget,
                            state,
-                           target.DebugPrefix.ToArray())
+                           null)
                        : this.ReadPointerTargetValue(
                            pointerTarget,
                            state,
-                           target.DebugPrefix.ToArray());
+                           null);
         }
 
         bool isComposite = (!target.IsArray || target.SelectsArrayElement) &&
@@ -267,7 +267,7 @@ public sealed partial class CStruct
                 state,
                 target.Address,
                 (Struct)target.TargetElement!,
-                target.DebugPrefix.ToArray(),
+                null,
                 target.ContainingStructureDepth,
                 target.PointerAccessorsConsumed,
                 false).Result;
@@ -294,7 +294,7 @@ public sealed partial class CStruct
             selectedField.EffectiveField,
             container,
             state,
-            target.DebugPrefix.ToArray(),
+            null,
             -1,
             false,
             selectedField);
@@ -314,7 +314,7 @@ public sealed partial class CStruct
             declaration,
             container,
             state,
-            Array.Empty<CStructElement>());
+            null);
         return ExtractOnlyValue(container, rootName);
     }
 }

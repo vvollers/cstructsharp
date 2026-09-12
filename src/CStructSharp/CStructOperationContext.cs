@@ -139,7 +139,7 @@ internal sealed class CStructOperationContext
     public void RegisterDebugData(
         long curPos,
         long endPos,
-        CStructElement[] debugStack,
+        DebugPath? debugStack,
         object value,
         string fieldTypeName)
     {

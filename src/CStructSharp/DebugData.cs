@@ -1,8 +1,6 @@
 namespace CStructSharp;
 
-using System.Linq;
 using System.Text.Json.Serialization;
-using CStructSharp.Structure;
 
 /// <summary>Describes the bytes, path, type, and parsed value for one item read in debug mode.</summary>
 /// <remarks>
@@ -20,13 +18,13 @@ public struct DebugData()
     public long EndPos { get; set; } = 0;
 
     [JsonIgnore]
-    internal CStructElement[] DebugStack { get; set; } = [];
+    internal DebugPath? DebugStack { get; set; } = null;
 
     /// <summary>Gets the dot-separated declaration path used while reading the field.</summary>
     [JsonPropertyName("debugStackString")]
     public string DebugStackString
     {
-        get => this.DebugStack == null ? string.Empty : string.Join(".", this.DebugStack.Select(o => o.Name.Name));
+        get => this.DebugStack?.ToString() ?? string.Empty;
     }
 
     /// <summary>Gets or sets the layout type spelling associated with the captured field.</summary>

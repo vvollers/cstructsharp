@@ -92,7 +92,7 @@ public partial class CStruct
             NextPosition = origin,
             ConditionalLayoutTrace = new List<(string Path, long Start, long End)>(),
         };
-        this.HandleCStructElement(root, new ExpandoObject(), state, System.Array.Empty<CStructElement>());
+        this.HandleCStructElement(root, new ExpandoObject(), state, null);
         return state.DebugMapping.Select(item => (item.DebugStackString, item.CurPos, item.EndPos))
             .Concat(state.ConditionalLayoutTrace).ToArray();
     }

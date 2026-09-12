@@ -73,7 +73,7 @@ public partial class CStruct
         CStructElement el,
         ExpandoObject currentContainer,
         CStructOperationContext state,
-        CStructElement[] debugStack,
+        DebugPath? debugStack,
         long unionPosition = -1,
         bool alignInlineStructStart = false,
         CompiledField? fieldDescriptor = null,
@@ -108,7 +108,7 @@ public partial class CStruct
 
                     if (s.IsUnion)
                     {
-                        CStructElement[] unionDebugStack = state.Debug ? [.. debugStack, s,] : debugStack;
+                        DebugPath? unionDebugStack = state.Debug ? new DebugPath(debugStack, s.Name.Name) : debugStack;
                         IDictionary<string, object?> currentContainerDict = currentContainer;
                         currentContainerDict[s.Name.Name] = this.ReadUnionValue(s, state, unionDebugStack);
                         if (usesCursor)
@@ -146,7 +146,7 @@ public partial class CStruct
                     if (state.Debug)
                     {
                         // Extend the layout stack only for debug output; normal parsing does not need this allocation.
-                        debugStack = [.. debugStack, s,];
+                        debugStack = new DebugPath(debugStack, s.Name.Name);
                     }
 
                     this.ReadCompiledStructInto(s, newContainer, state, debugStack);
@@ -164,7 +164,7 @@ public partial class CStruct
                     if (state.Debug)
                     {
                         // Preserve the alias in debug metadata even though its underlying type does the actual reading.
-                        debugStack = [.. debugStack, t,];
+                        debugStack = new DebugPath(debugStack, t.Name.Name);
                     }
 
                     if (t.Struct is not null)
@@ -282,7 +282,7 @@ public partial class CStruct
                     if (state.Debug)
                     {
                         // Add this field after its parent struct so debug records identify the complete layout path.
-                        debugStack = [.. debugStack, f,];
+                        debugStack = new DebugPath(debugStack, f.Name.Name);
                     }
 
                     IDictionary<string, object?> containerDict = currentContainer;
@@ -369,7 +369,7 @@ public partial class CStruct
                     {
                         // Composite leaves need the containing element's coordinates. Keep primitive-array
                         // debug records unchanged: consumers historically group those under the array field.
-                        CStructElement[] elementDebugStack = debugStack;
+                        DebugPath? elementDebugStack = debugStack;
                         if (state.Debug && isArray && structElement is Struct)
                         {
                             string indices = string.Empty;
@@ -381,13 +381,7 @@ public partial class CStruct
                                 remainingIndex /= size;
                             }
 
-                            elementDebugStack = (CStructElement[])debugStack.Clone();
-                            elementDebugStack[^1] = new Field(
-                                f.Type,
-                                new Identifier(f.Name.Name + indices),
-                                Field.NoArray,
-                                0,
-                                f.PointerDepth);
+                            elementDebugStack = new DebugPath(debugStack!.Parent, f.Name.Name + indices);
                         }
 
                         if (f.PointerDepth == 0 && isKnownStruct)
@@ -837,7 +831,7 @@ public partial class CStruct
                                                   options);
 
         // Start with an empty debug stack; it remains empty in ordinary parsing but keeps the shared call shape simple.
-        this.HandleCStructElement(cstructElement, root, state, Array.Empty<CStructElement>());
+        this.HandleCStructElement(cstructElement, root, state, null);
 
         return root;
     }
@@ -865,7 +859,7 @@ public partial class CStruct
         { Debug = true, };
 
         // Each nested call appends its element to the stack before recording a byte range.
-        this.HandleCStructElement(cstructElement, root, state, Array.Empty<CStructElement>());
+        this.HandleCStructElement(cstructElement, root, state, null);
 
         return (state.DebugMapping, root);
     }
@@ -896,7 +890,7 @@ public partial class CStruct
     private object ReadPointerTargetValue(
         CompiledField field,
         CStructOperationContext state,
-        CStructElement[] debugStack)
+        DebugPath? debugStack)
     {
         CStructElement? structElement = field.NamedElement;
         if (structElement is not null)
@@ -963,7 +957,7 @@ public partial class CStruct
         int pointerDepth,
         CompiledField field,
         CStructOperationContext state,
-        CStructElement[] debugStack)
+        DebugPath? debugStack)
     {
         // Reading the address always advances the parent stream by exactly one pointer storage width.
         long address = this.ReadPointerAddress(state);
