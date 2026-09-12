@@ -1,0 +1,15 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  CStructSharp -> C:\projects\github\cstructsharp\src\CStructSharp\bin\Release\net8.0\CStructSharp.dll
+  CStructSharp -> C:\projects\github\cstructsharp\src\CStructSharp\bin\Release\net10.0\CStructSharp.dll
+  CStructSharp.Fuzz -> C:\projects\github\cstructsharp\tests\CStructSharp.Fuzz\bin\Release\net10.0\CStructSharp.Fuzz.dll
+  CStructSharp.Fuzz -> C:\projects\github\cstructsharp\tests\CStructSharp.Fuzz\bin\Release\net8.0\CStructSharp.Fuzz.dll
+  CStructSharp.Benchmarks -> C:\projects\github\cstructsharp\benchmarks\CStructSharp.Benchmarks\bin\Release\net10.0\CStructSharp.Benchmarks.dll
+  CStructSharpTests -> C:\projects\github\cstructsharp\tests\CStructSharpTests\bin\Release\net10.0\CStructSharpTests.dll
+  CStructSharpTests -> C:\projects\github\cstructsharp\tests\CStructSharpTests\bin\Release\net8.0\CStructSharpTests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:07.62

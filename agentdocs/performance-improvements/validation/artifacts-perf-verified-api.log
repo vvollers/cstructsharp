@@ -1,0 +1,6 @@
+Frozen managed API compatibility validation passed.
+Baseline: managed-rc1 revision 4
+Package version: 0.3.3
+Frameworks: net8.0, net10.0
+Exported types: 20
+Generated evidence: C:\projects\github\cstructsharp\artifacts\api-compat\managed-current\run-f75c58f9956346af9f664a2405c5e7d6

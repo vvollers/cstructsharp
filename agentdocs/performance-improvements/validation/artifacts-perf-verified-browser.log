@@ -1,0 +1,28 @@
+npm notice run cstruct-sharp-inspector@0.3.3 npx
+npm notice run playwright test tests/e2e/compiled-layout.spec.ts tests/e2e/large-source.spec.ts tests/e2e/binary-types.spec.ts --workers=1
+[WebServer] npm notice run cstruct-sharp-inspector@0.3.3 preview
+[WebServer] npm notice run vite preview --host 127.0.0.1 --port 4174
+[WebServer] (node:3876) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 15 tests using 1 worker
+
+(node:9712) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests\e2e\binary-types.spec.ts:5:1 › conditional update reachability and anonymous inactive fields survive WASM trimming (674ms)
+  ✓   2 tests\e2e\binary-types.spec.ts:39:1 › conditional groups retain outer discriminators across nested fields and array elements (650ms)
+  ✓   3 tests\e2e\binary-types.spec.ts:74:1 › PE and GLB schemas select alternatives from the loaded bytes (769ms)
+  ✓   4 tests\e2e\binary-types.spec.ts:125:1 › one CRX schema selects versioned headers from runtime bytes (769ms)
+  ✓   5 tests\e2e\binary-types.spec.ts:160:1 › ZIP selects each entry's own text encoding with native conditions (698ms)
+  ✓   6 tests\e2e\binary-types.spec.ts:202:1 › identifiers and fixed-point values round-trip through WASM (750ms)
+  ✓   7 tests\e2e\binary-types.spec.ts:238:1 › LEB128 preserves 64-bit values and rejects extent-changing updates in WASM (636ms)
+  ✓   8 tests\e2e\binary-types.spec.ts:286:1 › PNG international text is bounded and compressed payloads stay opaque (753ms)
+  ✓   9 tests\e2e\compiled-layout.spec.ts:4:1 › compiled browser layouts retain decisions per read and recover after cancellation (766ms)
+  ✓  10 tests\e2e\large-source.spec.ts:9:1 › the inspector follows pointers past 4 MiB in a loaded file (1.6s)
+  ✓  11 tests\e2e\large-source.spec.ts:35:1 › decompression streams feed the source parser (760ms)
+  ✓  12 tests\e2e\large-source.spec.ts:52:1 › browser sources preserve view boundaries and stage one-pass data (789ms)
+  ✓  13 tests\e2e\large-source.spec.ts:86:1 › pointers can reach beyond 4 GiB and read across a page boundary (825ms)
+  ✓  14 tests\e2e\large-source.spec.ts:116:1 › staging failures and cancellation remove temporary files (649ms)
+  ✓  15 tests\e2e\large-source.spec.ts:164:1 › worker parses can be cancelled without blocking the page (535ms)
+
+  15 passed (13.1s)

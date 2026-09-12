@@ -1,0 +1,74 @@
+{
+  "utc": "2026-09-12T10:03:35.4707156Z",
+  "sdk": "10.0.204",
+  "versions": [
+    {
+      "label": "main",
+      "wasmFiles": [
+        {
+          "name": "CStructSharp.wasm",
+          "sha256": "6E6C85B2C7DDE66ECD1DDFEC7479C37D772F4FC74C072B478D798E20F36E3E23",
+          "bytes": 274709
+        },
+        {
+          "name": "CStructSharpWeb.Wasm.wasm",
+          "sha256": "67CB5F505558C77780F0A86F9AECDEC626650EB5AF3CCED9A7B4BF0F14017CB4",
+          "bytes": 89877
+        },
+        {
+          "name": "dotnet.native.wasm",
+          "sha256": "E0C5EFA66AD6A702FDCD7229389E0083EBB923C39D16623A255D51041E669586",
+          "bytes": 1491405
+        }
+      ],
+      "commit": "2c4ad4cbe20d406626d4045c08ef266db5e62874",
+      "nativeHash": "02BA01A214577843E60E1DD7041E5478E199F71ED5CFFA0C2082B3733409A904"
+    },
+    {
+      "label": "feature",
+      "wasmFiles": [
+        {
+          "name": "CStructSharp.wasm",
+          "sha256": "0E1C31377DB409BE9937B8EC7EB462CFD9B4D638EEA855AB829A6122BE593BE0",
+          "bytes": 309525
+        },
+        {
+          "name": "CStructSharpWeb.Wasm.wasm",
+          "sha256": "7FCD5B82211686E9AE055762C69BA306C1760C78171696BFEFDDBC5ADE887C50",
+          "bytes": 89877
+        },
+        {
+          "name": "dotnet.native.wasm",
+          "sha256": "994710F6D1877BEC69ED868751E0A00CD5165C5247E6D432F7A5A20996B3553A",
+          "bytes": 1491405
+        }
+      ],
+      "commit": "d30ee60740cee9da52b54c82f057c9cddcbcabaa",
+      "nativeHash": "C2EBC586559C4DCD69C9C9E301A9AAFC64BA433777689F4C3EF4CB67D134AB63"
+    },
+    {
+      "label": "optimized",
+      "wasmFiles": [
+        {
+          "name": "CStructSharp.wasm",
+          "sha256": "83C9A06FEE6D8DD7DBF41B9AF104E592EE1D960BF08A3B0F4F830A0AF715D6ED",
+          "bytes": 319253
+        },
+        {
+          "name": "CStructSharpWeb.Wasm.wasm",
+          "sha256": "F77335E6675F7964CD8549EA156B6E5D20B60434C64D16B5E8E5D3B6AFD277A5",
+          "bytes": 91925
+        },
+        {
+          "name": "dotnet.native.wasm",
+          "sha256": "C8632C50EA7A1ED3C44BD5B238EBC9E2CDAC3F2185413932AADF33A382492410",
+          "bytes": 1491405
+        }
+      ],
+      "commit": "6310109ebb7100fe03cd1c467a2f55b6d701f93e",
+      "nativeHash": "06028457F3D00BC09770C0E33CD705B7A6A0DBADF69CC56127A184EA4FB734C3"
+    }
+  ],
+  "node": "v26.8.1",
+  "casesSha256": "66060796E55E68ECF1735DF58273D2E185AA32384D20D042365B09070422BB80"
+}

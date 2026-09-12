@@ -1,0 +1,1699 @@
+{
+  "native": {
+    "header/parse": {
+      "ns": {
+        "main": 713.1943807364985,
+        "feature": 792.9663662760897,
+        "optimized": 717.0281713640252
+      },
+      "launchNs": {
+        "main": [
+          713.0434782608696,
+          713.3452832121275
+        ],
+        "feature": [
+          797.5512237948913,
+          788.3815087572883
+        ],
+        "optimized": [
+          724.8829766161738,
+          709.1733661118766
+        ]
+      },
+      "mainRatio": 1.0053755199579217,
+      "featureRatio": 0.9042352889837135,
+      "mainLaunchRatios": [
+        1.0166041745226826,
+        0.9941516160568622
+      ],
+      "allocated": {
+        "main": 1840.072544796078,
+        "feature": 2128.084114826415,
+        "optimized": 1848.0880787666551
+      }
+    },
+    "header/debug": {
+      "ns": {
+        "main": 915.5252077070141,
+        "feature": 967.8725673039702,
+        "optimized": 882.7269646708642
+      },
+      "launchNs": {
+        "main": [
+          909.8067505029679,
+          921.2436649110604
+        ],
+        "feature": [
+          975.7191123604616,
+          960.0260222474787
+        ],
+        "optimized": [
+          887.137711304484,
+          878.3162180372443
+        ]
+      },
+      "mainRatio": 0.9641754888231914,
+      "featureRatio": 0.9120280856081282,
+      "mainLaunchRatios": [
+        0.9750836766313815,
+        0.9534027223102148
+      ],
+      "allocated": {
+        "main": 2408.024703117012,
+        "feature": 2696.0097046939427,
+        "optimized": 2456.0857003351157
+      }
+    },
+    "fields128/parse": {
+      "ns": {
+        "main": 50990.42307654752,
+        "feature": 54651.37911452121,
+        "optimized": 48446.234048229555
+      },
+      "launchNs": {
+        "main": [
+          50888.97423191278,
+          51091.87192118227
+        ],
+        "feature": [
+          53550.20650490449,
+          55752.55172413793
+        ],
+        "optimized": [
+          47184.78152929494,
+          49707.68656716418
+        ]
+      },
+      "mainRatio": 0.9501045711172351,
+      "featureRatio": 0.8864594971466528,
+      "mainLaunchRatios": [
+        0.9272103091381448,
+        0.9729079146649113
+      ],
+      "allocated": {
+        "main": 38206.86904753768,
+        "feature": 42533.388203727765,
+        "optimized": 38130.149407876204
+      }
+    },
+    "fields128/debug": {
+      "ns": {
+        "main": 58097.007409943806,
+        "feature": 62487.33958141916,
+        "optimized": 55349.090435034756
+      },
+      "launchNs": {
+        "main": [
+          57718.894932722586,
+          58475.11988716502
+        ],
+        "feature": [
+          61252.442902573,
+          63722.236260265316
+        ],
+        "optimized": [
+          53357.65543686661,
+          57340.52543320291
+        ]
+      },
+      "mainRatio": 0.9527012302799142,
+      "featureRatio": 0.8857648734255444,
+      "mainLaunchRatios": [
+        0.9244400035562106,
+        0.9805969708800691
+      ],
+      "allocated": {
+        "main": 65139.16720194368,
+        "feature": 69403.32752976524,
+        "optimized": 66256.9682800902
+      }
+    },
+    "bytes1024/parse": {
+      "ns": {
+        "main": 46568.671448197216,
+        "feature": 55286.470770758344,
+        "optimized": 48164.841084857835
+      },
+      "launchNs": {
+        "main": [
+          46948.81598421312,
+          46188.5269121813
+        ],
+        "feature": [
+          54165.23809523809,
+          56407.703446278596
+        ],
+        "optimized": [
+          48020.063076176615,
+          48309.619093539055
+        ]
+      },
+      "mainRatio": 1.0342756103410893,
+      "featureRatio": 0.8711867553378498,
+      "mainLaunchRatios": [
+        1.022817339894657,
+        1.0459224903489692
+      ],
+      "allocated": {
+        "main": 92408.02317160263,
+        "feature": 125368.02818666998,
+        "optimized": 91904.02321667445
+      }
+    },
+    "bytes1024/debug": {
+      "ns": {
+        "main": 78943.37250654795,
+        "feature": 86807.64298354607,
+        "optimized": 79524.93777786967
+      },
+      "launchNs": {
+        "main": [
+          78729.25858951175,
+          79157.48642358417
+        ],
+        "feature": [
+          89015.7264957265,
+          84599.55947136563
+        ],
+        "optimized": [
+          80057.89276340457,
+          78991.98279233476
+        ]
+      },
+      "mainRatio": 1.007366866310069,
+      "featureRatio": 0.9161052534618777,
+      "mainLaunchRatios": [
+        1.0168759899139939,
+        0.9979091853629135
+      ],
+      "allocated": {
+        "main": 256344.0,
+        "feature": 289304.0,
+        "optimized": 255864.0
+      }
+    },
+    "plain128/parse": {
+      "ns": {
+        "main": 52575.33645691142,
+        "feature": 61060.157878930884,
+        "optimized": 53397.09796979827
+      },
+      "launchNs": {
+        "main": [
+          52414.652829256236,
+          52736.0200845666
+        ],
+        "feature": [
+          59576.57342657343,
+          62543.74233128834
+        ],
+        "optimized": [
+          53229.49320794149,
+          53564.70273165506
+        ]
+      },
+      "mainRatio": 1.0156301712602511,
+      "featureRatio": 0.8744998346658912,
+      "mainLaunchRatios": [
+        1.0155460417021103,
+        1.0157137881425182
+      ],
+      "allocated": {
+        "main": 84146.03198621274,
+        "feature": 120178.17397571754,
+        "optimized": 83641.4575862237
+      }
+    },
+    "plain128/debug": {
+      "ns": {
+        "main": 73412.93764743915,
+        "feature": 100392.21086343826,
+        "optimized": 76574.37134394312
+      },
+      "launchNs": {
+        "main": [
+          73702.63713080168,
+          73123.23816407661
+        ],
+        "feature": [
+          98419.54590325765,
+          102364.87582361886
+        ],
+        "optimized": [
+          76439.16163141993,
+          76709.5810564663
+        ]
+      },
+      "mainRatio": 1.0430637132610951,
+      "featureRatio": 0.7627521167763291,
+      "mainLaunchRatios": [
+        1.0371292616811212,
+        1.0490451870353787
+      ],
+      "allocated": {
+        "main": 177402.05349668104,
+        "feature": 245404.38186494977,
+        "optimized": 192511.52764433
+      }
+    },
+    "if128/parse": {
+      "ns": {
+        "feature": 352486.0170098051,
+        "optimized": 79960.49962666589
+      },
+      "launchNs": {
+        "feature": [
+          351210.9561752988,
+          353761.07784431137
+        ],
+        "optimized": [
+          78941.12833763997,
+          80979.8709156918
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.22684729540474688,
+      "mainLaunchRatios": [],
+      "allocated": {
+        "feature": 712495.4673282916,
+        "optimized": 103096.85740513162
+      }
+    },
+    "if128/debug": {
+      "ns": {
+        "feature": 385126.6531824223,
+        "optimized": 103764.82301713986
+      },
+      "launchNs": {
+        "feature": [
+          382392.3250564334,
+          387860.9813084112
+        ],
+        "optimized": [
+          103342.72773024661,
+          104186.9183040331
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.2694303864967501,
+      "mainLaunchRatios": [],
+      "allocated": {
+        "feature": 838271.5284276702,
+        "optimized": 211960.46935379866
+      }
+    },
+    "switch128/parse": {
+      "ns": {
+        "feature": 341306.5863103712,
+        "optimized": 78349.61953692597
+      },
+      "launchNs": {
+        "feature": [
+          338355.9618441971,
+          344257.21077654517
+        ],
+        "optimized": [
+          78418.82352941176,
+          78280.41554444017
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.22955788923943535,
+      "mainLaunchRatios": [],
+      "allocated": {
+        "feature": 708413.2533465694,
+        "optimized": 103096.77347792138
+      }
+    },
+    "switch128/debug": {
+      "ns": {
+        "feature": 396038.8432165319,
+        "optimized": 103827.01328985202
+      },
+      "launchNs": {
+        "feature": [
+          392742.92452830187,
+          399334.7619047619
+        ],
+        "optimized": [
+          103121.08843537416,
+          104532.93814432989
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.2621637121414508,
+      "mainLaunchRatios": [],
+      "allocated": {
+        "feature": 834189.267115903,
+        "optimized": 211960.46063138067
+      }
+    },
+    "wideplain128/parse": {
+      "ns": {
+        "main": 50528.47110485907,
+        "feature": 55412.992731915016,
+        "optimized": 50804.32201653227
+      },
+      "launchNs": {
+        "main": [
+          49403.49737696727,
+          51653.44483275087
+        ],
+        "feature": [
+          53366.67549668874,
+          57459.30996714129
+        ],
+        "optimized": [
+          49595.364558184454,
+          52013.27947488008
+        ]
+      },
+      "mainRatio": 1.0054593164139232,
+      "featureRatio": 0.9168305033139207,
+      "mainLaunchRatios": [
+        1.003883676083763,
+        1.0069663241879476
+      ],
+      "allocated": {
+        "main": 39468.215314550034,
+        "feature": 43889.60467623656,
+        "optimized": 39464.50684102398
+      }
+    },
+    "wideplain128/debug": {
+      "ns": {
+        "main": 60086.52520094813,
+        "feature": 63466.108455727386,
+        "optimized": 57687.61018079144
+      },
+      "launchNs": {
+        "main": [
+          59890.523837551504,
+          60282.52656434475
+        ],
+        "feature": [
+          62205.171889260724,
+          64727.04502219404
+        ],
+        "optimized": [
+          56771.35105805752,
+          58603.86930352537
+        ]
+      },
+      "mainRatio": 0.9600756573602157,
+      "featureRatio": 0.9089514322598351,
+      "mainLaunchRatios": [
+        0.9479187594358917,
+        0.9721535019102492
+      ],
+      "allocated": {
+        "main": 78835.1224034139,
+        "feature": 83250.13037119576,
+        "optimized": 79751.1612874631
+      }
+    },
+    "wideif128/parse": {
+      "ns": {
+        "feature": 352389.4077399111,
+        "optimized": 54911.734723240406
+      },
+      "launchNs": {
+        "feature": [
+          350001.2987012987,
+          354777.5167785235
+        ],
+        "optimized": [
+          53918.768472906406,
+          55904.70097357441
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.15582685948315803,
+      "mainLaunchRatios": [],
+      "allocated": {
+        "feature": 235747.81255992327,
+        "optimized": 40661.13236638188
+      }
+    },
+    "wideif128/debug": {
+      "ns": {
+        "feature": 352272.8318405377,
+        "optimized": 61066.309709736044
+      },
+      "launchNs": {
+        "feature": [
+          357319.8347107438,
+          347225.8289703316
+        ],
+        "optimized": [
+          60900.17931858936,
+          61232.440100882726
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.17334947288066413,
+      "mainLaunchRatios": [],
+      "allocated": {
+        "feature": 274770.83962903667,
+        "optimized": 80955.07836048992
+      }
+    },
+    "mixedplain128/parse": {
+      "ns": {
+        "main": 53383.89162934851,
+        "feature": 60483.29725115042,
+        "optimized": 53315.24680452888
+      },
+      "launchNs": {
+        "main": [
+          53151.74116424116,
+          53616.04209445585
+        ],
+        "feature": [
+          61571.04235506158,
+          59395.552147239265
+        ],
+        "optimized": [
+          52547.9576008273,
+          54082.536008230454
+        ]
+      },
+      "mainRatio": 0.998714128499731,
+      "featureRatio": 0.8814871084680291,
+      "mainLaunchRatios": [
+        0.988640380349006,
+        1.0087006406208197
+      ],
+      "allocated": {
+        "main": 84145.98767967147,
+        "feature": 120178.1298435205,
+        "optimized": 83641.54101076256
+      }
+    },
+    "mixedplain128/debug": {
+      "ns": {
+        "main": 72350.87185898857,
+        "feature": 104366.82724933514,
+        "optimized": 77351.3684115676
+      },
+      "launchNs": {
+        "main": [
+          71344.9716713881,
+          73356.77204658902
+        ],
+        "feature": [
+          102845.02538071066,
+          105888.62911795962
+        ],
+        "optimized": [
+          77660.0304529882,
+          77042.706370147
+        ]
+      },
+      "mainRatio": 1.0691145306766305,
+      "featureRatio": 0.7411489881432642,
+      "mainLaunchRatios": [
+        1.088514419918575,
+        1.050246680991048
+      ],
+      "allocated": {
+        "main": 177401.97823269054,
+        "feature": 245404.5506616247,
+        "optimized": 192511.5153337482
+      }
+    },
+    "mixedswitch128/parse": {
+      "ns": {
+        "feature": 466770.3976353307,
+        "optimized": 82090.32454060369
+      },
+      "launchNs": {
+        "feature": [
+          468922.9468599034,
+          464617.84841075796
+        ],
+        "optimized": [
+          80175.52588996764,
+          84005.12319123973
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.17586874608260317,
+      "mainLaunchRatios": [],
+      "allocated": {
+        "feature": 1057507.3472000756,
+        "optimized": 105155.51699503741
+      }
+    },
+    "mixedswitch128/debug": {
+      "ns": {
+        "feature": 520402.9117780571,
+        "optimized": 109456.0193093519
+      },
+      "launchNs": {
+        "feature": [
+          511100.3003003003,
+          529705.523255814
+        ],
+        "optimized": [
+          108609.7372488408,
+          110302.30136986301
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.2103293752438361,
+      "mainLaunchRatios": [],
+      "allocated": {
+        "feature": 1183074.6141839514,
+        "optimized": 214037.04185019725
+      }
+    },
+    "nestedif128/parse": {
+      "ns": {
+        "feature": 580302.428066277,
+        "optimized": 88620.55479833341
+      },
+      "launchNs": {
+        "feature": [
+          591889.6457765667,
+          568715.2103559871
+        ],
+        "optimized": [
+          89697.229791099,
+          87543.87980556783
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.1527144304628206,
+      "mainLaunchRatios": [],
+      "allocated": {
+        "feature": 1327795.9649744716,
+        "optimized": 106184.12504680797
+      }
+    },
+    "nestedif128/debug": {
+      "ns": {
+        "feature": 609758.8286713287,
+        "optimized": 116503.62795544432
+      },
+      "launchNs": {
+        "feature": [
+          607292.6573426573,
+          612225
+        ],
+        "optimized": [
+          115732.60393873086,
+          117274.65197215778
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.191065094062364,
+      "mainLaunchRatios": [],
+      "allocated": {
+        "feature": 1453337.000098493,
+        "optimized": 215068.15047190647
+      }
+    }
+  },
+  "js": {
+    "header/parseCore": {
+      "ns": {
+        "main": 9221.782650227087,
+        "feature": 11466.074086595936,
+        "optimized": 9493.247743429252
+      },
+      "launchNs": {
+        "main": [
+          9202.290930506473,
+          9241.2743699477
+        ],
+        "feature": [
+          11557.2305331799,
+          11374.917640011972
+        ],
+        "optimized": [
+          9568.52872718363,
+          9417.966759674873
+        ]
+      },
+      "mainRatio": 1.029437377077574,
+      "featureRatio": 0.8279422993199602,
+      "mainLaunchRatios": [
+        1.039798545758105,
+        1.0191199160044173
+      ]
+    },
+    "header/publicParse": {
+      "ns": {
+        "main": 263040899.99999997,
+        "feature": 271443149.9999998,
+        "optimized": 870827.3737373746
+      },
+      "launchNs": {
+        "main": [
+          261864700.0000001,
+          264217099.99999985
+        ],
+        "feature": [
+          269657099.9999999,
+          273229199.99999976
+        ],
+        "optimized": [
+          906977.7777777789,
+          834676.9696969701
+        ]
+      },
+      "mainRatio": 0.0033106158537983053,
+      "featureRatio": 0.003208139066089438,
+      "mainLaunchRatios": [
+        0.003463535855645219,
+        0.0031590573422271705
+      ]
+    },
+    "header/publicDebug": {
+      "ns": {
+        "main": 1257230.9519725558,
+        "feature": 1447645.6989247308,
+        "optimized": 793384.1511500571
+      },
+      "launchNs": {
+        "main": [
+          1249634.5454545503,
+          1264827.3584905614
+        ],
+        "feature": [
+          1479902.1505376357,
+          1415389.2473118259
+        ],
+        "optimized": [
+          806938.181818182,
+          779830.1204819321
+        ]
+      },
+      "mainRatio": 0.6310568077450387,
+      "featureRatio": 0.5480513303354265,
+      "mainLaunchRatios": [
+        0.6457393361550045,
+        0.6165506424628397
+      ]
+    },
+    "header/compiledParse": {
+      "ns": {
+        "optimized": 127610.88047659275
+      },
+      "launchNs": {
+        "optimized": [
+          130902.06398348839,
+          124319.69696969709
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "header/compiledDebug": {
+      "ns": {
+        "optimized": 129136.26555118168
+      },
+      "launchNs": {
+        "optimized": [
+          129365.26237989611,
+          128907.26872246727
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "fields128/parseCore": {
+      "ns": {
+        "main": 317591.63838612323,
+        "feature": 383371.04082410777,
+        "optimized": 323255.98294342
+      },
+      "launchNs": {
+        "main": [
+          318686.2179487166,
+          316497.0588235299
+        ],
+        "feature": [
+          383934.57249070687,
+          382807.50915750867
+        ],
+        "optimized": [
+          324031.7741935483,
+          322480.1916932917
+        ]
+      },
+      "mainRatio": 1.0178353075858066,
+      "featureRatio": 0.8431935345156423,
+      "mainLaunchRatios": [
+        1.0167737289652479,
+        1.018904228974519
+      ]
+    },
+    "fields128/publicParse": {
+      "ns": {
+        "main": 305814899.9999994,
+        "feature": 314170950.0000006,
+        "optimized": 11937000.41666666
+      },
+      "launchNs": {
+        "main": [
+          306116099.9999993,
+          305513699.9999995
+        ],
+        "feature": [
+          314755900.0000001,
+          313586000.00000113
+        ],
+        "optimized": [
+          11829413.333333286,
+          12044587.500000034
+        ]
+      },
+      "mainRatio": 0.03903341667350637,
+      "featureRatio": 0.037995239269151514,
+      "mainLaunchRatios": [
+        0.0386435516894842,
+        0.03942405037810105
+      ]
+    },
+    "fields128/publicDebug": {
+      "ns": {
+        "main": 12930178.571428575,
+        "feature": 13508250.000000073,
+        "optimized": 12830339.999999948
+      },
+      "launchNs": {
+        "main": [
+          12948357.142857146,
+          12912000.000000002
+        ],
+        "feature": [
+          13417015.384615438,
+          13599484.615384707
+        ],
+        "optimized": [
+          12914073.333333364,
+          12746606.666666534
+        ]
+      },
+      "mainRatio": 0.992278639395651,
+      "featureRatio": 0.9498151129864992,
+      "mainLaunchRatios": [
+        0.9973522656854816,
+        0.987190726972315
+      ]
+    },
+    "fields128/compiledParse": {
+      "ns": {
+        "optimized": 504453.4170330964
+      },
+      "launchNs": {
+        "optimized": [
+          515542.0689655172,
+          493364.76510067564
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "fields128/compiledDebug": {
+      "ns": {
+        "optimized": 1321840.7058551342
+      },
+      "launchNs": {
+        "optimized": [
+          1354207.5862069083,
+          1289473.82550336
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "bytes1024/parseCore": {
+      "ns": {
+        "main": 709983.6694387925,
+        "feature": 919434.5407080995,
+        "optimized": 725571.1476903392
+      },
+      "launchNs": {
+        "main": [
+          708231.6498316462,
+          711735.6890459388
+        ],
+        "feature": [
+          910807.4074073961,
+          928061.6740088029
+        ],
+        "optimized": [
+          730098.239436622,
+          721044.0559440565
+        ]
+      },
+      "mainRatio": 1.021954699695935,
+      "featureRatio": 0.7891493255534462,
+      "mainLaunchRatios": [
+        1.0308749116340306,
+        1.0130784040218572
+      ]
+    },
+    "bytes1024/publicParse": {
+      "ns": {
+        "main": 276229650.0000011,
+        "feature": 285936799.9999995,
+        "optimized": 1892265.025205368
+      },
+      "launchNs": {
+        "main": [
+          275542300.00000095,
+          276917000.00000125
+        ],
+        "feature": [
+          286148199.99999964,
+          285725399.99999934
+        ],
+        "optimized": [
+          1889725.2427184477,
+          1894804.8076922882
+        ]
+      },
+      "mainRatio": 0.006850332776388634,
+      "featureRatio": 0.00661777366608765,
+      "mainLaunchRatios": [
+        0.006858203777490575,
+        0.0068425008493240925
+      ]
+    },
+    "bytes1024/publicDebug": {
+      "ns": {
+        "main": 6861375.000000018,
+        "feature": 7286178.062678025,
+        "optimized": 5688788.067226864
+      },
+      "launchNs": {
+        "main": [
+          6878653.571428654,
+          6844096.428571382
+        ],
+        "feature": [
+          7285440.740740645,
+          7286915.384615405
+        ],
+        "optimized": [
+          5775864.705882293,
+          5601711.428571435
+        ]
+      },
+      "mainRatio": 0.8291032143304876,
+      "featureRatio": 0.7807643483716836,
+      "mainLaunchRatios": [
+        0.8396795456996218,
+        0.8184734810553687
+      ]
+    },
+    "bytes1024/compiledParse": {
+      "ns": {
+        "optimized": 1136788.5088855901
+      },
+      "launchNs": {
+        "optimized": [
+          1135777.7027026934,
+          1137799.3150684868
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "bytes1024/compiledDebug": {
+      "ns": {
+        "optimized": 5502418.373015907
+      },
+      "launchNs": {
+        "optimized": [
+          5532222.857142915,
+          5472613.888888898
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "plain128/parseCore": {
+      "ns": {
+        "main": 853122.3013275005,
+        "feature": 1085157.9018492156,
+        "optimized": 877163.6712893436
+      },
+      "launchNs": {
+        "main": [
+          848462.9787233914,
+          857781.6239316096
+        ],
+        "feature": [
+          1087895.2631578853,
+          1082420.540540546
+        ],
+        "optimized": [
+          876455.6034482603,
+          877871.7391304268
+        ]
+      },
+      "mainRatio": 1.028180449537462,
+      "featureRatio": 0.808328142655157,
+      "mainLaunchRatios": [
+        1.0329921580868349,
+        1.0234210137385957
+      ]
+    },
+    "plain128/publicParse": {
+      "ns": {
+        "main": 280370849.9999975,
+        "feature": 291533999.99999964,
+        "optimized": 2539879.0485829897
+      },
+      "launchNs": {
+        "main": [
+          281312999.9999983,
+          279428699.9999968
+        ],
+        "feature": [
+          292390699.99999994,
+          290677299.9999994
+        ],
+        "optimized": [
+          2554815.7894736505,
+          2524942.307692329
+        ]
+      },
+      "mainRatio": 0.009058998282392811,
+      "featureRatio": 0.008712119507786375,
+      "mainLaunchRatios": [
+        0.009081755160528188,
+        0.009036087945484333
+      ]
+    },
+    "plain128/publicDebug": {
+      "ns": {
+        "main": 5292034.637268845,
+        "feature": 6023965.624999959,
+        "optimized": 4682709.523809535
+      },
+      "launchNs": {
+        "main": [
+          5295836.842105257,
+          5288232.432432434
+        ],
+        "feature": [
+          6031143.749999955,
+          6016787.499999964
+        ],
+        "optimized": [
+          4688926.190476196,
+          4676492.857142876
+        ]
+      },
+      "mainRatio": 0.8848599536427496,
+      "featureRatio": 0.7773466542332016,
+      "mainLaunchRatios": [
+        0.8853985366762553,
+        0.8843205961338247
+      ]
+    },
+    "plain128/compiledParse": {
+      "ns": {
+        "optimized": 1485034.9038461633
+      },
+      "launchNs": {
+        "optimized": [
+          1501129.8076923105,
+          1468940.000000016
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "plain128/compiledDebug": {
+      "ns": {
+        "optimized": 3736270.448179273
+      },
+      "launchNs": {
+        "optimized": [
+          3739742.8571428615,
+          3732798.039215684
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "if128/parseCore": {
+      "ns": {
+        "feature": 5045452.702702794,
+        "optimized": 1200652.7925630058
+      },
+      "launchNs": {
+        "feature": [
+          5009429.729729852,
+          5081475.675675736
+        ],
+        "optimized": [
+          1207826.5432098787,
+          1193479.0419161331
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.2379673070604406,
+      "mainLaunchRatios": []
+    },
+    "if128/publicParse": {
+      "ns": {
+        "feature": 308629350.00000286,
+        "optimized": 3378229.0986085823
+      },
+      "launchNs": {
+        "feature": [
+          308123400.00000405,
+          309135300.0000017
+        ],
+        "optimized": [
+          3414575.4385964735,
+          3341882.7586206915
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.01094591003288751,
+      "mainLaunchRatios": []
+    },
+    "if128/publicDebug": {
+      "ns": {
+        "feature": 11055480.55555543,
+        "optimized": 5478845.157657589
+      },
+      "launchNs": {
+        "feature": [
+          11085777.777777467,
+          11025183.333333392
+        ],
+        "optimized": [
+          5544948.648648593,
+          5412741.666666585
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.4955772958150104,
+      "mainLaunchRatios": []
+    },
+    "if128/compiledParse": {
+      "ns": {
+        "optimized": 1836035.6138841477
+      },
+      "launchNs": {
+        "optimized": [
+          1835583.1325301202,
+          1836488.095238175
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "if128/compiledDebug": {
+      "ns": {
+        "optimized": 4157034.7727272343
+      },
+      "launchNs": {
+        "optimized": [
+          4139329.54545453,
+          4174739.999999939
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "switch128/parseCore": {
+      "ns": {
+        "feature": 5143806.410256309,
+        "optimized": 1210213.3426563307
+      },
+      "launchNs": {
+        "feature": [
+          5187094.871794845,
+          5100517.948717775
+        ],
+        "optimized": [
+          1210635.1190476355,
+          1209791.5662650256
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.2352758339122695,
+      "mainLaunchRatios": []
+    },
+    "switch128/publicParse": {
+      "ns": {
+        "feature": 308009900.00000095,
+        "optimized": 3427896.4912280794
+      },
+      "launchNs": {
+        "feature": [
+          305337400.000004,
+          310682399.99999785
+        ],
+        "optimized": [
+          3444678.947368454,
+          3411114.035087705
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.011129176338903616,
+      "mainLaunchRatios": []
+    },
+    "switch128/publicDebug": {
+      "ns": {
+        "feature": 11552414.705882471,
+        "optimized": 5586904.285714272
+      },
+      "launchNs": {
+        "feature": [
+          11487382.352941496,
+          11617447.058823446
+        ],
+        "optimized": [
+          5608008.57142853,
+          5565800.000000014
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.4836135498900875,
+      "mainLaunchRatios": []
+    },
+    "switch128/compiledParse": {
+      "ns": {
+        "optimized": 1880921.671496143
+      },
+      "launchNs": {
+        "optimized": [
+          1886293.9759035574,
+          1875549.3670887286
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "switch128/compiledDebug": {
+      "ns": {
+        "optimized": 4250324.999999893
+      },
+      "launchNs": {
+        "optimized": [
+          4267106.818181757,
+          4233543.181818029
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "wideplain128/parseCore": {
+      "ns": {
+        "main": 318370.15893072507,
+        "feature": 396660.8606316722,
+        "optimized": 327290.91496734193
+      },
+      "launchNs": {
+        "main": [
+          314382.98887122143,
+          322357.32899022877
+        ],
+        "feature": [
+          402453.09381237684,
+          390868.6274509676
+        ],
+        "optimized": [
+          326716.7479674828,
+          327865.081967201
+        ]
+      },
+      "mainRatio": 1.0280200759599394,
+      "featureRatio": 0.825115224240021,
+      "mainLaunchRatios": [
+        1.0392316363571235,
+        1.0170858624316843
+      ]
+    },
+    "wideplain128/publicParse": {
+      "ns": {
+        "main": 305561399.9999987,
+        "feature": 313103700.00000334,
+        "optimized": 12132652.205882683
+      },
+      "launchNs": {
+        "main": [
+          306536399.99999726,
+          304586400.0000001
+        ],
+        "feature": [
+          314083300.0000057,
+          312124100.0000009
+        ],
+        "optimized": [
+          12143229.411765145,
+          12122075.000000224
+        ]
+      },
+      "mainRatio": 0.039706102295259595,
+      "featureRatio": 0.03874962897558398,
+      "mainLaunchRatios": [
+        0.03961431468421125,
+        0.03979847754200522
+      ]
+    },
+    "wideplain128/publicDebug": {
+      "ns": {
+        "main": 13063903.333333293,
+        "feature": 13773235.714285746,
+        "optimized": 12804103.333333721
+      },
+      "launchNs": {
+        "main": [
+          13019506.666666713,
+          13108299.999999873
+        ],
+        "feature": [
+          13806742.857142776,
+          13739728.571428714
+        ],
+        "optimized": [
+          12971353.33333378,
+          12636853.333333664
+        ]
+      },
+      "mainRatio": 0.9801131412740419,
+      "featureRatio": 0.9296365501138683,
+      "mainLaunchRatios": [
+        0.9963014471618792,
+        0.9640344921411461
+      ]
+    },
+    "wideplain128/compiledParse": {
+      "ns": {
+        "optimized": 512424.81548698805
+      },
+      "launchNs": {
+        "optimized": [
+          517578.5964912441,
+          507271.034482732
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "wideplain128/compiledDebug": {
+      "ns": {
+        "optimized": 1394728.1778858502
+      },
+      "launchNs": {
+        "optimized": [
+          1393510.3703703068,
+          1395945.9854013936
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "wideif128/parseCore": {
+      "ns": {
+        "feature": 3700022.2558923503,
+        "optimized": 376314.1298354527
+      },
+      "launchNs": {
+        "feature": [
+          3692948.1481482205,
+          3707096.3636364797
+        ],
+        "optimized": [
+          378945.26901669474,
+          373682.9906542107
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.10170590980531695,
+      "mainLaunchRatios": []
+    },
+    "wideif128/publicParse": {
+      "ns": {
+        "feature": 332175900.000002,
+        "optimized": 12982393.333333312
+      },
+      "launchNs": {
+        "feature": [
+          332560500.00000685,
+          331791299.99999714
+        ],
+        "optimized": [
+          13027326.666666584,
+          12937460.00000004
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.03908288751030172,
+      "mainLaunchRatios": []
+    },
+    "wideif128/publicDebug": {
+      "ns": {
+        "feature": 17421195.454545587,
+        "optimized": 13545978.571428608
+      },
+      "launchNs": {
+        "feature": [
+          17324881.818182554,
+          17517509.09090862
+        ],
+        "optimized": [
+          13573742.857142601,
+          13518214.285714617
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.7775573499977094,
+      "mainLaunchRatios": []
+    },
+    "wideif128/compiledParse": {
+      "ns": {
+        "optimized": 591577.5870445361
+      },
+      "launchNs": {
+        "optimized": [
+          594931.1740890848,
+          588223.9999999874
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "wideif128/compiledDebug": {
+      "ns": {
+        "optimized": 1452198.0468750205
+      },
+      "launchNs": {
+        "optimized": [
+          1455896.0937500843,
+          1448499.9999999565
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "mixedplain128/parseCore": {
+      "ns": {
+        "main": 853515.6938705363,
+        "feature": 1087072.6568339453,
+        "optimized": 876173.2073534792
+      },
+      "launchNs": {
+        "main": [
+          838283.4710743835,
+          868747.916666689
+        ],
+        "feature": [
+          1088671.6577539595,
+          1085473.6559139313
+        ],
+        "optimized": [
+          880915.350877203,
+          871431.0638297553
+        ]
+      },
+      "mainRatio": 1.026546100611455,
+      "featureRatio": 0.8059932349924962,
+      "mainLaunchRatios": [
+        1.0508561617565721,
+        1.0030885221266042
+      ]
+    },
+    "mixedplain128/publicParse": {
+      "ns": {
+        "main": 280899799.9999992,
+        "feature": 291031699.9999995,
+        "optimized": 2464612.8322784672
+      },
+      "launchNs": {
+        "main": [
+          280731200.00000197,
+          281068399.9999965
+        ],
+        "feature": [
+          293341000.00000036,
+          288722399.99999875
+        ],
+        "optimized": [
+          2509053.164556854,
+          2420172.5000000806
+        ]
+      },
+      "mainRatio": 0.00877399283402293,
+      "featureRatio": 0.00846853738709038,
+      "mainLaunchRatios": [
+        0.0089375643482336,
+        0.008610617557861754
+      ]
+    },
+    "mixedplain128/publicDebug": {
+      "ns": {
+        "main": 5237076.3513513645,
+        "feature": 5953944.037145633,
+        "optimized": 4613805.893234702
+      },
+      "launchNs": {
+        "main": [
+          5267949.9999999525,
+          5206202.7027027765
+        ],
+        "feature": [
+          6005903.225806598,
+          5901984.848484669
+        ],
+        "optimized": [
+          4652118.604651214,
+          4575493.181818191
+        ]
+      },
+      "mainRatio": 0.8809888540281,
+      "featureRatio": 0.7749158985119712,
+      "mainLaunchRatios": [
+        0.8830984737234134,
+        0.8788542135408681
+      ]
+    },
+    "mixedplain128/compiledParse": {
+      "ns": {
+        "optimized": 1524727.8444654099
+      },
+      "launchNs": {
+        "optimized": [
+          1544585.0467290042,
+          1504870.6422018157
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "mixedplain128/compiledDebug": {
+      "ns": {
+        "optimized": 3732565.5714284964
+      },
+      "launchNs": {
+        "optimized": [
+          3759273.9999998594,
+          3705857.142857133
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "mixedswitch128/parseCore": {
+      "ns": {
+        "feature": 7033366.071428776,
+        "optimized": 1222092.2029321033
+      },
+      "launchNs": {
+        "feature": [
+          6998078.571428778,
+          7068653.571428773
+        ],
+        "optimized": [
+          1212836.8749999937,
+          1231347.530864213
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.17375637646624648,
+      "mainLaunchRatios": []
+    },
+    "mixedswitch128/publicParse": {
+      "ns": {
+        "feature": 318617099.9999958,
+        "optimized": 3956558.7835133728
+      },
+      "launchNs": {
+        "feature": [
+          317175099.9999931,
+          320059099.99999857
+        ],
+        "optimized": [
+          3979997.9591836594,
+          3933119.6078430866
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.012417910976885499,
+      "mainLaunchRatios": []
+    },
+    "mixedswitch128/publicDebug": {
+      "ns": {
+        "feature": 13680096.428571623,
+        "optimized": 6153199.431817973
+      },
+      "launchNs": {
+        "feature": [
+          13678314.285714546,
+          13681878.5714287
+        ],
+        "optimized": [
+          6194336.363636081,
+          6112062.499999865
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.4497921095765584,
+      "mainLaunchRatios": []
+    },
+    "mixedswitch128/compiledParse": {
+      "ns": {
+        "optimized": 1886085.3658536545
+      },
+      "launchNs": {
+        "optimized": [
+          1894899.9999998573,
+          1877270.7317074516
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "mixedswitch128/compiledDebug": {
+      "ns": {
+        "optimized": 4163572.5158563843
+      },
+      "launchNs": {
+        "optimized": [
+          4200181.395349128,
+          4126963.63636364
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "nestedif128/parseCore": {
+      "ns": {
+        "feature": 8469602.173913028,
+        "optimized": 1325489.0247008055
+      },
+      "launchNs": {
+        "feature": [
+          8467678.26086991,
+          8471526.086956145
+        ],
+        "optimized": [
+          1328158.4415584235,
+          1322819.6078431876
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.15649956131155784,
+      "mainLaunchRatios": []
+    },
+    "nestedif128/publicParse": {
+      "ns": {
+        "feature": 320064650.00000024,
+        "optimized": 4183318.9838435478
+      },
+      "launchNs": {
+        "feature": [
+          322133900.0000007,
+          317995399.99999976
+        ],
+        "optimized": [
+          4230560.416666777,
+          4136077.5510203186
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.01307023122935802,
+      "mainLaunchRatios": []
+    },
+    "nestedif128/publicDebug": {
+      "ns": {
+        "feature": 15521649.038461523,
+        "optimized": 6228974.193548163
+      },
+      "launchNs": {
+        "feature": [
+          15495423.076922843,
+          15547875.000000203
+        ],
+        "optimized": [
+          6149348.387096618,
+          6308599.999999709
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": 0.40130878994320873,
+      "mainLaunchRatios": []
+    },
+    "nestedif128/compiledParse": {
+      "ns": {
+        "optimized": 2009440.2403846919
+      },
+      "launchNs": {
+        "optimized": [
+          2015969.23076935,
+          2002911.250000034
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    },
+    "nestedif128/compiledDebug": {
+      "ns": {
+        "optimized": 4283285.075493738
+      },
+      "launchNs": {
+        "optimized": [
+          4349646.34146344,
+          4216923.809524035
+        ]
+      },
+      "mainRatio": null,
+      "featureRatio": null,
+      "mainLaunchRatios": []
+    }
+  }
+}

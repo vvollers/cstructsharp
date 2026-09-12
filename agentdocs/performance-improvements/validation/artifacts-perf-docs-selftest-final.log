@@ -1,0 +1,6 @@
+Build-Documentation self-test passed.
+Documentation quality validator self-test passed: 14/14 invalid fixtures rejected.
+External-link validator self-test passed: extraction and 4 invalid allowlist rules rejected.
+Documentation workflow self-test passed: moving pin, Web target, and deploy-boundary defects rejected.
+Pages artifact self-test passed: traversal rejected and safe entries accepted.
+Validate-Documentation self-test passed.

@@ -1,0 +1,18 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  CStructSharp -> C:\projects\github\cstructsharp\src\CStructSharp\bin\Release\net10.0\CStructSharp.dll
+  CStructSharp.Fuzz -> C:\projects\github\cstructsharp\tests\CStructSharp.Fuzz\bin\Release\net10.0\CStructSharp.Fuzz.dll
+  CStructSharpTests -> C:\projects\github\cstructsharp\tests\CStructSharpTests\bin\Release\net10.0\CStructSharpTests.dll
+Test run for C:\projects\github\cstructsharp\tests\CStructSharpTests\bin\Release\net10.0\CStructSharpTests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+  Failed IntegerInput_StillMasksFixedPointLayoutVariables [101 ms]
+  Error Message:
+   Assertion failed. Expected exception of type CStructException (or derived) but no exception was thrown.
+
+Assert.Throws<CStructException>(() => layout.Serialize("root", new { count = 1, values = new byte[] { 42 } }))
+  Stack Trace:
+     at CStructSharpTests.FixedPointTests.IntegerInput_StillMasksFixedPointLayoutVariables() in C:\projects\github\cstructsharp\tests\CStructSharpTests\FixedPointTests.cs:line 14
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 113 ms - CStructSharpTests.dll (net10.0)
