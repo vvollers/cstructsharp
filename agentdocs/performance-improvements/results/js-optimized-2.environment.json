@@ -1,8 +1,0 @@
-{
-  "bridgeHashes": {
-    "bootstrap.js": "a0df7308375fe6188499e01c0659ec4b622808bbd483914d722212f1400e85d0",
-    "large-source.js": "65cec14fe63695fb43162a044ef068f3556feacb0df31b910bee4c14f5f13eed",
-    "source-worker.js": "9f83e0f9baebe79e8cd6b2eddcdc38e7ad3fdc6178009d61b7c77c2b1177b7b0",
-    "cstructsharp-api.js": "c8aa909a443d5f1d155edef5345a8349c536a444801108cc1790bb0c56a4fd05"
-  }
-}

@@ -1,7 +1,0 @@
-diff --git a/src/CStructSharp/FixedPointCodec.cs b/src/CStructSharp/FixedPointCodec.cs
-index 43bf00b..f755ba8 100644
---- a/src/CStructSharp/FixedPointCodec.cs
-+++ b/src/CStructSharp/FixedPointCodec.cs
-@@ -10 +10 @@ internal static class FixedPointCodec
--    public static bool IsType(string name) => name.TrimEnd('<', '>') is "fixed16_16" or "ufixed16_16" or "fixed2_30" or "ufixed8_8";
-+    public static bool IsType(string name) => name is "fixed16_16" or "fixed16_16<" or "fixed16_16>" or "ufixed16_16" or "ufixed16_16<" or "ufixed16_16>" or "fixed2_30" or "fixed2_30<" or "fixed2_30>" or "ufixed8_8" or "ufixed8_8<" or "ufixed8_8>";
