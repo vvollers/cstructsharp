@@ -40,6 +40,9 @@ managed code and canonical strings in browser JSON. Neither is an integer count.
 
 ## Let each record select its own fields
 
+Learn when each decision runs and which values it can use in
+[Choose fields with if and switch](conditional-fields.md), with three focused browser lessons.
+
 The [conditional-record example](../examples/recipes/conditional-records.md)
 uses one schema for text and numeric records. Only the active fields consume
 bytes or appear in parsed results and debug ranges. Selecting an inactive field

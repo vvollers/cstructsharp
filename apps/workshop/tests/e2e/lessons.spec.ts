@@ -118,6 +118,48 @@ test("the byte-limit lesson explains rereads and recovers at the documented budg
   }
 });
 
+test("conditional lesson exercises produce the documented changes", async ({ page }) => {
+  await page.goto("/#lesson=conditional-decisions");
+  await expect(page.locator(".status-badge")).toContainText("Ready", { timeout: 60_000 });
+  const results = await page.evaluate((catalog) => {
+    function run(id: string, edit: "tag" | "parameter" | "guard" | "nested") {
+      const lesson = catalog.find((entry) => entry.id === id)!;
+      const bytes = Uint8Array.from(lesson.binaryHex!.split(" ").map((b) => parseInt(b, 16)));
+      let definition = lesson.definition!;
+      if (edit === "tag") bytes[0] = 2;
+      if (edit === "parameter") bytes[1] = 1;
+      if (edit === "nested") bytes[0] = 1;
+      if (edit === "guard")
+        definition = definition.replace("if (count > 0)", "if (tag != 0 && count > 0)");
+      return JSON.parse(
+        window.CStructSharpWasm!.parseWithDebug(definition, bytes, {
+          rootTypeName: lesson.rootType,
+          ...lesson.parserOptions,
+          ...lesson.options,
+        }),
+      );
+    }
+    return [
+      run("conditional-decisions", "tag"),
+      run("conditional-decisions", "parameter"),
+      run("conditional-scope", "guard"),
+      run("conditional-nesting", "nested"),
+    ];
+  }, lessons);
+  for (const result of results.slice(0, 3)) expect(result.Success).toBe(true);
+  const tagItems = JSON.parse(results[0].Data).root.items;
+  expect(tagItems[0]).toEqual({ tag: 2, some_parameter: 0, low: 10, second: 11 });
+  const parameterItems = JSON.parse(results[1].Data).root.items;
+  expect(parameterItems[0]).toEqual({ tag: 1, some_parameter: 1, high: 10, first: 11 });
+  expect(tagItems.slice(1)).toEqual(parameterItems.slice(1));
+  expect(JSON.parse(results[2].Data).root.items).toEqual([
+    { tag: 1, count: 1, payload: [42] },
+    { tag: 0 },
+  ]);
+  expect(results[3].Success).toBe(false);
+  expect(results[3].Error.Code).toBe("invalid-layout");
+});
+
 test("each lesson fixes its operation and runs its starting inputs", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".status-badge")).toContainText("Ready", { timeout: 60_000 });

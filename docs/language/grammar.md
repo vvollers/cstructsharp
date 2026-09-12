@@ -287,6 +287,9 @@ oversized expressions, unsupported bitfield storage, and unsized non-character a
 
 ## Conditional field groups
 
+For a step-by-step explanation with array items, calculations, scope exercises,
+and browser lessons, start with [Choose fields with if and switch](../guides/conditional-fields.md).
+
 A struct body accepts `if (expression) { fields }` with an optional
 `else { fields }`, and `switch (expression) { case expression: { fields }
 ... default: { fields } }`. Each case requires braces and has no fall-through.

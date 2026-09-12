@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 const representativePages = [
+  { path: "guides/conditional-fields.html", heading: "Choose fields with if and switch" },
   { path: "guides/binary-metadata-types.html", heading: "Decode common binary metadata" },
   { path: "examples/recipes/conditional-records.html", heading: "Parse tagged records with native branches" },
   { path: "guides/browser/index.html", heading: "Use CStructSharp from JavaScript" },

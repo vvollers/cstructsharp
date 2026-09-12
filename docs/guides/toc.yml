@@ -37,6 +37,8 @@ items:
   href: debug-data-and-addresses.md
 - name: Variables, options, and limits
   href: variables-options-and-limits.md
+- name: Choose fields with if and switch
+  href: conditional-fields.md
 - name: Errors and recovery
   href: errors-and-recovery.md
 - name: Concurrency and ownership

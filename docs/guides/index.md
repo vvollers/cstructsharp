@@ -26,6 +26,7 @@ when a term is new. The [binary file walkthrough](binary-file-walkthrough.md) co
 
 - [C# type mapping](typed-values.md), [strings](strings-and-encodings.md), [enums](enums.md),
   [unions](unions.md), and [pointers](pointers.md);
+- [conditional fields](conditional-fields.md), with per-item decisions, variable scope, and browser exercises;
 - [spans and buffer writers](spans-and-memory.md), [byte ranges and addresses](debug-data-and-addresses.md), and
   [runtime variables and limits](variables-options-and-limits.md);
 - [errors](errors-and-recovery.md), [ownership and concurrency](concurrency-and-ownership.md), and
