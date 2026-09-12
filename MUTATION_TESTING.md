@@ -109,7 +109,9 @@ compiled scope/field/size metadata, debug-path and fixed-point helpers. This exp
 threshold and zero surviving/uncovered/runtime-error requirements remain unchanged. Compiler-rejected mutations
 remain tool limitations, not detected behavior.
 
-The API-surface test excludes only Stryker's injected public `MutantControl` helper when Stryker's control environment
-is present. Without this distinction, every mutant can appear killed solely because instrumentation changes the
-exported type list. Normal test runs and the managed API baseline comparison still enforce the complete public
-surface. Review `killedBy` evidence when mutation results look unexpectedly perfect.
+The mutation run excludes exactly the API export-list reflection test through `test-case-filter`. Stryker changes
+the assembly's public surface by injecting instrumentation; that test otherwise falsely kills unrelated mutants.
+Environment-based instrumentation detection was insufficient in a full run and is not used. Normal test runs and
+the managed API baseline comparison still enforce the complete public surface without exceptions. The mutation
+validator pins this one-test filter; behavioral tests remain included. Review `killedBy` evidence when mutation
+results look unexpectedly perfect.

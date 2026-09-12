@@ -6,6 +6,7 @@
       "tests/CStructSharpTests/CStructSharpTests.csproj"
     ],
     "coverage-analysis": "off",
+    "test-case-filter": "FullyQualifiedName!=CStructSharp.Tests.PublicApiSurfaceTests.ExportedTypesAndSignatures_AreDeliberateAndImplementationAgnostic",
     "mutate": [
       "CStruct.cs",
       "CStructAddressResolver.cs",

@@ -35,6 +35,7 @@ public class ConditionalCompilationAllocationTests
         var layout = new CStruct(definition);
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         GC.KeepAlive(layout);
+
         // Allow runtime/tiered-JIT differences while rejecting the previous per-primitive collection growth.
         long budget = grouped ? 400_000 : 2_400_000;
         Assert.IsTrue(allocated <= budget, $"Compiler allocated {allocated} bytes; budget is {budget}.");
