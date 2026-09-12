@@ -49,7 +49,9 @@ through a worker; the legacy synchronous raw byte adapter and `update` retain th
 
 Reading and updating both accept `dereferencePointers`; reading also accepts `maxArrayElements`, `maxStringBytes`,
 `maxTotalBytesRead`, and `maxNestingDepth`. Writing has `maxTotalBytesWritten`; updating adds traversal limits.
-The bridge enforces upper bounds, so arbitrary increases are not accepted. The
+The bridge enforces upper bounds, so arbitrary increases are not accepted: `maxArrayElements` cannot exceed
+1,000,000, so an array with more elements than that (for example a 1 MiB `uint8` array) cannot be parsed from
+JavaScript today, regardless of the option value. The
 [versioned contract](../../../contracts/api/browser-rc1/contract.json) lists exact option bounds and error categories.
 
 The browser API does not expose the C# runtime-variable dictionary, CLR streams/spans, or typed class mapping.

@@ -3,7 +3,7 @@
   "budgetId": "non-web-rc1",
   "status": "enforced",
   "workItem": "QA-08",
-  "date": "2026-07-26",
+  "date": "2026-09-12",
   "benchmark": {
     "generator": "BenchmarkDotNet",
     "generatorVersion": "0.15.8",
@@ -24,111 +24,113 @@
     "maximumAllocationGrowthRatio": 0.05,
     "minimumAllocationHeadroomBytes": 1024,
     "baselineEvidence": {
-      "summary": "artifacts/baseline/qa-08-non-web-benchmark-summary.json",
-      "summarySha256": "C02EF680F5D0F4EB218B774A23D044C3C2026DF63938E4F6EABFA68EC1FB0CAA",
-      "rawReport": "artifacts/baseline/qa-08-non-web-benchmarks/results/BenchmarkRun-joined-2026-07-26-13-11-21-report-full.json",
-      "rawReportSha256": "C0B2F486EC6146B6D6DCCADD7BCCAD0C2F54BA8379E18919B1BB1749CB8B0949",
-      "environment": "Windows 11 10.0.26200; AMD Ryzen 9 9950X; X64; .NET 10.0.10; SDK 10.0.204",
-      "worktreeDirty": true
+      "summary": "artifacts/baseline/rc1-rebase-summary.json",
+      "summarySha256": "550C347C439C965F26577E6A8C4B4CDEC2517D8C03CD276E31F3DBD025146F57",
+      "rawReport": "artifacts/baseline/rc1-rebase/results/*-report-full.json",
+      "rawReportSha256": null,
+      "environment": "Linux Ubuntu 26.04.1 LTS (Resolute Raccoon); AMD EPYC 9645; X64; .NET 10.0.10 (10.0.10, 10.0.1026.32716); SDK 10.0.302",
+      "worktreeDirty": false,
+      "revision": "f782a8e5a08ddce5f31a6e2aa2bbcee28e75023c",
+      "note": "Re-baselined after performance plan Phase 1 (E2.6a, E3.2/E1.1, E2.8, E2.12, E1.3a, E2.9, E2.3) on the Phase 0 devbox. The previous baseline (2026-07-26, Ryzen 9 9950X) had case keys broken by a [Params] on ReadBenchmarks and an allocation budget CompileMaximumSource had already exceeded on main (978,904 B measured in Phase 0 against 884,360 B); that pre-existing allocation growth is carried into this baseline and tracked in agentdocs/perf-log."
     },
     "cases": [
       {
         "type": "AddressBenchmarks",
         "method": "ResolveFixedNestedArray",
         "parameters": "Index=0",
-        "baselineMedianNanoseconds": 329.852,
-        "baselineAllocatedBytes": 2336
+        "baselineMedianNanoseconds": 325.79,
+        "baselineAllocatedBytes": 1560
       },
       {
         "type": "AddressBenchmarks",
         "method": "ResolveFixedNestedArray",
         "parameters": "Index=127",
-        "baselineMedianNanoseconds": 4150.986,
-        "baselineAllocatedBytes": 11632
+        "baselineMedianNanoseconds": 382.955,
+        "baselineAllocatedBytes": 1848
       },
       {
         "type": "AddressBenchmarks",
         "method": "ResolveFixedNestedArray",
         "parameters": "Index=255",
-        "baselineMedianNanoseconds": 7701.653,
-        "baselineAllocatedBytes": 20848
+        "baselineMedianNanoseconds": 381.962,
+        "baselineAllocatedBytes": 1848
       },
       {
         "type": "CompilationBenchmarks",
         "method": "CompileMaximumSource",
         "parameters": "",
-        "baselineMedianNanoseconds": 1165047.461,
-        "baselineAllocatedBytes": 842248
+        "baselineMedianNanoseconds": 2759234.719,
+        "baselineAllocatedBytes": 966888
       },
       {
         "type": "CompilationBenchmarks",
         "method": "CompileMedium",
         "parameters": "",
-        "baselineMedianNanoseconds": 274565.061,
-        "baselineAllocatedBytes": 265210
+        "baselineMedianNanoseconds": 635665.712,
+        "baselineAllocatedBytes": 254760
       },
       {
         "type": "CompilationBenchmarks",
         "method": "CompileSmall",
         "parameters": "",
-        "baselineMedianNanoseconds": 27921.475,
-        "baselineAllocatedBytes": 77448
+        "baselineMedianNanoseconds": 21743.132,
+        "baselineAllocatedBytes": 22648
       },
       {
         "type": "ReadBenchmarks",
         "method": "ParsePrimitiveArray1KiB",
         "parameters": "",
-        "baselineMedianNanoseconds": 18322.858,
-        "baselineAllocatedBytes": 92304
+        "baselineMedianNanoseconds": 7068.419,
+        "baselineAllocatedBytes": 33968
       },
       {
         "type": "ReadBenchmarks",
         "method": "ParseSmallRootMemory",
         "parameters": "",
-        "baselineMedianNanoseconds": 1516.873,
-        "baselineAllocatedBytes": 3797
+        "baselineMedianNanoseconds": 919.377,
+        "baselineAllocatedBytes": 1984
       },
       {
         "type": "ReadBenchmarks",
         "method": "ReadSelectedScalarTypedMemory",
         "parameters": "",
-        "baselineMedianNanoseconds": 402.138,
-        "baselineAllocatedBytes": 2288
+        "baselineMedianNanoseconds": 473.983,
+        "baselineAllocatedBytes": 1472
       },
       {
         "type": "ReadBenchmarks",
         "method": "ReadTypedSmallRootMemory",
         "parameters": "",
-        "baselineMedianNanoseconds": 6349.956,
-        "baselineAllocatedBytes": 7589
+        "baselineMedianNanoseconds": 8281.505,
+        "baselineAllocatedBytes": 5632
       },
       {
         "type": "WriteAndUpdateBenchmarks",
         "method": "SerializePocoToBufferWriter",
         "parameters": "",
-        "baselineMedianNanoseconds": 6654.138,
-        "baselineAllocatedBytes": 3096
+        "baselineMedianNanoseconds": 922.169,
+        "baselineAllocatedBytes": 1560
       },
       {
         "type": "WriteAndUpdateBenchmarks",
         "method": "SerializePocoToSpan",
         "parameters": "",
-        "baselineMedianNanoseconds": 6630.326,
-        "baselineAllocatedBytes": 3080
+        "baselineMedianNanoseconds": 857.432,
+        "baselineAllocatedBytes": 1544
       },
       {
         "type": "WriteAndUpdateBenchmarks",
         "method": "SerializeTerminatedUtf8",
         "parameters": "",
-        "baselineMedianNanoseconds": 4478.285,
-        "baselineAllocatedBytes": 28008
+        "baselineMedianNanoseconds": 5893.225,
+        "baselineAllocatedBytes": 14048
       },
       {
         "type": "WriteAndUpdateBenchmarks",
         "method": "UpdatePointerTarget",
         "parameters": "",
-        "baselineMedianNanoseconds": 496.657,
-        "baselineAllocatedBytes": 3328
+        "baselineMedianNanoseconds": 878.4,
+        "baselineAllocatedBytes": 3160
       }
     ]
   },
