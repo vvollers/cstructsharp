@@ -36,6 +36,9 @@ Assert-Condition (@($config.'test-projects').Count -eq 1 -and
     'The permanent mutation gate must use only the core test project.'
 Assert-Condition ([string]$config.'coverage-analysis' -eq 'off') `
     'Coverage-based test selection must remain disabled for the permanent mutation gate.'
+Assert-Condition ([string]$config.'test-case-filter' -eq
+    'FullyQualifiedName!=CStructSharp.Tests.PublicApiSurfaceTests.ExportedTypesAndSignatures_AreDeliberateAndImplementationAgnostic') `
+    'Only the uninstrumented assembly export-list check may be excluded from mutation runs.'
 
 $reporters = @($config.reporters | ForEach-Object { [string]$_ })
 foreach ($requiredReporter in @('progress', 'json', 'html')) {
@@ -66,6 +69,9 @@ Assert-Condition ([int]$report.thresholds.high -eq 75 -and [int]$report.threshol
 $testCount = 0
 foreach ($testFile in $report.testFiles.PSObject.Properties) {
     $testCount += @($testFile.Value.tests).Count
+    Assert-Condition (@($testFile.Value.tests | Where-Object {
+        $_.name -eq 'CStructSharp.Tests.PublicApiSurfaceTests.ExportedTypesAndSignatures_AreDeliberateAndImplementationAgnostic'
+    }).Count -eq 0) 'The export-list test must not falsely kill mutants in an instrumented assembly.'
 }
 Assert-Condition ($testCount -gt 0) `
     'The mutation report contains no tests.'
