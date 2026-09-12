@@ -13,7 +13,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
-    "test:bootstrap": "node --test ../../src/CStructSharp.Wasm/bootstrap.test.js ../../src/CStructSharp.Wasm/cstructsharp-wasm.test.js",
+    "test:bootstrap": "node --test ../../src/CStructSharp.Wasm/bootstrap.test.js ../../src/CStructSharp.Wasm/cstructsharp-wasm.test.js ../../src/CStructSharp.Wasm/large-source.test.js",
     "test:demos": "node --test scripts/generate-test-demos.test.mjs",
     "test:wasm-publication": "node --test ../../tools/packaging/wasm-publication.test.mjs",
     "test:wasm-reproducibility": "node ../../tools/packaging/test-wasm-reproducibility.mjs",

@@ -2,7 +2,53 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { Readable } from "node:stream";
 import test from "node:test";
-import { prepareSource } from "./large-source.js";
+import { prepareSource, removeTemporaryEntry } from "./large-source.js";
+
+test("temporary storage cleanup waits for transient browser locks", async () => {
+  let attempts = 0;
+  await removeTemporaryEntry(
+    {
+      async removeEntry(name) {
+        assert.equal(name, "owned-source");
+        if (++attempts < 3)
+          throw new DOMException(
+            "Writer is closing",
+            "NoModificationAllowedError",
+          );
+      },
+    },
+    "owned-source",
+  );
+  assert.equal(attempts, 3);
+});
+
+test("temporary storage cleanup is idempotent but reports persistent failures", async () => {
+  await removeTemporaryEntry(
+    {
+      async removeEntry() {
+        throw new DOMException("Gone", "NotFoundError");
+      },
+    },
+    "owned-source",
+  );
+  for (const name of ["NotAllowedError", "NoModificationAllowedError"]) {
+    let attempts = 0;
+    const error = new DOMException("Storage failure", name);
+    await assert.rejects(
+      removeTemporaryEntry(
+        {
+          async removeEntry() {
+            attempts++;
+            throw error;
+          },
+        },
+        "owned-source",
+      ),
+      (actual) => actual === error,
+    );
+    assert.equal(attempts, name === "NotAllowedError" ? 1 : 6);
+  }
+});
 
 test("byte views snapshot exactly their range without detaching the caller", async () => {
   const original = new Uint8Array([9, 42, 0, 8]);
