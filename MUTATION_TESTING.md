@@ -108,3 +108,8 @@ layout-math, read/write-state and symbol-validation implementations. It also inc
 compiled scope/field/size metadata, debug-path and fixed-point helpers. This expands semantic coverage; the 75%
 threshold and zero surviving/uncovered/runtime-error requirements remain unchanged. Compiler-rejected mutations
 remain tool limitations, not detected behavior.
+
+The API-surface test excludes only Stryker's injected public `MutantControl` helper when Stryker's control environment
+is present. Without this distinction, every mutant can appear killed solely because instrumentation changes the
+exported type list. Normal test runs and the managed API baseline comparison still enforce the complete public
+surface. Review `killedBy` evidence when mutation results look unexpectedly perfect.
