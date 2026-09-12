@@ -288,23 +288,30 @@ class WorkerSession {
       worker.on("error", forget);
       worker.on("exit", forget);
     }
-    if (this.layout) {
-      const result = await this.send({ command: "compile", ...this.layout }, signal);
-      if (!result.Success) {
-        await this.stop();
-        const error = new Error(result.Error.Message);
-        error.details = result.Error;
-        throw error;
+    try {
+      checkAbort(signal);
+      if (this.layout) {
+        const result = await this.send({ command: "compile", ...this.layout }, signal);
+        if (!result.Success) {
+          const error = new Error(result.Error.Message);
+          error.details = result.Error;
+          throw error;
+        }
       }
+    } catch (error) {
+      // Creation yields during Node's import. An abort in that window must not
+      // leave an uninitialized worker that a later read mistakes for a ready one.
+      await this.stop();
+      throw error;
     }
   }
 
   async send(message, signal) {
-    checkAbort(signal);
     const worker = this.worker;
     worker.ref?.();
     let cleanup = () => {};
     try {
+      checkAbort(signal);
       return await new Promise((resolve, reject) => {
         const onAbort = () => reject(abortError());
         const receive = (data) => data.error
