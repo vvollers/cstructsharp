@@ -207,6 +207,37 @@ public sealed partial class CStruct
 
     private string Source { get; }
 
+    /// <summary>
+    ///     Returns a compiled layout for the given source and options, reusing a process-wide bounded cache of the
+    ///     most recently used layouts. Use this instead of the constructor when the same definition text is compiled
+    ///     repeatedly (for example once per message); callers that already keep a <see cref="CStruct"/> instance
+    ///     gain nothing. The returned instance is shared and immutable, exactly like any other <see cref="CStruct"/>.
+    /// </summary>
+    /// <param name="layout">The Portable v1 layout source to compile.</param>
+    /// <param name="pointerSize">The binary format's pointer width in bytes; supported values are 1, 2, 4, and 8.</param>
+    /// <param name="aligned"><see langword="true"/> to apply the portable composite-alignment rules; otherwise, <see langword="false"/>.</param>
+    /// <param name="isLittleEndian"><see langword="true"/> for little-endian neutral values; <see langword="false"/> for big-endian neutral values.</param>
+    /// <param name="compilationOptions">Optional resource limits for parsing and compiling the layout; every limit is part of the cache key.</param>
+    /// <returns>A compiled layout equal to <c>new CStruct(layout, pointerSize, aligned, isLittleEndian, compilationOptions)</c>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="layout"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="pointerSize"/> is unsupported, or a compilation limit is not positive.</exception>
+    /// <exception cref="CStructLayoutException">The layout is empty, exceeds a configured limit, or is not valid Portable v1 syntax.</exception>
+    public static CStruct GetOrCompile(
+        string layout,
+        byte pointerSize = 8,
+        bool aligned = false,
+        bool isLittleEndian = true,
+        CStructCompilationOptions? compilationOptions = null)
+    {
+        return CStructLayoutCache.Shared.GetOrCompile(layout, pointerSize, aligned, isLittleEndian, compilationOptions);
+    }
+
+    /// <summary>Removes every layout retained by <see cref="GetOrCompile"/>; instances already handed out stay valid.</summary>
+    public static void ClearCompiledCache()
+    {
+        CStructLayoutCache.Shared.Clear();
+    }
+
     /// <summary>Normalizes one parsed declaration into expressions compiled by this reusable layout instance.</summary>
     private CStructElement NormalizeDeclarationExpressions(CStructElement declaration)
     {

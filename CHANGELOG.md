@@ -4,6 +4,13 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Added `CStruct.GetOrCompile(...)` (same parameters and defaults as the constructor) and `CStruct.ClearCompiledCache()`:
+  a process-wide, bounded (64 layouts / 8 M source characters), most-recently-used cache keyed by the definition
+  text and every option. The JavaScript/WASM bridge now uses it for every `parse`, `parseWithDebug`, `serialize`,
+  and `update` call instead of recompiling the definition each time, which makes repeated public calls on small
+  inputs 4–15× faster. Native callers that compile the same text per message can opt in; callers that keep a
+  `CStruct` instance are unaffected. A working set larger than the cache (dozens of distinct definitions cycling)
+  pays roughly 15 % over uncompiled construction because the retained layouts stay alive across collections.
 - Performance: layout-variable capture (the step that lets a parsed or written scalar feed later array-count
   expressions) no longer raises and catches an exception for every value outside the Int32 range or not
   convertible to it; the accept/reject decision and rounding are unchanged. Parsing wide-integer or floating-point

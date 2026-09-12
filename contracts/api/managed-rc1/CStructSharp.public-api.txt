@@ -56,6 +56,8 @@ namespace CStructSharp
         public bool TryReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(byte[] source, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, string? elementNameOrPath = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public void UpdateStream(System.IO.Stream stream, string elementNameOrPath, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.UpdateOptions? options = null) { }
         public void WriteStream(System.IO.Stream stream, string elementNameOrPath, object data, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.WriteOptions? options = null) { }
+        public static void ClearCompiledCache() { }
+        public static CStructSharp.CStruct GetOrCompile(string layout, byte pointerSize = 8, bool aligned = false, bool isLittleEndian = true, CStructSharp.CStructCompilationOptions? compilationOptions = null) { }
     }
     public sealed class CStructCompilationOptions
     {

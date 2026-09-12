@@ -68,7 +68,10 @@ public partial class CStructExports
             throw new BrowserInputException($"PointerSize must be 1, 2, 4, or 8 bytes; received {pointerSize}.");
         }
 
-        return new CStruct(
+        // Every public export used to recompile the definition on each call, which was 70-85 % of a small public
+        // parse (E3.2). The bounded process-wide cache keys on the definition text and every option above, so a
+        // changed pointer size, byte order, or limit still compiles afresh; a compiled layout is immutable.
+        return CStruct.GetOrCompile(
             definition,
             (byte)pointerSize,
             options.Aligned ?? false,
