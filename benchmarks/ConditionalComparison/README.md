@@ -48,6 +48,14 @@ three Release versions, records artifact hashes, and runs two launches in revers
 `agentdocs/performance-improvements/results`, separate from the preserved original data. Run
 `python benchmarks/ConditionalComparison/summarize-implementation.py` afterwards for full time/allocation tables.
 
+For fresh sibling worktrees:
+
+```powershell
+git worktree add --detach ../cstructsharp-benchmark-main 2c4ad4c
+git worktree add --detach ../cstructsharp-benchmark-diagnostic d30ee60
+./benchmarks/ConditionalComparison/run-implementation.ps1
+```
+
 `implementation-cases.json` retains the original fixtures and wide 8/32/128-field pairs, and adds exact mixed-tag
 payloads for four-way switches and nested if groups. `main` skips conditional syntax; equivalent plain fixtures run
 on every version. Each fixture checks consumption and roundtrip (native) or JSON parity (JavaScript) before timing.
@@ -74,7 +82,15 @@ python benchmarks/ConditionalComparison/summarize-implementation.py --results ag
 python benchmarks/ConditionalComparison/summarize-implementation.py --results agentdocs/performance-improvements/final-parsing --output agentdocs/performance-improvements/final-parsing
 ```
 
-`SpotCheck` measures retained parsing, span parsing, debug parsing and actual JS calls on ordinary arrays,
+`SpotCheck` measures retained parsing, debug parsing and actual JS calls on ordinary arrays,
 plain/if/switch records, wide records, mixed tags and nesting. Both follow-up modes retain the two reversed-order
 launches. Use the matching build hashes from `refinement/environment.json` for the final parsing run.
 Rebuilding the normal WASM package removes the benchmark-only exports: finish these measurements before packaging.
+The primary run also includes native span calls and WASM JSON projection; these unchanged wrappers are not repeated
+in the final compilation-refinement spot check.
+
+If long-run compilation controls drift, run `./benchmarks/ConditionalComparison/run-compilation-controls.ps1`
+before rebuilding the normal package. It verifies the saved build hashes and measures header, 128-field and wide
+plain/conditional compilation in shorter main/optimized/feature, feature/optimized/main sequences, preserving the
+same warmup and nine batches. Results are separate under `agentdocs/performance-improvements/compilation-controls`;
+summarize them with `summarize-implementation.py --results` and `--output` set to that directory.

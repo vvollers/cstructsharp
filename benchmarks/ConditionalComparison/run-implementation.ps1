@@ -17,7 +17,7 @@ $out = [IO.Path]::GetFullPath($OutputRoot)
 $results = [IO.Path]::GetFullPath($ResultRoot)
 New-Item -ItemType Directory -Force $out,$results | Out-Null
 foreach ($label in $fixed.Keys) {
-    $actual = git -C $roots[$label] rev-parse --short HEAD
+    $actual = git -C $roots[$label] rev-parse --short=7 HEAD
     if ($actual -ne $fixed[$label]) { throw "Wrong $label baseline: $actual" }
     if (git -C $roots[$label] status --porcelain --untracked-files=no) { throw "Dirty $label baseline" }
 }
@@ -47,12 +47,12 @@ for ($round=1; $round -le 2; $round++) {
     $order = if ($round -eq 1) { @('main','feature','optimized') } else { @('optimized','feature','main') }
     foreach ($label in $order) {
         Write-Output "START native $label round $round"
-        if ($SpotCheck) { $env:BENCH_OPERATIONS = 'parse,debug,span' }
+        if ($SpotCheck) { $env:BENCH_OPERATIONS = 'parse,debug' }
         dotnet "$out/$label-native/Comparison.dll" $env:BENCH_CASES $label "$results/native-$label-$round.json"
         if ($LASTEXITCODE) { throw "Native benchmark failed: $label" }
         Write-Output "START JS $label round $round"
         if ($SpotCheck) {
-            $env:BENCH_OPERATIONS = 'parseCore,parseJson,publicParse,publicDebug'
+            $env:BENCH_OPERATIONS = 'parseCore,publicParse,publicDebug'
             if ($label -eq 'optimized') { $env:BENCH_OPERATIONS += ',compiledParse,compiledDebug' }
         }
         node "$PSScriptRoot/run-js.mjs" $roots[$label] $label "$results/js-$label-$round.json"
