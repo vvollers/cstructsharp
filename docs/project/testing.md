@@ -89,6 +89,18 @@ BenchmarkDotNet scenarios compare timing and allocation for controlled before/af
 metadata, framework assets, symbols, Source Link, installed consumer behavior, dependency audit results, and raw or
 compressed sizes.
 
+Performance work follows a recorded-baseline discipline. `benchmarks/fixtures/` is a seeded corpus shared by the
+.NET, Node, and browser harnesses; `CStructSharp.FixtureTool fill` records the expected result of every fixture
+from the managed library and `verify` re-checks it, so a performance change that alters any parsed value fails
+before it is measured. `contracts/performance/non-web-rc1.json` is the enforced release gate (Gate job, medians
+and allocations with generous multipliers); `non-web-rc2.json` and `web-benchmark-rc1.json` are the wider Phase 0
+baselines used by the soft drift report (`tools/quality/compare-benchmark-baseline.mjs`,
+`benchmarks/js/bench/check.mjs`, and the non-failing `benchmark-drift` workflow). Re-record a baseline only for an
+accepted change, with the `--merge` mode of `tools/quality/record-benchmark-baseline.mjs` or
+`benchmarks/js/bench/record.mjs`, and note what moved in `agentdocs/perf-log/`. The complete procedure (jobs,
+runtimes, profiling, browser harness, AOT variant) is in [benchmarks/README.md](../../benchmarks/README.md) and
+[benchmarks/js/README.md](../../benchmarks/js/README.md).
+
 The browser adapter's source can be compared with its recorded wire format without compiling Web/WASM. Run relevant
 frontend and browser checks locally when changing that application. Release automation builds the production
 WASM explorer and runs frontend unit tests, explorer end-to-end tests, and the extracted browser starter checks.

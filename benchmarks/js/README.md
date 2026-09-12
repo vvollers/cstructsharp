@@ -31,7 +31,12 @@ Fixtures come from `benchmarks/fixtures/` (run `node benchmarks/fixtures/generat
 | `npm run check` | soft drift report of `*-latest.json` against `contracts/performance/web-benchmark-rc1.json` | markdown on stdout |
 
 Environment variables: `BENCH_FILTER=<regex>` selects cases, `BENCH_QUICK=1` shortens warm-up/batches for smoke
-runs (never for baselines), `BENCH_COLD_LAUNCHES`, `BENCH_COLD_FIXTURES`.
+runs (never for baselines), `BENCH_COLD_LAUNCHES`, `BENCH_COLD_FIXTURES`, and `BENCH_BUNDLE=<name>` selects an
+alternative staged bundle under `artifacts/js-bench/` (for example `bundle-aot` from
+`node build-wasm.mjs --bundle bundle-aot -p:RunAOTCompilation=true`).
+
+`core.compile.*` measures the bridge's compile path, which hits the process-wide layout cache after the first call;
+`core.compileFresh.*` bypasses the cache and measures an actual compilation.
 
 ## Method
 
