@@ -70,7 +70,13 @@ export function createPublicApi(loadCStructSharpWasm) {
     return api.getVersion();
   }
 
+  async function compile(definition, options = null) {
+    const api = await loadCStructSharpWasm();
+    return api.compile(definition, options);
+  }
+
   return {
+    compile,
     loadCStructSharpWasm,
     parse,
     parseWithDebug,

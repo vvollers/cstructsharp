@@ -1,13 +1,32 @@
-// Each operation owns its runtime and source. Termination cancels CPU-bound parses without shared memory.
+// A session owns its runtime; requests are serialized by the client. Termination cancels CPU-bound parsing.
 const isNode = typeof process !== "undefined" && !!process.versions?.node;
 // .NET detects an independent worker when onmessage is unset at import time. Our request handler
 // already exists, so identify this as a sidecar rather than an Emscripten pthread worker explicitly.
 if (!isNode) globalThis.dotnetSidecar = true;
 const port = isNode ? (await import("node:worker_threads")).parentPort : null;
 
-async function run({ descriptor, definition, options, debug }) {
+let managedPromise;
+function loadManaged() {
+  return managedPromise ??= (async () => {
+    const { dotnet } = await import("./_framework/dotnet.js");
+    const runtime = await dotnet.create();
+    runtime.setModuleImports("cstructsharp-source", {
+      read: (source, offset, count) => source.read(offset, count),
+    });
+    const exports = await runtime.getAssemblyExports("CStructSharpWeb.Wasm");
+    return exports.CStructSharpWeb.Wasm.CStructExports;
+  })();
+}
+
+async function run({ command, descriptor, definition, options, debug }) {
   let close = () => {};
   try {
+    const managed = await loadManaged();
+    const optionsJson = JSON.stringify(options, (_key, value) =>
+      typeof value === "bigint" ? value.toString() : value);
+    if (command === "compile") {
+      return { result: JSON.parse(managed.InitializeCompiledLayout(definition, optionsJson)) };
+    }
     let read;
     if (descriptor.kind === "bytes") {
       read = (offset, count) =>
@@ -43,21 +62,10 @@ async function run({ descriptor, definition, options, debug }) {
     } else {
       throw new TypeError("Unsupported worker source descriptor.");
     }
-    const { dotnet } = await import("./_framework/dotnet.js");
-    const runtime = await dotnet.create();
-    runtime.setModuleImports("cstructsharp-source", {
-      read: (source, offset, count) => source.read(offset, count),
-    });
-    const exports = await runtime.getAssemblyExports("CStructSharpWeb.Wasm");
-    const managed = exports.CStructSharpWeb.Wasm.CStructExports;
-    const json = managed.ParseSource(
-      definition,
-      { size: descriptor.size, read },
-      JSON.stringify(options, (_key, value) =>
-        typeof value === "bigint" ? value.toString() : value,
-      ),
-      debug,
-    );
+    const source = { size: descriptor.size, read };
+    const json = command === "parseCompiled"
+      ? managed.ParseCompiledSource(source, optionsJson, debug)
+      : managed.ParseSource(definition, source, optionsJson, debug);
     return { result: JSON.parse(json) };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
@@ -67,5 +75,5 @@ async function run({ descriptor, definition, options, debug }) {
 }
 
 if (isNode)
-  port.once("message", async (data) => port.postMessage(await run(data)));
+  port.on("message", async (data) => port.postMessage(await run(data)));
 else self.onmessage = async (event) => self.postMessage(await run(event.data));

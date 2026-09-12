@@ -1,6 +1,6 @@
 // Copied into an isolated installed consumer. No repository imports or mock managed exports.
 import assert from "node:assert/strict";
-import { parse, parseWithDebug, serialize, update, getVersion, loadCStructSharpWasm } from "cstructsharp";
+import { compile, parse, parseWithDebug, serialize, update, getVersion, loadCStructSharpWasm } from "cstructsharp";
 import { Readable } from "node:stream";
 
 globalThis.fetch = () => {
@@ -83,3 +83,11 @@ assert.ok(
     version === `CStructSharp WASM ${process.env.EXPECTED_VERSION}`,
 );
 console.log("Node consumer passed", version);
+
+const compiled = await compile(metadataDefinition, metadataOptions);
+try {
+  const [a, b] = await Promise.all([compiled.parse(metadataBytes.Data), compiled.parseWithDebug(metadataBytes.Data)]);
+  assert.deepEqual(JSON.parse(a.Data).root, metadata);
+  assert.deepEqual(b, metadataRead);
+} finally { await compiled.dispose(); }
+await assert.rejects(compiled.parse(input), /disposed/);
