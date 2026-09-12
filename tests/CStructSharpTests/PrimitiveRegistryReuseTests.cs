@@ -6,6 +6,7 @@ using CStructSharp;
 [TestClass]
 public class PrimitiveRegistryReuseTests
 {
+    /// <summary>Concurrent layouts retain independent aliases, byte order and pointer sizes while sharing primitive metadata.</summary>
     [TestMethod]
     public void IndependentLayouts_KeepAliasesAndByteOrdersIsolated()
     {
