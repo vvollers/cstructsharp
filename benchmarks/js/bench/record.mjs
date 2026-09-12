@@ -54,5 +54,24 @@ const contract = {
     ...(browser?.coldStart ? { browser: browser.coldStart.map((r) => ({ fixture: r.fixture, launches: r.launches, medians: r.medians })) } : {}),
   },
 };
-fs.writeFileSync(output, JSON.stringify(contract, null, 2) + "\n");
-console.log(`Recorded ${Object.entries(contract.hosts).map(([h, v]) => `${h}: ${v.cases.length}`).join(", ")} cases to ${path.relative(repositoryRoot, output)}`);
+if (args.includes("--merge") && fs.existsSync(output)) {
+  // Partial re-baseline: replace re-measured cases per host, keep everything else, append a dated note.
+  const existing = JSON.parse(fs.readFileSync(output, "utf8"));
+  let replaced = 0;
+  for (const [host, value] of Object.entries(contract.hosts)) {
+    const current = existing.hosts[host]?.cases ?? [];
+    const incoming = new Map(value.cases.map((c) => [c.name, c]));
+    const merged = current.map((c) => (incoming.has(c.name) ? (replaced++, incoming.get(c.name)) : c));
+    for (const c of value.cases) if (!current.some((e) => e.name === c.name)) merged.push(c);
+    existing.hosts[host] = { cases: merged };
+  }
+  if (cold) existing.coldStart.node = contract.coldStart.node;
+  if (browser?.coldStart) existing.coldStart.browser = contract.coldStart.browser;
+  existing.updates ??= [];
+  existing.updates.push({ date: contract.date, note: option("--note", "partial re-baseline"), replacedCases: replaced, evidence: contract.baselineEvidence });
+  fs.writeFileSync(output, JSON.stringify(existing, null, 2) + "\n");
+  console.log(`Merged ${replaced} re-measured cases into ${path.relative(repositoryRoot, output)}`);
+} else {
+  fs.writeFileSync(output, JSON.stringify(contract, null, 2) + "\n");
+  console.log(`Recorded ${Object.entries(contract.hosts).map(([h, v]) => `${h}: ${v.cases.length}`).join(", ")} cases to ${path.relative(repositoryRoot, output)}`);
+}

@@ -104,6 +104,9 @@ try {
         onResult: (record) => log("  " + formatRecord(record)),
       });
       for (let i = 0; i < selected.length; i++) {
+        // Re-run `before`: cases share retained managed state (compiled layout, retained result), so a one-off
+        // call after the group has run would otherwise execute against the previous case's layout.
+        if (selected[i].before) await selected[i].before();
         Object.keys(copyCounter).forEach((key) => (copyCounter[key] = 0));
         const value = await selected[i].fn();
         groupRecords[i].copies = {

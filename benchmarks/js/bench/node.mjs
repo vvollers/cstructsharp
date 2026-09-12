@@ -68,6 +68,9 @@ for (const [group, cases] of groups) {
   });
   // Copy accounting: one instrumented call per case (counters are only visible for calls made on this thread).
   for (let i = 0; i < selected.length; i++) {
+    // Re-run the case's `before` hook: cases share retained managed state (the compiled layout, retained result),
+    // so a one-off call after the whole group has run would otherwise execute against the previous case's layout.
+    if (selected[i].before) await selected[i].before();
     Object.keys(copyCounter).forEach((key) => (copyCounter[key] = 0));
     const value = await selected[i].fn();
     const bytesIn = selected[i].meta?.bytes ?? 0;

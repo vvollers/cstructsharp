@@ -1070,15 +1070,16 @@ public partial class CStruct
             value = BitfieldCodecTable.ExtractBitfieldValue(value, bitOffset, field.BitSize);
         }
 
-        try
+        // A scalar outside the expression language's Int32 domain is still a valid field; it simply cannot be a count.
+        // A parsed scalar shadows any caller/define value with the same spelling. Keeping the older value would
+        // resolve a path against data contradicted by the stream. The conversion is exception-free (E2.6a); its
+        // false result covers exactly what the former OverflowException/InvalidCastException/FormatException did.
+        if (Int32Capture.TryConvert(value, out int captured))
         {
-            state.Variables[field.Name.Name] = new Literal(Convert.ToInt32(value));
+            state.Variables[field.Name.Name] = new Literal(captured);
         }
-        catch (Exception exception) when (exception is OverflowException or InvalidCastException or FormatException)
+        else
         {
-            // A scalar outside the expression language's Int32 domain is still a valid field; it simply cannot be a count.
-            // A parsed scalar shadows any caller/define value with the same spelling. Keeping the older value would
-            // resolve a path against data contradicted by the stream.
             state.Variables.Remove(field.Name.Name);
         }
     }

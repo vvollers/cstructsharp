@@ -17,7 +17,7 @@ const outdir = path.resolve(process.argv[4] ?? "artifacts/profiles");
 fs.mkdirSync(outdir, { recursive: true });
 const jsRoot = path.join(repositoryRoot, "benchmarks/js");
 const routes = {
-  "/bundle/": path.join(repositoryRoot, "artifacts/js-bench/bundle"),
+  "/bundle/": path.join(repositoryRoot, fs.existsSync(path.join(repositoryRoot, "artifacts/js-bench/bundle-symbols")) ? "artifacts/js-bench/bundle-symbols" : "artifacts/js-bench/bundle"),
   "/fixtures/": path.join(repositoryRoot, "benchmarks/fixtures"),
   "/bench/": path.join(jsRoot, "bench"),
   "/browser/": path.join(jsRoot, "browser"),
@@ -37,7 +37,7 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 
 // Resolve wasm-function[N] through the symbol map emitted by -p:WasmEmitSymbolMap=true (build-wasm.mjs passes it
 // through); the map does not change the wasm binary, only adds the sidecar file.
-const symbolFile = path.join(repositoryRoot, "artifacts/js-bench/bundle/_framework/dotnet.native.js.symbols");
+const symbolFile = path.join(repositoryRoot, "artifacts/js-bench/bundle-symbols/_framework/dotnet.native.js.symbols");
 const wasmSymbols = new Map();
 if (fs.existsSync(symbolFile)) {
   for (const line of fs.readFileSync(symbolFile, "utf8").split("\n")) {

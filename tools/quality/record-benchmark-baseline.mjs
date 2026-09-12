@@ -6,6 +6,7 @@
 //
 // Usage: node tools/quality/record-benchmark-baseline.mjs --output contracts/performance/non-web-rc2.json
 //        --summary <summary.json> [--summary <more.json>] [--budget-id non-web-rc2] [--job Short]
+//        [--merge --note "E2.6a accepted"]   # replace only the cases present in the summaries, keep the rest
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -81,5 +82,29 @@ const contract = {
     cases,
   },
 };
-fs.writeFileSync(output, JSON.stringify(contract, null, 2) + "\n");
-console.log(`Recorded ${cases.length} cases (${contract.benchmark.runtimes.join(", ")}) to ${output}`);
+if (args.includes("--merge") && fs.existsSync(output)) {
+  // Partial re-baseline after an accepted experiment: overwrite the re-measured cases, keep every other case and
+  // the original evidence, and append a dated note so the contract's history stays readable.
+  const existing = JSON.parse(fs.readFileSync(output, "utf8"));
+  const key = (c) => `${c.type}|${c.method}|${c.parameters}|${c.runtime}`;
+  const replaced = new Map(cases.map((c) => [key(c), c]));
+  const merged = existing.benchmark.cases.map((c) => replaced.get(key(c)) ?? c);
+  for (const c of cases) if (!existing.benchmark.cases.some((e) => key(e) === key(c))) merged.push(c);
+  existing.benchmark.cases = merged;
+  existing.benchmark.runtimes = [...new Set(merged.map((c) => c.runtime))];
+  existing.benchmark.minimumSamples = Math.min(...merged.map((c) => c.samples));
+  existing.benchmark.updates ??= [];
+  existing.benchmark.updates.push({
+    date: contract.date,
+    note: option("--note", "partial re-baseline"),
+    replacedCases: cases.length,
+    revision: contract.benchmark.baselineEvidence.revision,
+    worktreeDirty: contract.benchmark.baselineEvidence.worktreeDirty,
+    summaries: sources,
+  });
+  fs.writeFileSync(output, JSON.stringify(existing, null, 2) + "\n");
+  console.log(`Merged ${cases.length} re-measured cases into ${output} (${merged.length} total)`);
+} else {
+  fs.writeFileSync(output, JSON.stringify(contract, null, 2) + "\n");
+  console.log(`Recorded ${cases.length} cases (${contract.benchmark.runtimes.join(", ")}) to ${output}`);
+}

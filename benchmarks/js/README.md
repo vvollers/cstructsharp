@@ -13,7 +13,9 @@ npm run build:wasm          # dotnet publish with wasm/Benchmark.targets → art
 ```
 
 `build:wasm` needs the `wasm-tools` workload. Extra MSBuild properties pass through, e.g.
-`node build-wasm.mjs -p:RunAOTCompilation=true` for the AOT experiment (E3.1). The bundle manifest
+`node build-wasm.mjs -p:RunAOTCompilation=true` for the AOT experiment (E3.1). For profiling build a second bundle with
+`node build-wasm.mjs --bundle bundle-symbols -p:WasmEmitSymbolMap=true` (the symbol map is loaded by the runtime at
+startup, so it must never be inside the timed bundle). The bundle manifest
 (`artifacts/js-bench/bundle-manifest.json`) records every framework file's SHA-256 and the properties used.
 
 Fixtures come from `benchmarks/fixtures/` (run `node benchmarks/fixtures/generate-fixtures.mjs` and the

@@ -4,6 +4,11 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Performance: layout-variable capture (the step that lets a parsed or written scalar feed later array-count
+  expressions) no longer raises and catches an exception for every value outside the Int32 range or not
+  convertible to it; the accept/reject decision and rounding are unchanged. Parsing wide-integer or floating-point
+  arrays and serializing POCOs with byte-array members are several times faster (up to 20× on .NET 8) and allocate
+  up to 70 % less.
 - Added JavaScript `compile(definition, options)` with retained `parse`, `parseWithDebug`, and async `dispose`.
   Compiled handles own a worker/runtime and queue reads; cancellation terminates an active worker and the next
   read recreates it. Ordinary source parsing reuses an idle-expiring worker while source staging remains independent.

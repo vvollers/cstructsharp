@@ -9,34 +9,39 @@ internal static class WriterVariableProjection
     /// <summary>Stores a just-written scalar value so later array lengths and expressions can use its name.</summary>
     public static void UpdateVariablesFromValue(CStructElementWriterState state, string name, object value)
     {
-        try
+        if (value is Pointer pointer)
         {
-            if (value is Pointer pointer)
+            // Expressions referring to a pointer use its address, not the complex Pointer wrapper.
+            if (Int32Capture.TryFromInt64(pointer.Address, out int address))
             {
-                // Expressions referring to a pointer use its address, not the complex Pointer wrapper.
-                state.Variables[name] = new Literal(Convert.ToInt32(pointer.Address));
-                return;
+                state.Variables[name] = new Literal(address);
+            }
+            else
+            {
+                state.Variables.Remove(name);
             }
 
-            if (value is string str)
-            {
-                // Existing parser behavior treats a string as an identifier for later expression use.
-                state.Variables[name] = new Identifier(str);
-                return;
-            }
-
-            // Normal scalar values become literal expressions for following array counts and calculations.
-            state.Variables[name] = new Literal(Convert.ToInt32(value));
+            return;
         }
-        catch (Exception exception) when (exception is OverflowException or InvalidCastException or FormatException)
+
+        if (value is string str)
         {
-            // The field still shadows a caller/definition value even when it cannot feed the Int32 expression
-            // language. Unlike CStructReader.cs's equivalent capture sites (which only ever call Convert.ToInt32
-            // on a value already known to be IConvertible, so only OverflowException is reachable there), this
-            // method receives an arbitrary caller-supplied POCO/dynamic value with no such pre-check - a value
-            // that isn't IConvertible at all throws InvalidCastException, and FormatException is Convert's other
-            // documented failure mode for a value it cannot parse into Int32. Both are as expected here as an
-            // overflow; anything else (a bug, not an expected shape of caller data) still propagates.
+            // Existing parser behavior treats a string as an identifier for later expression use.
+            state.Variables[name] = new Identifier(str);
+            return;
+        }
+
+        // Normal scalar values become literal expressions for following array counts and calculations. The field
+        // still shadows a caller/definition value even when it cannot feed the Int32 expression language: this method
+        // receives arbitrary caller-supplied POCO/dynamic values (byte arrays, nested objects, out-of-range numbers),
+        // and the former Convert.ToInt32 try/catch threw for each of them on every write (E2.6a). Int32Capture keeps
+        // the same accept/reject decision without raising.
+        if (Int32Capture.TryConvert(value, out int captured))
+        {
+            state.Variables[name] = new Literal(captured);
+        }
+        else
+        {
             state.Variables.Remove(name);
         }
     }

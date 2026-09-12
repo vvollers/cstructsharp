@@ -13,9 +13,14 @@ const project = path.join(repositoryRoot, "src/CStructSharp.Wasm/CStructSharpWeb
 const targets = path.join(here, "wasm/Benchmark.targets");
 const appBundle = path.join(repositoryRoot, "src/CStructSharp.Wasm/bin/Release/net10.0/browser-wasm/AppBundle");
 const output = path.join(repositoryRoot, "artifacts/js-bench");
-const bundle = path.join(output, "bundle");
-
-const extra = process.argv.slice(2); // e.g. -p:RunAOTCompilation=true for the E3.1 experiment
+// --bundle <name> stages into artifacts/js-bench/<name>; the benchmark harness reads "bundle", the profiler reads
+// "bundle-symbols" (built with -p:WasmEmitSymbolMap=true, which the runtime loads at startup and must therefore
+// never be part of a timed bundle).
+const argv = process.argv.slice(2);
+const bundleIndex = argv.indexOf("--bundle");
+const bundleName = bundleIndex >= 0 ? argv.splice(bundleIndex, 2)[1] : "bundle";
+const bundle = path.join(output, bundleName);
+const extra = argv; // e.g. -p:RunAOTCompilation=true for the E3.1 experiment
 const result = spawnSync(
   "dotnet",
   [
@@ -58,5 +63,5 @@ const manifest = {
   bundleSha256: crypto.createHash("sha256").update(Object.keys(hashes).sort().map((k) => `${k}:${hashes[k].sha256}`).join("\n")).digest("hex"),
   files: hashes,
 };
-fs.writeFileSync(path.join(output, "bundle-manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
+fs.writeFileSync(path.join(output, `${bundleName}-manifest.json`), JSON.stringify(manifest, null, 2) + "\n");
 console.log(`Bundle at ${manifest.bundle}: ${Object.keys(hashes).length} framework files, ${totalBytes} bytes, sha256 ${manifest.bundleSha256.slice(0, 16)}…`);

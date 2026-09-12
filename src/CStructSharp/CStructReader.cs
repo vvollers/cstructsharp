@@ -614,15 +614,16 @@ public partial class CStruct
                                 if (content is Pointer p)
                                 {
                                     // Expressions refer to the encoded pointer address, not the Pointer wrapper or target value.
-                                    try
+                                    // A valid signed stream address may exceed the expression language's Int32 domain: retain
+                                    // the pointer result, but remove any stale caller/define value shadowed by this field so
+                                    // later expressions fail instead of using data contradicted by the stream. The range check
+                                    // replaces a former try/catch around Convert.ToInt32, which threw for every such address.
+                                    if (Int32Capture.TryFromInt64(p.Address, out int address))
                                     {
-                                        state.Variables[f.Name.Name] = new Literal(Convert.ToInt32(p.Address));
+                                        state.Variables[f.Name.Name] = new Literal(address);
                                     }
-                                    catch (OverflowException)
+                                    else
                                     {
-                                        // A valid signed stream address may exceed the expression language's Int32 domain.
-                                        // Retain the pointer result, but remove any stale caller/define value shadowed by
-                                        // this field so later expressions fail instead of using data contradicted by the stream.
                                         state.Variables.Remove(f.Name.Name);
                                     }
                                 }
@@ -637,15 +638,17 @@ public partial class CStruct
                                 }
                                 else if (content is IConvertible)
                                 {
-                                    try
+                                    // Scalars become literals so following array counts and expressions can use their name.
+                                    // Values outside the layout expression's Int32 range cannot become variables; retain the
+                                    // parsed field, but remove any stale caller/definition value shadowed by this field. The
+                                    // exception-free conversion matters: a former try/catch around Convert.ToInt32 threw once
+                                    // per out-of-range element and dominated wide-integer array parsing (E2.6a).
+                                    if (Int32Capture.TryConvert(content, out int captured))
                                     {
-                                        // Scalars become literals so following array counts and expressions can use their name.
-                                        state.Variables[f.Name.Name] = new Literal(Convert.ToInt32(content));
+                                        state.Variables[f.Name.Name] = new Literal(captured);
                                     }
-                                    catch (OverflowException)
+                                    else
                                     {
-                                        // Values outside the layout expression's Int32 range cannot become variables; retain the
-                                        // parsed field, but remove any stale caller/definition value shadowed by this field.
                                         state.Variables.Remove(f.Name.Name);
                                     }
                                 }
