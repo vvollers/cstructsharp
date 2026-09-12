@@ -416,7 +416,11 @@ export async function compileLargeSource(definition, options = {}) {
         return Promise.reject(new TypeError(`Layout option ${key} is fixed at compilation.`));
       }
     }
-    return session.parse(definition, input, { ...frozenOptions, ...readOptions }, debug);
+    return session.parse(definition, input, {
+      ...frozenOptions, ...readOptions,
+      rootTypeName: readOptions?.rootTypeName === undefined
+        ? frozenOptions.rootTypeName : readOptions.rootTypeName,
+    }, debug);
   }
   return Object.freeze({
     parse: (input, options = null) => parse(input, options, false),
