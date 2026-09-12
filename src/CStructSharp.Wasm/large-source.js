@@ -77,6 +77,23 @@ async function* chunks(input, signal) {
   }
 }
 
+/** Internal: a browser may release an aborted writer's file lock asynchronously. */
+export async function removeTemporaryEntry(directory, name) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await directory.removeEntry(name);
+      return;
+    } catch (error) {
+      if (error.name === "NotFoundError") return;
+      // Retry only the transient lock failure, with a bounded total delay of 310 ms.
+      // Permission and persistent storage failures must still reach the caller.
+      if (error.name !== "NoModificationAllowedError" || attempt === 5)
+        throw error;
+      await new Promise((resolve) => setTimeout(resolve, 10 * 2 ** attempt));
+    }
+  }
+}
+
 /** Internal, exported for source-contract tests. Every staged source owns its cleanup. */
 export async function prepareSource(
   input,
@@ -181,9 +198,7 @@ export async function prepareSource(
         await writable.abort().catch(() => {});
         writable = null;
       }
-      await directory.removeEntry(name).catch((error) => {
-        if (error.name !== "NotFoundError") throw error;
-      });
+      await removeTemporaryEntry(directory, name);
     };
     try {
       handle = await directory.getFileHandle(name, { create: true });

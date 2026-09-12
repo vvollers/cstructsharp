@@ -10,6 +10,8 @@ All notable changes to CStructSharp are documented here.
   Existing operation signatures and version-5 result envelopes are unchanged.
 - Reduced layout compilation, conditional selection/scope, codec recognition and indexed debug-path overhead.
   Primitive metadata is shared immutably; conditional decisions and mutable read/write state remain isolated.
+- Temporary browser source cleanup now retries transient file-lock failures after aborting a writer,
+  preserving source errors and removing staged files when lock release is delayed.
 
 - **Breaking:** Renamed `UpdateOptions.AllowPointerDereference` to `DereferencePointers`, matching
   `ReadOptions.DereferencePointers` (both already collapsed into the same internal setting). No compatibility
