@@ -1,0 +1,30 @@
+{
+  "id": "array-u8-16m-stream",
+  "scenario": "S-STREAM",
+  "tags": [
+    "stream"
+  ],
+  "notes": "Stream-only scenario; the expected JSON is recorded as a SHA-256 of the canonical text.",
+  "definition": "struct root { uint8 values[16777216]; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": {
+    "maxArrayElements": 33554432,
+    "maxTotalBytesRead": 67108864
+  },
+  "bytes": {
+    "kind": "xorshift",
+    "seed": 1592590369,
+    "size": 16777216
+  },
+  "byteLength": 16777216,
+  "expectedError": null,
+  "expected": null,
+  "expectedSha256": "8bce1eb3a786900e8aeb54a2b07ada7ce10f0082f58d28c787c2c268aa99a1ea",
+  "expectedJsonLength": 59899517
+}

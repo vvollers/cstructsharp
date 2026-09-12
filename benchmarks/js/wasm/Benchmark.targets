@@ -1,0 +1,10 @@
+<Project>
+  <!--
+    Benchmark-only managed exports for benchmarks/js. Injected into the WASM project via
+    -p:CustomAfterMicrosoftCommonTargets=<this file>, exactly like benchmarks/ConditionalComparison/Benchmark.targets,
+    so normal builds, packages, and the public API never contain them.
+  -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'CStructSharpWeb.Wasm'">
+    <Compile Include="$(MSBuildThisFileDirectory)BenchmarkExports.cs" />
+  </ItemGroup>
+</Project>

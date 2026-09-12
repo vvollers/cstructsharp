@@ -1,0 +1,31 @@
+{
+  "id": "array-u64-le-1000000",
+  "scenario": "S-STREAM",
+  "tags": [
+    "stream",
+    "boundary"
+  ],
+  "notes": "JS-parseable large payload; expected JSON recorded as SHA-256 (values above 2^53 serialize as strings).",
+  "definition": "struct root { uint64 values[1000000]; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": {
+    "maxArrayElements": 1000000,
+    "maxTotalBytesRead": 16000000
+  },
+  "bytes": {
+    "kind": "xorshift",
+    "seed": 1592590370,
+    "size": 8000000
+  },
+  "byteLength": 8000000,
+  "expectedError": null,
+  "expected": null,
+  "expectedSha256": "927e6f87976a84d20e51c3afa91b3437005033ff914ede88fab6d97742d60030",
+  "expectedJsonLength": 22396504
+}

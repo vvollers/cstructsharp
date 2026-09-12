@@ -1,0 +1,30 @@
+{
+  "id": "array-u32-le-262144",
+  "scenario": "S-ARRAY-U32",
+  "tags": [
+    "warm",
+    "vectorize"
+  ],
+  "definition": "struct root { uint32< values[262144]; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": {
+    "maxArrayElements": 524288,
+    "maxTotalBytesRead": 2097152
+  },
+  "bytes": {
+    "kind": "xorshift",
+    "seed": 1592852528,
+    "size": 1048576
+  },
+  "byteLength": 1048576,
+  "expectedError": null,
+  "expected": null,
+  "expectedSha256": "54a2d5bbbdb2a38958591b4e73ef2ee9462d7d01b09bdfe66b372670567621cf",
+  "expectedJsonLength": 2816323
+}

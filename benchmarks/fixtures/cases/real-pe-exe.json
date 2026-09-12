@@ -1,0 +1,87 @@
+{
+  "id": "real-pe-exe",
+  "scenario": "S-REAL",
+  "tags": [
+    "warm",
+    "cold",
+    "boundary",
+    "debug",
+    "compile",
+    "typed",
+    "partial-consume"
+  ],
+  "notes": "Imported from apps/inspector/src/formats.ts (WellKnownFormatFixtures.Pe_DosHeaderPointerToCoffHeader_DecodesAcrossExeAndDll (EXE)).",
+  "definition": "struct pe_header {\n    char signature[4];\n    uint16 machine;\n    uint16 number_of_sections;\n    uint32 time_date_stamp;\n    uint32 pointer_to_symbol_table;\n    uint32 number_of_symbols;\n    uint16 size_of_optional_header;\n    uint16 characteristics;\n    uint16 optional_header_magic;\n};\n\nstruct dos_header {\n    uint16 e_magic;\n    uint16 e_cblp;\n    uint16 e_cp;\n    uint16 e_crlc;\n    uint16 e_cparhdr;\n    uint16 e_minalloc;\n    uint16 e_maxalloc;\n    uint16 e_ss;\n    uint16 e_sp;\n    uint16 e_csum;\n    uint16 e_ip;\n    uint16 e_cs;\n    uint16 e_lfarlc;\n    uint16 e_ovno;\n    uint16 e_res[4];\n    uint16 e_oemid;\n    uint16 e_oeminfo;\n    uint16 e_res2[10];\n    pe_header *e_lfanew;\n};\n\nstruct root {\n    dos_header dos;\n};",
+  "options": {
+    "pointerSize": 4,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": {
+    "addressingMode": "Absolute"
+  },
+  "bytes": {
+    "kind": "hex",
+    "hex": "4d5a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000005045000064860100000000000000000000000000000022000b02"
+  },
+  "byteLength": 90,
+  "expectedError": null,
+  "expected": {
+    "dos": {
+      "e_magic": 23117,
+      "e_cblp": 0,
+      "e_cp": 0,
+      "e_crlc": 0,
+      "e_cparhdr": 0,
+      "e_minalloc": 0,
+      "e_maxalloc": 0,
+      "e_ss": 0,
+      "e_sp": 0,
+      "e_csum": 0,
+      "e_ip": 0,
+      "e_cs": 0,
+      "e_lfarlc": 0,
+      "e_ovno": 0,
+      "e_res": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "e_oemid": 0,
+      "e_oeminfo": 0,
+      "e_res2": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "e_lfanew": {
+        "Address": 64,
+        "Depth": 1,
+        "IsDereferenced": true,
+        "Value": {
+          "signature": "PE\u0000\u0000",
+          "machine": 34404,
+          "number_of_sections": 1,
+          "time_date_stamp": 0,
+          "pointer_to_symbol_table": 0,
+          "number_of_symbols": 0,
+          "size_of_optional_header": 0,
+          "characteristics": 34,
+          "optional_header_magic": 523
+        }
+      }
+    }
+  },
+  "expectedSha256": "fcbba3f150a1c41e49ca2abcf3d07424a4d698180ebb37bd8983fd235651eee5",
+  "expectedJsonLength": 529
+}

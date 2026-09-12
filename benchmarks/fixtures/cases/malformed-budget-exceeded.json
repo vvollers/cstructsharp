@@ -1,0 +1,28 @@
+{
+  "id": "malformed-budget-exceeded",
+  "scenario": "S-MALFORMED",
+  "tags": [
+    "error"
+  ],
+  "definition": "struct root { uint8 values[100000]; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": {
+    "maxArrayElements": 1000
+  },
+  "bytes": {
+    "kind": "xorshift",
+    "seed": 1592590512,
+    "size": 100000
+  },
+  "byteLength": 100000,
+  "expectedError": "CStructReadLimitException",
+  "expected": null,
+  "expectedSha256": null,
+  "expectedJsonLength": null
+}

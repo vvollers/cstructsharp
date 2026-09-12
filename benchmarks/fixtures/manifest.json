@@ -1,0 +1,595 @@
+{
+  "schemaVersion": 1,
+  "generator": "benchmarks/fixtures/generate-fixtures.mjs",
+  "fixtures": [
+    {
+      "id": "prim-le-record",
+      "scenario": "S-PRIM",
+      "tags": [
+        "warm",
+        "cold",
+        "write",
+        "update",
+        "boundary"
+      ],
+      "byteLength": 28,
+      "file": "cases/prim-le-record.json"
+    },
+    {
+      "id": "prim-le-x1k",
+      "scenario": "S-PRIM",
+      "tags": [
+        "warm",
+        "debug",
+        "stream",
+        "batch"
+      ],
+      "byteLength": 28672,
+      "file": "cases/prim-le-x1k.json"
+    },
+    {
+      "id": "prim-be-record",
+      "scenario": "S-PRIM-BE",
+      "tags": [
+        "warm",
+        "cold",
+        "write",
+        "update",
+        "boundary"
+      ],
+      "byteLength": 28,
+      "file": "cases/prim-be-record.json"
+    },
+    {
+      "id": "prim-be-x1k",
+      "scenario": "S-PRIM-BE",
+      "tags": [
+        "warm",
+        "debug",
+        "stream",
+        "batch"
+      ],
+      "byteLength": 28672,
+      "file": "cases/prim-be-x1k.json"
+    },
+    {
+      "id": "mixed-endian-record",
+      "scenario": "S-MIXED-ENDIAN",
+      "tags": [
+        "warm"
+      ],
+      "byteLength": 20,
+      "file": "cases/mixed-endian-record.json"
+    },
+    {
+      "id": "nested-x1",
+      "scenario": "S-NESTED",
+      "tags": [
+        "warm",
+        "write"
+      ],
+      "byteLength": 25,
+      "file": "cases/nested-x1.json"
+    },
+    {
+      "id": "nested-x256",
+      "scenario": "S-NESTED",
+      "tags": [
+        "warm",
+        "cold",
+        "boundary",
+        "write",
+        "debug"
+      ],
+      "byteLength": 6400,
+      "file": "cases/nested-x256.json"
+    },
+    {
+      "id": "aligned-x256",
+      "scenario": "S-ALIGNED",
+      "tags": [
+        "warm"
+      ],
+      "byteLength": 11264,
+      "file": "cases/aligned-x256.json"
+    },
+    {
+      "id": "array-u8-1024",
+      "scenario": "S-ARRAY-U8",
+      "tags": [
+        "warm",
+        "boundary",
+        "stream",
+        "debug"
+      ],
+      "byteLength": 1024,
+      "file": "cases/array-u8-1024.json"
+    },
+    {
+      "id": "array-u8-65536",
+      "scenario": "S-ARRAY-U8",
+      "tags": [
+        "warm",
+        "boundary",
+        "stream"
+      ],
+      "byteLength": 65536,
+      "file": "cases/array-u8-65536.json"
+    },
+    {
+      "id": "array-u8-1048576",
+      "scenario": "S-ARRAY-U8",
+      "tags": [
+        "warm",
+        "boundary",
+        "stream"
+      ],
+      "byteLength": 1048576,
+      "file": "cases/array-u8-1048576.json"
+    },
+    {
+      "id": "array-u8-16m-stream",
+      "scenario": "S-STREAM",
+      "tags": [
+        "stream"
+      ],
+      "byteLength": 16777216,
+      "file": "cases/array-u8-16m-stream.json"
+    },
+    {
+      "id": "array-u64-le-1000000",
+      "scenario": "S-STREAM",
+      "tags": [
+        "stream",
+        "boundary"
+      ],
+      "byteLength": 8000000,
+      "file": "cases/array-u64-le-1000000.json"
+    },
+    {
+      "id": "array-u32-le-256",
+      "scenario": "S-ARRAY-U32",
+      "tags": [
+        "warm",
+        "vectorize"
+      ],
+      "byteLength": 1024,
+      "file": "cases/array-u32-le-256.json"
+    },
+    {
+      "id": "array-u32-le-16384",
+      "scenario": "S-ARRAY-U32",
+      "tags": [
+        "warm",
+        "vectorize"
+      ],
+      "byteLength": 65536,
+      "file": "cases/array-u32-le-16384.json"
+    },
+    {
+      "id": "array-u32-le-262144",
+      "scenario": "S-ARRAY-U32",
+      "tags": [
+        "warm",
+        "vectorize"
+      ],
+      "byteLength": 1048576,
+      "file": "cases/array-u32-le-262144.json"
+    },
+    {
+      "id": "array-u32-be-256",
+      "scenario": "S-ARRAY-U32",
+      "tags": [
+        "warm",
+        "vectorize"
+      ],
+      "byteLength": 1024,
+      "file": "cases/array-u32-be-256.json"
+    },
+    {
+      "id": "array-u32-be-16384",
+      "scenario": "S-ARRAY-U32",
+      "tags": [
+        "warm",
+        "vectorize"
+      ],
+      "byteLength": 65536,
+      "file": "cases/array-u32-be-16384.json"
+    },
+    {
+      "id": "array-u32-be-262144",
+      "scenario": "S-ARRAY-U32",
+      "tags": [
+        "warm",
+        "vectorize"
+      ],
+      "byteLength": 1048576,
+      "file": "cases/array-u32-be-262144.json"
+    },
+    {
+      "id": "array-struct-100",
+      "scenario": "S-ARRAY-STRUCT",
+      "tags": [
+        "warm",
+        "path"
+      ],
+      "byteLength": 600,
+      "file": "cases/array-struct-100.json"
+    },
+    {
+      "id": "array-struct-10000",
+      "scenario": "S-ARRAY-STRUCT",
+      "tags": [
+        "warm",
+        "path"
+      ],
+      "byteLength": 60000,
+      "file": "cases/array-struct-10000.json"
+    },
+    {
+      "id": "dynamic-1",
+      "scenario": "S-DYNAMIC",
+      "tags": [
+        "warm",
+        "expression"
+      ],
+      "byteLength": 8,
+      "file": "cases/dynamic-1.json"
+    },
+    {
+      "id": "dynamic-64",
+      "scenario": "S-DYNAMIC",
+      "tags": [
+        "warm",
+        "expression"
+      ],
+      "byteLength": 134,
+      "file": "cases/dynamic-64.json"
+    },
+    {
+      "id": "dynamic-1024",
+      "scenario": "S-DYNAMIC",
+      "tags": [
+        "warm",
+        "expression"
+      ],
+      "byteLength": 2054,
+      "file": "cases/dynamic-1024.json"
+    },
+    {
+      "id": "multidim-16x16",
+      "scenario": "S-MULTIDIM",
+      "tags": [
+        "warm"
+      ],
+      "byteLength": 512,
+      "file": "cases/multidim-16x16.json"
+    },
+    {
+      "id": "bitfield-x1k",
+      "scenario": "S-BITFIELD",
+      "tags": [
+        "warm",
+        "update"
+      ],
+      "byteLength": 7168,
+      "file": "cases/bitfield-x1k.json"
+    },
+    {
+      "id": "enum-x1k",
+      "scenario": "S-ENUM",
+      "tags": [
+        "warm"
+      ],
+      "byteLength": 7168,
+      "file": "cases/enum-x1k.json"
+    },
+    {
+      "id": "union-x1k",
+      "scenario": "S-UNION",
+      "tags": [
+        "warm",
+        "update"
+      ],
+      "byteLength": 5120,
+      "file": "cases/union-x1k.json"
+    },
+    {
+      "id": "strings-8",
+      "scenario": "S-STRINGS",
+      "tags": [
+        "warm",
+        "write"
+      ],
+      "byteLength": 90,
+      "file": "cases/strings-8.json"
+    },
+    {
+      "id": "strings-1024",
+      "scenario": "S-STRINGS",
+      "tags": [
+        "warm",
+        "write",
+        "boundary"
+      ],
+      "byteLength": 6592,
+      "file": "cases/strings-1024.json"
+    },
+    {
+      "id": "strings-65536",
+      "scenario": "S-STRINGS",
+      "tags": [
+        "warm",
+        "write"
+      ],
+      "byteLength": 419470,
+      "file": "cases/strings-65536.json"
+    },
+    {
+      "id": "pointer-depth-1",
+      "scenario": "S-POINTER",
+      "tags": [
+        "warm",
+        "update"
+      ],
+      "byteLength": 12,
+      "file": "cases/pointer-depth-1.json"
+    },
+    {
+      "id": "pointer-depth-8",
+      "scenario": "S-POINTER",
+      "tags": [
+        "warm",
+        "update"
+      ],
+      "byteLength": 68,
+      "file": "cases/pointer-depth-8.json"
+    },
+    {
+      "id": "pointer-depth-64",
+      "scenario": "S-POINTER",
+      "tags": [
+        "warm",
+        "update"
+      ],
+      "byteLength": 516,
+      "file": "cases/pointer-depth-64.json"
+    },
+    {
+      "id": "cond-plain128",
+      "scenario": "S-COND",
+      "tags": [
+        "warm"
+      ],
+      "byteLength": 896,
+      "file": "cases/cond-plain128.json"
+    },
+    {
+      "id": "cond-if128",
+      "scenario": "S-COND",
+      "tags": [
+        "warm"
+      ],
+      "byteLength": 810,
+      "file": "cases/cond-if128.json"
+    },
+    {
+      "id": "cond-switch128",
+      "scenario": "S-COND",
+      "tags": [
+        "warm"
+      ],
+      "byteLength": 810,
+      "file": "cases/cond-switch128.json"
+    },
+    {
+      "id": "real-bmp",
+      "scenario": "S-REAL",
+      "tags": [
+        "warm",
+        "cold",
+        "boundary",
+        "debug",
+        "compile",
+        "typed"
+      ],
+      "byteLength": 54,
+      "file": "cases/real-bmp.json"
+    },
+    {
+      "id": "real-wav",
+      "scenario": "S-REAL",
+      "tags": [
+        "warm",
+        "cold",
+        "boundary",
+        "debug",
+        "compile",
+        "typed"
+      ],
+      "byteLength": 44,
+      "file": "cases/real-wav.json"
+    },
+    {
+      "id": "real-zip",
+      "scenario": "S-REAL",
+      "tags": [
+        "warm",
+        "cold",
+        "boundary",
+        "debug",
+        "compile",
+        "typed"
+      ],
+      "byteLength": 38,
+      "file": "cases/real-zip.json"
+    },
+    {
+      "id": "real-png",
+      "scenario": "S-REAL",
+      "tags": [
+        "warm",
+        "cold",
+        "boundary",
+        "debug",
+        "compile",
+        "typed"
+      ],
+      "byteLength": 33,
+      "file": "cases/real-png.json"
+    },
+    {
+      "id": "real-jpg",
+      "scenario": "S-REAL",
+      "tags": [
+        "warm",
+        "cold",
+        "boundary",
+        "debug",
+        "compile",
+        "typed"
+      ],
+      "byteLength": 20,
+      "file": "cases/real-jpg.json"
+    },
+    {
+      "id": "real-pe-exe",
+      "scenario": "S-REAL",
+      "tags": [
+        "warm",
+        "cold",
+        "boundary",
+        "debug",
+        "compile",
+        "typed",
+        "partial-consume"
+      ],
+      "byteLength": 90,
+      "file": "cases/real-pe-exe.json"
+    },
+    {
+      "id": "real-pe-dll",
+      "scenario": "S-REAL",
+      "tags": [
+        "warm",
+        "cold",
+        "boundary",
+        "debug",
+        "compile",
+        "typed",
+        "partial-consume"
+      ],
+      "byteLength": 90,
+      "file": "cases/real-pe-dll.json"
+    },
+    {
+      "id": "real-ico",
+      "scenario": "S-REAL",
+      "tags": [
+        "warm",
+        "cold",
+        "boundary",
+        "debug",
+        "compile",
+        "typed"
+      ],
+      "byteLength": 38,
+      "file": "cases/real-ico.json"
+    },
+    {
+      "id": "real-tar",
+      "scenario": "S-REAL",
+      "tags": [
+        "warm",
+        "cold",
+        "boundary",
+        "debug",
+        "compile",
+        "typed"
+      ],
+      "byteLength": 512,
+      "file": "cases/real-tar.json"
+    },
+    {
+      "id": "malformed-truncated",
+      "scenario": "S-MALFORMED",
+      "tags": [
+        "error"
+      ],
+      "byteLength": 10,
+      "file": "cases/malformed-truncated.json"
+    },
+    {
+      "id": "malformed-negative-count",
+      "scenario": "S-MALFORMED",
+      "tags": [
+        "error"
+      ],
+      "byteLength": 18,
+      "file": "cases/malformed-negative-count.json"
+    },
+    {
+      "id": "malformed-budget-exceeded",
+      "scenario": "S-MALFORMED",
+      "tags": [
+        "error"
+      ],
+      "byteLength": 100000,
+      "file": "cases/malformed-budget-exceeded.json"
+    },
+    {
+      "id": "malformed-dangling-pointer",
+      "scenario": "S-MALFORMED",
+      "tags": [
+        "error"
+      ],
+      "byteLength": 4,
+      "file": "cases/malformed-dangling-pointer.json"
+    },
+    {
+      "id": "compile-small",
+      "scenario": "S-COMPILE",
+      "tags": [
+        "compile"
+      ],
+      "byteLength": null,
+      "file": "cases/compile-small.json"
+    },
+    {
+      "id": "compile-medium-128",
+      "scenario": "S-COMPILE",
+      "tags": [
+        "compile"
+      ],
+      "byteLength": null,
+      "file": "cases/compile-medium-128.json"
+    },
+    {
+      "id": "compile-large-512",
+      "scenario": "S-COMPILE",
+      "tags": [
+        "compile"
+      ],
+      "byteLength": null,
+      "file": "cases/compile-large-512.json"
+    },
+    {
+      "id": "compile-nested",
+      "scenario": "S-COMPILE",
+      "tags": [
+        "compile"
+      ],
+      "byteLength": null,
+      "file": "cases/compile-nested.json"
+    },
+    {
+      "id": "compile-k100",
+      "scenario": "S-COMPILE",
+      "tags": [
+        "compile"
+      ],
+      "byteLength": null,
+      "file": "cases/compile-k100.json"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "prim-le-x1k",
+  "scenario": "S-PRIM",
+  "tags": [
+    "warm",
+    "debug",
+    "stream",
+    "batch"
+  ],
+  "definition": "struct rec { uint8 a; int16 b; uint32 c; int64 d; float32 e; float64 f; bool g; }; struct root { rec items[1024]; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "file",
+    "file": "data/prim-le-x1k.bin"
+  },
+  "byteLength": 28672,
+  "expectedError": null,
+  "expected": null,
+  "expectedSha256": "5f6f1e9744a65363da9f0108b0ca77c2568c8c533c1776be1a79601866e69c60",
+  "expectedJsonLength": 91585
+}

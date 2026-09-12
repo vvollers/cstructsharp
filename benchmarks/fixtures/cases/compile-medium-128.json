@@ -1,0 +1,22 @@
+{
+  "id": "compile-medium-128",
+  "scenario": "S-COMPILE",
+  "tags": [
+    "compile"
+  ],
+  "definition": "struct root { uint32 f0; uint8 f1; uint8 f2; int32 f3; float64 f4; int32 f5; uint8 f6; int64 f7; float32 f8; uint16 f9; uint32 f10; float32 f11; float32 f12; uint16 f13; uint16 f14; uint8 f15; float32 f16; float32 f17; int32 f18; uint16 f19; int32 f20; int64 f21; int32 f22; float64 f23; int16 f24; uint16 f25; float32 f26; uint8 f27; int64 f28; uint32 f29; uint32 f30; float64 f31; int64 f32; int32 f33; uint8 f34; int16 f35; uint16 f36; float64 f37; uint16 f38; float64 f39; int32 f40; uint32 f41; int16 f42; uint8 f43; float64 f44; int32 f45; float64 f46; int16 f47; int32 f48; int32 f49; int64 f50; int64 f51; int64 f52; int16 f53; int64 f54; uint16 f55; uint16 f56; int32 f57; float64 f58; int64 f59; float32 f60; int32 f61; uint32 f62; uint16 f63; uint16 f64; float32 f65; int64 f66; int64 f67; float64 f68; int16 f69; int16 f70; float32 f71; uint32 f72; int32 f73; uint8 f74; int32 f75; uint8 f76; float64 f77; int32 f78; float32 f79; int32 f80; int16 f81; uint16 f82; float32 f83; uint8 f84; uint16 f85; int64 f86; float64 f87; uint8 f88; int16 f89; float32 f90; float32 f91; int16 f92; int16 f93; uint16 f94; int64 f95; uint16 f96; float32 f97; float32 f98; int64 f99; int64 f100; uint16 f101; int32 f102; int64 f103; int64 f104; uint16 f105; int64 f106; uint8 f107; uint16 f108; float32 f109; float32 f110; int64 f111; uint16 f112; uint8 f113; uint32 f114; uint16 f115; float64 f116; uint16 f117; int16 f118; int64 f119; int16 f120; int64 f121; int16 f122; float64 f123; float64 f124; uint8 f125; float64 f126; int16 f127; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": null,
+  "byteLength": null,
+  "expectedError": null,
+  "expected": null,
+  "expectedSha256": null,
+  "expectedJsonLength": null
+}

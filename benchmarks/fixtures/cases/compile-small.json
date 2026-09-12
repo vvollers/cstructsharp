@@ -1,0 +1,22 @@
+{
+  "id": "compile-small",
+  "scenario": "S-COMPILE",
+  "tags": [
+    "compile"
+  ],
+  "definition": "struct root { uint8 kind; uint32 value; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": null,
+  "byteLength": null,
+  "expectedError": null,
+  "expected": null,
+  "expectedSha256": null,
+  "expectedJsonLength": null
+}

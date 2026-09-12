@@ -1,0 +1,50 @@
+{
+  "id": "real-zip",
+  "scenario": "S-REAL",
+  "tags": [
+    "warm",
+    "cold",
+    "boundary",
+    "debug",
+    "compile",
+    "typed"
+  ],
+  "notes": "Imported from apps/inspector/src/formats.ts (WellKnownFormatFixtures.Zip_LocalFileHeader_DecodesBitflagsAndRuntimeLengthName).",
+  "definition": "struct root {\n    uint32 signature;\n    uint16 version_needed;\n    struct {\n        uint16 encrypted : 1;\n        uint16 compression_option : 2;\n        uint16 has_data_descriptor : 1;\n        uint16 reserved : 12;\n    } general_purpose_flag;\n    uint16 compression_method;\n    uint16 last_mod_time;\n    uint16 last_mod_date;\n    uint32 crc_32;\n    uint32 compressed_size;\n    uint32 uncompressed_size;\n    uint16 file_name_length;\n    uint16 extra_field_length;\n    char file_name[file_name_length];\n    uint8 extra_field[extra_field_length];\n};",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "504b03041400000000000000000000000000000000000000000008000000746573742e747874"
+  },
+  "byteLength": 38,
+  "expectedError": null,
+  "expected": {
+    "signature": 67324752,
+    "version_needed": 20,
+    "general_purpose_flag": {
+      "encrypted": 0,
+      "compression_option": 0,
+      "has_data_descriptor": 0,
+      "reserved": 0
+    },
+    "compression_method": 0,
+    "last_mod_time": 0,
+    "last_mod_date": 0,
+    "crc_32": 0,
+    "compressed_size": 0,
+    "uncompressed_size": 0,
+    "file_name_length": 8,
+    "extra_field_length": 0,
+    "file_name": "test.txt",
+    "extra_field": []
+  },
+  "expectedSha256": "63251b2d763a35a2ba7e44e4e4abeae748514bd0a48859d895d43e41e8c5be5f",
+  "expectedJsonLength": 337
+}

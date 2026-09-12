@@ -1,0 +1,25 @@
+{
+  "id": "malformed-dangling-pointer",
+  "scenario": "S-MALFORMED",
+  "tags": [
+    "error"
+  ],
+  "definition": "struct root { uint32 *target; };",
+  "options": {
+    "pointerSize": 4,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "00ffff7f"
+  },
+  "byteLength": 4,
+  "expectedError": "CStructReadException",
+  "expected": null,
+  "expectedSha256": null,
+  "expectedJsonLength": null
+}

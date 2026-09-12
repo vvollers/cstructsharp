@@ -1,0 +1,56 @@
+{
+  "id": "real-bmp",
+  "scenario": "S-REAL",
+  "tags": [
+    "warm",
+    "cold",
+    "boundary",
+    "debug",
+    "compile",
+    "typed"
+  ],
+  "notes": "Imported from apps/inspector/src/formats.ts (WellKnownFormatFixtures.Bmp_FileAndInfoHeaders_DecodeExpectedFields).",
+  "definition": "enum bmp_compression : uint32 {\n    Rgb = 0,\n    Rle8 = 1,\n    Rle4 = 2,\n    Bitfields = 3\n};\n\nstruct bitmap_file_header {\n    char signature[2];\n    uint32 file_size;\n    uint16 reserved1;\n    uint16 reserved2;\n    uint32 pixel_data_offset;\n};\n\nstruct bitmap_info_header {\n    uint32 header_size;\n    int32 width;\n    int32 height;\n    uint16 planes;\n    uint16 bits_per_pixel;\n    bmp_compression compression;\n    uint32 image_size;\n    int32 x_pixels_per_meter;\n    int32 y_pixels_per_meter;\n    uint32 colors_used;\n    uint32 colors_important;\n};\n\nstruct root {\n    bitmap_file_header file_header;\n    bitmap_info_header info_header;\n};",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "424d36000000000000003600000028000000020000000100000001001800000000000000000000000000000000000000000000000000"
+  },
+  "byteLength": 54,
+  "expectedError": null,
+  "expected": {
+    "file_header": {
+      "signature": "BM",
+      "file_size": 54,
+      "reserved1": 0,
+      "reserved2": 0,
+      "pixel_data_offset": 54
+    },
+    "info_header": {
+      "header_size": 40,
+      "width": 2,
+      "height": 1,
+      "planes": 1,
+      "bits_per_pixel": 24,
+      "compression": {
+        "Enum": "bmp_compression",
+        "Name": "Rgb",
+        "Value": 0
+      },
+      "image_size": 0,
+      "x_pixels_per_meter": 0,
+      "y_pixels_per_meter": 0,
+      "colors_used": 0,
+      "colors_important": 0
+    }
+  },
+  "expectedSha256": "e54d916ab92029a200f50a0097db3c130a417948e28ea65275649b6afe745733",
+  "expectedJsonLength": 347
+}

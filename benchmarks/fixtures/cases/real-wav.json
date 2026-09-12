@@ -1,0 +1,51 @@
+{
+  "id": "real-wav",
+  "scenario": "S-REAL",
+  "tags": [
+    "warm",
+    "cold",
+    "boundary",
+    "debug",
+    "compile",
+    "typed"
+  ],
+  "notes": "Imported from apps/inspector/src/formats.ts (WellKnownFormatFixtures.Wav_RiffFmtAndDataChunks_DecodeExpectedFields).",
+  "definition": "struct riff_header {\n    char chunk_id[4];\n    uint32 chunk_size;\n    char format[4];\n};\n\nstruct fmt_chunk {\n    char chunk_id[4];\n    uint32 chunk_size;\n    uint16 audio_format;\n    uint16 num_channels;\n    uint32 sample_rate;\n    uint32 byte_rate;\n    uint16 block_align;\n    uint16 bits_per_sample;\n};\n\nstruct data_chunk_header {\n    char chunk_id[4];\n    uint32 chunk_size;\n};\n\nstruct root {\n    riff_header riff;\n    fmt_chunk fmt;\n    data_chunk_header data;\n};",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "524946462400000057415645666d7420100000000100020044ac000010b10200040010006461746100000000"
+  },
+  "byteLength": 44,
+  "expectedError": null,
+  "expected": {
+    "riff": {
+      "chunk_id": "RIFF",
+      "chunk_size": 36,
+      "format": "WAVE"
+    },
+    "fmt": {
+      "chunk_id": "fmt ",
+      "chunk_size": 16,
+      "audio_format": 1,
+      "num_channels": 2,
+      "sample_rate": 44100,
+      "byte_rate": 176400,
+      "block_align": 4,
+      "bits_per_sample": 16
+    },
+    "data": {
+      "chunk_id": "data",
+      "chunk_size": 0
+    }
+  },
+  "expectedSha256": "8f7d624ca47fdee8ef5d037275f7fcbcf403b620b410e005ff4517ac1f3cca0e",
+  "expectedJsonLength": 254
+}

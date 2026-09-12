@@ -1,0 +1,24 @@
+{
+  "name": "cstructsharp-js-benchmarks",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Node and Chromium benchmark harness for the CStructSharp WASM bridge (Phase 0 baselines).",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "scripts": {
+    "build:wasm": "node build-wasm.mjs",
+    "bench:node": "node bench/node.mjs",
+    "bench:cold": "node bench/cold.mjs",
+    "bench:browser": "node bench/browser.mjs",
+    "bench": "node bench/node.mjs && node bench/cold.mjs && node bench/browser.mjs",
+    "check": "node bench/check.mjs",
+    "record": "node bench/record.mjs",
+    "profile:browser": "node bench/profile-browser.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0",
+    "tinybench": "6.2.0"
+  }
+}

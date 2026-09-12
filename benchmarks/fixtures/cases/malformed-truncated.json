@@ -1,0 +1,25 @@
+{
+  "id": "malformed-truncated",
+  "scenario": "S-MALFORMED",
+  "tags": [
+    "error"
+  ],
+  "definition": "struct root { uint8 a; int16 b; uint32 c; int64 d; float32 e; float64 f; bool g; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "978dce3d243a36b85308"
+  },
+  "byteLength": 10,
+  "expectedError": "CStructReadException",
+  "expected": null,
+  "expectedSha256": null,
+  "expectedJsonLength": null
+}
