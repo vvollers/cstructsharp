@@ -14,7 +14,7 @@ function git(args) {
 }
 
 export function bundleManifest() {
-  const file = path.join(repositoryRoot, "artifacts/js-bench/bundle-manifest.json");
+  const file = path.join(repositoryRoot, "artifacts/js-bench", `${process.env.BENCH_BUNDLE ?? "bundle"}-manifest.json`);
   return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : null;
 }
 

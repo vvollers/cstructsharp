@@ -15,7 +15,7 @@ const resultsDirectory = path.join(repositoryRoot, "artifacts/js-bench/results")
 fs.mkdirSync(resultsDirectory, { recursive: true });
 
 const routes = {
-  "/bundle/": path.join(repositoryRoot, "artifacts/js-bench/bundle"),
+  "/bundle/": path.join(repositoryRoot, "artifacts/js-bench", process.env.BENCH_BUNDLE ?? "bundle"),
   "/fixtures/": path.join(repositoryRoot, "benchmarks/fixtures"),
   "/bench/": path.join(jsRoot, "bench"),
   "/browser/": path.join(jsRoot, "browser"),
