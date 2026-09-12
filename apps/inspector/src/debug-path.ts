@@ -10,6 +10,42 @@ export function tokenizePath(stackString: string): string[] {
   return stackString.match(/[^.[\]]+/g) ?? [];
 }
 
+/** Map declaration paths into the serialized result, which wraps pointer targets in Value. */
+export function debugEntryJsonPath(item: DebugDataItem, result?: unknown): string[] {
+  const path: string[] = [];
+  let value = result;
+  for (const segment of tokenizePath(item.DebugStackString)) {
+    while (isPointer(value)) {
+      path.push("Value");
+      value = value.Value;
+    }
+    path.push(segment);
+    value =
+      value !== null && typeof value === "object"
+        ? (value as Record<string, unknown>)[segment]
+        : undefined;
+  }
+  // The pointer's own debug record covers its stored address, not its target's fields.
+  if (isPointer(value)) path.push("Address");
+  return path;
+}
+
+function isPointer(
+  value: unknown,
+): value is { Address: number; Depth: number; IsDereferenced: boolean; Value: unknown } {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "Address" in value &&
+    typeof value.Address === "number" &&
+    "Depth" in value &&
+    typeof value.Depth === "number" &&
+    "IsDereferenced" in value &&
+    typeof value.IsDereferenced === "boolean" &&
+    "Value" in value
+  );
+}
+
 /**
  * Finds every DebugData entry related to a JSONPath (from a JSON-tree selection) - not just the first
  * one, since a single click can genuinely need more than one entry:
@@ -25,12 +61,17 @@ export function tokenizePath(stackString: string): string[] {
  *   otherwise distinguish (no per-element path exists for it) still resolves to the same full set via the
  *   entry's shorter path being a prefix of the clicked (deeper, indexed) one.
  *
- * Two tokenized paths are "related" when one is a prefix of the other.
+ * When a parsed result is supplied, declaration paths are mapped to the JSON pointer wrappers first.
+ * Two resulting paths are "related" when one is a prefix of the other.
  */
-export function findDebugEntryIndicesByPath(debugData: DebugDataItem[], path: string[]): number[] {
+export function findDebugEntryIndicesByPath(
+  debugData: DebugDataItem[],
+  path: string[],
+  result?: unknown,
+): number[] {
   const indices: number[] = [];
   debugData.forEach((item, index) => {
-    if (isPathRelated(tokenizePath(item.DebugStackString), path)) {
+    if (isPathRelated(debugEntryJsonPath(item, result), path)) {
       indices.push(index);
     }
   });

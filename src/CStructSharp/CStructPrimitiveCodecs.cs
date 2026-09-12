@@ -39,17 +39,40 @@ public partial class CStruct
         // First register only the canonical primitive spellings. Each delegate consumes exactly one encoded value.
         return new Dictionary<string, Func<Stream, object>>
         {
+            ["uleb128_32"] = stream => (uint)Leb128Codec.Read(stream, 32, false),
+            ["uleb128_64"] = stream => Leb128Codec.Read(stream, 64, false),
+            ["sleb128_32"] = stream => unchecked((int)Leb128Codec.Read(stream, 32, true)),
+            ["sleb128_64"] = stream => unchecked((long)Leb128Codec.Read(stream, 64, true)),
+            ["fixed16_16>"] = stream => FixedPointCodec.Read(stream, false, 32, 16, true),
+            ["fixed16_16<"] = stream => FixedPointCodec.Read(stream, true, 32, 16, true),
+            ["ufixed16_16>"] = stream => FixedPointCodec.Read(stream, false, 32, 16, false),
+            ["ufixed16_16<"] = stream => FixedPointCodec.Read(stream, true, 32, 16, false),
+            ["fixed2_30>"] = stream => FixedPointCodec.Read(stream, false, 32, 30, true),
+            ["fixed2_30<"] = stream => FixedPointCodec.Read(stream, true, 32, 30, true),
+            ["ufixed8_8>"] = stream => FixedPointCodec.Read(stream, false, 16, 8, false),
+            ["ufixed8_8<"] = stream => FixedPointCodec.Read(stream, true, 16, 8, false),
+            ["uuid"] = stream => IdentifierCodec.Read(stream, true),
+            ["guid"] = stream => IdentifierCodec.Read(stream, false),
             ["byte"] = stream => BinaryPrimitiveIO.ReadByteExactly(stream),
             ["int8"] = stream => unchecked((sbyte)BinaryPrimitiveIO.ReadByteExactly(stream)),
             ["uint8"] = stream => BinaryPrimitiveIO.ReadByteExactly(stream),
             ["bool"] = stream => BinaryPrimitiveIO.ReadByteExactly(stream) != 0,
             ["char"] = stream => (char)BinaryPrimitiveIO.ReadByteExactly(stream),
+            ["latin1"] = stream => BinaryPrimitiveIO.ReadByteExactly(stream),
+            ["cp437"] = stream => BinaryPrimitiveIO.ReadByteExactly(stream),
+            ["utf16le"] = stream => BinaryPrimitiveIO.ReadByteExactly(stream),
+            ["utf16be"] = stream => BinaryPrimitiveIO.ReadByteExactly(stream),
+            ["utf8"] = stream => BinaryPrimitiveIO.ReadByteExactly(stream),
             ["wchar>"] = stream => BinaryPrimitiveIO.ReadChar(stream, false),
             ["wchar<"] = stream => BinaryPrimitiveIO.ReadChar(stream, true),
             ["int16>"] = stream => BinaryPrimitiveIO.ReadInt16(stream, false),
             ["int16<"] = stream => BinaryPrimitiveIO.ReadInt16(stream, true),
             ["uint16>"] = stream => BinaryPrimitiveIO.ReadUInt16(stream, false),
             ["uint16<"] = stream => BinaryPrimitiveIO.ReadUInt16(stream, true),
+            ["int24>"] = stream => BinaryPrimitiveIO.ReadInt24(stream, false),
+            ["int24<"] = stream => BinaryPrimitiveIO.ReadInt24(stream, true),
+            ["uint24>"] = stream => BinaryPrimitiveIO.ReadUInt24(stream, false),
+            ["uint24<"] = stream => BinaryPrimitiveIO.ReadUInt24(stream, true),
             ["int32>"] = stream => BinaryPrimitiveIO.ReadInt32(stream, false),
             ["int32<"] = stream => BinaryPrimitiveIO.ReadInt32(stream, true),
             ["uint32>"] = stream => BinaryPrimitiveIO.ReadUInt32(stream, false),
@@ -80,18 +103,41 @@ public partial class CStruct
         // Mirror the reader map with canonical writers so serialize and update use the exact same type vocabulary.
         return new Dictionary<string, Action<Stream, object>>
         {
+            ["uleb128_32"] = (stream, value) => Leb128Codec.WriteUnsigned(stream, Convert.ToUInt32(value)),
+            ["uleb128_64"] = (stream, value) => Leb128Codec.WriteUnsigned(stream, Convert.ToUInt64(value)),
+            ["sleb128_32"] = (stream, value) => Leb128Codec.WriteSigned(stream, Convert.ToInt32(value)),
+            ["sleb128_64"] = (stream, value) => Leb128Codec.WriteSigned(stream, Convert.ToInt64(value)),
+            ["fixed16_16>"] = (stream, value) => FixedPointCodec.Write(stream, value, false, 32, 16, true),
+            ["fixed16_16<"] = (stream, value) => FixedPointCodec.Write(stream, value, true, 32, 16, true),
+            ["ufixed16_16>"] = (stream, value) => FixedPointCodec.Write(stream, value, false, 32, 16, false),
+            ["ufixed16_16<"] = (stream, value) => FixedPointCodec.Write(stream, value, true, 32, 16, false),
+            ["fixed2_30>"] = (stream, value) => FixedPointCodec.Write(stream, value, false, 32, 30, true),
+            ["fixed2_30<"] = (stream, value) => FixedPointCodec.Write(stream, value, true, 32, 30, true),
+            ["ufixed8_8>"] = (stream, value) => FixedPointCodec.Write(stream, value, false, 16, 8, false),
+            ["ufixed8_8<"] = (stream, value) => FixedPointCodec.Write(stream, value, true, 16, 8, false),
+            ["uuid"] = (stream, value) => IdentifierCodec.Write(stream, value, true),
+            ["guid"] = (stream, value) => IdentifierCodec.Write(stream, value, false),
             ["byte"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
             ["int8"]
                                  = (stream, value) => stream.WriteByte(unchecked((byte)Convert.ToSByte(value))),
             ["uint8"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
             ["bool"] = (stream, value) => stream.WriteByte((byte)(Convert.ToBoolean(value) ? 1 : 0)),
             ["char"] = (stream, value) => stream.WriteByte(PrimitiveCodecs.ConvertToNarrowCharacter(value)),
+            ["latin1"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
+            ["cp437"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
+            ["utf16le"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
+            ["utf16be"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
+            ["utf8"] = (stream, value) => stream.WriteByte(Convert.ToByte(value)),
             ["wchar>"] = (stream, value) => BinaryPrimitiveIO.WriteChar(stream, Convert.ToChar(value), false),
             ["wchar<"] = (stream, value) => BinaryPrimitiveIO.WriteChar(stream, Convert.ToChar(value), true),
             ["int16>"] = (stream, value) => BinaryPrimitiveIO.WriteInt16(stream, Convert.ToInt16(value), false),
             ["int16<"] = (stream, value) => BinaryPrimitiveIO.WriteInt16(stream, Convert.ToInt16(value), true),
             ["uint16>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt16(stream, Convert.ToUInt16(value), false),
             ["uint16<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt16(stream, Convert.ToUInt16(value), true),
+            ["int24>"] = (stream, value) => BinaryPrimitiveIO.WriteInt24(stream, Convert.ToInt32(value), false),
+            ["int24<"] = (stream, value) => BinaryPrimitiveIO.WriteInt24(stream, Convert.ToInt32(value), true),
+            ["uint24>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt24(stream, Convert.ToUInt32(value), false),
+            ["uint24<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt24(stream, Convert.ToUInt32(value), true),
             ["int32>"] = (stream, value) => BinaryPrimitiveIO.WriteInt32(stream, Convert.ToInt32(value), false),
             ["int32<"] = (stream, value) => BinaryPrimitiveIO.WriteInt32(stream, Convert.ToInt32(value), true),
             ["uint32>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt32(stream, Convert.ToUInt32(value), false),
@@ -165,9 +211,11 @@ public partial class CStruct
         var alignments = new Dictionary<string, byte>(StringComparer.Ordinal);
         byte[] buffer = "\x00\n\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".Select(o => (byte)o).ToArray();
 
+        Array.Resize(ref buffer, 16);
+
         foreach (KeyValuePair<string, Func<Stream, object>> fieldHandler in handlers)
         {
-            if (PrimitiveCodecs.IsVariableLengthType(fieldHandler.Key))
+            if (PrimitiveCodecs.IsVariableLengthType(fieldHandler.Key) || Leb128Codec.IsType(fieldHandler.Key))
             {
                 // A terminated string has no fixed footprint. Keep its alignment at one without trying to read a
                 // synthetic terminator, because the real reader now correctly treats an unterminated string as an error.

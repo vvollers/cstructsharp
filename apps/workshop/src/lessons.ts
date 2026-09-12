@@ -411,9 +411,249 @@ const lessonTopics: Lesson[] = [
       },
     },
   ),
+  lesson(
+    "integers-24",
+    "Read three-byte integers",
+    "struct root { uint24< size; int24< delta; uint8 tail; };",
+    "ff ff ff fe ff ff 63",
+    "root",
+    {
+      level: "Intermediate",
+      tags: ["integers-24", "binary", "metadata"],
+      sourceScenario: "integers-24",
+      summary:
+        "Three-byte integers keep a three-byte stride. The unsigned size is 16777215 and the signed delta is -2.",
+      prerequisite:
+        "Understand byte offsets and the difference between reading, writing, and updating.",
+      exercise: "Change size to 16777216 when writing.",
+      answer: "The value exceeds 24 unsigned bits and is rejected.",
+      guide: "guides/binary-metadata-types.html",
+      operations: {
+        parse: { expected: { data: { root: { size: 16777215, delta: -2, tail: 99 } } } },
+        serialize: {
+          json: '{"size":16777215,"delta":-2,"tail":99}',
+          expected: { hex: "ff ff ff fe ff ff 63" },
+        },
+        update: { path: "root.size", json: "42", expected: { hex: "2a 00 00 fe ff ff 63" } },
+      },
+    },
+  ),
+  lesson(
+    "bounded-encodings",
+    "Read byte-bounded text",
+    "struct root { utf8 currency[3]; latin1 western[1]; cp437 dos[1]; utf16le little[4]; utf16be big[4]; uint8 tail; };",
+    "e2 82 ac e9 82 3d d8 00 de d8 3d de 00 63",
+    "root",
+    {
+      level: "Intermediate",
+      tags: ["bounded-encodings", "binary", "metadata"],
+      sourceScenario: "bounded-encodings",
+      summary:
+        "Array counts measure encoded bytes. Euro needs three UTF-8 bytes, and the supplementary character needs four UTF-16 bytes. Latin-1 and CP437 encode the same accented letter differently.",
+      prerequisite:
+        "Understand byte offsets and the difference between reading, writing, and updating.",
+      exercise: "Replace the Euro sign with a pound sign.",
+      answer: "The pound sign uses two UTF-8 bytes; the third byte is zero padding.",
+      guide: "guides/binary-metadata-types.html",
+      operations: {
+        parse: {
+          expected: {
+            data: {
+              root: { currency: "€", western: "é", dos: "é", little: "😀", big: "😀", tail: 99 },
+            },
+          },
+        },
+        serialize: {
+          json: '{"currency":"€","western":"é","dos":"é","little":"😀","big":"😀","tail":99}',
+          expected: { hex: "e2 82 ac e9 82 3d d8 00 de d8 3d de 00 63" },
+        },
+        update: {
+          path: "root.currency",
+          json: '"£"',
+          expected: { hex: "c2 a3 00 e9 82 3d d8 00 de d8 3d de 00 63" },
+        },
+      },
+    },
+  ),
+  lesson(
+    "variable-integers",
+    "Read variable-width integers",
+    "struct root { uleb128_32 count; uleb128_64 values[count]; sleb128_32 delta; uint8 tail; };",
+    "02 7f 80 01 bf 7f 63",
+    "root",
+    {
+      level: "Advanced",
+      tags: ["variable-integers", "binary", "metadata"],
+      sourceScenario: "variable-integers",
+      summary:
+        "LEB128 stores 127 in one byte and 128 in two. Decoded count 2 selects two elements; delta is signed -65.",
+      prerequisite:
+        "Understand byte offsets and the difference between reading, writing, and updating.",
+      exercise: "Try updating the second value to 1.",
+      answer: "That changes its encoded width and is rejected. Updating it to 129 keeps two bytes.",
+      guide: "guides/binary-metadata-types.html",
+      operations: {
+        parse: {
+          expected: { data: { root: { count: 2, values: [127, 128], delta: -65, tail: 99 } } },
+        },
+        serialize: {
+          json: '{"count":2,"values":[127,128],"delta":-65,"tail":99}',
+          expected: { hex: "02 7f 80 01 bf 7f 63" },
+        },
+        update: { path: "root.values[1]", json: "129", expected: { hex: "02 7f 81 01 bf 7f 63" } },
+      },
+    },
+  ),
+  lesson(
+    "fixed-point",
+    "Read fixed-point metadata",
+    "struct root { fixed16_16> revision; ufixed8_8< volume; };",
+    "ff fe 80 00 80 00",
+    "root",
+    {
+      level: "Intermediate",
+      tags: ["fixed-point", "binary", "metadata"],
+      sourceScenario: "fixed-point",
+      summary:
+        "Fixed-point metadata is a binary-scaled integer. The values are revision -1.5 and volume 0.5; their byte orders are explicit.",
+      prerequisite:
+        "Understand byte offsets and the difference between reading, writing, and updating.",
+      exercise: "Try writing volume 0.1.",
+      answer:
+        "It does not lie on the unsigned 8.8 grid, so the writer rejects it instead of rounding.",
+      guide: "guides/binary-metadata-types.html",
+      operations: {
+        parse: { expected: { data: { root: { revision: -1.5, volume: 0.5 } } } },
+        serialize: {
+          json: '{"revision":-1.5,"volume":0.5}',
+          expected: { hex: "ff fe 80 00 80 00" },
+        },
+        update: { path: "root.volume", json: "0.25", expected: { hex: "ff fe 80 00 40 00" } },
+      },
+    },
+  ),
+  lesson(
+    "identifier-order",
+    "Read UUID and GUID storage",
+    "struct root { uuid network; guid windows; };",
+    "00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 33 22 11 00 55 44 77 66 88 99 aa bb cc dd ee ff",
+    "root",
+    {
+      level: "Intermediate",
+      tags: ["identifier-order", "binary", "metadata"],
+      sourceScenario: "identifier-order",
+      summary:
+        "Both fields describe the same identifier. UUID stores network order; Windows GUID reverses the first three integer fields. Each occupies 16 bytes.",
+      prerequisite:
+        "Understand byte offsets and the difference between reading, writing, and updating.",
+      exercise: "Swap the uuid and guid type names.",
+      answer:
+        "The byte ranges stay the same, but the first groups of the decoded identifiers change.",
+      guide: "guides/binary-metadata-types.html",
+      operations: {
+        parse: {
+          expected: {
+            data: {
+              root: {
+                network: "00112233-4455-6677-8899-aabbccddeeff",
+                windows: "00112233-4455-6677-8899-aabbccddeeff",
+              },
+            },
+          },
+        },
+        serialize: {
+          json: '{"network":"00112233-4455-6677-8899-aabbccddeeff","windows":"00112233-4455-6677-8899-aabbccddeeff"}',
+          expected: {
+            hex: "00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 33 22 11 00 55 44 77 66 88 99 aa bb cc dd ee ff",
+          },
+        },
+        update: {
+          path: "root.windows",
+          json: '"00000000-0000-0000-0000-000000000000"',
+          expected: {
+            hex: "00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+          },
+        },
+      },
+    },
+  ),
+  lesson(
+    "conditional-records",
+    "Read tagged record variants",
+    "struct entry { uint8 kind; switch(kind) { case 1: { utf8 label[3]; } default: { uint24< number; } } if(kind == 1) { uint8 flags; } }; struct root { uleb128_32 count; entry items[count]; };",
+    "02 01 e2 82 ac 07 02 2a 00 00",
+    "root",
+    {
+      level: "Advanced",
+      tags: ["conditional-records", "binary", "metadata"],
+      sourceScenario: "conditional-records",
+      summary:
+        "Each record selects its own fields: kind 1 has a UTF-8 label and flags, while the second record has a three-byte number. Inactive members are absent.",
+      prerequisite:
+        "Understand byte offsets and the difference between reading, writing, and updating.",
+      exercise: "Try changing the first record kind through an update.",
+      answer:
+        "A branch-changing update is rejected. Serialize a new buffer when the active storage layout must change.",
+      guide: "guides/binary-metadata-types.html",
+      operations: {
+        parse: {
+          expected: {
+            data: {
+              root: {
+                count: 2,
+                items: [
+                  { kind: 1, label: "€", flags: 7 },
+                  { kind: 2, number: 42 },
+                ],
+              },
+            },
+          },
+        },
+        serialize: {
+          json: '{"count":2,"items":[{"kind":1,"label":"€","flags":7},{"kind":2,"number":42}]}',
+          expected: { hex: "02 01 e2 82 ac 07 02 2a 00 00" },
+        },
+        update: {
+          path: "root.items[1].number",
+          json: "43",
+          expected: { hex: "02 01 e2 82 ac 07 02 2b 00 00" },
+        },
+      },
+    },
+  ),
 ];
 
 const operationTitles: Record<string, [string, string?, string?]> = {
+  "integers-24": [
+    "Read three-byte integers",
+    "Write three-byte integers",
+    "Update three-byte integers",
+  ],
+  "bounded-encodings": [
+    "Read byte-bounded text",
+    "Write byte-bounded text",
+    "Update byte-bounded text",
+  ],
+  "variable-integers": [
+    "Read variable-width integers",
+    "Write variable-width integers",
+    "Update variable-width integers",
+  ],
+  "fixed-point": [
+    "Read fixed-point metadata",
+    "Write fixed-point metadata",
+    "Update fixed-point metadata",
+  ],
+  "identifier-order": [
+    "Read UUID and GUID storage",
+    "Write UUID and GUID storage",
+    "Update UUID and GUID storage",
+  ],
+  "conditional-records": [
+    "Read tagged record variants",
+    "Write tagged record variants",
+    "Update tagged record variants",
+  ],
   header: ["Read a file header", "Create a file header", "Change a file header field"],
   text: ["Read fixed-capacity text", "Create fixed-capacity text", "Replace fixed-capacity text"],
   nested: ["Read a nested record", "Create a nested record", "Change a nested field"],
@@ -431,6 +671,18 @@ const operationTitles: Record<string, [string, string?, string?]> = {
 };
 
 const readExplanations: Record<string, string> = {
+  "integers-24":
+    "Three-byte integers keep a three-byte stride. The unsigned size is 16777215 and the signed delta is -2.",
+  "bounded-encodings":
+    "Array counts measure encoded bytes. Euro needs three UTF-8 bytes, and the supplementary character needs four UTF-16 bytes. Latin-1 and CP437 encode the same accented letter differently.",
+  "variable-integers":
+    "LEB128 stores 127 in one byte and 128 in two. Decoded count 2 selects two elements; delta is signed -65.",
+  "fixed-point":
+    "Fixed-point metadata is a binary-scaled integer. The values are revision -1.5 and volume 0.5; their byte orders are explicit.",
+  "identifier-order":
+    "Both fields describe the same identifier. UUID stores network order; Windows GUID reverses the first three integer fields. Each occupies 16 bytes.",
+  "conditional-records":
+    "Each record selects its own fields: kind 1 has a UTF-8 label and flags, while the second record has a three-byte number. Inactive members are absent.",
   header:
     "This six-byte header stores kind in two bytes and length in four bytes. Reading 02 00 06 00 00 00 in little-endian order gives kind 2 and length 6. Changing the first byte to 03 changes kind to 3 without changing length.",
   "byte-order":
@@ -462,6 +714,18 @@ const readExplanations: Record<string, string> = {
 };
 
 const writeExplanations: Record<string, string> = {
+  "integers-24":
+    "Serialize the supplied metadata values with the declared encodings and byte order. Three-byte integers keep a three-byte stride. The unsigned size is 16777215 and the signed delta is -2.",
+  "bounded-encodings":
+    "Serialize the supplied metadata values with the declared encodings and byte order. Array counts measure encoded bytes. Euro needs three UTF-8 bytes, and the supplementary character needs four UTF-16 bytes. Latin-1 and CP437 encode the same accented letter differently.",
+  "variable-integers":
+    "Serialize the supplied metadata values with the declared encodings and byte order. LEB128 stores 127 in one byte and 128 in two. Decoded count 2 selects two elements; delta is signed -65.",
+  "fixed-point":
+    "Serialize the supplied metadata values with the declared encodings and byte order. Fixed-point metadata is a binary-scaled integer. The values are revision -1.5 and volume 0.5; their byte orders are explicit.",
+  "identifier-order":
+    "Serialize the supplied metadata values with the declared encodings and byte order. Both fields describe the same identifier. UUID stores network order; Windows GUID reverses the first three integer fields. Each occupies 16 bytes.",
+  "conditional-records":
+    "Serialize the supplied metadata values with the declared encodings and byte order. Each record selects its own fields: kind 1 has a UTF-8 label and flags, while the second record has a three-byte number. Inactive members are absent.",
   header:
     "Create a six-byte header with kind 3 and length 6. The two-byte kind comes first, followed by the four-byte length, both in little-endian order.",
   text: "Store XY in a four-byte text field. The two unused bytes are filled with zeros; text longer than the field's capacity cannot be written.",

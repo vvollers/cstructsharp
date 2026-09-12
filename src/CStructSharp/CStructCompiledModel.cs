@@ -52,12 +52,12 @@ public partial class CStruct
                 throw new CStructLayoutException("Primitive codec has no matching writer: " + reader.Key);
             }
 
-            int? fixedSize = PrimitiveCodecs.IsVariableLengthType(reader.Key) ? null : this.fieldAlignments[reader.Key];
+            int? fixedSize = (PrimitiveCodecs.IsVariableLengthType(reader.Key) || Leb128Codec.IsType(reader.Key)) ? null : this.fieldAlignments[reader.Key];
             var symbol = new CompiledTypeSymbol(
                 reader.Key,
                 CompiledTypeKind.Primitive,
                 null,
-                this.fieldAlignments[reader.Key],
+                fixedSize == 3 || reader.Key is "uuid" or "guid" ? 1 : this.fieldAlignments[reader.Key],
                 fixedSize,
                 reader.Value,
                 writer);
@@ -415,6 +415,12 @@ public partial class CStruct
                 // field, so a still-empty check here is simply never true for N >= 2.
                 bool isUnsizedArray = effectiveField.ArrayCount.Count == 1 &&
                                        ReferenceEquals(effectiveField.ArrayCount[0], Field.UnknownArraysize);
+                if (BoundedTextCodec.IsType(effectiveField.Type.Name) && effectiveField.ArrayCount.Count > 1)
+                {
+                    throw new CStructLayoutException(
+                        "Encoded text buffers support one byte-length dimension; use an array of structs for multiple strings: " + field.Name.Name);
+                }
+
                 bool isUnsizedCharacterArray = isUnsizedArray && CharacterFieldTypes.IsCharArrayField(effectiveField);
                 if (isUnsizedArray && !isUnsizedCharacterArray)
                 {
@@ -580,6 +586,15 @@ public partial class CStruct
         string? activeBitUnitType = null;
         foreach (CompiledField field in fields)
         {
+            if (field.Declaration.Condition is not null)
+            {
+                current = null;
+                if (field.BitStorageSize.HasValue)
+                {
+                    throw new CStructLayoutException("Place conditional bitfields inside a named struct group.");
+                }
+            }
+
             if (field.BitStorageSize.HasValue)
             {
                 int unitSize = field.BitStorageSize.Value;

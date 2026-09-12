@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeFieldGroups,
+  debugEntryJsonPath,
   findDebugEntryIndexByOffset,
   findDebugEntryIndicesByPath,
   tokenizePath,
@@ -42,6 +43,70 @@ describe("tokenizePath", () => {
 });
 
 describe("findDebugEntryIndicesByPath", () => {
+  it("maps pointer target fields separately from address storage, preserving real Value fields", () => {
+    const pointer = (Value: unknown) => ({ Address: 32, Depth: 1, IsDereferenced: true, Value });
+    const result = {
+      root: {
+        ptr: pointer({ myfield: 7, Value: 9, nested: pointer({ leaf: 11 }) }),
+        Value: { leaf: 12 },
+      },
+    };
+    const entries = [
+      debugItem({ DebugStackString: "root.ptr.myfield", CurPos: 32, EndPos: 36 }),
+      debugItem({ DebugStackString: "root.ptr.Value", CurPos: 36, EndPos: 40 }),
+      debugItem({ DebugStackString: "root.ptr.nested.leaf", CurPos: 48, EndPos: 52 }),
+      debugItem({ DebugStackString: "root.ptr.nested", CurPos: 40, EndPos: 44 }),
+      debugItem({ DebugStackString: "root.ptr", CurPos: 0, EndPos: 4 }),
+      debugItem({ DebugStackString: "root.Value.leaf", CurPos: 4, EndPos: 8 }),
+    ];
+    expect(
+      findDebugEntryIndicesByPath(entries, ["root", "ptr", "Value", "myfield"], result),
+    ).toEqual([0]);
+    expect(findDebugEntryIndicesByPath(entries, ["root", "ptr", "Value", "Value"], result)).toEqual(
+      [1],
+    );
+    expect(findDebugEntryIndicesByPath(entries, ["root", "ptr", "Address"], result)).toEqual([4]);
+    expect(findDebugEntryIndicesByPath(entries, ["root", "ptr", "Value"], result)).toEqual([
+      0, 1, 2, 3,
+    ]);
+    expect(findDebugEntryIndicesByPath(entries, ["root", "Value", "leaf"], result)).toEqual([5]);
+    expect(debugEntryJsonPath(entries[2]!, result)).toEqual([
+      "root",
+      "ptr",
+      "Value",
+      "nested",
+      "Value",
+      "leaf",
+    ]);
+  });
+
+  it("maps pointer chains and pointers within struct arrays", () => {
+    const result = {
+      root: {
+        entries: [
+          {
+            ptr: {
+              Address: 8,
+              Depth: 2,
+              IsDereferenced: true,
+              Value: { Address: 16, Depth: 1, IsDereferenced: true, Value: { leaf: 5 } },
+            },
+          },
+        ],
+      },
+    };
+    const entry = debugItem({ DebugStackString: "root.entries[0].ptr.leaf" });
+    expect(debugEntryJsonPath(entry, result)).toEqual([
+      "root",
+      "entries",
+      "0",
+      "ptr",
+      "Value",
+      "Value",
+      "leaf",
+    ]);
+  });
+
   const debugData = [
     debugItem({ DebugStackString: "root.file_header.signature", CurPos: 0, EndPos: 2 }),
     debugItem({ DebugStackString: "root.info_header.bits_per_pixel", CurPos: 28, EndPos: 30 }),

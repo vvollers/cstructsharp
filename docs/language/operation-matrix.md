@@ -18,6 +18,12 @@ same rows plus exact test methods, round-trip conditions, and limitation text us
 
 | Feature/manual | Parse | Debug | Address | Length | Serialize | Write | Update | Read value | Executable pair |
 | --- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | --- |
+| [Three-byte integers](primitive-types.md#fixed-primitives) | V | V | V | V | V | V | V | V | `integers-24` |
+| [Byte-bounded text encodings](arrays-and-strings.md#other-byte-bounded-encodings) | V | V | V | V | V | V | V | V | `bounded-encodings` |
+| [Width-bounded LEB128 integers](primitive-types.md#variable-length-integers) | V | V | V | V | V | V | L | V | `leb128-integers` |
+| [Exact fixed-point values](primitive-types.md#fixed-point-values) | V | V | V | — | V | V | V | V | `fixed-point-values` |
+| [UUID and Windows GUID values](primitive-types.md#uuid-and-guid-identifiers) | V | V | V | V | V | V | V | V | `identifier-values` |
+| [Conditional fields and tagged records](grammar.md#conditional-field-groups) | V | V | V | V | V | V | L | V | `conditional-fields` |
 | [Fixed primitives](primitive-types.md#fixed-primitives) | V | V | V | — | V | V | V | V | `fixed-primitives` |
 | [Character buffers](arrays-and-strings.md#fixed-character-buffers) | V | V | V | V | V | V | V | V | `character-buffers` |
 | [Terminated strings](arrays-and-strings.md#terminated-strings) | V | V | V | V | V | V | L | V | `terminated-strings` |
@@ -64,3 +70,17 @@ A terminated-string update cannot grow beyond the existing storage plan or move 
 Pointer parsing, selected reads, and writes require explicit coordinate and following rules. Serialization writes
 addresses; it does not relocate target objects. Multi-level-pointer debugging records pointer storage but does not
 add a separate final primitive target range on every route.
+
+## Binary metadata type limits
+
+- **Three-byte integers:** No enum or bitfield backing; alignment is 1.
+
+- **Byte-bounded text encodings:** Counts are encoded bytes; strict decoding; shorter writes zero-pad. One-dimensional bounded arrays only.
+
+- **Width-bounded LEB128 integers:** Legal padded reads are accepted; canonical writes can change byte width. Updates require unchanged encoded extent. Static size is unknown.
+
+- **Exact fixed-point values:** No rounding, integer-expression projection, enum backing or bitfield backing.
+
+- **UUID and Windows GUID values:** Storage order is chosen by the type, not layout endianness. Identifiers cannot supply integer expressions.
+
+- **Conditional fields and tagged records:** Only active fields exist. Inactive selection fails and updates cannot change branch decisions or storage ranges. Update validation reads the complete root.

@@ -6,8 +6,10 @@ import "monaco-editor/languages/definitions/javascript/register";
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 import { jsonDefaults } from "monaco-editor/languages/features/json/register";
 import JsonWorker from "monaco-editor/languages/features/json/json.worker?worker";
+import { registerCStructLanguage } from "./cstruct-language";
 
 jsonDefaults.setDiagnosticsOptions({ allowComments: true, comments: "ignore" });
+registerCStructLanguage(monaco);
 globalThis.MonacoEnvironment = {
   getWorker: (_moduleId, label) => (label === "json" ? new JsonWorker() : new EditorWorker()),
 };

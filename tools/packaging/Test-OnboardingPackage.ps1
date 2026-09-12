@@ -21,7 +21,7 @@ try {
 
 & node (Join-Path $PSScriptRoot '../documentation/export-documentation-examples.mjs')
 if ($LASTEXITCODE -ne 0) { throw 'Recipe generation failed.' }
-if (@(Get-ChildItem (Join-Path $repository 'docs/examples/recipes') -Filter '*.cs').Count -ne 22) { throw 'Expected all 22 recipes.' }
+if (@(Get-ChildItem (Join-Path $repository 'docs/examples/recipes') -Filter '*.cs').Count -ne 28) { throw 'Expected all 28 recipes.' }
 $starter = Join-Path $repository 'docs/examples/starter'
 $documentedCode = [regex]::Match($readme, '(?s)```csharp\r?\n(.*?)\r?\n```').Groups[1].Value.Trim()
 if ($documentedCode -ne (Get-Content (Join-Path $starter 'Program.cs') -Raw).Trim()) {

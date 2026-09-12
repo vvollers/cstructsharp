@@ -156,7 +156,7 @@ Assert-Condition ($ignoredDocumentationDependencies.Count -eq 0) (
 & node (Join-Path $PSScriptRoot 'export-documentation-examples.mjs')
 Assert-Condition ($LASTEXITCODE -eq 0) 'Recipe generation failed.'
 $generatedRecipes = @(Get-Content (Join-Path $DocumentationRoot 'generated-files.json') -Raw | ConvertFrom-Json)
-Assert-Condition ($generatedRecipes.Count -eq 46) 'Expected all 46 recipe exports.'
+Assert-Condition ($generatedRecipes.Count -eq 58) 'Expected all 58 recipe exports.'
 foreach ($generatedRecipe in $generatedRecipes) {
     Assert-Condition (Test-Path -LiteralPath (Join-Path $DocumentationRoot $generatedRecipe)) "Missing recipe export: $generatedRecipe"
 }

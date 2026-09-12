@@ -6,6 +6,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const examples = path.join(root, "docs/examples");
 const original = fs.readFileSync(path.join(examples, "Program.cs"), "utf8");
 const more = fs.readFileSync(path.join(examples, "MoreExamples.cs"), "utf8");
+const binaryTypes = fs.readFileSync(path.join(examples, "BinaryTypeExamples.cs"), "utf8");
 function between(start, end) {
   const first = original.indexOf(start);
   return original.slice(first, original.indexOf(end, first)).trimEnd();
@@ -43,12 +44,21 @@ const recipes = [
   ["positioned-stream", "Read inside a larger stream", "Advanced", "recipe-positioned-stream", "length address 4; inspection preserves Position 2; length reads 6", "The two-byte prefix belongs to surrounding data. Selected addresses are stream coordinates, so length starts at 2 + 2.", "Start the stream at Position 0.", "The prefix becomes part of the header input and values change. Restore Position 2.", "reading-values", null],
   ["round-trip", "Reuse a layout with different output storage", "Advanced", "api-reference-write-options", "34 12 A5 from array, span, and buffer writer; unused capacity preserved", "An owned array is simplest. A span or buffer writer lets the caller provide storage but has different partial-write behavior.", "Predict how many bytes are initialized in the eight-byte span.", "Only three. Use the returned count rather than treating all capacity as output.", "spans-and-memory", null],
   ["edit-file", "Inspect and edit a complete binary file", "Advanced", "recipe-edit-file", "435301020100100200A5; truncated and excessive-count fixtures rejected", "Validate signature, version, count, and file length in application code. Then supply COUNT and update one fixed field. The example creates and removes its own temporary fixture file.", "Change the record count to 255 without changing file length.", "Application validation rejects it before traversal. Patching cannot insert more records or move following data.", "binary-file-walkthrough", null],
+  ["integers-24", "Read three-byte integers", "Intermediate", "recipe-integers-24", "seven bytes, unsigned maximum 16777215, signed -2, and an atomic overflow rejection", "A 24-bit integer occupies three bytes and has alignment 1, including inside aligned structs. Explicit suffixes select byte order.", "Change delta to -1 and predict its three bytes.", "The signed field becomes FF FF FF; the following byte stays at offset 6.", "binary-metadata-types", null],
+  ["bounded-encodings", "Decode byte-bounded text", "Intermediate", "recipe-bounded-encodings", "Euro, accented and supplementary characters with exact byte counts and endian order", "A buffer count measures encoded bytes. UTF-8 and UTF-16 characters can use several bytes, while CP437 and Latin-1 map single bytes differently.", "Change the UTF-8 capacity from 3 to 2.", "The Euro sign requires three bytes. Serialization rejects it instead of truncating a character.", "strings-and-encodings", null],
+  ["variable-integers", "Read and patch LEB128 values", "Advanced", "recipe-variable-integers", "127 and 128 in different byte widths, signed -65, and a same-width update to 129", "LEB128 has a runtime storage width. Decoded counts can size arrays; updates must preserve the encoded extent.", "Replace 128 with 1 through UpdateStream.", "The replacement needs one byte instead of two, so the update fails and leaves the buffer unchanged.", "binary-metadata-types", null],
+  ["fixed-point", "Preserve exact fixed-point values", "Intermediate", "recipe-fixed-point", "revision -1.5, volume 0.5, and rejected quantization of 0.1", "Fixed-point values are binary-scaled integers exposed as Double. Writers require an exact representable value rather than rounding silently.", "Change volume from 0.5 to 0.25.", "The unsigned 8.8 raw value becomes 64, stored as 40 00 in little-endian order.", "binary-metadata-types", null],
+  ["identifier-order", "Distinguish UUID and GUID storage", "Intermediate", "recipe-identifier-order", "the same Guid value in two distinct 16-byte storage orders", "UUID stores bytes in network order; Windows GUID storage reverses the first three integer fields. The enclosing layout byte order does not select between them.", "Swap the uuid and guid type names without changing bytes.", "Both fields still consume 16 bytes, but the first groups of the interpreted identifiers change.", "binary-metadata-types", null],
+  ["conditional-records", "Parse tagged records with native branches", "Advanced", "recipe-conditional-records", "a UTF-8 label, a 24-bit number at offset 7, an inactive-path error, and rejected branch-changing update", "A runtime tag selects the fields that consume storage. Each array element chooses its own branch, and inactive fields do not appear in results.", "Change the first record kind through UpdateStream.", "Changing active branches is rejected. Serialize a new record when its layout must change.", "binary-metadata-types", null],
 ];
 
 const browserLessons = {
   "nested-array": "arrays", "aligned-header": "alignment", "bit-flags": "bitfields",
   "terminated-text": "terminated-text", "preserve-enum": "enum", "preserve-union": "union",
   "follow-pointer": "pointer",
+  "integers-24": "integers-24", "bounded-encodings": "bounded-encodings",
+  "variable-integers": "variable-integers", "fixed-point": "fixed-point",
+  "identifier-order": "identifier-order", "conditional-records": "conditional-records",
 };
 for (const recipe of recipes) recipe[9] ??= browserLessons[recipe[0]] ?? null;
 
@@ -56,7 +66,8 @@ const out = path.join(examples, "recipes");
 fs.mkdirSync(out, { recursive: true });
 const toc = ["items:"];
 for (const [id, title, level, region, expected, explanation, exercise, answer, guide, lesson] of recipes) {
-  const text = original.includes(`#region ${region}\n`) || original.includes(`#region ${region}\r\n`) ? original : more;
+  const text = [original, more, binaryTypes].find(source => source.includes(`#region ${region}\n`) || source.includes(`#region ${region}\r\n`));
+  if (!text) throw new Error(`Missing example region ${region}`);
   const start = text.indexOf(`#region ${region}`);
   if (start < 0) throw new Error(`Missing example region ${region}`);
   const end = text.indexOf("#endregion", start);
@@ -70,7 +81,7 @@ for (const [id, title, level, region, expected, explanation, exercise, answer, g
   toc.push(`- name: ${title}`, `  href: ${id}.md`);
 }
 fs.writeFileSync(path.join(out, "toc.yml"), `${toc.join("\n")}\n`);
-const catalog = ["---", "title: Tested recipes", "description: Choose a complete executable recipe by task, difficulty, and platform.", "---", "", "# Tested recipes", "", "Start with the [first C# program](../install-and-first-parse.md) or the [Node.js and browser quick start](../browser/index.md).", "These 22 recipes include complete programs, exact byte/value checks, exercises, and answers. Browser links identify", "related lessons; C# streams, spans, typed classes, and runtime-variable dictionaries have no direct browser equivalent.", "", "Run one recipe from the repository root with the .NET 10 SDK:", "", "```sh", "dotnet run --project docs/examples/CStructSharp.Docs.Examples.csproj -c Release -- decode-header", "```", "", "Use `--list` instead of `decode-header` to list names. Omit arguments to run all 22 scenarios. Success ends with", "`PASS all 22 scenarios`. Complete programs can also be copied into a console project with a matching package."];
+const catalog = ["---", "title: Tested recipes", "description: Choose a complete executable recipe by task, difficulty, and platform.", "---", "", "# Tested recipes", "", "Start with the [first C# program](../install-and-first-parse.md) or the [Node.js and browser quick start](../browser/index.md).", `These ${recipes.length} recipes include complete programs, exact byte/value checks, exercises, and answers. Browser links identify`, "related lessons; C# streams, spans, typed classes, and runtime-variable dictionaries have no direct browser equivalent.", "", "Run one recipe from the repository root with the .NET 10 SDK:", "", "```sh", "dotnet run --project docs/examples/CStructSharp.Docs.Examples.csproj -c Release -- decode-header", "```", "", "Use `--list` instead of `decode-header` to list names. Omit arguments to run all scenarios. Success ends with", "`PASS all " + recipes.length + " scenarios`. Complete programs can also be copied into a console project with a matching package."];
 for (const level of ["Beginner", "Intermediate", "Advanced"]) {
   catalog.push("", `## ${level}`, "", "| Task | Result checked | Browser lesson |", "| --- | --- | --- |");
   for (const [id, title, , , expected, , , , , lesson] of recipes.filter(item => item[2] === level)) {

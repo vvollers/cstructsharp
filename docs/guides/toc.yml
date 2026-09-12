@@ -47,3 +47,5 @@ items:
   href: tips-and-anti-patterns.md
 - name: Recipes
   href: recipes/
+- name: Binary metadata types
+  href: binary-metadata-types.md

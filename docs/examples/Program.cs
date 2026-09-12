@@ -32,6 +32,12 @@ internal static partial class Program
         ("relative-pointer", RelativePointer),
         ("positioned-stream", PositionedStream),
         ("edit-file", EditFile),
+        ("integers-24", Integers24),
+        ("bounded-encodings", BoundedEncodings),
+        ("variable-integers", VariableIntegers),
+        ("fixed-point", FixedPoint),
+        ("identifier-order", IdentifierOrder),
+        ("conditional-records", ConditionalRecords),
     ];
 
     public static int Main(string[] args)

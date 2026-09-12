@@ -21,7 +21,7 @@ review(
 );
 review(
   "wasm",
-  "Up to 32 complete sections in the preview, specializing LEB128 length widths. Section IDs are named; instruction bodies remain bytes.",
+  "Up to 32 complete sections in the preview, decoding LEB128 lengths/counts, function type indexes, start indexes and custom-section UTF-8 names. Instruction bodies remain bytes; reload detection after structural edits.",
   "Enums; nested structs; file-selected array lengths",
 );
 review(
@@ -42,11 +42,11 @@ review(
 review(
   "wav avi webp qcp",
   "Up to 32 RIFF chunks in the preview, with WAVE format and WebP extended/lossless metadata; AVI LIST contents remain bytes. Stops before a chunk payload outside the preview.",
-  "Nested structs; runtime lengths; padding expressions; bitfields",
+  "Native tagged variants; GUIDs; 24-bit dimensions; runtime lengths; padding expressions; bitfields",
 );
 review(
   "mp4 m4a m4v m4p m4b f4v f4p f4b f4a 3gp 3g2 mov heic avif cr3 jp2 jpm jpx mj2",
-  "Up to 32 complete outer boxes in the preview, including brands. Extended-size boxes are handled; zero-to-end boxes expose their header; media data remains encoded.",
+  "Up to 32 complete outer boxes in the preview, including brands and bounded moov/mvhd time/rate/matrix metadata. Extended-size outer boxes are handled; zero-to-end boxes expose their header; media data remains encoded.",
   "Nested records; 32/64-bit variants; big endian; arrays",
 );
 review(
@@ -91,7 +91,7 @@ review(
 );
 review(
   "ogg oga ogv opus spx ogm ogx",
-  "Ogg page flags/lacing table plus codec identification fields for Opus or Vorbis when the first complete packet is present.",
+  "Ogg page flags/lacing and Opus/Vorbis identification, plus bounded UTF-8 comments when the second page begins with a complete same-stream comment packet.",
   "Bitfields; signed gain; runtime channel-map arrays; nested records",
 );
 review(
@@ -210,6 +210,10 @@ export function expandSchema(
       "Stored=0,Deflate=8,Deflate64=9,Bzip2=12,Lzma=14,Zstandard=93,Xz=95,Ppmd=98",
     );
     replace("uint16 flags;", "zip_flags flags;");
+    replace(
+      "char filename[filename_length];",
+      "if (utf8_names) { utf8 filename_utf8[filename_length]; } else { cp437 filename_cp437[filename_length]; }",
+    );
     replace("uint16 compression;", "zip_method compression;");
     replace(
       "uint16 modified_time; uint16 modified_date;",
@@ -240,30 +244,75 @@ export function expandSchema(
     );
     replace("uint8 color_type;", "png_color color_type;");
     addType("png_rgb", "uint8 red; uint8 green; uint8 blue;");
+    const pngTag = (tag: string) =>
+      [...tag].reduce((value, character) => value * 256 + character.charCodeAt(0), 0);
+    enumType(
+      "png_kind",
+      "uint32",
+      ["PLTE", "gAMA", "pHYs", "acTL", "fcTL", "tIME", "sRGB", "tEXt", "iTXt", "IDAT", "IEND"]
+        .map((tag) => `${tag}=${pngTag(tag)}`)
+        .join(","),
+    );
+    const decoders: Record<string, [number, string]> = {
+      gAMA: [4, "uint32 gamma_times_100000;"],
+      pHYs: [9, "uint32 pixels_per_unit_x; uint32 pixels_per_unit_y; uint8 unit;"],
+      acTL: [8, "uint32 frame_count; uint32 play_count;"],
+      fcTL: [
+        26,
+        "uint32 sequence; uint32 width; uint32 height; uint32 x_offset; uint32 y_offset; uint16 delay_numerator; uint16 delay_denominator; uint8 dispose_operation; uint8 blend_operation;",
+      ],
+      tIME: [7, "uint16 year; uint8 month; uint8 day; uint8 hour; uint8 minute; uint8 second;"],
+      sRGB: [1, "uint8 rendering_intent;"],
+    };
+    const metadataCases = Object.entries(decoders)
+      .map(
+        ([tag, [size, fields]]) =>
+          `case ${pngTag(tag)}: { if (length == ${size}) { ${addType(`png_${tag}`, fields)} ${tag}; } else { uint8 invalid_${tag}[length]; } }`,
+      )
+      .join(" ");
     let offset = 33;
     for (let i = 0; i < 32 && has(offset, 8); i++) {
       const length = u32(offset, false),
         tag = ascii(offset + 4, 4);
-      let fields = "uint32 length; char type[4];";
+      let fields = "uint32 length; png_kind type;";
       if (!has(offset, length + 12)) {
         append(`${addType(`png_next_${i}`, fields)} next_chunk;`);
         break;
       }
-      const decoders: Record<string, [number, string]> = {
-        gAMA: [4, "uint32 gamma_times_100000;"],
-        pHYs: [9, "uint32 pixels_per_unit_x; uint32 pixels_per_unit_y; uint8 unit;"],
-        acTL: [8, "uint32 frame_count; uint32 play_count;"],
-        fcTL: [
-          26,
-          "uint32 sequence; uint32 width; uint32 height; uint32 x_offset; uint32 y_offset; uint16 delay_numerator; uint16 delay_denominator; uint8 dispose_operation; uint8 blend_operation;",
-        ],
-        tIME: [7, "uint16 year; uint8 month; uint8 day; uint8 hour; uint8 minute; uint8 second;"],
-        sRGB: [1, "uint8 rendering_intent;"],
-      };
-      if (tag === "PLTE" && length % 3 === 0) fields += " png_rgb colors[length / 3];";
-      else if (decoders[tag]?.[0] === length) fields += decoders[tag]![1];
-      else fields += " uint8 payload[length];";
-      fields += " uint32 crc32;";
+      // iTXt separators still require a bounded preview scan; no general bounded
+      // delimiter search exists in the layout language yet.
+      let internationalFields = "uint8 international_payload[length];";
+      if (tag === "iTXt") {
+        const begin = offset + 8,
+          end = begin + length;
+        const zero = (start: number) => {
+          for (let position = start; position < end; position++)
+            if (bytes[position] === 0) return position;
+          return -1;
+        };
+        const keywordEnd = zero(begin);
+        const languageStart = keywordEnd + 3;
+        const languageEnd = keywordEnd >= begin && languageStart <= end ? zero(languageStart) : -1;
+        const translatedEnd = languageEnd >= 0 ? zero(languageEnd + 1) : -1;
+        if (
+          keywordEnd > begin &&
+          keywordEnd - begin <= 79 &&
+          translatedEnd >= 0 &&
+          bytes[keywordEnd + 1]! <= 1 &&
+          bytes[keywordEnd + 2] === 0
+        ) {
+          internationalFields = ` if (length >= ${translatedEnd + 1 - begin}) { latin1 keyword[${keywordEnd - begin}]; uint8 keyword_terminator; uint8 compression_flag; uint8 compression_method; char language_tag[${languageEnd - languageStart}]; uint8 language_terminator; utf8 translated_keyword[${translatedEnd - languageEnd - 1}]; uint8 translated_terminator; if (compression_flag == 0 && compression_method == 0) { utf8 text[length - ${translatedEnd + 1 - begin}]; } else { uint8 compressed_text[length - ${translatedEnd + 1 - begin}]; } } else { uint8 short_international_payload[length]; }`;
+        } else {
+          internationalFields = " uint8 international_payload[length];";
+        }
+      }
+      fields += ` switch (type) {
+        ${metadataCases}
+        case ${pngTag("PLTE")}: { if (length / 3 * 3 == length) { png_rgb colors[length / 3]; } else { uint8 invalid_palette[length]; } }
+        case ${pngTag("tEXt")}: { latin1 text[length]; }
+        case ${pngTag("iTXt")}: { ${addType(`png_international_${i}`, internationalFields)} international; }
+        default: { uint8 payload[length]; }
+      } uint32 crc32;`;
       append(`${addType(`png_chunk_${i}`, fields)} chunk_${i};`);
       offset += length + 12;
       if (tag === "IEND") break;
@@ -272,45 +321,62 @@ export function expandSchema(
 
   if (["wav", "avi", "webp", "qcp"].includes(ext) && has(0, 20)) {
     layout.fields = "char signature[4]; uint32 file_size_minus_8; char form_type[4];";
+    // FourCC bytes are interpreted explicitly as little-endian integers for native dispatch.
+    const fourCC = (tag: string) =>
+      [...tag].reduce(
+        (value, character, index) => value + character.charCodeAt(0) * 2 ** (index * 8),
+        0,
+      );
+    enumType(
+      "riff_kind",
+      "uint32",
+      `Format=${fourCC("fmt ")},Data=${fourCC("data")},AviHeader=${fourCC("avih")},WebpExtended=${fourCC("VP8X")},WebpLossless=${fourCC("VP8L")}`,
+    );
+    enumType("wave_format", "uint16", "Pcm=1,IeeeFloat=3,ALaw=6,MuLaw=7,Extensible=65534");
+    addType(
+      "wave_format_record",
+      `wave_format format; uint16 channels; uint32 sample_rate; uint32 byte_rate; uint16 block_alignment; uint16 bits_per_sample;
+      if (length >= 18) {
+        uint16 extension_size;
+        if (format == 65534 && length >= 40 && extension_size >= 22 && extension_size <= length - 18) {
+          uint16 valid_bits_per_sample; uint32 channel_mask; guid subformat_guid; uint8 extensible_payload[length - 40];
+        } else { uint8 extension_payload[length - 18]; }
+      } else { uint8 base_payload[length - 16]; }`,
+    );
+    addType(
+      "avi_header_record",
+      "uint32 microseconds_per_frame; uint32 maximum_bytes_per_second; uint32 padding_granularity; uint32 flags; uint32 frame_count; uint32 initial_frames; uint32 stream_count; uint32 suggested_buffer_size; uint32 width; uint32 height; uint32 reserved[4]; uint8 payload[length - 56];",
+    );
+    addType(
+      "webp_extended_record",
+      "uint8 reserved_low:1; uint8 animation:1; uint8 xmp:1; uint8 exif:1; uint8 alpha:1; uint8 icc:1; uint8 reserved_high:2; uint8 reserved[3]; uint24< width_minus_one_le; uint24< height_minus_one_le; uint8 payload[length - 10];",
+    );
+    addType(
+      "webp_lossless_record",
+      "uint8 signature; uint32 width_minus_one:14; uint32 height_minus_one:14; uint32 alpha_used:1; uint32 version:3; uint8 payload[length - 5];",
+    );
+    addType(
+      "riff_chunk",
+      `riff_kind type; uint32 length;
+      switch (type) {
+        case ${fourCC("fmt ")}: { if (${ext === "wav" ? 1 : 0} && length >= 16) { wave_format_record wave; } else { uint8 format_payload[length]; } }
+        case ${fourCC("avih")}: { if (${ext === "avi" ? 1 : 0} && length >= 56) { avi_header_record avi; } else { uint8 avi_payload[length]; } }
+        case ${fourCC("VP8X")}: { if (${ext === "webp" ? 1 : 0} && length >= 10) { webp_extended_record extended; } else { uint8 extended_payload[length]; } }
+        case ${fourCC("VP8L")}: { if (${ext === "webp" ? 1 : 0} && length >= 5) { webp_lossless_record lossless; } else { uint8 lossless_payload[length]; } }
+        default: { uint8 payload[length]; }
+      }
+      uint8 padding[length & 1];`,
+    );
     let offset = 12;
     const end = Math.min(bytes.length, 8 + u32(4, true));
     for (let i = 0; i < 32 && offset + 8 <= end; i++) {
-      const length = u32(offset + 4, true),
-        tag = ascii(offset, 4);
-      let fields = "char type[4]; uint32 length;";
+      const length = u32(offset + 4, true);
       if (offset + 8 + length > end) {
-        append(`${addType(`riff_next_${i}`, fields)} next_chunk;`);
+        append(`${addType("riff_next", "riff_kind type; uint32 length;")} next_chunk;`);
         break;
       }
-      let consumed = 0;
-      if (tag === "fmt " && ext === "wav" && length >= 16) {
-        enumType(`wave_format_${i}`, "uint16", "Pcm=1,IeeeFloat=3,ALaw=6,MuLaw=7,Extensible=65534");
-        fields += ` wave_format_${i} format; uint16 channels; uint32 sample_rate; uint32 byte_rate; uint16 block_alignment; uint16 bits_per_sample;`;
-        consumed = 16;
-        if (length >= 18) {
-          fields += " uint16 extension_size;";
-          consumed = 18;
-        }
-        if (length >= 40 && u16(offset + 8, true) === 0xfffe) {
-          fields += " uint16 valid_bits_per_sample; uint32 channel_mask; uint8 subformat_guid[16];";
-          consumed = 40;
-        }
-      } else if (tag === "avih" && length >= 56) {
-        fields +=
-          " uint32 microseconds_per_frame; uint32 maximum_bytes_per_second; uint32 padding_granularity; uint32 flags; uint32 frame_count; uint32 initial_frames; uint32 stream_count; uint32 suggested_buffer_size; uint32 width; uint32 height; uint32 reserved[4];";
-        consumed = 56;
-      } else if (tag === "VP8X" && length >= 10) {
-        fields +=
-          " uint8 reserved_low:1; uint8 animation:1; uint8 xmp:1; uint8 exif:1; uint8 alpha:1; uint8 icc:1; uint8 reserved_high:2; uint8 reserved[3]; uint8 width_minus_one_le[3]; uint8 height_minus_one_le[3];";
-        consumed = 10;
-      } else if (tag === "VP8L" && length >= 5) {
-        fields +=
-          " uint8 signature; uint32 width_minus_one:14; uint32 height_minus_one:14; uint32 alpha_used:1; uint32 version:3;";
-        consumed = 5;
-      }
-      fields += ` uint8 payload[length - ${consumed}]; uint8 padding[length & 1];`;
       if (offset + 8 + length + (length & 1) > end) break;
-      append(`${addType(`riff_chunk_${i}`, fields)} chunk_${i};`);
+      append(`riff_chunk chunk_${i};`);
       offset += 8 + length + (length & 1);
     }
   }
@@ -354,16 +420,15 @@ export function expandSchema(
       const minimum = wide ? 112 : 96,
         size = u16(at + 20, true);
       if ((magic === 0x10b || wide) && size >= minimum && has(at + 24, minimum)) {
-        const word = wide ? "uint64" : "uint32";
-        const count = Math.min(
-          u32(at + 24 + minimum - 4, true),
-          Math.floor((size - minimum) / 8),
-          16,
-        );
         addType("pe_data_directory", "uint32 rva_or_file_offset; uint32 size;");
+        const branch = (wide: boolean) => {
+          const word = wide ? "uint64" : "uint32",
+            minimum = wide ? 112 : 96;
+          return `uint8 linker_major; uint8 linker_minor; uint32 code_size; uint32 initialized_data_size; uint32 uninitialized_data_size; uint32 entry_point_rva; uint32 code_base_rva; ${wide ? "" : "uint32 data_base_rva;"} ${word} image_base; uint32 section_alignment; uint32 file_alignment; uint16 os_major; uint16 os_minor; uint16 image_major; uint16 image_minor; uint16 subsystem_major; uint16 subsystem_minor; uint32 win32_version; uint32 image_size; uint32 headers_size; uint32 checksum; uint16 subsystem; uint16 dll_characteristics; ${word} stack_reserve; ${word} stack_commit; ${word} heap_reserve; ${word} heap_commit; uint32 loader_flags; uint32 directory_count; if (directory_count <= 16 && directory_count * 8 <= optional_header_size - ${minimum}) { pe_data_directory directories[directory_count]; uint8 remaining[optional_header_size - ${minimum} - directory_count * 8]; } else { uint8 unparsed_directories[optional_header_size - ${minimum}]; }`;
+        };
         addType(
           "pe_optional",
-          `uint16 magic; uint8 linker_major; uint8 linker_minor; uint32 code_size; uint32 initialized_data_size; uint32 uninitialized_data_size; uint32 entry_point_rva; uint32 code_base_rva; ${wide ? "" : "uint32 data_base_rva;"} ${word} image_base; uint32 section_alignment; uint32 file_alignment; uint16 os_major; uint16 os_minor; uint16 image_major; uint16 image_minor; uint16 subsystem_major; uint16 subsystem_minor; uint32 win32_version; uint32 image_size; uint32 headers_size; uint32 checksum; uint16 subsystem; uint16 dll_characteristics; ${word} stack_reserve; ${word} stack_commit; ${word} heap_reserve; ${word} heap_commit; uint32 loader_flags; uint32 directory_count; pe_data_directory directories[${count}]; uint8 remaining[${size - minimum - count * 8}];`,
+          `uint16 magic; switch (magic) { case 267: { struct { ${branch(false)} } pe32; } case 523: { struct { ${branch(true)} } pe64; } default: { uint8 unknown_optional[optional_header_size - 2]; } }`,
         );
         layout.types = layout.types.replace(
           "uint8 optional_header[optional_header_size];",
@@ -435,14 +500,13 @@ export function expandSchema(
     let offset = 12;
     const end = Math.min(bytes.length, u32(8, true));
     for (let i = 0; i < 32 && offset + 8 <= end; i++) {
-      const length = u32(offset, true),
-        json = u32(offset + 4, true) === 0x4e4f534a;
+      const length = u32(offset, true);
       if (offset + 8 + length > end) {
         append("uint32 next_chunk_length; glb_chunk_kind next_chunk_type;");
         break;
       }
       append(
-        `${addType(`glb_chunk_${i}`, `uint32 length; glb_chunk_kind type; ${json ? "char" : "uint8"} data[length];`)} chunk_${i};`,
+        `${addType(`glb_chunk_${i}`, `uint32 length; glb_chunk_kind type; if (type == 1313821514) { utf8 json_data[length]; } else { uint8 binary_data[length]; }`)} chunk_${i};`,
       );
       offset += 8 + length;
     }
@@ -476,12 +540,27 @@ export function expandSchema(
     if ([56, 108, 124].includes(size)) append("uint32 alpha_mask;");
     if ([108, 124].includes(size))
       append(
-        "uint32 color_space; int32 endpoints_xyz[3][3]; uint32 gamma_red; uint32 gamma_green; uint32 gamma_blue;",
+        "uint32 color_space; if (color_space == 0) { fixed2_30 endpoints_xyz[3][3]; ufixed16_16 gamma_red; ufixed16_16 gamma_green; ufixed16_16 gamma_blue; } else { uint8 unused_color_calibration[48]; }",
       );
     if (size === 124)
       append(
         "uint32 rendering_intent; uint32 profile_offset; uint32 profile_size; uint32 reserved;",
       );
+  }
+  if (ext === "voc" && has(20, 2)) {
+    const start = u16(20, true);
+    if (start >= 26 && has(start, 1)) {
+      if (bytes[start] === 0) {
+        append(`uint8 header_extension[${start - 26}]; uint8 terminator;`);
+      } else if (has(start, 4)) {
+        const length = bytes[start + 1]! + bytes[start + 2]! * 256 + bytes[start + 3]! * 65536;
+        if (length > 0 && has(start + 4, length)) {
+          append(
+            `uint8 header_extension[${start - 26}]; struct { uint8 type; uint24< length; uint8 payload[length]; } first_block;`,
+          );
+        }
+      }
+    }
   }
   if (ext === "flac") {
     replace("uint8 metadata_flags;", "uint8 metadata_type:7; uint8 last_metadata:1;");
@@ -505,7 +584,7 @@ export function expandSchema(
           payload = `flac_seek points[${length / 18}];`;
         }
         append(
-          `${addType(`flac_metadata_${i}`, `uint8 type:7; uint8 last:1; uint8 length_be[3]; ${payload}`)} metadata_${i};`,
+          `${addType(`flac_metadata_${i}`, `uint8 type:7; uint8 last:1; uint24> length_be; ${payload}`)} metadata_${i};`,
         );
         if (bytes[at]! & 128) break;
         at += 4 + length;
@@ -518,6 +597,7 @@ export function expandSchema(
     );
     if (has(26, 1) && has(27, bytes[26]!)) {
       const at = 27 + bytes[26]!;
+      let parsedPayload = 0;
       let length = 0;
       let complete = false;
       for (const lace of bytes.subarray(27, at)) {
@@ -537,8 +617,11 @@ export function expandSchema(
         append(
           "char codec[8]; uint8 opus_version; uint8 channels; uint16 pre_skip; uint32 input_sample_rate; int16 output_gain_q8; uint8 mapping_family;",
         );
-        if (bytes[at + 18] !== 0 && length >= 21 + bytes[at + 9]!)
+        parsedPayload = 19;
+        if (bytes[at + 18] !== 0 && length >= 21 + bytes[at + 9]!) {
           append("uint8 stream_count; uint8 coupled_count; uint8 channel_map[channels];");
+          parsedPayload = 21 + bytes[at + 9]!;
+        }
       } else if (
         complete &&
         !(bytes[5]! & 1) &&
@@ -550,20 +633,73 @@ export function expandSchema(
         append(
           "uint8 packet_type; char codec[6]; uint32 vorbis_version; uint8 channels; uint32 sample_rate; int32 maximum_bitrate; int32 nominal_bitrate; int32 minimum_bitrate; uint8 small_block_power:4; uint8 large_block_power:4; uint8 framing;",
         );
+        parsedPayload = 30;
+      }
+      const pageEnd = at + bytes.subarray(27, at).reduce((sum, lace) => sum + lace, 0);
+      // A common second page starts with the comment packet. Do not reconstruct
+      // continued packets or cross stream serial numbers during metadata preview.
+      if (
+        has(pageEnd, 27) &&
+        ascii(pageEnd, 4) === "OggS" &&
+        !(bytes[pageEnd + 5]! & 1) &&
+        u32(pageEnd + 14, true) === u32(14, true)
+      ) {
+        const segmentCount = bytes[pageEnd + 26]!;
+        const packetAt = pageEnd + 27 + segmentCount;
+        let packetLength = 0,
+          packetComplete = false;
+        if (has(pageEnd + 27, segmentCount)) {
+          for (const lace of bytes.subarray(pageEnd + 27, packetAt)) {
+            packetLength += lace;
+            if (lace < 255) {
+              packetComplete = true;
+              break;
+            }
+          }
+        }
+        const opus = has(packetAt, 8) && ascii(packetAt, 8) === "OpusTags";
+        const vorbis =
+          has(packetAt, 7) && bytes[packetAt] === 3 && ascii(packetAt + 1, 6) === "vorbis";
+        const prefix = opus ? 8 : 7,
+          packetEnd = packetAt + packetLength;
+        if (
+          packetComplete &&
+          (opus || vorbis) &&
+          has(packetAt, packetLength) &&
+          packetLength >= prefix + 8
+        ) {
+          const vendorLength = u32(packetAt + prefix, true);
+          let cursor = packetAt + prefix + 4 + vendorLength;
+          if (cursor + 4 <= packetEnd) {
+            const count = u32(cursor, true);
+            cursor += 4;
+            let read = 0;
+            while (read < count && read < 128 && cursor + 4 <= packetEnd) {
+              const size = u32(cursor, true);
+              if (size > packetEnd - cursor - 4) break;
+              cursor += 4 + size;
+              read++;
+            }
+            if (read === count && (opus || (cursor < packetEnd && bytes[cursor] === 1))) {
+              addType("ogg_comment", "uint32 length; utf8 text[length];");
+              addType(
+                "ogg_comment_header",
+                `char signature[${prefix}]; uint32 vendor_length; utf8 vendor[vendor_length]; uint32 comment_count; ogg_comment comments[comment_count]; ${vorbis ? "uint8 framing;" : ""} uint8 trailing[${packetEnd - cursor - (vorbis ? 1 : 0)}];`,
+              );
+              append(
+                `uint8 first_page_remainder[${pageEnd - at - parsedPayload}]; uint8 comment_page_header[27]; uint8 comment_page_lacing[${segmentCount}]; ogg_comment_header comment_header;`,
+              );
+            }
+          }
+        }
       }
     }
   }
-  if (ext === "crx" && has(0, 12)) {
-    if (u32(4, true) === 2) {
-      replace(
-        "uint32 header_length_or_public_key_length;",
-        "uint32 public_key_length; uint32 signature_length; uint8 public_key[public_key_length]; uint8 signature_bytes[signature_length];",
-      );
-    } else if (u32(4, true) === 3)
-      replace(
-        "uint32 header_length_or_public_key_length;",
-        "uint32 header_length; uint8 signed_header[header_length];",
-      );
+  if (ext === "crx") {
+    replace(
+      "uint32 header_length_or_public_key_length;",
+      "switch (version) { case 2: { uint32 public_key_length; uint32 signature_length; uint8 public_key[public_key_length]; uint8 signature_bytes[signature_length]; } case 3: { uint32 header_length; uint8 signed_header[header_length]; } default: { uint32 unknown_header_length; } }",
+    );
   }
   if (ext === "ktx" && has(60, 4) && has(64, u32(60) + 4))
     append("uint8 key_value_data[key_value_bytes]; uint32 first_mip_size;");
@@ -600,12 +736,40 @@ export function expandSchema(
     );
     if (u32(4, true) === 3) append("uint64 data_offset;");
   }
-  if (ext === "dcm" && has(136, 4)) {
-    const longVr = ["OB", "OD", "OF", "OL", "OV", "OW", "SQ", "UC", "UR", "UT", "UN"].includes(
-      ascii(136, 2),
+  if (ext === "dcm") {
+    const textVrs = "AE AS CS DA DS DT IS LO LT PN SH ST TM UC UI UR UT".split(" ");
+    const longVrs = "OB OD OF OL OV OW SQ SV UC UR UT UV UN".split(" ");
+    const shortVrs = "AE AS AT CS DA DS DT FL FD IS LO LT PN SH SL SS ST TM UI UL US".split(" ");
+    const numericVrs = [
+      ["US", "uint16", 2],
+      ["SS", "int16", 2],
+      ["UL", "uint32", 4],
+      ["SL", "int32", 4],
+      ["FL", "float32", 4],
+      ["FD", "float64", 8],
+      ["UV", "uint64", 8],
+      ["SV", "int64", 8],
+    ] as const;
+    const code = (vr: string) => vr.charCodeAt(0) + vr.charCodeAt(1) * 256;
+    const condition = (vrs: string[]) =>
+      vrs.map((vr) => `value_representation == ${code(vr)}`).join(" || ");
+    enumType(
+      "dicom_vr",
+      "uint16",
+      [...new Set([...textVrs, ...longVrs, ...numericVrs.map((vr) => vr[0]), "AT"])]
+        .map((vr) => `${vr}=${code(vr)}`)
+        .join(","),
     );
+    replace("char value_representation[2];", "dicom_vr value_representation;");
+    const numeric = numericVrs
+      .map(
+        ([vr, type, size]) =>
+          `case ${code(vr)}: { if (value_length / ${size} * ${size} == value_length) { ${type} values_${vr}[value_length / ${size}]; } else { uint8 malformed_${vr}[value_length]; } }`,
+      )
+      .join(" ");
+    const payload = `if (${condition(textVrs)}) { char text[value_length]; } else { switch (value_representation) { ${numeric} default: { uint8 bytes[value_length]; } } }`;
     append(
-      `${longVr ? "uint16 reserved; uint32" : "uint16"} value_length; uint8 value[value_length];`,
+      `if (!(${condition(shortVrs)})) { struct { uint16 reserved; uint32 value_length; ${payload} } long_value; } else { struct { uint16 value_length; ${payload} } short_value; }`,
     );
   }
   if (ext === "it" && has(54, 6) && u16(54, true) > 0) {
@@ -659,6 +823,41 @@ export function expandSchema(
       if (tag === "ftyp" && length >= header + 8 && (length - header) % 4 === 0) {
         addType(`brand_${i}`, "char code[4];");
         content += `char major_brand[4]; uint32 minor_version; brand_${i} compatible_brands[${(length - header - 8) / 4}];`;
+      } else if (tag === "moov") {
+        let childAt = at + header;
+        const end = at + length;
+        for (let child = 0; child < 32 && childAt + 8 <= end; child++) {
+          const childSize = u32(childAt, false);
+          // Extended-size/zero-to-end children remain bytes rather than guessing their extent.
+          if (childSize < 8 || childSize > end - childAt) break;
+          let childFields = "uint32 size; char type[4];";
+          if (ascii(childAt + 4, 4) === "mvhd" && childSize >= 12) {
+            const row = addType(
+              `movie_matrix_row_${i}_${child}`,
+              "fixed16_16 a; fixed16_16 b; fixed2_30 perspective;",
+            );
+            const values = addType(
+              `movie_values_${i}_${child}`,
+              `fixed16_16 preferred_rate; int16 preferred_volume_q8; uint8 reserved[10]; ${row} matrix[3]; uint32 format_specific_times[6]; uint32 next_track_id;`,
+            );
+            const version0 = addType(
+              `movie_v0_${i}_${child}`,
+              `uint32 creation_time; uint32 modification_time; uint32 time_scale; uint32 duration; ${values} values;`,
+            );
+            const version1 = addType(
+              `movie_v1_${i}_${child}`,
+              `uint64 creation_time; uint64 modification_time; uint32 time_scale; uint64 duration; ${values} values;`,
+            );
+            childFields += `uint8 version; uint8 flags[3]; switch(version) {
+              case 0: { if (size >= 108) { ${version0} version_0; uint8 version_0_tail[size - 108]; } else { uint8 short_version_0[size - 12]; } }
+              case 1: { if (size >= 120) { ${version1} version_1; uint8 version_1_tail[size - 120]; } else { uint8 short_version_1[size - 12]; } }
+              default: { uint8 unknown_version[size - 12]; }
+            }`;
+          } else childFields += `uint8 payload[${childSize - 8}];`;
+          content += `${addType(`movie_child_${i}_${child}`, childFields)} child_${child};`;
+          childAt += childSize;
+        }
+        content += `uint8 remaining_children[${end - childAt}];`;
       } else content += `uint8 payload[${length - header}];`;
       fields += `${addType(`box_${i}`, content)} box_${i};`;
       at += length;
@@ -713,7 +912,7 @@ export function expandSchema(
     if (count > 0 && count <= 128 && has(at, count * stride)) {
       addType(
         "font_head",
-        "uint16 major_version; uint16 minor_version; int32 revision_fixed16; uint32 checksum_adjustment; uint32 magic; uint16 flags; uint16 units_per_em; int64 created; int64 modified; int16 x_min; int16 y_min; int16 x_max; int16 y_max; uint16 style; uint16 smallest_ppem; int16 direction_hint; int16 loca_format; int16 glyph_data_format;",
+        "uint16 major_version; uint16 minor_version; fixed16_16 revision; uint32 checksum_adjustment; uint32 magic; uint16 flags; uint16 units_per_em; int64 created; int64 modified; int16 x_min; int16 y_min; int16 x_max; int16 y_max; uint16 style; uint16 smallest_ppem; int16 direction_hint; int16 loca_format; int16 glyph_data_format;",
       );
       let directory = "";
       for (let i = 0; i < count; i++) {
@@ -735,27 +934,51 @@ export function expandSchema(
       "uint8",
       "Custom=0,Type=1,Import=2,Function=3,Table=4,Memory=5,Global=6,Export=7,Start=8,Element=9,Code=10,Data=11,DataCount=12,Tag=13",
     );
+    const readUleb = (position: number, end: number) => {
+      let value = 0;
+      for (let width = 0; width < 5 && position + width < end; width++) {
+        const byte = bytes[position + width]!;
+        value += (byte & 127) * 2 ** (7 * width);
+        if (!(byte & 128)) return value <= 0xffffffff ? { value, width: width + 1 } : undefined;
+      }
+      return undefined;
+    };
     let at = 8;
     for (let i = 0; i < 32 && has(at, 2); i++) {
-      let length = 0,
-        width = 0,
-        complete = false;
-      for (; width < 5 && has(at + 1 + width, 1); width++) {
-        const byte = bytes[at + 1 + width]!;
-        length += (byte & 127) * 2 ** (7 * width);
-        if (!(byte & 128)) {
-          width++;
-          complete = true;
-          break;
+      const size = readUleb(at + 1, bytes.length);
+      if (!size || !has(at + 1 + size.width, size.value)) break;
+      const start = at + 1 + size.width,
+        end = start + size.value;
+      const first = readUleb(start, end),
+        id = bytes[at]!;
+      let payload = "uint8 payload[length];";
+      if (first && (id === 8 || id === 12) && first.width === size.value) {
+        payload = `uleb128_32 ${id === 8 ? "start_function_index" : "data_segment_count"};`;
+      } else if (first && id === 3) {
+        let cursor = start + first.width;
+        let count = 0;
+        while (count < first.value && count < 1024) {
+          const index = readUleb(cursor, end);
+          if (!index) break;
+          cursor += index.width;
+          count++;
         }
+        if (count === first.value && cursor === end)
+          payload = "uleb128_32 function_count; uleb128_32 type_indices[function_count];";
+      } else if (first && id === 0 && first.value <= end - start - first.width) {
+        payload = `uleb128_32 name_length; utf8 name[name_length]; uint8 custom_data[length - ${first.width} - name_length];`;
+      } else if (first && id >= 1 && id <= 13 && id !== 8 && id !== 12) {
+        payload = `uleb128_32 entry_count; uint8 entries_payload[length - ${first.width}];`;
       }
-      if (!complete || length > 0xffffffff || !has(at + 1 + width, length)) break;
+      // Widths/count boundaries are verified against this preview. Reload detection
+      // after structural edits: section extents are not independent reader substreams.
       append(
-        `${addType(`wasm_section_${i}`, `wasm_section_id id; uint8 length_leb128[${width}]; uint8 payload[${length}];`)} section_${i};`,
+        `${addType(`wasm_section_${i}`, `wasm_section_id id; uleb128_32 length; ${payload}`)} section_${i};`,
       );
-      at += 1 + width + length;
+      at = end;
     }
   }
+
   if (["lz4", "zst"].includes(ext) && has(0, 4)) {
     const magic = u32(0, true);
     if (magic >= 0x184d2a50 && magic <= 0x184d2a5f)
@@ -771,25 +994,24 @@ export function expandSchema(
         "uint8 block_descriptor;",
         "uint8 reserved_low:4; uint8 block_maximum_code:3; uint8 reserved_high:1;",
       );
-      if (bytes[4]! & 8) append("uint64 content_size;");
-      if (bytes[4]! & 1) append("uint32 dictionary_id;");
+      append(
+        "if (content_size_present) { uint64 content_size; } if (dictionary_present) { uint32 dictionary_id; }",
+      );
       append("uint8 header_checksum; uint32 first_block_size:31; uint32 uncompressed_block:1;");
     } else if (ext === "zst" && magic === 0xfd2fb528 && has(4, 1)) {
-      const flag = bytes[4]!,
-        single = !!(flag & 32),
-        code = flag >> 6;
       replace(
         "uint8 frame_descriptor;",
         "uint8 dictionary_size_code:2; uint8 content_checksum:1; uint8 reserved:1; uint8 unused:1; uint8 single_segment:1; uint8 content_size_code:2;",
       );
-      if (!single) append("uint8 window_mantissa:3; uint8 window_exponent:5;");
-      const dictionary = [0, 1, 2, 4][flag & 3]!;
-      if (dictionary) append(`uint${dictionary * 8} dictionary_id;`);
-      const size = code === 0 ? (single ? 1 : 0) : [0, 2, 4, 8][code]!;
-      if (size)
-        append(`uint${size * 8} ${size === 2 ? "content_size_minus_256" : "content_size"};`);
-      // Three bytes are retained because the language has no uint24 storage type.
-      append("uint8 first_block_header_le[3];");
+      append("if (!single_segment) { struct { uint8 mantissa:3; uint8 exponent:5; } window; }");
+      append(
+        "switch (dictionary_size_code) { case 1: { uint8 dictionary_id8; } case 2: { uint16 dictionary_id16; } case 3: { uint32 dictionary_id32; } }",
+      );
+      append(
+        "switch (content_size_code) { case 0: { if (single_segment) { uint8 content_size8; } } case 1: { uint16 content_size_minus_256; } case 2: { uint32 content_size32; } case 3: { uint64 content_size64; } }",
+      );
+      // Packed numeric header: last bit, two type bits, then the block size.
+      append("uint24< first_block_header_le;");
     }
   }
   return layout;

@@ -103,3 +103,16 @@ tree types remain internal.
 Expression failures encountered while preparing or applying a layout become `CStructLayoutException`. If a runtime
 array unexpectedly becomes huge or negative, check the supplied variable, byte order of any upstream count, and the
 expression before increasing a safety limit.
+
+## Comparisons and short-circuit predicates
+
+Comparisons `==`, `!=`, `<`, `<=`, `>`, `>=` and logical `!`, `&&`, `||`
+produce integer 0 or 1. Nonzero operands are true. `&&` skips its right operand
+when the left is zero; `||` skips it when the left is nonzero. Inactive operands
+may contain unavailable identifiers without causing an evaluation error.
+Active expressions still enforce checked arithmetic, cycle, depth and work limits.
+
+Precedence from highest to lowest: unary `! - ~`, multiplication/division,
+addition/subtraction, shifts, relational comparisons, equality, bitwise `&`,
+bitwise `|`, logical `&&`, logical `||`. Parentheses override precedence.
+For example, `count != 0 && size / count > 2` does not divide when count is zero.

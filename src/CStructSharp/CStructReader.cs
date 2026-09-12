@@ -345,8 +345,51 @@ public partial class CStruct
                     CStructElement? structElement = resolvedNamedElement;
                     bool isKnownFieldType = fieldReader is not null;
 
+                    if (isArray && !f.IsPointer && BoundedTextCodec.IsType(f.Type.Name))
+                    {
+                        long start = state.Stream.Position;
+                        string text = PrimitiveCodecs.ReadBoundedText(state.Stream, numFieldValues, f.Type.Name);
+                        long end = state.Stream.Position;
+                        containerDict[f.Name.Name] = text;
+                        if (state.Debug)
+                        {
+                            state.RegisterDebugData(start, end, debugStack, text, fieldTypeName);
+                        }
+
+                        state.NextPosition = end;
+                        if (!useLegacyPlacement)
+                        {
+                            cursor!.CompleteField(end);
+                        }
+
+                        break;
+                    }
+
                     for (int i = 0; i < numFieldValues; i++)
                     {
+                        // Composite leaves need the containing element's coordinates. Keep primitive-array
+                        // debug records unchanged: consumers historically group those under the array field.
+                        CStructElement[] elementDebugStack = debugStack;
+                        if (state.Debug && isArray && structElement is Struct)
+                        {
+                            string indices = string.Empty;
+                            int remainingIndex = i;
+                            for (int dimension = compiledField.Array.Dimensions.Length - 1; dimension >= 0; dimension--)
+                            {
+                                int size = compiledField.Array.Dimensions[dimension].FixedCount ?? numFieldValues;
+                                indices = "[" + (remainingIndex % size) + "]" + indices;
+                                remainingIndex /= size;
+                            }
+
+                            elementDebugStack = (CStructElement[])debugStack.Clone();
+                            elementDebugStack[^1] = new Field(
+                                f.Type,
+                                new Identifier(f.Name.Name + indices),
+                                Field.NoArray,
+                                0,
+                                f.PointerDepth);
+                        }
+
                         if (f.PointerDepth == 0 && isKnownStruct)
                         {
                             // Structs and enums have layout-aware readers rather than primitive byte handlers.
@@ -414,7 +457,7 @@ public partial class CStruct
                                     object nestedValue;
                                     if (strct.IsUnion)
                                     {
-                                        nestedValue = this.ReadUnionValue(strct, state, debugStack);
+                                        nestedValue = this.ReadUnionValue(strct, state, elementDebugStack);
                                     }
                                     else
                                     {
@@ -422,7 +465,7 @@ public partial class CStruct
                                             strct,
                                             newContainer,
                                             state,
-                                            debugStack);
+                                            elementDebugStack);
                                         nestedValue = newContainer;
                                     }
 
@@ -506,7 +549,7 @@ public partial class CStruct
                                                                          f.PointerDepth,
                                                                          compiledField,
                                                                          state,
-                                                                         debugStack)
+                                                                         elementDebugStack)
                                                  : fieldReader?.Invoke(state.Stream) ??
                                                    throw new InvalidOperationException(
                                                        "Compiled field has no reader: " + fieldTypeName);
@@ -556,7 +599,7 @@ public partial class CStruct
                             if (state.Debug)
                             {
                                 // Debug collection rereads the full source bytes and then restores the logical parser position.
-                                state.RegisterDebugData(curPos, endPos, debugStack, content, fieldTypeName);
+                                state.RegisterDebugData(curPos, endPos, elementDebugStack, content, fieldTypeName);
                                 state.Stream.Position = finalEndPos;
                             }
 
@@ -593,6 +636,10 @@ public partial class CStruct
                                 {
                                     // Existing expression semantics preserve strings as identifiers for compatible layouts.
                                     state.Variables[f.Name.Name] = new Identifier(str);
+                                }
+                                else if (FixedPointCodec.IsType(compiledField.CodecName) || content is Guid)
+                                {
+                                    state.Variables.Remove(f.Name.Name);
                                 }
                                 else if (content is IConvertible)
                                 {

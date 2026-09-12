@@ -93,6 +93,30 @@ internal static class PrimitiveCodecs
                "unicode_string_newline<" or "cstring" or "string" or "string>" or "string<";
     }
 
+    /// <summary>Reads exactly the declared encoded byte extent, including embedded NULs, without reading ahead.</summary>
+    public static string ReadBoundedText(Stream stream, int byteCount, string type)
+    {
+        if (stream is ReadBudgetStream budget && byteCount > budget.MaxStringBytes)
+        {
+            throw new CStructReadLimitException("Encoded text buffer exceeds the configured string byte limit.");
+        }
+
+        byte[] bytes = new byte[byteCount];
+        try
+        {
+            stream.ReadExactly(bytes);
+            return BoundedTextCodec.Decode(type, bytes);
+        }
+        catch (EndOfStreamException exception)
+        {
+            throw new CStructReadException("Not enough bytes for the declared Encoded text buffer.", exception);
+        }
+        catch (DecoderFallbackException exception)
+        {
+            throw new CStructReadException("Encoded text buffer contains an invalid byte sequence.", exception);
+        }
+    }
+
     /// <summary>Reads characters until a terminator and leaves the stream immediately after that terminator.</summary>
     public static string ReadIntoString(Stream stream, Encoding encoding, char terminator)
     {

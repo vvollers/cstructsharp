@@ -6,6 +6,7 @@ using CStructSharp.Structure;
 internal static class CharacterFieldTypes
 {
     public static readonly Identifier CharType = new("char");
+    public static readonly Identifier Utf8Type = new("utf8");
     public static readonly Identifier CstringType = new("cstring");
     public static readonly Identifier StringType = new("string");
     public static readonly Identifier WcharBigEndianType = new("wchar>");

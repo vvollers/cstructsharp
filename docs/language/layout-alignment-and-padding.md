@@ -201,3 +201,42 @@ existing layout.
 Increase a limit only for a known trusted layout source. For details, continue with
 [arrays and strings](arrays-and-strings.md), [bitfields](bitfields.md),
 [declarations](structs-unions-enums-typedefs.md), or [pointers](pointers-and-addressing.md).
+
+## Binary metadata types and conditional records
+
+Storage width and alignment are distinct for the new metadata types:
+
+| Types | Storage width | Portable alignment |
+| --- | --- | --- |
+| `int24`, `uint24` | 3 bytes | 1 |
+| `uuid`, `guid` | 16 bytes | 1 |
+| LEB128 integer types | Variable, measured from encoded bytes | 1 |
+| Bounded `utf8`, `latin1`, `cp437`, `utf16le`, `utf16be` buffers | Declared byte count | 1 |
+| `fixed16_16`, `ufixed16_16`, `fixed2_30` | 4 bytes | 4 |
+| `ufixed8_8` | 2 bytes | 2 |
+
+Explicit field/composite alignment overrides still apply. Byte-counted UTF-16
+buffers keep byte alignment; they do not inherit the code-unit alignment of `wchar`.
+
+A conditional composite's declared alignment is the maximum alignment of all its
+fields, including inactive branches. During parsing or writing, only active fields
+advance the cursor and receive field padding; the enclosing struct still receives
+its normal tail padding. Therefore, elements of a conditional struct array can have
+different padded sizes. Address resolution measures preceding elements from their
+actual discriminators rather than multiplying by one fixed stride.
+
+```c
+struct entry {
+    uint8 tag;
+    if (tag) { uint32 wide; } else { uint8 small; }
+    uint8 tail;
+};
+struct root { uint8 prefix; entry items[2]; uint8 end; };
+```
+
+With alignment enabled and tags `[0, 1]`, `entry` has alignment 4. The first element
+starts at offset 4, has `small` at 5 and `tail` at 6, and ends after padding at 8.
+The second starts at 8, has `wide` at 12 and `tail` at 16, and ends at 20. `root.end`
+is at 20 and the complete root occupies 24 bytes. An update may replace `wide`
+without moving these fields; changing the second tag to select `small` is rejected
+before any bytes are committed.

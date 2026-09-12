@@ -34,7 +34,7 @@ register(
   `uint32 signature; uint16 version_needed; uint16 flags; uint16 compression;
   uint16 modified_time; uint16 modified_date; uint32 crc32; uint32 compressed_size;
   uint32 uncompressed_size; uint16 filename_length; uint16 extra_length;
-  uint8 filename[filename_length]; uint8 extra[extra_length];`,
+  char filename[filename_length]; uint8 extra[extra_length];`,
   "First local entry header, filename and extra fields. Container members remain compressed. Data descriptors and ZIP64 sizes require interpreting the extra records.",
 );
 register(
@@ -181,7 +181,7 @@ register(
 register(
   "flac",
   "FLAC",
-  "char signature[4]; uint8 metadata_flags; uint8 metadata_length_be[3]; uint16 minimum_block_size; uint16 maximum_block_size; uint8 minimum_frame_size_be[3]; uint8 maximum_frame_size_be[3]; uint64 stream_parameters; uint8 md5[16];",
+  "char signature[4]; uint8 metadata_flags; uint24> metadata_length_be; uint16 minimum_block_size; uint16 maximum_block_size; uint24> minimum_frame_size_be; uint24> maximum_frame_size_be; uint64 stream_parameters; uint8 md5[16];",
   "STREAMINFO metadata, including packed sample rate/channel/sample count bits and MD5. Audio frames remain encoded.",
   { littleEndian: false },
 );
@@ -288,13 +288,13 @@ register(
 register(
   "lnk",
   "Shell link",
-  "uint32 header_size; uint8 class_id[16]; uint32 link_flags; uint32 file_attributes; uint64 creation_time; uint64 access_time; uint64 write_time; uint32 file_size; int32 icon_index; uint32 show_command; uint16 hotkey; uint16 reserved_1; uint32 reserved_2; uint32 reserved_3;",
+  "uint32 header_size; guid class_id; uint32 link_flags; uint32 file_attributes; uint64 creation_time; uint64 access_time; uint64 write_time; uint32 file_size; int32 icon_index; uint32 show_command; uint16 hotkey; uint16 reserved_1; uint32 reserved_2; uint32 reserved_3;",
   "Complete Shell Link header. Flag-dependent target lists, paths and extra blocks are not decoded.",
 );
 register(
   "cfb",
   "Compound file",
-  "uint8 signature[8]; uint8 class_id[16]; uint16 minor_version; uint16 major_version; uint16 byte_order; uint16 sector_shift; uint16 mini_sector_shift; uint8 reserved[6]; uint32 directory_sector_count; uint32 fat_sector_count; uint32 first_directory_sector; uint32 transaction_signature; uint32 mini_stream_cutoff; uint32 first_mini_fat_sector; uint32 mini_fat_sector_count; uint32 first_difat_sector; uint32 difat_sector_count; uint32 difat[109];",
+  "uint8 signature[8]; guid class_id; uint16 minor_version; uint16 major_version; uint16 byte_order; uint16 sector_shift; uint16 mini_sector_shift; uint8 reserved[6]; uint32 directory_sector_count; uint32 fat_sector_count; uint32 first_directory_sector; uint32 transaction_signature; uint32 mini_stream_cutoff; uint32 first_mini_fat_sector; uint32 mini_fat_sector_count; uint32 first_difat_sector; uint32 difat_sector_count; uint32 difat[109];",
   "Compound-file header and initial DIFAT. Sector chains and embedded Office documents are not followed.",
 );
 register(
@@ -332,7 +332,7 @@ register(
 register(
   "asf",
   "ASF",
-  "uint8 object_id[16]; uint64 object_size; uint32 child_count; uint8 reserved[2];",
+  "guid object_id; uint64 object_size; uint32 child_count; uint8 reserved[2];",
   "ASF header object and child object count.",
 );
 register(
@@ -368,7 +368,7 @@ register(
 register(
   "icc",
   "ICC profile",
-  "uint32 profile_size; char cmm[4]; uint32 version; char profile_class[4]; char color_space[4]; char connection_space[4]; uint16 created[6]; char signature[4]; char platform[4]; uint32 flags; char manufacturer[4]; char model[4]; uint64 attributes; uint32 rendering_intent; int32 illuminant_xyz[3]; char creator[4]; uint8 profile_id[16]; uint8 reserved[28]; uint32 tag_count; tag tags[tag_count];",
+  "uint32 profile_size; char cmm[4]; uint32 version; char profile_class[4]; char color_space[4]; char connection_space[4]; uint16 created[6]; char signature[4]; char platform[4]; uint32 flags; char manufacturer[4]; char model[4]; uint64 attributes; uint32 rendering_intent; fixed16_16 illuminant_xyz[3]; char creator[4]; uint8 profile_id[16]; uint8 reserved[28]; uint32 tag_count; tag tags[tag_count];",
   "ICC header and tag directory. XYZ values use signed 16.16 fixed-point encoding.",
   { littleEndian: false, types: "struct tag { char signature[4]; uint32 offset; uint32 size; };" },
 );
@@ -393,14 +393,14 @@ register(
 register(
   "chm",
   "Compiled HTML",
-  "char signature[4]; uint32 version; uint32 header_length; uint32 unknown; uint32 timestamp; uint32 language_id; uint8 directory_guid[16]; uint8 stream_guid[16];",
+  "char signature[4]; uint32 version; uint32 header_length; uint32 unknown; uint32 timestamp; uint32 language_id; guid directory_guid; guid stream_guid;",
   "ITSF header prefix. Compressed topic streams are not decoded.",
 );
 register(
   "asar",
   "Electron archive",
-  "uint32 size_pickle_length; uint32 header_pickle_length; uint32 header_pickle_payload_length; uint32 json_length; uint8 json[json_length];",
-  "ASAR pickle framing and JSON directory bytes.",
+  "uint32 size_pickle_length; uint32 header_pickle_length; uint32 header_pickle_payload_length; uint32 json_length; utf8 json[json_length];",
+  "ASAR pickle framing and byte-bounded UTF-8 JSON directory.",
 );
 register(
   "rm",
@@ -499,7 +499,7 @@ register(
   "Palm database header and record directory. MOBI content and compression are contained in the records.",
   {
     littleEndian: false,
-    types: "struct record { uint32 offset; uint8 attributes; uint8 unique_id[3]; };",
+    types: "struct record { uint32 offset; uint8 attributes; uint24> unique_id; };",
   },
 );
 register(
@@ -698,7 +698,7 @@ register(
 register(
   "dat",
   "Windows registry hive",
-  "char signature[4]; uint32 primary_sequence; uint32 secondary_sequence; uint64 timestamp; uint32 major_version; uint32 minor_version; uint32 file_type; uint32 file_format; uint32 root_cell_offset; uint32 hive_bins_size; uint32 clustering_factor; uint8 file_name_utf16le[64];",
+  "char signature[4]; uint32 primary_sequence; uint32 secondary_sequence; uint64 timestamp; uint32 major_version; uint32 minor_version; uint32 file_type; uint32 file_format; uint32 root_cell_offset; uint32 hive_bins_size; uint32 clustering_factor; wchar< file_name_utf16le[32];",
   "Registry hive base-block prefix. Hive bins and key/value cells are not followed.",
 );
 register(
@@ -892,7 +892,7 @@ export function schemaForFile(ext: string, bytes: Uint8Array): FormatExample {
     } else {
       littleEndian = bytes[0] === 0xc7;
       fields =
-        "uint16 signature; uint16 device; uint16 inode; uint16 mode; uint16 uid; uint16 gid; uint16 link_count; uint16 special_device; uint16 modified_time_words[2]; uint16 name_size; uint16 file_size_words[2]; uint8 name[name_size];";
+        "uint16 signature; uint16 device; uint16 inode; uint16 mode; uint16 uid; uint16 gid; uint16 link_count; uint16 special_device; uint16 modified_time_words[2]; uint16 name_size; uint16 file_size_words[2]; char name[name_size];";
     }
   }
   if (ext === "iso" && bytes.length > 32768 && bytes[32768] === 1) {
@@ -942,7 +942,7 @@ export function schemaForFile(ext: string, bytes: Uint8Array): FormatExample {
         " uint16 audio_format; uint16 channels; uint32 sample_rate; uint32 byte_rate; uint16 block_alignment; uint16 bits_per_sample;";
     if (ext === "webp" && ascii(12, 4) === "VP8X")
       fields +=
-        " uint8 feature_flags; uint8 reserved[3]; uint8 canvas_width_minus_one_le[3]; uint8 canvas_height_minus_one_le[3];";
+        " uint8 feature_flags; uint8 reserved[3]; uint24< canvas_width_minus_one_le; uint24< canvas_height_minus_one_le;";
   }
   if (profile.family === "ISO base media" && bytes.length >= 8) {
     const extended = view.getUint32(0, false) === 1;
@@ -966,7 +966,7 @@ export function schemaForFile(ext: string, bytes: Uint8Array): FormatExample {
   }
   if (profile.family === "ZIP" && bytes.length >= 4 && view.getUint32(0, true) === 0x06054b50)
     fields =
-      "uint32 signature; uint16 disk; uint16 directory_disk; uint16 disk_entries; uint16 total_entries; uint32 directory_size; uint32 directory_offset; uint16 comment_length; uint8 comment[comment_length];";
+      "uint32 signature; uint16 disk; uint16 directory_disk; uint16 disk_entries; uint16 total_entries; uint32 directory_size; uint32 directory_offset; uint16 comment_length; char comment[comment_length];";
   if (
     profile.family === "JPEG" &&
     bytes.length >= 4 &&
@@ -996,7 +996,7 @@ export function schemaForFile(ext: string, bytes: Uint8Array): FormatExample {
       return result;
     })
     .join("\n");
-  const definition = `// ${ext.toUpperCase()} — ${profile.family}\n// ${scope}\n// Variant selected from this file's bytes. Reload detection after changing the format.\n// Detection is a signature hint, not file validation.\n#define PREFIX_BYTES ${Math.min(bytes.length, 256)}\n${formatted}`;
+  const definition = `// ${ext.toUpperCase()} — ${profile.family}\n// ${scope}\n// Preview determines bounded coverage; native conditions select supported record variants. Reload detection after structural changes.\n// char preserves byte code units; explicit utf8/latin1/cp437/utf16 types decode declared encodings.\n// Detection is a signature hint, not file validation.\n#define PREFIX_BYTES ${Math.min(bytes.length, 256)}\n${formatted}`;
   return {
     id: `detected-${ext}`,
     extension: ext,

@@ -43,6 +43,34 @@ test("PE dereferences its pointer to a real COFF header field", async ({ page })
   });
 });
 
+test("pointer target fields highlight their bytes and hex clicks select the target field", async ({
+  page,
+}) => {
+  await page.getByTestId("example-pe-exe").click();
+  await page.getByRole("button", { name: /^Run$/ }).click();
+  const machine = page
+    .getByTestId("result-json")
+    .locator(".jse-key")
+    .filter({ hasText: /^machine$/ });
+  await machine.click();
+  const active = page.getByTestId("binary-panel-hex").locator("[data-hex-index].field-active");
+  // The sample's PE header starts at 64; machine follows the four-byte signature.
+  await expect(active).toHaveCount(2);
+  await expect(active.nth(0)).toHaveAttribute("data-hex-index", "68");
+  await expect(active.nth(1)).toHaveAttribute("data-hex-index", "69");
+  await page
+    .getByTestId("result-json")
+    .locator(".jse-key")
+    .filter({ hasText: /^e_magic$/ })
+    .click();
+  await page.getByTestId("binary-panel-hex").locator('[data-hex-index="68"]').click();
+  await expect(active).toHaveCount(2);
+  await expect(page.getByTestId("result-json").locator(".jse-selected-value")).toHaveAttribute(
+    "data-path",
+    "%2Froot%2Fdos%2Fe_lfanew%2FValue%2Fmachine",
+  );
+});
+
 test('"New" clears the schema and binary data', async ({ page }) => {
   await page.locator('[data-testid="example-new"]').click();
   await expect(page.locator('[data-testid="definition-editor"]')).toContainText("struct root");
@@ -144,6 +172,34 @@ test("hovering a keyword or a declared type name in the schema editor shows its 
   const hover = page.locator(".monaco-hover:not(.hidden) .monaco-hover-content");
   await expect(hover).toContainText("enum bmp_compression");
   await expect(hover).toContainText("Rgb, Rle8, Rle4, Bitfields");
+});
+
+test("struct-array fields select only their element's bytes in both directions", async ({
+  page,
+}) => {
+  await page.getByTestId("example-ico").click();
+  await page.getByRole("button", { name: /^Run$/ }).click();
+  const result = page.getByTestId("result-json");
+  const hex = page.getByTestId("binary-panel-hex");
+  const active = hex.locator("[data-hex-index].field-active");
+  for (const [index, offset] of [
+    [0, 6],
+    [1, 22],
+  ]) {
+    await result.locator(`[data-path="%2Froot%2Fentries%2F${index}%2Fwidth"] .jse-key`).click();
+    await expect(active).toHaveCount(1);
+    await expect(active).toHaveAttribute("data-hex-index", String(offset));
+  }
+  await hex.locator('[data-hex-index="6"]').click();
+  await expect(result.locator(".jse-selected-value")).toHaveAttribute(
+    "data-path",
+    "%2Froot%2Fentries%2F0%2Fwidth",
+  );
+  await result
+    .locator('[data-path="%2Froot%2Fentries"] > .jse-header-outer .jse-header')
+    .first()
+    .click();
+  await expect(active).toHaveCount(32);
 });
 
 test("clicking a scalar array field activates every element, not just the first", async ({

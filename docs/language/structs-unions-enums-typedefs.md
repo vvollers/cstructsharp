@@ -179,6 +179,8 @@ A typedef gives another name to one existing type and optional pointer depth:
 
 ```c
 typedef uint16 word;
+typedef int24< little_delta;
+typedef fixed16_16> network_revision;
 typedef word *word_pointer;
 typedef struct packet {
     uint8 kind;

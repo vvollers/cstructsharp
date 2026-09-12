@@ -23,6 +23,17 @@ using UnaryOperatorType = CStructSharp.Structure.UnaryOperatorType;
 [SuppressMessage("StyleCop.CSharp.OrderingRules", "SA1201:ElementsMustAppearInTheCorrectOrder", Justification = "custom ordering for clarity")]
 internal static class CStructDefinitionParser
 {
+    public static readonly Parser<char, Func<Expr, Expr, Expr>> Equal = Binary(Tok("==").ThenReturn(BinaryOperatorType.Equal));
+    public static readonly Parser<char, Func<Expr, Expr, Expr>> NotEqual = Binary(Tok("!=").ThenReturn(BinaryOperatorType.NotEqual));
+    public static readonly Parser<char, Func<Expr, Expr, Expr>> LessOrEqual = Binary(Tok("<=").ThenReturn(BinaryOperatorType.LessOrEqual));
+    public static readonly Parser<char, Func<Expr, Expr, Expr>> GreaterOrEqual = Binary(Tok(">=").ThenReturn(BinaryOperatorType.GreaterOrEqual));
+    public static readonly Parser<char, Func<Expr, Expr, Expr>> Less = Binary(Tok("<").ThenReturn(BinaryOperatorType.Less));
+    public static readonly Parser<char, Func<Expr, Expr, Expr>> Greater = Binary(Tok(">").ThenReturn(BinaryOperatorType.Greater));
+    public static readonly Parser<char, Func<Expr, Expr>> LogicalNot = Unary(Tok("!").ThenReturn(UnaryOperatorType.LogicalNot));
+
+    public static readonly Parser<char, Func<Expr, Expr, Expr>> LogicalAnd = Binary(Tok("&&").ThenReturn(BinaryOperatorType.LogicalAnd));
+    public static readonly Parser<char, Func<Expr, Expr, Expr>> LogicalOr = Binary(Tok("||").ThenReturn(BinaryOperatorType.LogicalOr));
+
     public static readonly Parser<char, char> OpenBrace = Tok('{');
     public static readonly Parser<char, char> CloseBrace = Tok('}');
     public static readonly Parser<char, char> Colon = Tok(':');
@@ -65,10 +76,10 @@ internal static class CStructDefinitionParser
         Tok("*").ThenReturn(BinaryOperatorType.Mul));
 
     public static readonly Parser<char, Func<Expr, Expr, Expr>> And = Binary(
-        Tok("&").ThenReturn(BinaryOperatorType.And));
+        Tok(Char('&').Before(Not(Char('&')))).ThenReturn(BinaryOperatorType.And));
 
     public static readonly Parser<char, Func<Expr, Expr, Expr>> Or
-        = Binary(Tok("|").ThenReturn(BinaryOperatorType.Or));
+        = Binary(Tok(Char('|').Before(Not(Char('|')))).ThenReturn(BinaryOperatorType.Or));
 
     public static readonly Parser<char, Func<Expr, Expr>> Neg = Unary(Tok("-").ThenReturn(UnaryOperatorType.Neg));
 
@@ -243,12 +254,16 @@ internal static class CStructDefinitionParser
     public static readonly Parser<char, Expr> Expr = ExpressionParser.Build<char, Expr>(expr => (
             OneOf(Try(Parenthesised(expr)), Try(Identifier.Cast<Expr>()), Try(Literal)), [
                 Operator.PostfixChainable(Call(expr)),
-                Operator.Prefix(Neg).And(Operator.Prefix(Complement)),
+                Operator.PrefixChainable(Neg, Complement, LogicalNot),
                 Operator.InfixL(Div).And(Operator.InfixL(Mul)),
                 Operator.InfixL(Minus).And(Operator.InfixL(Add)),
                 Operator.InfixL(ShiftLeft).And(Operator.InfixL(ShiftRight)),
+                Operator.InfixL(LessOrEqual).And(Operator.InfixL(GreaterOrEqual)).And(Operator.InfixL(Less)).And(Operator.InfixL(Greater)),
+                Operator.InfixL(Equal).And(Operator.InfixL(NotEqual)),
                 Operator.InfixL(And),
                 Operator.InfixL(Or),
+                Operator.InfixL(LogicalAnd),
+                Operator.InfixL(LogicalOr),
             ])).
         Labelled("expression");
 
@@ -270,7 +285,10 @@ internal static class CStructDefinitionParser
             (underlyingType, pointerStars, aliasName) => new Typedef(
                 aliasName,
                 new Identifier(underlyingType.Name + new string('*', pointerStars.Count()))),
-            TypedefKeyword.Then(SkipWhiteSpacesAndComments).Then(Identifier),
+            TypedefKeyword.Then(SkipWhiteSpacesAndComments).Then(Map(
+                (type, suffix) => suffix.HasValue ? new Identifier(type.Name + suffix.Value) : type,
+                Identifier,
+                OneOf(Tok('<'), Tok('>')).Optional())),
             Tok('*').Many(),
             SkipWhiteSpacesAndComments.Then(Identifier).Before(SemiColon)).
         Select<CStructElement>(s => s).
@@ -499,8 +517,73 @@ internal static class CStructDefinitionParser
             Tok(SemiColon).IgnoreResult()).
         Labelled("Field");
 
+    /// <summary>Flattens conditional groups while retaining a predicate on each direct member.</summary>
+    public static readonly Parser<char, IEnumerable<Field>> ConditionalFields = Map(
+        (condition, yes, no) => ApplyIf(
+            condition,
+            yes.SelectMany(group => group),
+            no.HasValue ? no.Value.SelectMany(group => group) : Enumerable.Empty<Field>()),
+        Tok("if").Then(Tok('(')).Then(Rec(() => Expr)).Before(Tok(')')),
+        OpenBrace.Then(Rec(() => StructOrField!).Many()).Before(CloseBrace),
+        Tok("else").Then(OpenBrace).Then(Rec(() => StructOrField!).Many()).Before(CloseBrace).Optional());
+
+    /// <summary>Parses tagged alternatives with explicit braces and no fall-through.</summary>
+    public static readonly Parser<char, IEnumerable<Field>> SwitchFields = Map(
+        (selector, cases, fallback) => ApplySwitch(selector, cases, fallback.HasValue ? fallback.Value.SelectMany(group => group) : Enumerable.Empty<Field>()),
+        Tok("switch").Then(Tok('(')).Then(Rec(() => Expr)).Before(Tok(')')).Before(OpenBrace),
+        Map(
+            (tag, fields) => (Tag: tag, Fields: fields.SelectMany(group => group)),
+            Tok("case").Then(Rec(() => Expr)).Before(Colon),
+            OpenBrace.Then(Rec(() => StructOrField!).Many()).Before(CloseBrace)).Many(),
+        Tok("default").Then(Colon).Then(OpenBrace).Then(Rec(() => StructOrField!).Many()).Before(CloseBrace).Optional().Before(CloseBrace));
+
+    private static IEnumerable<Field> ApplySwitch(Expr selector, IEnumerable<(Expr Tag, IEnumerable<Field> Fields)> cases, IEnumerable<Field> fallback)
+    {
+        var group = new object();
+        Expr any = new Literal(0);
+        var result = new List<Field>();
+        var tags = new HashSet<Expr>();
+        var labels = new List<Expr>();
+        foreach (var arm in cases)
+        {
+            if (!tags.Add(arm.Tag))
+            {
+                throw new CStructLayoutException("Duplicate switch case.");
+            }
+
+            labels.Add(arm.Tag);
+            var condition = new BinaryOp(BinaryOperatorType.Equal, selector, arm.Tag);
+            result.AddRange(ApplyCondition(condition, arm.Fields, group));
+            any = new BinaryOp(BinaryOperatorType.LogicalOr, any, condition);
+        }
+
+        result.AddRange(ApplyCondition(new UnaryOp(UnaryOperatorType.LogicalNot, any), fallback, group));
+
+        // This marker is removed during normalization. Keeping it even for empty arms makes
+        // duplicate and non-constant labels a compilation error regardless of runtime selection.
+        result.Insert(0, new SwitchCaseValidation(labels));
+        return result;
+    }
+
+    private static IEnumerable<Field> ApplyIf(Expr condition, IEnumerable<Field> yes, IEnumerable<Field> no)
+    {
+        var group = new object();
+        return ApplyCondition(condition, yes, group).Concat(
+            ApplyCondition(new UnaryOp(UnaryOperatorType.LogicalNot, condition), no, group));
+    }
+
+    private static IEnumerable<Field> ApplyCondition(Expr condition, IEnumerable<Field> fields, object group)
+    {
+        foreach (Field field in fields)
+        {
+            field.Condition = field.Condition is null ? condition : new BinaryOp(BinaryOperatorType.LogicalAnd, condition, field.Condition);
+            field.BranchConditions = new[] { (group, condition) }.Concat(field.BranchConditions).ToArray();
+            yield return field;
+        }
+    }
+
     public static readonly Parser<char, IEnumerable<Field>> StructOrField =
-        Rec(() => Try(InnerStruct!).Select(f => (IEnumerable<Field>)new[] { f, }).Or(FieldGroup));
+        Rec(() => Try(ConditionalFields).Or(Try(SwitchFields)).Or(Try(InnerStruct!).Select(f => (IEnumerable<Field>)new[] { f, }).Or(FieldGroup)));
 
     /// <summary>
     ///     A trailing name is optional (LANG-14): when omitted, this inline struct is an anonymous promoted

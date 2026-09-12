@@ -61,6 +61,12 @@ test("demo generation keeps extracted inputs complete and constructor options in
   assert.equal(concatenatedDefinition.runnable, true);
   assert.match(concatenatedDefinition.definition, /union choice/);
 
+  const conditionalArray = byId.get("ConditionalFieldTests.Groups_FreezeDecisionsPerArrayElement");
+  assert.equal(conditionalArray.runnable, true);
+  assert.match(conditionalArray.definition, /^struct entry \{/);
+  assert.match(conditionalArray.definition, /struct root \{ entry items\[2\]; \};$/);
+  assert.equal(conditionalArray.binaryHex, "01 00 01 2a 4d 58 00 34 12");
+
   const compiledTypedef = byId.get(
     "CompiledIntermediateRepresentationTests.PrimitiveTypedefSlice_UsesCompiledFactsAcrossEveryOperation",
   );

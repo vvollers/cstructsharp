@@ -105,6 +105,24 @@ internal sealed class ExpressionEvaluator
         while (pending.Count > 0)
         {
             CompilationFrame frame = pending.Pop();
+            if (frame.BranchStage == 1)
+            {
+                instructions.Add(new ExpressionInstruction(
+                    ((BinaryOp)frame.Expression).Type == BinaryOperatorType.LogicalAnd ? ExpressionOpcode.JumpIfFalse : ExpressionOpcode.JumpIfTrue,
+                    BigInteger.Zero,
+                    null,
+                    frame.Depth,
+                    frame.Patch));
+                continue;
+            }
+
+            if (frame.BranchStage == 2)
+            {
+                instructions.Add(CreateOperatorInstruction(frame.Expression, frame.Depth));
+                frame.Patch!.Target = instructions.Count;
+                continue;
+            }
+
             if (frame.EmitOperator)
             {
                 instructions.Add(CreateOperatorInstruction(frame.Expression, frame.Depth));
@@ -147,16 +165,24 @@ internal sealed class ExpressionEvaluator
                         ExpressionOpcode.Identifier,
                         BigInteger.Zero,
                         identifier.Name,
-                        frame.Depth));
+                        frame.Depth,
+                        Conditional: frame.Conditional));
                 break;
             case UnaryOp unary:
                 pending.Push(new CompilationFrame(unary, frame.Depth, true));
-                pending.Push(new CompilationFrame(unary.Expr, frame.Depth + 1, false));
+                pending.Push(new CompilationFrame(unary.Expr, frame.Depth + 1, false, Conditional: frame.Conditional));
+                break;
+            case BinaryOp binary when binary.Type is BinaryOperatorType.LogicalAnd or BinaryOperatorType.LogicalOr:
+                var patch = new BranchPatch();
+                pending.Push(new CompilationFrame(binary, frame.Depth, false, 2, patch));
+                pending.Push(new CompilationFrame(binary.Right, frame.Depth + 1, false, Conditional: true));
+                pending.Push(new CompilationFrame(binary, frame.Depth, false, 1, patch));
+                pending.Push(new CompilationFrame(binary.Left, frame.Depth + 1, false, Conditional: frame.Conditional));
                 break;
             case BinaryOp binary:
                 pending.Push(new CompilationFrame(binary, frame.Depth, true));
-                pending.Push(new CompilationFrame(binary.Right, frame.Depth + 1, false));
-                pending.Push(new CompilationFrame(binary.Left, frame.Depth + 1, false));
+                pending.Push(new CompilationFrame(binary.Right, frame.Depth + 1, false, Conditional: frame.Conditional));
+                pending.Push(new CompilationFrame(binary.Left, frame.Depth + 1, false, Conditional: frame.Conditional));
                 break;
             case Call:
                 throw new NotSupportedException("Expression calls are parsed but are not supported.");
@@ -176,9 +202,18 @@ internal sealed class ExpressionEvaluator
     {
         ExpressionOpcode opcode = expression switch
         {
+            UnaryOp { Type: UnaryOperatorType.LogicalNot, } => ExpressionOpcode.LogicalNot,
             UnaryOp { Type: UnaryOperatorType.Complement, } => ExpressionOpcode.Complement,
             UnaryOp { Type: UnaryOperatorType.Neg, } => ExpressionOpcode.Negate,
             UnaryOp unary => throw new InvalidOperationException("Unknown unary operator: " + unary.Type),
+            BinaryOp { Type: BinaryOperatorType.LogicalAnd, } => ExpressionOpcode.LogicalAnd,
+            BinaryOp { Type: BinaryOperatorType.LogicalOr, } => ExpressionOpcode.LogicalOr,
+            BinaryOp { Type: BinaryOperatorType.Equal, } => ExpressionOpcode.Equal,
+            BinaryOp { Type: BinaryOperatorType.NotEqual, } => ExpressionOpcode.NotEqual,
+            BinaryOp { Type: BinaryOperatorType.Less, } => ExpressionOpcode.Less,
+            BinaryOp { Type: BinaryOperatorType.LessOrEqual, } => ExpressionOpcode.LessOrEqual,
+            BinaryOp { Type: BinaryOperatorType.Greater, } => ExpressionOpcode.Greater,
+            BinaryOp { Type: BinaryOperatorType.GreaterOrEqual, } => ExpressionOpcode.GreaterOrEqual,
             BinaryOp { Type: BinaryOperatorType.Add, } => ExpressionOpcode.Add,
             BinaryOp { Type: BinaryOperatorType.Minus, } => ExpressionOpcode.Subtract,
             BinaryOp { Type: BinaryOperatorType.And, } => ExpressionOpcode.And,
@@ -225,12 +260,12 @@ internal sealed class ExpressionEvaluator
         }
 
         /// <summary>Checks complete dependency paths independently of result-cache order and without recursive calls.</summary>
-        private void ValidateDependencyDepth(CompiledExpression root)
+        private void ValidateDependencyDepth(CompiledExpression root, int baseDepth = 0)
         {
             var activeIdentifiers = new HashSet<string>(StringComparer.Ordinal);
             var pending = new Stack<DependencyValidationFrame>();
             this.ChargeValidatedNodes(root);
-            pending.Push(new DependencyValidationFrame(root, 0, 0, null));
+            pending.Push(new DependencyValidationFrame(root, baseDepth, 0, null));
 
             while (pending.Count > 0)
             {
@@ -305,8 +340,9 @@ internal sealed class ExpressionEvaluator
             int valueCount = 0;
             try
             {
-                foreach (ExpressionInstruction instruction in program.Instructions)
+                for (int pc = 0; pc < program.Instructions.Length; pc++)
                 {
+                    ExpressionInstruction instruction = program.Instructions[pc];
                     this.executedNodes++;
                     if (this.executedNodes > this.limits.MaximumNodes)
                     {
@@ -318,11 +354,29 @@ internal sealed class ExpressionEvaluator
                     case ExpressionOpcode.Literal:
                         values[valueCount++] = checked((int)instruction.Value);
                         break;
+                    case ExpressionOpcode.JumpIfFalse:
+                    case ExpressionOpcode.JumpIfTrue:
+                        bool truth = values[valueCount - 1] != 0;
+                        if (truth == (instruction.Opcode == ExpressionOpcode.JumpIfTrue))
+                        {
+                            values[valueCount - 1] = truth ? 1 : 0;
+                            pc = instruction.Patch!.Target - 1;
+                        }
+
+                        break;
                     case ExpressionOpcode.Identifier:
+                        if (instruction.Conditional && this.variables.TryGetValue(instruction.Name!, out Expr? selected))
+                        {
+                            this.ValidateDependencyDepth(this.evaluator.GetProgram(selected), dependencyDepth + instruction.Depth);
+                        }
+
                         values[valueCount++] = this.EvaluateIdentifier(
                             instruction.Name ??
                             throw new InvalidOperationException("Identifier instruction has no name."),
                             dependencyDepth + instruction.Depth);
+                        break;
+                    case ExpressionOpcode.LogicalNot:
+                        values[valueCount - 1] = values[valueCount - 1] == 0 ? 1 : 0;
                         break;
                     case ExpressionOpcode.Complement:
                         values[valueCount - 1] = ~values[valueCount - 1];
@@ -386,6 +440,14 @@ internal sealed class ExpressionEvaluator
         {
             return opcode switch
             {
+                ExpressionOpcode.LogicalAnd => left != 0 && right != 0 ? 1 : 0,
+                ExpressionOpcode.LogicalOr => left != 0 || right != 0 ? 1 : 0,
+                ExpressionOpcode.Equal => left == right ? 1 : 0,
+                ExpressionOpcode.NotEqual => left != right ? 1 : 0,
+                ExpressionOpcode.Less => left < right ? 1 : 0,
+                ExpressionOpcode.LessOrEqual => left <= right ? 1 : 0,
+                ExpressionOpcode.Greater => left > right ? 1 : 0,
+                ExpressionOpcode.GreaterOrEqual => left >= right ? 1 : 0,
                 ExpressionOpcode.Add => checked(left + right),
                 ExpressionOpcode.Subtract => checked(left - right),
                 ExpressionOpcode.And => left & right,
@@ -517,6 +579,7 @@ internal sealed class ExpressionEvaluator
             BigInteger value = this.Evaluate(unary.Expr, depth + 1);
             return unary.Type switch
             {
+                UnaryOperatorType.LogicalNot => value.IsZero ? BigInteger.One : BigInteger.Zero,
                 UnaryOperatorType.Complement => ~value,
                 UnaryOperatorType.Neg => -value,
                 _ => throw new InvalidOperationException("Unknown unary operator: " + unary.Type),
@@ -526,9 +589,27 @@ internal sealed class ExpressionEvaluator
         private BigInteger EvaluateBinary(BinaryOp binary, int depth)
         {
             BigInteger left = this.Evaluate(binary.Left, depth + 1);
+            if (binary.Type == BinaryOperatorType.LogicalAnd && left.IsZero)
+            {
+                return BigInteger.Zero;
+            }
+
+            if (binary.Type == BinaryOperatorType.LogicalOr && !left.IsZero)
+            {
+                return BigInteger.One;
+            }
+
             BigInteger right = this.Evaluate(binary.Right, depth + 1);
             return binary.Type switch
             {
+                BinaryOperatorType.LogicalAnd => right.IsZero ? BigInteger.Zero : BigInteger.One,
+                BinaryOperatorType.LogicalOr => right.IsZero ? BigInteger.Zero : BigInteger.One,
+                BinaryOperatorType.Equal => left == right ? BigInteger.One : BigInteger.Zero,
+                BinaryOperatorType.NotEqual => left != right ? BigInteger.One : BigInteger.Zero,
+                BinaryOperatorType.Less => left < right ? BigInteger.One : BigInteger.Zero,
+                BinaryOperatorType.LessOrEqual => left <= right ? BigInteger.One : BigInteger.Zero,
+                BinaryOperatorType.Greater => left > right ? BigInteger.One : BigInteger.Zero,
+                BinaryOperatorType.GreaterOrEqual => left >= right ? BigInteger.One : BigInteger.Zero,
                 BinaryOperatorType.Add => left + right,
                 BinaryOperatorType.Minus => left - right,
                 BinaryOperatorType.And => left & right,
@@ -576,12 +657,19 @@ internal sealed class ExpressionEvaluator
                     break;
                 case ExpressionOpcode.Identifier:
                     stackSize++;
-                    identifierReferences.Add(
+                    if (!instruction.Conditional)
+                    {
+                        identifierReferences.Add(
                         new ExpressionIdentifierReference(
                             instruction.Name ??
                             throw new InvalidOperationException("Identifier instruction has no name."),
                             instruction.Depth));
+                    }
+
                     break;
+                case ExpressionOpcode.JumpIfFalse:
+                case ExpressionOpcode.JumpIfTrue:
+                case ExpressionOpcode.LogicalNot:
                 case ExpressionOpcode.Complement:
                 case ExpressionOpcode.Negate:
                     break;
@@ -620,7 +708,12 @@ internal sealed class ExpressionEvaluator
     }
 
     /// <summary>Represents one iterative compilation frame.</summary>
-    private readonly record struct CompilationFrame(Expr Expression, int Depth, bool EmitOperator);
+    private readonly record struct CompilationFrame(Expr Expression, int Depth, bool EmitOperator, int BranchStage = 0, BranchPatch? Patch = null, bool Conditional = false);
+
+    private sealed class BranchPatch
+    {
+        public int Target { get; set; }
+    }
 
     /// <summary>Tracks one iterative dependency walk and the identifier removed when that frame exits.</summary>
     private readonly record struct DependencyValidationFrame(
@@ -637,11 +730,24 @@ internal sealed class ExpressionEvaluator
         ExpressionOpcode Opcode,
         BigInteger Value,
         string? Name,
-        int Depth);
+        int Depth,
+        BranchPatch? Patch = null,
+        bool Conditional = false);
 
     /// <summary>Lists the executable operations supported by the CStructSharp expression subset.</summary>
     private enum ExpressionOpcode
     {
+        JumpIfFalse,
+        JumpIfTrue,
+        LogicalAnd,
+        LogicalOr,
+        LogicalNot,
+        Equal,
+        NotEqual,
+        Less,
+        LessOrEqual,
+        Greater,
+        GreaterOrEqual,
         Literal,
         Identifier,
         Complement,

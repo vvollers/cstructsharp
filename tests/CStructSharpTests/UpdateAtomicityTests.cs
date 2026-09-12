@@ -220,6 +220,26 @@ public class UpdateAtomicityTests
         CollectionAssert.AreEqual(new byte[] { 0xA5, }, stream.Snapshot());
         Assert.AreEqual(0, stream.WriteCalls);
         Assert.AreEqual(0L, stream.Position);
+
+        // Conditional validation reads the original layout, then checks the sparse replacement before commit.
+        // Each pass reads scalar bytes and their debug spans. With the tag staged, the second pass must
+        // still charge both reads of the untouched payload to the same physical-read budget (4 + 2 bytes).
+        var conditional = new CStruct("struct root { uint8 tag; if (tag) { uint8 payload; } };", aligned: false);
+        foreach (long budget in new long[] { 0, 3, 4, 5 })
+        {
+            using var conditionalStream = new TrackingStream(new byte[] { 0xEE, 1, 42 }) { Position = 1 };
+            Assert.Throws<CStructReadLimitException>(() => conditional.UpdateStream(
+                conditionalStream, "root.tag", 1, options: new UpdateOptions { MaxTraversalBytesRead = budget }));
+            CollectionAssert.AreEqual(new byte[] { 0xEE, 1, 42 }, conditionalStream.Snapshot());
+            Assert.AreEqual(0, conditionalStream.WriteCalls);
+            Assert.AreEqual(1L, conditionalStream.Position);
+        }
+
+        using var permitted = new TrackingStream(new byte[] { 0xEE, 1, 42 }) { Position = 1 };
+        conditional.UpdateStream(permitted, "root.tag", 1, options: new UpdateOptions { MaxTraversalBytesRead = 6 });
+        CollectionAssert.AreEqual(new byte[] { 0xEE, 1, 42 }, permitted.Snapshot());
+        Assert.IsTrue(permitted.WriteCalls > 0);
+        Assert.AreEqual(1L, permitted.Position);
     }
 
     /// <summary>

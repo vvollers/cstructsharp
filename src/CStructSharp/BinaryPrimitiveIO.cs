@@ -7,6 +7,46 @@ using System.IO;
 /// <summary>Reads and writes fixed-width unsigned integers in a caller-chosen byte order.</summary>
 internal static class BinaryPrimitiveIO
 {
+    /// <summary>Reads an unsigned three-byte integer.</summary>
+    public static uint ReadUInt24(Stream stream, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[3];
+        ReadExactlyOrThrow(stream, buffer);
+        return isLittleEndian
+                   ? (uint)(buffer[0] | (buffer[1] << 8) | (buffer[2] << 16))
+                   : (uint)(buffer[2] | (buffer[1] << 8) | (buffer[0] << 16));
+    }
+
+    /// <summary>Reads a three-byte integer and sign-extends bit 23.</summary>
+    public static int ReadInt24(Stream stream, bool isLittleEndian)
+        => unchecked((int)(ReadUInt24(stream, isLittleEndian) << 8)) >> 8;
+
+    /// <summary>Writes an unsigned three-byte integer after checking its range.</summary>
+    public static void WriteUInt24(Stream stream, uint value, bool isLittleEndian)
+    {
+        if (value > 0xffffff)
+        {
+            throw new CStructWriteException("Value is outside the uint24 range.");
+        }
+
+        Span<byte> buffer = stackalloc byte[3];
+        buffer[1] = (byte)(value >> 8);
+        buffer[isLittleEndian ? 0 : 2] = (byte)value;
+        buffer[isLittleEndian ? 2 : 0] = (byte)(value >> 16);
+        stream.Write(buffer);
+    }
+
+    /// <summary>Writes a signed three-byte integer after checking its range.</summary>
+    public static void WriteInt24(Stream stream, int value, bool isLittleEndian)
+    {
+        if (value is < -8388608 or > 8388607)
+        {
+            throw new CStructWriteException("Value is outside the int24 range.");
+        }
+
+        WriteUInt24(stream, unchecked((uint)value) & 0xffffff, isLittleEndian);
+    }
+
     /// <summary>Reads one required byte and turns an unexpected end of stream into a layout-specific error.</summary>
     public static byte ReadByteExactly(Stream stream)
     {

@@ -41,6 +41,17 @@ Writing `"XY"` produces:
 The writer fills unused capacity with zero. A value longer than four code units fails instead of extending the field
 or overwriting what follows it.
 
+## Byte-bounded UTF-8
+
+Use `utf8 name[byte_count];` when the format declares the UTF-8 byte length rather than a terminator.
+For example, `utf8 name[2];` decodes `C3 A9` as `"é"`, consuming exactly two bytes. Counts may use earlier
+fields or layout variables. Embedded NULs remain in the string. Reads reject malformed or truncated UTF-8;
+writes reject text that exceeds the encoded byte capacity and zero-pad shorter values. This is distinct
+from `char[N]`, which displays raw one-byte code units without UTF-8 decoding.
+
+See [bounded UTF-8 semantics](../language/arrays-and-strings.md#byte-bounded-utf-8-buffers) for limits,
+indexed byte access and supported shapes.
+
 ## Terminated strings
 
 Use `cstring`, `ascii_string_zero`, `utf8_string_zero`, `string`, or another named terminated type when the format

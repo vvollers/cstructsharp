@@ -40,7 +40,7 @@ typedef-struct-declaration
 typedef-union-declaration
                  = "typedef", "union", [ identifier ], [ alignment-override ], "{", { union-field }, "}", identifier, ";" ;
 typedef-declaration
-                 = "typedef", identifier, pointer-stars, identifier, ";" ;
+                 = "typedef", type-name, pointer-stars, identifier, ";" ;
 enum-declaration = "enum", identifier, [ enum-storage ],
                    "{", [ enum-values ], "}", ";" ;
 enum-storage     = ":", identifier ;
@@ -49,7 +49,11 @@ enum-value       = identifier, [ "=", expression ] ;
 define-declaration
                  = "#define", identifier, expression ;
 
-struct-field     = field | inline-struct-field ;
+struct-field     = field | inline-struct-field | conditional-field | switch-field ;
+field-block      = "{", { struct-field }, "}" ;
+conditional-field = "if", "(", expression, ")", field-block, [ "else", field-block ] ;
+switch-field     = "switch", "(", expression, ")", "{", { switch-case }, [ "default", ":", field-block ], "}" ;
+switch-case      = "case", expression, ":", field-block ;
 inline-struct-field
                  = "struct", [ alignment-override ], "{", { struct-field }, "}", [ identifier ], ";" ;
 union-field      = field ;
@@ -69,13 +73,17 @@ alignment-override
                  = "@align", "(", expression, ")" ;
 offset-assertion = "@", expression ;
 
-expression       = bitwise-or ;
+expression       = logical-or ;
+logical-or       = logical-and, { "||", logical-and } ;
+logical-and      = bitwise-or, { "&&", bitwise-or } ;
 bitwise-or       = bitwise-and, { "|", bitwise-and } ;
-bitwise-and      = shift, { "&", shift } ;
+bitwise-and      = equality, { "&", equality } ;
+equality         = relational, { ( "==" | "!=" ), relational } ;
+relational       = shift, { ( "<" | "<=" | ">" | ">=" ), shift } ;
 shift            = additive, { ( "<<" | ">>" ), additive } ;
 additive         = multiplicative, { ( "+" | "-" ), multiplicative } ;
 multiplicative   = unary, { ( "*" | "/" ), unary } ;
-unary            = { "-" | "~" }, primary ;
+unary            = { "-" | "~" | "!" }, primary ;
 primary          = literal | identifier | "(", expression, ")" ;
 literal          = sign, ( decimal | hexadecimal | binary | octal ), [ integer-suffix ] ;
 integer-suffix   = { "u" | "U" | "l" | "L" } ;
@@ -260,6 +268,14 @@ The table explains each production and links to the page that defines its additi
 | `line-end` | CRLF, CR, or LF |
 | `end-of-input` | Requires the parser to consume the complete input |
 | `path` | Dot-separated public selector |
+| `field-block` | Braced sequence of fields, including nested conditional groups |
+| `conditional-field` | Runtime if/else group with lazy inactive branches |
+| `switch-field` | Discriminator-selected cases and optional fallback |
+| `switch-case` | Compile-time constant label and a braced field block |
+| `logical-or` | Short-circuit logical OR |
+| `logical-and` | Short-circuit logical AND |
+| `equality` | Integer equality and inequality comparisons |
+| `relational` | Ordered integer comparisons |
 | `segment` | Named path component with zero or more indices, one per dimension actually indexed (LANG-05) |
 | `indexer` | Normalized decimal array index |
 | `canonical-decimal-index` | Formal production name for `0` or an unpadded positive decimal integer |
@@ -268,3 +284,54 @@ The table explains each production and links to the page that defines its additi
 Invalid combinations—unknown types, duplicate names, recursive by-value storage, bad enum backing,
 oversized expressions, unsupported bitfield storage, and unsized non-character arrays—fail layout construction with
 `CStructErrorCode.InvalidLayout`. Syntax recognized only for a focused error does not expand the supported grammar.
+
+## Conditional field groups
+
+A struct body accepts `if (expression) { fields }` with an optional
+`else { fields }`, and `switch (expression) { case expression: { fields }
+... default: { fields } }`. Each case requires braces and has no fall-through.
+The default is optional; a switch without a matching case/default contributes
+no fields. Cases and branches retain the enclosing field namespace: give
+alternatives distinct names, preferably named inline structs. Duplicate field
+names remain errors even in mutually exclusive branches.
+
+Case labels must evaluate to distinct checked integer constants when the layout
+is compiled. Labels may use `#define` constants; later caller overrides do not
+change their values. Equivalent labels such as `1` and `1 + 0` are duplicates,
+including on empty arms. Runtime fields cannot supply case labels.
+
+```c
+struct packet {
+    uint8 kind;
+    switch (kind) {
+        case 1: { struct { uint16 value; } short_record; }
+        case 2: { struct { uint32 value; } long_record; }
+        default: { uint8 unknown_tag_marker; }
+    }
+    uint8 trailer;
+};
+```
+
+Only active fields consume storage, appear in results/debug data, or resolve as
+paths. Predicates use earlier decoded fields, definitions and caller variables.
+In a composite containing conditional fields, local declarations shadow caller
+values from the start of that composite. A forward or inactive local is unavailable;
+it cannot reuse a value from an earlier array element. This includes fields exposed
+through anonymous struct promotion, including transitive promotion. Unavailable active expressions
+raise `CStructLayoutException` during reads, writes, and address resolution.
+Each group uses the variable environment captured when that group is first
+reached. Nested groups see fields read before their own entry. Named nested
+members cannot overwrite the enclosing conditional composite's local fields
+for later predicates; each struct-array element starts a fresh scope.
+Nested inactive predicates are not evaluated. Put conditional bitfields inside
+a named inline struct so each group owns its storage units. Ordinary unions
+retain their existing overlapping semantics.
+
+Serialization chooses branches from supplied values and rejects supplied inactive
+members, including promoted members of inactive anonymous structs. For roots with
+reachable conditional types (including aliases and pointer targets), in-place
+updates validate the original and staged root, rejecting changes
+to active branch decisions or field byte ranges. This requires the complete root
+to be readable within the configured budgets. Serialize a new buffer when a
+change requires a different layout. Unrelated conditional type declarations do not
+force full-root validation for a selected update whose root has no conditional types.

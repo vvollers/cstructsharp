@@ -99,6 +99,13 @@ internal class Field : CStructElement
 
     internal Expr BitSizeExpression { get; }
 
+    /// <summary>Optional runtime predicate controlling whether this field consumes storage.</summary>
+    internal Expr? Condition { get; set; }
+
+    /// <summary>Ordered outer-to-inner predicates with shared identity for all arms of one syntactic group.</summary>
+    internal IReadOnlyList<(object Group, Expr Predicate)> BranchConditions { get; set; } =
+        Array.Empty<(object Group, Expr Predicate)>();
+
     public bool IsPointer { get; }
 
     public int PointerDepth { get; }

@@ -172,10 +172,25 @@ public partial class CStruct
             }
 
             CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
+            var variableScope = new ConditionalVariableScope(composite, state.Variables);
+            var selection = new ConditionalFieldSelection(this.layoutExpressionEvaluator);
             var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned);
 
             foreach (CompiledField field in composite.Fields)
             {
+                if (!selection.IsActive(field, state.Variables))
+                {
+                    foreach (string name in ConditionalVariableScope.GetVisibleNames(field))
+                    {
+                        if (PocoDataBinding.TryGetMemberValue(data, name, state.BindingMode, out _))
+                        {
+                            throw new CStructWriteException("Inactive conditional field supplied: " + name);
+                        }
+                    }
+
+                    continue;
+                }
+
                 if (composite.PromotedFields.Contains(field))
                 {
                     // An anonymous promoted member (LANG-14) has no name to look up - splice its own children
@@ -183,6 +198,7 @@ public partial class CStruct
                     // Struct dispatch recurses WriteStruct with this same `data`, so the promoted member's own
                     // fields are looked up directly on it, with no nested member of its own.
                     this.WriteFieldValue(field, data, state, -1, cursor);
+                    variableScope.CompleteField(field, state.Variables);
                     continue;
                 }
 
@@ -191,6 +207,7 @@ public partial class CStruct
                     // An anonymous nonzero-width bitfield (LANG-17) is pure padding with no caller-supplied value -
                     // there is no member to look up, so write its canonical zero bits directly.
                     this.WriteFieldValue(field, 0, state, -1, cursor);
+                    variableScope.CompleteField(field, state.Variables);
                     continue;
                 }
 
@@ -200,6 +217,7 @@ public partial class CStruct
                     field.EffectiveField.Name.Name,
                     state.BindingMode);
                 this.WriteFieldValue(field, fieldValue, state, -1, cursor);
+                variableScope.CompleteField(field, state.Variables);
             }
 
             // A final aligned tail is part of the struct's storage size, not merely a cursor adjustment. Materialize
@@ -551,7 +569,8 @@ public partial class CStruct
         }
         else if (isArray)
         {
-            if (CharacterFieldTypes.IsCharArrayField(effectiveField))
+            if (CharacterFieldTypes.IsCharArrayField(effectiveField) ||
+                (!effectiveField.IsPointer && BoundedTextCodec.IsType(effectiveField.Type.Name)))
             {
                 // Character arrays accept either one string or a collection of characters and always fill the declared size.
                 string str = value as string ??
@@ -608,7 +627,15 @@ public partial class CStruct
         }
         else
         {
-            WriterVariableProjection.UpdateVariablesFromValue(state, effectiveField.Name.Name, value!);
+            if (!effectiveField.IsPointer && (FixedPointCodec.IsType(compiledField.CodecName) ||
+                                             compiledField.CodecName is "uuid" or "guid"))
+            {
+                state.Variables.Remove(effectiveField.Name.Name);
+            }
+            else
+            {
+                WriterVariableProjection.UpdateVariablesFromValue(state, effectiveField.Name.Name, value!);
+            }
         }
     }
 
@@ -650,6 +677,35 @@ public partial class CStruct
         CStructElementWriterState state)
     {
         Field field = compiledField.EffectiveField;
+
+        if (BoundedTextCodec.IsType(field.Type.Name))
+        {
+            state.EnsureStringBytes(count);
+            if (BoundedTextCodec.IsUtf16(field.Type.Name) && (count & 1) != 0)
+            {
+                throw new CStructWriteException("UTF-16 byte capacity must be even.");
+            }
+
+            byte[] encoded;
+            try
+            {
+                int length = BoundedTextCodec.GetByteCount(field.Type.Name, value);
+                if (length > count)
+                {
+                    throw new CStructWriteException($"Encoded string is too long for {field.Name.Name}: {length} encoded bytes > {count}.");
+                }
+
+                encoded = BoundedTextCodec.Encode(field.Type.Name, value);
+            }
+            catch (EncoderFallbackException exception)
+            {
+                throw new CStructWriteException("String cannot be represented in the selected encoding.", exception);
+            }
+
+            state.Stream.Write(encoded, 0, encoded.Length);
+            state.WriteZeroes(count - encoded.Length);
+            return;
+        }
 
         // Fixed arrays must consume their declared byte count. Reject too much input instead of silently truncating it.
         if (value.Length > count)
@@ -810,6 +866,23 @@ public partial class CStruct
                                             "Compiled field has no writer: " + field.CodecName);
         try
         {
+            if (stream is WriteBudgetStream { IsSparseUpdate: true } && Leb128Codec.IsType(field.CodecName))
+            {
+                long start = stream.Position;
+                _ = field.Reader!(stream);
+                long available = stream.Position - start;
+                stream.Position = start;
+                using var encoded = new MemoryStream();
+                writer(encoded, value);
+                if (encoded.Length != available)
+                {
+                    throw new CStructWriteException("LEB128 updates must preserve the existing encoded byte length.");
+                }
+
+                stream.Write(encoded.GetBuffer(), 0, (int)encoded.Length);
+                return;
+            }
+
             writer(stream, value);
         }
         catch (Exception exception) when (exception is ArgumentException or ArithmeticException or
@@ -945,6 +1018,15 @@ public partial class CStruct
         Exception? primaryException = null;
         try
         {
+            Dictionary<string, Expr>? layoutVariables = null;
+            (string Path, long Start, long End)[]? originalLayout = null;
+            if (this.HasConditionalLayout(rootName))
+            {
+                layoutVariables = new Dictionary<string, Expr>(effectiveVariables);
+                originalLayout = this.CaptureUpdateLayout(readState.Stream, originalPosition, rootElement, layoutVariables, readOptions);
+                readState.Stream.Position = originalPosition;
+            }
+
             ResolvedTarget target = this.ResolveTargetFromLayout(readState, segments);
 
             // From here on, all writer helpers use the exact absolute target coordinates without touching caller bytes.
@@ -999,6 +1081,15 @@ public partial class CStruct
             }
 
             // The caller sees writes only after every library-detectable writer failure has been ruled out.
+            if (originalLayout is not null)
+            {
+                var changedLayout = this.CaptureUpdateLayout(stagingStream, originalPosition, rootElement, layoutVariables!, readOptions);
+                if (!originalLayout.SequenceEqual(changedLayout))
+                {
+                    throw new CStructWriteException("Update changes the active conditional storage layout; serialize a new buffer instead.");
+                }
+            }
+
             stagingStream.CommitTo(stream);
         }
         catch (Exception exception)
