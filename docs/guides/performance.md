@@ -33,3 +33,30 @@ Do not add an application cache of mutable streams or results around a reusable 
 See [Spans, memory, and buffer writers](spans-and-memory.md) for ownership details and the
 [project testing guide](../project/testing.md#performance-packages-and-release-checks) for repository benchmark
 expectations.
+
+## JavaScript compiled reuse
+
+For repeated reads of the same schema, use `compile` from the npm package or standalone browser bundle:
+
+```js
+const layout = await compile(definition, { rootTypeName: "root" });
+try {
+  for (const bytes of records) {
+    const result = await layout.parse(bytes);
+    if (!result.Success) throw new Error(result.Error.Message);
+    consume(JSON.parse(result.Data));
+  }
+} finally {
+  await layout.dispose();
+}
+```
+
+Compilation owns a dedicated worker and runtime. Reads reuse the compiled layout; `parseWithDebug` adds byte mappings.
+One handle queues concurrent reads and keeps operation state separate. Layout options are fixed, while each read
+can choose limits and an abort signal. Cancellation stops an active worker; a later read recreates it and compiles the layout again.
+Dispose unused handles promptly: each retains a runtime. Ordinary source parsing also reuses a worker for 30 seconds
+of idle time, but still compiles the schema for each call.
+
+Compare cold startup separately from warmed reads. Worker messaging, source staging, result materialization and JSON
+projection remain real costs even with a retained layout. Conditional groups are selected once on entry; their cost
+also depends on the number of fields, nested scopes and active payload, so compare equivalent data and layouts.

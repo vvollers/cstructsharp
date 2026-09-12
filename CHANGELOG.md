@@ -4,6 +4,13 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Added JavaScript `compile(definition, options)` with retained `parse`, `parseWithDebug`, and async `dispose`.
+  Compiled handles own a worker/runtime and queue reads; cancellation terminates an active worker and the next
+  read recreates it. Ordinary source parsing reuses an idle-expiring worker while source staging remains independent.
+  Existing operation signatures and version-5 result envelopes are unchanged.
+- Reduced layout compilation, conditional selection/scope, codec recognition and indexed debug-path overhead.
+  Primitive metadata is shared immutably; conditional decisions and mutable read/write state remain isolated.
+
 - **Breaking:** Renamed `UpdateOptions.AllowPointerDereference` to `DereferencePointers`, matching
   `ReadOptions.DereferencePointers` (both already collapsed into the same internal setting). No compatibility
   alias is provided; update any `new UpdateOptions { AllowPointerDereference = ... }` call sites to
