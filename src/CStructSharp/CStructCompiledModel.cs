@@ -41,29 +41,9 @@ public partial class CStruct
     /// <summary>Creates all type symbols first, then binds immutable enum, field, and composite definitions.</summary>
     private CompiledLayoutModel BuildCompiledLayout()
     {
-        var namedTypes = new Dictionary<string, CompiledTypeReference>(StringComparer.Ordinal);
+        var namedTypes = this.primitiveRegistry.Symbols.ToBuilder();
         var compositeSymbols = new Dictionary<Struct, CompiledTypeSymbol>(ReferenceEqualityComparer.Instance);
         var enumSymbols = new Dictionary<CstructEnum, CompiledTypeSymbol>(ReferenceEqualityComparer.Instance);
-
-        foreach (KeyValuePair<string, Func<Stream, object>> reader in this.fieldHandlers)
-        {
-            if (!this.writeHandlers.TryGetValue(reader.Key, out Action<Stream, object>? writer))
-            {
-                throw new CStructLayoutException("Primitive codec has no matching writer: " + reader.Key);
-            }
-
-            int? fixedSize = (PrimitiveCodecs.IsVariableLengthType(reader.Key) || Leb128Codec.IsType(reader.Key)) ? null : this.fieldAlignments[reader.Key];
-            var symbol = new CompiledTypeSymbol(
-                reader.Key,
-                CompiledTypeKind.Primitive,
-                null,
-                fixedSize == 3 || reader.Key is "uuid" or "guid" ? 1 : this.fieldAlignments[reader.Key],
-                fixedSize,
-                reader.Value,
-                writer);
-            symbol.Bind(new CompiledPrimitiveType(symbol));
-            namedTypes.Add(reader.Key, new CompiledTypeReference(symbol, 0, reader.Key));
-        }
 
         foreach (CStructElement declaration in this.CStructElements.Values)
         {
@@ -223,10 +203,7 @@ public partial class CStruct
         }
 
         var publishedSymbols = new HashSet<CompiledTypeSymbol>(ReferenceEqualityComparer.Instance);
-        foreach (CompiledTypeSymbol symbol in namedTypes.Values.
-                     Select(reference => reference.Symbol).
-                     Concat(compositeSymbols.Values).
-                     Concat(enumSymbols.Values))
+        foreach (CompiledTypeSymbol symbol in compositeSymbols.Values.Concat(enumSymbols.Values))
         {
             if (!publishedSymbols.Add(symbol))
             {
@@ -249,7 +226,7 @@ public partial class CStruct
         return new CompiledLayoutModel(
             this.cStructElements.ToImmutableDictionary(StringComparer.Ordinal),
             this.cStructElements.ToImmutableArray(),
-            namedTypes.ToImmutableDictionary(StringComparer.Ordinal),
+            namedTypes.ToImmutable(),
             compositeSymbols.ToImmutableDictionary(ReferenceEqualityComparer.Instance),
             compiledFields.ToImmutable(),
             rootFields.ToImmutable());
@@ -280,7 +257,7 @@ public partial class CStruct
     /// <summary>Resolves one exported or primitive name once, accumulating pointer depth across typedef chains.</summary>
     private CompiledTypeReference ResolveCompiledTypeReference(
         string name,
-        Dictionary<string, CompiledTypeReference> namedTypes,
+        ImmutableDictionary<string, CompiledTypeReference>.Builder namedTypes,
         IReadOnlyDictionary<Struct, CompiledTypeSymbol> compositeSymbols,
         HashSet<string> resolvingAliases)
     {
@@ -336,7 +313,7 @@ public partial class CStruct
     private CompiledCompositeType CompileComposite(
         Struct strct,
         IReadOnlyDictionary<Struct, CompiledTypeSymbol> compositeSymbols,
-        Dictionary<string, CompiledTypeReference> namedTypes,
+        ImmutableDictionary<string, CompiledTypeReference>.Builder namedTypes,
         HashSet<string> resolvingAliases,
         ImmutableDictionary<Field, CompiledField>.Builder compiledFields,
         HashSet<Struct> compiling,

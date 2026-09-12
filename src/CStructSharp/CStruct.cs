@@ -1,7 +1,5 @@
 namespace CStructSharp;
 
-using CStructSharp.Structure;
-using Pidgin;
 using System;
 using System.Collections;
 using System.Collections.Frozen;
@@ -11,6 +9,8 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using CStructSharp.Structure;
+using Pidgin;
 using CstructEnum = CStructSharp.Structure.Enum;
 
 /// <summary>
@@ -32,8 +32,8 @@ public sealed partial class CStruct
         new(StringComparer.Ordinal);
 
     private readonly ConstructionDictionary<string, byte> fieldAlignments = new(StringComparer.Ordinal);
-    private readonly ConstructionDictionary<string, Func<Stream, object>> fieldHandlers =
-        new(StringComparer.Ordinal);
+    private readonly FrozenDictionary<string, Func<Stream, object>> fieldHandlers;
+    private readonly PrimitiveRegistry primitiveRegistry;
 
     private readonly CompiledModelQueries compiledModelQueries;
     private readonly CompiledSizeQueries compiledSizeQueries;
@@ -42,8 +42,7 @@ public sealed partial class CStruct
     private readonly LayoutExpressionEvaluator layoutExpressionEvaluator;
     private readonly LayoutVariableResolver layoutVariableResolver;
     private readonly IReadOnlyDictionary<string, Expr> staticLayoutVariables;
-    private readonly ConstructionDictionary<string, Action<Stream, object>> writeHandlers =
-        new(StringComparer.Ordinal);
+    private readonly FrozenDictionary<string, Action<Stream, object>> writeHandlers;
 
     /// <summary>
     ///     Creates a reusable layout from C-like source text.
@@ -85,14 +84,11 @@ public sealed partial class CStruct
         this.IsLittleEndian = isLittleEndian;
 
         // Primitive readers and writers are built once because their byte order is part of the layout contract.
-        this.BuildFieldHandlers();
-        this.BuildWriteHandlers();
-        this.bitfieldCodecs = new BitfieldCodecTable(
-            this.IsLittleEndian,
-            this.fieldAlignments,
-            this.fieldHandlers,
-            this.writeHandlers,
-            PrimitiveCodecs.FieldTypeAliasses);
+        this.primitiveRegistry = (this.IsLittleEndian ? LittleEndianRegistry : BigEndianRegistry).Value;
+        this.fieldHandlers = this.primitiveRegistry.Readers;
+        this.writeHandlers = this.primitiveRegistry.Writers;
+        this.fieldAlignments.ReplaceWith(this.primitiveRegistry.Alignments);
+        this.bitfieldCodecs = this.primitiveRegistry.Bitfields;
 
         // Parse the layout text and index only exported top-level names. Anonymous inline declarations stay attached
         // to their containing field and receive declaration identity in the compiled model.
@@ -181,8 +177,6 @@ public sealed partial class CStruct
         // Publish immutable snapshots only after every constructor-time validator and compiler has finished.
         this.cStructElements.Freeze();
         this.fieldAlignments.Freeze();
-        this.fieldHandlers.Freeze();
-        this.writeHandlers.Freeze();
     }
 
     /// <summary>
@@ -200,7 +194,7 @@ public sealed partial class CStruct
         this.fieldAlignments.IsFrozen ? this.fieldAlignments.Snapshot : this.fieldAlignments;
 
     internal IReadOnlyDictionary<string, Func<Stream, object>> FieldHandlers =>
-        this.fieldHandlers.IsFrozen ? this.fieldHandlers.Snapshot : this.fieldHandlers;
+        this.fieldHandlers;
 
     /// <summary>Gets whether neutral numeric, pointer, and UTF-16 values use little-endian byte order.</summary>
     public bool IsLittleEndian { get; }
@@ -209,7 +203,7 @@ public sealed partial class CStruct
     public byte PointerSize { get; }
 
     internal IReadOnlyDictionary<string, Action<Stream, object>> WriteHandlers =>
-        this.writeHandlers.IsFrozen ? this.writeHandlers.Snapshot : this.writeHandlers;
+        this.writeHandlers;
 
     private string Source { get; }
 
@@ -291,7 +285,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>Compiles a group's selector and case dispatch once, preserving identity across all its arms.</summary>
-    private ConditionalGroup NormalizeConditionalGroup(ConditionalGroup group, Dictionary<Expr, Expr> constants, Dictionary<ConditionalGroup, ConditionalGroup> normalizedGroups)
+    private ConditionalGroup NormalizeConditionalGroup(ConditionalGroup group, Dictionary<Expr, Expr>? constants, Dictionary<ConditionalGroup, ConditionalGroup> normalizedGroups)
     {
         if (normalizedGroups.TryGetValue(group, out ConditionalGroup? existing))
         {
@@ -301,7 +295,7 @@ public sealed partial class CStruct
         Expr selector = NormalizeCaseConstants(group.Selector, constants)!;
         this.expressionEvaluator.Compile(selector);
         FrozenDictionary<int, int>? arms = group.CaseLabels?.Select((label, index) =>
-            new KeyValuePair<int, int>(((Literal)constants[label]).Value, index)).ToFrozenDictionary();
+            new KeyValuePair<int, int>(((Literal)constants![label]).Value, index)).ToFrozenDictionary();
         var normalized = new ConditionalGroup(selector) { CaseArms = arms };
         normalizedGroups.Add(group, normalized);
         return normalized;
@@ -310,13 +304,24 @@ public sealed partial class CStruct
     /// <summary>Rebuilds a composite with precompiled array expressions and statically evaluated bit widths.</summary>
     private Struct NormalizeStructExpressions(Struct strct, Dictionary<Expr, Expr>? inheritedCaseConstants = null, Dictionary<ConditionalGroup, ConditionalGroup>? normalizedGroups = null)
     {
-        normalizedGroups ??= new Dictionary<ConditionalGroup, ConditionalGroup>();
-        var caseConstants = inheritedCaseConstants is null
-            ? new Dictionary<Expr, Expr>(ReferenceEqualityComparer.Instance)
-            : new Dictionary<Expr, Expr>(inheritedCaseConstants, ReferenceEqualityComparer.Instance);
+        if (normalizedGroups is null && (strct.BranchConditions.Count > 0 || strct.Fields.Any(field => field.BranchConditions.Count > 0)))
+        {
+            normalizedGroups = new Dictionary<ConditionalGroup, ConditionalGroup>();
+        }
+
+        Dictionary<Expr, Expr>? caseConstants = inheritedCaseConstants;
+        bool copiedConstants = false;
         var fields = new List<Field>(strct.Fields.Count);
         foreach (SwitchCaseValidation validation in strct.Fields.OfType<SwitchCaseValidation>())
         {
+            if (!copiedConstants)
+            {
+                caseConstants = inheritedCaseConstants is null
+                    ? new Dictionary<Expr, Expr>(ReferenceEqualityComparer.Instance)
+                    : new Dictionary<Expr, Expr>(inheritedCaseConstants, ReferenceEqualityComparer.Instance);
+                copiedConstants = true;
+            }
+
             var values = new HashSet<int>();
             foreach (Expr tag in validation.Tags)
             {
@@ -327,7 +332,7 @@ public sealed partial class CStruct
                     throw new CStructLayoutException("Duplicate switch case value: " + value);
                 }
 
-                caseConstants.Add(tag, new Literal(value));
+                caseConstants!.Add(tag, new Literal(value));
             }
         }
 
@@ -395,16 +400,16 @@ public sealed partial class CStruct
                     field.OffsetAssertionExpression)
                 {
                     Condition = NormalizeCaseConstants(field.Condition, caseConstants),
-                    BranchConditions = field.BranchConditions.Select(item =>
-                        new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups), item.Arm)).ToArray(),
+                    BranchConditions = field.BranchConditions.Count == 0 ? Array.Empty<ConditionalBranch>() : field.BranchConditions.Select(item =>
+                        new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray(),
                 });
         }
 
         return new Struct(strct.Name, [.. fields,], strct.IsUnion, strct.CompositeAlignmentOverrideExpression)
         {
             Condition = NormalizeCaseConstants(strct.Condition, caseConstants),
-            BranchConditions = strct.BranchConditions.Select(item =>
-                new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups), item.Arm)).ToArray(),
+            BranchConditions = strct.BranchConditions.Count == 0 ? Array.Empty<ConditionalBranch>() : strct.BranchConditions.Select(item =>
+                new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray(),
         };
     }
 

@@ -1,8 +1,8 @@
 namespace CStructSharp;
 
+using System;
 using System.Collections.Immutable;
 using System.IO;
-using System;
 using CStructSharp.Structure;
 
 /// <summary>Stores one completely resolved field shape and all operation-time codec/layout facts.</summary>

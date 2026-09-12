@@ -1,5 +1,6 @@
 namespace CStructSharpTests;
 
+using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Dynamic;
 using System.Reflection;
@@ -470,6 +471,14 @@ public class CompiledIntermediateRepresentationTests
                           throw new AssertFailedException("Private compatibility table was not found: " + fieldName);
         object table = field.GetValue(cstruct) ??
                        throw new AssertFailedException("Private construction table was null: " + fieldName);
+        if (table is FrozenDictionary<string, TValue> shared)
+        {
+            var dictionary = (IDictionary<string, TValue>)shared;
+            Assert.IsTrue(dictionary.IsReadOnly);
+            Assert.Throws<NotSupportedException>(() => dictionary[key] = replacement);
+            return;
+        }
+
         PropertyInfo frozen = table.GetType().GetProperty("IsFrozen") ??
                               throw new AssertFailedException("Construction table has no frozen state: " + fieldName);
         Assert.AreEqual(true, frozen.GetValue(table), fieldName);
