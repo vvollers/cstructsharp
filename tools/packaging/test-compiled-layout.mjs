@@ -56,3 +56,13 @@ try { assert.equal(value(await other.parse(new Uint8Array([1,2]))).value, 258); 
 finally { await other.dispose(); }
 assert.equal(value(await parseLargeSource('struct root { uint8 value; };', new Uint8Array([9]), {}, false)).value, 9);
 console.log('PASS compiled layouts: mixed branches, concurrency, debug parity, limits, cancellation, recovery, disposal, isolation');
+
+// Staging an ordinary source must not block another source that is ready now.
+const slowAbort = new AbortController();
+const slowSource = { [Symbol.asyncIterator]() { return {next: () => new Promise(() => {}), return: async () => ({done:true})}; }};
+const slowRead = parseLargeSource('struct root { uint8 value; };', slowSource, {signal:slowAbort.signal}, false);
+const checkedSlow = assert.rejects(slowRead, {name:'AbortError'});
+try {
+  assert.equal(value(await parseLargeSource('struct root { uint8 value; };', new Uint8Array([11]), {signal:AbortSignal.timeout(5000)}, false)).value, 11);
+} finally { slowAbort.abort(); await checkedSlow; }
+console.log('PASS ordinary source staging remains independent');

@@ -369,8 +369,22 @@ class WorkerSession {
 
 const sharedSession = new WorkerSession();
 
-export function parseLargeSource(definition, input, options = {}, debug = true) {
-  return sharedSession.parse(definition, input, options, debug);
+export async function parseLargeSource(definition, input, options = {}, debug = true) {
+  const { signal, maxSpoolBytes, ...parserOptions } = options ?? {};
+  // Independent ordinary API calls may stage concurrently. A stalled producer
+  // must not prevent an unrelated ready source from reaching the shared worker.
+  const source = await prepareSource(input, { signal, maxSpoolBytes });
+  try {
+    return await sharedSession.enqueue(async (combined) => {
+      await sharedSession.ensureWorker(combined);
+      return sharedSession.send({
+        command: "parse", descriptor: source.descriptor,
+        definition, options: parserOptions, debug,
+      }, combined);
+    }, signal);
+  } finally {
+    await source.dispose();
+  }
 }
 
 const layoutKeys = new Set([
