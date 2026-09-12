@@ -4,6 +4,11 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Performance: arrays of fixed-width numeric primitives (`uint8`…`uint64`, `int8`…`int64`, `bool`, `float32`,
+  `float64`, either byte order) are read in blocks and decoded from memory instead of element by element; large
+  byte and integer arrays parse 3–5× faster natively and about 8× faster in the browser with half to two-thirds
+  less allocation. Values, positions, and captured variables are unchanged; when a `MaxTotalBytesRead` limit is
+  exceeded inside such an array, the position reported with the failure may now be up to 64 KiB later.
 - Performance: terminated strings (`char[]`, `utf8_string_*`, `unicode_string_*`, `ascii_string_*`) are scanned
   per chunk and decoded once per chunk instead of byte by byte, making string-heavy reads up to 8× faster;
   terminator, budget, and invalid-sequence behavior is unchanged and now pinned by tests. Writing terminated

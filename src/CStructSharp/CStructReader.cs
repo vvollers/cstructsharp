@@ -291,7 +291,7 @@ public partial class CStruct
                     if (isArray)
                     {
                         // Accumulate array elements first; fixed character arrays are converted to a string after the loop.
-                        containerDict[f.Name.Name] = new List<object?>();
+                        containerDict[f.Name.Name] = new List<object?>(numFieldValues);
                     }
 
                     if (unionPosition != -1)
@@ -365,7 +365,39 @@ public partial class CStruct
                         break;
                     }
 
-                    for (int i = 0; i < numFieldValues; i++)
+                    // Bulk path for arrays of fixed-width numeric primitives (E2.3): one block read and span decoding
+                    // instead of the per-element loop below. Restricted to the shapes whose per-element side effects
+                    // are exactly reproducible here: cursor placement (the field start is already set), no debug
+                    // records, no union rewinds, no bitfields, pointers, enums, structs, or character types.
+                    int firstElement = 0;
+                    if (isArray && !state.Debug && !useLegacyPlacement && f.BitSize == 0 && f.PointerDepth == 0 &&
+                        structElement is null && f.Name.Name.Length > 0 && numFieldValues > 0 &&
+                        compiledField.FixedElementSize is int bulkElementSize &&
+                        PrimitiveArrayReader.TryGetDecoder(compiledField.CodecName, out PrimitiveArrayReader.ElementDecoder? bulkDecoder))
+                    {
+                        object? lastElement = PrimitiveArrayReader.ReadInto(
+                            state.Stream,
+                            bulkDecoder,
+                            bulkElementSize,
+                            numFieldValues,
+                            (List<object?>)containerDict[f.Name.Name]!);
+                        state.NextPosition = state.Stream.Position;
+
+                        // The per-element loop captured every element into the layout variables, so the value that
+                        // survives is the last one; reproduce exactly that.
+                        if (Int32Capture.TryConvert(lastElement, out int lastCaptured))
+                        {
+                            state.Variables[f.Name.Name] = new Literal(lastCaptured);
+                        }
+                        else
+                        {
+                            state.Variables.Remove(f.Name.Name);
+                        }
+
+                        firstElement = numFieldValues;
+                    }
+
+                    for (int i = firstElement; i < numFieldValues; i++)
                     {
                         // Composite leaves need the containing element's coordinates. Keep primitive-array
                         // debug records unchanged: consumers historically group those under the array field.

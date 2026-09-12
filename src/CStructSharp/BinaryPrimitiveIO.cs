@@ -359,7 +359,7 @@ internal static class BinaryPrimitiveIO
     }
 
     /// <summary>Reads exactly the requested number of bytes, translating a short read into a layout-specific error.</summary>
-    private static void ReadExactlyOrThrow(Stream stream, Span<byte> buffer)
+    internal static void ReadExactlyOrThrow(Stream stream, Span<byte> buffer)
     {
         try
         {

@@ -785,13 +785,13 @@
             "compile"
           ],
           "batches": 9,
-          "batchSize": 13933,
-          "medianNanoseconds": 7039,
-          "meanNanoseconds": 7061,
-          "relativeStandardDeviation": 0.0128,
+          "batchSize": 10640,
+          "medianNanoseconds": 6663,
+          "meanNanoseconds": 6684,
+          "relativeStandardDeviation": 0.0122,
           "unstable": false,
           "latency": null,
-          "managedAllocatedBytesPerOp": 821,
+          "managedAllocatedBytesPerOp": 822,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -806,19 +806,19 @@
             "core"
           ],
           "batches": 9,
-          "batchSize": 125,
-          "medianNanoseconds": 768499,
-          "meanNanoseconds": 771230,
-          "relativeStandardDeviation": 0.0258,
+          "batchSize": 833,
+          "medianNanoseconds": 99888,
+          "meanNanoseconds": 102570,
+          "relativeStandardDeviation": 0.0517,
           "unstable": false,
           "latency": {
-            "samples": 1915,
-            "p50Nanoseconds": 761437,
-            "p95Nanoseconds": 901937,
-            "p99Nanoseconds": 1261597,
-            "maxNanoseconds": 1825077
+            "samples": 15314,
+            "p50Nanoseconds": 94668,
+            "p95Nanoseconds": 103974,
+            "p99Nanoseconds": 139466,
+            "maxNanoseconds": 596859
           },
-          "managedAllocatedBytesPerOp": 51090,
+          "managedAllocatedBytesPerOp": 23259,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -833,19 +833,19 @@
             "projection"
           ],
           "batches": 9,
-          "batchSize": 454,
-          "medianNanoseconds": 220859,
-          "meanNanoseconds": 229176,
-          "relativeStandardDeviation": 0.0904,
+          "batchSize": 461,
+          "medianNanoseconds": 215496,
+          "meanNanoseconds": 217143,
+          "relativeStandardDeviation": 0.0225,
           "unstable": false,
           "latency": {
-            "samples": 6351,
-            "p50Nanoseconds": 225321,
-            "p95Nanoseconds": 316834,
-            "p99Nanoseconds": 333766,
-            "maxNanoseconds": 611495
+            "samples": 6976,
+            "p50Nanoseconds": 211379,
+            "p95Nanoseconds": 229077,
+            "p99Nanoseconds": 270765,
+            "maxNanoseconds": 837546
           },
-          "managedAllocatedBytesPerOp": 7360,
+          "managedAllocatedBytesPerOp": 7186,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -861,19 +861,19 @@
             "projection"
           ],
           "batches": 9,
-          "batchSize": 85,
-          "medianNanoseconds": 1117853,
-          "meanNanoseconds": 1156625,
-          "relativeStandardDeviation": 0.0927,
+          "batchSize": 302,
+          "medianNanoseconds": 324750,
+          "meanNanoseconds": 325373,
+          "relativeStandardDeviation": 0.0116,
           "unstable": false,
           "latency": {
-            "samples": 1413,
-            "p50Nanoseconds": 1037209,
-            "p95Nanoseconds": 1237669,
-            "p99Nanoseconds": 1483043,
-            "maxNanoseconds": 2250750
+            "samples": 4676,
+            "p50Nanoseconds": 314530,
+            "p95Nanoseconds": 338177,
+            "p99Nanoseconds": 411833,
+            "maxNanoseconds": 1354783
           },
-          "managedAllocatedBytesPerOp": 55748,
+          "managedAllocatedBytesPerOp": 32318,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -888,13 +888,13 @@
             "compile"
           ],
           "batches": 9,
-          "batchSize": 9588,
-          "medianNanoseconds": 9329,
-          "meanNanoseconds": 9387,
-          "relativeStandardDeviation": 0.0174,
+          "batchSize": 10530,
+          "medianNanoseconds": 8972,
+          "meanNanoseconds": 8990,
+          "relativeStandardDeviation": 0.0089,
           "unstable": false,
           "latency": null,
-          "managedAllocatedBytesPerOp": 0,
+          "managedAllocatedBytesPerOp": 796,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -909,19 +909,19 @@
             "core"
           ],
           "batches": 9,
-          "batchSize": 1,
-          "medianNanoseconds": 220150648,
-          "meanNanoseconds": 220411168,
-          "relativeStandardDeviation": 0.0073,
+          "batchSize": 4,
+          "medianNanoseconds": 25840128,
+          "meanNanoseconds": 26085167,
+          "relativeStandardDeviation": 0.0206,
           "unstable": false,
           "latency": {
-            "samples": 7,
-            "p50Nanoseconds": 220448923,
-            "p95Nanoseconds": 223193793,
-            "p99Nanoseconds": 223091045,
-            "maxNanoseconds": 223193793
+            "samples": 56,
+            "p50Nanoseconds": 26199767,
+            "p95Nanoseconds": 30477477,
+            "p99Nanoseconds": 31183384,
+            "maxNanoseconds": 31946038
           },
-          "managedAllocatedBytesPerOp": 10644883,
+          "managedAllocatedBytesPerOp": 6290722,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -937,16 +937,16 @@
           ],
           "batches": 9,
           "batchSize": 1,
-          "medianNanoseconds": 71044749,
-          "meanNanoseconds": 73830290,
-          "relativeStandardDeviation": 0.0865,
+          "medianNanoseconds": 70185349,
+          "meanNanoseconds": 69929476,
+          "relativeStandardDeviation": 0.0453,
           "unstable": false,
           "latency": {
             "samples": 22,
-            "p50Nanoseconds": 69710177,
-            "p95Nanoseconds": 73744929,
-            "p99Nanoseconds": 76477203,
-            "maxNanoseconds": 77203504
+            "p50Nanoseconds": 67589010,
+            "p95Nanoseconds": 72012247,
+            "p99Nanoseconds": 73427970,
+            "maxNanoseconds": 73804301
           },
           "managedAllocatedBytesPerOp": 6336936,
           "copies": {
@@ -965,18 +965,18 @@
           ],
           "batches": 9,
           "batchSize": 1,
-          "medianNanoseconds": 305561098,
-          "meanNanoseconds": 304436158,
-          "relativeStandardDeviation": 0.0131,
+          "medianNanoseconds": 93577256,
+          "meanNanoseconds": 93489544,
+          "relativeStandardDeviation": 0.0315,
           "unstable": false,
           "latency": {
-            "samples": 5,
-            "p50Nanoseconds": 302798049,
-            "p95Nanoseconds": 309982553,
-            "p99Nanoseconds": 309776558,
-            "maxNanoseconds": 309982553
+            "samples": 17,
+            "p50Nanoseconds": 93864333,
+            "p95Nanoseconds": 96403083,
+            "p99Nanoseconds": 96187334,
+            "maxNanoseconds": 96403083
           },
-          "managedAllocatedBytesPerOp": 16109781,
+          "managedAllocatedBytesPerOp": 11925819,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -1541,16 +1541,16 @@
           ],
           "batches": 9,
           "batchSize": 1,
-          "medianNanoseconds": 310799747,
-          "meanNanoseconds": 314801310,
-          "relativeStandardDeviation": 0.0178,
+          "medianNanoseconds": 116407629,
+          "meanNanoseconds": 116876718,
+          "relativeStandardDeviation": 0.0231,
           "unstable": false,
           "latency": {
-            "samples": 5,
-            "p50Nanoseconds": 315792433,
-            "p95Nanoseconds": 315992344,
-            "p99Nanoseconds": 315986883,
-            "maxNanoseconds": 315992344
+            "samples": 14,
+            "p50Nanoseconds": 113712370,
+            "p95Nanoseconds": 119500261,
+            "p99Nanoseconds": 119350656,
+            "maxNanoseconds": 119500261
           },
           "managedAllocatedBytesPerOp": 0,
           "copies": {
@@ -1569,18 +1569,18 @@
           ],
           "batches": 9,
           "batchSize": 1,
-          "medianNanoseconds": 1216379656,
-          "meanNanoseconds": 1216243385,
-          "relativeStandardDeviation": 0.0092,
+          "medianNanoseconds": 1165954491,
+          "meanNanoseconds": 1181210240,
+          "relativeStandardDeviation": 0.0295,
           "unstable": false,
           "latency": {
             "samples": 5,
-            "p50Nanoseconds": 1211559399,
-            "p95Nanoseconds": 1222050781,
-            "p99Nanoseconds": 1221988283,
-            "maxNanoseconds": 1222050781
+            "p50Nanoseconds": 1200945367,
+            "p95Nanoseconds": 1211722693,
+            "p99Nanoseconds": 1211397978,
+            "maxNanoseconds": 1211722693
           },
-          "managedAllocatedBytesPerOp": 123822637,
+          "managedAllocatedBytesPerOp": 122773088,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -1596,23 +1596,23 @@
           ],
           "batches": 9,
           "batchSize": 1,
-          "medianNanoseconds": 353366757,
-          "meanNanoseconds": 353527814,
-          "relativeStandardDeviation": 0.0174,
+          "medianNanoseconds": 110080000,
+          "meanNanoseconds": 111821034,
+          "relativeStandardDeviation": 0.0343,
           "unstable": false,
           "latency": {
-            "samples": 5,
-            "p50Nanoseconds": 351564085,
-            "p95Nanoseconds": 370117388,
-            "p99Nanoseconds": 369782487,
-            "maxNanoseconds": 370117388
+            "samples": 14,
+            "p50Nanoseconds": 110195972,
+            "p95Nanoseconds": 120188013,
+            "p99Nanoseconds": 119678513,
+            "maxNanoseconds": 120188013
           },
-          "managedAllocatedBytesPerOp": 43144096,
+          "managedAllocatedBytesPerOp": 17563595,
           "copies": {
             "pageReads": 16,
             "pageBytes": 1048576,
             "inputBytes": 1048576,
-            "outputChars": 2816471
+            "outputChars": 2816446
           }
         },
         {
@@ -2090,19 +2090,19 @@
             "stream"
           ],
           "batches": 9,
-          "batchSize": 2,
-          "medianNanoseconds": 64454962,
-          "meanNanoseconds": 64526992,
-          "relativeStandardDeviation": 0.0195,
+          "batchSize": 4,
+          "medianNanoseconds": 22080808,
+          "meanNanoseconds": 22277391,
+          "relativeStandardDeviation": 0.0451,
           "unstable": false,
           "latency": {
-            "samples": 24,
-            "p50Nanoseconds": 64240667,
-            "p95Nanoseconds": 67287921,
-            "p99Nanoseconds": 68379774,
-            "maxNanoseconds": 68705912
+            "samples": 68,
+            "p50Nanoseconds": 20985930,
+            "p95Nanoseconds": 28904284,
+            "p99Nanoseconds": 29867189,
+            "maxNanoseconds": 30663627
           },
-          "managedAllocatedBytesPerOp": 3573485,
+          "managedAllocatedBytesPerOp": 2414886,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -2117,17 +2117,17 @@
             "stream"
           ],
           "batches": 9,
-          "batchSize": 1,
-          "medianNanoseconds": 71577719,
-          "meanNanoseconds": 72083793,
-          "relativeStandardDeviation": 0.0307,
+          "batchSize": 4,
+          "medianNanoseconds": 25067849,
+          "meanNanoseconds": 25112305,
+          "relativeStandardDeviation": 0.0236,
           "unstable": false,
           "latency": {
-            "samples": 21,
-            "p50Nanoseconds": 71974749,
-            "p95Nanoseconds": 75427833,
-            "p99Nanoseconds": 76709023,
-            "maxNanoseconds": 77029321
+            "samples": 61,
+            "p50Nanoseconds": 23966543,
+            "p95Nanoseconds": 28447882,
+            "p99Nanoseconds": 29414624,
+            "maxNanoseconds": 29804818
           },
           "managedAllocatedBytesPerOp": 0,
           "copies": {
@@ -2145,16 +2145,16 @@
           ],
           "batches": 9,
           "batchSize": 1,
-          "medianNanoseconds": 1679714419,
-          "meanNanoseconds": 1679639591,
-          "relativeStandardDeviation": 0.0324,
+          "medianNanoseconds": 1659318632,
+          "meanNanoseconds": 1668265942,
+          "relativeStandardDeviation": 0.0224,
           "unstable": false,
           "latency": {
             "samples": 5,
-            "p50Nanoseconds": 1627154535,
-            "p95Nanoseconds": 1636914586,
-            "p99Nanoseconds": 1636881560,
-            "maxNanoseconds": 1636914586
+            "p50Nanoseconds": 1700459137,
+            "p95Nanoseconds": 1727650761,
+            "p99Nanoseconds": 1727042233,
+            "maxNanoseconds": 1727650761
           },
           "managedAllocatedBytesPerOp": 0,
           "copies": {
@@ -2172,16 +2172,16 @@
           ],
           "batches": 9,
           "batchSize": 1,
-          "medianNanoseconds": 1639730488,
-          "meanNanoseconds": 1640550203,
-          "relativeStandardDeviation": 0.0106,
+          "medianNanoseconds": 1631994965,
+          "meanNanoseconds": 1656526651,
+          "relativeStandardDeviation": 0.0268,
           "unstable": false,
           "latency": {
             "samples": 5,
-            "p50Nanoseconds": 1635450192,
-            "p95Nanoseconds": 1645436064,
-            "p99Nanoseconds": 1645115710,
-            "maxNanoseconds": 1645436064
+            "p50Nanoseconds": 1630413749,
+            "p95Nanoseconds": 1650422490,
+            "p99Nanoseconds": 1650405975,
+            "maxNanoseconds": 1650422490
           },
           "managedAllocatedBytesPerOp": 0,
           "copies": {
@@ -2315,19 +2315,19 @@
             "compile"
           ],
           "batches": 9,
-          "batchSize": 146,
-          "medianNanoseconds": 728412,
-          "meanNanoseconds": 730178,
-          "relativeStandardDeviation": 0.0724,
+          "batchSize": 104,
+          "medianNanoseconds": 692811,
+          "meanNanoseconds": 755791,
+          "relativeStandardDeviation": 0.1809,
           "unstable": false,
           "latency": {
-            "samples": 2158,
-            "p50Nanoseconds": 648040,
-            "p95Nanoseconds": 884820,
-            "p99Nanoseconds": 1248180,
-            "maxNanoseconds": 3034232
+            "samples": 2276,
+            "p50Nanoseconds": 624663,
+            "p95Nanoseconds": 807059,
+            "p99Nanoseconds": 1248878,
+            "maxNanoseconds": 6176242
           },
-          "managedAllocatedBytesPerOp": 17945,
+          "managedAllocatedBytesPerOp": 17073,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -2342,19 +2342,19 @@
             "compile"
           ],
           "batches": 9,
-          "batchSize": 154,
-          "medianNanoseconds": 673863,
-          "meanNanoseconds": 670755,
-          "relativeStandardDeviation": 0.019,
+          "batchSize": 149,
+          "medianNanoseconds": 666504,
+          "meanNanoseconds": 683291,
+          "relativeStandardDeviation": 0.09,
           "unstable": false,
           "latency": {
-            "samples": 2241,
-            "p50Nanoseconds": 631264,
-            "p95Nanoseconds": 892451,
-            "p99Nanoseconds": 1104813,
-            "maxNanoseconds": 1871358
+            "samples": 2347,
+            "p50Nanoseconds": 621188,
+            "p95Nanoseconds": 709987,
+            "p99Nanoseconds": 1137834,
+            "maxNanoseconds": 2272534
           },
-          "managedAllocatedBytesPerOp": 16427,
+          "managedAllocatedBytesPerOp": 16230,
           "copies": {
             "pageReads": 0,
             "pageBytes": 0,
@@ -5798,6 +5798,253 @@
             "runtimeTimings": {
               "runtimeCreateMs": 81.715598,
               "exportsReadyMs": 21.087835999999996
+            },
+            "verifiedFixtures": [
+              "prim-le-record",
+              "prim-le-x1k",
+              "nested-x256",
+              "aligned-x256",
+              "array-u8-1024",
+              "array-u32-be-256",
+              "dynamic-64",
+              "bitfield-x1k",
+              "enum-x1k",
+              "union-x1k",
+              "strings-1024",
+              "pointer-depth-8",
+              "cond-if128",
+              "real-bmp",
+              "real-png",
+              "real-pe-exe",
+              "real-tar"
+            ]
+          },
+          "settings": {
+            "warmupTime": 600,
+            "batchTargetMs": 100,
+            "batches": 9,
+            "latencyTime": 1500
+          }
+        },
+        "browser": {
+          "file": "artifacts/js-bench/results/browser-latest.json",
+          "sha256": "A8CD4C5CEFD1AF081D08B63A32F57263A88C743A94EE2A9DF9B353E729F221FC",
+          "environment": {
+            "capturedAtUtc": "2026-09-12T19:49:24.482Z",
+            "revision": "670ee92a92575ca0f1bcdd56ab1a59a77deac339",
+            "worktreeDirty": true,
+            "os": {
+              "platform": "linux",
+              "release": "7.0.0-31-generic",
+              "arch": "x64"
+            },
+            "cpu": {
+              "model": "AMD EPYC 9645 96-Core Processor",
+              "count": 8,
+              "speedMHz": 0
+            },
+            "totalMemoryBytes": 16757460992,
+            "node": {
+              "node": "26.5.0",
+              "acorn": "8.17.0",
+              "ada": "3.4.4",
+              "amaro": "1.1.10",
+              "ares": "1.34.6",
+              "brotli": "1.2.0",
+              "cldr": "48.0",
+              "icu": "78.3",
+              "libffi": "3.6.0",
+              "lief": "0.17.0",
+              "llhttp": "9.4.2",
+              "merve": "1.2.2",
+              "modules": "147",
+              "napi": "10",
+              "nbytes": "0.1.4",
+              "ncrypto": "0.0.1",
+              "nghttp2": "1.69.0",
+              "nghttp3": "",
+              "ngtcp2": "",
+              "openssl": "3.5.7",
+              "simdjson": "4.6.4",
+              "simdutf": "7.7.0",
+              "sqlite": "3.53.3",
+              "tz": "2026b",
+              "undici": "8.7.0",
+              "unicode": "17.0",
+              "uv": "1.52.1",
+              "uvwasi": "0.0.23",
+              "v8": "14.6.202.34-node.24",
+              "zlib": "1.3.2.1-motley-3246f1b",
+              "zstd": "1.5.7"
+            },
+            "dotnetSdk": "10.0.302",
+            "wasmBundle": {
+              "sha256": "5850c1dc7a01f80820a72759dc079420922b4dcb302c1b8afac15ed1c6686792",
+              "totalFrameworkBytes": 5306887,
+              "builtAtUtc": "2026-09-12T19:46:36.443Z",
+              "extraProperties": []
+            },
+            "browser": {
+              "name": "chromium",
+              "version": "153.0.8010.12",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+              "hardwareConcurrency": 8
+            },
+            "runtimeTimings": {
+              "runtimeCreateMs": 116.95000000111759,
+              "exportsReadyMs": 20.219999998807907
+            },
+            "verifiedFixtures": [
+              "prim-le-record",
+              "nested-x256",
+              "array-u8-1024",
+              "union-x1k",
+              "strings-1024",
+              "pointer-depth-8",
+              "cond-if128",
+              "real-png",
+              "real-pe-exe"
+            ],
+            "pageMemory": {
+              "usedJSHeapSize": 23444198,
+              "totalJSHeapSize": 66236498
+            }
+          },
+          "settings": {
+            "warmupTime": 600,
+            "batchTargetMs": 100,
+            "batches": 9,
+            "latencyTime": 1500
+          }
+        },
+        "cold": {
+          "file": "artifacts/js-bench/results/cold-latest.json",
+          "sha256": "327063D58BD57D4ACA7C2230225F959391594AFAA70E1EF3C55247DE490CF652",
+          "environment": {
+            "capturedAtUtc": "2026-09-12T18:11:04.763Z",
+            "revision": "08ffc4f761c05441028e9e8ab091187d7c9fa5f1",
+            "worktreeDirty": true,
+            "os": {
+              "platform": "linux",
+              "release": "7.0.0-31-generic",
+              "arch": "x64"
+            },
+            "cpu": {
+              "model": "AMD EPYC 9645 96-Core Processor",
+              "count": 8,
+              "speedMHz": 0
+            },
+            "totalMemoryBytes": 16757460992,
+            "node": {
+              "node": "26.5.0",
+              "acorn": "8.17.0",
+              "ada": "3.4.4",
+              "amaro": "1.1.10",
+              "ares": "1.34.6",
+              "brotli": "1.2.0",
+              "cldr": "48.0",
+              "icu": "78.3",
+              "libffi": "3.6.0",
+              "lief": "0.17.0",
+              "llhttp": "9.4.2",
+              "merve": "1.2.2",
+              "modules": "147",
+              "napi": "10",
+              "nbytes": "0.1.4",
+              "ncrypto": "0.0.1",
+              "nghttp2": "1.69.0",
+              "nghttp3": "",
+              "ngtcp2": "",
+              "openssl": "3.5.7",
+              "simdjson": "4.6.4",
+              "simdutf": "7.7.0",
+              "sqlite": "3.53.3",
+              "tz": "2026b",
+              "undici": "8.7.0",
+              "unicode": "17.0",
+              "uv": "1.52.1",
+              "uvwasi": "0.0.23",
+              "v8": "14.6.202.34-node.24",
+              "zlib": "1.3.2.1-motley-3246f1b",
+              "zstd": "1.5.7"
+            },
+            "dotnetSdk": "10.0.302",
+            "wasmBundle": {
+              "sha256": "e0e817dd2624bfdece3209061b861f7b9026c91b300463f8789f2a97c6cb1b1c",
+              "totalFrameworkBytes": 5291015,
+              "builtAtUtc": "2026-09-12T16:29:45.089Z",
+              "extraProperties": []
+            }
+          }
+        }
+      }
+    },
+    {
+      "date": "2026-09-12",
+      "note": "E2.3 phase-1 slice accepted (array and stream cases re-measured in Node)",
+      "replacedCases": 23,
+      "evidence": {
+        "node": {
+          "file": "artifacts/js-bench/results/node-latest.json",
+          "sha256": "0CBD811B169FF5BECFFB7909C9B90F2EB5D3A84BA797B9B23675D5B9727496F5",
+          "environment": {
+            "capturedAtUtc": "2026-09-12T20:41:35.028Z",
+            "revision": "50900724f3da1db536953fc151c84fb63f69d75b",
+            "worktreeDirty": true,
+            "os": {
+              "platform": "linux",
+              "release": "7.0.0-31-generic",
+              "arch": "x64"
+            },
+            "cpu": {
+              "model": "AMD EPYC 9645 96-Core Processor",
+              "count": 8,
+              "speedMHz": 0
+            },
+            "totalMemoryBytes": 16757460992,
+            "node": {
+              "node": "26.5.0",
+              "acorn": "8.17.0",
+              "ada": "3.4.4",
+              "amaro": "1.1.10",
+              "ares": "1.34.6",
+              "brotli": "1.2.0",
+              "cldr": "48.0",
+              "icu": "78.3",
+              "libffi": "3.6.0",
+              "lief": "0.17.0",
+              "llhttp": "9.4.2",
+              "merve": "1.2.2",
+              "modules": "147",
+              "napi": "10",
+              "nbytes": "0.1.4",
+              "ncrypto": "0.0.1",
+              "nghttp2": "1.69.0",
+              "nghttp3": "",
+              "ngtcp2": "",
+              "openssl": "3.5.7",
+              "simdjson": "4.6.4",
+              "simdutf": "7.7.0",
+              "sqlite": "3.53.3",
+              "tz": "2026b",
+              "undici": "8.7.0",
+              "unicode": "17.0",
+              "uv": "1.52.1",
+              "uvwasi": "0.0.23",
+              "v8": "14.6.202.34-node.24",
+              "zlib": "1.3.2.1-motley-3246f1b",
+              "zstd": "1.5.7"
+            },
+            "dotnetSdk": "10.0.302",
+            "wasmBundle": {
+              "sha256": "6ec0348649e840820e6cd978edd03049f2b69f2091758d5ad2450852fead811c",
+              "totalFrameworkBytes": 5301767,
+              "builtAtUtc": "2026-09-12T20:39:22.559Z",
+              "extraProperties": []
+            },
+            "runtimeTimings": {
+              "runtimeCreateMs": 79.443865,
+              "exportsReadyMs": 17.34868499999999
             },
             "verifiedFixtures": [
               "prim-le-record",
