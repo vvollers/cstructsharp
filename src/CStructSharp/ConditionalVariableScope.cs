@@ -1,28 +1,22 @@
 namespace CStructSharp;
 
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Immutable;
 using CStructSharp.Structure;
 
 /// <summary>Protects a conditional composite's own fields from nested declarations with the same spelling.</summary>
 internal sealed class ConditionalVariableScope
 {
-    private readonly Dictionary<string, Expr?> locals = new();
+    private readonly ImmutableArray<string> names;
+    private readonly Expr?[] locals;
 
     internal ConditionalVariableScope(CompiledCompositeType composite, Dictionary<string, Expr> variables)
     {
-        if (!composite.Fields.Any(field => field.Declaration.Condition is not null))
+        this.names = composite.ConditionalLocalNames;
+        this.locals = new Expr?[this.names.Length];
+        foreach (string name in this.names)
         {
-            return;
-        }
-
-        foreach (CompiledField field in composite.Fields)
-        {
-            foreach (string name in GetVisibleNames(field))
-            {
-                this.locals[name] = null;
-                variables.Remove(name);
-            }
+            variables.Remove(name);
         }
     }
 
@@ -51,28 +45,21 @@ internal sealed class ConditionalVariableScope
 
     internal void CompleteField(CompiledField field, Dictionary<string, Expr> variables)
     {
-        if (this.locals.Count == 0)
+        foreach (int slot in field.CapturedLocalSlots)
         {
-            return;
+            this.locals[slot] = variables.GetValueOrDefault(this.names[slot]);
         }
 
-        foreach (string name in GetVisibleNames(field))
+        foreach (int slot in field.RestoredLocalSlots)
         {
-            if (this.locals.ContainsKey(name))
-            {
-                this.locals[name] = variables.GetValueOrDefault(name);
-            }
-        }
-
-        foreach ((string local, Expr? value) in this.locals)
-        {
+            Expr? value = this.locals[slot];
             if (value is null)
             {
-                variables.Remove(local);
+                variables.Remove(this.names[slot]);
             }
             else
             {
-                variables[local] = value;
+                variables[this.names[slot]] = value;
             }
         }
     }

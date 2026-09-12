@@ -1,30 +1,35 @@
 namespace CStructSharp;
 
+using System;
 using System.Collections.Generic;
 using CStructSharp.Structure;
 
-/// <summary>Freezes each branch environment when its group is reached in one composite instance.</summary>
+/// <summary>Selects each group once at entry; all its later fields reuse that decision.</summary>
 internal sealed class ConditionalFieldSelection
 {
     private readonly LayoutExpressionEvaluator evaluator;
-    private readonly Dictionary<object, IReadOnlyDictionary<string, Expr>> environments = new();
+    private readonly int[] selectedArms;
 
-    internal ConditionalFieldSelection(LayoutExpressionEvaluator evaluator)
+    internal ConditionalFieldSelection(LayoutExpressionEvaluator evaluator, int groupCount)
     {
         this.evaluator = evaluator;
+        this.selectedArms = new int[groupCount];
+        Array.Fill(this.selectedArms, int.MinValue);
     }
 
     internal bool IsActive(CompiledField field, IReadOnlyDictionary<string, Expr> variables)
     {
-        foreach ((object group, Expr predicate) in field.Declaration.BranchConditions)
+        foreach (CompiledConditionalBranch branch in field.ConditionalBranches)
         {
-            if (!this.environments.TryGetValue(group, out IReadOnlyDictionary<string, Expr>? snapshot))
+            int selected = this.selectedArms[branch.Slot];
+            if (selected == int.MinValue)
             {
-                snapshot = new Dictionary<string, Expr>(variables);
-                this.environments.Add(group, snapshot);
+                int value = this.evaluator.Evaluate(branch.Group.Selector, variables, "conditional selector");
+                selected = branch.Group.CaseArms is { } cases ? cases.GetValueOrDefault(value, -1) : value != 0 ? 1 : 0;
+                this.selectedArms[branch.Slot] = selected;
             }
 
-            if (this.evaluator.Evaluate(predicate, snapshot, "condition for " + field.Declaration.Name.Name) == 0)
+            if (selected != branch.Arm)
             {
                 return false;
             }

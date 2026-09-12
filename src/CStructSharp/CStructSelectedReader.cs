@@ -48,7 +48,7 @@ public partial class CStruct
         var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned);
         CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
         var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
-        var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator) : null;
+        var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) : null;
 
         state.EnterStructure();
         try

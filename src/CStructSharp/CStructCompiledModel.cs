@@ -238,6 +238,11 @@ public partial class CStruct
                 throw new CStructLayoutException("Compiled type symbol was not bound: " + symbol.Name);
             }
 
+            if (symbol.Definition is CompiledCompositeType composite)
+            {
+                composite.CompleteConditionalScope();
+            }
+
             symbol.Freeze();
         }
 
