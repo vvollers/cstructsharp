@@ -43,11 +43,18 @@ public class PublicApiSurfaceTests
     public void ExportedTypesAndSignatures_AreDeliberateAndImplementationAgnostic()
     {
         Assembly assembly = typeof(CStruct).Assembly;
-        Type[] exportedTypes = assembly.GetExportedTypes();
+        // Stryker injects a public control type into the temporary assembly. Rejecting that helper would
+        // falsely kill every mutant, regardless of behavior. Production builds still check every export.
+        bool isMutationRun = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("STRYKER_MUTANT_ID_CONTROL_VAR")) ||
+                             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("STRYKER_MUTANT_FILE"));
+        Type[] exportedTypes = assembly.GetExportedTypes().Where(type =>
+            !isMutationRun || type.Name != "MutantControl" ||
+            type.Namespace?.StartsWith("Stryker", StringComparison.Ordinal) != true).ToArray();
 
         CollectionAssert.AreEqual(
             AllowedExportedTypes.Order(StringComparer.Ordinal).ToArray(),
-            exportedTypes.Select(type => type.FullName!).Order(StringComparer.Ordinal).ToArray());
+            exportedTypes.Select(type => type.FullName!).Order(StringComparer.Ordinal).ToArray(),
+            "Actual exports: " + string.Join(", ", exportedTypes.Select(type => type.FullName)));
         Assert.IsTrue(typeof(CStruct).IsSealed);
         Assert.IsTrue(typeof(Pointer).IsSealed);
 
