@@ -67,7 +67,7 @@ export interface DebugDataItem {
   Type: string;
   /** Decimal text preserves exact 64-bit integer values. */
   Value: string | null;
-  /** Base64 field storage, when available. */
+  /** Comma-separated decimal field bytes, when available. */
   Buffer: string | null;
 }
 export type Operation = "parse" | "serialize" | "update";

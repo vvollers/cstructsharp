@@ -58,6 +58,8 @@ async function compiledConsumer() {
     await layout.parseWithDebug(new Blob(), { signal: new AbortController().signal });
     // @ts-expect-error layout settings cannot be changed for a retained layout
     await layout.parse(new Uint8Array(), { littleEndian: false });
-  } finally { await layout.dispose(); }
+  } finally {
+    await layout.dispose();
+  }
 }
 void compiledConsumer;

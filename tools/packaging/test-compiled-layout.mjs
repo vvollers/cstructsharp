@@ -66,3 +66,10 @@ try {
   assert.equal(value(await parseLargeSource('struct root { uint8 value; };', new Uint8Array([11]), {signal:AbortSignal.timeout(5000)}, false)).value, 11);
 } finally { slowAbort.abort(); await checkedSlow; }
 console.log('PASS ordinary source staging remains independent');
+
+const roots = await compileLargeSource('struct first { uint8 small; }; struct root { uint16 value; };', {rootTypeName:'root'});
+try {
+  assert.equal(value(await roots.parse(new Uint8Array([1,2]), {rootTypeName:undefined})).value, 513);
+  assert.equal(JSON.parse((await roots.parse(new Uint8Array([1,2]), {rootTypeName:'first'})).Data).first.small, 1);
+} finally { await roots.dispose(); }
+console.log('PASS compiled root defaults and per-read root overrides');
