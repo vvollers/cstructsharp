@@ -1,0 +1,36 @@
+{
+  "date_utc": "2026-09-12T07:25:39.804982+00:00",
+  "machine": "Windows-11-10.0.26200-SP0",
+  "cpu": "AMD Ryzen 9 9950X, 16 cores / 32 logical processors",
+  "sdk": "10.0.204",
+  "node": "v26.8.1",
+  "build": "Release; net10.0; browser-wasm; RunAOTCompilation=false; WasmBuildNative=true; no debugger",
+  "versions": {
+    "main": {
+      "commit": "2c4ad4cbe20d406626d4045c08ef266db5e62874",
+      "binaries": {
+        "C:\\projects\\github\\cstructsharp\\artifacts\\conditional-comparison\\main-native\\CStructSharp.dll": {
+          "bytes": 274944,
+          "sha256": "02ba01a214577843e60e1dd7041e5478e199f71ed5cffa0c2082b3733409a904"
+        },
+        "C:\\projects\\github\\cstructsharp-benchmark-main\\src\\CStructSharp.Wasm\\bin\\Release\\net10.0\\browser-wasm\\AppBundle\\_framework\\CStructSharp.wasm": {
+          "bytes": 274709,
+          "sha256": "6e6c85b2c7dde66ecd1ddfec7479c37d772f4fc74c072b478d798e20f36e3e23"
+        }
+      }
+    },
+    "branch": {
+      "commit": "d30ee60740cee9da52b54c82f057c9cddcbcabaa",
+      "binaries": {
+        "C:\\projects\\github\\cstructsharp\\artifacts\\conditional-comparison\\branch-native\\CStructSharp.dll": {
+          "bytes": 309760,
+          "sha256": "2b6799ec0b7af9d603cd1bfc9f74e20844938392e502d3e501efcf7c7ae272ee"
+        },
+        "C:\\projects\\github\\cstructsharp\\src\\CStructSharp.Wasm\\bin\\Release\\net10.0\\browser-wasm\\AppBundle\\_framework\\CStructSharp.wasm": {
+          "bytes": 309525,
+          "sha256": "2138ef37d925137c7e4979143ff69be3687d8fd9faadb50ffc2aa5114394ced6"
+        }
+      }
+    }
+  }
+}
