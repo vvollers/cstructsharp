@@ -4,6 +4,11 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- JavaScript `parse()` and `compile().parse()` now run byte inputs of at most 64 KiB (without a `signal`) directly
+  on the calling thread through the new `ParseBytes` managed export instead of a worker round trip, and the worker
+  path transfers its input snapshot instead of cloning it (browsers use transferred bytes up to 64 MiB rather
+  than a `Blob` read back in pages). Small parses are 2–8× faster; results and cancellation semantics are
+  unchanged.
 - **Breaking (browser contract version 6):** `DebugData` items returned by `parseWithDebug` no longer carry a
   `Buffer` field (the field's bytes as comma-separated decimal text); use `CurPos`/`EndPos` to slice the input you
   supplied. The parse envelope is now written without indentation directly from the parse result, which makes

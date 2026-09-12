@@ -1,5 +1,11 @@
 /** Shared operation conversions for the ZIP, Node, and browser adapters. */
 const INTEROP_CONTRACT_VERSION = 6;
+/**
+ * Byte inputs up to this size, without a cancellation signal, are parsed on the calling thread (E3.6). Kept in
+ * step with SYNCHRONOUS_PARSE_LIMIT in large-source.js; this module is staged at the npm package root while the
+ * source adapter lives beside the runtime, so it cannot import it.
+ */
+const SYNCHRONOUS_PARSE_LIMIT = 64 * 1024;
 
 export function createPublicApi(loadCStructSharpWasm) {
   /** Parse bytes; successful Data is JSON text with the selected root wrapper.
@@ -23,9 +29,19 @@ export function createPublicApi(loadCStructSharpWasm) {
     );
   }
 
-  /** Parse any supported binary source without allocating debug byte copies. */
+  /**
+   * Parse any supported binary source without allocating debug byte copies. Small byte inputs without a
+   * cancellation signal are parsed on the calling thread (one managed copy, no worker round trip); everything
+   * else goes through the staged source and the worker.
+   */
   async function parse(definition, source, options = null) {
     const api = await loadCStructSharpWasm();
+    if (isSmallByteInput(source, options) && typeof api.parseBytes === "function") {
+      return parseEnvelope(
+        api.parseBytes(definition, toUint8Array(source), options, false),
+        "parse",
+      );
+    }
     return api.parseSource(definition, source, options, false);
   }
 
@@ -84,6 +100,26 @@ export function createPublicApi(loadCStructSharpWasm) {
     update,
     getVersion,
   };
+}
+
+function isSmallByteInput(source, options) {
+  if (options?.signal) return false;
+  if (
+    source instanceof ArrayBuffer ||
+    ArrayBuffer.isView(source) ||
+    (typeof SharedArrayBuffer !== "undefined" && source instanceof SharedArrayBuffer)
+  ) {
+    return source.byteLength <= SYNCHRONOUS_PARSE_LIMIT;
+  }
+  return false;
+}
+
+function toUint8Array(source) {
+  if (source instanceof Uint8Array) return source;
+  if (source instanceof ArrayBuffer || (typeof SharedArrayBuffer !== "undefined" && source instanceof SharedArrayBuffer)) {
+    return new Uint8Array(source);
+  }
+  return new Uint8Array(source.buffer, source.byteOffset, source.byteLength);
 }
 
 function parseEnvelope(value, operation) {

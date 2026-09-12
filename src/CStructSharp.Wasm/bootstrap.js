@@ -14,6 +14,7 @@ export function createCStructSharpWasm(assemblyExports) {
 
   const required = [
     "ParseWithDebug",
+    "ParseBytes",
     "Serialize",
     "UpdateStream",
     "GetVersion",
@@ -30,12 +31,24 @@ export function createCStructSharpWasm(assemblyExports) {
   return {
     exports: assemblyExports,
     parseSource: parseLargeSource,
-    compile: compileLargeSource,
+    compile: (definition, options = null) =>
+      compileLargeSource(definition, options ?? {}, {
+        parseBytes: (layout, bytes, parserOptions, debug) =>
+          managed.ParseBytes(layout, bytes, stringifyOptions(parserOptions), debug),
+      }),
     parseWithDebug(definition, bytes, options = null) {
       return managed.ParseWithDebug(
         definition,
         bytes,
         stringifyOptions(options),
+      );
+    },
+    parseBytes(definition, bytes, options = null, debug = false) {
+      return managed.ParseBytes(
+        definition,
+        bytes,
+        stringifyOptions(options),
+        debug,
       );
     },
     serialize(definition, dataJson, options = null) {

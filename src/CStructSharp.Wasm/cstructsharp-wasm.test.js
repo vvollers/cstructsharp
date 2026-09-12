@@ -65,3 +65,43 @@ test("public wrapper returns byte arrays for writes, preserves errors and parse 
     globalThis.CStructSharpWasm = previous;
   }
 });
+
+test("parse takes the synchronous path for small byte inputs and the worker path otherwise", async () => {
+  const previous = globalThis.CStructSharpWasm;
+  const calls = [];
+  const envelope = (data) =>
+    JSON.stringify({ ContractVersion: 6, Operation: "parse", Success: true, Data: data, DebugData: [], Error: null });
+  globalThis.CStructSharpWasm = {
+    ready: true,
+    parseBytes: (definition, bytes, options, debug) => {
+      calls.push(["parseBytes", bytes.byteLength, options, debug]);
+      return envelope('{"root":{"value":1}}');
+    },
+    parseSource: async (definition, source, options, debug) => {
+      calls.push(["parseSource", source.byteLength ?? source.size, options, debug]);
+      return JSON.parse(envelope('{"root":{"value":2}}'));
+    },
+  };
+  try {
+    const { parse } = await import("./cstructsharp-wasm.js");
+    const small = new Uint8Array(16);
+    const view = new DataView(new ArrayBuffer(32), 8, 8);
+    const large = new Uint8Array(64 * 1024 + 1);
+    const controller = new AbortController();
+
+    assert.equal((await parse("layout", small, { rootTypeName: "root" })).Data, '{"root":{"value":1}}');
+    assert.equal((await parse("layout", view)).Data, '{"root":{"value":1}}');
+    assert.equal((await parse("layout", large)).Data, '{"root":{"value":2}}');
+    assert.equal((await parse("layout", small, { signal: controller.signal })).Data, '{"root":{"value":2}}');
+    assert.equal((await parse("layout", new Blob([small]))).Data, '{"root":{"value":2}}');
+
+    assert.deepEqual(
+      calls.map(([name, size]) => [name, size]),
+      [["parseBytes", 16], ["parseBytes", 8], ["parseSource", 65537], ["parseSource", 16], ["parseSource", 16]],
+    );
+    assert.deepEqual(calls[0][2], { rootTypeName: "root" });
+    assert.equal(calls[0][3], false);
+  } finally {
+    globalThis.CStructSharpWasm = previous;
+  }
+});

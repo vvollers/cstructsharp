@@ -9,6 +9,10 @@ function createExports(calls) {
       calls.push(["ParseWithDebug", args]);
       return "parse-default";
     },
+    ParseBytes(...args) {
+      calls.push(["ParseBytes", args]);
+      return "parse-bytes";
+    },
     Serialize(...args) {
       calls.push(["Serialize", args]);
       return new Uint8Array([0x2a]);
@@ -64,6 +68,7 @@ test("adapter binds every managed export and normalizes boundary values", () => 
     }),
     new Uint8Array([0x2a]),
   );
+  assert.equal(adapter.parseBytes("layout", bytes, { rootTypeName: "root" }, false), "parse-bytes");
   assert.equal(adapter.getVersion(), "version");
   assert.equal(adapter.ready, true);
   assert.equal(adapter.error, null);
@@ -82,6 +87,7 @@ test("adapter binds every managed export and normalizes boundary values", () => 
         '{"aligned":false,"pointerSize":8,"addressingMode":"Relative","origin":"9007199254740993","dereferencePointers":true}',
       ],
     ],
+    ["ParseBytes", ["layout", bytes, '{"rootTypeName":"root"}', false]],
     ["GetVersion", []],
   ]);
 });

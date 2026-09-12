@@ -5,6 +5,7 @@
   "contractVersion": 6,
   "managedExports": [
     "GetVersion",
+    "ParseBytes",
     "ParseWithDebug",
     "Serialize",
     "UpdateStream"
@@ -73,6 +74,11 @@
       "contractVersion": 6,
       "date": "2026-09-12",
       "change": "Performance plan E3.3/E3.7: the parse envelope is written without indentation straight from the parse result, and DebugData items no longer carry the field bytes as a comma-separated decimal string (Buffer removed); CurPos/EndPos identify the byte range in the caller's own input. Data stays JSON text with the selected root wrapper; every value is unchanged."
+    },
+    {
+      "contractVersion": 6,
+      "date": "2026-09-12",
+      "change": "Performance plan E3.6: new managed export ParseBytes(definition, bytes, optionsJson, debug) used by the adapters to parse byte inputs up to 64 KiB on the calling thread; the envelope is unchanged."
     }
   ]
 }

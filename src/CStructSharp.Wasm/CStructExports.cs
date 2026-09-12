@@ -41,6 +41,27 @@ public partial class CStructExports
     }
 
     /// <summary>Reads a seekable JavaScript source without copying the complete source into WASM memory.</summary>
+    /// <summary>
+    ///     Parses a complete managed copy of the caller's bytes on the calling thread. The JavaScript adapter uses it
+    ///     for small inputs (E3.6): one byte[] marshal is far cheaper than staging the input and round-tripping the
+    ///     worker that <see cref="ParseSource"/> is designed for.
+    /// </summary>
+    [JSExport]
+    public static string ParseBytes(string definition, byte[] binaryData, string optionsJson, bool debug)
+    {
+        try
+        {
+            InteropOptionsDto options = ParseOptions(optionsJson);
+            byte[] ownedBinaryData = ValidateBinaryData(binaryData);
+            using var stream = new MemoryStream(ownedBinaryData, writable: false);
+            return ParseStreamResult(definition, stream, options, debug);
+        }
+        catch (Exception exception)
+        {
+            return SerializeInteropResult(CreateFailure("parse", exception));
+        }
+    }
+
     [JSExport]
     public static string ParseSource(string definition, JSObject source, string optionsJson, bool debug)
     {

@@ -1,6 +1,8 @@
 // Public asynchronous source adapter. Source bytes never become one managed byte[].
 const isNode = typeof process !== "undefined" && !!process.versions?.node;
 const defaultSpoolLimit = 1024 * 1024 * 1024;
+/** Browser byte inputs up to this size are snapshotted and transferred to the worker rather than staged as a Blob. */
+const transferableByteLimit = 64 * 1024 * 1024;
 
 function abortError() {
   return new DOMException("Binary parsing was cancelled.", "AbortError");
@@ -119,13 +121,17 @@ export async function prepareSource(
       input instanceof SharedArrayBuffer)
   ) {
     const bytes = byteView(input);
-    // Snapshot exactly the selected range. Never detach or transfer the caller's buffer.
-    if (isNode) {
+    // Snapshot exactly the selected range. Never detach or transfer the caller's buffer: the snapshot is what
+    // the worker receives, and only the snapshot's own buffer is transferred (E3.6). Browsers use the same
+    // descriptor up to a bounded size instead of wrapping the bytes in a Blob the worker re-reads page by page;
+    // beyond it a Blob keeps the memory footprint to one copy.
+    if (isNode || bytes.byteLength <= transferableByteLimit) {
       return {
         descriptor: {
           kind: "bytes",
           bytes: new Uint8Array(bytes),
           size: bytes.byteLength,
+          transfer: true,
         },
         dispose: async () => {},
       };
@@ -354,7 +360,11 @@ class WorkerSession {
           }
         };
         if (signal.aborted) onAbort();
-        else worker.postMessage(message);
+        else {
+          // A "bytes" descriptor carries our own snapshot; transferring its buffer avoids a second copy.
+          const transfer = message.descriptor?.transfer ? [message.descriptor.bytes.buffer] : [];
+          worker.postMessage(message, transfer);
+        }
       });
     } catch (error) {
       // Await termination before deleting any spooled file used by the worker.
@@ -407,8 +417,27 @@ const layoutKeys = new Set([
   "maxLayoutNestingDepth", "maxExpressionNestingDepth", "maxExpressionTokens",
 ]);
 
-/** A dedicated runtime retains one immutable layout until explicit disposal. */
-export async function compileLargeSource(definition, options = {}) {
+/** Byte inputs up to this size, without a cancellation signal, are parsed on the calling thread (E3.6). */
+export const SYNCHRONOUS_PARSE_LIMIT = 64 * 1024;
+
+export function isSmallByteInput(source, options) {
+  if (options?.signal) return false;
+  if (
+    source instanceof ArrayBuffer ||
+    ArrayBuffer.isView(source) ||
+    (typeof SharedArrayBuffer !== "undefined" && source instanceof SharedArrayBuffer)
+  ) {
+    return source.byteLength <= SYNCHRONOUS_PARSE_LIMIT;
+  }
+  return false;
+}
+
+/**
+ * A dedicated runtime retains one immutable layout until explicit disposal. When the host adapter supplies
+ * `parseBytes`, small byte inputs are parsed on the calling thread through the shared compiled-layout cache
+ * instead of the retained worker; the worker still owns every large, streamed, or cancellable read.
+ */
+export async function compileLargeSource(definition, options = {}, { parseBytes } = {}) {
   if (typeof definition !== "string") throw new TypeError("Layout definition must be a string.");
   const frozenOptions = Object.freeze({ ...options });
   for (const key of Object.keys(frozenOptions)) {
@@ -431,11 +460,20 @@ export async function compileLargeSource(definition, options = {}) {
         return Promise.reject(new TypeError(`Layout option ${key} is fixed at compilation.`));
       }
     }
-    return session.parse(definition, input, {
+    const merged = {
       ...frozenOptions, ...readOptions,
       rootTypeName: readOptions?.rootTypeName === undefined
         ? frozenOptions.rootTypeName : readOptions.rootTypeName,
-    }, debug);
+    };
+    if (parseBytes && isSmallByteInput(input, readOptions)) {
+      const { signal, maxSpoolBytes, ...parserOptions } = merged;
+      try {
+        return Promise.resolve(JSON.parse(parseBytes(definition, byteView(input), parserOptions, debug)));
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    }
+    return session.parse(definition, input, merged, debug);
   }
   return Object.freeze({
     parse: (input, options = null) => parse(input, options, false),
