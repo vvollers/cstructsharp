@@ -22,7 +22,7 @@ JavaScript operations:
 - `publicParse`: actual asynchronous public API, including its worker/runtime creation on every call, schema compilation, source bridge, and result envelope. Its Data remains JSON text, as the API specifies.
 - `publicDebug`: actual public parseWithDebug API, warm shared runtime, including compilation and debug projection/envelope parsing. Its Data remains JSON text.
 
-The production JS API has no compiled-object handle. `Benchmark.targets` opts the same `BenchmarkExports.cs` into each WASM build through `CustomAfterMicrosoftCommonTargets`. These exports are NOT part of normal builds or the public API. run-js copies the repository's bridge modules into the freshly built AppBundle, as packaging does, so worker-relative runtime paths resolve correctly. No installed or previously copied runtime is benchmarked.
+The historical baseline JS APIs have no compiled-object handle. `Benchmark.targets` opts the same `BenchmarkExports.cs` into each WASM build through `CustomAfterMicrosoftCommonTargets`. These exports are NOT part of normal builds or the public API. run-js copies the repository's bridge modules into the freshly built AppBundle, as packaging does, so worker-relative runtime paths resolve correctly. No installed or previously copied runtime is benchmarked.
 
 The plain/if/switch fixtures have identical active bytes and data: tag=1, uint32 value, uint16 tail, either one or 128 records. Conditional schemas also declare an inactive uint16 alternative. All layouts are packed and little-endian. Native checks exact consumption and serialize roundtrip before timing; JS checks consumption and public-versus-retained JSON equality. These checks throw on failures.
 
@@ -39,3 +39,42 @@ python benchmarks/ConditionalComparison/ablate.py C:/projects/github/cstructshar
 The saved report replaces the original first-constructor measurements with longer-warmed header reruns. To regenerate those historical tables exactly, use `python benchmarks/ConditionalComparison/summarize.py --stabilized-header`. The default summary uses only the primary runs, suitable for new runs with the updated five-second process warmup.
 
 Run `run-diagnostics.ps1` for the three ablations, bracketed by unchanged controls. `diagnostic-summary.py` reports changes against the control midpoint and shows both controls so drift is visible. `wide-cases.json` probes fields per conditional group; `header-case.json` is the dedicated constructor warmup check.
+
+## Implemented optimizations: fixed three-way comparison
+
+The original measurements above remain historical evidence. For the implementation comparison use
+`run-implementation.ps1`, which checks `main` at `2c4ad4c` and the feature checkout at `d30ee60`, freshly builds all
+three Release versions, records artifact hashes, and runs two launches in reverse version order. Results go to
+`agentdocs/performance-improvements/results`, separate from the preserved original data. Run
+`python benchmarks/ConditionalComparison/summarize-implementation.py` afterwards for full time/allocation tables.
+
+`implementation-cases.json` retains the original fixtures and wide 8/32/128-field pairs, and adds exact mixed-tag
+payloads for four-way switches and nested if groups. `main` skips conditional syntax; equivalent plain fixtures run
+on every version. Each fixture checks consumption and roundtrip (native) or JSON parity (JavaScript) before timing.
+
+The optimized JavaScript build additionally measures real `compiledParse` and `compiledDebug` calls, using the
+supported `compile` handle and disposing it after each fixture. Handle/worker initialization is outside these warm
+read timings. `compile` still means managed source compilation, without worker startup. `publicParse` includes worker
+startup in the old versions and worker reuse in the optimized version, matching each real public API. There is no
+unbounded definition cache. Normal JS parsing returns JSON text inside its result envelope; native core timings
+exclude JSON and worker transport. These columns measure different useful boundaries and are not interchangeable.
+
+Run timed workloads serially. Do not build, test, run another benchmark or launch profiling workloads concurrently.
+Investigate repeatable slowdowns using the per-launch ratios and raw samples, not historical numbers from a different
+session. Sub-10% differences in this VM require caution. Native allocation counts are managed bytes per operation;
+they do not measure JavaScript heap allocation or total worker/runtime resident memory.
+
+The final compilation refinement is measured separately so the primary results remain intact:
+
+```powershell
+./benchmarks/ConditionalComparison/run-implementation.ps1 -BuildOnly -OutputRoot artifacts/perf-implementation/refined -ResultRoot agentdocs/performance-improvements/refinement
+./benchmarks/ConditionalComparison/run-implementation.ps1 -SkipBuild -CompileOnly -OutputRoot artifacts/perf-implementation/refined -ResultRoot agentdocs/performance-improvements/refinement
+./benchmarks/ConditionalComparison/run-implementation.ps1 -SkipBuild -SpotCheck -OutputRoot artifacts/perf-implementation/refined -ResultRoot agentdocs/performance-improvements/final-parsing
+python benchmarks/ConditionalComparison/summarize-implementation.py --results agentdocs/performance-improvements/refinement --output agentdocs/performance-improvements/refinement
+python benchmarks/ConditionalComparison/summarize-implementation.py --results agentdocs/performance-improvements/final-parsing --output agentdocs/performance-improvements/final-parsing
+```
+
+`SpotCheck` measures retained parsing, span parsing, debug parsing and actual JS calls on ordinary arrays,
+plain/if/switch records, wide records, mixed tags and nesting. Both follow-up modes retain the two reversed-order
+launches. Use the matching build hashes from `refinement/environment.json` for the final parsing run.
+Rebuilding the normal WASM package removes the benchmark-only exports: finish these measurements before packaging.
