@@ -1,8 +1,0 @@
-Test run for C:\projects\github\cstructsharp\tests\CStructSharpTests\bin\Release\net8.0\CStructSharpTests.dll (.NETCoreApp,Version=v8.0)
-A total of 1 test files matched the specified pattern.
-Test run for C:\projects\github\cstructsharp\tests\CStructSharpTests\bin\Release\net10.0\CStructSharpTests.dll (.NETCoreApp,Version=v10.0)
-A total of 1 test files matched the specified pattern.
-
-Passed!  - Failed:     0, Passed:   992, Skipped:     0, Total:   992, Duration: 401 ms - CStructSharpTests.dll (net8.0)
-
-Passed!  - Failed:     0, Passed:   992, Skipped:     0, Total:   992, Duration: 441 ms - CStructSharpTests.dll (net10.0)
