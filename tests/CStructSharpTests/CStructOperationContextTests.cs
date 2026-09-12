@@ -121,7 +121,7 @@ public class CStructOperationContextTests
             aligned: false,
             ReadOperationSettings.SnapshotReadOptions(null));
 
-        context.RegisterDebugData(curPos: 1, endPos: 3, debugStack: [], value: 0x2233, fieldTypeName: "uint16");
+        context.RegisterDebugData(curPos: 1, endPos: 3, debugStack: null, value: 0x2233, fieldTypeName: "uint16");
 
         Assert.HasCount(1, context.DebugMapping);
         DebugData entry = context.DebugMapping[0];
@@ -143,7 +143,7 @@ public class CStructOperationContextTests
             aligned: false,
             ReadOperationSettings.SnapshotReadOptions(null));
 
-        context.RegisterDebugData(curPos: 0, endPos: 0, debugStack: [], value: 0, fieldTypeName: "none");
+        context.RegisterDebugData(curPos: 0, endPos: 0, debugStack: null, value: 0, fieldTypeName: "none");
 
         Assert.HasCount(1, context.DebugMapping[0].Buffer);
     }

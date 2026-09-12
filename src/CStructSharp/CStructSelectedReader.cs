@@ -43,7 +43,7 @@ public partial class CStruct
         Struct strct,
         ExpandoObject destination,
         CStructOperationContext state,
-        CStructElement[] debugStack)
+        DebugPath? debugStack)
     {
         var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned);
         CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
@@ -97,7 +97,7 @@ public partial class CStruct
         CStructOperationContext state,
         long address,
         Struct target,
-        CStructElement[] debugPrefix,
+        DebugPath? debugPrefix,
         int containingStructureDepth,
         int pointerDereferenceDepth,
         bool debug)
@@ -124,7 +124,7 @@ public partial class CStruct
     private UnionValue ReadUnionValue(
         Struct union,
         CStructOperationContext state,
-        CStructElement[] debugStack)
+        DebugPath? debugStack)
     {
         long unionPosition = state.Stream.Position;
         int unionSize = this.compiledSizeQueries.GetCompiledStructSizeInBytes(

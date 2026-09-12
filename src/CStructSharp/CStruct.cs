@@ -782,7 +782,7 @@ public sealed partial class CStruct
                 state,
                 resolvedTarget.Address,
                 target,
-                resolvedTarget.DebugPrefix.ToArray(),
+                debug ? DebugPath.FromElements(resolvedTarget.DebugPrefix) : null,
                 resolvedTarget.ContainingStructureDepth,
                 resolvedTarget.PointerAccessorsConsumed,
                 debug);
