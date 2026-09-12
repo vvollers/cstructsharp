@@ -89,7 +89,17 @@ if (args.includes("--merge") && fs.existsSync(output)) {
   const key = (c) => `${c.type}|${c.method}|${c.parameters}|${c.runtime}`;
   const replaced = new Map(cases.map((c) => [key(c), c]));
   const merged = existing.benchmark.cases.map((c) => replaced.get(key(c)) ?? c);
-  for (const c of cases) if (!existing.benchmark.cases.some((e) => key(e) === key(c))) merged.push(c);
+  // New cases are appended only for benchmark classes the contract already tracks (or with --allow-new), so a
+  // filtered run that also caught rc1-category classes does not widen the contract by accident.
+  const trackedTypes = new Set(existing.benchmark.cases.map((c) => c.type));
+  const allowNew = args.includes("--allow-new");
+  let skipped = 0;
+  for (const c of cases) {
+    if (existing.benchmark.cases.some((e) => key(e) === key(c))) continue;
+    if (allowNew || trackedTypes.has(c.type)) merged.push(c);
+    else skipped++;
+  }
+  if (skipped > 0) console.log(`Skipped ${skipped} cases from classes the contract does not track (use --allow-new to add them).`);
   existing.benchmark.cases = merged;
   existing.benchmark.runtimes = [...new Set(merged.map((c) => c.runtime))];
   existing.benchmark.minimumSamples = Math.min(...merged.map((c) => c.samples));

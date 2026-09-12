@@ -4,6 +4,9 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Performance: field paths are parsed without intermediate strings and cached per process, and per-operation
+  debug and pointer-cycle bookkeeping is allocated only when used; selected-value reads, address resolution, and
+  updates allocate 20–45 % less and run 20–50 % faster on small inputs.
 - JavaScript `parse()` and `compile().parse()` now run byte inputs of at most 64 KiB (without a `signal`) directly
   on the calling thread through the new `ParseBytes` managed export instead of a worker round trip, and the worker
   path transfers its input snapshot instead of cloning it (browsers use transferred bytes up to 64 MiB rather

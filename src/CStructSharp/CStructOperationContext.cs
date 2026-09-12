@@ -8,6 +8,9 @@ using CStructSharp.Structure;
 /// <summary>Keeps stream position, variables, pointer safety data, and optional debug data for one read operation.</summary>
 internal sealed class CStructOperationContext
 {
+    private List<DebugData>? debugMapping;
+    private HashSet<(long Address, string TypeName, int PointerDepth)>? activePointerTargets;
+
     /// <summary>Creates the read state from a stream, compiled lookup tables, and optional read settings.</summary>
     public CStructOperationContext(
         Stream stream,
@@ -76,12 +79,14 @@ internal sealed class CStructOperationContext
     /// </summary>
     public bool SuppressPointerDereference { get; set; }
 
-    public List<DebugData> DebugMapping { get; } = new();
+    /// <summary>Allocated on first use: ordinary reads never touch it (E2.12).</summary>
+    public List<DebugData> DebugMapping => this.debugMapping ??= new List<DebugData>();
 
     /// <summary>Optional active-branch trace used only for staged update validation.</summary>
     internal List<(string Path, long Start, long End)>? ConditionalLayoutTrace { get; set; }
 
-    public HashSet<(long Address, string TypeName, int PointerDepth)> ActivePointerTargets { get; } = new();
+    /// <summary>Allocated on first pointer dereference: layouts without pointers never touch it (E2.12).</summary>
+    public HashSet<(long Address, string TypeName, int PointerDepth)> ActivePointerTargets => this.activePointerTargets ??= new HashSet<(long, string, int)>();
 
     public long PointerOrigin { get; }
 
