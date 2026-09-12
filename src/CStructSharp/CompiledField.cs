@@ -1,7 +1,8 @@
 namespace CStructSharp;
 
-using System;
+using System.Collections.Immutable;
 using System.IO;
+using System;
 using CStructSharp.Structure;
 
 /// <summary>Stores one completely resolved field shape and all operation-time codec/layout facts.</summary>
@@ -43,6 +44,14 @@ internal sealed class CompiledField
         this.BitOffset = bitOffset;
         this.IsFixedPoint = this.PointerDepth == 0 && FixedPointCodec.IsType(this.CodecName);
     }
+
+    public ImmutableArray<CompiledConditionalBranch> ConditionalBranches { get; internal set; } = [];
+
+    public ImmutableArray<string> VisibleNames { get; internal set; } = [];
+
+    public ImmutableArray<int> CapturedLocalSlots { get; internal set; } = [];
+
+    public ImmutableArray<int> RestoredLocalSlots { get; internal set; } = [];
 
     public int Alignment { get; }
 

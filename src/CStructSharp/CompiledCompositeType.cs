@@ -14,6 +14,28 @@ internal sealed class CompiledCompositeType : CompiledType
     {
         this.Fields = fields;
         this.HasDirectConditionalFields = fields.Any(field => field.Declaration.Condition is not null);
+        if (this.HasDirectConditionalFields)
+        {
+            var groups = new Dictionary<ConditionalGroup, int>();
+            foreach (CompiledField field in fields)
+            {
+                var branches = ImmutableArray.CreateBuilder<CompiledConditionalBranch>();
+                foreach (ConditionalBranch branch in field.Declaration.BranchConditions)
+                {
+                    if (!groups.TryGetValue(branch.Group, out int slot))
+                    {
+                        slot = groups.Count;
+                        groups.Add(branch.Group, slot);
+                    }
+
+                    branches.Add(new CompiledConditionalBranch(branch.Group, slot, branch.Arm));
+                }
+
+                field.ConditionalBranches = branches.ToImmutable();
+            }
+
+            this.ConditionalGroupCount = groups.Count;
+        }
 
         // An anonymous nonzero-width bitfield (LANG-17) has no name to key by, and several may coexist in one
         // composite without colliding with each other - exclude them rather than deduplicate on an empty key.
@@ -35,7 +57,54 @@ internal sealed class CompiledCompositeType : CompiledType
 
     public bool HasDirectConditionalFields { get; }
 
+    public int ConditionalGroupCount { get; }
+
+    public ImmutableArray<string> ConditionalLocalNames { get; private set; } = [];
+
     public ImmutableDictionary<string, CompiledField> FieldsByName { get; }
 
     public ImmutableHashSet<CompiledField> PromotedFields { get; }
+
+    /// <summary>Finishes scope metadata after recursive pointer symbols have all been bound.</summary>
+    internal void CompleteConditionalScope()
+    {
+        if (!this.HasDirectConditionalFields)
+        {
+            return;
+        }
+
+        foreach (CompiledField field in this.Fields)
+        {
+            field.VisibleNames = ConditionalVariableScope.GetVisibleNames(field).ToImmutableArray();
+        }
+
+        this.ConditionalLocalNames = this.Fields.SelectMany(field => field.VisibleNames).Distinct(StringComparer.Ordinal).ToImmutableArray();
+        var slots = this.ConditionalLocalNames.Select((name, index) => (name, index)).ToDictionary(item => item.name, item => item.index, StringComparer.Ordinal);
+        foreach (CompiledField field in this.Fields)
+        {
+            field.CapturedLocalSlots = field.VisibleNames.Select(name => slots[name]).ToImmutableArray();
+            var overwritten = new HashSet<string>(StringComparer.Ordinal);
+            var visited = new HashSet<CompiledTypeSymbol>();
+            var pending = new Stack<CompiledTypeSymbol>();
+            pending.Push(field.Type.Symbol);
+            while (pending.Count > 0)
+            {
+                CompiledTypeSymbol symbol = pending.Pop();
+                if (!visited.Add(symbol) || symbol.Definition is not CompiledCompositeType nested)
+                {
+                    continue;
+                }
+
+                foreach (CompiledField child in nested.Fields)
+                {
+                    overwritten.Add(child.Declaration.Name.Name);
+                    pending.Push(child.Type.Symbol);
+                }
+            }
+
+            overwritten.ExceptWith(field.VisibleNames);
+            field.RestoredLocalSlots = overwritten.Where(slots.ContainsKey).Select(name => slots[name]).ToImmutableArray();
+        }
+    }
+
 }

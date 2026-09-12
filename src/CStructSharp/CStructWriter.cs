@@ -173,14 +173,14 @@ public partial class CStruct
 
             CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
             var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
-            var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator) : null;
+            var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) : null;
             var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned);
 
             foreach (CompiledField field in composite.Fields)
             {
                 if (selection?.IsActive(field, state.Variables) == false)
                 {
-                    foreach (string name in ConditionalVariableScope.GetVisibleNames(field))
+                    foreach (string name in field.VisibleNames)
                     {
                         if (PocoDataBinding.TryGetMemberValue(data, name, state.BindingMode, out _))
                         {

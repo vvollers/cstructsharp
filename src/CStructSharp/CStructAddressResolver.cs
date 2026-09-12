@@ -177,7 +177,7 @@ public partial class CStruct
 
         CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
         var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
-        var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator) : null;
+        var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) : null;
         var cursor = new CompositeFieldPlacementCursor(structStart, this.Aligned);
 
         foreach (CompiledField compiledField in composite.Fields)
@@ -926,7 +926,7 @@ public partial class CStruct
 
         CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
         var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
-        var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator) : null;
+        var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) : null;
         foreach (CompiledField compiledField in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
         {
             if (selection?.IsActive(compiledField, state.Variables) == false)

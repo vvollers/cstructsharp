@@ -41,7 +41,90 @@ internal sealed class ExpressionEvaluator
     /// <summary>Compiles and evaluates one expression against the supplied immutable name view.</summary>
     public int Evaluate(Expr expression, IReadOnlyDictionary<string, Expr>? variables = null)
     {
+        CompiledExpression program = this.GetProgram(expression);
+        if (this.TryEvaluateSimple(program, variables ?? EmptyVariables, out int result))
+        {
+            return result;
+        }
+
         return this.CreateSession(variables).Evaluate(expression);
+    }
+
+    /// <summary>Executes a scalar or one operator without session allocation when every dependency is a literal.</summary>
+    private bool TryEvaluateSimple(CompiledExpression program, IReadOnlyDictionary<string, Expr> variables, out int result)
+    {
+        result = 0;
+        ExpressionInstruction[] code = program.Instructions;
+        int operands = code.Length == 3 ? 2 : 1;
+        if (code.Length is < 1 or > 3 ||
+            (code.Length == 2 && code[1].Opcode is not (ExpressionOpcode.Negate or ExpressionOpcode.Complement or ExpressionOpcode.LogicalNot)) ||
+            (code.Length == 3 && code[2].Opcode is ExpressionOpcode.Identifier or ExpressionOpcode.Literal or
+                ExpressionOpcode.JumpIfFalse or ExpressionOpcode.JumpIfTrue or ExpressionOpcode.Negate or ExpressionOpcode.Complement or ExpressionOpcode.LogicalNot))
+        {
+            return false;
+        }
+
+        BigInteger first = default;
+        BigInteger second = default;
+        string? firstDependency = null;
+        int extraNodes = 0;
+        for (int index = 0; index < operands; index++)
+        {
+            ExpressionInstruction instruction = code[index];
+            BigInteger value;
+            if (instruction.Opcode == ExpressionOpcode.Literal)
+            {
+                value = instruction.Value;
+            }
+            else if (instruction.Opcode == ExpressionOpcode.Identifier &&
+                     variables.TryGetValue(instruction.Name!, out Expr? expression) && expression is Literal literal)
+            {
+                if (instruction.Depth + 1 > this.limits.MaximumDepth)
+                {
+                    throw new CStructLayoutException("Maximum expression evaluation depth exceeded.");
+                }
+
+                if (instruction.Name != firstDependency)
+                {
+                    extraNodes++;
+                }
+
+                firstDependency = instruction.Name;
+                value = literal.Int32Projection;
+            }
+            else
+            {
+                return false;
+            }
+
+            if (index == 0)
+            {
+                first = value;
+            }
+            else
+            {
+                second = value;
+            }
+        }
+
+        if (code.Length + extraNodes > this.limits.MaximumNodes)
+        {
+            throw new CStructLayoutException("Maximum expression evaluation work exceeded.");
+        }
+
+        int left = checked((int)first);
+        result = code.Length switch
+        {
+            1 => left,
+            2 => code[1].Opcode switch
+            {
+                ExpressionOpcode.Negate => checked(-left),
+                ExpressionOpcode.Complement => ~left,
+                _ => left == 0 ? 1 : 0,
+            },
+            _ => ExpressionEvaluationSession.EvaluateBinary(code[2].Opcode, left, checked((int)second)),
+        };
+        return true;
     }
 
     /// <summary>
@@ -436,7 +519,7 @@ internal sealed class ExpressionEvaluator
         }
 
         /// <summary>Applies the documented signed-Int32 operator semantics.</summary>
-        private static int EvaluateBinary(ExpressionOpcode opcode, int left, int right)
+        internal static int EvaluateBinary(ExpressionOpcode opcode, int left, int right)
         {
             return opcode switch
             {
@@ -735,7 +818,7 @@ internal sealed class ExpressionEvaluator
         bool Conditional = false);
 
     /// <summary>Lists the executable operations supported by the CStructSharp expression subset.</summary>
-    private enum ExpressionOpcode
+    internal enum ExpressionOpcode
     {
         JumpIfFalse,
         JumpIfTrue,

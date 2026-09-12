@@ -1,15 +1,16 @@
 namespace CStructSharp;
 
+using CStructSharp.Structure;
+using Pidgin;
 using System;
 using System.Collections;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
-using CStructSharp.Structure;
-using Pidgin;
 using CstructEnum = CStructSharp.Structure.Enum;
 
 /// <summary>
@@ -289,9 +290,27 @@ public sealed partial class CStruct
         return result;
     }
 
-    /// <summary>Rebuilds a composite with precompiled array expressions and statically evaluated bit widths.</summary>
-    private Struct NormalizeStructExpressions(Struct strct, Dictionary<Expr, Expr>? inheritedCaseConstants = null)
+    /// <summary>Compiles a group's selector and case dispatch once, preserving identity across all its arms.</summary>
+    private ConditionalGroup NormalizeConditionalGroup(ConditionalGroup group, Dictionary<Expr, Expr> constants, Dictionary<ConditionalGroup, ConditionalGroup> normalizedGroups)
     {
+        if (normalizedGroups.TryGetValue(group, out ConditionalGroup? existing))
+        {
+            return existing;
+        }
+
+        Expr selector = NormalizeCaseConstants(group.Selector, constants)!;
+        this.expressionEvaluator.Compile(selector);
+        FrozenDictionary<int, int>? arms = group.CaseLabels?.Select((label, index) =>
+            new KeyValuePair<int, int>(((Literal)constants[label]).Value, index)).ToFrozenDictionary();
+        var normalized = new ConditionalGroup(selector) { CaseArms = arms };
+        normalizedGroups.Add(group, normalized);
+        return normalized;
+    }
+
+    /// <summary>Rebuilds a composite with precompiled array expressions and statically evaluated bit widths.</summary>
+    private Struct NormalizeStructExpressions(Struct strct, Dictionary<Expr, Expr>? inheritedCaseConstants = null, Dictionary<ConditionalGroup, ConditionalGroup>? normalizedGroups = null)
+    {
+        normalizedGroups ??= new Dictionary<ConditionalGroup, ConditionalGroup>();
         var caseConstants = inheritedCaseConstants is null
             ? new Dictionary<Expr, Expr>(ReferenceEqualityComparer.Instance)
             : new Dictionary<Expr, Expr>(inheritedCaseConstants, ReferenceEqualityComparer.Instance);
@@ -321,7 +340,7 @@ public sealed partial class CStruct
 
             if (field is Struct nested)
             {
-                fields.Add(this.NormalizeStructExpressions(nested, caseConstants));
+                fields.Add(this.NormalizeStructExpressions(nested, caseConstants, normalizedGroups));
                 continue;
             }
 
@@ -377,7 +396,7 @@ public sealed partial class CStruct
                 {
                     Condition = NormalizeCaseConstants(field.Condition, caseConstants),
                     BranchConditions = field.BranchConditions.Select(item =>
-                        (item.Group, NormalizeCaseConstants(item.Predicate, caseConstants)!)).ToArray(),
+                        new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups), item.Arm)).ToArray(),
                 });
         }
 
@@ -385,7 +404,7 @@ public sealed partial class CStruct
         {
             Condition = NormalizeCaseConstants(strct.Condition, caseConstants),
             BranchConditions = strct.BranchConditions.Select(item =>
-                (item.Group, NormalizeCaseConstants(item.Predicate, caseConstants)!)).ToArray(),
+                new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups), item.Arm)).ToArray(),
         };
     }
 

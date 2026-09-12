@@ -63,7 +63,7 @@ internal sealed class CompiledSizeQueries
         // extent from pure arithmetic (GetCompiledFieldStorageSize) rather than a stream - this method must stay
         // callable with no Stream/operation context, both mid-compilation and from variables-only callers.
         var cursor = new CompositeFieldPlacementCursor(0, this.aligned);
-        var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.expressionEvaluator) : null;
+        var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.expressionEvaluator, composite.ConditionalGroupCount) : null;
         foreach (CompiledField field in composite.Fields)
         {
             if (selection?.IsActive(field, variables) == false)

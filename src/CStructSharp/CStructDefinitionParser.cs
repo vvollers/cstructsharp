@@ -539,12 +539,14 @@ internal static class CStructDefinitionParser
 
     private static IEnumerable<Field> ApplySwitch(Expr selector, IEnumerable<(Expr Tag, IEnumerable<Field> Fields)> cases, IEnumerable<Field> fallback)
     {
-        var group = new object();
+        var arms = cases.ToArray();
+        var group = new ConditionalGroup(selector, arms.Select(arm => arm.Tag).ToArray());
         Expr any = new Literal(0);
         var result = new List<Field>();
         var tags = new HashSet<Expr>();
         var labels = new List<Expr>();
-        foreach (var arm in cases)
+        int armIndex = 0;
+        foreach (var arm in arms)
         {
             if (!tags.Add(arm.Tag))
             {
@@ -553,11 +555,11 @@ internal static class CStructDefinitionParser
 
             labels.Add(arm.Tag);
             var condition = new BinaryOp(BinaryOperatorType.Equal, selector, arm.Tag);
-            result.AddRange(ApplyCondition(condition, arm.Fields, group));
+            result.AddRange(ApplyCondition(condition, arm.Fields, group, armIndex++));
             any = new BinaryOp(BinaryOperatorType.LogicalOr, any, condition);
         }
 
-        result.AddRange(ApplyCondition(new UnaryOp(UnaryOperatorType.LogicalNot, any), fallback, group));
+        result.AddRange(ApplyCondition(new UnaryOp(UnaryOperatorType.LogicalNot, any), fallback, group, -1));
 
         // This marker is removed during normalization. Keeping it even for empty arms makes
         // duplicate and non-constant labels a compilation error regardless of runtime selection.
@@ -567,17 +569,17 @@ internal static class CStructDefinitionParser
 
     private static IEnumerable<Field> ApplyIf(Expr condition, IEnumerable<Field> yes, IEnumerable<Field> no)
     {
-        var group = new object();
-        return ApplyCondition(condition, yes, group).Concat(
-            ApplyCondition(new UnaryOp(UnaryOperatorType.LogicalNot, condition), no, group));
+        var group = new ConditionalGroup(condition);
+        return ApplyCondition(condition, yes, group, 1).Concat(
+            ApplyCondition(new UnaryOp(UnaryOperatorType.LogicalNot, condition), no, group, 0));
     }
 
-    private static IEnumerable<Field> ApplyCondition(Expr condition, IEnumerable<Field> fields, object group)
+    private static IEnumerable<Field> ApplyCondition(Expr condition, IEnumerable<Field> fields, ConditionalGroup group, int arm)
     {
         foreach (Field field in fields)
         {
             field.Condition = field.Condition is null ? condition : new BinaryOp(BinaryOperatorType.LogicalAnd, condition, field.Condition);
-            field.BranchConditions = new[] { (group, condition) }.Concat(field.BranchConditions).ToArray();
+            field.BranchConditions = new[] { new ConditionalBranch(group, arm) }.Concat(field.BranchConditions).ToArray();
             yield return field;
         }
     }
