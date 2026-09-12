@@ -13,6 +13,11 @@ const [a,b] = await Promise.all([api.loadCStructSharpWasm(),api.loadCStructSharp
 if (a !== b) throw Error("Concurrent loads created different APIs");
 const bytes = new Uint8Array([2,0,6,0,0,0]);
 const read = await api.parseWithDebug(def, bytes, opts);
+const compiled = await api.compile(def, opts);
+try {
+  const [plain, debug] = await Promise.all([compiled.parse(bytes), compiled.parseWithDebug(new Blob([bytes]))]);
+  if (!plain.Success || plain.Data !== read.Data || JSON.stringify(debug) !== JSON.stringify(read)) throw Error("Compiled API parity failed");
+} finally { await compiled.dispose(); }
 const written = await api.serialize(def, {kind:3,length:6}, opts);
 const changed = await api.update(def, bytes, "header.kind", 4, opts);
 const invalid = await api.parseWithDebug(def, new Uint8Array(), opts);

@@ -93,6 +93,7 @@ export type InputValue =
  * since there is no envelope object left to carry an Error field alongside a native byte-array success payload.
  */
 export interface RawWasmAdapter {
+  compile(definition: string, options?: LayoutOptions | null): Promise<CompiledLayout>;
   ready: true;
   error: null;
   exports: unknown;
@@ -147,3 +148,17 @@ export function update(
   options?: UpdateOptions | null,
 ): Promise<Result<Uint8Array, "update">>;
 export function getVersion(): Promise<string>;
+
+/** Per-read options; layout/compiler settings are fixed at compilation. */
+export type CompiledParseOptions = Omit<ParseWithDebugOptions, keyof LayoutOptions> & {
+  rootTypeName?: string | null;
+};
+/** Owns a dedicated worker/runtime. Calls are queued; always dispose when finished. */
+export interface CompiledLayout {
+  parse(source: BinarySource, options?: CompiledParseOptions | null): Promise<Result<string, "parse">>;
+  parseWithDebug(source: BinarySource, options?: CompiledParseOptions | null): Promise<Result<string, "parse">>;
+  /** Idempotent; cancels outstanding calls, closes sources and releases the runtime. */
+  dispose(): Promise<void>;
+}
+/** Compile once. Invalid definitions reject with Error (details contains the bridge diagnostic). */
+export function compile(definition: string, options?: LayoutOptions | null): Promise<CompiledLayout>;

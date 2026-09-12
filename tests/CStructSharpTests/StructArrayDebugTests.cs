@@ -29,6 +29,22 @@ public class StructArrayDebugTests
         }
     }
 
+    /// <summary>Lazy paths remain valid after later reads and concurrent formatting.</summary>
+    [TestMethod]
+    public void RetainedDebugPaths_AreIndependentOfLaterOperations()
+    {
+        var parser = new CStruct("struct cell { uint8 value; }; struct root { cell cells[2][2]; };");
+        (List<DebugData> retained, _) = parser.ParseStreamWithDebug(new MemoryStream(new byte[4]), "root");
+        Parallel.For(0, 32, _ =>
+        {
+            parser.ParseStreamWithDebug(new MemoryStream(new byte[4]), "root");
+            string[] paths = retained.Select(item => item.DebugStackString).ToArray();
+            CollectionAssert.AreEqual(
+                new[] { "root.cells[0][0].value", "root.cells[0][1].value", "root.cells[1][0].value", "root.cells[1][1].value" },
+                paths);
+        });
+    }
+
     /// <summary>Array indices survive pointer dereferencing, including address-storage records.</summary>
     [TestMethod]
     public void StructPointerArray_IndexesTargetsAndAddresses()

@@ -220,70 +220,189 @@ export async function prepareSource(
   }
 }
 
-async function runWorker(descriptor, definition, options, debug, signal) {
-  checkAbort(signal);
-  const url = new URL("./source-worker.js", import.meta.url);
-  const worker = isNode
-    ? new (await import("node:worker_threads")).Worker(url, { execArgv: [] })
-    : new Worker(url, { type: "module" });
-  let onAbort;
-  try {
-    return await new Promise((resolve, reject) => {
-      onAbort = () => reject(abortError());
-      signal?.addEventListener("abort", onAbort, { once: true });
-      const receive = (data) =>
-        data.error ? reject(new Error(data.error)) : resolve(data.result);
-      if (isNode) {
-        worker.once("message", receive);
-        worker.once("error", reject);
-        worker.once("exit", (code) =>
-          reject(
-            new Error(
-              `Binary worker exited before returning a result (${code}).`,
-            ),
-          ),
-        );
-      } else {
-        worker.onmessage = (event) => receive(event.data);
-        worker.onerror = (event) =>
-          reject(
-            new Error(
-              event.message ||
-                "Binary worker could not start. Check runtime assets and worker-src policy.",
-            ),
-          );
-        worker.onmessageerror = () =>
-          reject(new Error("Binary worker returned an unreadable response."));
+// One in-flight request per runtime. Abort terminates only that runtime; the next
+// queued request starts a replacement and reinstalls its immutable layout.
+class WorkerSession {
+  worker = null;
+  tail = Promise.resolve();
+  lifetime = new AbortController();
+  idleTimer = null;
+
+  constructor(layout = null) {
+    this.layout = layout;
+  }
+
+  enqueue(operation, signal) {
+    const combined = signal
+      ? AbortSignal.any([signal, this.lifetime.signal])
+      : this.lifetime.signal;
+    let started = false;
+    const result = this.tail.then(async () => {
+      started = true;
+      checkAbort(combined);
+      clearTimeout(this.idleTimer);
+      try {
+        return await operation(combined);
+      } finally {
+        this.worker?.unref?.();
+        if (!this.layout && this.worker) {
+          this.idleTimer = setTimeout(() => this.stop(), 30_000);
+          this.idleTimer.unref?.();
+        }
       }
-      if (signal?.aborted) {
-        reject(abortError());
-        return;
-      }
-      worker.postMessage({ descriptor, definition, options, debug });
     });
-  } finally {
-    signal?.removeEventListener("abort", onAbort);
-    await worker.terminate();
+    this.tail = result.catch(() => {});
+    // Queued cancellation settles promptly without disturbing the active request.
+    return new Promise((resolve, reject) => {
+      const onAbort = () => { if (!started) reject(abortError()); };
+      combined.addEventListener("abort", onAbort, { once: true });
+      result.then(resolve, reject).finally(() => combined.removeEventListener("abort", onAbort));
+      if (combined.aborted) onAbort();
+    });
+  }
+
+  async stop() {
+    const worker = this.worker;
+    this.worker = null;
+    if (worker) await worker.terminate();
+  }
+
+  async dispose() {
+    this.lifetime.abort();
+    clearTimeout(this.idleTimer);
+    await this.tail;
+    await this.stop();
+  }
+
+  async ensureWorker(signal) {
+    checkAbort(signal);
+    if (this.worker) return;
+    const url = new URL("./source-worker.js", import.meta.url);
+    const worker = isNode
+      ? new (await import("node:worker_threads")).Worker(url, { execArgv: [] })
+      : new Worker(url, { type: "module" });
+    this.worker = worker;
+    // Keep an error listener during idle periods too (Node otherwise throws).
+    if (isNode) {
+      const forget = () => { if (this.worker === worker) this.worker = null; };
+      worker.on("error", forget);
+      worker.on("exit", forget);
+    }
+    if (this.layout) {
+      const result = await this.send({ command: "compile", ...this.layout }, signal);
+      if (!result.Success) {
+        await this.stop();
+        const error = new Error(result.Error.Message);
+        error.details = result.Error;
+        throw error;
+      }
+    }
+  }
+
+  async send(message, signal) {
+    checkAbort(signal);
+    const worker = this.worker;
+    worker.ref?.();
+    let cleanup = () => {};
+    try {
+      return await new Promise((resolve, reject) => {
+        const onAbort = () => reject(abortError());
+        const receive = (data) => data.error
+          ? reject(new Error(data.error)) : resolve(data.result);
+        const onError = (error) => reject(new Error(error.message || "Binary worker failed."));
+        const onExit = (code) => reject(new Error(`Binary worker exited before returning a result (${code}).`));
+        signal.addEventListener("abort", onAbort, { once: true });
+        if (isNode) {
+          worker.once("message", receive);
+          worker.once("error", onError);
+          worker.once("exit", onExit);
+        } else {
+          worker.onmessage = (event) => receive(event.data);
+          worker.onerror = onError;
+          worker.onmessageerror = onError;
+        }
+        cleanup = () => {
+          signal.removeEventListener("abort", onAbort);
+          if (isNode) {
+            worker.off("message", receive);
+            worker.off("error", onError);
+            worker.off("exit", onExit);
+          } else {
+            worker.onmessage = worker.onerror = worker.onmessageerror = null;
+          }
+        };
+        if (signal.aborted) onAbort();
+        else worker.postMessage(message);
+      });
+    } catch (error) {
+      // Await termination before deleting any spooled file used by the worker.
+      await this.stop();
+      throw error;
+    } finally {
+      cleanup();
+    }
+  }
+
+  parse(definition, input, options, debug) {
+    const { signal, maxSpoolBytes, ...parserOptions } = options ?? {};
+    return this.enqueue(async (combined) => {
+      const source = await prepareSource(input, { signal: combined, maxSpoolBytes });
+      try {
+        await this.ensureWorker(combined);
+        return await this.send({
+          command: this.layout ? "parseCompiled" : "parse",
+          descriptor: source.descriptor, definition, options: parserOptions, debug,
+        }, combined);
+      } finally {
+        await source.dispose();
+      }
+    }, signal);
   }
 }
 
-export async function parseLargeSource(
-  definition,
-  input,
-  options = {},
-  debug = true,
-) {
-  const { signal, maxSpoolBytes, ...parserOptions } = options ?? {};
-  const source = await prepareSource(input, { signal, maxSpoolBytes });
-  try {
-    return await runWorker(
-      source.descriptor,
-      definition,
-      parserOptions,
-      debug,
-      signal,
-    );
-  } finally {
-    await source.dispose();
+const sharedSession = new WorkerSession();
+
+export function parseLargeSource(definition, input, options = {}, debug = true) {
+  return sharedSession.parse(definition, input, options, debug);
+}
+
+const layoutKeys = new Set([
+  "aligned", "pointerSize", "littleEndian", "maxDefinitionLength",
+  "maxLayoutNestingDepth", "maxExpressionNestingDepth", "maxExpressionTokens",
+]);
+
+/** A dedicated runtime retains one immutable layout until explicit disposal. */
+export async function compileLargeSource(definition, options = {}) {
+  if (typeof definition !== "string") throw new TypeError("Layout definition must be a string.");
+  const frozenOptions = Object.freeze({ ...options });
+  for (const key of Object.keys(frozenOptions)) {
+    if (!layoutKeys.has(key) && key !== "rootTypeName") {
+      throw new TypeError(`Unsupported compile option: ${key}`);
+    }
   }
+  const session = new WorkerSession({ definition, options: frozenOptions });
+  try {
+    await session.enqueue((signal) => session.ensureWorker(signal));
+  } catch (error) {
+    await session.dispose();
+    throw error;
+  }
+  let disposed = false;
+  function parse(input, readOptions, debug) {
+    if (disposed) return Promise.reject(new Error("Compiled layout has been disposed."));
+    for (const key of Object.keys(readOptions ?? {})) {
+      if (layoutKeys.has(key)) {
+        return Promise.reject(new TypeError(`Layout option ${key} is fixed at compilation.`));
+      }
+    }
+    return session.parse(definition, input, { ...frozenOptions, ...readOptions }, debug);
+  }
+  return Object.freeze({
+    parse: (input, options = null) => parse(input, options, false),
+    parseWithDebug: (input, options = null) => parse(input, options, true),
+    async dispose() {
+      disposed = true;
+      await session.dispose();
+    },
+  });
 }

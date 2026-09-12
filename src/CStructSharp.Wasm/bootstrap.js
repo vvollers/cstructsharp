@@ -2,7 +2,7 @@
  * Locate and validate the managed exports, then expose the stable browser-facing adapter.
  * This module has no dependency on the .NET runtime and is therefore directly unit-testable.
  */
-import { parseLargeSource } from "./large-source.js";
+import { compileLargeSource, parseLargeSource } from "./large-source.js";
 
 export function createCStructSharpWasm(assemblyExports) {
   const managed =
@@ -30,6 +30,7 @@ export function createCStructSharpWasm(assemblyExports) {
   return {
     exports: assemblyExports,
     parseSource: parseLargeSource,
+    compile: compileLargeSource,
     parseWithDebug(definition, bytes, options = null) {
       return managed.ParseWithDebug(
         definition,

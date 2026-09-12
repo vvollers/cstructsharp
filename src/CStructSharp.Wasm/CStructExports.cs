@@ -17,6 +17,8 @@ using CStructSharp;
 [SupportedOSPlatform("browser")]
 public partial class CStructExports
 {
+    private static CStruct? workerLayout;
+
     /// <summary>Returns the managed library version used by the loaded browser bundle.</summary>
     [JSExport]
     public static string GetVersion()
@@ -47,6 +49,37 @@ public partial class CStructExports
             InteropOptionsDto options = ParseOptions(optionsJson);
             using var stream = new JavaScriptSourceStream(source);
             return ParseStreamResult(definition, stream, options, debug);
+        }
+        catch (Exception exception)
+        {
+            return SerializeInteropResult(CreateFailure("parse", exception));
+        }
+    }
+
+    /// <summary>Initializes the one retained layout owned by a dedicated JavaScript worker.</summary>
+    [JSExport]
+    public static string InitializeCompiledLayout(string definition, string optionsJson)
+    {
+        try
+        {
+            workerLayout = CreateCStruct(definition, ParseOptions(optionsJson));
+            return SerializeInteropResult(CreateSuccess("parse", "{}"));
+        }
+        catch (Exception exception)
+        {
+            return SerializeInteropResult(CreateFailure("parse", exception));
+        }
+    }
+
+    /// <summary>Reads with the immutable layout retained by this worker runtime.</summary>
+    [JSExport]
+    public static string ParseCompiledSource(JSObject source, string optionsJson, bool debug)
+    {
+        try
+        {
+            InteropOptionsDto options = ParseOptions(optionsJson);
+            using var stream = new JavaScriptSourceStream(source);
+            return ParseStreamResult(workerLayout ?? throw new InvalidOperationException("No compiled layout."), stream, options, debug);
         }
         catch (Exception exception)
         {
@@ -135,7 +168,11 @@ public partial class CStructExports
     /// <summary>Projects either a values-only or debug stream read into the common result envelope.</summary>
     private static string ParseStreamResult(string definition, Stream stream, InteropOptionsDto options, bool debug)
     {
-        CStruct cstruct = CreateCStruct(definition, options);
+        return ParseStreamResult(CreateCStruct(definition, options), stream, options, debug);
+    }
+
+    private static string ParseStreamResult(CStruct cstruct, Stream stream, InteropOptionsDto options, bool debug)
+    {
         string root = string.IsNullOrWhiteSpace(options.RootTypeName)
                           ? ResolveDefaultRootTypeName(cstruct)
                           : options.RootTypeName;

@@ -133,3 +133,24 @@ entry point are not currently supported. Keep `cstructsharp` external in server 
 
 [API and layout guide](https://vvollers.github.io/cstructsharp/docs/guides/browser/api.html) ·
 [Source and releases](https://github.com/vvollers/cstructsharp) · MIT license
+
+## Reusing a compiled layout
+
+```js
+import { compile } from "cstructsharp"; // ZIP: ./cstructsharp-wasm.js
+
+const layout = await compile("struct root { uint32 value; };", { littleEndian: true });
+try {
+  const result = await layout.parse(new Uint8Array([42, 0, 0, 0]));
+  const debug = await layout.parseWithDebug(new Blob([new Uint8Array([42, 0, 0, 0])]));
+  if (result.Success) console.log(JSON.parse(result.Data));
+} finally {
+  await layout.dispose();
+}
+```
+
+`compile(definition, layoutOptions)` validates and retains an immutable layout in a dedicated worker/runtime. It rejects on invalid definitions; the error's `details` property contains the bridge diagnostic. `parse` and `parseWithDebug` accept the same binary sources and read limits as the existing functions and return the same version-5 envelopes (including JSON text in `Data`). Compiler settings are fixed; read options may override `rootTypeName`, addressing and resource limits. Passing a compiler setting to a retained read rejects.
+
+Calls on one handle are queued, with independent read state. Separate handles have separate runtimes. Cancellation rejects with `AbortError`; an active parse is stopped by terminating its worker. The next read recreates the runtime and recompiles the saved definition. Cancelling a queued read does not cancel the active read. Always `await dispose()` to cancel outstanding calls, finish source cleanup, and release the worker and layout. Disposal is idempotent; subsequent reads reject. Keep handles only for layouts you need: each owns a WASM runtime, not merely a small native descriptor. Node idle workers do not keep the process alive.
+
+Ordinary source-based `parse()` calls now share a serialized worker, released after 30 seconds idle. This avoids repeated runtime startup without retaining an unbounded definition cache. Small signal-less `parseWithDebug()` calls keep their existing main-runtime path. Existing signatures, envelopes, bounded parsing and temporary-source staging remain supported. Cancellation/disposal can cause a later call to pay runtime startup again.
