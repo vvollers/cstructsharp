@@ -109,6 +109,36 @@ internal static partial class Program
         Throws<CStructPathException>(() => layout.ResolveAddress(stream, "root.items[1].label"));
         Throws<CStructWriteException>(() => layout.UpdateStream(stream, "root.items[0].kind", 2));
         SequenceEqual(bytes, stream.ToArray());
+        // Each item evaluates both groups with its own fields, including a calculation.
+        const string decisions = "struct entry { uint8 tag; int8 some_parameter; if (some_parameter * 20 > 10) { uint8 high; } else { uint8 low; } switch (tag) { case 1: { uint8 first; } case 2: { uint8 second; } default: { uint8 other; } } }; struct root { entry items[3]; };";
+        var decisionLayout = new CStruct(decisions, aligned: false);
+        byte[] items = [1, 0, 10, 11, 2, 1, 20, 21, 3, 255, 30, 31];
+        dynamic selected = decisionLayout.Parse(items, "root");
+        Equal((byte)10, (byte)selected.items[0].low);
+        Equal((byte)21, (byte)selected.items[1].second);
+        Equal((byte)31, (byte)selected.items[2].other);
+        SequenceEqual(items, decisionLayout.Serialize("root", selected));
+        items[0] = 2;
+        Equal((byte)11, (byte)decisionLayout.Parse(items, "root").items[0].second);
+        items[0] = 1;
+        items[1] = 1;
+        Equal((byte)10, (byte)decisionLayout.Parse(items, "root").items[0].high);
+
+        // A caller's count cannot replace an unread local; a short-circuit guard repairs the example.
+        const string scope = "#define count 99\nstruct entry { uint8 tag; if (tag) { uint8 count; } if (count > 0) { uint8 payload[count]; } }; struct root { entry items[2]; };";
+        byte[] scopedBytes = [1, 1, 42, 0];
+        var variables = new Dictionary<string, int> { ["count"] = 99 };
+        var scopedLayout = new CStruct(scope, aligned: false);
+        Throws<CStructLayoutException>(() => scopedLayout.Parse(scopedBytes, "root", variables: variables));
+        var guarded = new CStruct(scope.Replace("if (count > 0)", "if (tag != 0 && count > 0)"), aligned: false);
+        dynamic scoped = guarded.Parse(scopedBytes, "root", variables: variables);
+        Equal(1, ((IDictionary<string, object>)scoped.items[1]).Count);
+        SequenceEqual(scopedBytes, guarded.Serialize("root", scoped, variables: variables));
+
+        // Inactive nested expressions are skipped, but become errors when reached.
+        var nested = new CStruct("struct root { uint8 tag; if (tag) { if (missing > 0) { uint8 value; } } uint8 tail; };", aligned: false);
+        Equal((byte)9, (byte)nested.Parse(new byte[] { 0, 9 }, "root").tail);
+        Throws<CStructLayoutException>(() => nested.Parse(new byte[] { 1, 9 }, "root"));
     }
     #endregion
 }

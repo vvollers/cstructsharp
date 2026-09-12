@@ -594,7 +594,7 @@ const lessonTopics: Lesson[] = [
       exercise: "Try changing the first record kind through an update.",
       answer:
         "A branch-changing update is rejected. Serialize a new buffer when the active storage layout must change.",
-      guide: "guides/binary-metadata-types.html",
+      guide: "guides/conditional-fields.html",
       operations: {
         parse: {
           expected: {
@@ -619,6 +619,81 @@ const lessonTopics: Lesson[] = [
           expected: { hex: "02 01 e2 82 ac 07 02 2b 00 00" },
         },
       },
+    },
+  ),
+  lesson(
+    "conditional-decisions",
+    "Choose branches separately for each array item",
+    "struct entry { uint8 tag; int8 some_parameter; if (some_parameter * 20 > 10) { uint8 high; } else { uint8 low; } switch (tag) { case 1: { uint8 first; } case 2: { uint8 second; } default: { uint8 other; } } }; struct root { entry items[3]; };",
+    "01 00 0a 0b 02 01 14 15 03 ff 1e 1f",
+    "root",
+    {
+      level: "Intermediate",
+      tags: ["conditionals", "if", "switch", "arrays", "expressions"],
+      sourceScenario: "conditional-records",
+      summary:
+        "Each array item uses its own tag and calculated condition. A compiled layout does not reuse the first item's decision.",
+      prerequisite: "Complete the fixed-array lesson and understand integer multiplication.",
+      exercise:
+        "Change only the first byte from 01 to 02. Reset, then change the second byte from 00 to 01.",
+      answer:
+        "The first edit changes the first item's first member to second, still 11. After reset, the parameter edit selects high instead of low, still 10. Other items are unchanged. Both alternatives here have equal widths.",
+      guide: "guides/conditional-fields.html",
+      operations: {
+        parse: {
+          expected: {
+            data: {
+              root: {
+                items: [
+                  { tag: 1, some_parameter: 0, low: 10, first: 11 },
+                  { tag: 2, some_parameter: 1, high: 20, second: 21 },
+                  { tag: 3, some_parameter: -1, low: 30, other: 31 },
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+  ),
+  lesson(
+    "conditional-scope",
+    "Understand an unavailable local value",
+    "#define count 99\nstruct entry { uint8 tag; if (tag) { uint8 count; } if (count > 0) { uint8 payload[count]; } }; struct root { entry items[2]; };",
+    "01 01 2a 00",
+    "root",
+    {
+      level: "Intermediate",
+      tags: ["conditionals", "scope", "variables", "errors"],
+      sourceScenario: "conditional-records",
+      summary:
+        "This intentional error shows why an inactive local cannot borrow a value from the previous array item or the caller.",
+      prerequisite: "Complete the per-item branch lesson.",
+      exercise: "Change if (count > 0) to if (tag != 0 && count > 0), then run again.",
+      answer:
+        "The second item has tag 0. Short-circuit evaluation skips count, so parsing succeeds. The first item contains count 1 and payload [42]; the second contains only tag 0.",
+      guide: "guides/conditional-fields.html",
+      operations: { parse: { expected: { error: "invalid-layout" } } },
+    },
+  ),
+  lesson(
+    "conditional-nesting",
+    "Skip a condition inside an inactive branch",
+    "struct root { uint8 tag; if (tag) { if (missing > 0) { uint8 value; } } uint8 tail; };",
+    "00 09",
+    "root",
+    {
+      level: "Intermediate",
+      tags: ["conditionals", "nesting", "expressions", "errors"],
+      sourceScenario: "conditional-records",
+      summary:
+        "An inner condition runs only if its outer branch was selected. The starting input never looks up missing.",
+      prerequisite: "Understand if/else and unavailable local values.",
+      exercise: "Change the first byte from 00 to 01, then run again.",
+      answer:
+        "The outer branch becomes active. The inner condition now evaluates missing and reports a layout error. Reset restores the successful parse with tail 9.",
+      guide: "guides/conditional-fields.html",
+      operations: { parse: { expected: { data: { root: { tag: 0, tail: 9 } } } } },
     },
   ),
 ];
@@ -671,6 +746,12 @@ const operationTitles: Record<string, [string, string?, string?]> = {
 };
 
 const readExplanations: Record<string, string> = {
+  "conditional-decisions":
+    "A decision is evaluated once per group, per struct instance, per operation. Each item reads its own tag and some_parameter first. Parameters 0, 1, and -1 select low, high, and low; tags 1, 2, and 3 select first, second, and default's other. A selected group keeps its decision for all its fields. Later and nested groups decide when reached. Reusing a compiled layout does not share decisions between items or parses.",
+  "conditional-scope":
+    "The first item reads count 1 and payload 42. The second has tag 0, so its local count is unavailable and the next condition fails. Local declarations hide caller variables from entry: even the #define count 99 cannot rescue this expression. Each item starts fresh. Guard count with tag != 0 && count > 0 to avoid evaluating an unavailable value.",
+  "conditional-nesting":
+    "Tag 0 skips the entire outer branch, including the inner condition, so tail reads the next byte as 9. No value for missing is needed. Tag 1 reaches the inner condition and produces a missing-variable error. Calculations use checked 32-bit integers; active expressions still enforce overflow, division, depth, and work limits.",
   "integers-24":
     "Three-byte integers keep a three-byte stride. The unsigned size is 16777215 and the signed delta is -2.",
   "bounded-encodings":

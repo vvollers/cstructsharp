@@ -49,7 +49,10 @@
     "identifier-order-update",
     "conditional-records",
     "conditional-records-serialize",
-    "conditional-records-update"
+    "conditional-records-update",
+    "conditional-decisions",
+    "conditional-scope",
+    "conditional-nesting"
   ],
-  "lessonTopics": 21
+  "lessonTopics": 24
 }

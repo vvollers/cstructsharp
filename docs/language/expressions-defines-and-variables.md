@@ -106,6 +106,8 @@ expression before increasing a safety limit.
 
 ## Comparisons and short-circuit predicates
 
+For worked conditional examples, see [Choose fields with if and switch](../guides/conditional-fields.md).
+
 Comparisons `==`, `!=`, `<`, `<=`, `>`, `>=` and logical `!`, `&&`, `||`
 produce integer 0 or 1. Nonzero operands are true. `&&` skips its right operand
 when the left is zero; `||` skips it when the left is nonzero. Inactive operands
