@@ -1,7 +1,9 @@
 namespace CStructSharp;
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,7 +16,7 @@ public partial class CStruct
     ///     The direction-suffixed and byte-order-agnostic primitive readers (for example <c>int32&gt;</c>/
     ///     <c>int32&lt;</c>, or <c>byte</c>, which has no direction). None of these delegates depend on any
     ///     per-instance state - only the unsuffixed/C-style alias layer, built per instance in
-    ///     <see cref="BuildFieldHandlers" />, depends on <see cref="IsLittleEndian" />. Built once per process
+    ///     <see cref="CreatePrimitiveRegistry" />, depends on <see cref="IsLittleEndian" />. Built once per process
     ///     instead of once per <see cref="CStruct" /> construction.
     /// </summary>
     private static readonly IReadOnlyDictionary<string, Func<Stream, object>> BaseFieldHandlers =
@@ -32,6 +34,9 @@ public partial class CStruct
     /// </summary>
     private static readonly IReadOnlyDictionary<string, byte> BaseFieldAlignments =
         MeasureBaseFieldAlignments(BaseFieldHandlers);
+
+    private static readonly Lazy<PrimitiveRegistry> LittleEndianRegistry = new(() => CreatePrimitiveRegistry(true));
+    private static readonly Lazy<PrimitiveRegistry> BigEndianRegistry = new(() => CreatePrimitiveRegistry(false));
 
     /// <summary>Builds the process-wide, direction-suffixed primitive reader table (see <see cref="BaseFieldHandlers" />).</summary>
     private static Dictionary<string, Func<Stream, object>> BuildBaseFieldHandlers()
@@ -233,68 +238,44 @@ public partial class CStruct
         return alignments;
     }
 
-    /// <summary>Builds the named primitive readers and records each primitive's byte size for layout calculations.</summary>
-    private void BuildFieldHandlers()
+    /// <summary>Builds immutable primitive descriptors once per byte order, independent of user layouts and pointer widths.</summary>
+    private static PrimitiveRegistry CreatePrimitiveRegistry(bool littleEndian)
     {
-        this.fieldHandlers.ReplaceWith(BaseFieldHandlers);
-
-        // Canonical numeric names have explicit `>` and `<` variants; collect one side to derive their neutral names.
-        List<string> fieldTypesWithSpecificEndianness = BaseFieldHandlers.Keys.Where(o => o.EndsWith('>')).ToList();
-
-        // Add the unsuffixed names (for example, int32) using the byte order chosen for this CStruct instance.
-        foreach (string alias in fieldTypesWithSpecificEndianness.Select(fieldType => fieldType[..^1]))
+        var readers = new Dictionary<string, Func<Stream, object>>(BaseFieldHandlers, StringComparer.Ordinal);
+        var writers = new Dictionary<string, Action<Stream, object>>(BaseWriteHandlers, StringComparer.Ordinal);
+        var alignments = new Dictionary<string, byte>(BaseFieldAlignments, StringComparer.Ordinal);
+        foreach (string name in BaseFieldHandlers.Keys.Where(name => name.EndsWith('>')))
         {
-            // Choose the instance's default endian reader once so field parsing stays a simple dictionary lookup.
-            this.fieldHandlers[alias]
-                = this.IsLittleEndian ? this.fieldHandlers[alias + '<'] : this.fieldHandlers[alias + '>'];
+            string neutral = name[..^1];
+            string canonical = neutral + (littleEndian ? '<' : '>');
+            readers.Add(neutral, readers[canonical]);
+            writers.Add(neutral, writers[canonical]);
+            alignments.Add(neutral, alignments[canonical]);
         }
 
-        foreach (KeyValuePair<string, string> alias in PrimitiveCodecs.FieldTypeAliasses)
+        foreach ((string alias, string canonical) in PrimitiveCodecs.FieldTypeAliasses)
         {
-            // C-style spellings such as `int` and `long` are aliases, not separate codecs with different behavior.
-            this.fieldHandlers[alias.Key] = this.fieldHandlers[alias.Value];
+            readers.Add(alias, readers[canonical]);
+            writers.Add(alias, writers[canonical]);
+            alignments.Add(alias, alignments[canonical]);
         }
 
-        // Seed alignments from the precomputed base table, then mirror the same alias resolution used for the
-        // handlers above - an alias's consumed byte count is always identical to whichever canonical entry it
-        // resolves to, so this only ever copies an already-measured value, never re-measures.
-        foreach (KeyValuePair<string, byte> baseAlignment in BaseFieldAlignments)
+        var symbols = ImmutableDictionary.CreateBuilder<string, CompiledTypeReference>(StringComparer.Ordinal);
+        foreach ((string name, Func<Stream, object> reader) in readers)
         {
-            this.fieldAlignments[baseAlignment.Key] = baseAlignment.Value;
+            int? size = PrimitiveCodecs.IsVariableLengthType(name) || Leb128Codec.IsType(name) ? null : alignments[name];
+            var symbol = new CompiledTypeSymbol(name, CompiledTypeKind.Primitive, null, size == 3 || name is "uuid" or "guid" ? 1 : alignments[name], size, reader, writers[name]);
+            symbol.Bind(new CompiledPrimitiveType(symbol));
+            symbol.Freeze();
+            symbols.Add(name, new CompiledTypeReference(symbol, 0, name));
         }
 
-        foreach (string alias in fieldTypesWithSpecificEndianness.Select(fieldType => fieldType[..^1]))
-        {
-            this.fieldAlignments[alias]
-                = this.IsLittleEndian ? this.fieldAlignments[alias + '<'] : this.fieldAlignments[alias + '>'];
-        }
-
-        foreach (KeyValuePair<string, string> alias in PrimitiveCodecs.FieldTypeAliasses)
-        {
-            this.fieldAlignments[alias.Key] = this.fieldAlignments[alias.Value];
-        }
-    }
-
-    /// <summary>Builds the named primitive writers using the same aliases and byte order as the readers.</summary>
-    private void BuildWriteHandlers()
-    {
-        this.writeHandlers.ReplaceWith(BaseWriteHandlers);
-
-        // Build default-endian names after both explicit byte-order writers have been registered.
-        List<string> fieldTypesWithSpecificEndianness = BaseWriteHandlers.Keys.Where(o => o.EndsWith('>')).ToList();
-
-        foreach (string alias in fieldTypesWithSpecificEndianness.Select(fieldType => fieldType[..^1]))
-        {
-            // The layout-level endianness selects the neutral writer once, avoiding a branch for every field value.
-            this.writeHandlers[alias]
-                = this.IsLittleEndian ? this.writeHandlers[alias + '<'] : this.writeHandlers[alias + '>'];
-        }
-
-        foreach (KeyValuePair<string, string> alias in PrimitiveCodecs.FieldTypeAliasses)
-        {
-            // Reuse the canonical delegate for familiar C aliases and string shorthand names.
-            this.writeHandlers[alias.Key] = this.writeHandlers[alias.Value];
-        }
+        return new PrimitiveRegistry(
+            readers.ToFrozenDictionary(StringComparer.Ordinal),
+            writers.ToFrozenDictionary(StringComparer.Ordinal),
+            alignments.ToFrozenDictionary(StringComparer.Ordinal),
+            symbols.ToImmutable(),
+            new BitfieldCodecTable(littleEndian, alignments, readers, writers, PrimitiveCodecs.FieldTypeAliasses));
     }
 
     /// <summary>Selects strict UTF-16 in the explicit field order, or in the layout order for neutral <c>wchar</c>.</summary>
@@ -312,4 +293,12 @@ public partial class CStruct
 
         return this.IsLittleEndian ? PrimitiveCodecs.StrictUtf16LittleEndianEncoding : PrimitiveCodecs.StrictUtf16BigEndianEncoding;
     }
+
+    /// <summary>All members are constructed once and used read-only by layouts of the same byte order.</summary>
+    private sealed record PrimitiveRegistry(
+        FrozenDictionary<string, Func<Stream, object>> Readers,
+        FrozenDictionary<string, Action<Stream, object>> Writers,
+        FrozenDictionary<string, byte> Alignments,
+        ImmutableDictionary<string, CompiledTypeReference> Symbols,
+        BitfieldCodecTable Bitfields);
 }

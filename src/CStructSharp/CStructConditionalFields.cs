@@ -10,9 +10,9 @@ using CStructSharp.Structure;
 public partial class CStruct
 {
     /// <summary>Freezes case constants without recursive traversal or changing runtime selectors.</summary>
-    private static Expr? NormalizeCaseConstants(Expr? expression, Dictionary<Expr, Expr> constants)
+    private static Expr? NormalizeCaseConstants(Expr? expression, Dictionary<Expr, Expr>? constants)
     {
-        if (expression is null || constants.Count == 0)
+        if (expression is null || constants is null || constants.Count == 0)
         {
             return expression;
         }

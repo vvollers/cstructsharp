@@ -106,5 +106,4 @@ internal sealed class CompiledCompositeType : CompiledType
             field.RestoredLocalSlots = overwritten.Where(slots.ContainsKey).Select(name => slots[name]).ToImmutableArray();
         }
     }
-
 }
