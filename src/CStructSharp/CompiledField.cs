@@ -41,6 +41,7 @@ internal sealed class CompiledField
         this.BitStorageIsLittleEndian = bitStorageIsLittleEndian;
         this.FixedOffset = fixedOffset;
         this.BitOffset = bitOffset;
+        this.IsFixedPoint = this.PointerDepth == 0 && FixedPointCodec.IsType(this.CodecName);
     }
 
     public int Alignment { get; }
@@ -66,6 +67,9 @@ internal sealed class CompiledField
     public int? FixedStorageSize { get; }
 
     public bool IsUnsizedCharacterArray { get; }
+
+    /// <summary>Whether numeric storage represents a fixed-point value rather than an integer layout variable.</summary>
+    public bool IsFixedPoint { get; }
 
     public CStructElement? NamedElement => this.Type.Symbol.Declaration;
 

@@ -176,13 +176,13 @@ public partial class CStruct
         }
 
         CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
-        var variableScope = new ConditionalVariableScope(composite, state.Variables);
-        var selection = new ConditionalFieldSelection(this.layoutExpressionEvaluator);
+        var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
+        var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator) : null;
         var cursor = new CompositeFieldPlacementCursor(structStart, this.Aligned);
 
         foreach (CompiledField compiledField in composite.Fields)
         {
-            if (!selection.IsActive(compiledField, state.Variables))
+            if (selection?.IsActive(compiledField, state.Variables) == false)
             {
                 continue;
             }
@@ -228,7 +228,7 @@ public partial class CStruct
                 cursor.CompleteField(this.MeasureFieldEnd(compiledField, fieldStart, state));
             }
 
-            variableScope.CompleteField(compiledField, state.Variables);
+            variableScope?.CompleteField(compiledField, state.Variables);
         }
 
         throw new CStructPathException($"Unknown field '{requested.Name}' in '{strct.Name.Name}'.");
@@ -924,11 +924,12 @@ public partial class CStruct
 
         var cursor = new CompositeFieldPlacementCursor(structStart, this.Aligned);
 
-        var variableScope = new ConditionalVariableScope(this.compiledSizeQueries.GetCompiledComposite(strct), state.Variables);
-        var selection = new ConditionalFieldSelection(this.layoutExpressionEvaluator);
+        CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
+        var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
+        var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator) : null;
         foreach (CompiledField compiledField in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
         {
-            if (!selection.IsActive(compiledField, state.Variables))
+            if (selection?.IsActive(compiledField, state.Variables) == false)
             {
                 continue;
             }
@@ -943,7 +944,7 @@ public partial class CStruct
                 cursor.CompleteField(this.MeasureFieldEnd(compiledField, fieldStart, state));
             }
 
-            variableScope.CompleteField(compiledField, state.Variables);
+            variableScope?.CompleteField(compiledField, state.Variables);
         }
 
         int structAlignment = this.compiledSizeQueries.GetCompiledComposite(strct).Symbol.Alignment;
@@ -1032,7 +1033,7 @@ public partial class CStruct
             return;
         }
 
-        if (field.PointerDepth == 0 && FixedPointCodec.IsType(compiledField.CodecName))
+        if (field.PointerDepth == 0 && compiledField.IsFixedPoint)
         {
             state.Variables.Remove(field.Name.Name);
             return;

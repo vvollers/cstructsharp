@@ -7,7 +7,7 @@ using System.IO;
 internal static class FixedPointCodec
 {
     /// <summary>Identifies fixed-point spellings, including their endian variants.</summary>
-    public static bool IsType(string name) => name.TrimEnd('<', '>') is "fixed16_16" or "ufixed16_16" or "fixed2_30" or "ufixed8_8";
+    public static bool IsType(string name) => name is "fixed16_16" or "fixed16_16<" or "fixed16_16>" or "ufixed16_16" or "ufixed16_16<" or "ufixed16_16>" or "fixed2_30" or "fixed2_30<" or "fixed2_30>" or "ufixed8_8" or "ufixed8_8<" or "ufixed8_8>";
 
     /// <summary>Reads integer storage and scales it exactly into a double.</summary>
     public static double Read(Stream stream, bool littleEndian, int width, int fraction, bool signed)

@@ -172,13 +172,13 @@ public partial class CStruct
             }
 
             CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
-            var variableScope = new ConditionalVariableScope(composite, state.Variables);
-            var selection = new ConditionalFieldSelection(this.layoutExpressionEvaluator);
+            var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
+            var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator) : null;
             var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned);
 
             foreach (CompiledField field in composite.Fields)
             {
-                if (!selection.IsActive(field, state.Variables))
+                if (selection?.IsActive(field, state.Variables) == false)
                 {
                     foreach (string name in ConditionalVariableScope.GetVisibleNames(field))
                     {
@@ -198,7 +198,7 @@ public partial class CStruct
                     // Struct dispatch recurses WriteStruct with this same `data`, so the promoted member's own
                     // fields are looked up directly on it, with no nested member of its own.
                     this.WriteFieldValue(field, data, state, -1, cursor);
-                    variableScope.CompleteField(field, state.Variables);
+                    variableScope?.CompleteField(field, state.Variables);
                     continue;
                 }
 
@@ -207,7 +207,7 @@ public partial class CStruct
                     // An anonymous nonzero-width bitfield (LANG-17) is pure padding with no caller-supplied value -
                     // there is no member to look up, so write its canonical zero bits directly.
                     this.WriteFieldValue(field, 0, state, -1, cursor);
-                    variableScope.CompleteField(field, state.Variables);
+                    variableScope?.CompleteField(field, state.Variables);
                     continue;
                 }
 
@@ -217,7 +217,7 @@ public partial class CStruct
                     field.EffectiveField.Name.Name,
                     state.BindingMode);
                 this.WriteFieldValue(field, fieldValue, state, -1, cursor);
-                variableScope.CompleteField(field, state.Variables);
+                variableScope?.CompleteField(field, state.Variables);
             }
 
             // A final aligned tail is part of the struct's storage size, not merely a cursor adjustment. Materialize
@@ -627,7 +627,7 @@ public partial class CStruct
         }
         else
         {
-            if (!effectiveField.IsPointer && (FixedPointCodec.IsType(compiledField.CodecName) ||
+            if (!effectiveField.IsPointer && (compiledField.IsFixedPoint ||
                                              compiledField.CodecName is "uuid" or "guid"))
             {
                 state.Variables.Remove(effectiveField.Name.Name);

@@ -637,7 +637,7 @@ public partial class CStruct
                                     // Existing expression semantics preserve strings as identifiers for compatible layouts.
                                     state.Variables[f.Name.Name] = new Identifier(str);
                                 }
-                                else if (FixedPointCodec.IsType(compiledField.CodecName) || content is Guid)
+                                else if (compiledField.IsFixedPoint || content is Guid)
                                 {
                                     state.Variables.Remove(f.Name.Name);
                                 }
