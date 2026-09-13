@@ -4,6 +4,14 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- **Breaking (managed API):** a one-dimensional array of a fixed-width numeric primitive (`uint8`…`uint64`,
+  `int8`…`int64`, `int24`/`uint24`, `bool`, `float32`, `float64`, any byte order) now parses to
+  `CStructSharp.PrimitiveArray<T>` instead of a `List<object?>`. It is still the documented `IList<object?>`
+  (enumeration, indexing, `Count`, and passing it back to `Serialize`/`UpdateStream` are unchanged; elements can
+  be replaced through the indexer) but has a fixed size like a .NET array, and `Span`/`ToArray()` expose the values
+  without boxing. Only explicit `List<object?>` casts need to change. Such arrays decode 80–500× faster with
+  80–97 % less allocation (a 1 MiB `uint8` array: 59 ms → 0.1 ms; a 16 MiB stream: 780 ms → 2 ms); their JSON
+  projection in the browser bridge is written straight from the typed values.
 - Performance: a field's value is published as a layout variable only when an expression in the layout (array
   count, condition, switch selector, offset assertion) can name it; every other field skips the per-value
   allocation and dictionary write. Record and nested-struct parses run 20–45 % faster with 20–50 % less

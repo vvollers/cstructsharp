@@ -1,5 +1,6 @@
 namespace CStructSharpTests;
 
+using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.ExceptionServices;
@@ -133,7 +134,7 @@ public class Int32CaptureTests
 
         byte[] inRange = [3, 0, 0, 0, 1, 2, 3];
         dynamic parsed = layout.Parse(inRange, "root");
-        Assert.AreEqual(3, ((List<object?>)parsed.values).Count);
+        Assert.AreEqual(3, ((IList<object?>)parsed.values).Count);
     }
 
     /// <summary>Other tests may throw concurrently; only exceptions raised on the calling thread are counted.</summary>
@@ -149,9 +150,9 @@ public class Int32CaptureTests
         };
     }
 
-    private static List<object?> Items(object parsed)
+    private static IList<object?> Items(object parsed)
     {
-        return (List<object?>)((IDictionary<string, object?>)parsed)["items"]!;
+        return (IList<object?>)((IDictionary<string, object?>)parsed)["items"]!;
     }
 
     public sealed class SamplePoco

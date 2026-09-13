@@ -11,7 +11,7 @@ type:
 | Layout shape | Direct result |
 | --- | --- |
 | Fixed integer or character | Matching CLR primitive |
-| Fixed/runtime array | `IList<object?>` |
+| Fixed/runtime array | `IList<object?>` (`PrimitiveArray<T>` for one-dimensional numeric/`bool` arrays: typed `Span`, fixed size) |
 | Fixed character buffer or terminated text | `string` |
 | Enum | `EnumValueResult` |
 | Pointer | `Pointer` |

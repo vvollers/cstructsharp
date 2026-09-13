@@ -1,5 +1,6 @@
 namespace CStructSharpTests;
 
+using System.Collections.Generic;
 using CStructSharp;
 
 /// <summary>Compile-time codec identity (E1.5) must agree with the primitive registry vocabulary and the layout byte order.</summary>
@@ -55,8 +56,8 @@ public class PrimitiveCodecTests
         dynamic little = new CStruct("struct root { uint32 values[300]; };").Parse(bytes, "root");
         dynamic big = new CStruct("struct root { uint32 values[300]; };", isLittleEndian: false).Parse(bytes, "root");
         dynamic explicitBig = new CStruct("struct root { uint32> values[300]; };").Parse(bytes, "root");
-        Assert.AreEqual(0x80000000u + 7, (uint)((List<object?>)little.values)[7]!);
-        Assert.AreEqual(0x07000080u, (uint)((List<object?>)big.values)[7]!);
-        CollectionAssert.AreEqual((List<object?>)explicitBig.values, (List<object?>)big.values);
+        Assert.AreEqual(0x80000000u + 7, (uint)((IList<object?>)little.values)[7]!);
+        Assert.AreEqual(0x07000080u, (uint)((IList<object?>)big.values)[7]!);
+        CollectionAssert.AreEqual(((IList<object?>)explicitBig.values).ToArray(), ((IList<object?>)big.values).ToArray());
     }
 }

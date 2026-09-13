@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 6,
+  "baselineRevision": 7,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.3.0",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 22,
+  "exportedTypes": 23,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -14,21 +14,21 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 261,
-    "normalizedSha256": "CAE70C0222E8DEC5FF0D9C75DF5B5E127537146A488D2F89341FB945FD78C507"
+    "lines": 276,
+    "normalizedSha256": "B96C2DEDC7615F28786BEB9E421CE35E47B6FB5C2CF5EC50FB0D001E446E95DF"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "F71DBE6CF122C0B983891BDB21B93F4209E8CDB2845F5E6837DCF2570C15A1E3"
+      "normalizedSha256": "A253CC8017AC101EE0FE06BB0052AD19F9FBCD8008644B5DDD6A221A2612EED6"
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "0B8A2880D74653022CDF42E91FE8A9AE7DF1ACC432600C8B82A243ADA8B8610D"
+      "normalizedSha256": "ED9D98339F6FA48C148727810289A6E723675F397DEF9F5FFF87D5706C90AC96"
     }
   ],
   "history": [
@@ -85,6 +85,15 @@
       "combinedSha256": "7325E054A1803D54C05175CD1C4335B9254C2E91C40B72F0F766936AF44F4A25",
       "rationale": "Performance plan E2.2 (typed result model): parsed structs are the new sealed CStructSharp.StructValue (DynamicObject + IDictionary<string, object?> + IReadOnlyDictionary<string, object?>) instead of System.Dynamic.ExpandoObject. Every parse of one compiled composite shares a member table, so a parsed struct allocates one slot array instead of growing a DLR class chain; nested-struct parses run 25-45 % faster with 20-35 % less allocation, and dynamic member access binds to the slot index at the call site at the same per-access cost as ExpandoObject. Also records the Phase 1 E3.3 change already published in CHANGELOG.md but missed by this baseline: DebugData.Buffer is byte[] (previously int[]). StructValue.Enumerator (a nested public struct, the allocation-free foreach enumerator in the Dictionary<,>.Enumerator style) is the 22nd exported type. The surface is otherwise unchanged.",
       "releaseImpact": "Breaking source change for callers that declared or cast parse results as ExpandoObject (use StructValue or dynamic) and for callers reading DebugData.Buffer as int[]. dynamic member access, IDictionary<string, object?> casts, enumeration order, mutation, and passing parsed values back to Serialize/UpdateStream are unchanged. The next publication must receive a new version through the release process."
+    },
+    {
+      "revision": 7,
+      "kind": "breaking",
+      "date": "2026-09-13",
+      "packageVersion": "0.3.0",
+      "combinedSha256": "49BDF192E39CD208547B6048F12251D80F2B81981B1D537555BDAE5E3F57355D",
+      "rationale": "Performance plan E2.3 stage 2 (typed primitive arrays): a one-dimensional array of a fixed-width numeric primitive or bool parses to the new sealed CStructSharp.PrimitiveArray<T> (IList<object?> + IReadOnlyList<object?> + non-generic IList, fixed size, typed Span/Memory/ToArray) instead of a List<object?> of boxed values. The bulk reader decodes host-order data with one copy and the other byte order with the vectorized ReverseEndianness span overloads: numeric arrays parse 80-500x faster with 80-97 % less allocation. 23 exported types.",
+      "releaseImpact": "Breaking source change only for callers that cast such array values to List<object?> (use IList<object?> or PrimitiveArray<T>) or that added/removed elements of a parsed numeric array in place (copy to a List first). Enumeration, indexing, Count, element replacement through the indexer, boxed element types, JSON projection and write-back through Serialize/UpdateStream are unchanged. The next publication must receive a new version through the release process."
     }
   ]
 }

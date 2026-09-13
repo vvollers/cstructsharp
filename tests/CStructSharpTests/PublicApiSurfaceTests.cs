@@ -23,6 +23,7 @@ public class PublicApiSurfaceTests
         "CStructSharp.EnumValueResult",
         "CStructSharp.Pointer",
         "CStructSharp.PointerAddressingMode",
+        "CStructSharp.PrimitiveArray`1",
         "CStructSharp.PocoBindingMode",
         "CStructSharp.ReadOptions",
         "CStructSharp.StaticHelpers",

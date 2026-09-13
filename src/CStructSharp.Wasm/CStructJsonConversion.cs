@@ -313,6 +313,107 @@ public partial class CStructExports
 
             writer.WriteEndObject();
             return;
+
+        // Typed parsed arrays (E2.3) are written from their span: no boxing and no per-element type dispatch.
+        case PrimitiveArray<byte> array:
+            writer.WriteStartArray();
+            foreach (byte number in array.Span)
+            {
+                writer.WriteNumberValue(number);
+            }
+
+            writer.WriteEndArray();
+            return;
+        case PrimitiveArray<sbyte> array:
+            writer.WriteStartArray();
+            foreach (sbyte number in array.Span)
+            {
+                writer.WriteNumberValue(number);
+            }
+
+            writer.WriteEndArray();
+            return;
+        case PrimitiveArray<bool> array:
+            writer.WriteStartArray();
+            foreach (bool flag in array.Span)
+            {
+                writer.WriteBooleanValue(flag);
+            }
+
+            writer.WriteEndArray();
+            return;
+        case PrimitiveArray<short> array:
+            writer.WriteStartArray();
+            foreach (short number in array.Span)
+            {
+                writer.WriteNumberValue(number);
+            }
+
+            writer.WriteEndArray();
+            return;
+        case PrimitiveArray<ushort> array:
+            writer.WriteStartArray();
+            foreach (ushort number in array.Span)
+            {
+                writer.WriteNumberValue(number);
+            }
+
+            writer.WriteEndArray();
+            return;
+        case PrimitiveArray<int> array:
+            writer.WriteStartArray();
+            foreach (int number in array.Span)
+            {
+                writer.WriteNumberValue(number);
+            }
+
+            writer.WriteEndArray();
+            return;
+        case PrimitiveArray<uint> array:
+            writer.WriteStartArray();
+            foreach (uint number in array.Span)
+            {
+                writer.WriteNumberValue(number);
+            }
+
+            writer.WriteEndArray();
+            return;
+        case PrimitiveArray<long> array:
+            writer.WriteStartArray();
+            foreach (long number in array.Span)
+            {
+                WriteJavaScriptSafeInteger(writer, number);
+            }
+
+            writer.WriteEndArray();
+            return;
+        case PrimitiveArray<ulong> array:
+            writer.WriteStartArray();
+            foreach (ulong number in array.Span)
+            {
+                WriteJavaScriptSafeInteger(writer, number);
+            }
+
+            writer.WriteEndArray();
+            return;
+        case PrimitiveArray<float> array:
+            writer.WriteStartArray();
+            foreach (float number in array.Span)
+            {
+                writer.WriteNumberValue(number);
+            }
+
+            writer.WriteEndArray();
+            return;
+        case PrimitiveArray<double> array:
+            writer.WriteStartArray();
+            foreach (double number in array.Span)
+            {
+                writer.WriteNumberValue(number);
+            }
+
+            writer.WriteEndArray();
+            return;
         case IEnumerable<object?> sequence:
             writer.WriteStartArray();
             foreach (object? item in sequence)

@@ -40,11 +40,15 @@ foreach ($match in [regex]::Matches(
 }
 
 $typeNames = @($typeNames | Sort-Object -Unique)
-Assert-Condition ($typeNames.Count -eq 22) "Expected 22 baseline types, found $($typeNames.Count)."
+Assert-Condition ($typeNames.Count -eq 23) "Expected 23 baseline types, found $($typeNames.Count)."
 
+# A generic type's metadata file carries its arity (PrimitiveArray-1.yml).
 $missingTypes = @(
     $typeNames |
-        Where-Object { -not (Test-Path -LiteralPath (Join-Path $ApiDirectory "CStructSharp.$_.yml")) }
+        Where-Object {
+            -not (Test-Path -LiteralPath (Join-Path $ApiDirectory "CStructSharp.$_.yml")) -and
+            -not (Test-Path -LiteralPath (Join-Path $ApiDirectory "CStructSharp.$_-1.yml"))
+        }
 )
 Assert-Condition ($missingTypes.Count -eq 0) (
     "Generated API metadata is missing baseline types: " + [string]::Join(', ', $missingTypes))
@@ -344,7 +348,8 @@ $apiToc = Get-Content -LiteralPath $apiTocPath -Raw
 foreach ($typeName in $typeNames)
 {
     Assert-Condition (
-        $apiToc.Contains("CStructSharp.$typeName.html", [StringComparison]::Ordinal)) (
+        $apiToc.Contains("CStructSharp.$typeName.html", [StringComparison]::Ordinal) -or
+        $apiToc.Contains("CStructSharp.$typeName-1.html", [StringComparison]::Ordinal)) (
         "Built API TOC does not link the baseline type CStructSharp.$typeName.")
 }
 

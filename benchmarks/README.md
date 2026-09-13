@@ -54,6 +54,11 @@ node benchmarks/js/bench/profile-browser.mjs real-png 2000 artifacts/profiles   
 
 ## Anti-benchmarking rules
 
+The `Baseline0.ComparatorBenchmarks.HandWritten_*` cases exercise no library code, so they are the canary for a
+recording run: if any of them drifts more than 10 % against the contract, the machine was perturbed during the run
+(this happens on shared VMs) — discard the run and repeat it rather than re-recording from it.
+
+
 Release builds only; record `dotnet --info`/`process.versions`/CPU in every result (the converters and JS harness do
 this); warm up before measuring; never compare means alone — the contracts store medians, allocations, and RSD, and a
 case with RSD above 0.35 is reported as unstable instead of gated. Run nothing else on the machine while measuring.

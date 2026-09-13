@@ -1,5 +1,6 @@
 namespace CStructSharpTests;
 
+using System.Collections.Generic;
 using CStructSharp;
 
 /// <summary>
@@ -33,10 +34,10 @@ public class PrimitiveArrayReaderTests
             dynamic bulk = layout.ParseStream(stream, "root");
             Assert.AreEqual(bytes.Length, stream.Position, type);
             (List<DebugData> _, dynamic perElement) = layout.ParseStreamWithDebug(new MemoryStream(bytes, writable: false), "root");
-            var bulkValues = (List<object?>)bulk.values;
-            var perElementValues = (List<object?>)perElement.root.values;
+            var bulkValues = (IList<object?>)bulk.values;
+            var perElementValues = (IList<object?>)perElement.root.values;
             Assert.AreEqual(70000, bulkValues.Count, type);
-            CollectionAssert.AreEqual(perElementValues, bulkValues, type);
+            CollectionAssert.AreEqual(perElementValues.ToArray(), bulkValues.ToArray(), type);
             Assert.AreEqual(perElementValues[0]!.GetType(), bulkValues[0]!.GetType(), type);
             Assert.AreEqual((byte)perElement.root.tail, (byte)bulk.tail, type);
         }
@@ -52,8 +53,8 @@ public class PrimitiveArrayReaderTests
             "an out-of-range last element removes the variable so the count cannot be evaluated");
 
         dynamic parsed = layout.Parse(new byte[] { 9, 9, 2, 1, 2, 0, 0, 0, 0, 3, 0, 0, 0, 7, 8, 9 }, "root");
-        Assert.AreEqual(2, ((List<object?>)parsed.values).Count);
-        Assert.AreEqual(3, ((List<object?>)parsed.more).Count);
+        Assert.AreEqual(2, ((IList<object?>)parsed.values).Count);
+        Assert.AreEqual(3, ((IList<object?>)parsed.more).Count);
     }
 
     /// <summary>Exceeding the total read budget inside a bulk array still raises the limit exception, and a short input still fails.</summary>
@@ -80,8 +81,8 @@ public class PrimitiveArrayReaderTests
         }
 
         dynamic parsed = layout.Parse(bytes, "root");
-        var rows = (List<object?>)parsed.grid;
+        var rows = (IList<object?>)parsed.grid;
         Assert.AreEqual(3, rows.Count);
-        Assert.AreEqual((ushort)7, (ushort)((List<object?>)rows[1]!)[3]!);
+        Assert.AreEqual((ushort)7, (ushort)((IList<object?>)rows[1]!)[3]!);
     }
 }

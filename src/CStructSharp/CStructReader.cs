@@ -287,9 +287,20 @@ public partial class CStruct
                     IDictionary<string, object?> containerDict = currentContainer;
 
                     bool isArray = hasFixedArrayDeclarator;
-                    if (isArray)
+
+                    // Bulk path for arrays of fixed-width numeric primitives (E2.3): one block read and span decoding
+                    // instead of the per-element loop below. Restricted to the shapes whose per-element side effects
+                    // are exactly reproducible there: cursor placement (the field start is already set), no debug
+                    // records, no union rewinds, no bitfields, pointers, enums, structs, or character types.
+                    bool bulkNumeric = isArray && !state.Debug && cursor is not null && unionPosition == -1 && f.BitSize == 0 &&
+                                       f.PointerDepth == 0 && resolvedNamedElement is null && f.Name.Name.Length > 0 &&
+                                       numFieldValues > 0 && compiledField.Codec.IsFixedWidthNumeric;
+
+                    // A one-dimensional numeric array becomes a typed PrimitiveArray<T> (stage 2); every other array
+                    // accumulates boxed elements first (fixed character arrays are converted to a string after the loop).
+                    bool typedArray = bulkNumeric && compiledField.Array.Dimensions.Length == 1;
+                    if (isArray && !typedArray)
                     {
-                        // Accumulate array elements first; fixed character arrays are converted to a string after the loop.
                         containerDict[f.Name.Name] = new List<object?>(numFieldValues);
                     }
 
@@ -364,20 +375,25 @@ public partial class CStruct
                         break;
                     }
 
-                    // Bulk path for arrays of fixed-width numeric primitives (E2.3): one block read and span decoding
-                    // instead of the per-element loop below. Restricted to the shapes whose per-element side effects
-                    // are exactly reproducible here: cursor placement (the field start is already set), no debug
-                    // records, no union rewinds, no bitfields, pointers, enums, structs, or character types.
                     int firstElement = 0;
-                    if (isArray && !state.Debug && !useLegacyPlacement && f.BitSize == 0 && f.PointerDepth == 0 &&
-                        structElement is null && f.Name.Name.Length > 0 && numFieldValues > 0 &&
-                        compiledField.Codec.IsFixedWidthNumeric)
+                    if (bulkNumeric)
                     {
-                        object? lastElement = PrimitiveArrayReader.ReadInto(
-                            state.Stream,
-                            compiledField.Codec,
-                            numFieldValues,
-                            (List<object?>)containerDict[f.Name.Name]!);
+                        object? lastElement;
+                        if (typedArray)
+                        {
+                            IList<object?> typed = PrimitiveArrayReader.Read(state.Stream, compiledField.Codec, numFieldValues);
+                            containerDict[f.Name.Name] = typed;
+                            lastElement = typed[numFieldValues - 1];
+                        }
+                        else
+                        {
+                            lastElement = PrimitiveArrayReader.ReadInto(
+                                state.Stream,
+                                compiledField.Codec,
+                                numFieldValues,
+                                (List<object?>)containerDict[f.Name.Name]!);
+                        }
+
                         state.NextPosition = state.Stream.Position;
 
                         // The per-element loop captured every element into the layout variables, so the value that

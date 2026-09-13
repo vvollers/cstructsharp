@@ -158,7 +158,7 @@ public class AnonymousPromotedMemberTests
         dynamic parsed = cstruct.ParseStream(stream, "root");
 
         Assert.AreEqual((byte)2, (byte)parsed.count);
-        List<object?> values = (List<object?>)parsed.values;
+        IList<object?> values = (IList<object?>)parsed.values;
         Assert.AreEqual(2, values.Count);
         Assert.AreEqual((byte)10, (byte)values[0]!);
         Assert.AreEqual((byte)20, (byte)values[1]!);
@@ -342,7 +342,7 @@ public class AnonymousPromotedMemberTests
         Assert.AreEqual((byte)1, (byte)parsed.a);
         Assert.AreEqual((byte)2, (byte)parsed.x);
         Assert.AreEqual((byte)3, (byte)parsed.named.y);
-        List<object?> values = (List<object?>)parsed.values;
+        IList<object?> values = (IList<object?>)parsed.values;
         Assert.AreEqual((byte)10, (byte)values[0]!);
         Assert.AreEqual((byte)20, (byte)values[1]!);
 

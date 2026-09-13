@@ -168,6 +168,21 @@ namespace CStructSharp
         Absolute = 0,
         Relative = 1,
     }
+    public sealed class PrimitiveArray<T> : System.Collections.Generic.ICollection<object?>, System.Collections.Generic.IEnumerable<object?>, System.Collections.Generic.IList<object?>, System.Collections.Generic.IReadOnlyCollection<object?>, System.Collections.Generic.IReadOnlyList<object?>, System.Collections.ICollection, System.Collections.IEnumerable, System.Collections.IList
+        where T :  unmanaged
+    {
+        public PrimitiveArray(T[] values) { }
+        public int Count { get; }
+        public object? this[int index] { get; set; }
+        public System.ReadOnlyMemory<T> Memory { get; }
+        public System.ReadOnlySpan<T> Span { get; }
+        public bool Contains(object? item) { }
+        public void CopyTo(object?[] array, int arrayIndex) { }
+        public System.Collections.Generic.IEnumerator<object?> GetEnumerator() { }
+        public int IndexOf(object? item) { }
+        public T[] ToArray() { }
+        public override string ToString() { }
+    }
     public sealed class ReadOptions
     {
         public ReadOptions() { }

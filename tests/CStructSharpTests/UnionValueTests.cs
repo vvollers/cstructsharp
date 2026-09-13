@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using Microsoft.CSharp.RuntimeBinder;
@@ -273,7 +274,7 @@ public class UnionValueTests
 
         dynamic parsed = cstruct.ParseStream(stream, "root");
 
-        Assert.AreEqual(1, ((List<object?>)parsed.items).Count);
+        Assert.AreEqual(1, ((IList<object?>)parsed.items).Count);
         CollectionAssert.AreEqual(bytes, cstruct.Serialize("root", parsed));
     }
 
@@ -296,7 +297,7 @@ public class UnionValueTests
 
         var parsed = (UnionValue)cstruct.ParseStream(stream, "choice");
 
-        Assert.AreEqual(1, ((List<object?>)parsed["data"]!).Count);
+        Assert.AreEqual(1, ((IList<object?>)parsed["data"]!).Count);
         Assert.AreEqual(1L, stream.Position);
     }
 
@@ -329,7 +330,7 @@ public class UnionValueTests
             "root",
             new Dictionary<string, CStructSharp.Structure.Expr>(),
             new ReadOptions { MaxNestingDepth = 2, });
-        Assert.AreEqual(2, ((List<object?>)parsed.values).Count);
+        Assert.AreEqual(2, ((IList<object?>)parsed.values).Count);
     }
 
     /// <summary>
@@ -352,7 +353,7 @@ public class UnionValueTests
         using var stream = new MemoryStream(bytes);
 
         dynamic parsed = cstruct.ParseStream(stream, "root");
-        var values = (List<object?>)parsed.values;
+        var values = (IList<object?>)parsed.values;
         var first = (UnionValue)values[0]!;
         var second = (UnionValue)values[1]!;
         var nested = (UnionValue)parsed.nested.value;
