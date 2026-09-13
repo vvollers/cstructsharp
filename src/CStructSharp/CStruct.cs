@@ -4,7 +4,6 @@ using System;
 using System.Collections;
 using System.Collections.Frozen;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -633,7 +632,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     Reads a selected composite value. Structs return <see cref="ExpandoObject"/> values and unions return
+    ///     Reads a selected composite value. Structs return <see cref="StructValue"/> values and unions return
     ///     lossless <see cref="UnionValue"/> values.
     ///     The options control pointer handling; supplied integer variables are copied before the read starts.
     /// </summary>
@@ -778,7 +777,7 @@ public sealed partial class CStruct
         IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
         if (segments.Count == 1)
         {
-            (ExpandoObject root, _) = this.ParseStreamInternal(
+            (StructValue root, _) = this.ParseStreamInternal(
                 stream,
                 elementNameOrPath,
                 variables,

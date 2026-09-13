@@ -4,6 +4,12 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- **Breaking (managed API):** parsed structs are `CStructSharp.StructValue` objects instead of
+  `System.Dynamic.ExpandoObject`. `dynamic` member access (`parsed.header.length`), `IDictionary<string, object?>`
+  / `IReadOnlyDictionary<string, object?>` casts, enumeration in declaration order, mutation, and passing the value
+  back to `Serialize`/`UpdateStream` all keep working; only explicit `ExpandoObject` casts and declarations need to
+  change to `StructValue` (or `dynamic`). A `StructValue` shares its member table with every other value parsed
+  from the same composite, so nested-struct parses allocate substantially less and run faster (see below).
 - Fixed: address resolution and `UpdateStream` measured a pointer-to-struct field by the pointee's size instead
   of the pointer width, so a sibling after `item *p` resolved to the wrong offset and updating a field inside a
   self-referential `node *next` target failed with "Maximum nested struct depth exceeded".

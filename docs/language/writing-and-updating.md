@@ -13,7 +13,7 @@ configured limits.
 
 ## Struct, array, union, and pointer inputs
 
-A whole struct write needs every required field. It may come from a dictionary, `ExpandoObject`, readable POCO, or a
+A whole struct write needs every required field. It may come from a dictionary, `ExpandoObject`, parsed `StructValue`, readable POCO, or a
 dynamic object returned by parsing.
 
 Selecting a fixed array field requires the complete collection with exactly the declared count. Selecting one indexed

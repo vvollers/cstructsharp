@@ -1,6 +1,6 @@
 # JavaScript/WASM benchmark harness
 
-Phase 0 measurement harness for the WASM bridge (see `agentdocs/performance-improvement-plan.md` §4 and §11).
+Measurement harness for the WASM bridge, built for the performance program (see `benchmarks/README.md`).
 Everything here is benchmark-only; nothing is shipped in the npm package or the release bundle.
 
 ## One-time setup

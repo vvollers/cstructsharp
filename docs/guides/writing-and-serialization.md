@@ -48,7 +48,7 @@ The first two bytes are little-endian `0x1234`.
 A struct can be supplied as:
 
 - the dynamic object returned by parsing;
-- a dictionary or `ExpandoObject` with matching member names; or
+- a dictionary, `ExpandoObject`, or parsed `StructValue` with matching member names; or
 - a POCO with readable public properties or fields.
 
 All required fields must be present and convertible to the declared layout type. A fixed array must have exactly the

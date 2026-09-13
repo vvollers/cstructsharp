@@ -26,6 +26,8 @@ public class PublicApiSurfaceTests
         "CStructSharp.PocoBindingMode",
         "CStructSharp.ReadOptions",
         "CStructSharp.StaticHelpers",
+        "CStructSharp.StructValue",
+        "CStructSharp.StructValue+Enumerator",
         "CStructSharp.UnionValue",
         "CStructSharp.UpdateOptions",
         "CStructSharp.WriteOptions",

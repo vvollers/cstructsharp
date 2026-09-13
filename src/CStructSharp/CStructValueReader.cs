@@ -3,7 +3,6 @@ namespace CStructSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Dynamic;
 using System.IO;
 using System.Linq;
 using CStructSharp.Structure;
@@ -17,7 +16,7 @@ public sealed partial class CStruct
         DynamicallyAccessedMemberTypes.PublicFields;
 
     /// <summary>Extracts a named value, with a one-value fallback for inline typedef roots.</summary>
-    private static object? ExtractOnlyValue(ExpandoObject container, string preferredName)
+    private static object? ExtractOnlyValue(StructValue container, string preferredName)
     {
         var values = (IDictionary<string, object?>)container;
         if (values.TryGetValue(preferredName, out object? selected))
@@ -35,7 +34,7 @@ public sealed partial class CStruct
 
     /// <summary>
     ///     Reads the first declared struct or union in its natural representation. Structs use
-    ///     <see cref="ExpandoObject"/> and unions use <see cref="UnionValue"/>.
+    ///     <see cref="StructValue"/> and unions use <see cref="UnionValue"/>.
     /// </summary>
     /// <param name="stream">The readable stream whose current position is the operation origin.</param>
     /// <returns>The first composite in its natural dynamic representation.</returns>
@@ -294,7 +293,7 @@ public sealed partial class CStruct
             state.NextPosition = checked(target.Address + target.BitStorageSize);
         }
 
-        dynamic container = new ExpandoObject();
+        var container = new StructValue(this.compiledModelQueries.GetRootShape(selectedField.EffectiveField.Name.Name));
         this.HandleCStructElement(
             selectedField.EffectiveField,
             container,
@@ -314,7 +313,7 @@ public sealed partial class CStruct
             throw new CStructPathException("Unknown root element: " + rootName);
         }
 
-        dynamic container = new ExpandoObject();
+        var container = new StructValue(this.compiledModelQueries.GetRootShape(rootName));
         this.HandleCStructElement(
             declaration,
             container,

@@ -1,6 +1,5 @@
 namespace CStructSharp.FixtureTool;
 
-using System.Dynamic;
 using System.Globalization;
 using System.Numerics;
 using System.Text;
@@ -134,16 +133,6 @@ public static class CanonicalJson
             writer.WriteEndObject();
             writer.WritePropertyName("SelectedMember");
             Write(writer, union.SelectedMember);
-            writer.WriteEndObject();
-            return;
-        case ExpandoObject expando:
-            writer.WriteStartObject();
-            foreach (KeyValuePair<string, object?> member in (IDictionary<string, object?>)expando)
-            {
-                writer.WritePropertyName(member.Key);
-                Write(writer, member.Value);
-            }
-
             writer.WriteEndObject();
             return;
         case IDictionary<string, object?> dictionary:

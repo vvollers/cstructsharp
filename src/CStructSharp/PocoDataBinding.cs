@@ -4,7 +4,6 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.Reflection;
 
 /// <summary>Reads named and indexed values from caller-supplied POCO, dictionary, or dynamic data.</summary>
@@ -63,10 +62,10 @@ internal static class PocoDataBinding
             return false;
         }
 
-        if (data is ExpandoObject expando)
+        if (data is IDictionary<string, object?> dict)
         {
-            // Parsed and browser JSON data use ExpandoObject, where names are direct dictionary keys.
-            var dict = (IDictionary<string, object?>)expando;
+            // Parsed values (StructValue), browser JSON data (ExpandoObject) and plain dictionaries all expose
+            // names as direct dictionary keys.
             bool found = dict.TryGetValue(name, out object? memberValue);
             value = memberValue!;
             return found;

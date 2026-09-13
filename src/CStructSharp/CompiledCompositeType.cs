@@ -9,6 +9,8 @@ using CStructSharp.Structure;
 /// <summary>Represents a struct or union with an immutable declaration-order field collection.</summary>
 internal sealed class CompiledCompositeType : CompiledType
 {
+    private StructShape? shape;
+
     public CompiledCompositeType(CompiledTypeSymbol symbol, ImmutableArray<CompiledField> fields)
         : base(symbol)
     {
@@ -70,6 +72,13 @@ internal sealed class CompiledCompositeType : CompiledType
 
     public ImmutableHashSet<CompiledField> PromotedFields { get; }
 
+    /// <summary>
+    ///     The <see cref="StructValue"/> member layout every parse of this composite shares (E2.2): declared names in
+    ///     order, with anonymous promoted members (LANG-14) spliced in and anonymous bitfields left out. Conditional
+    ///     arms all get a slot; an arm that is not selected simply leaves its slot unset.
+    /// </summary>
+    public StructShape Shape => this.shape ??= this.BuildShape();
+
     /// <summary>Finishes scope metadata after recursive pointer symbols have all been bound.</summary>
     internal void CompleteConditionalScope()
     {
@@ -129,5 +138,42 @@ internal sealed class CompiledCompositeType : CompiledType
             overwritten.ExceptWith(field.VisibleNames);
             field.RestoredLocalSlots = overwritten.Where(slots.ContainsKey).Select(name => slots[name]).ToImmutableArray();
         }
+    }
+
+    private StructShape BuildShape()
+    {
+        var names = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        this.CollectShapeNames(names, seen, new HashSet<CompiledCompositeType>(ReferenceEqualityComparer.Instance));
+        return new StructShape(names.ToArray());
+    }
+
+    private void CollectShapeNames(List<string> names, HashSet<string> seen, HashSet<CompiledCompositeType> visiting)
+    {
+        if (!visiting.Add(this))
+        {
+            return;
+        }
+
+        foreach (CompiledField field in this.Fields)
+        {
+            if (this.PromotedFields.Contains(field))
+            {
+                if (field.Type.Symbol.Definition is CompiledCompositeType promoted)
+                {
+                    promoted.CollectShapeNames(names, seen, visiting);
+                }
+
+                continue;
+            }
+
+            string name = field.Declaration.Name.Name;
+            if (name.Length > 0 && seen.Add(name))
+            {
+                names.Add(name);
+            }
+        }
+
+        visiting.Remove(this);
     }
 }

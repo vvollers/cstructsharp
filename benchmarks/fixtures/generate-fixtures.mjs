@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Deterministic fixture generator for the performance scenario matrix (agentdocs/performance-improvement-plan.md §4.4).
+// Deterministic fixture generator for the performance scenario matrix (the performance-plan scenario matrix; see benchmarks/README.md).
 //
 // Every fixture is a JSON document under benchmarks/fixtures/cases/ with the layout source, constructor options,
 // the root type, optional read options, the input bytes (inline hex, a sidecar .bin under data/, or a seeded

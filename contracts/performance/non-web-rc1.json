@@ -31,7 +31,7 @@
       "environment": "Linux Ubuntu 26.04.1 LTS (Resolute Raccoon); AMD EPYC 9645; X64; .NET 10.0.10 (10.0.10, 10.0.1026.32716); SDK 10.0.302",
       "worktreeDirty": false,
       "revision": "f782a8e5a08ddce5f31a6e2aa2bbcee28e75023c",
-      "note": "Re-baselined after performance plan Phase 1 (E2.6a, E3.2/E1.1, E2.8, E2.12, E1.3a, E2.9, E2.3) on the Phase 0 devbox. The previous baseline (2026-07-26, Ryzen 9 9950X) had case keys broken by a [Params] on ReadBenchmarks and an allocation budget CompileMaximumSource had already exceeded on main (978,904 B measured in Phase 0 against 884,360 B); that pre-existing allocation growth is carried into this baseline and tracked in agentdocs/perf-log."
+      "note": "Re-baselined after performance plan Phase 1 (E2.6a, E3.2/E1.1, E2.8, E2.12, E1.3a, E2.9, E2.3) on the Phase 0 devbox. The previous baseline (2026-07-26, Ryzen 9 9950X) had case keys broken by a [Params] on ReadBenchmarks and an allocation budget CompileMaximumSource had already exceeded on main (978,904 B measured in Phase 0 against 884,360 B); that pre-existing allocation growth is carried into this baseline and tracked in the (local, untracked) performance log."
     },
     "cases": [
       {

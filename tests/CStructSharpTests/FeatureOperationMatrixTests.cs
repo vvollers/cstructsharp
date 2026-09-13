@@ -113,11 +113,11 @@ public class FeatureOperationMatrixTests
                     isLittleEndian: layoutLittleEndian);
 
                 using var parseStream = new MemoryStream(original);
-                ExpandoObject parsed = cstruct.ParseStream(parseStream, "root");
+                StructValue parsed = cstruct.ParseStream(parseStream, "root");
                 Assert.AreEqual(0x12UL, Convert.ToUInt64(((dynamic)parsed).value), caseName + "/parse");
                 Assert.AreEqual((byte)0x7E, (byte)((dynamic)parsed).tail, caseName + "/tail");
 
-                ExpandoObject memoryParsed = cstruct.Parse(original.AsSpan(), "root");
+                StructValue memoryParsed = cstruct.Parse(original.AsSpan(), "root");
                 Assert.AreEqual(
                     JsonSerializer.Serialize(parsed),
                     JsonSerializer.Serialize(memoryParsed),
@@ -137,7 +137,7 @@ public class FeatureOperationMatrixTests
                 using var debugStream = new MemoryStream(original);
                 (List<DebugData> debug, dynamic debugWrapper) =
                     cstruct.ParseStreamWithDebug(debugStream, "root");
-                ExpandoObject debugRoot = GetDebugRoot(debugWrapper);
+                StructValue debugRoot = GetDebugRoot(debugWrapper);
                 Assert.AreEqual(
                     JsonSerializer.Serialize(parsed),
                     JsonSerializer.Serialize(debugRoot),
@@ -190,12 +190,12 @@ public class FeatureOperationMatrixTests
                 isLittleEndian: item.LittleEndian);
 
             using var parseStream = new MemoryStream((byte[])item.Input.Clone());
-            ExpandoObject parsed = cstruct.ParseStream(
+            StructValue parsed = cstruct.ParseStream(
                 parseStream,
                 "root",
                 variables,
                 new ReadOptions());
-            ExpandoObject memoryParsed = cstruct.Parse(
+            StructValue memoryParsed = cstruct.Parse(
                 item.Input.AsSpan(),
                 "root",
                 variables,
@@ -230,7 +230,7 @@ public class FeatureOperationMatrixTests
                     "root",
                     variables,
                     new ReadOptions());
-            ExpandoObject debugRoot = GetDebugRoot(debugWrapper);
+            StructValue debugRoot = GetDebugRoot(debugWrapper);
             Assert.AreEqual(
                 JsonSerializer.Serialize(parsed),
                 JsonSerializer.Serialize(debugRoot),
@@ -692,12 +692,12 @@ public class FeatureOperationMatrixTests
             [0x12, 0x34, 0xBC, 0x9A,]);
     }
 
-    private static ExpandoObject GetDebugRoot(ExpandoObject wrapper)
+    private static StructValue GetDebugRoot(StructValue wrapper)
     {
         var values = (IDictionary<string, object?>)wrapper;
         Assert.IsTrue(values.TryGetValue("root", out object? root));
-        Assert.IsInstanceOfType<ExpandoObject>(root);
-        return (ExpandoObject)root;
+        Assert.IsInstanceOfType<StructValue>(root);
+        return (StructValue)root;
     }
 
     private static JsonDocument LoadCatalog()

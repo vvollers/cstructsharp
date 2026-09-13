@@ -74,7 +74,7 @@ The non-generic `ReadValue` method returns the direct representation for the sel
 | Fixed integer or character | Its matching CLR primitive, such as `byte`, `ushort`, or `char` |
 | Array | `IList<object?>` |
 | Fixed character buffer or terminated text | `string` |
-| Struct | `ExpandoObject` |
+| Struct | `StructValue` (also `IDictionary<string, object?>`; usable as `dynamic`) |
 | Enum | `EnumValueResult` |
 | Union | `UnionValue` |
 | Pointer | `Pointer` |

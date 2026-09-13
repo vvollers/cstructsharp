@@ -1,6 +1,5 @@
 namespace CStructSharp.Benchmarks;
 
-using System.Dynamic;
 using System.Text;
 using BenchmarkDotNet.Attributes;
 
@@ -37,14 +36,14 @@ public class StringReadBenchmarks
     }
 
     [Benchmark(Baseline = true)]
-    public ExpandoObject ParseLargeTerminatedStringFromMemoryStream()
+    public StructValue ParseLargeTerminatedStringFromMemoryStream()
     {
         this.bufferedStream.Position = 0;
         return this.terminatedStringLayout.ParseStream(this.bufferedStream, "root");
     }
 
     [Benchmark]
-    public ExpandoObject ParseLargeTerminatedStringFromNonBufferingStream()
+    public StructValue ParseLargeTerminatedStringFromNonBufferingStream()
     {
         this.nonBufferingStream.Position = 0;
         return this.terminatedStringLayout.ParseStream(this.nonBufferingStream, "root");

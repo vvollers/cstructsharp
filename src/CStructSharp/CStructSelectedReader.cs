@@ -2,7 +2,6 @@ namespace CStructSharp;
 
 using System;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.IO;
 using System.Linq;
 using CStructSharp.Structure;
@@ -41,7 +40,7 @@ public partial class CStruct
     /// <summary>Reads one non-union struct through the shared compiled traversal and completes its storage extent.</summary>
     private void ReadCompiledStructInto(
         Struct strct,
-        ExpandoObject destination,
+        StructValue destination,
         CStructOperationContext state,
         DebugPath? debugStack)
     {
@@ -112,7 +111,7 @@ public partial class CStruct
             return (this.ReadUnionValue(target, state, debugPrefix), state.DebugMapping);
         }
 
-        dynamic result = new ExpandoObject();
+        var result = new StructValue(this.compiledSizeQueries.GetCompiledComposite(target).Shape);
         this.ReadCompiledStructInto(target, result, state, debugPrefix);
 
         return (result, state.DebugMapping);
@@ -144,7 +143,7 @@ public partial class CStruct
         }
 
         state.Stream.Position = unionPosition;
-        dynamic decodedMembers = new ExpandoObject();
+        var decodedMembers = new StructValue(this.compiledSizeQueries.GetCompiledComposite(union).Shape);
         bool previousPointerSuppression = state.SuppressPointerDereference;
         var unionInputVariables = new Dictionary<string, Expr>(state.Variables, StringComparer.Ordinal);
 
@@ -178,7 +177,7 @@ public partial class CStruct
             state.CurrentBitfieldType = null;
         }
 
-        var memberViews = (IDictionary<string, object?>)decodedMembers;
+        IDictionary<string, object?> memberViews = decodedMembers;
         UnionValue result = UnionValue.FromParsed(union.Name.Name, rawStorage, memberViews);
         if (state.Debug)
         {

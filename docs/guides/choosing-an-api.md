@@ -50,7 +50,7 @@ refer to bytes before that slice.
 pointer parts, and other selected fields.
 
 The untyped `ReadValue` result uses the library's direct C# representation. For example, `uint16` becomes `ushort`,
-a struct becomes an `ExpandoObject`, an enum becomes `EnumValueResult`, and a union becomes `UnionValue`.
+a struct becomes a `StructValue` (readable through `dynamic` members or as an `IDictionary<string, object?>`), an enum becomes `EnumValueResult`, and a union becomes `UnionValue`.
 `ReadValue<T>` performs an additional checked mapping to your requested type.
 
 ## Choose a write operation

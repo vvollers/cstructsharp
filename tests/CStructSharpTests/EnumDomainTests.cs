@@ -120,8 +120,8 @@ public class EnumDomainTests
             using var debugStream = new MemoryStream(expected);
             (List<DebugData> debug, dynamic debugWrapper) =
                 cstruct.ParseStreamWithDebug(debugStream, "root");
-            var debugValues = (IDictionary<string, object?>)(ExpandoObject)debugWrapper;
-            dynamic debugParsed = (ExpandoObject)debugValues["root"]!;
+            var debugValues = (IDictionary<string, object?>)(StructValue)debugWrapper;
+            dynamic debugParsed = (StructValue)debugValues["root"]!;
             Assert.AreEqual(candidate, ((EnumValueResult)debugParsed.value).Value);
             Assert.AreEqual(candidate, (BigInteger)debug.Single().Value!);
 

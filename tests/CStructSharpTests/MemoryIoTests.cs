@@ -1,7 +1,6 @@
 namespace CStructSharp.Tests;
 
 using System.Buffers;
-using System.Dynamic;
 
 /// <summary>Defines the zero-copy synchronous memory-input and caller-owned output contract.</summary>
 [TestClass]
@@ -38,7 +37,7 @@ public class MemoryIoTests
         byte[] bytes = [2, 0x01, 0x02, 0x03, 0x04, (byte)'O', (byte)'K', 0, 0x12, 0x34,];
         var cstruct = new CStruct(definition, pointerSize: 1, isLittleEndian: false);
 
-        ExpandoObject parsed = cstruct.Parse(bytes, "root");
+        StructValue parsed = cstruct.Parse(bytes, "root");
         Assert.AreEqual((byte)2, (byte)((dynamic)parsed).count);
         Assert.AreEqual("OK", (string)((dynamic)parsed).name);
 
@@ -110,9 +109,9 @@ public class MemoryIoTests
         var cstruct = new CStruct("struct root { uint32 value; };", pointerSize: 1);
         byte[] complete = [0x78, 0x56, 0x34, 0x12,];
 
-        ExpandoObject parsed = cstruct.Parse((ReadOnlySpan<byte>)complete);
+        StructValue parsed = cstruct.Parse((ReadOnlySpan<byte>)complete);
         Assert.AreEqual(0x12345678U, (uint)((dynamic)parsed).value);
-        Assert.IsInstanceOfType<ExpandoObject>(cstruct.ReadValue((ReadOnlyMemory<byte>)complete));
+        Assert.IsInstanceOfType<StructValue>(cstruct.ReadValue((ReadOnlyMemory<byte>)complete));
         Assert.AreEqual(
             0x12345678U,
             cstruct.ReadValue<uint>((ReadOnlyMemory<byte>)complete, "root.value"));

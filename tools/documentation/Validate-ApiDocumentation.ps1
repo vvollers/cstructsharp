@@ -19,14 +19,28 @@ Assert-Condition (Test-Path -LiteralPath $SiteApiDirectory -PathType Container) 
 Assert-Condition (Test-Path -LiteralPath $SearchIndexPath -PathType Leaf) 'Built search index is missing.'
 
 $baseline = Get-Content -LiteralPath $BaselinePath -Raw
-$typeNames = @(
-    [regex]::Matches(
+# Nested types (StructValue.Enumerator) are indented one level deeper than their declaring type in the baseline
+# text and are documented under the declaring type's UID, so they are qualified here.
+$typeNames = [System.Collections.Generic.List[string]]::new()
+$declaringType = $null
+foreach ($match in [regex]::Matches(
         $baseline,
-        '(?m)^\s*public (?:abstract |sealed |static )?(?:class|enum|struct) (?<name>[A-Za-z][A-Za-z0-9]*)') |
-        ForEach-Object { $_.Groups['name'].Value } |
-        Sort-Object -Unique
-)
-Assert-Condition ($typeNames.Count -eq 20) "Expected 20 baseline types, found $($typeNames.Count)."
+        '(?m)^(?<indent> *)public (?:abstract |sealed |static |readonly )*(?:class|enum|struct) (?<name>[A-Za-z][A-Za-z0-9]*)'))
+{
+    $name = $match.Groups['name'].Value
+    if ($match.Groups['indent'].Value.Length -le 4)
+    {
+        $declaringType = $name
+        $typeNames.Add($name)
+    }
+    else
+    {
+        $typeNames.Add("$declaringType.$name")
+    }
+}
+
+$typeNames = @($typeNames | Sort-Object -Unique)
+Assert-Condition ($typeNames.Count -eq 22) "Expected 22 baseline types, found $($typeNames.Count)."
 
 $missingTypes = @(
     $typeNames |
@@ -230,7 +244,7 @@ foreach ($file in Get-ChildItem -LiteralPath $ApiDirectory -File -Filter '*.yml'
         }
 
         if ($item -match '(?m)^  type: Method\r?$' -and
-            $item -match '(?m)^    content: (?!public void )')
+            $item -match '(?m)^    content: (?!public (?:static |readonly |override |virtual |sealed )*void )')
         {
             $returnCount++
             $return = [regex]::Match(

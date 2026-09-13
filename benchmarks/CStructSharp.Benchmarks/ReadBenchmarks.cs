@@ -1,6 +1,5 @@
 namespace CStructSharp.Benchmarks;
 
-using System.Dynamic;
 using BenchmarkDotNet.Attributes;
 
 [BenchmarkCategory("Read")]
@@ -77,7 +76,7 @@ public class ReadBenchmarks
 
     [Benchmark]
     [BenchmarkCategory("ReleaseGate")]
-    public ExpandoObject ParsePrimitiveArray1KiB()
+    public StructValue ParsePrimitiveArray1KiB()
     {
         this.array1KiBStream.Position = 0;
         return this.array1KiBLayout.ParseStream(this.array1KiBStream, "root");
@@ -85,7 +84,7 @@ public class ReadBenchmarks
 
     [Benchmark]
     [InvocationCount(1)]
-    public ExpandoObject ParsePrimitiveArray1MiB()
+    public StructValue ParsePrimitiveArray1MiB()
     {
         this.array1MiBStream.Position = 0;
         return this.array1MiBLayout.ParseStream(
@@ -96,21 +95,21 @@ public class ReadBenchmarks
     }
 
     [Benchmark]
-    public ExpandoObject ParseNestedUnaligned()
+    public StructValue ParseNestedUnaligned()
     {
         this.nestedUnalignedStream.Position = 0;
         return this.nestedUnalignedLayout.ParseStream(this.nestedUnalignedStream, "root");
     }
 
     [Benchmark]
-    public ExpandoObject ParseNestedAligned()
+    public StructValue ParseNestedAligned()
     {
         this.nestedAlignedStream.Position = 0;
         return this.nestedAlignedLayout.ParseStream(this.nestedAlignedStream, "root");
     }
 
     [Benchmark]
-    public ExpandoObject ParseBoundedPointerGraph()
+    public StructValue ParseBoundedPointerGraph()
     {
         this.pointerGraphStream.Position = 0;
         return this.pointerGraphLayout.ParseStream(
@@ -129,7 +128,7 @@ public class ReadBenchmarks
 
     [Benchmark]
     [BenchmarkCategory("TypedRead")]
-    public ExpandoObject ParseSmallRoot()
+    public StructValue ParseSmallRoot()
     {
         this.typedStream.Position = 0;
         return this.typedLayout.ParseStream(this.typedStream, "root");
@@ -137,7 +136,7 @@ public class ReadBenchmarks
 
     [Benchmark]
     [BenchmarkCategory("TypedRead", "MemoryIo")]
-    public ExpandoObject ParseSmallRootNewMemoryStream()
+    public StructValue ParseSmallRootNewMemoryStream()
     {
         using var stream = new MemoryStream(this.typedBytes, writable: false);
         return this.typedLayout.ParseStream(stream, "root");
@@ -145,7 +144,7 @@ public class ReadBenchmarks
 
     [Benchmark]
     [BenchmarkCategory("TypedRead", "MemoryIo", "ReleaseGate")]
-    public ExpandoObject ParseSmallRootMemory()
+    public StructValue ParseSmallRootMemory()
     {
         return this.typedLayout.Parse(this.typedBytes.AsSpan(), "root");
     }

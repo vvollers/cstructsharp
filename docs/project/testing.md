@@ -97,9 +97,8 @@ and allocations with generous multipliers); `non-web-rc2.json` and `web-benchmar
 baselines used by the soft drift report (`tools/quality/compare-benchmark-baseline.mjs`,
 `benchmarks/js/bench/check.mjs`, and the non-failing `benchmark-drift` workflow). Re-record a baseline only for an
 accepted change, with the `--merge` mode of `tools/quality/record-benchmark-baseline.mjs` or
-`benchmarks/js/bench/record.mjs`, and note what moved in `agentdocs/perf-log/`. The complete procedure (jobs,
-runtimes, profiling, browser harness, AOT variant) is in [benchmarks/README.md](../../benchmarks/README.md) and
-[benchmarks/js/README.md](../../benchmarks/js/README.md).
+`benchmarks/js/bench/record.mjs`, and record what moved in the contract's `updates` note. The complete procedure (jobs,
+runtimes, profiling, browser harness, AOT variant) is in `benchmarks/README.md` and `benchmarks/js/README.md` in the repository.
 
 The browser adapter's source can be compared with its recorded wire format without compiling Web/WASM. Run relevant
 frontend and browser checks locally when changing that application. Release automation builds the production

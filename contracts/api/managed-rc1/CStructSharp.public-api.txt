@@ -123,7 +123,7 @@ namespace CStructSharp
     {
         public DebugData() { }
         [System.Text.Json.Serialization.JsonPropertyName("buffer")]
-        public int[] Buffer { get; set; }
+        public byte[] Buffer { get; set; }
         [System.Text.Json.Serialization.JsonPropertyName("curPos")]
         public long CurPos { get; set; }
         [System.Text.Json.Serialization.JsonPropertyName("debugStackString")]
@@ -184,6 +184,33 @@ namespace CStructSharp
     public static class StaticHelpers
     {
         public static byte[] ParseHexDataContent(this string hexData) { }
+    }
+    public sealed class StructValue : System.Dynamic.DynamicObject, System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IDictionary<string, object?>, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyCollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyDictionary<string, object?>, System.Collections.IEnumerable
+    {
+        public StructValue() { }
+        public int Count { get; }
+        public object? this[string name] { get; set; }
+        public System.Collections.Generic.ICollection<string> Keys { get; }
+        public System.Collections.Generic.ICollection<object?> Values { get; }
+        public void Add(string name, object? value) { }
+        public void Clear() { }
+        public bool ContainsKey(string name) { }
+        public override System.Collections.Generic.IEnumerable<string> GetDynamicMemberNames() { }
+        public CStructSharp.StructValue.Enumerator GetEnumerator() { }
+        public override System.Dynamic.DynamicMetaObject GetMetaObject(System.Linq.Expressions.Expression parameter) { }
+        public bool Remove(string name) { }
+        public override string ToString() { }
+        public override bool TryDeleteMember(System.Dynamic.DeleteMemberBinder binder) { }
+        public override bool TryGetMember(System.Dynamic.GetMemberBinder binder, out object? result) { }
+        public bool TryGetValue(string name, out object? value) { }
+        public override bool TrySetMember(System.Dynamic.SetMemberBinder binder, object? value) { }
+        public struct Enumerator : System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.IEnumerator, System.IDisposable
+        {
+            public System.Collections.Generic.KeyValuePair<string, object?> Current { get; }
+            public void Dispose() { }
+            public bool MoveNext() { }
+            public void Reset() { }
+        }
     }
     public sealed class UnionValue : System.Dynamic.DynamicObject, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyCollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyDictionary<string, object?>, System.Collections.IEnumerable
     {

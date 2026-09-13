@@ -14,74 +14,6 @@ using CStructSharp;
 /// <summary>Contains the explicit JSON conversion rules used at the browser boundary.</summary>
 public partial class CStructExports
 {
-    /// <summary>Changes parsed dynamic objects into dictionaries with a predictable JSON-object representation.</summary>
-    private static Dictionary<string, object?> ConvertExpandoToDictionary(ExpandoObject expando)
-    {
-        var result = new Dictionary<string, object?>(StringComparer.Ordinal);
-        foreach (KeyValuePair<string, object?> member in (IDictionary<string, object?>)expando)
-        {
-            result[member.Key] = ConvertParsedValue(member.Value);
-        }
-
-        return result;
-    }
-
-    /// <summary>Recursively normalizes nested structs, unions, enums, and arrays produced by the core parser.</summary>
-    private static object? ConvertParsedValue(object? value)
-    {
-        return value switch
-        {
-            ExpandoObject nested => ConvertExpandoToDictionary(nested),
-            UnionValue union => ConvertUnionToDictionary(union),
-            Pointer pointer => new Dictionary<string, object?>
-            {
-                ["Address"] = pointer.Address,
-                ["Depth"] = pointer.Depth,
-                ["IsDereferenced"] = pointer.IsDereferenced,
-                ["Value"] = ConvertParsedValue(pointer.Value),
-            },
-            EnumValueResult enumValue => new Dictionary<string, object?>
-            {
-                ["Enum"] = enumValue.Enum,
-                ["Name"] = enumValue.Name,
-                ["Value"] = enumValue.Value,
-            },
-            IEnumerable<object?> sequence => ConvertSequence(sequence),
-            _ => value,
-        };
-    }
-
-    /// <summary>Creates the single tagged browser representation for a lossless managed union value.</summary>
-    private static Dictionary<string, object?> ConvertUnionToDictionary(UnionValue union)
-    {
-        var members = new Dictionary<string, object?>(StringComparer.Ordinal);
-        foreach (KeyValuePair<string, object?> member in union.Members)
-        {
-            members[member.Key] = ConvertParsedValue(member.Value);
-        }
-
-        return new Dictionary<string, object?>(StringComparer.Ordinal)
-        {
-            ["$kind"] = "union",
-            ["Union"] = union.UnionName,
-            ["RawStorage"] = union.HasRawStorage ? union.RawStorage!.Value.ToArray() : null,
-            ["Members"] = members,
-            ["SelectedMember"] = union.SelectedMember,
-        };
-    }
-
-    /// <summary>Normalizes every item in a parsed array without losing its declaration order.</summary>
-    private static List<object?> ConvertSequence(IEnumerable<object?> sequence)
-    {
-        var result = new List<object?>();
-        foreach (object? item in sequence)
-        {
-            result.Add(ConvertParsedValue(item));
-        }
-
-        return result;
-    }
-
     /// <summary>Converts browser JSON into the primitive, expando, and list values accepted by the core writer.</summary>
     private static object? ConvertJsonElement(JsonElement element)
     {
@@ -315,16 +247,6 @@ public partial class CStructExports
         case byte[] bytes:
             writer.WriteBase64StringValue(bytes);
             return;
-        case ExpandoObject dynamicObject:
-            writer.WriteStartObject();
-            foreach (KeyValuePair<string, object?> member in (IDictionary<string, object?>)dynamicObject)
-            {
-                writer.WritePropertyName(member.Key);
-                WriteJsonValue(writer, member.Value);
-            }
-
-            writer.WriteEndObject();
-            return;
         case UnionValue unionValue:
             writer.WriteStartObject();
             writer.WriteString("$kind", "union");
@@ -368,6 +290,17 @@ public partial class CStructExports
             WriteJsonValue(writer, enumValue.Name);
             writer.WritePropertyName("Value");
             WriteJavaScriptSafeInteger(writer, enumValue.Value);
+            writer.WriteEndObject();
+            return;
+        case StructValue structValue:
+            // The parsed-struct enumerator is a struct that walks the slot array; no boxed enumerator per object.
+            writer.WriteStartObject();
+            foreach (KeyValuePair<string, object?> member in structValue)
+            {
+                writer.WritePropertyName(member.Key);
+                WriteJsonValue(writer, member.Value);
+            }
+
             writer.WriteEndObject();
             return;
         case IDictionary<string, object?> dictionary:

@@ -49,7 +49,7 @@ see whether removing the `src/CStructSharp` root would shrink the published bund
   this project alone.
 - Removing the root does surface real `IL2026`/`IL2075`/`IL2067`/`IL2072`/`IL2111` trim-analysis warnings when
   `SuppressTrimAnalysisWarnings` is temporarily set to `false`. They fall into two groups, both genuinely reachable
-  from the four `[JSExport]` methods in `CStructExports.cs`, not dead code: (1) every `dynamic`/`ExpandoObject`
+  from the four `[JSExport]` methods in `CStructExports.cs`, not dead code: (1) every `dynamic`/`StructValue`
   result path (`ParseWithDebugInternal` and the core reader/writer methods it calls) uses the C# runtime binder,
   which is why `Microsoft.CSharp` must stay rooted; (2) `CStruct.TryGetMemberValue` (the POCO-property fallback
   used by `Serialize`/`UpdateStream` when a caller's value is not already a dictionary/`ExpandoObject`) and

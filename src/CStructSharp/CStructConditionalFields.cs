@@ -1,7 +1,6 @@
 namespace CStructSharp;
 
 using System.Collections.Generic;
-using System.Dynamic;
 using System.IO;
 using System.Linq;
 using CStructSharp.Structure;
@@ -94,7 +93,7 @@ public partial class CStruct
         };
         try
         {
-            this.HandleCStructElement(root, new ExpandoObject(), state, null);
+            this.HandleCStructElement(root, new StructValue(), state, null);
         }
         finally
         {

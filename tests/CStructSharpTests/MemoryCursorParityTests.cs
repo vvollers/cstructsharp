@@ -1,6 +1,5 @@
 namespace CStructSharpTests;
 
-using System.Dynamic;
 using System.Text.Json;
 using CStructSharp;
 using CStructSharp.Tests;
@@ -98,15 +97,15 @@ public class MemoryCursorParityTests
         {
         case null:
             return right is null;
-        case ExpandoObject leftExpando:
+        case StructValue leftStruct:
             {
-                if (right is not ExpandoObject rightExpando)
+                if (right is not StructValue rightStruct)
                 {
                     return false;
                 }
 
-                var l = (IDictionary<string, object?>)leftExpando;
-                var r = (IDictionary<string, object?>)rightExpando;
+                IDictionary<string, object?> l = leftStruct;
+                IDictionary<string, object?> r = rightStruct;
                 return l.Count == r.Count && l.All(pair => r.TryGetValue(pair.Key, out object? other) && StructurallyEqual(pair.Value, other));
             }
 

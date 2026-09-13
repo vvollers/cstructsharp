@@ -15,7 +15,7 @@ type:
 | Fixed character buffer or terminated text | `string` |
 | Enum | `EnumValueResult` |
 | Pointer | `Pointer` |
-| Struct | `ExpandoObject` |
+| Struct | `StructValue` (a `dynamic`-friendly `IDictionary<string, object?>`) |
 | Union | `UnionValue` |
 
 For a pointer path, `.address` returns the stored non-negative `long`; `.value` returns the target or null for a null

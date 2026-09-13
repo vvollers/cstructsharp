@@ -2,7 +2,6 @@ namespace CStructSharp;
 
 using System;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -13,7 +12,7 @@ using CstructEnum = CStructSharp.Structure.Enum;
 
 /// <summary>
 ///     Contains the stream-reading half of <see cref="CStruct"/>.
-///     These methods turn compiled layout elements into nested <see cref="ExpandoObject"/> values while keeping pointer and debug state together.
+///     These methods turn compiled layout elements into nested <see cref="StructValue"/> values while keeping pointer and debug state together.
 /// </summary>
 public partial class CStruct
 {
@@ -71,7 +70,7 @@ public partial class CStruct
     /// </summary>
     private void HandleCStructElement(
         CStructElement el,
-        ExpandoObject currentContainer,
+        StructValue currentContainer,
         CStructOperationContext state,
         DebugPath? debugStack,
         long unionPosition = -1,
@@ -122,7 +121,7 @@ public partial class CStruct
                     if (s.Name.Name.Length == 0)
                     {
                         // An anonymous promoted member (LANG-14) has no name of its own - its children are read
-                        // directly into the parent's own container, with no nested ExpandoObject, and its own
+                        // directly into the parent's own container, with no nested StructValue, and its own
                         // element is excluded from the debug stack so a descendant's path reads `root.x`, not
                         // `root..x`. Transitive promotion works for free: a promoted member's own promoted child
                         // re-enters this same branch with `currentContainer` still the original root container.
@@ -136,8 +135,8 @@ public partial class CStruct
                         break;
                     }
 
-                    // Give every struct its own dynamic object, then attach it before reading children so nested paths are preserved.
-                    dynamic newContainer = new ExpandoObject();
+                    // Give every struct its own value, then attach it before reading children so nested paths are preserved.
+                    var newContainer = new StructValue(this.compiledSizeQueries.GetCompiledComposite(s).Shape);
                     IDictionary<string, object?> structContainer = currentContainer;
                     string newName = s.Name.Name;
 
@@ -417,8 +416,6 @@ public partial class CStruct
                         if (f.PointerDepth == 0 && isKnownStruct)
                         {
                             // Structs and enums have layout-aware readers rather than primitive byte handlers.
-                            dynamic newContainer = new ExpandoObject();
-
                             switch (structElement)
                             {
                             case CstructEnum enm:
@@ -485,6 +482,7 @@ public partial class CStruct
                                     }
                                     else
                                     {
+                                        var newContainer = new StructValue(this.compiledSizeQueries.GetCompiledComposite(strct).Shape);
                                         this.ReadCompiledStructInto(
                                             strct,
                                             newContainer,
@@ -781,7 +779,7 @@ public partial class CStruct
     }
 
     /// <summary>Checks the requested path, prepares variables, and chooses ordinary or debug parsing.</summary>
-    private (ExpandoObject Root, IReadOnlyList<PathSegment> Segments) ParseStreamInternal(
+    private (StructValue Root, IReadOnlyList<PathSegment> Segments) ParseStreamInternal(
         Stream stream,
         string elementNameOrPath,
         LayoutVariableInput variables,
@@ -818,13 +816,13 @@ public partial class CStruct
             throw new CStructPathException("Unknown root element: " + rootName);
         }
 
-        ExpandoObject root;
+        StructValue root;
         try
         {
             if (debug)
             {
                 // Debug reads use the same parser but additionally retain byte ranges and layout stacks for each value.
-                (List<DebugData> DebugData, ExpandoObject Result) parsed
+                (List<DebugData> DebugData, StructValue Result) parsed
                     = this.ParseStreamRootDebug(stream, rootName, effectiveVariables, effectiveOptions);
                 debugData = parsed.DebugData;
                 root = parsed.Result;
@@ -847,14 +845,14 @@ public partial class CStruct
     }
 
     /// <summary>Creates the root object and reads one named layout element without collecting debug byte ranges.</summary>
-    private ExpandoObject ParseStreamRoot(
+    private StructValue ParseStreamRoot(
         Stream stream,
         string elementName,
         Dictionary<string, Expr> variables,
         ReadOperationSettings options)
     {
         // Create a container for the named root layout element before constructing all per-read mutable state.
-        dynamic root = new ExpandoObject();
+        var root = new StructValue(this.compiledModelQueries.GetRootShape(elementName));
 
         if (!this.compiledModelQueries.TryGetCompiledDeclaration(elementName, out CStructElement? cstructElement))
         {
@@ -882,14 +880,14 @@ public partial class CStruct
     }
 
     /// <summary>Creates the root object and reads one named layout element while collecting debug byte ranges.</summary>
-    private (List<DebugData> DebugData, ExpandoObject Result) ParseStreamRootDebug(
+    private (List<DebugData> DebugData, StructValue Result) ParseStreamRootDebug(
         Stream stream,
         string elementName,
         Dictionary<string, Expr> variables,
         ReadOperationSettings options)
     {
         // Debug mode uses the same root construction as ordinary mode, with one flag enabled in the operation state.
-        dynamic root = new ExpandoObject();
+        var root = new StructValue(this.compiledModelQueries.GetRootShape(elementName));
 
         if (!this.compiledModelQueries.TryGetCompiledDeclaration(elementName, out CStructElement? cstructElement))
         {

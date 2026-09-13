@@ -1,7 +1,6 @@
 namespace CStructSharp.Benchmarks.Baseline0;
 
 using System.Buffers;
-using System.Dynamic;
 using BenchmarkDotNet.Attributes;
 
 /// <summary>S-WRITE: serialize from parsed dynamic data, plain dictionaries, and POCOs into every destination shape.</summary>
@@ -12,12 +11,12 @@ public class WriteBenchmarks
     private FixtureCase nested = null!;
     private FixtureCase strings1K = null!;
     private FixtureCase strings64K = null!;
-    private ExpandoObject primExpando = null!;
+    private StructValue primExpando = null!;
     private Dictionary<string, object> primDictionary = null!;
     private PathAndTypedBenchmarks.PrimRecord primPoco = null!;
-    private ExpandoObject nestedExpando = null!;
-    private ExpandoObject strings1KExpando = null!;
-    private ExpandoObject strings64KExpando = null!;
+    private StructValue nestedExpando = null!;
+    private StructValue strings1KExpando = null!;
+    private StructValue strings64KExpando = null!;
     private byte[] primDestination = null!;
     private ArrayBufferWriter<byte> bufferWriter = null!;
 

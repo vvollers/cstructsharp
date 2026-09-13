@@ -77,8 +77,8 @@ Assert-Condition ($manifest.generator.command -eq 'generate-public-api') `
     'The managed API baseline names an unexpected generator command.'
 Assert-Condition ($manifest.assembly -eq 'CStructSharp.dll') `
     'The managed API baseline names an unexpected assembly.'
-Assert-Condition ($manifest.exportedTypes -eq 20) `
-    'The managed API baseline must retain the reviewed 20-type surface.'
+Assert-Condition ($manifest.exportedTypes -eq 22) `
+    'The managed API baseline must retain the reviewed 22-type surface.'
 
 [xml]$project = Get-Content -Raw -LiteralPath $ProjectPath
 $versionPrefix = [string]$project.Project.PropertyGroup.VersionPrefix
