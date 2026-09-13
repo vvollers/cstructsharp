@@ -29,6 +29,7 @@ internal sealed class CStructOperationContext
             options.MaxStringBytes,
             options.MaxTotalBytesRead);
         this.Variables = variables;
+        this.CaptureAllLayoutVariables = variables is not LayoutVariables { CaptureAll: false };
         this.Aligned = aligned;
 
         // Copy nullable options into concrete defaults once so the hot parsing path never has to repeat this logic.
@@ -106,6 +107,13 @@ internal sealed class CStructOperationContext
     public ReadBudgetStream Stream { get; }
 
     public Dictionary<string, Expr> Variables { get; }
+
+    /// <summary>
+    ///     True when every field must publish its layout variable, because the supplied variables contain an
+    ///     unevaluated expression that may name any field (E2.6); otherwise only fields the compiled layout's own
+    ///     expressions reference (<see cref="CompiledField.CapturesLayoutVariable"/>) are captured.
+    /// </summary>
+    public bool CaptureAllLayoutVariables { get; }
 
     public int CurrentBitOffset { get; set; }
 

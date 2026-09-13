@@ -4,6 +4,12 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Performance: a field's value is published as a layout variable only when an expression in the layout (array
+  count, condition, switch selector, offset assertion) can name it; every other field skips the per-value
+  allocation and dictionary write. Record and nested-struct parses run 20–45 % faster with 20–50 % less
+  allocation, writes from parsed values about 25 % faster, updates 10–20 % faster. Expression results are
+  unchanged; a text field named by an expression keeps the previous capture-everything behavior because its value
+  is itself resolved as a name.
 - **Breaking (managed API):** parsed structs are `CStructSharp.StructValue` objects instead of
   `System.Dynamic.ExpandoObject`. `dynamic` member access (`parsed.header.length`), `IDictionary<string, object?>`
   / `IReadOnlyDictionary<string, object?>` casts, enumeration in declaration order, mutation, and passing the value

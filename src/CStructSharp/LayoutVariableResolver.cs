@@ -76,12 +76,12 @@ internal sealed class LayoutVariableResolver
         bool hasSuppliedVariables = suppliedVariables is { Count: > 0, };
         if (!hasSuppliedVariables && this.staticValues.Count == this.definitions.Count)
         {
-            return new Dictionary<string, Expr>(this.staticValues, StringComparer.Ordinal);
+            return new LayoutVariables(this.staticValues);
         }
 
         try
         {
-            var variables = new Dictionary<string, Expr>(this.staticValues, StringComparer.Ordinal);
+            var variables = new LayoutVariables(this.staticValues);
             foreach (KeyValuePair<string, Defines> definition in this.definitions)
             {
                 if (!this.staticValues.ContainsKey(definition.Key))
@@ -111,7 +111,25 @@ internal sealed class LayoutVariableResolver
                 }
             }
 
-            return this.ResolveExpressions(variables);
+            LayoutVariables resolved = this.ResolveExpressions(variables);
+            if (hasSuppliedVariables)
+            {
+                // A supplied expression that survived resolution unevaluated can name a field at evaluation time,
+                // so that operation must capture every field, not only the ones the layout's own expressions
+                // reference (E2.6). Public integer inputs are literals and never take this path.
+                foreach (string name in suppliedVariables!.Keys)
+                {
+                    if (resolved.TryGetValue(name, out Expr? expression) &&
+                        expression is not Literal &&
+                        this.evaluator.GetDependencies(expression).Count > 0)
+                    {
+                        resolved.CaptureAll = true;
+                        break;
+                    }
+                }
+            }
+
+            return resolved;
         }
         catch (CStructLayoutException)
         {
@@ -243,7 +261,7 @@ internal sealed class LayoutVariableResolver
     /// <summary>Evaluates only definitions whose complete dependency closure is layout-static.</summary>
     private Dictionary<string, Expr> BuildStaticValues(IReadOnlyList<string> orderedDefinitions)
     {
-        var staticExpressions = new Dictionary<string, Expr>(StringComparer.Ordinal);
+        var staticExpressions = new LayoutVariables();
         foreach (string name in orderedDefinitions)
         {
             if (this.definitionDependencies[name].All(staticExpressions.ContainsKey))
@@ -256,7 +274,7 @@ internal sealed class LayoutVariableResolver
     }
 
     /// <summary>Reduces every non-literal name through one shared work/cycle/cache session.</summary>
-    private Dictionary<string, Expr> ResolveExpressions(Dictionary<string, Expr> expressions)
+    private LayoutVariables ResolveExpressions(LayoutVariables expressions)
     {
         ExpressionEvaluator.ExpressionEvaluationSession session = this.evaluator.CreateSession(expressions);
         var resolvedValues = new Dictionary<string, int>(StringComparer.Ordinal);

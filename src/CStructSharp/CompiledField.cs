@@ -71,6 +71,7 @@ internal sealed class CompiledField
         this.BitStorageIsLittleEndian = bitStorageIsLittleEndian;
         this.FixedOffset = fixedOffset;
         this.BitOffset = bitOffset;
+        this.CapturesLayoutVariable = parent.CapturesLayoutVariable;
         this.Codec = this.PointerDepth == parent.PointerDepth
                          ? parent.Codec
                          : this.PointerDepth > 0
@@ -86,6 +87,14 @@ internal sealed class CompiledField
     public ImmutableArray<int> CapturedLocalSlots { get; internal set; } = [];
 
     public ImmutableArray<int> RestoredLocalSlots { get; internal set; } = [];
+
+    /// <summary>
+    ///     Whether reading or writing this field must publish its value as a layout variable. False when no
+    ///     expression in the layout can name it (E2.6), so the capture allocation and dictionary write are skipped;
+    ///     an operation whose supplied variables can still name it (<see cref="LayoutVariables.CaptureAll"/>)
+    ///     overrides this.
+    /// </summary>
+    public bool CapturesLayoutVariable { get; internal set; } = true;
 
     public int Alignment { get; }
 

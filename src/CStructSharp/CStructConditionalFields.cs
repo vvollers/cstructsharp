@@ -85,7 +85,7 @@ public partial class CStruct
         Stream stream, long origin, CStructElement root, Dictionary<string, Expr> variables, ReadOperationSettings options)
     {
         stream.Position = origin;
-        var state = new CStructOperationContext(stream, new Dictionary<string, Expr>(variables), this.Aligned, options)
+        var state = new CStructOperationContext(stream, new LayoutVariables(variables), this.Aligned, options)
         {
             Debug = true,
             NextPosition = origin,

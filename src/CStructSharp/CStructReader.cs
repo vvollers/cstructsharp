@@ -382,13 +382,16 @@ public partial class CStruct
 
                         // The per-element loop captured every element into the layout variables, so the value that
                         // survives is the last one; reproduce exactly that.
-                        if (Int32Capture.TryConvert(lastElement, out int lastCaptured))
+                        if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
                         {
-                            state.Variables[f.Name.Name] = new Literal(lastCaptured);
-                        }
-                        else
-                        {
-                            state.Variables.Remove(f.Name.Name);
+                            if (Int32Capture.TryConvert(lastElement, out int lastCaptured))
+                            {
+                                state.Variables[f.Name.Name] = new Literal(lastCaptured);
+                            }
+                            else
+                            {
+                                state.Variables.Remove(f.Name.Name);
+                            }
                         }
 
                         firstElement = numFieldValues;
@@ -457,7 +460,7 @@ public partial class CStruct
                                         containerDict[f.Name.Name] = newEnum;
                                     }
 
-                                    if (!isArray)
+                                    if (!isArray && (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
                                     {
                                         this.UpdateExactLayoutVariable(
                                             state.Variables,
@@ -644,7 +647,11 @@ public partial class CStruct
                                     containerDict[f.Name.Name] = content;
                                 }
 
-                                if (content is Pointer p)
+                                if (!compiledField.CapturesLayoutVariable && !state.CaptureAllLayoutVariables)
+                                {
+                                    // No expression in this layout can name the field (E2.6): skip the capture.
+                                }
+                                else if (content is Pointer p)
                                 {
                                     // Expressions refer to the encoded pointer address, not the Pointer wrapper or target value.
                                     // A valid signed stream address may exceed the expression language's Int32 domain: retain

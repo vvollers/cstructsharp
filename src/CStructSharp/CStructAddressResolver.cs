@@ -1034,6 +1034,10 @@ public partial class CStruct
             return;
         }
 
+        // An unreferenced field (E2.6) still moves the stream exactly as before - reported failure offsets depend on
+        // it - but publishes nothing.
+        bool captures = compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables;
+
         if (field.PointerDepth == 0 && compiledField.IsFixedPoint)
         {
             state.Variables.Remove(field.Name.Name);
@@ -1053,8 +1057,12 @@ public partial class CStruct
             value = compiledField.Reader?.Invoke(state.Stream) ??
                     throw new InvalidOperationException(
                         "Compiled enum has no storage reader: " + enm.Name.Name);
-            BigInteger exact = this.compiledModelQueries.GetCompiledEnum(enm).Integer.FromStorageValue(value);
-            this.UpdateExactLayoutVariable(state.Variables, field.Name.Name, exact);
+            if (captures)
+            {
+                BigInteger exact = this.compiledModelQueries.GetCompiledEnum(enm).Integer.FromStorageValue(value);
+                this.UpdateExactLayoutVariable(state.Variables, field.Name.Name, exact);
+            }
+
             return;
         }
         else if (namedElement is not null || compiledField.Reader is not Func<Stream, object> reader)
@@ -1064,6 +1072,11 @@ public partial class CStruct
         else
         {
             value = reader(state.Stream);
+        }
+
+        if (!captures)
+        {
+            return;
         }
 
         if (field.BitSize > 0)

@@ -18,6 +18,136 @@ public partial class CStruct
     /// <summary>Gets the immutable internal model for invariant tests and later compiled-executor migrations.</summary>
     internal CompiledLayoutModel CompiledModel => this.compiledLayout;
 
+    /// <summary>The operation-variable resolver, exposed for tests that exercise supplied-variable resolution directly.</summary>
+    internal LayoutVariableResolver CompiledLayoutVariables => this.layoutVariableResolver;
+
+    private static bool MayCaptureText(CompiledField field)
+    {
+        if (field.PointerDepth > 0 || field.Type.Symbol.Kind is CompiledTypeKind.Struct or CompiledTypeKind.Union or CompiledTypeKind.Enum)
+        {
+            return false;
+        }
+
+        PrimitiveCodec codec = field.Codec;
+        return !(codec.IsFixedWidthNumeric || codec.IsLeb128 || codec.IsFixedPoint);
+    }
+
+    /// <summary>Marks one field; returns whether it is referenced and can hold text (which widens capture to every field).</summary>
+    private static bool MarkField(CompiledField field, HashSet<string>? referenced)
+    {
+        bool isReferenced = referenced is not null && referenced.Contains(field.Declaration.Name.Name);
+        field.CapturesLayoutVariable = isReferenced;
+        return isReferenced && MayCaptureText(field);
+    }
+
+    private static void CollectExpressionReferences(CStructElement element, ref HashSet<string>? referenced, ref Stack<Expr>? pending)
+    {
+        switch (element)
+        {
+        case Struct strct:
+            AddReferences(strct.CompositeAlignmentOverrideExpression, ref referenced, ref pending);
+            CollectFieldReferences(strct, ref referenced, ref pending);
+            foreach (Field member in strct.Fields)
+            {
+                if (member is Struct nested)
+                {
+                    CollectExpressionReferences(nested, ref referenced, ref pending);
+                }
+                else
+                {
+                    CollectFieldReferences(member, ref referenced, ref pending);
+                }
+            }
+
+            break;
+        case Typedef typedef when typedef.Struct is not null:
+            CollectExpressionReferences(typedef.Struct, ref referenced, ref pending);
+            break;
+        case Defines defines:
+            AddReferences(defines.Value, ref referenced, ref pending);
+            break;
+        case CstructEnum enm:
+            foreach (EnumValue value in enm.DeclaredValues)
+            {
+                AddReferences(value.Value, ref referenced, ref pending);
+            }
+
+            break;
+        }
+    }
+
+    private static void CollectFieldReferences(Field field, ref HashSet<string>? referenced, ref Stack<Expr>? pending)
+    {
+        IReadOnlyList<Expr> dimensions = field.ArrayCount;
+        for (int index = 0; index < dimensions.Count; index++)
+        {
+            AddReferences(dimensions[index], ref referenced, ref pending);
+        }
+
+        AddReferences(field.BitSizeExpression, ref referenced, ref pending);
+        AddReferences(field.Condition, ref referenced, ref pending);
+        AddReferences(field.AlignmentOverrideExpression, ref referenced, ref pending);
+        AddReferences(field.OffsetAssertionExpression, ref referenced, ref pending);
+        IReadOnlyList<ConditionalBranch> branches = field.BranchConditions;
+        for (int index = 0; index < branches.Count; index++)
+        {
+            ConditionalGroup group = branches[index].Group;
+            AddReferences(group.Selector, ref referenced, ref pending);
+            if (group.CaseLabels is not null)
+            {
+                foreach (Expr label in group.CaseLabels)
+                {
+                    AddReferences(label, ref referenced, ref pending);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Walks the tree directly instead of compiling a program for it: a per-field condition would otherwise be
+    ///     compiled here purely to read its identifiers, growing layout-compilation allocation.
+    /// </summary>
+    private static void AddReferences(Expr? expression, ref HashSet<string>? referenced, ref Stack<Expr>? pending)
+    {
+        if (expression is null || ReferenceEquals(expression, NoneExpr.Instance) || expression is Literal)
+        {
+            return;
+        }
+
+        if (expression is Identifier direct)
+        {
+            (referenced ??= new HashSet<string>(StringComparer.Ordinal)).Add(direct.Name);
+            return;
+        }
+
+        pending ??= new Stack<Expr>();
+        pending.Push(expression);
+        while (pending.Count > 0)
+        {
+            switch (pending.Pop())
+            {
+            case Identifier identifier:
+                (referenced ??= new HashSet<string>(StringComparer.Ordinal)).Add(identifier.Name);
+                break;
+            case UnaryOp unary:
+                pending.Push(unary.Expr);
+                break;
+            case BinaryOp binary:
+                pending.Push(binary.Left);
+                pending.Push(binary.Right);
+                break;
+            case Call call:
+                pending.Push(call.Expr);
+                foreach (Expr argument in call.Arguments)
+                {
+                    pending.Push(argument);
+                }
+
+                break;
+            }
+        }
+    }
+
     /// <summary>Builds the operation-time model after parsed declarations have passed all layout validation.</summary>
     private CompiledLayoutModel CompileIntermediateRepresentation()
     {
@@ -223,6 +353,8 @@ public partial class CStruct
 
             symbol.Freeze();
         }
+
+        this.MarkReferencedLayoutVariables(publishedSymbols, rootFields);
 
         return new CompiledLayoutModel(
             this.cStructElements.ToImmutableDictionary(StringComparer.Ordinal),
@@ -758,5 +890,65 @@ public partial class CStruct
             count,
             ImmutableArray<string>.Empty,
             ImmutableArray.Create(new CompiledArrayDimension(dimensionExpression, count)));
+    }
+
+    /// <summary>
+    ///     Marks the fields whose values an expression can read back (E2.6). The evaluator resolves identifiers only
+    ///     through the layout's own expressions - array dimensions, conditions, switch selectors and cases, bit sizes,
+    ///     alignment/offset assertions, <c>#define</c>s, enum values - so their identifier dependencies are the complete
+    ///     set of capturable names. One exception makes the set unbounded: a text field is captured as
+    ///     <c>Identifier(text)</c>, and evaluating it resolves the *text* as another name. If any referenced field can
+    ///     hold text, every field keeps its capture. Allocation-conscious on purpose: the release gate budgets a small
+    ///     layout's compilation to the byte, so the sets are created only when the first identifier appears and the
+    ///     fields are walked through their composites' arrays rather than through LINQ.
+    /// </summary>
+    private void MarkReferencedLayoutVariables(
+        HashSet<CompiledTypeSymbol> symbols,
+        ImmutableDictionary<CStructElement, CompiledField>.Builder rootFields)
+    {
+        HashSet<string>? referenced = null;
+        Stack<Expr>? pending = null;
+        foreach (CStructElement element in this.cStructElements.Values)
+        {
+            CollectExpressionReferences(element, ref referenced, ref pending);
+        }
+
+        bool captureAll = false;
+        foreach (CompiledTypeSymbol symbol in symbols)
+        {
+            if (symbol.Definition is CompiledCompositeType composite)
+            {
+                foreach (CompiledField field in composite.Fields)
+                {
+                    captureAll |= MarkField(field, referenced);
+                }
+            }
+        }
+
+        foreach (CompiledField field in rootFields.Values)
+        {
+            captureAll |= MarkField(field, referenced);
+        }
+
+        if (!captureAll)
+        {
+            return;
+        }
+
+        foreach (CompiledTypeSymbol symbol in symbols)
+        {
+            if (symbol.Definition is CompiledCompositeType composite)
+            {
+                foreach (CompiledField field in composite.Fields)
+                {
+                    field.CapturesLayoutVariable = true;
+                }
+            }
+        }
+
+        foreach (CompiledField field in rootFields.Values)
+        {
+            field.CapturesLayoutVariable = true;
+        }
     }
 }

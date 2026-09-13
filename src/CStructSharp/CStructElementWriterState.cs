@@ -26,6 +26,7 @@ internal sealed class CStructElementWriterState
         int initialStructureDepth = 0)
     {
         this.Variables = variables;
+        this.CaptureAllLayoutVariables = variables is not LayoutVariables { CaptureAll: false };
         this.Aligned = aligned;
 
         // The public boundary has already validated this immutable option value.
@@ -65,6 +66,13 @@ internal sealed class CStructElementWriterState
     public Stream Stream { get; }
 
     public Dictionary<string, Expr> Variables { get; }
+
+    /// <summary>
+    ///     True when every field must publish its layout variable, because the supplied variables contain an
+    ///     unevaluated expression that may name any field (E2.6); otherwise only fields the compiled layout's own
+    ///     expressions reference (<see cref="CompiledField.CapturesLayoutVariable"/>) are captured.
+    /// </summary>
+    public bool CaptureAllLayoutVariables { get; }
 
     public int CurrentBitOffset { get; set; }
 

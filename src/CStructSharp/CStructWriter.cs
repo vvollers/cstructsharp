@@ -304,7 +304,7 @@ public partial class CStruct
         {
             var stagingState = new CStructElementWriterState(
                 stagingStream,
-                new Dictionary<string, Expr>(state.Variables, StringComparer.Ordinal),
+                new LayoutVariables(state.Variables),
                 state.Aligned,
                 state.Options,
                 state.StructureDepth);
@@ -621,7 +621,11 @@ public partial class CStruct
         }
 
         // Later fields may use this field in an expression, so keep the writer's variable map in step with the bytes.
-        if (writtenEnumValue is BigInteger exactEnumValue)
+        if (!compiledField.CapturesLayoutVariable && !state.CaptureAllLayoutVariables)
+        {
+            // No expression in this layout can name the field (E2.6): nothing to publish.
+        }
+        else if (writtenEnumValue is BigInteger exactEnumValue)
         {
             this.UpdateExactLayoutVariable(state.Variables, effectiveField.Name.Name, exactEnumValue);
         }
