@@ -627,8 +627,7 @@ public partial class CStruct
         }
         else
         {
-            if (!effectiveField.IsPointer && (compiledField.IsFixedPoint ||
-                                             compiledField.CodecName is "uuid" or "guid"))
+            if (compiledField.Codec.IsFixedPoint || compiledField.Codec.IsIdentifier)
             {
                 state.Variables.Remove(effectiveField.Name.Name);
             }
@@ -866,7 +865,7 @@ public partial class CStruct
                                             "Compiled field has no writer: " + field.CodecName);
         try
         {
-            if (stream is WriteBudgetStream { IsSparseUpdate: true } && Leb128Codec.IsType(field.CodecName))
+            if (stream is WriteBudgetStream { IsSparseUpdate: true } && field.Codec.IsLeb128)
             {
                 long start = stream.Position;
                 _ = field.Reader!(stream);

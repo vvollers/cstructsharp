@@ -291,6 +291,16 @@ for (const [suffix, tag] of [["<", "le"], [">", "be"]]) {
     });
   }
 }
+// Neutral spelling (no endianness suffix): the common way to declare an integer array; E1.5 made it take the same
+// bulk path as the suffixed spellings.
+add({
+  id: "array-u32-neutral-262144",
+  scenario: "S-ARRAY-U32",
+  tags: ["warm", "vectorize"],
+  definition: "struct root { uint32 values[262144]; };",
+  bytes: { kind: "xorshift", seed: 0x5eed0030 + 262144, size: 262144 * 4 },
+  readOptions: { maxArrayElements: 524288, maxTotalBytesRead: 2097152 },
+});
 for (const count of [100, 10000]) {
   const next = xorshift32(0x5eed0040 + count);
   const b = new ByteBuilder();

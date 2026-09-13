@@ -97,9 +97,12 @@ internal static class Program
             jobs.Add(job);
         }
 
+        // Fixture ids longer than 20 characters were being abbreviated ("malfo(...)count") in the report keys the
+        // contracts are keyed on; keep the full parameter text.
         var config = ManualConfig.Create(DefaultConfig.Instance)
                                  .AddDiagnoser(MemoryDiagnoser.Default)
-                                 .AddExporter(JsonExporter.Full);
+                                 .AddExporter(JsonExporter.Full)
+                                 .WithSummaryStyle(SummaryStyle.Default.WithMaxParameterColumnWidth(48));
         foreach (Job job in jobs)
         {
             config = config.AddJob(job);

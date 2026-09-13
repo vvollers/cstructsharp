@@ -773,7 +773,7 @@ public partial class CStruct
             return current;
         }
 
-        if (Leb128Codec.IsType(compiledField.CodecName) && field.PointerDepth == 0)
+        if (compiledField.Codec.IsLeb128)
         {
             state.Stream.Position = fieldStart;
             int leaves = checked(index * (elementField.Array.TotalFixedElementCount ?? 1));
@@ -850,9 +850,7 @@ public partial class CStruct
             return current;
         }
 
-        if (compiledField.Array.Kind == CompiledArrayKind.Scalar &&
-            field.PointerDepth == 0 &&
-            PrimitiveCodecs.IsVariableLengthType(compiledField.CodecName))
+        if (compiledField.Array.Kind == CompiledArrayKind.Scalar && compiledField.Codec.IsTerminatedText)
         {
             state.Stream.Position = fieldStart;
             _ = compiledField.Reader?.Invoke(state.Stream) ??
@@ -876,7 +874,7 @@ public partial class CStruct
             return state.Stream.Position;
         }
 
-        if (Leb128Codec.IsType(compiledField.CodecName) && field.PointerDepth == 0)
+        if (compiledField.Codec.IsLeb128)
         {
             int count = compiledField.Array.Kind == CompiledArrayKind.Scalar ? 1 : this.GetBoundedTotalElementCount(compiledField, state);
             state.Stream.Position = fieldStart;

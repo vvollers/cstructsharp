@@ -534,8 +534,7 @@ public sealed partial class CStruct
                 return ((string)reader(state.Stream)).Length;
             }
 
-            if (compiledField.Array.Kind == CompiledArrayKind.Scalar &&
-                PrimitiveCodecs.IsVariableLengthType(compiledField.CodecName))
+            if (compiledField.Array.Kind == CompiledArrayKind.Scalar && compiledField.Codec.IsTerminatedText)
             {
                 state.Stream.Position = target.Address;
                 Func<Stream, object> reader = compiledField.Reader ??

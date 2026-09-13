@@ -372,13 +372,11 @@ public partial class CStruct
                     int firstElement = 0;
                     if (isArray && !state.Debug && !useLegacyPlacement && f.BitSize == 0 && f.PointerDepth == 0 &&
                         structElement is null && f.Name.Name.Length > 0 && numFieldValues > 0 &&
-                        compiledField.FixedElementSize is int bulkElementSize &&
-                        PrimitiveArrayReader.TryGetDecoder(compiledField.CodecName, out PrimitiveArrayReader.ElementDecoder? bulkDecoder))
+                        compiledField.Codec.IsFixedWidthNumeric)
                     {
                         object? lastElement = PrimitiveArrayReader.ReadInto(
                             state.Stream,
-                            bulkDecoder,
-                            bulkElementSize,
+                            compiledField.Codec,
                             numFieldValues,
                             (List<object?>)containerDict[f.Name.Name]!);
                         state.NextPosition = state.Stream.Position;

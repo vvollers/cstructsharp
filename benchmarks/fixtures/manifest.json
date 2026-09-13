@@ -207,6 +207,16 @@
       "file": "cases/array-u32-be-262144.json"
     },
     {
+      "id": "array-u32-neutral-262144",
+      "scenario": "S-ARRAY-U32",
+      "tags": [
+        "warm",
+        "vectorize"
+      ],
+      "byteLength": 1048576,
+      "file": "cases/array-u32-neutral-262144.json"
+    },
+    {
       "id": "array-struct-100",
       "scenario": "S-ARRAY-STRUCT",
       "tags": [

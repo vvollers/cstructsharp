@@ -30,6 +30,7 @@ public class ParseBenchmarks
         "array-u32-be-256",
         "array-u32-be-16384",
         "array-u32-be-262144",
+        "array-u32-neutral-262144",
         "array-struct-100",
         "array-struct-10000",
         "dynamic-1",

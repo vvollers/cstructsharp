@@ -24,7 +24,8 @@ internal sealed class CompiledField
         int? bitStorageSize,
         bool? bitStorageIsLittleEndian,
         int? fixedOffset,
-        int bitOffset)
+        int bitOffset,
+        bool layoutLittleEndian)
     {
         this.Declaration = declaration;
         this.EffectiveField = effectiveField;
@@ -42,7 +43,40 @@ internal sealed class CompiledField
         this.BitStorageIsLittleEndian = bitStorageIsLittleEndian;
         this.FixedOffset = fixedOffset;
         this.BitOffset = bitOffset;
-        this.IsFixedPoint = this.PointerDepth == 0 && FixedPointCodec.IsType(this.CodecName);
+
+        // Resolve the codec identity once (E1.5): every hot path used to re-derive the name and compare strings.
+        // Only the 8-byte descriptor is stored; the name stays a computed property so wide layouts do not grow.
+        this.Codec = this.PointerDepth > 0 || this.Type.Symbol.Kind is CompiledTypeKind.Struct or CompiledTypeKind.Union
+                         ? PrimitiveCodec.None with { LayoutLittleEndian = layoutLittleEndian }
+                         : PrimitiveCodec.Resolve(this.CodecName, layoutLittleEndian);
+        this.IsFixedPoint = this.Codec.IsFixedPoint;
+    }
+
+    /// <summary>Derived copies keep the parent's resolved codec when the pointer depth is unchanged.</summary>
+    private CompiledField(CompiledField parent, Field effectiveField, int alignment, int? fixedElementSize, CompiledArrayShape array, int? fixedStorageSize, bool isUnsizedCharacterArray, int? bitStorageSize, bool? bitStorageIsLittleEndian, int? fixedOffset, int bitOffset, Func<Stream, object>? reader, Action<Stream, object>? writer)
+    {
+        this.Declaration = parent.Declaration;
+        this.EffectiveField = effectiveField;
+        this.Type = parent.Type;
+        this.Reader = reader;
+        this.Writer = writer;
+        this.TerminatedReader = parent.TerminatedReader;
+        this.TerminatedWriter = parent.TerminatedWriter;
+        this.Alignment = alignment;
+        this.FixedElementSize = fixedElementSize;
+        this.Array = array;
+        this.FixedStorageSize = fixedStorageSize;
+        this.IsUnsizedCharacterArray = isUnsizedCharacterArray;
+        this.BitStorageSize = bitStorageSize;
+        this.BitStorageIsLittleEndian = bitStorageIsLittleEndian;
+        this.FixedOffset = fixedOffset;
+        this.BitOffset = bitOffset;
+        this.Codec = this.PointerDepth == parent.PointerDepth
+                         ? parent.Codec
+                         : this.PointerDepth > 0
+                             ? PrimitiveCodec.None with { LayoutLittleEndian = parent.LayoutLittleEndian }
+                             : PrimitiveCodec.Resolve(this.CodecName, parent.LayoutLittleEndian);
+        this.IsFixedPoint = this.Codec.IsFixedPoint;
     }
 
     public ImmutableArray<CompiledConditionalBranch> ConditionalBranches { get; internal set; } = [];
@@ -94,6 +128,7 @@ internal sealed class CompiledField
 
     public Action<Stream, object>? Writer { get; }
 
+    /// <summary>The primitive codec vocabulary name (for example <c>uint32&lt;</c>), <c>pointer</c>, or a composite's own name.</summary>
     public string CodecName
     {
         get
@@ -112,6 +147,12 @@ internal sealed class CompiledField
             };
         }
     }
+
+    /// <summary>Compile-time codec identity; <see cref="PrimitiveCodec.None"/> for pointers and composites.</summary>
+    public PrimitiveCodec Codec { get; }
+
+    /// <summary>The layout's neutral byte order, needed to resolve suffix-less codec spellings of derived fields.</summary>
+    public bool LayoutLittleEndian => this.Codec.LayoutLittleEndian;
 
     /// <summary>
     ///     Creates an immutable view for one selected array element, peeling exactly one dimension (LANG-05): a
@@ -141,13 +182,8 @@ internal sealed class CompiledField
                                         : null;
 
         return new CompiledField(
-            this.Declaration,
+            this,
             field,
-            this.Type,
-            this.Reader,
-            this.Writer,
-            this.TerminatedReader,
-            this.TerminatedWriter,
             this.Alignment,
             this.FixedElementSize,
             nextShape,
@@ -156,7 +192,9 @@ internal sealed class CompiledField
             this.BitStorageSize,
             this.BitStorageIsLittleEndian,
             this.FixedOffset,
-            this.BitOffset);
+            this.BitOffset,
+            this.Reader,
+            this.Writer);
     }
 
     /// <summary>Creates an immutable target view after explicit pointer accessors consume part of the shape.</summary>
@@ -179,13 +217,8 @@ internal sealed class CompiledField
                                    ? null
                                    : this.Type.Symbol.FixedSize;
         return new CompiledField(
-            this.Declaration,
+            this,
             field,
-            this.Type,
-            targetIsTerminated ? terminatedReader : this.Reader,
-            targetIsTerminated ? terminatedWriter : this.Writer,
-            this.TerminatedReader,
-            this.TerminatedWriter,
             alignment,
             elementSize,
             CompiledArrayShape.Scalar,
@@ -194,20 +227,17 @@ internal sealed class CompiledField
             null,
             null,
             null,
-            0);
+            0,
+            targetIsTerminated ? terminatedReader : this.Reader,
+            targetIsTerminated ? terminatedWriter : this.Writer);
     }
 
     /// <summary>Returns the same descriptor with its compiled placement facts attached.</summary>
     public CompiledField WithPlacement(int? fixedOffset, int bitOffset)
     {
         return new CompiledField(
-            this.Declaration,
+            this,
             this.EffectiveField,
-            this.Type,
-            this.Reader,
-            this.Writer,
-            this.TerminatedReader,
-            this.TerminatedWriter,
             this.Alignment,
             this.FixedElementSize,
             this.Array,
@@ -216,6 +246,8 @@ internal sealed class CompiledField
             this.BitStorageSize,
             this.BitStorageIsLittleEndian,
             fixedOffset,
-            bitOffset);
+            bitOffset,
+            this.Reader,
+            this.Writer);
     }
 }

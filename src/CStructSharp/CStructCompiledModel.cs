@@ -198,7 +198,8 @@ public partial class CStruct
                 null,
                 null,
                 0,
-                0);
+                0,
+                this.IsLittleEndian);
             rootFields.Add(declaration, compiledRoot);
         }
 
@@ -479,7 +480,8 @@ public partial class CStruct
                     bitfieldStorage?.ByteSize,
                     bitfieldStorage?.IsLittleEndian,
                     null,
-                    0);
+                    0,
+                    this.IsLittleEndian);
                 fields.Add(compiledField);
             }
 
