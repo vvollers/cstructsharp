@@ -3,20 +3,29 @@ namespace CStructSharp;
 using System;
 using System.IO;
 
-/// <summary>Counts bytes read through a caller-owned stream and enforces one read-like operation's byte budget.</summary>
-internal sealed class ReadBudgetStream : Stream
+/// <summary>
+///     Counts bytes read through a caller-owned stream and enforces one read-like operation's byte budget. When the
+///     source is memory (a pinned region or an exposable <see cref="MemoryStream"/>) it also acts as the operation's
+///     read cursor: the position lives here, fixed-width values are served straight from memory, and the inner
+///     stream's position is written back once by <see cref="FlushPosition"/> (E2.1).
+/// </summary>
+internal sealed unsafe class ReadBudgetStream : Stream
 {
     private readonly Stream inner;
     private readonly long maxTotalBytesRead;
+    private readonly byte* memoryPointer;
+    private readonly byte[]? memoryArray;
+    private readonly int memoryArrayOffset;
+    private readonly long memoryLength;
+    private readonly bool memoryBacked;
+    private readonly bool memoryIsBoundedRegion;
     private long bytesRead;
+    private long position;
 
     /// <summary>Wraps a readable stream without taking ownership of it.</summary>
     public ReadBudgetStream(Stream inner, ReadOptions options)
+        : this(inner, (options ?? throw new ArgumentNullException(nameof(options))).MaxStringBytes, options.MaxTotalBytesRead)
     {
-        ArgumentNullException.ThrowIfNull(options);
-        this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
-        this.maxTotalBytesRead = options.MaxTotalBytesRead;
-        this.MaxStringBytes = options.MaxStringBytes;
     }
 
     /// <summary>Wraps a readable stream using operation-owned limit values.</summary>
@@ -25,6 +34,24 @@ internal sealed class ReadBudgetStream : Stream
         this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
         this.maxTotalBytesRead = maxTotalBytesRead;
         this.MaxStringBytes = maxStringBytes;
+
+        // Exactly one memory backing is chosen; every other source keeps the delegating stream path.
+        if (inner is FixedBufferStream fixedBuffer && fixedBuffer.TryGetReadOnlyRegion(out byte* region, out long regionLength))
+        {
+            this.memoryPointer = region;
+            this.memoryLength = regionLength;
+            this.memoryBacked = true;
+            this.memoryIsBoundedRegion = true;
+            this.position = fixedBuffer.Position;
+        }
+        else if (inner is MemoryStream memoryStream && memoryStream.CanSeek && memoryStream.TryGetBuffer(out ArraySegment<byte> segment))
+        {
+            this.memoryArray = segment.Array;
+            this.memoryArrayOffset = segment.Offset;
+            this.memoryLength = memoryStream.Length;
+            this.memoryBacked = true;
+            this.position = memoryStream.Position;
+        }
     }
 
     /// <summary>Gets the configured per-string encoded-byte budget.</summary>
@@ -40,6 +67,11 @@ internal sealed class ReadBudgetStream : Stream
     {
         get
         {
+            if (this.memoryBacked)
+            {
+                return this.memoryLength;
+            }
+
             try
             {
                 return this.inner.Length;
@@ -55,6 +87,11 @@ internal sealed class ReadBudgetStream : Stream
     {
         get
         {
+            if (this.memoryBacked)
+            {
+                return this.position;
+            }
+
             try
             {
                 return this.inner.Position;
@@ -67,6 +104,19 @@ internal sealed class ReadBudgetStream : Stream
 
         set
         {
+            if (this.memoryBacked)
+            {
+                // Mirror the backing stream's own rules: a pinned region rejects positions outside it (as
+                // FixedBufferStream does); a MemoryStream accepts any non-negative position.
+                if (value < 0 || (this.memoryIsBoundedRegion && value > this.memoryLength))
+                {
+                    throw new CStructReadException("The requested position is outside the supplied memory region.");
+                }
+
+                this.position = value;
+                return;
+            }
+
             try
             {
                 this.inner.Position = value;
@@ -79,6 +129,36 @@ internal sealed class ReadBudgetStream : Stream
     }
 
     /// <summary>Flushes the wrapped stream without closing or otherwise taking ownership of it.</summary>
+    /// <summary>
+    ///     Serves <paramref name="count"/> bytes straight from memory at the current position, advancing and charging
+    ///     the budget exactly like a read would. False when the source is a stream or the bytes are not all available,
+    ///     in which case the caller takes the ordinary stream path (which then produces the usual short-read error).
+    /// </summary>
+    public bool TryReadSpan(int count, out ReadOnlySpan<byte> bytes)
+    {
+        if (this.memoryBacked && this.position + count <= this.memoryLength)
+        {
+            bytes = this.memoryArray is null
+                        ? new ReadOnlySpan<byte>(this.memoryPointer + this.position, count)
+                        : new ReadOnlySpan<byte>(this.memoryArray, this.memoryArrayOffset + (int)this.position, count);
+            this.position += count;
+            this.RecordRead(count);
+            return true;
+        }
+
+        bytes = default;
+        return false;
+    }
+
+    /// <summary>Writes the memory-mode position back to the inner stream; a no-op for stream sources.</summary>
+    public void FlushPosition()
+    {
+        if (this.memoryBacked)
+        {
+            this.inner.Position = this.position;
+        }
+    }
+
     public override void Flush()
     {
         try
@@ -94,6 +174,12 @@ internal sealed class ReadBudgetStream : Stream
     /// <summary>Reads bytes while charging the operation-wide budget only for bytes actually returned.</summary>
     public override int Read(byte[] buffer, int offset, int count)
     {
+        if (this.memoryBacked)
+        {
+            StreamArgumentValidation.ValidateRange(buffer, offset, count, nameof(buffer));
+            return this.Read(buffer.AsSpan(offset, count));
+        }
+
         int read;
         try
         {
@@ -111,6 +197,22 @@ internal sealed class ReadBudgetStream : Stream
     /// <summary>Reads span data while charging the operation-wide budget only for bytes actually returned.</summary>
     public override int Read(Span<byte> buffer)
     {
+        if (this.memoryBacked)
+        {
+            int available = (int)Math.Min(buffer.Length, Math.Max(0, this.memoryLength - this.position));
+            if (available > 0)
+            {
+                ReadOnlySpan<byte> source = this.memoryArray is null
+                                                ? new ReadOnlySpan<byte>(this.memoryPointer + this.position, available)
+                                                : new ReadOnlySpan<byte>(this.memoryArray, this.memoryArrayOffset + (int)this.position, available);
+                source.CopyTo(buffer);
+                this.position += available;
+                this.RecordRead(available);
+            }
+
+            return available;
+        }
+
         int read;
         try
         {
@@ -128,6 +230,21 @@ internal sealed class ReadBudgetStream : Stream
     /// <summary>Reads one byte while applying the same budget as bulk reads.</summary>
     public override int ReadByte()
     {
+        if (this.memoryBacked)
+        {
+            if (this.position >= this.memoryLength)
+            {
+                return -1;
+            }
+
+            byte result = this.memoryArray is null
+                              ? this.memoryPointer[this.position]
+                              : this.memoryArray[this.memoryArrayOffset + (int)this.position];
+            this.position++;
+            this.RecordRead(1);
+            return result;
+        }
+
         int value;
         try
         {
@@ -149,6 +266,19 @@ internal sealed class ReadBudgetStream : Stream
     /// <summary>Seeks in the wrapped stream without resetting the total physical-read budget.</summary>
     public override long Seek(long offset, SeekOrigin origin)
     {
+        if (this.memoryBacked)
+        {
+            long basis = origin switch
+            {
+                SeekOrigin.Begin => 0,
+                SeekOrigin.Current => this.position,
+                SeekOrigin.End => this.memoryLength,
+                _ => throw new ArgumentOutOfRangeException(nameof(origin)),
+            };
+            this.Position = checked(basis + offset);
+            return this.position;
+        }
+
         try
         {
             return this.inner.Seek(offset, origin);
@@ -213,6 +343,11 @@ internal sealed class ReadBudgetStream : Stream
     /// <summary>Obtains diagnostic position context without allowing a secondary stream failure to hide the first.</summary>
     private long? TryGetPosition()
     {
+        if (this.memoryBacked)
+        {
+            return this.position;
+        }
+
         try
         {
             return this.inner.Position;

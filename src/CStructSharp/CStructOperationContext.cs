@@ -102,7 +102,8 @@ internal sealed class CStructOperationContext
 
     public int StructureDepth { get; set; }
 
-    public Stream Stream { get; }
+    /// <summary>The operation's read cursor: budget accounting plus, for memory sources, position and span reads (E2.1).</summary>
+    public ReadBudgetStream Stream { get; }
 
     public Dictionary<string, Expr> Variables { get; }
 
@@ -119,6 +120,12 @@ internal sealed class CStructOperationContext
     public long NextPosition { get; set; }
 
     /// <summary>Claims one nested-struct level and rejects input that exceeds the caller's recursion budget.</summary>
+    /// <summary>Writes the cursor position back to the caller's stream; call once when the operation ends, before any error context is captured.</summary>
+    public void Complete()
+    {
+        this.Stream.FlushPosition();
+    }
+
     public void EnterStructure()
     {
         this.EnsureStructureDepth(this.StructureDepth + 1);

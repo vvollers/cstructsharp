@@ -1107,6 +1107,7 @@ public partial class CStruct
             {
                 // Keep the position contract on success, validation errors, and physical commit errors alike.
                 readState.Stream.Position = originalPosition;
+                readState.Complete();
             }
             catch (Exception) when (primaryException is not null)
             {

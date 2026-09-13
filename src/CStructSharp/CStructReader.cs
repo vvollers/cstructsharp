@@ -568,15 +568,20 @@ public partial class CStruct
                                 state.CurrentFieldAlignment = structAlignment;
                             }
 
+                            // Fixed-width numerics are decoded straight from a memory-backed cursor (E2.1); every
+                            // other codec, and every stream source, keeps the delegate path.
                             object content = f.PointerDepth > 0
                                                  ? this.ReadPointerValue(
                                                                          f.PointerDepth,
                                                                          compiledField,
                                                                          state,
                                                                          elementDebugStack)
-                                                 : fieldReader?.Invoke(state.Stream) ??
-                                                   throw new InvalidOperationException(
-                                                       "Compiled field has no reader: " + fieldTypeName);
+                                                 : compiledField.Codec.IsFixedWidthNumeric &&
+                                                   state.Stream.TryReadSpan(compiledField.Codec.Size, out ReadOnlySpan<byte> numericBytes)
+                                                     ? compiledField.Codec.ReadNumeric(numericBytes)
+                                                     : fieldReader?.Invoke(state.Stream) ??
+                                                       throw new InvalidOperationException(
+                                                           "Compiled field has no reader: " + fieldTypeName);
 
                             // Remember the full primitive range before bitfield handling possibly rewinds for another slice.
                             long endPos = state.Stream.Position;
@@ -864,7 +869,14 @@ public partial class CStruct
                                                   options);
 
         // Start with an empty debug stack; it remains empty in ordinary parsing but keeps the shared call shape simple.
-        this.HandleCStructElement(cstructElement, root, state, null);
+        try
+        {
+            this.HandleCStructElement(cstructElement, root, state, null);
+        }
+        finally
+        {
+            state.Complete();
+        }
 
         return root;
     }
@@ -892,7 +904,14 @@ public partial class CStruct
         { Debug = true, };
 
         // Each nested call appends its element to the stack before recording a byte range.
-        this.HandleCStructElement(cstructElement, root, state, null);
+        try
+        {
+            this.HandleCStructElement(cstructElement, root, state, null);
+        }
+        finally
+        {
+            state.Complete();
+        }
 
         return (state.DebugMapping, root);
     }

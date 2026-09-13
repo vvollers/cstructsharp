@@ -547,12 +547,14 @@ public sealed partial class CStruct
         }
         catch (CStructException exception)
         {
+            state.Complete();
             ExceptionContext.Attach(exception, segments, stream);
             throw;
         }
         finally
         {
             state.Stream.Position = originalPosition;
+            state.Complete();
         }
     }
 
@@ -799,13 +801,13 @@ public sealed partial class CStruct
             effectiveVariables,
             this.Aligned,
             effectiveOptions);
-        ResolvedTarget resolvedTarget = this.ResolveTargetFromLayout(
-            state,
-            segments);
-        Struct target = ResolveStructTarget(resolvedTarget);
 
         try
         {
+            ResolvedTarget resolvedTarget = this.ResolveTargetFromLayout(
+                state,
+                segments);
+            Struct target = ResolveStructTarget(resolvedTarget);
             (object result, List<DebugData> debugData) = this.ParseCompiledStructAt(
                 state,
                 resolvedTarget.Address,
@@ -818,8 +820,13 @@ public sealed partial class CStruct
         }
         catch (CStructException exception)
         {
+            state.Complete();
             ExceptionContext.Attach(exception, segments, stream);
             throw;
+        }
+        finally
+        {
+            state.Complete();
         }
     }
 
@@ -876,6 +883,7 @@ public sealed partial class CStruct
         finally
         {
             state.Stream.Position = originalPosition;
+            state.Complete();
         }
     }
 }

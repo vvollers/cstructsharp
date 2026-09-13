@@ -210,8 +210,13 @@ public sealed partial class CStruct
         }
         catch (CStructException exception)
         {
+            state.Complete();
             ExceptionContext.Attach(exception, segments, stream);
             throw;
+        }
+        finally
+        {
+            state.Complete();
         }
     }
 
