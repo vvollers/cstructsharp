@@ -49,7 +49,7 @@ pwsh -File tools/quality/Validate-NonWebReleaseBudgets.ps1 -BenchmarkSummaryPath
 
 ```sh
 benchmarks/profiling/profile-dotnet.sh ParsePrimitiveArray1KiB 10 artifacts/profiles     # Linux perf, inclusive frames
-#   scenarios: CompileSmall, CompileMedium, ParsePrimitiveArray1KiB, ParseNestedUnaligned, SerializeNested256,
+#   scenarios: CompileSmall, CompileMedium, ParsePrimitiveArray1KiB, ParseNestedUnaligned, SerializeNested256, ReadTypedNested256, ParseCondIf128, ParseDynamic1024,
 #   SerializePocoToSpan, ParseRealPng, ParseArrayU32Be (benchmarks/CStructSharp.Benchmarks/ProfileDriver.cs)
 node benchmarks/js/bench/profile-browser.mjs real-png 2000 artifacts/profiles            # Chromium CDP CPU profile
 ```

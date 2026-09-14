@@ -85,6 +85,25 @@ internal static class ProfileDriver
                 return () => benchmark.SerializePocoToSpan();
             }
 
+        case "ReadTypedNested256":
+            {
+                var benchmark = new Baseline0.PathAndTypedBenchmarks();
+                benchmark.Setup();
+                return () => benchmark.ReadTyped_Nested256();
+            }
+
+        case "ParseCondIf128":
+            {
+                FixtureCase fixture = FixtureCase.Load("cond-if128");
+                return () => fixture.ParseSpan();
+            }
+
+        case "ParseDynamic1024":
+            {
+                FixtureCase fixture = FixtureCase.Load("dynamic-1024");
+                return () => fixture.ParseSpan();
+            }
+
         case "ParseRealPng":
             {
                 FixtureCase fixture = FixtureCase.Load("real-png");

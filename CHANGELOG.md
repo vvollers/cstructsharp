@@ -4,6 +4,15 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Performance: `ReadValue<T>` of a struct whose members are all statically placed fills the POCO straight from the
+  bytes instead of parsing to a `StructValue` and mapping it by name: a 256-record nested read into POCOs
+  412 → 75 µs (−81 % allocation), a small record 942 → 339 ns. Member resolution (exact name, then a single
+  case-insensitive match), conversions, member order, failure messages and paths are unchanged; other layouts and
+  member shapes take the previous path. POCO instances are created through a compiled factory, so a constructor
+  that throws surfaces its own exception instead of a `TargetInvocationException` wrapper.
+- Performance: a runtime-sized array of a struct whose members are all statically placed is read by looping the
+  struct's read plan over one span (a 1 024-element array 55 → 28 µs); values, captured counts, limits and
+  truncation failures are unchanged.
 - Performance: a struct whose members are all statically placed (the same shape the static read plan covers:
   fixed-width numbers, enums, fixed numeric arrays, nested such structs and fixed arrays of them) is serialized by
   the same per-struct plan: member values are looked up once (directly by slot for a parsed value), encoded at

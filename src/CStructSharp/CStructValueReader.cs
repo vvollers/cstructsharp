@@ -112,11 +112,14 @@ public sealed partial class CStruct
         IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
         try
         {
+            // A fully fixed struct read into a POCO takes the typed plan (E2.7) inside ReadValueCore and comes back
+            // already as a T; Convert then returns it unchanged.
             object? naturalValue = this.ReadValueCore(
                 stream,
                 elementNameOrPath,
                 LayoutVariableInput.FromIntegers(variables),
-                options);
+                options,
+                typeof(T));
             return (T)TypedValueConverter.Convert(naturalValue, typeof(T), ExceptionContext.FormatPath(segments))!;
         }
         catch (CStructException exception)
@@ -190,7 +193,8 @@ public sealed partial class CStruct
         Stream stream,
         string elementNameOrPath,
         LayoutVariableInput variables,
-        ReadOptions? options)
+        ReadOptions? options,
+        [DynamicallyAccessedMembers(TypedReadMembers)] Type? typedTarget = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
         IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
@@ -205,6 +209,11 @@ public sealed partial class CStruct
         try
         {
             ResolvedTarget target = this.ResolveTargetFromLayout(state, segments);
+            if (typedTarget is not null && this.TryReadResolvedTyped(state, target, segments, typedTarget, out object? typed))
+            {
+                return typed;
+            }
+
             return this.ReadResolvedValue(state, target, segments[0].Name);
         }
         catch (CStructException exception)
@@ -220,6 +229,46 @@ public sealed partial class CStruct
     }
 
     /// <summary>Chooses the exact compiled decoder appropriate for one semantic target.</summary>
+    /// <summary>
+    ///     The typed read plan's entry (E2.7): a root or nested struct target read into <paramref name="targetType"/>
+    ///     directly when the plan is equivalent to the general read-then-convert path.
+    /// </summary>
+    private bool TryReadResolvedTyped(
+        CStructOperationContext state,
+        ResolvedTarget target,
+        IReadOnlyList<PathSegment> segments,
+        [DynamicallyAccessedMembers(TypedReadMembers)] Type targetType,
+        out object? value)
+    {
+        value = null;
+        Struct? declaration = null;
+        if (target.Kind == ResolvedTargetKind.Root)
+        {
+            if (!this.compiledModelQueries.TryGetCompiledDeclaration(segments[0].Name, out CStructElement? element))
+            {
+                return false;
+            }
+
+            declaration = element as Struct ?? (element as Typedef)?.Struct;
+        }
+        else if ((!target.IsArray || target.SelectsArrayElement) && target.RemainingPointerDepth == 0 &&
+                 target.TargetElement is Struct composite && target.EffectiveField?.PointerDepth == 0)
+        {
+            declaration = composite;
+            state.Stream.Position = target.Address;
+            state.StructureDepth = target.ContainingStructureDepth;
+            state.PointerDereferenceDepth = target.PointerAccessorsConsumed;
+        }
+
+        if (declaration is null)
+        {
+            return false;
+        }
+
+        value = this.TryReadTypedPlan(declaration, targetType, state, ExceptionContext.FormatPath(segments) ?? "<root>");
+        return value is not null;
+    }
+
     private object? ReadResolvedValue(
         CStructOperationContext state,
         ResolvedTarget target,

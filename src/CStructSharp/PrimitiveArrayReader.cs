@@ -44,6 +44,28 @@ internal static class PrimitiveArrayReader
         };
     }
 
+    /// <summary>The CLR element type the decoders produce for a fixed-width numeric codec.</summary>
+    public static Type GetElementType(PrimitiveCodec codec)
+    {
+        return codec.Kind switch
+        {
+            PrimitiveCodecKind.UInt8 => typeof(byte),
+            PrimitiveCodecKind.Int8 => typeof(sbyte),
+            PrimitiveCodecKind.Bool => typeof(bool),
+            PrimitiveCodecKind.Int16 => typeof(short),
+            PrimitiveCodecKind.UInt16 => typeof(ushort),
+            PrimitiveCodecKind.Int24 => typeof(int),
+            PrimitiveCodecKind.UInt24 => typeof(uint),
+            PrimitiveCodecKind.Int32 => typeof(int),
+            PrimitiveCodecKind.UInt32 => typeof(uint),
+            PrimitiveCodecKind.Int64 => typeof(long),
+            PrimitiveCodecKind.UInt64 => typeof(ulong),
+            PrimitiveCodecKind.Float32 => typeof(float),
+            PrimitiveCodecKind.Float64 => typeof(double),
+            _ => throw new InvalidOperationException("Codec is not a fixed-width numeric: " + codec.Kind),
+        };
+    }
+
     /// <summary>Decodes <paramref name="count"/> elements that are already in memory (static read plan, E2.5).</summary>
     public static IList<object?> Decode(ReadOnlySpan<byte> bytes, PrimitiveCodec codec, int count)
     {

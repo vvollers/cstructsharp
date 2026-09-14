@@ -13,7 +13,7 @@ using System.Globalization;
 ///     size: elements can be replaced through the indexer, never added or removed.
 /// </summary>
 /// <typeparam name="T">The element type: <see cref="byte"/>, <see cref="sbyte"/>, <see cref="bool"/>, the 16/32/64-bit integers, <see cref="float"/> or <see cref="double"/>.</typeparam>
-public sealed class PrimitiveArray<T> : IList<object?>, IReadOnlyList<object?>, IList
+public sealed class PrimitiveArray<T> : IList<object?>, IReadOnlyList<object?>, IList, IPrimitiveArray
     where T : unmanaged
 {
     private readonly T[] values;
@@ -28,6 +28,8 @@ public sealed class PrimitiveArray<T> : IList<object?>, IReadOnlyList<object?>, 
 
     /// <summary>Gets the number of elements.</summary>
     public int Count => this.values.Length;
+
+    Type IPrimitiveArray.ElementType => typeof(T);
 
     /// <summary>Gets the elements as a typed read-only span (no boxing).</summary>
     public ReadOnlySpan<T> Span => this.values;
@@ -57,6 +59,11 @@ public sealed class PrimitiveArray<T> : IList<object?>, IReadOnlyList<object?>, 
     {
         get => this.values[index];
         set => this.values[index] = ConvertElement(value);
+    }
+
+    Array IPrimitiveArray.ToArray()
+    {
+        return this.ToArray();
     }
 
     /// <summary>Copies the elements into a new typed array.</summary>

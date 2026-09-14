@@ -951,4 +951,10 @@ public partial class CStruct
             field.CapturesLayoutVariable = true;
         }
     }
+
+    /// <summary>The compiled enum of a declaration, for the browser bridge's static plan description (E3.9).</summary>
+    internal CompiledEnumType GetCompiledEnumForInterop(Structure.Enum declaration)
+    {
+        return this.compiledModelQueries.GetCompiledEnum(declaration);
+    }
 }

@@ -15,7 +15,9 @@ The highest-value choices are usually:
 3. Use span or memory input when bytes are already in memory.
 4. Use the `byte[]` serialization overload unless an allocation measurement justifies caller-provided output.
 5. Request debug ranges only in diagnostic paths.
-6. Map to a POCO only when typed application code needs it; direct values avoid the additional mapping step.
+6. Map to a POCO only when typed application code needs it. For a layout whose members are all statically placed
+   (fixed-width numbers, enums, `char[N]` buffers, fixed arrays, nested such structs), `ReadValue<T>` fills the
+   POCO straight from the bytes; other layouts parse first and map afterwards.
 
 Selected reads can avoid decoding unrelated later siblings, but they still perform the work needed to locate the
 target. Runtime arrays, alignment, terminated strings, and pointers before the selected field may need traversal.

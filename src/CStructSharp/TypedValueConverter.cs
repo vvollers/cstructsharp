@@ -45,6 +45,60 @@ internal static class TypedValueConverter
         }
     }
 
+    /// <summary>Whether an implementation exception is one <see cref="Convert"/> reports as a conversion failure.</summary>
+    public static bool IsConversionFailure(Exception exception)
+    {
+        return exception is ArgumentException or InvalidCastException or InvalidOperationException or
+               MemberAccessException or OverflowException or TargetInvocationException;
+    }
+
+    /// <summary>The conversion failure <see cref="Convert"/> would report for a value of <paramref name="sourceType"/>.</summary>
+    public static CStructReadException ConversionFailureFrom(Type sourceType, Type targetType, string path, Exception exception)
+    {
+        return ConversionFailure(sourceType.FullName, targetType, path, exception);
+    }
+
+    /// <summary>The recursive conversion itself, for the typed read plan, which applies the same error normalization as <see cref="Convert"/>.</summary>
+    public static object? ConvertValue(
+        object? value,
+        [DynamicallyAccessedMembers(MappedMembers)] Type targetType,
+        string path)
+    {
+        return ConvertCore(value, targetType, path);
+    }
+
+    /// <summary>The cached member map of a POCO type; throws the read-domain failure the general path throws for an unmappable type.</summary>
+    public static ObjectMap GetObjectMap([DynamicallyAccessedMembers(MappedMembers)] Type targetType)
+    {
+        return ObjectMaps.GetOrAdd(targetType, CreateObjectMap);
+    }
+
+    /// <summary>The list shapes <see cref="ConvertCore"/> materializes as <see cref="List{T}"/>, with their element type.</summary>
+    public static bool TryGetListElementTypeOf(Type targetType, [NotNullWhen(true)] out Type? elementType)
+    {
+        return TryGetListElementType(targetType, out elementType);
+    }
+
+    /// <summary>The failure the general path raises when a member setter rejects the converted value.</summary>
+    public static CStructReadException SetterFailure(object? value, Type targetType, string path, Exception exception)
+    {
+        return ConversionFailure(value, targetType, path, exception);
+    }
+
+    /// <summary>The message the general path produces for a member the source does not provide.</summary>
+    public static CStructReadException MissingMember(string path, Type targetType, string memberName)
+    {
+        return new CStructReadException(
+            $"Cannot map '{path}' to '{targetType.FullName}': source member '{memberName}' is missing.");
+    }
+
+    /// <summary>The message the general path produces when several source names differ from a member's only by case.</summary>
+    public static CStructReadException AmbiguousMember(string memberName)
+    {
+        return new CStructReadException(
+            $"Member '{memberName}' is ambiguous because multiple source names differ only by case.");
+    }
+
     /// <summary>Performs recursive conversion after the public error-normalization boundary.</summary>
     private static object? ConvertCore(
         object? value,
@@ -280,8 +334,7 @@ internal static class TypedValueConverter
         {
             if (!TryGetSourceMember(source, member.Name, out string? sourceName, out object? sourceValue))
             {
-                throw new CStructReadException(
-                    $"Cannot map '{path}' to '{targetType.FullName}': source member '{member.Name}' is missing.");
+                throw MissingMember(path, targetType, member.Name);
             }
 
             object? converted = ConvertCore(sourceValue, member.ValueType, path + "." + sourceName);
@@ -328,8 +381,7 @@ internal static class TypedValueConverter
 
             if (match is not null)
             {
-                throw new CStructReadException(
-                    $"Member '{targetName}' is ambiguous because multiple source names differ only by case.");
+                throw AmbiguousMember(targetName);
             }
 
             match = candidate;
@@ -494,9 +546,10 @@ internal static class TypedValueConverter
                 $"Type '{targetType.FullName}' has ambiguous writable members named '{duplicate.Key}'.");
         }
 
-        return new ObjectMap(
-            () => constructor.Invoke(null),
-            members.ToArray());
+        // A compiled factory replaces reflection's per-object invoke (E2.7); a constructor that throws surfaces its
+        // own exception instead of a TargetInvocationException wrapper.
+        Func<object> create = Expression.Lambda<Func<object>>(Expression.New(constructor)).Compile();
+        return new ObjectMap(create, members.ToArray());
     }
 
     /// <summary>Creates a consistent conversion failure with source and target type information.</summary>
@@ -506,7 +559,16 @@ internal static class TypedValueConverter
         string path,
         Exception? innerException = null)
     {
-        string sourceName = value?.GetType().FullName ?? "null";
+        return ConversionFailure(value?.GetType().FullName, targetType, path, innerException);
+    }
+
+    private static CStructReadException ConversionFailure(
+        string? sourceTypeName,
+        Type targetType,
+        string path,
+        Exception? innerException)
+    {
+        string sourceName = sourceTypeName ?? "null";
         string message =
             $"Cannot map '{path}' from '{sourceName}' to '{targetType.FullName}' without an unsupported or lossy conversion.";
         CStructReadException exception = innerException is null
@@ -517,10 +579,10 @@ internal static class TypedValueConverter
     }
 
     /// <summary>Stores one target member's type and cached setter.</summary>
-    private sealed record MappedMember(string Name, Type ValueType, Action<object, object?> Set);
+    internal sealed record MappedMember(string Name, Type ValueType, Action<object, object?> Set);
 
-    /// <summary>Stores cached construction and member metadata for one POCO type.</summary>
-    private sealed record ObjectMap(Func<object> Create, IReadOnlyList<MappedMember> Members);
+    /// <summary>Stores cached construction and member metadata for one POCO type, in reflection order (properties, then fields).</summary>
+    internal sealed record ObjectMap(Func<object> Create, IReadOnlyList<MappedMember> Members);
 
     /// <summary>Adapts an expando dictionary to a read-only view without copying it.</summary>
     private sealed class DictionaryView : IReadOnlyDictionary<string, object?>
