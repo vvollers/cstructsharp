@@ -29,6 +29,8 @@ internal sealed unsafe class FixedBufferStream : Stream
         this.length = writable ? 0 : capacity;
     }
 
+    internal int Capacity => this.capacity;
+
     public override bool CanRead => true;
 
     public override bool CanSeek => true;

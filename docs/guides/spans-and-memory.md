@@ -70,8 +70,10 @@ The application owns the span, memory, array, or writer. Do not modify input whi
 and do not let concurrent calls write to the same destination without synchronization.
 
 Span and buffer-writer output cannot be rolled back after a prefix has been initialized or a writer window has been
-advanced. A failure in a later field may therefore leave partial output. When a destination needs all-or-nothing
-behavior, first call the overload that returns a new `byte[]`, then copy or append the completed result.
+advanced. A failure in a later field may therefore leave partial output. (A struct whose members are all statically
+placed is encoded into one block before it is written, so a value error inside such a struct leaves the destination
+untouched; do not rely on either outcome.) When a destination needs all-or-nothing behavior, first call the overload
+that returns a new `byte[]`, then copy or append the completed result.
 
 Common mistakes are ignoring the returned byte count, assuming unused span capacity was cleared, passing a slice that
 omits a pointer target, or treating `ReadOnlyMemory<byte>` as an asynchronous retained input. All current memory

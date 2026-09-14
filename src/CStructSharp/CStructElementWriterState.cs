@@ -65,6 +65,9 @@ internal sealed class CStructElementWriterState
 
     public Stream Stream { get; }
 
+    /// <summary>The same stream as <see cref="Stream"/>, typed for the static write plan's block write.</summary>
+    public WriteBudgetStream BudgetStream => this.budgetStream;
+
     public Dictionary<string, Expr> Variables { get; }
 
     /// <summary>

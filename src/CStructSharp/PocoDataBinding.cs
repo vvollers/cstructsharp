@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Reflection;
 
 /// <summary>Reads named and indexed values from caller-supplied POCO, dictionary, or dynamic data.</summary>
@@ -93,14 +94,14 @@ internal static class PocoDataBinding
             }
 
             // Presence and value are separate facts. The compiled field writer decides whether null is valid.
-            value = property.GetValue(data)!;
+            value = cached.Getter!(data)!;
             return true;
         }
 
-        if (cached.Field is FieldInfo field)
+        if (cached.Field is not null)
         {
             // Public fields are the final POCO fallback when no matching property exists.
-            value = field.GetValue(data)!;
+            value = cached.Getter!(data)!;
             return true;
         }
 
@@ -122,7 +123,36 @@ internal static class PocoDataBinding
         FieldInfo? field = type.GetField(name, BindingFlags.Public | BindingFlags.Instance) ??
                            type.GetField(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
 
-        return new CachedMember(property, field);
+        // A compiled accessor replaces reflection's per-call invoke (E2.10); it is built once per (type, name).
+        Func<object, object?>? getter = null;
+        if (property is { CanRead: true })
+        {
+            getter = BuildPropertyGetter(property);
+        }
+        else if (field is not null)
+        {
+            getter = BuildFieldGetter(field);
+        }
+
+        return new CachedMember(property, field, getter);
+    }
+
+    private static Func<object, object?> BuildPropertyGetter(PropertyInfo property)
+    {
+        ParameterExpression target = Expression.Parameter(typeof(object), "target");
+        UnaryExpression body = Expression.Convert(
+            Expression.Property(Expression.Convert(target, property.DeclaringType!), property),
+            typeof(object));
+        return Expression.Lambda<Func<object, object?>>(body, target).Compile();
+    }
+
+    private static Func<object, object?> BuildFieldGetter(FieldInfo field)
+    {
+        ParameterExpression target = Expression.Parameter(typeof(object), "target");
+        UnaryExpression body = Expression.Convert(
+            Expression.Field(Expression.Convert(target, field.DeclaringType!), field),
+            typeof(object));
+        return Expression.Lambda<Func<object, object?>>(body, target).Compile();
     }
 
     /// <summary>Gets one item from an array-like value and reports a clear error for an invalid index.</summary>
@@ -149,5 +179,5 @@ internal static class PocoDataBinding
     }
 
     /// <summary>One cached member-resolution outcome; both members are null when the name resolves to neither.</summary>
-    private readonly record struct CachedMember(PropertyInfo? Property, FieldInfo? Field);
+    private readonly record struct CachedMember(PropertyInfo? Property, FieldInfo? Field, Func<object, object?>? Getter);
 }

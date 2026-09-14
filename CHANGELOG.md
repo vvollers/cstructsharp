@@ -4,6 +4,21 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Performance: a struct whose members are all statically placed (the same shape the static read plan covers:
+  fixed-width numbers, enums, fixed numeric arrays, nested such structs and fixed arrays of them) is serialized by
+  the same per-struct plan: member values are looked up once (directly by slot for a parsed value), encoded at
+  their compile-time offsets into one block, and written in one call. `Serialize`/`WriteStream` of such structs
+  run 2–7× faster (a 256-record nested value 209 → 30 µs with 94 % less allocation; a small record from a parsed
+  value 415 → 180 ns) and typed arrays from a parse are copied in bulk. Bytes, budgets, limits, published layout
+  variables and every error message are unchanged; the one visible difference is that a value error inside such a
+  struct leaves the destination untouched instead of partially written. Structs with `char[N]` buffers, bitfields,
+  pointers, unions, conditionals or dynamic arrays keep the field-by-field writer, as do all updates.
+- Performance: `UpdateStream` stages a contiguous replacement in one pooled buffer instead of a map of 1 KiB
+  chunks, so scalar, array-element, bitfield, pointer-target and union updates run 25–50 % faster with about 25 %
+  less allocation; validation-before-commit and the position contract are unchanged.
+- Performance: POCO members are read through a compiled accessor cached per type and name instead of reflection on
+  every write (`Serialize` from a POCO −30…−37 %). A member getter that throws now surfaces its own exception
+  instead of a `TargetInvocationException` wrapper.
 - Performance: layout definitions are recognized by a hand-written recursive-descent parser instead of the Pidgin
   parser-combinator grammar. Compiling a layout is 3–7× faster (a 2-field struct 22.6 → 7.5 µs, a 128-field struct
   656 → 97 µs, a 512-field struct 2.8 ms → 0.43 ms, real-format headers 160–230 µs → 26–37 µs) with 8–23 % less

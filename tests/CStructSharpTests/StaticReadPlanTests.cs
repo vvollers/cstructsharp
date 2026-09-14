@@ -85,6 +85,27 @@ public class StaticReadPlanTests
         AssertSameOutcome(layout, bytes, new ReadOptions { MaxNestingDepth = 3 }, "nesting limit 3");
     }
 
+    /// <summary>A stream positioned off the struct's alignment boundary reads identically with and without the plan (members align to absolute positions).</summary>
+    [TestMethod]
+    public void StaticPlan_MatchesGeneralReader_FromUnalignedStreamPositions()
+    {
+        var layout = new CStruct("struct root { uint8 a; uint32 b; uint8 c; };", aligned: true);
+        byte[] bytes = Enumerable.Range(0, 32).Select(index => (byte)index).ToArray();
+        foreach (int start in new[] { 0, 1, 3, 4, 6, 8 })
+        {
+            using var withPlan = new MemoryStream(bytes, writable: false);
+            withPlan.Position = start;
+            string fast = Render(layout.ParseStream(withPlan, "root"));
+            using var withoutPlan = new MemoryStream(bytes, writable: false);
+            withoutPlan.Position = start;
+            StaticReadPlan.DisabledForTesting = true;
+            string general = Render(layout.ParseStream(withoutPlan, "root"));
+            StaticReadPlan.DisabledForTesting = false;
+            Assert.AreEqual(general, fast, $"start {start}");
+            Assert.AreEqual(withoutPlan.Position, withPlan.Position, $"start {start}: position");
+        }
+    }
+
     private static bool HasPlan(string definition, string root, bool aligned = false)
     {
         var layout = new CStruct(definition, aligned: aligned);

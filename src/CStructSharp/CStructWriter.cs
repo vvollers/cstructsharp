@@ -161,6 +161,13 @@ public partial class CStruct
             throw new CStructWriteException("Null is not valid for struct or union value: " + strct.Name.Name);
         }
 
+        // Static write plan (E2.10): a fully fixed composite is encoded into one block and written once when that
+        // is exactly equivalent to the field-by-field path below (see TryWriteStaticPlan for the conditions).
+        if (!strct.IsUnion && this.TryWriteStaticPlan(this.compiledSizeQueries.GetCompiledComposite(strct), data, state))
+        {
+            return;
+        }
+
         state.EnterStructure();
         try
         {

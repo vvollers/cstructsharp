@@ -25,20 +25,75 @@ internal sealed class StaticReadPlan
         this.Operations = operations;
         int depth = 1;
         int arrayCount = 0;
+        bool supportsWrite = true;
+        long charged = 0;
+        long chargedAligned = 0;
+        int lastFieldEnd = 0;
         foreach (StaticReadOperation operation in operations)
         {
+            int fieldBytes;
+            switch (operation.Kind)
+            {
+            case StaticReadKind.Nested:
+                fieldBytes = operation.NestedPlan!.Size;
+                charged += operation.NestedPlan.ChargedFieldBytes;
+                chargedAligned += operation.NestedPlan.ChargedAlignedBytes;
+                break;
+            case StaticReadKind.NestedArray:
+                fieldBytes = operation.NestedPlan!.Size * operation.Count;
+                charged += (long)operation.NestedPlan.ChargedFieldBytes * operation.Count;
+                chargedAligned += (long)operation.NestedPlan.ChargedAlignedBytes * operation.Count;
+                break;
+            case StaticReadKind.NumericArray:
+                fieldBytes = operation.Field.Codec.Size * operation.Count;
+                charged += fieldBytes;
+                chargedAligned += fieldBytes;
+                break;
+            case StaticReadKind.CharArray:
+                fieldBytes = operation.Count;
+                charged += fieldBytes;
+                chargedAligned += fieldBytes;
+                supportsWrite = false;
+                break;
+            default:
+                fieldBytes = operation.Field.Codec.Size;
+                charged += fieldBytes;
+                chargedAligned += fieldBytes;
+                break;
+            }
+
+            lastFieldEnd = System.Math.Max(lastFieldEnd, operation.Offset + fieldBytes);
             if (operation.NestedPlan is StaticReadPlan nested)
             {
                 depth = System.Math.Max(depth, 1 + nested.NestingDepth);
                 arrayCount = System.Math.Max(arrayCount, nested.MaximumArrayCount);
+                supportsWrite &= nested.SupportsWrite;
             }
 
             arrayCount = System.Math.Max(arrayCount, operation.Count);
         }
 
+        // The general writer charges its budget for field bytes and, in an aligned layout, the zero-filled tail of
+        // every struct - never for the padding it seeks over between fields; a plan write charges the same amount.
         this.NestingDepth = depth;
         this.MaximumArrayCount = arrayCount;
+        this.SupportsWrite = supportsWrite;
+        this.TailStart = lastFieldEnd;
+        this.ChargedFieldBytes = checked((int)charged);
+        this.ChargedAlignedBytes = checked((int)(chargedAligned + (size - lastFieldEnd)));
     }
+
+    /// <summary>Whether every operation has a span writer (E2.10); character buffers stay on the general writer for now.</summary>
+    public bool SupportsWrite { get; }
+
+    /// <summary>The end of the last member; an aligned layout's writer zero-fills from here to <see cref="Size"/>.</summary>
+    public int TailStart { get; }
+
+    /// <summary>The bytes the general writer charges against <c>MaxTotalBytesWritten</c> for this composite in an unaligned layout.</summary>
+    public int ChargedFieldBytes { get; }
+
+    /// <summary>The same charge in an aligned layout, where every struct's tail padding is written as zeroes.</summary>
+    public int ChargedAlignedBytes { get; }
 
     /// <summary>Structure levels the plan enters, itself included - checked against the nesting limit before any byte is consumed.</summary>
     public int NestingDepth { get; }

@@ -255,7 +255,7 @@ public sealed class StructValue : DynamicObject, IDictionary<string, object?>, I
     }
 
     /// <summary>Slot read for bound call sites; false when the member is absent so the binder's fallback throws.</summary>
-    private bool TryGetSlot(int index, out object? value)
+    internal bool TryGetSlot(int index, out object? value)
     {
         object? slot = this.slots[index];
         if (ReferenceEquals(slot, Unset))

@@ -27,6 +27,8 @@ internal sealed class WriteBudgetStream : Stream
     /// <summary>Identifies an atomic in-place update underneath the output budget wrapper.</summary>
     internal bool IsSparseUpdate => this.inner is SparseUpdateStream;
 
+    internal Stream Inner => this.inner;
+
     public override bool CanRead => this.inner.CanRead;
 
     public override bool CanSeek => this.inner.CanSeek;
@@ -165,6 +167,52 @@ internal sealed class WriteBudgetStream : Stream
         try
         {
             this.inner.Write(buffer);
+        }
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
+        {
+            throw this.CreateWriteFailure("Cannot write to the destination stream.", exception);
+        }
+
+        this.bytesWritten = nextBytesWritten;
+    }
+
+    /// <summary>
+    ///     Whether a block of <paramref name="length"/> bytes written at the current position, charged as
+    ///     <paramref name="chargedBytes"/> of physical traffic, fits the budget; a false answer sends the caller to
+    ///     the general writer so the limit failure is raised at the field it was always raised at.
+    /// </summary>
+    public bool CanAffordBlock(int length, int chargedBytes)
+    {
+        try
+        {
+            long nextBytesWritten = checked(this.bytesWritten + chargedBytes);
+            long newExtent = Math.Max(0, checked(checked(this.inner.Position + length) - this.initialLength));
+            return Math.Max(nextBytesWritten, newExtent) <= this.maxTotalBytesWritten;
+        }
+        catch (OverflowException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Writes a block prepared by a static write plan, charging the bytes the general writer would have charged.</summary>
+    public void WriteBlock(ReadOnlySpan<byte> block, int chargedBytes)
+    {
+        long nextBytesWritten;
+        try
+        {
+            nextBytesWritten = checked(this.bytesWritten + chargedBytes);
+            long newExtent = Math.Max(0, checked(checked(this.inner.Position + block.Length) - this.initialLength));
+            this.EnsureWithinBudget(nextBytesWritten, newExtent);
+        }
+        catch (OverflowException exception)
+        {
+            throw new CStructWriteException("Write output accounting overflowed the supported stream range.", exception);
+        }
+
+        try
+        {
+            this.inner.Write(block);
         }
         catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
         {

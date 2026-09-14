@@ -80,8 +80,11 @@ public partial class CStruct
         // container, whose slots belong to the parent's shape.
         // Limits that the general reader reports at a field inside the composite are checked up front, so a plan
         // never consumes bytes and then fails: such inputs go to the general reader and fail where they always did.
+        // The general reader aligns members to absolute stream positions; the plan's offsets are relative to the
+        // struct start, which coincide only when the struct itself starts on its alignment boundary.
         if (!state.Debug && !StaticReadPlan.DisabledForTesting && ReferenceEquals(destination.Shape, composite.Shape) && composite.StaticPlan is StaticReadPlan plan &&
-            state.StructureDepth + plan.NestingDepth <= state.MaxNestingDepth && plan.MaximumArrayCount <= state.MaxArrayElements)
+            state.StructureDepth + plan.NestingDepth <= state.MaxNestingDepth && plan.MaximumArrayCount <= state.MaxArrayElements &&
+            (!this.Aligned || state.Stream.Position % composite.Symbol.Alignment == 0))
         {
             if (state.Stream.TryReadSpanWithinBudget(plan.Size, out ReadOnlySpan<byte> staticBytes))
             {

@@ -13,9 +13,16 @@ internal sealed class SparseUpdateStream : Stream
     private const int ChunkSize = 1024;
     private readonly Stream baseline;
     private readonly long baselineLength;
-    private readonly SortedDictionary<long, StagedChunk> chunks = new();
+    private SortedDictionary<long, StagedChunk>? chunks;
     private bool disposed;
     private long position;
+
+    // Single-range staging (E2.13): almost every update writes one contiguous run of bytes (a scalar, an array
+    // element, a nested struct). Those bytes are kept in one pooled buffer; the chunk map is created only when a
+    // second, non-adjacent run appears (a pointer target far from the pointer itself).
+    private byte[]? rangeBytes;
+    private long rangeStart;
+    private int rangeLength;
 
     /// <summary>Creates a virtual writer at an absolute target while retaining the caller stream as a read-only baseline.</summary>
     public SparseUpdateStream(Stream baseline, long initialPosition)
@@ -57,33 +64,48 @@ internal sealed class SparseUpdateStream : Stream
     {
         ArgumentNullException.ThrowIfNull(destination);
 
-        foreach (StagedRange range in this.GetStagedRanges())
+        if (this.chunks is null)
         {
-            try
+            if (this.rangeLength > 0)
             {
-                destination.Position = range.Start;
-            }
-            catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
-            {
-                throw CreateCommitFailure(
-                    "Cannot seek to a validated update range in the destination stream.",
-                    exception,
-                    destination,
-                    range.Start);
+                CommitRange(destination, new StagedRange(this.rangeStart, this.rangeBytes!, this.rangeLength));
             }
 
-            try
-            {
-                destination.Write(range.Bytes, 0, range.Length);
-            }
-            catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
-            {
-                throw CreateCommitFailure(
-                    "Cannot commit a validated update range to the destination stream.",
-                    exception,
-                    destination,
-                    range.Start);
-            }
+            return;
+        }
+
+        foreach (StagedRange range in this.GetStagedRanges())
+        {
+            CommitRange(destination, range);
+        }
+    }
+
+    private static void CommitRange(Stream destination, StagedRange range)
+    {
+        try
+        {
+            destination.Position = range.Start;
+        }
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
+        {
+            throw CreateCommitFailure(
+                "Cannot seek to a validated update range in the destination stream.",
+                exception,
+                destination,
+                range.Start);
+        }
+
+        try
+        {
+            destination.Write(range.Bytes, 0, range.Length);
+        }
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
+        {
+            throw CreateCommitFailure(
+                "Cannot commit a validated update range to the destination stream.",
+                exception,
+                destination,
+                range.Start);
         }
     }
 
@@ -227,21 +249,14 @@ internal sealed class SparseUpdateStream : Stream
             throw new CStructWriteException("Update output would extend beyond the existing destination stream.");
         }
 
-        int sourceOffset = 0;
-        while (sourceOffset < buffer.Length)
+        if (this.chunks is null && !this.TryStageInRange(this.position, buffer))
         {
-            long address = this.position + sourceOffset;
-            long chunkIndex = address / ChunkSize;
-            int chunkOffset = (int)(address % ChunkSize);
-            int length = Math.Min(buffer.Length - sourceOffset, ChunkSize - chunkOffset);
-            if (!this.chunks.TryGetValue(chunkIndex, out StagedChunk? chunk))
-            {
-                chunk = new StagedChunk();
-                this.chunks.Add(chunkIndex, chunk);
-            }
+            this.PromoteRangeToChunks();
+        }
 
-            chunk.Write(chunkOffset, buffer.Slice(sourceOffset, length));
-            sourceOffset += length;
+        if (this.chunks is not null)
+        {
+            this.WriteToChunks(this.position, buffer);
         }
 
         this.position = end;
@@ -260,12 +275,23 @@ internal sealed class SparseUpdateStream : Stream
     {
         if (disposing && !this.disposed)
         {
-            foreach (StagedChunk chunk in this.chunks.Values)
+            if (this.chunks is not null)
             {
-                chunk.Dispose();
+                foreach (StagedChunk chunk in this.chunks.Values)
+                {
+                    chunk.Dispose();
+                }
+
+                this.chunks.Clear();
             }
 
-            this.chunks.Clear();
+            if (this.rangeBytes is not null)
+            {
+                ArrayPool<byte>.Shared.Return(this.rangeBytes, clearArray: true);
+                this.rangeBytes = null;
+                this.rangeLength = 0;
+            }
+
             this.disposed = true;
         }
 
@@ -313,7 +339,7 @@ internal sealed class SparseUpdateStream : Stream
         long expectedAddress = -1;
         MemoryStream? rangeBytes = null;
 
-        foreach (KeyValuePair<long, StagedChunk> entry in this.chunks)
+        foreach (KeyValuePair<long, StagedChunk> entry in this.chunks!)
         {
             long chunkStart = checked(entry.Key * ChunkSize);
             foreach ((int offset, int length) in entry.Value.GetWrittenRuns())
@@ -345,6 +371,18 @@ internal sealed class SparseUpdateStream : Stream
 
     private bool TryGetStagedByte(long address, out byte value)
     {
+        if (this.chunks is null)
+        {
+            if (this.rangeLength > 0 && address >= this.rangeStart && address < this.rangeStart + this.rangeLength)
+            {
+                value = this.rangeBytes![(int)(address - this.rangeStart)];
+                return true;
+            }
+
+            value = 0;
+            return false;
+        }
+
         long chunkIndex = address / ChunkSize;
         int chunkOffset = (int)(address % ChunkSize);
         if (this.chunks.TryGetValue(chunkIndex, out StagedChunk? chunk) &&
@@ -356,6 +394,81 @@ internal sealed class SparseUpdateStream : Stream
 
         value = 0;
         return false;
+    }
+
+    /// <summary>
+    ///     Stages a write into the single contiguous range when it starts inside or directly after it (or the range
+    ///     is empty); returns false when the write would open a gap and the chunk map is needed.
+    /// </summary>
+    private bool TryStageInRange(long address, ReadOnlySpan<byte> source)
+    {
+        if (this.rangeLength == 0)
+        {
+            this.rangeBytes ??= ArrayPool<byte>.Shared.Rent(Math.Max(source.Length, 64));
+            if (this.rangeBytes.Length < source.Length)
+            {
+                ArrayPool<byte>.Shared.Return(this.rangeBytes, clearArray: true);
+                this.rangeBytes = ArrayPool<byte>.Shared.Rent(source.Length);
+            }
+
+            this.rangeStart = address;
+            source.CopyTo(this.rangeBytes);
+            this.rangeLength = source.Length;
+            return true;
+        }
+
+        long rangeEnd = this.rangeStart + this.rangeLength;
+        if (address < this.rangeStart || address > rangeEnd)
+        {
+            return false;
+        }
+
+        int offset = (int)(address - this.rangeStart);
+        int requiredLength = Math.Max(this.rangeLength, offset + source.Length);
+        if (requiredLength > this.rangeBytes!.Length)
+        {
+            byte[] grown = ArrayPool<byte>.Shared.Rent(Math.Max(requiredLength, this.rangeBytes.Length * 2));
+            this.rangeBytes.AsSpan(0, this.rangeLength).CopyTo(grown);
+            ArrayPool<byte>.Shared.Return(this.rangeBytes, clearArray: true);
+            this.rangeBytes = grown;
+        }
+
+        source.CopyTo(this.rangeBytes.AsSpan(offset));
+        this.rangeLength = requiredLength;
+        return true;
+    }
+
+    /// <summary>Moves the single range into the chunk map once a second, non-adjacent run is written.</summary>
+    private void PromoteRangeToChunks()
+    {
+        this.chunks = new SortedDictionary<long, StagedChunk>();
+        if (this.rangeLength > 0)
+        {
+            this.WriteToChunks(this.rangeStart, this.rangeBytes.AsSpan(0, this.rangeLength));
+            ArrayPool<byte>.Shared.Return(this.rangeBytes!, clearArray: true);
+            this.rangeBytes = null;
+            this.rangeLength = 0;
+        }
+    }
+
+    private void WriteToChunks(long start, ReadOnlySpan<byte> buffer)
+    {
+        int sourceOffset = 0;
+        while (sourceOffset < buffer.Length)
+        {
+            long address = start + sourceOffset;
+            long chunkIndex = address / ChunkSize;
+            int chunkOffset = (int)(address % ChunkSize);
+            int length = Math.Min(buffer.Length - sourceOffset, ChunkSize - chunkOffset);
+            if (!this.chunks!.TryGetValue(chunkIndex, out StagedChunk? chunk))
+            {
+                chunk = new StagedChunk();
+                this.chunks.Add(chunkIndex, chunk);
+            }
+
+            chunk.Write(chunkOffset, buffer.Slice(sourceOffset, length));
+            sourceOffset += length;
+        }
     }
 
     private readonly record struct StagedRange(long Start, byte[] Bytes, int Length);
