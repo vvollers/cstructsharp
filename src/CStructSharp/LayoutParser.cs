@@ -178,13 +178,13 @@ internal sealed class LayoutParser
     {
         if (this.StartsWith("struct"))
         {
-            element = this.ParseNamedComposite(isUnion: false);
+            element = this.ParseNamedComposite("struct", isUnion: false);
             return true;
         }
 
         if (this.StartsWith("union"))
         {
-            element = this.ParseNamedComposite(isUnion: true);
+            element = this.ParseNamedComposite("union", isUnion: true);
             return true;
         }
 
@@ -214,9 +214,9 @@ internal sealed class LayoutParser
     ///     <c>struct Name [@align(N)] { members } [;]</c> or <c>union Name [@align(N)] { fields } [;]</c>. The trailing
     ///     semicolon is optional for both; a union body accepts plain field declarations only.
     /// </summary>
-    private Struct ParseNamedComposite(bool isUnion)
+    private Struct ParseNamedComposite(string keyword, bool isUnion)
     {
-        this.SkipKeyword(isUnion ? "union" : "struct");
+        this.SkipKeyword(keyword);
         Identifier name = this.ExpectIdentifier();
         Expr? alignment = this.TryParseAlignmentOverride();
         this.ExpectToken('{');
@@ -868,7 +868,7 @@ internal sealed class LayoutParser
 
         char current = this.source[this.position];
         char next = this.position + 1 < this.source.Length ? this.source[this.position + 1] : '\0';
-        if (!TryRecognizeBinaryOperator(current, next, out type, out int operatorLevel, out int length) || operatorLevel != level)
+        if (!TryRecognizeBinaryOperator(current, next, level, out type, out int length))
         {
             return false;
         }
@@ -879,88 +879,33 @@ internal sealed class LayoutParser
     }
 
     /// <summary>
-    ///     Recognizes the binary operator spelled at the cursor, its precedence row and its length, independent of
-    ///     the row being parsed; two-character spellings win over their one-character prefixes.
+    ///     Recognizes the binary operator spelled at the cursor when it belongs to the precedence row being parsed;
+    ///     two-character spellings are recognized before their one-character prefixes, whichever row is asked, so a
+    ///     lone <c>|</c> is never taken for the first half of <c>||</c> and vice versa.
     /// </summary>
-    private static bool TryRecognizeBinaryOperator(char current, char next, out BinaryOperatorType type, out int level, out int length)
+    private static bool TryRecognizeBinaryOperator(char current, char next, int level, out BinaryOperatorType type, out int length)
     {
-        length = 2;
-        switch (current)
+        (type, int operatorLevel, length) = (current, next) switch
         {
-        case '|' when next == '|':
-            type = BinaryOperatorType.LogicalOr;
-            level = LogicalOrLevel;
-            return true;
-        case '&' when next == '&':
-            type = BinaryOperatorType.LogicalAnd;
-            level = LogicalAndLevel;
-            return true;
-        case '=' when next == '=':
-            type = BinaryOperatorType.Equal;
-            level = EqualityLevel;
-            return true;
-        case '!' when next == '=':
-            type = BinaryOperatorType.NotEqual;
-            level = EqualityLevel;
-            return true;
-        case '<' when next == '=':
-            type = BinaryOperatorType.LessOrEqual;
-            level = RelationalLevel;
-            return true;
-        case '>' when next == '=':
-            type = BinaryOperatorType.GreaterOrEqual;
-            level = RelationalLevel;
-            return true;
-        case '<' when next == '<':
-            type = BinaryOperatorType.ShiftLeft;
-            level = ShiftLevel;
-            return true;
-        case '>' when next == '>':
-            type = BinaryOperatorType.ShiftRight;
-            level = ShiftLevel;
-            return true;
-        }
-
-        length = 1;
-        switch (current)
-        {
-        case '|':
-            type = BinaryOperatorType.Or;
-            level = BitwiseOrLevel;
-            return true;
-        case '&':
-            type = BinaryOperatorType.And;
-            level = BitwiseAndLevel;
-            return true;
-        case '<':
-            type = BinaryOperatorType.Less;
-            level = RelationalLevel;
-            return true;
-        case '>':
-            type = BinaryOperatorType.Greater;
-            level = RelationalLevel;
-            return true;
-        case '-':
-            type = BinaryOperatorType.Minus;
-            level = AdditiveLevel;
-            return true;
-        case '+':
-            type = BinaryOperatorType.Add;
-            level = AdditiveLevel;
-            return true;
-        case '/':
-            type = BinaryOperatorType.Div;
-            level = MultiplicativeLevel;
-            return true;
-        case '*':
-            type = BinaryOperatorType.Mul;
-            level = MultiplicativeLevel;
-            return true;
-        default:
-            type = default;
-            level = -1;
-            return false;
-        }
+            ('|', '|') => (BinaryOperatorType.LogicalOr, LogicalOrLevel, 2),
+            ('&', '&') => (BinaryOperatorType.LogicalAnd, LogicalAndLevel, 2),
+            ('=', '=') => (BinaryOperatorType.Equal, EqualityLevel, 2),
+            ('!', '=') => (BinaryOperatorType.NotEqual, EqualityLevel, 2),
+            ('<', '=') => (BinaryOperatorType.LessOrEqual, RelationalLevel, 2),
+            ('>', '=') => (BinaryOperatorType.GreaterOrEqual, RelationalLevel, 2),
+            ('<', '<') => (BinaryOperatorType.ShiftLeft, ShiftLevel, 2),
+            ('>', '>') => (BinaryOperatorType.ShiftRight, ShiftLevel, 2),
+            ('|', _) => (BinaryOperatorType.Or, BitwiseOrLevel, 1),
+            ('&', _) => (BinaryOperatorType.And, BitwiseAndLevel, 1),
+            ('<', _) => (BinaryOperatorType.Less, RelationalLevel, 1),
+            ('>', _) => (BinaryOperatorType.Greater, RelationalLevel, 1),
+            ('-', _) => (BinaryOperatorType.Minus, AdditiveLevel, 1),
+            ('+', _) => (BinaryOperatorType.Add, AdditiveLevel, 1),
+            ('/', _) => (BinaryOperatorType.Div, MultiplicativeLevel, 1),
+            ('*', _) => (BinaryOperatorType.Mul, MultiplicativeLevel, 1),
+            _ => (BinaryOperatorType.Add, UnaryLevel, 0),
+        };
+        return length > 0 && operatorLevel == level;
     }
 
     /// <summary>
@@ -1211,6 +1156,8 @@ internal sealed class LayoutParser
             10 => 18,
             _ => 15,
         };
+
+        // Stryker disable once Equality : a run of exactly safeDigits digits decodes identically on both paths; the boundary is a performance choice.
         if (digitCount <= safeDigits)
         {
             ulong value = 0;
