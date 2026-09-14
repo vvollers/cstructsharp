@@ -16,21 +16,17 @@
     
     <!-- The browser bridge uses source-generated JSON metadata and explicit value projection. -->
     <PublishTrimmed>true</PublishTrimmed>
-    <TrimMode>partial</TrimMode>
+    <TrimMode>full</TrimMode>
     <!--
-      Suppresses IL2026/IL2075/IL2067/IL2072/IL2111 warnings from two genuinely reachable sources: every
-      dynamic/ExpandoObject result path (needs Microsoft.CSharp's runtime binder) and CStruct.TryGetMemberValue's
-      and TypedValueConverter's unannotated reflection (the POCO-property fallback used by Serialize/UpdateStream
-      when a value is not already dictionary/ExpandoObject-shaped). The second group is statically reachable but
-      never actually hit from the browser: CStructJsonConversion always produces the dynamic/dictionary shape, so
-      that reflection branch never executes here. See docs/project/web-development.md for the measured
-      investigation (removing the CStructSharp trim root below changes nothing - see that root's own comment) and
-      for the resulting consequence that WriteOptions.BindingMode has no observable effect through the JS API.
+      Suppresses IL2026/IL2075/IL2067/IL2072/IL2111 warnings from CStruct.TryGetMemberValue's and
+      TypedValueConverter's unannotated reflection (the POCO fallback used by Serialize/UpdateStream when a value
+      is not dictionary-shaped). Statically reachable, never executed from the browser: CStructJsonConversion
+      always produces dictionary/list shapes. See docs/project/web-development.md ("Managed bridge trimming").
     -->
     <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
     
-    <!-- Preserve reflection for dynamic binding -->
-    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <!-- Nothing is loaded dynamically; the full trim needs the static closure only. -->
+    <EnableDynamicLoading>false</EnableDynamicLoading>
     
     <!-- Browser JavaScript entry point -->
     <WasmMainJSPath>main.js</WasmMainJSPath>
@@ -42,15 +38,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Browser values use ExpandoObject and the runtime binder; keep that reflection surface intact. -->
-    <TrimmerRootAssembly Include="Microsoft.CSharp" />
     <!--
-      Measured to have no effect on published bundle size (byte-identical CStructSharp.wasm output with or
-      without this root): under TrimMode=partial, an application assembly that has not opted in to trimming
-      (IsTrimmable) is never member-trimmed regardless of rooting. Kept for clarity of intent and because it
-      costs nothing to keep; do not expect removing it to shrink the bundle.
+      No C# runtime-binder call site executes in the browser build (parsed values are StructValue, the bridge
+      handles them as object), so Microsoft.CSharp is no longer rooted and the trimmer drops it (E3.10).
     -->
-    <TrimmerRootAssembly Include="CStructSharp" />
+    <!--
+      Member-trim the library and the bridge for this publish only (the library's NuGet metadata does not claim
+      IsTrimmable). Measured (E3.10): the publication shrank from 5.35 MB / 2.05 MB gzip to 4.36 MB / 1.66 MB gzip.
+    -->
+    <TrimmableAssembly Include="CStructSharp" />
+    <TrimmableAssembly Include="CStructSharpWeb.Wasm" />
   </ItemGroup>
 
 </Project>

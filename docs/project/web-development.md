@@ -36,32 +36,30 @@ Open the address printed by Vite. Changes to Vue update during development; chan
 
 ## Managed bridge trimming
 
-`src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj` builds with `PublishTrimmed` and `TrimMode=partial`, roots the
-`src/CStructSharp` and `Microsoft.CSharp` assemblies, and suppresses trim-analysis warnings. This was investigated to
-see whether removing the `src/CStructSharp` root would shrink the published bundle:
+`src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj` builds with `PublishTrimmed` and `TrimMode=full`, declares the
+`CStructSharp` and bridge assemblies trimmable for this publish (`TrimmableAssembly` items, so the NuGet library's
+own metadata is unchanged), roots nothing, and suppresses trim-analysis warnings. Two facts make this safe and
+were measured when the settings changed (performance plan E3.10):
 
-- Removing `<TrimmerRootAssembly Include="src/CStructSharp" />` produces a byte-for-byte identical `CStructSharp.wasm`
-  (verified by hash) and an identical total `_framework` size. Under `TrimMode=partial`, an application assembly
-  that does not opt in to trimming (`IsTrimmable`) is never member-trimmed regardless of whether it is explicitly
-  rooted, so this specific entry has no measurable effect on bundle size either way. A real reduction would require
-  `src/CStructSharp` to opt in to trimming and carry full `DynamicallyAccessedMembers` annotations across its
-  reflection-based paths (see below) - a larger, separate change to the core library, not something to attempt from
-  this project alone.
-- Removing the root does surface real `IL2026`/`IL2075`/`IL2067`/`IL2072`/`IL2111` trim-analysis warnings when
-  `SuppressTrimAnalysisWarnings` is temporarily set to `false`. They fall into two groups, both genuinely reachable
-  from the four `[JSExport]` methods in `CStructExports.cs`, not dead code: (1) every `dynamic`/`StructValue`
-  result path (`ParseWithDebugInternal` and the core reader/writer methods it calls) uses the C# runtime binder,
-  which is why `Microsoft.CSharp` must stay rooted; (2) `CStruct.TryGetMemberValue` (the POCO-property fallback
-  used by `Serialize`/`UpdateStream` when a caller's value is not already a dictionary/`ExpandoObject`) and
-  `TypedValueConverter`'s array/list/object conversion helpers use unannotated `Type.GetProperty`/`GetField`
-  reflection. In practice this second group is never exercised from the browser: `ParseJsonValue` in
-  `CStructJsonConversion.cs` always converts incoming JSON into the dynamic/dictionary shape, so the reflection
-  branch is statically reachable but not actually hit at runtime through the JS API. One consequence: the
-  `bindingMode` interop option (`WriteOptions.BindingMode`) has no observable effect through the JS API, because it
-  only changes behavior inside that same unreached reflection branch.
+- No C# runtime-binder call site executes in the browser build. Parsed values are `StructValue` objects, and the
+  bridge and the benchmark exports handle every `dynamic`-typed library result as `object` (an explicit cast at
+  each parse call site keeps it that way). `Microsoft.CSharp` is therefore no longer part of the publication, and
+  `System.Linq.Expressions` is trimmed to the `DynamicObject` surface the value types derive from. Besides the
+  size, this removed the ~125 ms the first public parse spent initializing the binder in the interpreter.
+- The library's reflection paths (`CStruct.TryGetMemberValue`'s POCO-property fallback and `TypedValueConverter`'s
+  object conversion) are statically reachable from `Serialize`/`UpdateStream` but never executed from JavaScript:
+  `ParseJsonValue` in `CStructJsonConversion.cs` always produces dictionary/list shapes. The trimmer keeps the
+  reflection calls themselves; it can only remove members nothing references, and no browser-reachable code
+  depends on members that are reached only through reflection. One consequence stands: the `bindingMode` interop
+  option (`WriteOptions.BindingMode`) has no observable effect through the JS API.
 
-Given the measured result, `SuppressTrimAnalysisWarnings` stays `true` and both assemblies stay rooted; there is no
-available bundle-size win from adjusting this, and unrooting would only add warning noise without changing output.
+Measured effect of the full trim (publication as shipped by `publish-wasm.mjs`): 33 → 27 files, 5.35 → 4.36 MB
+raw, 2.05 → 1.66 MB gzip; Node cold start: first public parse 142 → 17 ms, process wall −25 %; runtime creation
+and first layout compilation unchanged. The gates that must stay green when touching these settings: the JS
+benchmark harness's fixture verification, `Validate-BrowserContract.ps1`, both apps' e2e suites against the
+production build, `verify-wasm-publication.mjs`, and `measure-web-artifacts.mjs --check`. If a change reintroduces
+a `dynamic` call site in the bridge, the trimmer fails the publish or the first parse throws a
+`MissingMethodException` - the harness verification catches both.
 
 ## Change lessons and test examples
 

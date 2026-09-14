@@ -111,7 +111,7 @@ public partial class CStructExports
     public static string BenchParseJson(byte[] bytes, string root, string optionsJson)
     {
         using var stream = new MemoryStream(bytes, writable: false);
-        return SerializeParsedValue(benchLayout!.ParseStream(stream, root, options: CreateReadOptions(ParseOptions(optionsJson))));
+        return SerializeParsedValue((object)benchLayout!.ParseStream(stream, root, options: CreateReadOptions(ParseOptions(optionsJson))));
     }
 
     [JSExport]

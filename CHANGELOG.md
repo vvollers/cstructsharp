@@ -4,6 +4,9 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Browser/WASM: the publication is fully trimmed and no longer ships the C# runtime binder (`Microsoft.CSharp`):
+  33 → 27 files, 5.35 → 4.36 MB raw, 2.05 → 1.66 MB gzip. The first `parse` call after startup no longer pays
+  the binder's ~125 ms initialization (142 → 17 ms in Node); results, options, and the contract are unchanged.
 - Performance: a struct whose members are all statically placed (fixed-width numbers, enums, `char[N]` buffers,
   fixed numeric arrays, nested such structs and fixed arrays of them) is read by a per-struct plan built once at
   first use and executed over its bytes, instead of interpreting the declaration per field. Fully fixed layouts

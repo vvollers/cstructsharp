@@ -198,7 +198,7 @@ public partial class CStructExports
                           ? ResolveDefaultRootTypeName(cstruct)
                           : options.RootTypeName;
         List<DebugData> debugData = [];
-        dynamic result;
+        object result;
         if (debug)
         {
             (debugData, result) = cstruct.ParseStreamWithDebug(stream, root, CreateReadOptions(options));
@@ -207,7 +207,7 @@ public partial class CStructExports
         {
             result = new Dictionary<string, object?>
             {
-                [root] = cstruct.ParseStream(stream, root, options: CreateReadOptions(options)),
+                [root] = (object)cstruct.ParseStream(stream, root, options: CreateReadOptions(options)),
             };
         }
 
