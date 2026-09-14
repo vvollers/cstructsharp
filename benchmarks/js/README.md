@@ -35,6 +35,16 @@ runs (never for baselines), `BENCH_COLD_LAUNCHES`, `BENCH_COLD_FIXTURES`, and `B
 alternative staged bundle under `artifacts/js-bench/` (for example `bundle-aot` from
 `node build-wasm.mjs --bundle bundle-aot -p:RunAOTCompilation=true`).
 
+Profile-guided AOT (E3.1b): `node build-wasm.mjs --bundle bundle-aotprof "-p:WasmProfilers=aot;"`, then
+`BENCH_BUNDLE=bundle-aotprof node bench/record-aot-profile.mjs [out.aotprofile]` (add `BENCH_AOT_PROFILE_SCOPE=core`
+for a compile + core-parse profile), then
+`node build-wasm.mjs --bundle bundle-pgaot -p:RunAOTCompilation=true -p:WasmDedup=false -p:WasmAotProfilePath=<abs path>`
+(optionally `-p:BenchAotAssemblies=CStructSharp+CStructSharpWeb.Wasm+System.Private.CoreLib` to interpret every
+other assembly). Pitfalls: the AOT compiler's cache key ignores the profile, so delete
+`src/CStructSharp.Wasm/obj/Release/net10.0/browser-wasm/wasm/for-publish` between profile variants; the AOT set
+must include `System.Private.CoreLib` (wrappers); `WasmAotProfilePath` is the effective property; dedup must be
+off once any assembly is interpreted.
+
 `core.compile.*` measures the bridge's compile path, which hits the process-wide layout cache after the first call;
 `core.compileFresh.*` bypasses the cache and measures an actual compilation.
 

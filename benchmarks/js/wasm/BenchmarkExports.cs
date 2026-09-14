@@ -1,7 +1,9 @@
 namespace CStructSharpWeb.Wasm;
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
 using CStructSharp;
@@ -116,6 +118,29 @@ public partial class CStructExports
 
     [JSExport]
     public static double BenchAllocatedBytes() => GC.GetTotalAllocatedBytes(precise: false);
+
+    /// <summary>
+    ///     Marker for the AOT profiler (E3.1b): a profiler-enabled bundle is started with
+    ///     <c>aotProfilerOptions.writeAt</c> naming this method, so the profile is written when the recorder calls it
+    ///     after the workload. Empty on purpose.
+    /// </summary>
+    [JSExport]
+    public static void BenchStopAotProfile()
+    {
+    }
+
+    /// <summary>The profiler's send-to target (signature dictated by the Mono AOT profiler): keeps the bytes for JS.</summary>
+    public static unsafe void BenchReceiveAotProfile(ref byte buffer, int length, string extraArgument)
+    {
+        aotProfile = new ReadOnlySpan<byte>(Unsafe.AsPointer(ref buffer), length).ToArray();
+    }
+
+    /// <summary>Returns the recorded profile (empty when nothing was recorded).</summary>
+    [JSExport]
+    [DynamicDependency(nameof(BenchReceiveAotProfile), typeof(CStructExports))]
+    public static byte[] BenchTakeAotProfile() => aotProfile ?? [];
+
+    private static byte[]? aotProfile;
 
     [JSExport]
     public static void BenchCollect() => GC.Collect();
