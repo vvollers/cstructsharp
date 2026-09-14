@@ -412,6 +412,33 @@ public partial class CStruct
                         firstElement = numFieldValues;
                     }
 
+                    // E2.4 prototype: a one-dimensional array of a fully fixed struct whose whole extent is in memory
+                    // is read by looping the element's static plan over one span instead of dispatching per element.
+                    if (isArray && firstElement == 0 && numFieldValues > 0 && !state.Debug && !useLegacyPlacement && !StaticReadPlan.DisabledForTesting &&
+                        f.PointerDepth == 0 && structElement is Struct { IsUnion: false } planned && compiledField.Array.Dimensions.Length == 1)
+                    {
+                        CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(planned);
+                        if (composite.StaticPlan is StaticReadPlan plan && plan.Size > 0 && compiledField.FixedElementSize == plan.Size &&
+                            state.StructureDepth + plan.NestingDepth <= state.MaxNestingDepth && plan.MaximumArrayCount <= state.MaxArrayElements &&
+                            (!this.Aligned || state.Stream.Position % composite.Symbol.Alignment == 0) &&
+                            (long)numFieldValues * plan.Size <= int.MaxValue &&
+                            state.Stream.TryReadSpanWithinBudget(numFieldValues * plan.Size, out ReadOnlySpan<byte> elements))
+                        {
+                            var list = (List<object?>)containerDict[f.Name.Name]!;
+                            for (int element = 0; element < numFieldValues; element++)
+                            {
+                                var container = new StructValue(composite.Shape);
+                                this.ExecuteStaticPlan(plan, elements.Slice(element * plan.Size, plan.Size), container, state);
+                                list.Add(container);
+                            }
+
+                            state.CurrentBitOffset = 0;
+                            state.CurrentBitfieldType = null;
+                            state.NextPosition = state.Stream.Position;
+                            firstElement = numFieldValues;
+                        }
+                    }
+
                     for (int i = firstElement; i < numFieldValues; i++)
                     {
                         // Composite leaves need the containing element's coordinates. Keep primitive-array

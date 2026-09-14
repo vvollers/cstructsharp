@@ -106,6 +106,42 @@ public class StaticReadPlanTests
         }
     }
 
+    /// <summary>A dynamic array of a fully fixed struct (E2.4 prototype: the element plan looped over one span) matches the general reader on values, captured counts, truncation, budgets and limits.</summary>
+    [TestMethod]
+    public void DynamicArray_OfStaticStructs_MatchesGeneralReader()
+    {
+        const string definition = "enum e : uint8 { a = 1 }; struct child { uint8 k; e w; uint16 v; }; struct root { uint8 count; child items[count]; uint8 last; uint8 tail[last]; };";
+        byte[] packed = [3, 1, 1, 0x34, 0x12, 2, 9, 0x78, 0x56, 3, 1, 0xFF, 0xFF, 2, 0xAA, 0xBB];
+        object value = new CStruct(definition).Parse(packed, "root");
+        foreach (bool aligned in new[] { false, true })
+        {
+            var layout = new CStruct(definition, aligned: aligned);
+            byte[] bytes = layout.Serialize("root", value);
+            dynamic parsed = layout.Parse(bytes, "root");
+            Assert.AreEqual(3, ((IList<object?>)parsed.items).Count);
+            Assert.AreEqual((ushort)0x5678, parsed.items[1].v);
+            Assert.AreEqual(2, ((IList<object?>)parsed.tail).Count, "last was captured after the planned array");
+
+            for (int length = 0; length < bytes.Length; length++)
+            {
+                AssertSameOutcome(layout, bytes[..length], null, $"aligned={aligned} truncated to {length}");
+            }
+
+            for (long budget = 1; budget <= bytes.Length; budget++)
+            {
+                AssertSameOutcome(layout, bytes, new ReadOptions { MaxTotalBytesRead = budget }, $"aligned={aligned} budget {budget}");
+            }
+
+            AssertSameOutcome(layout, bytes, new ReadOptions { MaxArrayElements = 2 }, $"aligned={aligned} array limit");
+            AssertSameOutcome(layout, bytes, new ReadOptions { MaxNestingDepth = 1 }, $"aligned={aligned} nesting limit 1");
+            AssertSameOutcome(layout, bytes, new ReadOptions { MaxNestingDepth = 2 }, $"aligned={aligned} nesting limit 2");
+        }
+
+        var zero = new CStruct("struct child { uint8 k; }; struct root { uint8 count; child items[count]; uint8 tail; };");
+        AssertSameOutcome(zero, [0, 7], null, "zero elements");
+        AssertSameOutcome(zero, [2, 5, 6, 7], null, "two elements");
+    }
+
     private static bool HasPlan(string definition, string root, bool aligned = false)
     {
         var layout = new CStruct(definition, aligned: aligned);
