@@ -50,8 +50,11 @@ off once any assembly is interpreted.
 
 ## Method
 
-- Every run first verifies that the public JS `parse` reproduces the C# expected JSON (or its SHA-256) for a set of
-  fixtures, so timing never runs on a build that disagrees with the managed library.
+- Every run first verifies that the public JS `parse` reproduces the C# expected JSON (or its SHA-256) for every
+  fixture with an expectation that the bridge can parse (44 of 56; the digest comparison re-serializes the JS value
+  with the C# canonical escaping), so timing never runs on a build that disagrees with the managed library.
+- `BenchOptionsParse`, `BenchEnvelope` and `BenchLayoutLookup` (benchmark-only exports) split the public path's
+  fixed cost into its stages (options parse, envelope serialization, layout cache lookup).
 - Batched timing: warm-up ≥ 600 ms, batch calibrated to ~100 ms, 9 batches; the reported median/RSD are over the
   per-batch ns/op samples. Cases with a median ≥ 50 µs additionally record per-call p50/p95/p99 via tinybench.
 - Managed allocation per op comes from `GC.GetTotalAllocatedBytes` through a benchmark-only export, measured

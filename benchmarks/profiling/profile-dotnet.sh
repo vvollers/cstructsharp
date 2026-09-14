@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # CPU-samples one benchmark scenario with Linux perf and prints the top inclusive frames.
 #   benchmarks/profiling/profile-dotnet.sh <scenario> [seconds] [outdir]
-# Scenarios: CompileSmall, CompileMedium, ParsePrimitiveArray1KiB, ParseNestedUnaligned, SerializePocoToSpan,
+# Scenarios: CompileSmall, CompileMedium, ParsePrimitiveArray1KiB, ParseNestedUnaligned, SerializeNested256, SerializePocoToSpan,
 #            ParseRealPng, ParseArrayU32Be (see benchmarks/CStructSharp.Benchmarks/ProfileDriver.cs).
 # Requires: perf, a Release build of the benchmark project (net10.0), and permission to record
 # (kernel.perf_event_paranoid <= 1 or sudo). DOTNET_PerfMapEnabled=1 makes JIT frames symbolizable.

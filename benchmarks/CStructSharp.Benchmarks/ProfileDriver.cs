@@ -71,6 +71,13 @@ internal static class ProfileDriver
                 return () => benchmark.ParseNestedUnaligned();
             }
 
+        case "SerializeNested256":
+            {
+                var benchmark = new Baseline0.WriteBenchmarks();
+                benchmark.Setup();
+                return () => benchmark.Serialize_Nested256_Expando_ToArray();
+            }
+
         case "SerializePocoToSpan":
             {
                 var benchmark = new WriteAndUpdateBenchmarks();
