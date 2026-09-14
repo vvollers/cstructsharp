@@ -6,8 +6,10 @@ description: Read a layout into a POCO, collection, numeric type, or CLR enum wi
 # Map values to C# types
 
 Dynamic results are convenient when exploring data, but most application code is easier to maintain with normal C#
-types. `ReadValue<T>` first reads the binary value using the same rules as `ReadValue`, then maps that result to `T`.
-The mapping is checked: values are not silently truncated to make them fit.
+types. `ReadValue<T>` decodes using the same layout rules as `ReadValue` and maps values to `T`. Eligible fixed
+layouts fill the destination directly; other layouts decode a result first. The mapping is checked: values are
+not silently truncated to make them fit. This is field-by-field conversion, not copying a native C struct into
+an identically shaped C# object; C# member offsets and attributes do not define the binary format.
 
 POCO means *plain old CLR object*: an ordinary C# class used to hold data. A supported POCO needs:
 

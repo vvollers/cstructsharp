@@ -25,7 +25,7 @@ await loadCStructSharpWasm({ runtimeUrl: "/cstructsharp/" });
 Use your application's actual static-output directory and public URL. Copying refuses an existing destination
 to protect application files. Copy upgrades into a new versioned directory, then update the URL. Serve WASM as
 `application/wasm` and JS as JavaScript. A same-origin CSP can use `script-src 'self' 'wasm-unsafe-eval'` and
-`connect-src 'self'`; this build does not need cross-origin isolation headers. The runtime is about 5.2 MB unpacked.
+`connect-src 'self'`; this build does not need cross-origin isolation headers. Use the release asset or package manifest for the size of the version you deploy.
 
 Node consumers use `import ... from "cstructsharp"` without copying or serving files. Keep the package external
 in server bundles; the Vite plugin does this for SSR. `cstructsharp/node` is available for explicit host selection.
@@ -63,6 +63,7 @@ automatically starts a module worker relative to those assets. Host them on the 
 origin in `worker-src` if you use a Content Security Policy. No SharedArrayBuffer or cross-origin isolation is
 required. Stream staging also needs HTTPS/localhost and origin-private file storage.
 
-`parse` uses worker execution. `parseWithDebug` uses it for large or non-Uint8Array sources and when `signal` is
-supplied. Small byte-array debug calls and in-memory write operations still use the shared runtime directly.
+Larger, streamed, and cancellable reads use workers. Byte inputs up to 64 KiB without `signal` can run on the
+calling thread; eligible `parse` calls execute a fixed-layout plan in JavaScript. Public `parseWithDebug` also has
+a direct path for `Uint8Array` inputs up to 4 MiB without `signal`. In-memory write operations use the shared runtime.
 See [large data](large-data.md) for memory, cancellation, and storage behavior.

@@ -14,6 +14,10 @@ Layout answers three related questions:
 Packed/aligned placement controls positions. Byte order controls encoding inside a multi-byte field. They are
 independent choices.
 
+For the hardware and C-language reasons behind padding, start with
+[how C structs occupy memory](../guides/native-c-memory.md). That chapter derives offsets and array stride;
+this page specifies the Portable rules, including alignment overrides.
+
 ## Alignment and endian
 
 With `aligned: false` (the default), each ordinary field begins where the previous field ended.

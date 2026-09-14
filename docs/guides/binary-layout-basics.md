@@ -44,7 +44,7 @@ big-endian:    12 34
 ```
 
 Little-endian stores the least significant byte first. Big-endian stores the most significant byte first.
-src/CStructSharp's default layout byte order is little-endian. You can choose big-endian for the whole layout or use `<`
+CStructSharp's default layout byte order is little-endian. You can choose big-endian for the whole layout or use `<`
 and `>` on individual numeric types when a format mixes byte orders.
 
 Byte order changes how a value is encoded, but it does not change the field's width or position.
@@ -72,7 +72,7 @@ binary format you are reading. Do not copy the layout of a native C compiler and
 
 When you construct a [`CStruct`](xref:CStructSharp.CStruct), the library reads the layout text, checks its names and
 types, calculates known sizes and alignments, and prepares the rules needed by later operations. The documentation
-calls this *compiling the layout*. It does not create machine code or require a C compiler.
+calls this *compiling the layout*. It prepares parsing metadata and does not require a C compiler.
 
 Create the `CStruct` once and reuse it for data that follows the same format:
 
@@ -103,6 +103,13 @@ For bytes `02 00 06 00 00 00`:
 
 If CStructSharp produces different values, first check the byte order, placement mode, field widths, and starting
 offset. Those four mistakes explain many first parsing failures.
+
+## Native C and memory background
+
+A Portable layout describes the stored format. A native C compiler also has to satisfy its target's rules for
+objects used by executable instructions. For a worked explanation of why that introduces padding and platform
+choices, read [how C structs occupy memory](native-c-memory.md). Then read
+[memory addresses and stored data](memory-and-stored-data.md) to distinguish process pointers from file offsets.
 
 ## What to learn next
 

@@ -85,6 +85,21 @@ scan farther than the format should allow.
 CStructSharp does not detect a byte-order mark and does not use the machine's current locale. The layout must state
 the encoding used by the format.
 
+## Legacy and byte-bounded encodings
+
+Current layouts can use `latin1`, `cp437`, `utf16le`, and `utf16be` arrays as well as `utf8`. Their array count is
+encoded bytes, unlike `wchar[N]`, whose count is UTF-16 code units. `wchar[4]` reserves eight bytes;
+`utf16le[4]` reserves four. Bounded UTF-16 requires an even byte count and valid surrogate pairs.
+
+These explicit encodings make old metadata reproducible across machines. Latin-1 is ISO-8859-1, not
+Windows-1252. CP437 uses its Unicode mapping, not a terminal's historical display glyphs for control bytes.
+None of these codecs consults the current OS locale. Reads preserve embedded NULs and BOM characters;
+writes do not insert a BOM, reject oversized or unmappable text, and zero-pad unused capacity.
+
+The [memory and encoding background](memory-and-stored-data.md#bytes-characters-and-legacy-encodings) explains
+bytes, code points, and code units. The [binary metadata guide](binary-metadata-types.md) includes executable
+examples using these codecs alongside 24-bit integers, LEB128, fixed-point values, and identifiers.
+
 ## Writing and updating safely
 
 A string containing its own terminator is invalid for a terminated field because a later read could not distinguish

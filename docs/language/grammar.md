@@ -127,15 +127,15 @@ member* - its own fields splice directly into the containing struct's addressabl
 same sentinel `anonymous-bitfield` already established for a nameless field. Promotion is transitive (an anonymous
 member's own anonymous members promote further) and a name collision anywhere in the flattened, transitively-promoted
 namespace is a construction-time error. Placement, size, and alignment are unaffected - this changes only which
-path/POCO/JSON name resolves to a field. Scoped to structs only: a struct cannot nest a `union-field` at all today,
-named or anonymous, so an anonymous inline union is not yet expressible. See
+path/POCO/JSON name resolves to a field. Promotion is supported for inline structs, not inline unions.
+A field referencing a separately declared named union is supported. See
 [Structs, unions, enums, and typedefs](structs-unions-enums-typedefs.md#anonymous-promoted-members).
 
 A declarator accepts zero or more bracketed dimensions, written outermost first (`value[rows][columns]`, LANG-05).
-Only the outermost dimension may be a runtime expression (referencing an earlier field or `#define`, matching real
-C's `int matrix[rows][10]` restriction); every dimension after the first must be a compile-time-fixed count, and a
-declaration with two or more dimensions where any dimension beyond the first is not compile-time-fixed is rejected
-at construction time. Empty `[]` has meaning only for a supported character type and is then a terminated string;
+Every dimension of a multidimensional declaration must currently be compile-time fixed, with no named
+expression dependencies. Literal arithmetic such as `[2 + 1][4]` is allowed; a named `#define` count is not. A one-dimensional
+array may use a runtime expression referencing an earlier field, caller variable, or definition. This is a
+Portable restriction, not a claim about C variable-length arrays. Empty `[]` has meaning only for a supported character type and is then a terminated string;
 it is accepted only as the sole dimension of a one-dimensional declarator (`char name[10][]` is rejected - an
 unsized dimension can never be an inner dimension of a multidimensional array). A fixed table of fixed-width
 strings (`char names[10][32]`) is ordinary within this rule: the innermost dimension behaves exactly like today's

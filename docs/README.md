@@ -89,14 +89,14 @@ The wrapper is the normal entry point, but focused commands make an editing loop
 Install the exact Node.js dependencies from `package-lock.json`:
 
 ```powershell
-npm --prefix .\CStructSharp.Docs ci --ignore-scripts
+npm --prefix .\docs ci --ignore-scripts
 ```
 
 Then check Markdown formatting and spelling:
 
 ```powershell
-npm --prefix .\CStructSharp.Docs run lint:markdown
-npm --prefix .\CStructSharp.Docs run lint:spelling
+npm --prefix .\docs run lint:markdown
+npm --prefix .\docs run lint:spelling
 ```
 
 Both commands should finish with zero findings. Run them from the repository root; the `--prefix` argument tells npm
@@ -105,13 +105,13 @@ to use the package inside `docs`.
 To run the browser checks for the first time, install the pinned Chromium build and start the tests:
 
 ```powershell
-npm --prefix .\CStructSharp.Docs run install:browser
-npm --prefix .\CStructSharp.Docs run test:browser
+npm --prefix .\docs run install:browser
+npm --prefix .\docs run test:browser
 ```
 
 The first command downloads Playwright's browser runtime. The second serves the existing `_site` output and checks
 navigation, search, keyboard use, and accessibility. Build the site first if `_site` is missing or stale. A
-successful run reports all six tests passed. Browser installation needs network access and can take longer than the
+successful run reports all configured browser tests passed. Browser installation needs network access and can take longer than the
 prose checks.
 
 To isolate a DocFX problem after the core project has been built, run:
@@ -172,4 +172,4 @@ inputs and should remain trackable.
 
 ## Sources and outputs
 
-`examples/` owns executable runners and starter programs. Recipe pages and standalone C# files are exported from those runners and generator metadata; edit their sources, then run `node tools/documentation/export-documentation-examples.mjs` from the root. `generated-files.json` lists the 46 ignored exports. `guides/`, `language/`, and `project/` contain authored pages. `api/` mixes authored landing pages with ignored DocFX metadata. `assets/`, `templates/`, and `landing/` provide site presentation. `browser-tests/` and quality configuration validate the resulting site. Reviewed cross-project data lives in `../contracts/` and is published at the same contract URLs. `_site/`, logs, and browser reports are ignored output.
+`examples/` owns executable runners and starter programs. Recipe pages and standalone C# files are exported from those runners and generator metadata; edit their sources, then run `node tools/documentation/export-documentation-examples.mjs` from the root. `generated-files.json` lists the ignored exports. `guides/`, `language/`, and `project/` contain authored pages. `api/` mixes authored landing pages with ignored DocFX metadata. `assets/`, `templates/`, and `landing/` provide site presentation. `browser-tests/` and quality configuration validate the resulting site. Reviewed cross-project data lives in `../contracts/` and is published at the same contract URLs. `_site/`, logs, and browser reports are ignored output.

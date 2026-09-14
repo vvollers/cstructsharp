@@ -97,7 +97,7 @@ struct flags {
 ```
 
 The two middle bits are consumed from the shared storage unit exactly like any other bitfield slice, but never
-become an addressable path, a POCO/`ExpandoObject` member, or a JSON field - there is nothing to read, write, or
+become an addressable path, a POCO/`StructValue` member, or a JSON field - there is nothing to read, write, or
 resolve a path to. New output (`WriteStream`, `Serialize`) always writes zero for those bits, the same way a
 struct's own tail padding is zero-filled; an update to a named sibling in the same storage unit changes only that
 sibling's own bit range and leaves the padding untouched. Debug output still reports the padding's byte/bit range,

@@ -25,7 +25,7 @@ declarations describe how to interpret bytes supplied later.
 
 ## Step 1: choose placement and byte order
 
-src/CStructSharp's defaults are:
+CStructSharp's defaults are:
 
 - packed placement (`aligned: false`);
 - little-endian neutral numeric fields (`isLittleEndian: true`); and

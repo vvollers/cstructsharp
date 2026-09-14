@@ -6,7 +6,7 @@ description: Understand which work happens once in the constructor and which sta
 # How layouts are prepared and reused
 
 Creating a `CStruct` prepares the source for later operations. The documentation sometimes calls this *compiling the
-layout*. It does not generate machine code or run a C compiler.
+layout*. It prepares binary-layout metadata; it does not run a C compiler.
 
 ## Constructor-time work
 
@@ -27,6 +27,17 @@ operations use the prepared model.
 
 Reuse a completed `CStruct` for every record that follows the same format options. Reconstructing it per record
 repeats parsing and name/layout work.
+
+## Reuse and cached plans
+
+Keep the prepared object when possible. `CStruct.GetOrCompile` also offers bounded shared reuse when your
+application repeatedly starts from definition text; see [managed caching](../guides/performance.md#managed-layout-caching).
+Compilation prepares layout metadata, not native C machine code. The .NET runtime can separately compile
+implementation methods and object-access delegates as part of executing the library.
+
+Fixed layouts can use cached read and write plans with known offsets. Eligible typed reads fill C# objects
+directly. Variable-sized and conditional layouts use general traversal where their positions depend on data.
+These choices preserve layout rules; they are not extra syntax the application needs to select.
 
 ## Per-operation work
 

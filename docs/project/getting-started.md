@@ -40,7 +40,7 @@ git clone https://github.com/vvollers/CStructSharp.git
 cd CStructSharp
 ```
 
-`git clone` downloads the repository and creates the `src/CStructSharp` directory. `cd` makes it the working directory
+`git clone` downloads the repository and creates the `cstructsharp` repository directory. `cd` makes it the working directory
 for the commands that follow. Confirm that `CStructSharp.NonWeb.sln` and `global.json` are present before continuing.
 
 ## Restore pinned tools and packages

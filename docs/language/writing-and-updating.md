@@ -109,9 +109,9 @@ complete shared storage unit and changes only the selected bits.
 
 ## Paths and dynamic lengths
 
-Paths use dot-separated names and at most one unpadded non-negative decimal index per segment, for example
-`root.items[2].value`. Empty segments, signs, trailing text, repeated brackets, and indices on non-arrays produce
-`CStructPathException`.
+Paths use dot-separated names and one unpadded non-negative decimal index per selected array dimension, for example
+`root.items[2].value` or `root.matrix[1][2]`. Empty segments, signs, trailing text, too many indices, and indices on
+non-arrays produce `CStructPathException`. See [multidimensional paths](paths-and-selection.md#multidimensional-arrays).
 
 `GetDynamicArrayLength` accepts fixed/runtime arrays, unsized character strings, and named terminated strings. It
 returns array element counts or decoded string character/code-unit counts and restores the original stream position.

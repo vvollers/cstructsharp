@@ -10,7 +10,9 @@ type:
 
 | Layout shape | Direct result |
 | --- | --- |
-| Fixed integer or character | Matching CLR primitive |
+| Integer, floating-point, Boolean, or character | Matching CLR primitive |
+| Fixed-point value | `Double` |
+| UUID/GUID | `Guid` |
 | Fixed/runtime array | `IList<object?>` (`PrimitiveArray<T>` for one-dimensional numeric/`bool` arrays: typed `Span`, fixed size) |
 | Fixed character buffer or terminated text | `string` |
 | Enum | `EnumValueResult` |
@@ -23,7 +25,7 @@ pointer.
 
 ## Typed reads
 
-`ReadValue<T>` performs the same binary read, then converts the direct result to `T`:
+`ReadValue<T>` applies the same decoding and conversion rules, with direct destination filling for eligible fixed layouts:
 
 - numeric conversions are checked for range;
 - floating/decimal targets use invariant conversion;
@@ -36,8 +38,10 @@ Names match exactly first, then by one unambiguous case-insensitive match. Every
 source member; extra source members may be ignored.
 
 The mapper does not infer pointer following, invoke parameterized constructors, set private members, honor serializer
-attributes, or use a serializer package. Missing/ambiguous names, nullability/range problems, and constructor/setter
-failures become `CStructReadException` with the most specific path available.
+attributes, or use a serializer package. Missing/ambiguous names and nullability/range problems become
+`CStructReadException` with the most specific path available. Do not assume every exception from an application
+constructor or setter is converted: unexpected application exceptions may propagate. Compiled accessors invoke
+application code directly, without reflection's `TargetInvocationException` wrapper.
 
 `TryReadValue<T>` catches only expected `CStructException` failures, returns `false`, and assigns the default output.
 For streams it restores the starting position after that expected failure. Invalid arguments and unexpected runtime
@@ -61,7 +65,7 @@ conditions.
 
 ## Span and memory input
 
-`Parse`, `ReadValue`, and `TryReadValue<T>` accept `ReadOnlySpan<byte>` or `ReadOnlyMemory<byte>`. They complete
+`Parse`, `ReadValue`, and `TryReadValue<T>` accept `byte[]`, `ReadOnlySpan<byte>`, or `ReadOnlyMemory<byte>`. They complete
 synchronously and do not retain the caller's region. Pointer coordinates start at zero inside that region.
 
 Serialization can fill a writable span or append to `IBufferWriter<byte>`. It returns the initialized/appended count.

@@ -22,7 +22,12 @@ description: Plain-language definitions for the terms used in CStructSharp examp
 | ABI | Application binary interface: a compiler and platform's rules for native data and calls |
 | Span | A temporary view over a region of memory |
 | POCO | Plain old CLR object; usually an ordinary C# class with properties |
-| Base64 | A text representation of bytes, used by the browser result object |
+| Base64 | A text encoding of bytes; current browser serialize/update results use `Uint8Array` instead |
+| Stride | Distance in bytes between adjacent array elements, including their tail padding |
+| Virtual address | A location in a process address space, distinct from a file offset |
+| Code unit | A storage unit of a text encoding; UTF-16 uses 16-bit code units |
+| Discriminator | A field identifying which record or union interpretation is meaningful |
+| Cache | Retained reusable work, such as a prepared layout, to avoid repeating it |
 | Envelope | The outer result object containing success, data, and error information |
 | Round trip | Read data and write it back, checking which bytes and values are preserved |
 

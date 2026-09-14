@@ -132,10 +132,15 @@ and every row's own length is checked exactly like a one-dimensional array's len
 (`root.matrix[2]`) returns the corresponding lower-dimensional sub-array rather than one element - see
 [Paths, array indices, and pointer access](paths-and-selection.md#multidimensional-arrays).
 
-Only the outermost dimension may ever be a runtime expression, matching real C's `int matrix[rows][10]`
-restriction (`int matrix[10][cols]` is not legal C, for the same reason: every dimension after the first must have
-a compile-time-known stride). This slice does not yet support even that for two or more dimensions - every
-dimension of a declaration with N ≥ 2 dimensions must be compile-time-fixed:
+CStructSharp currently requires **every dimension of a multidimensional declaration to be compile-time fixed**.
+For this check, fixed means an expression with no named dependencies: `[2 + 1][4]` works, but `[ROWS][4]`
+is rejected even when `ROWS` has a `#define` value. Use literal arithmetic in each dimension. Runtime counts
+and named count expressions are supported for one-dimensional arrays. This is a Portable implementation restriction,
+not a general C rule. C99 variable-length arrays can have runtime inner dimensions in supported contexts, such as
+block-scope `int matrix[rows][cols]`; they are not ISO C struct members. See
+[GCC's variable-length array documentation](https://gcc.gnu.org/onlinedocs/gcc/Variable-Length.html).
+
+For example, this Portable declaration is rejected:
 
 ```c
 struct root {

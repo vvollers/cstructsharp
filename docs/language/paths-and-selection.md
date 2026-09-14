@@ -64,8 +64,8 @@ rejected. A fixed table of fixed-width strings (`char names[10][32]`) selects on
 exactly like a one-dimensional `char[32]` field, with only the outer dimension nesting.
 
 See [Arrays and strings](arrays-and-strings.md#multidimensional-arrays) for the declaration syntax and its one
-restriction: only the outermost dimension may ever be a runtime expression, and this slice does not yet support
-even that for two or more dimensions.
+restriction: every dimension of a multidimensional declaration must currently be compile-time fixed.
+Runtime counts are supported for one-dimensional arrays.
 
 ## Structs and unions
 

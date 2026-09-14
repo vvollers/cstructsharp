@@ -20,6 +20,7 @@ lives for the process/page lifetime; no explicit disposal is needed for normal N
 | --- | --- | --- |
 | `await loadCStructSharpWasm()` | None | Loaded raw API, for advanced integration |
 | `await getVersion()` | None | Version string from the loaded managed library |
+| `await compile(definition, options)` | Layout string and compilation options | Reusable handle with `parse`, `parseWithDebug`, and `dispose` |
 | `await parse(definition, source, options)` | Layout string, binary source, options | Result with the parsed value (root-wrapped object) in `Data`, without debug capture |
 | `await parseWithDebug(definition, source, options)` | Layout string, binary source, options | Result with the parsed value in `Data` and field ranges in `DebugData` |
 | `await serialize(definition, value, options)` | Layout, JavaScript value, options | Result with a `Uint8Array` in `Data` |
@@ -41,14 +42,43 @@ settings (`aligned`, `littleEndian`, `pointerSize`, `rootTypeName`, compile limi
 identical either way, so the choice is not observable except in timing.
 
 See [large files, buffers, and streams](large-data.md) for `File`/`Blob`, views, responses, streams, and iterable
-inputs, plus `signal` cancellation and the `maxSpoolBytes` staging limit. These read APIs automatically page data
+inputs, plus `signal` cancellation and the `maxSpoolBytes` staging limit. Larger, streamed, or cancellable reads page data
 through a worker; the legacy synchronous raw byte adapter and `update` retain their 4 MiB input ceiling.
+
+## Reuse a compiled layout
+
+`compile` fixes the definition and compilation settings, then returns a handle for repeated reads:
+
+```js
+import { compile } from "cstructsharp";
+
+const layout = await compile("struct header { uint16 kind; uint32 length; };", {
+  rootTypeName: "header",
+});
+try {
+  const result = await layout.parse(new Uint8Array([2, 0, 6, 0, 0, 0]));
+  if (!result.Success) throw new Error(result.Error.Message);
+  console.log(result.Data.header.kind);
+} finally {
+  await layout.dispose();
+}
+```
+
+The handle exposes `parse`, `parseWithDebug`, and `dispose`, not write/update methods. Compilation rejects invalid
+layouts; an error can carry a bridge diagnostic in `details`. Read calls may choose a root, addressing options,
+limits, and cancellation, but cannot change compilation settings such as alignment or pointer width.
+
+Worker reads on one handle are queued. A handle retains its own worker/runtime, while small byte reads without
+`signal` can use the shared calling-thread runtime. Cancelling an active worker read terminates that worker;
+a later read recreates it. `dispose` cancels outstanding worker work and releases resources; later reads reject.
+Keep inputs unchanged until their reads finish. See [large inputs](large-data.md) and
+[performance](../performance.md#javascript-compiled-reuse) for ownership and cost details.
 
 ## Choose layout options
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `rootTypeName` | First struct selected by the bridge | Pass a name explicitly, such as `header` |
+| `rootTypeName` | First struct or union in source order | Pass a name explicitly, such as `header` |
 | `littleEndian` | `true` | Least significant byte first |
 | `aligned` | `false` | Packed fields; `true` inserts Portable padding |
 | `pointerSize` | `8` | Pointer storage width, in bytes: 1, 2, 4, or 8 |
@@ -85,8 +115,7 @@ Try the [large integer lesson](https://vvollers.github.io/cstructsharp/explorer/
 [fixed text lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=text).
 
 If adapting an older wrapper example, remove the `atob(result.Data)` conversion after serialize or update.
-Binary data now crosses the boundary as native bytes end to end, so no Base64 decoding step remains. Parse
-JSON and union `RawStorage` representations are unchanged.
+Binary data now crosses the boundary as native bytes end to end, so no Base64 decoding step remains. For parse results, also apply the contract-version-7 `Data` change above. Union `RawStorage` remains a byte-number array.
 
 ## Diagnose a failure
 

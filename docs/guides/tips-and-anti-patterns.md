@@ -19,7 +19,7 @@ Use this checklist when a new integration almost works but produces the wrong va
 | Treating `char[N]` as terminated text | Fixed capacity and scanning have different extents | Choose fixed or terminated syntax from the format specification |
 | Expecting span, writer, or stream output to roll back | A late failure can leave a prefix | Stage through an owned array when all-or-nothing output matters |
 | Raising every safety limit after a failure | Can hide a wrong count, offset, or byte order | Verify the format and change only the justified limit |
-| Feeding arbitrary headers to the core | Includes, macros, qualifiers, and compiler ABI rules are not accepted | Normalize externally or write the supported Portable layout |
+| Feeding arbitrary headers to the core | Includes, general macros, and compiler ABI rules are not interpreted; only the documented qualifiers are accepted | Normalize externally or write the supported Portable layout |
 
 Before shipping a reader or writer, keep at least one known byte fixture and verify offsets, decoded values, output
 bytes, failure categories, and starting/ending stream positions. A successful round trip by itself can reproduce the

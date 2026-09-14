@@ -110,9 +110,10 @@ Source parsing runs in a shared worker with a 64 KiB managed page cache and seek
 safe integer range. Full-file length is independent of WASM linear-memory capacity. Resident byte buffers are
 snapshotted once and the snapshot is transferred to the worker (never the caller's buffer); this is not zero-copy.
 Byte inputs (`ArrayBuffer`, typed arrays, `DataView`, `Buffer`) of at most 64 KiB without a `signal` are parsed
-directly on the calling thread instead — one managed copy and no worker round trip — for both `parse()` and
-`parseWithDebug()` (which keeps its wider 4 MiB direct path); supplying `signal` always selects the cancellable
-worker path. Handles from `compile()` use the same direct path for small byte inputs.
+on the calling thread instead, avoiding a worker round trip. Eligible fixed-layout `parse()` calls execute a
+JavaScript plan; other direct reads use the managed runtime. Public `parseWithDebug()` keeps a wider direct path
+for `Uint8Array` inputs up to 4 MiB. Supplying `signal` selects the cancellable worker path. Handles from `compile()`
+use direct managed reads for byte inputs up to 64 KiB without `signal`.
 
 Streams use origin-private file storage in browsers and a private temporary directory in Node. Browser staging
 requires HTTPS or localhost and storage quota. `maxSpoolBytes` defaults to 1 GiB and can be increased explicitly;

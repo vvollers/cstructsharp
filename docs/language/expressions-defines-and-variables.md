@@ -18,7 +18,9 @@ struct root {
 };
 ```
 
-`WORD_COUNT` is known when `CStruct` is constructed, so this array has a fixed count of four.
+`WORD_COUNT` supplies a default count of four. A caller variable can override that name for an operation,
+so it is not an immutable array-size declaration. Use `[4]` for a literal fixed count. Multidimensional arrays
+currently require identifier-free count expressions in every dimension; even a named `#define` is rejected there.
 
 When a value is not known until one operation, use a caller variable:
 
@@ -41,16 +43,20 @@ and circular dependencies fail explicitly.
 ## Operators and precedence
 
 Expressions support decimal, hexadecimal (`0x`), binary (`0b`), and octal (`0o`) integers, parentheses, unary
-`-`/`~`, and these binary operators:
+`!`/`-`/`~`, and these binary operators:
 
 | Precedence, high to low | Operators |
 | --- | --- |
-| Unary | `-`, `~` |
+| Unary | `!`, `-`, `~` |
 | Multiply/divide | `*`, `/` |
 | Add/subtract | `+`, `-` |
 | Shift | `<<`, `>>` |
+| Relational comparison | `<`, `<=`, `>`, `>=` |
+| Equality | `==`, `!=` |
 | Bitwise AND | `&` |
 | Bitwise OR | `\|` |
+| Logical AND | `&&` |
+| Logical OR | `\|\|` |
 
 Operators on the same row are evaluated left to right. Function-call-looking syntax is recognized only so the
 constructor can report that it is unsupported; it never invokes user code.

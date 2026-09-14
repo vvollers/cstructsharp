@@ -4,6 +4,11 @@ Notable changes to CStructSharp, newest first. Release versions and dates were r
 Git history preserved before the repository history reset. Entries focus on features, fixes, and migration steps;
 routine refactoring, dependency updates, and benchmark bookkeeping are omitted.
 
+## 0.4.1 — 2026-09-14
+
+- Rebuilt and published NuGet, npm, standalone WASM, and website artifacts from the reset repository history.
+- Replaced the historical changelog with concise release entries and migration notes. No library behavior changes.
+
 ## 0.4.0 — 2026-09-14
 
 ### Breaking changes

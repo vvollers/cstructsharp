@@ -105,9 +105,12 @@ struct sample {
   potentially lossy numeric narrowing conversion (`Convert.ToSingle`) - the bit-exact guarantee applies only when
   the caller already supplies the matching width.
 
-`long double` is not supported: unlike `long`/`ulong` (a single, globally reasonable fixed 64-bit choice for every
-target), `long double` has no single portable width to standardize on - 80-bit extended, 128-bit quad, or 64-bit
-depending on compiler and target - so no fixed-width codec could represent it losslessly.
+`long double` is not supported because its representation depends on the native compiler and target.
+Choose `float32` or `float64` only when the format specifies the corresponding IEEE 754 representation.
+The storage width includes sign and exponent bits: binary32 has 24 bits of precision and binary64 has 53,
+not 32 and 64 bits of integer precision. Neither represents every decimal fraction exactly.
+For a format that specifies a binary-scaled integer, use the documented [fixed-point types](../guides/binary-metadata-types.md)
+instead of assuming an ordinary float has the same bytes.
 
 The `floating-point-primitives` fixture checks `a=1.5` (`float32`), `b=2.5` (`float64`), size 12, alignment 8, and
 bytes `0000C03F0000000000000440` on both frameworks.

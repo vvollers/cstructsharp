@@ -19,6 +19,14 @@ If this is your first binary-format library, read these pages in order:
 5. [Write and serialize values](writing-and-serialization.md) creates new binary data.
 6. [Update existing data](updating-existing-data.md) changes one field without rebuilding the surrounding object.
 
+For a deeper foundation, read [how C structs occupy memory](native-c-memory.md) and
+[memory addresses and stored data](memory-and-stored-data.md). These explain alignment calculations, native C
+arrays and pointers, platform ABIs, byte order, and text encodings, with exercises and worked answers.
+They assume introductory programming knowledge, not operating-systems or compiler courses.
+
+If you used an earlier release, read [Upgrade to the current API](upgrading.md) for managed result types,
+browser contract 7, debug ranges, and layout reuse.
+
 The remaining guides cover data shapes and operational concerns:
 
 For JavaScript, take the separate [Node.js and browser quick start](browser/index.md). Use the [glossary](glossary.md)

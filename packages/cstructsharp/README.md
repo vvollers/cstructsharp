@@ -127,9 +127,10 @@ The runtime lives for the process/page lifetime and normal Node processes exit w
 runtime startup remains failed for that instance; restart the process/page after fixing missing assets. A browser
 instance cannot be reconfigured to a different runtime URL after initialization starts.
 
-The unpacked runtime is approximately 5.2 MB; the tarball also includes third-party license notices. No Vue,
-Monaco, or other UI dependencies are installed. Web workers, other JS runtimes, and server bundling of the Node
-entry point are not currently supported. Keep `cstructsharp` external in server bundles (the Vite plugin does this).
+The tarball includes the runtime and third-party license notices; check the release assets for current sizes. No Vue,
+Monaco, or other UI dependencies are installed. The library manages workers for large or cancellable reads;
+loading the public entry point inside an application-created web worker is not a supported deployment target.
+Other JS runtimes and server bundling of the Node entry point are not currently supported. Keep `cstructsharp` external in server bundles (the Vite plugin does this).
 
 [API and layout guide](https://vvollers.github.io/cstructsharp/docs/guides/browser/api.html) ·
 [Source and releases](https://github.com/vvollers/cstructsharp) · MIT license

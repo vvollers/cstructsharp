@@ -36,6 +36,22 @@ See [Spans, memory, and buffer writers](spans-and-memory.md) for ownership detai
 [project testing guide](../project/testing.md#performance-packages-and-release-checks) for repository benchmark
 expectations.
 
+## Managed layout caching
+
+When you already retain a `CStruct`, keep using it. When a call site repeatedly receives the same layout text,
+`CStruct.GetOrCompile(definition, pointerSize: 8, aligned: false, isLittleEndian: true)` reuses a prepared
+instance instead of constructing one every time.
+
+The current cache holds at most 64 entries and a total source-text budget of 8,388,608 characters. Its key
+includes the exact source, pointer width, alignment, byte order, and compilation limits. This is a retention
+budget, not an exact managed-memory cap. Failed compilations are not cached. Entries can be evicted, so a cache
+hit is an optimization rather than an identity guarantee.
+
+`CStruct.ClearCompiledCache()` releases the cache's references. Existing returned instances remain usable.
+The cache does not retain input bytes, stream positions, or parsed results. Layout reuse is safe across calls;
+mutable streams and result objects still need separate ownership. The browser bridge uses the same kind of
+bounded cache within each runtime.
+
 ## JavaScript compiled reuse
 
 For repeated reads of the same schema, use `compile` from the npm package or standalone browser bundle:
@@ -54,10 +70,13 @@ try {
 ```
 
 Compilation owns a dedicated worker and runtime. Reads reuse the compiled layout; `parseWithDebug` adds byte mappings.
-One handle queues concurrent reads and keeps operation state separate. Layout options are fixed, while each read
+One handle queues its worker reads and keeps operation state separate. Small byte reads without a signal can use
+the shared calling-thread runtime. Layout options are fixed, while each read
 can choose limits and an abort signal. Cancellation stops an active worker; a later read recreates it and compiles the layout again.
 Dispose unused handles promptly: each retains a runtime. Ordinary source parsing also reuses a worker for 30 seconds
-of idle time, but still compiles the schema for each call.
+of idle time. Managed bridge calls use a bounded compiled-layout cache, so repeated ordinary calls can also reuse
+preparation while their entries remain cached. A retained handle explicitly owns a layout for its worker reads;
+it is not the only way to benefit from caching.
 
 Compare cold startup separately from warmed reads. Worker messaging, source staging, result materialization and JSON
 projection remain real costs even with a retained layout. Conditional groups are selected once on entry; their cost

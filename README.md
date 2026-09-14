@@ -49,6 +49,9 @@ The layout names the fields. The byte array supplies the data. The result contai
 
 By default, fields are packed together, numbers use little-endian byte order, and pointers occupy eight bytes.
 The [binary layout basics](https://vvollers.github.io/cstructsharp/docs/guides/binary-layout-basics.html) explain these choices.
+For the background, read [how C structs occupy memory](docs/guides/native-c-memory.md) and
+[memory addresses and stored data](docs/guides/memory-and-stored-data.md).
+Existing users can follow the [upgrade guide](docs/guides/upgrading.md).
 Try changing `0x02` to `0x03`: `kind` becomes `3`.
 
 ## A portable C struct definition language
@@ -62,8 +65,7 @@ a browser to build protocol tools, file inspectors, and binary editors.
   and reusable `typedef` aliases. Represent values with fixed-width integers, IEEE-754 floats, booleans, bitfields,
   fixed character buffers, and terminated ASCII, UTF-8, or UTF-16 strings.
 - **Let the data determine the shape.** Use arithmetic and bitwise expressions, `#define` constants, earlier fields,
-  and caller-supplied variables to size arrays. Describe count-prefixed payloads, multidimensional tables with
-  runtime-sized outer dimensions, and arrays of structured records directly in the definition.
+  and caller-supplied variables to size one-dimensional arrays. Select conditional fields with `if`/`else` or `switch`. Describe count-prefixed payloads, fixed multidimensional tables, and arrays of structured records directly in the definition.
 - **Control the bytes precisely.** Mix little- and big-endian primitives in one record with `<` and `>` suffixes.
   Choose packed or aligned layout, refine alignment with `@align(N)`, reserve bits with unnamed bitfields, and
   assert expected field offsets with `@N`. Type widths follow portable rules, and pointer width is configured

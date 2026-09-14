@@ -31,6 +31,30 @@ Artifacts and the source/hash manifest are retained for 90 days. Recover before 
 the workflow cannot promise publication of identical tested artifacts. Release actions remain pinned to
 immutable commits. Start a release only after CI has passed on main.
 
+## Normal release and local synchronization
+
+From a clean, synchronized `main`, dispatch the workflow with the intended version bump:
+
+```sh
+gh workflow run release.yml --ref main -f mode=release -f bump=patch
+```
+
+Follow the returned Actions run through publication, not just the build job. The workflow calculates the version
+from `VersionPrefix`, commits the tested version files, and creates the release tag. It also publishes the npm
+and NuGet packages, the standalone archive, and the Pages site. Do not manually bump again while it is running.
+
+After successful publication, synchronize your local checkout:
+
+```sh
+git pull --ff-only origin main
+git fetch origin --tags --prune
+git status -sb
+```
+
+Check that the release tag points to the release commit, package versions agree, and the GitHub Release has its
+NuGet package, symbols, npm tarball, WASM ZIP, and release manifest. A successful build alone does not mean all
+services have been published.
+
 ## First npm publication: maintainer steps
 
 Account login and 2FA are one-time prerequisites. Confirm your email is verified and that `cstructsharp` is
@@ -67,6 +91,19 @@ Choose mode `recover` and the **original verified run ID**, not the failed recov
 version has different integrity, any artifact changed, required tests did not pass, or the tag has unexpected
 changes. It accepts an existing matching tag or a matching version commit pushed before a previous tag push
 failed. A bad immutable package needs a new version; it must not be overwritten.
+
+npm can accept a publication before the version becomes readable through its registry API. The current workflow
+checks immediately, so a processing delay can fail **Confirm npm publication integrity** after the version commit
+and tag already exist. Check `npm view cstructsharp@VERSION version`, replacing VERSION with the accepted version.
+Once it is available, recover from the original verified run:
+
+```sh
+gh workflow run release.yml --ref main -f mode=recover -f recovery_run_id=ORIGINAL_RUN_ID
+```
+
+Replace ORIGINAL_RUN_ID with the numeric run ID. Recovery checks the package's integrity before skipping its upload.
+Do not start another normal patch release to complete a partly published version. This recovery path was used for
+0.4.1 after npm's processing delay; the existing tested artifacts completed publication successfully.
 
 ## Build and test npm locally
 

@@ -67,9 +67,9 @@
       "templates/cstructsharp"
     ],
     "globalMetadata": {
-      "_appName": "src/CStructSharp",
+      "_appName": "CStructSharp",
       "_appTitle": "CStructSharp documentation",
-      "_appFooter": "CStructSharp is licensed under the MIT License. <a href=\"https://github.com/vvollers/CStructSharp/blob/main/CHANGELOG.md\">Release notes</a> \u00c2\u00b7 <a href=\"https://github.com/vvollers/CStructSharp/issues/new?labels=documentation&amp;title=Documentation%3A%20\">Report a documentation issue</a>",
+      "_appFooter": "CStructSharp is licensed under the MIT License. <a href=\"https://github.com/vvollers/CStructSharp/blob/main/CHANGELOG.md\">Release notes</a> \u00b7 <a href=\"https://github.com/vvollers/CStructSharp/issues/new?labels=documentation&amp;title=Documentation%3A%20\">Report a documentation issue</a>",
       "_appLogoPath": "assets/logo.svg",
       "_appFaviconPath": "assets/favicon.svg",
       "_enableSearch": true,

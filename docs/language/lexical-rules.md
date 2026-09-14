@@ -69,9 +69,11 @@ Expressions accept four bases:
 Prefix letters may be upper- or lowercase. Underscores are visual separators and may appear within the digit
 sequence, but the sequence must contain at least one real digit.
 
+Documented C integer suffixes such as `U`, `L`, and `LL` are accepted and discarded. They do not widen the
+expression's checked `Int32` arithmetic or make it unsigned. See the [grammar](grammar.md) for accepted forms.
+
 Portable integer expressions do not include:
 
-- C suffixes such as `U`, `L`, or `LL`;
 - floating-point, string, or character literals;
 - casts or `sizeof`; or
 - C's implicit integer-promotion rules.
@@ -85,17 +87,16 @@ overflow behavior.
 `{ } ( ) [ ] ; , : * < > #` have only the meanings shown in the [complete grammar](grammar.md).
 
 Pointer stars may touch either name (`uint8* p`, `uint8 *p`, and `uint8 * p` are equivalent). `<` and `>` select
-little- or big-endian order only on supported primitive names; they are not comparison operators. A field can have
-one name and at most one array dimension.
+little- or big-endian order after supported primitive names. In expressions, `<` and `>` can instead be comparison
+operators. A declaration may contain comma-separated declarators, and arrays may have multiple fixed dimensions.
+See [arrays](arrays-and-strings.md) and [conditional expressions](expressions-defines-and-variables.md).
 
 ## Diagnose common source errors
 
 | Input | Why it fails | Correction |
 | --- | --- | --- |
 | `uint8 2value;` | A name cannot start with a digit | Rename it to `value2` |
-| `uint8 a, b;` | One field declaration has one name | Write two declarations |
 | `uint16>> value;` | There is no double byte-order suffix | Use `uint16>` |
-| `#define N 4U` | C integer suffixes are unsupported | Use `4` |
 | `uint8 values[0x_];` | The hexadecimal literal contains no digit | Use `0x0` or another count |
 | trailing `garbage` | Source must be consumed completely | Remove or translate the unsupported text |
 

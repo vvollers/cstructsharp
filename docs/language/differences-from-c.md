@@ -37,23 +37,27 @@ This example establishes one format's widths; it does not prove equivalence with
 | `tag-kind-mismatch` | `struct root { union child value; };` where `child` is a `struct` | A tag keyword is checked against the referenced declaration's actual kind | Use the matching keyword, or omit it and write `child value;` |
 | `forward-declaration` | `struct child;` | Incomplete type identity/storage is unavailable | Supply the complete named declaration |
 | `inline-union` | `union { ... } value;` inside a struct | Only named top-level unions are accepted | Declare `union choice`, then use `choice value;` |
-| `runtime-sized-multidimensional-array` | `uint8 values[count][3];` | Only the outermost dimension of a multidimensional array may be a runtime expression; a fixed `value[2][3]` is supported (see [Arrays and strings](arrays-and-strings.md#multidimensional-arrays)) | Make every dimension a compile-time-fixed count, or flatten the runtime-sized dimension into a single-dimension array |
+| `runtime-sized-multidimensional-array` | `uint8 values[count][3];` | All dimensions of a multidimensional array must be compile-time fixed; `value[2][3]` is supported (see [Arrays and strings](arrays-and-strings.md#multidimensional-arrays)) | Make every dimension a compile-time-fixed count, or flatten the runtime-sized dimension into a single-dimension array |
 | `general-flexible-array` | `uint16 values[]` | Remaining stream bytes do not define a safe count | Use bounded `values[COUNT]`; empty `[]` is for character strings |
 | `qualifier-not-in-closed-set` | `_Atomic uint8 value;` | Only `const`/`volatile`/`restrict` are recognized and discarded | Remove the unrecognized qualifier before construction |
 | `trailing-qualifier-position` | `uint8 value const;` | Accepted qualifiers appear before the type or after a pointer star, not after the declarator name | Move the qualifier to an accepted position |
 | `unrecognized-integer-spelling` | `intmax_t value;` | The accepted alias table is curated, not a general C type-name parser | Use a documented [primitive spelling](primitive-types.md) |
-| `floating-point-field` | `long double value;` | No single portable width exists to standardize on (80-bit extended, 128-bit quad, or 64-bit, depending on compiler/target) | Use `float32`/`float64` (or the `float`/`double` aliases) when 64 bits of precision is enough |
+| `floating-point-field` | `long double value;` | No single portable width exists to standardize on (80-bit extended, 128-bit quad, or 64-bit, depending on compiler/target) | Use `float32`/`float64` (or the `float`/`double` aliases) when IEEE 754 binary32 or binary64 matches the format (binary64 has 53 bits of precision) |
 | `function-pointer` | `uint8 (*callback)(uint8)` | Data-pointer grammar cannot describe/invoke functions | Use fixed unsigned storage only when an opaque address is appropriate |
 | `zero-width-bitfield` | `uint8 reserved : 0;` | Native separator/allocation rules vary | Start an explicit new field/storage unit |
 | `typedef-array` | `typedef uint8 bytes[4];` | Typedef aliases a name and optional pointer depth, not a declarator | Put `[4]` on the field |
 | `typedef-tag-alias` | `typedef struct ExistingTag alias;` (no braces) | A typedef alias of an already-declared tag, without repeating its body, is not a supported declarator form | Repeat the full `typedef struct tag { ... } alias;` declaration, or use `child alias;` directly |
-| `non-power-of-two-alignment` | `uint8 value @align(3);` | An explicit alignment override must be a positive power of two, matching every native ABI's own alignment rule | Use a power-of-two value, e.g. `@align(4)` |
+| `non-power-of-two-alignment` | `uint8 value @align(3);` | An explicit alignment override must be a positive power of two, as required by Portable alignment rules | Use a power-of-two value, e.g. `@align(4)` |
 | `non-power-of-two-composite-alignment` | `struct root @align(3) { uint8 value; };` | A composite's own explicit alignment override must also be a positive power of two | Use a power-of-two value, e.g. `@align(4)` |
 | `offset-assertion-mismatch` | `struct root { uint8 a; uint8 value @5; };` where `value` naturally lands at offset 1 | An offset assertion is checked against the field's actual computed offset | Correct the asserted value, or omit it if the field's placement is expected to vary |
 | `offset-assertion-on-bitfield` | `uint8 flag : 1 @2;` | An offset assertion is not supported on a bitfield declarator | Assert the offset of a non-bitfield sibling, or omit the assertion |
 
-Broader unsupported families include booleans/other floating types, full preprocessing, anonymous member promotion,
-source packing controls, and named compiler modes. One fixture may represent several equivalent spellings.
+Portable supports `bool`/`_Bool`, `float32`/`float64`, anonymous promoted inline struct members, and explicit
+alignment annotations. Unsupported families include full preprocessing, additional floating representations,
+compiler packing directives, and named compiler modes. One fixture may represent several equivalent spellings.
+
+For the background behind these differences, read [how C structs occupy memory](../guides/native-c-memory.md)
+and [memory addresses and stored data](../guides/memory-and-stored-data.md).
 
 ## No host ABI inference
 

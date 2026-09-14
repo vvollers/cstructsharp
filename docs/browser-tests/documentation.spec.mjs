@@ -2,6 +2,9 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 const representativePages = [
+  { path: "guides/native-c-memory.html", heading: "How C structs occupy memory" },
+  { path: "guides/memory-and-stored-data.html", heading: "Memory addresses and stored data" },
+  { path: "guides/upgrading.html", heading: "Upgrade to the current API" },
   { path: "guides/conditional-fields.html", heading: "Choose fields with if and switch" },
   { path: "guides/binary-metadata-types.html", heading: "Decode common binary metadata" },
   { path: "examples/recipes/conditional-records.html", heading: "Parse tagged records with native branches" },
@@ -91,6 +94,9 @@ test("primary navigation and unified search reach conceptual and API content", a
   await expect(page.locator("#search-results")).toContainText("CStruct");
 
   for (const item of [
+    { query: "native C structs occupy memory", title: "How C structs occupy memory" },
+    { query: "memory addresses stored data", title: "Memory addresses and stored data" },
+    { query: "upgrade current API", title: "Upgrade to the current API" },
     { query: "caller-owned output", title: "Use spans, memory, and buffer writers" },
     { query: "unknown enum", title: "Preserve exact enum values" },
     { query: "byte order padding", title: "Layout, alignment, and padding" },

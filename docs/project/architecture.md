@@ -43,18 +43,23 @@ A public read-like call:
 3. resolves the requested root or path with its array, union, bitfield, alignment, and pointer context; and
 4. executes the prepared field readers.
 
-Root reads, selected nested reads, array elements, and pointer targets share the same composite traversal code.
-Debug capture observes that read rather than running a separate interpretation of the layout.
+All reads use the same compiled layout facts. Eligible fixed composites execute cached read plans; dynamic
+layouts and debug reads use general traversal. Numeric arrays can decode in blocks into `PrimitiveArray<T>`;
+struct results use a shared member shape with per-result values in `StructValue`. A typed read can fill its
+C# destination directly when the fixed layout and target type support that plan.
+Debug capture uses the general reader to record the fields and ranges it visits.
 
 Writers use the same prepared field shapes in reverse. `Serialize` stages through owned memory when returning an
-array. Span, writer, and stream overloads write to caller-provided destinations with the partial-output rules
-documented in the API guides.
+array. Fixed-struct write plans encode into one block before writing; other shapes use field traversal.
+Span, writer, and stream overloads still have the partial-output limits documented in the API guides: a validated
+block does not make a physical stream transactional.
 
 ## Why updates use staging
 
 `UpdateStream` must inspect existing bytes to find a path, but it should not change the destination before it knows
 the replacement is valid. It therefore runs the writer against `SparseUpdateStream`, a bounded copy-on-write view.
-That view records changed ranges while reading unchanged bytes from the original stream.
+That view records changed ranges while reading unchanged bytes from the original stream. A contiguous replacement
+uses one pooled buffer; separated ranges fall back to chunk staging.
 
 After path, range, shape, pointer, union, and limit checks pass, the method combines adjacent changed ranges and
 commits them in address order. A physical destination can still fail partway through that final commit; generic

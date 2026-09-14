@@ -17,6 +17,11 @@ Three positions are easy to confuse:
 
 The layout and read options tell CStructSharp how to connect them.
 
+A native C pointer normally addresses a live object in a process. Saving its numeric representation does not
+save its target or make the address valid after a restart. The background chapter on
+[memory addresses and stored data](memory-and-stored-data.md) explains virtual memory, file-relative offsets,
+and why the pointer width belongs to the format rather than the current operating system.
+
 ## Follow a simple pointer
 
 This layout stores a one-byte pointer to a one-byte value:

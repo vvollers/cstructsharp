@@ -34,7 +34,7 @@ try {
 
 Node loads the runtime directly from the installed package, with no HTTP server or runtime downloads.
 `Buffer` is accepted as byte input. CommonJS callers can use `await import("cstructsharp")` inside an async
-function. Synchronous `require()` and worker execution are not supported.
+function. Use the asynchronous import API rather than synchronous `require()`. Large or cancellable reads use workers automatically.
 
 For a Vite browser app, add this to `vite.config.js`, then use the same API import in your app:
 

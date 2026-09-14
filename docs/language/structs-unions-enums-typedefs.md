@@ -64,7 +64,7 @@ struct root {
 Its paths are `root.item.kind` and `root.item.value`. There is no separate type name for the inner declaration - that
 is already true of every inline struct, named or not.
 
-Inline structs may nest. Inline unions are not supported - a struct cannot nest a union member, named or anonymous.
+Inline structs may nest. Inline union declarations are not supported. A struct can contain a field whose type is a separately declared named union.
 Apart from name reuse, an inline struct follows the same placement, read, write, and update rules as a named child
 struct.
 

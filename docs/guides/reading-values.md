@@ -71,7 +71,9 @@ The non-generic `ReadValue` method returns the direct representation for the sel
 
 | Layout value | C# result |
 | --- | --- |
-| Fixed integer or character | Its matching CLR primitive, such as `byte`, `ushort`, or `char` |
+| Integer, floating-point, Boolean, or character | Its matching CLR primitive, such as `byte`, `ushort`, `float`, `bool`, or `char` |
+| Fixed-point value | `double` |
+| UUID/GUID | `Guid` |
 | Array | `IList<object?>`; a one-dimensional array of a fixed-width number or `bool` is a `PrimitiveArray<T>` whose `Span` exposes the typed values |
 | Fixed character buffer or terminated text | `string` |
 | Struct | `StructValue` (also `IDictionary<string, object?>`; usable as `dynamic`) |
