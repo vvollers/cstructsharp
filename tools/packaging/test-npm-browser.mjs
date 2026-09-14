@@ -16,7 +16,7 @@ const read = await api.parseWithDebug(def, bytes, opts);
 const compiled = await api.compile(def, opts);
 try {
   const [plain, debug] = await Promise.all([compiled.parse(bytes), compiled.parseWithDebug(new Blob([bytes]))]);
-  if (!plain.Success || plain.Data !== read.Data || JSON.stringify(debug) !== JSON.stringify(read)) throw Error("Compiled API parity failed");
+  if (!plain.Success || JSON.stringify(plain.Data) !== JSON.stringify(read.Data) || JSON.stringify(debug) !== JSON.stringify(read)) throw Error("Compiled API parity failed");
 } finally { await compiled.dispose(); }
 const written = await api.serialize(def, {kind:3,length:6}, opts);
 const changed = await api.update(def, bytes, "header.kind", 4, opts);
@@ -24,12 +24,12 @@ const invalid = await api.parseWithDebug(def, new Uint8Array(), opts);
 const fileBytes = new Uint8Array(8 * 1024 * 1024); fileBytes.set(bytes);
 const sourceRead = await api.parse(def, new Blob([fileBytes]), opts);
 const streamRead = await api.parseWithDebug(def, new Response(bytes), opts);
-if (!sourceRead.Success || JSON.parse(sourceRead.Data).header.kind !== 2 || sourceRead.DebugData.length || !streamRead.Success) throw Error("Large source parity failed");
+if (!sourceRead.Success || sourceRead.Data.header.kind !== 2 || sourceRead.DebugData.length || !streamRead.Success) throw Error("Large source parity failed");
 const large = await api.serialize("struct large { uint64 value; };", {value:18446744073709551615n}, {rootTypeName:"large"});
-if (JSON.parse(read.Data).header.kind !== 2 || !written.Success || written.Data[0] !== 3 || !changed.Success || changed.Data[0] !== 4 || bytes[0] !== 2 || invalid.Success || !large.Success || !large.Data.every(v=>v===255)) throw Error("Operation parity failed");
+if (read.Data.header.kind !== 2 || !written.Success || written.Data[0] !== 3 || !changed.Success || changed.Data[0] !== 4 || bytes[0] !== 2 || invalid.Success || !large.Success || !large.Data.every(v=>v===255)) throw Error("Operation parity failed");
 try { await api.loadCStructSharpWasm({runtimeUrl:"/different/"}); throw Error("Reconfiguration accepted"); }
 catch(error) { if(!error.message.includes("different runtimeUrl")) throw error; }
-window.result = {version:await api.getVersion(), kind:JSON.parse(read.Data).header.kind};
+window.result = {version:await api.getVersion(), kind:read.Data.header.kind};
 `;
 
 export async function testBrowserConsumer(consumer, installed, info) {

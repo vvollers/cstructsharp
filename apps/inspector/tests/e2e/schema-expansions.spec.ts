@@ -151,7 +151,7 @@ test("expanded layouts decode bitfields, records, dimensions and mixed-width poi
       { schema, bytes: [...bytes] },
     );
     expect(result.Success, `${ext}: ${JSON.stringify(result.Error)}`).toBe(true);
-    const json = JSON.stringify(JSON.parse(result.Data));
+    const json = JSON.stringify(result.Data);
     for (const value of expected) expect(json, ext).toContain(value);
   }
 });
@@ -196,7 +196,7 @@ test("RIFF native variants reselect metadata from bytes and preserve unknown chu
             ? [
                 ...wasm.serialize(
                   schema.definition,
-                  JSON.stringify(JSON.parse(parsed.Data).root),
+                  JSON.stringify(parsed.Data.root),
                   options,
                 ),
               ]
@@ -207,7 +207,7 @@ test("RIFF native variants reselect metadata from bytes and preserve unknown chu
     );
     expect(result.parsed.Success, JSON.stringify(result.parsed.Error)).toBe(true);
     expect(result.encoded).toEqual([...input]);
-    const root = JSON.parse(result.parsed.Data).root.header;
+    const root = result.parsed.Data.root.header;
     expect(root.chunk_1.payload).toEqual([42]);
     expect(root.chunk_1.padding).toEqual([123]);
     if (variant === "unknown") {
@@ -267,7 +267,7 @@ test("PNG native tags and lengths select metadata without regenerating the schem
             ? [
                 ...wasm.serialize(
                   schema.definition,
-                  JSON.stringify(JSON.parse(parsed.Data).root),
+                  JSON.stringify(parsed.Data.root),
                   options,
                 ),
               ]
@@ -278,7 +278,7 @@ test("PNG native tags and lengths select metadata without regenerating the schem
     );
     expect(result.parsed.Success, JSON.stringify(result.parsed.Error)).toBe(true);
     expect(result.encoded).toEqual([...bytes]);
-    const chunk = JSON.parse(result.parsed.Data).root.header.chunk_0;
+    const chunk = result.parsed.Data.root.header.chunk_0;
     expect(Object.keys(chunk)).toEqual(["length", "type", member, "crc32"]);
     if (tag === "gAMA" && payload.length === 4) {
       expect(chunk.gAMA.gamma_times_100000).toBe(45455);
@@ -332,7 +332,7 @@ test("PNG international text uses runtime compression flags and bounded UTF-8", 
             ? [
                 ...wasm.serialize(
                   schema.definition,
-                  JSON.stringify(JSON.parse(parsed.Data).root),
+                  JSON.stringify(parsed.Data.root),
                   options,
                 ),
               ]
@@ -343,7 +343,7 @@ test("PNG international text uses runtime compression flags and bounded UTF-8", 
     );
     expect(result.parsed.Success, JSON.stringify(result.parsed.Error)).toBe(true);
     expect(result.encoded).toEqual([...input]);
-    const text = JSON.parse(result.parsed.Data).root.header.chunk_0.international;
+    const text = result.parsed.Data.root.header.chunk_0.international;
     expect(text.keyword).toBe("Title");
     expect(text.translated_keyword).toBe("Titre");
     if (compressed) {
@@ -379,7 +379,7 @@ test("WebAssembly sections expose LEB128 counts, indexes and custom UTF-8 names"
           ? [
               ...wasm.serialize(
                 schema.definition,
-                JSON.stringify(JSON.parse(parsed.Data).root),
+                JSON.stringify(parsed.Data.root),
                 options,
               ),
             ]
@@ -390,7 +390,7 @@ test("WebAssembly sections expose LEB128 counts, indexes and custom UTF-8 names"
   );
   expect(result.parsed.Success, JSON.stringify(result.parsed.Error)).toBe(true);
   expect(result.encoded).toEqual([...bytes]);
-  const root = JSON.parse(result.parsed.Data).root.header;
+  const root = result.parsed.Data.root.header;
   expect(root.section_0).toMatchObject({ function_count: 2, type_indices: [0, 300] });
   expect(root.section_1.start_function_index).toBe(300);
   expect(root.section_2.data_segment_count).toBe(2);
@@ -430,7 +430,7 @@ test("WebAssembly malformed metadata cannot borrow the next section during previ
       { schema, bytes },
     );
     expect(result.Success, JSON.stringify(result.Error)).toBe(true);
-    const root = JSON.parse(result.Data).root.header;
+    const root = result.Data.root.header;
     expect(root.section_0.payload).toEqual(payload);
     expect(root.section_0.function_count).toBeUndefined();
     expect(root.section_1.data_segment_count).toBe(3);
@@ -483,7 +483,7 @@ test("movie headers decode versioned times and mixed-scale fixed-point matrices"
             ? [
                 ...wasm.serialize(
                   schema.definition,
-                  JSON.stringify(JSON.parse(parsed.Data).root),
+                  JSON.stringify(parsed.Data.root),
                   options,
                 ),
               ]
@@ -494,7 +494,7 @@ test("movie headers decode versioned times and mixed-scale fixed-point matrices"
     );
     expect(result.parsed.Success, JSON.stringify(result.parsed.Error)).toBe(true);
     expect(result.encoded).toEqual([...bytes]);
-    const header = JSON.parse(result.parsed.Data).root.header.box_0.child_0;
+    const header = result.parsed.Data.root.header.box_0.child_0;
     if (version === 2) {
       expect(header.unknown_version).toHaveLength(96);
       continue;
@@ -551,7 +551,7 @@ test("BMP calibration uses fixed-point values only for calibrated RGB", async ({
               ? [
                   ...wasm.serialize(
                     schema.definition,
-                    JSON.stringify(JSON.parse(parsed.Data).root),
+                    JSON.stringify(parsed.Data.root),
                     options,
                   ),
                 ]
@@ -562,7 +562,7 @@ test("BMP calibration uses fixed-point values only for calibrated RGB", async ({
       );
       expect(result.parsed.Success, JSON.stringify(result.parsed.Error)).toBe(true);
       expect(result.encoded).toEqual([...input]);
-      const root = JSON.parse(result.parsed.Data).root.header;
+      const root = result.parsed.Data.root.header;
       if (calibrated) {
         expect(root.endpoints_xyz[0]).toEqual([0.5, -0.25, 0]);
         expect([root.gamma_red, root.gamma_green, root.gamma_blue]).toEqual([1.5, 2, 2.5]);
@@ -608,7 +608,7 @@ test("Palm record IDs use three-byte big-endian integers with exact array stride
           ? [
               ...wasm.serialize(
                 schema.definition,
-                JSON.stringify(JSON.parse(parsed.Data).root),
+                JSON.stringify(parsed.Data.root),
                 options,
               ),
             ]
@@ -618,7 +618,7 @@ test("Palm record IDs use three-byte big-endian integers with exact array stride
     { schema, bytes: [...bytes] },
   );
   expect(result.parsed.Success, JSON.stringify(result.parsed.Error)).toBe(true);
-  expect(JSON.parse(result.parsed.Data).root.header.records).toEqual([
+  expect(result.parsed.Data.root.header.records).toEqual([
     { offset: 100, attributes: 64, unique_id: 0x123456 },
     { offset: 200, attributes: 128, unique_id: 0xffffff },
   ]);

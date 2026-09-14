@@ -23,7 +23,7 @@ The reviewed `browser-rc1` description targets package candidate `0.2.0-preview`
 
 Binary data crosses the boundary as a native `byte[]`/`Uint8Array`, never Base64 text. `ParseWithDebug` still
 returns the same outer object, called an *envelope* - its fields are `ContractVersion`,
-`Operation`, `Success`, `Data`, `DebugData`, and `Error` - since its `Data` is genuinely JSON text either way.
+`Operation`, `Success`, `Data`, `DebugData`, and `Error` - since contract version 7 its `Data` is the parsed value itself.
 `Serialize`/`UpdateStream` return the encoded bytes directly on success; there is no envelope object left to carry
 an `Error` field alongside a native byte-array success payload, so they report failure by throwing instead. The
 thrown JS `Error`'s message is the same JSON-serialized `Code`/`Message`/`Offset`/`Path` shape the envelope's

@@ -121,7 +121,7 @@ assert.throws(
 if (!process.argv.includes("--node-only")) {
   const tsc = path.join(root, "apps/workshop", "node_modules", "typescript", "bin", "tsc");
   const ts =
-    'import { parseWithDebug, loadCStructSharpWasm, type Result } from "cstructsharp"; import { cstructsharp } from "cstructsharp/vite"; const result: Result<string,"parse"> = await parseWithDebug("struct x { uint8 a; };", new Uint8Array([1])); if (!result.Success) throw Error(result.Error.Message); console.log(result.Data); void cstructsharp; void loadCStructSharpWasm;';
+    'import { parseWithDebug, loadCStructSharpWasm, type Result, type ParsedData } from "cstructsharp"; import { cstructsharp } from "cstructsharp/vite"; const result: Result<ParsedData,"parse"> = await parseWithDebug("struct x { uint8 a; };", new Uint8Array([1])); if (!result.Success) throw Error(result.Error.Message); console.log(result.Data.x); void cstructsharp; void loadCStructSharpWasm;';
   fs.writeFileSync(path.join(consumer, "types.mts"), ts);
   run(
     process.execPath,

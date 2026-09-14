@@ -104,7 +104,7 @@ const result = await parseWithDebug(
   { rootTypeName: "header" },
 );
 if (!result.Success) throw new Error(result.Error.Message);
-console.log(JSON.parse(result.Data).header.kind); // 2
+console.log(result.Data.header.kind); // 2
 ```
 
 Node loads the installed runtime from disk; no .NET SDK or server is needed. Browser applications use the same

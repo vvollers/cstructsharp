@@ -43,7 +43,7 @@ for (const entry of manifest().fixtures) {
     operations++;
     parsable = parsed.Success;
     if (i === 0 && parsed.Success && !coreOnly) {
-      const value = JSON.parse(parsed.Data)[document.root];
+      const value = parsed.Data[document.root];
       const written = await env.api.serialize(document.definition, value, options);
       if (written.Success) {
         await env.api.parseWithDebug(document.definition, written.Data, options);

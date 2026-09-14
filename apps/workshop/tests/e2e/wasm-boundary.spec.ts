@@ -50,7 +50,7 @@ test.beforeEach(async ({ page }) => {
   });
   await page.evaluate(() => {
     const raw = window.CStructSharpWasm as unknown as RawWasmAdapter;
-    const CONTRACT_VERSION = 6;
+    const CONTRACT_VERSION = 7;
 
     const toBytes = (base64: string): Uint8Array =>
       Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
@@ -287,30 +287,30 @@ test("real managed exports parse, serialize, and update through the browser", as
   });
 
   expect(results.parse).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "parse",
     Success: true,
     Error: null,
   });
-  expect(JSON.parse((results.parse.Data as string) ?? "{}")).toEqual({
+  expect((results.parse.Data ?? {})).toEqual({
     root: { value: 42 },
   });
   expect(results.scopedInlineParse).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "parse",
     Success: true,
     Error: null,
   });
-  expect(JSON.parse((results.scopedInlineParse.Data as string) ?? "{}")).toEqual({
+  expect((results.scopedInlineParse.Data ?? {})).toEqual({
     first: { value: { small: 42 } },
   });
   expect(results.pointerUnionParse).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "parse",
     Success: true,
     Error: null,
   });
-  expect(JSON.parse((results.pointerUnionParse.Data as string) ?? "{}")).toEqual({
+  expect((results.pointerUnionParse.Data ?? {})).toEqual({
     root: {
       target: {
         Address: 1,
@@ -327,12 +327,12 @@ test("real managed exports parse, serialize, and update through the browser", as
     },
   });
   expect(results.unionParse).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "parse",
     Success: true,
     Error: null,
   });
-  expect(JSON.parse((results.unionParse.Data as string) ?? "{}")).toEqual({
+  expect((results.unionParse.Data ?? {})).toEqual({
     $kind: "union",
     Union: "choice",
     RawStorage: "NBI=",
@@ -340,21 +340,21 @@ test("real managed exports parse, serialize, and update through the browser", as
     SelectedMember: null,
   });
   expect(results.selectedUnionSerialize).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "serialize",
     Success: true,
     Data: "pQA=",
     Error: null,
   });
   expect(results.rawUnionSerialize).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "serialize",
     Success: true,
     Data: "NBI=",
     Error: null,
   });
   expect(results.legacyUnionSerialize).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "serialize",
     Success: false,
     Data: null,
@@ -363,63 +363,63 @@ test("real managed exports parse, serialize, and update through the browser", as
     },
   });
   expect(results.selectedUnionUpdate).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "update",
     Success: true,
     Data: "pQA=",
     Error: null,
   });
   expect(results.serialize).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "serialize",
     Success: true,
     Data: "Kg==",
     Error: null,
   });
   expect(results.selectedArraySerialize).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "serialize",
     Success: true,
     Data: "NBI=",
     Error: null,
   });
   expect(results.update).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "update",
     Success: true,
     Data: "Kg==",
     Error: null,
   });
   expect(results.alignedPointerUpdate).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "update",
     Success: true,
     Data: "A+6l775+",
     Error: null,
   });
   expect(results.relativeNullPointer).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "update",
     Success: true,
     Data: "AA==",
     Error: null,
   });
   expect(results.nullPointerSerialize).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "serialize",
     Success: true,
     Data: "AKU=",
     Error: null,
   });
   expect(results.nullRootPointerSerialize).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "serialize",
     Success: true,
     Data: "AAA=",
     Error: null,
   });
   expect(results.nullPrimitiveSerialize).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "serialize",
     Success: false,
     Data: null,
@@ -428,7 +428,7 @@ test("real managed exports parse, serialize, and update through the browser", as
     },
   });
   expect(results.nullRootStructSerialize).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "serialize",
     Success: false,
     Data: null,
@@ -437,23 +437,23 @@ test("real managed exports parse, serialize, and update through the browser", as
     },
   });
   expect(results.explicitBigEndianWideParse).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "parse",
     Success: true,
     Error: null,
   });
-  expect(JSON.parse((results.explicitBigEndianWideParse.Data as string) ?? "{}")).toEqual({
+  expect((results.explicitBigEndianWideParse.Data ?? {})).toEqual({
     root: { value: "A" },
   });
   expect(results.explicitBigEndianWideSerialize).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "serialize",
     Success: true,
     Data: "AEEAAA==",
     Error: null,
   });
   expect(results.explicitBigEndianWideUpdate).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "update",
     Success: true,
     Data: "AEIAAA==",
@@ -487,7 +487,7 @@ test("64-bit values remain exact and invalid options return stable errors", asyn
     };
   });
 
-  expect(JSON.parse((results.parse.Data as string) ?? "{}")).toEqual({
+  expect((results.parse.Data ?? {})).toEqual({
     root: { value: "18446744073709551615" },
   });
   expect(results.serialize).toMatchObject({
@@ -495,7 +495,7 @@ test("64-bit values remain exact and invalid options return stable errors", asyn
     Data: "//////////8=",
   });
   expect(results.invalidMode).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "update",
     Success: false,
     Data: null,
@@ -542,26 +542,26 @@ test("v4 options control endian behavior and enforce caller-selected safety budg
   });
 
   expect(results.bigEndian).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "parse",
     Success: true,
     Error: null,
   });
-  expect(JSON.parse((results.bigEndian.Data as string) ?? "{}")).toEqual({
+  expect((results.bigEndian.Data ?? {})).toEqual({
     root: { value: 0x1234 },
   });
   expect(results.readBudget).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Success: false,
     Error: { Code: "read-budget" },
   });
   expect(results.optionCap).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Success: false,
     Error: { Code: "invalid-input" },
   });
   expect(results.definitionBudget).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Success: false,
     Error: { Code: "invalid-layout" },
   });
@@ -617,17 +617,17 @@ test("all signed and unsigned JavaScript precision boundaries round-trip exactly
   });
 
   for (const result of results) {
-    const parsedValue = JSON.parse((result.parsed.Data as string) ?? "{}").root.value as
+    const parsedValue = (result.parsed.Data ?? {}).root.value as
       number | string;
     expect(String(parsedValue)).toBe(result.expected);
     expect(result.parsed).toMatchObject({
-      ContractVersion: 6,
+      ContractVersion: 7,
       Operation: "parse",
       Success: true,
       Error: null,
     });
     expect(result.serialized).toMatchObject({
-      ContractVersion: 6,
+      ContractVersion: 7,
       Operation: "serialize",
       Success: true,
       Data: result.bytes,
@@ -688,7 +688,7 @@ test("full-width enum values remain exact across browser parse, serialize, and u
     };
   });
 
-  expect(JSON.parse((results.unknown.Data as string) ?? "{}")).toEqual({
+  expect((results.unknown.Data ?? {})).toEqual({
     root: {
       value: {
         Enum: "state",
@@ -700,7 +700,7 @@ test("full-width enum values remain exact across browser parse, serialize, and u
   expect(results.unknown.DebugData).toEqual([
     expect.objectContaining({ Value: "18446744073709551615" }),
   ]);
-  expect(JSON.parse((results.known.Data as string) ?? "{}")).toEqual({
+  expect((results.known.Data ?? {})).toEqual({
     root: {
       value: {
         Enum: "state",
@@ -710,7 +710,7 @@ test("full-width enum values remain exact across browser parse, serialize, and u
     },
   });
   expect(results.decimalString).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "serialize",
     Success: true,
     Data: "//////////8=",
@@ -725,14 +725,14 @@ test("full-width enum values remain exact across browser parse, serialize, and u
     Data: "//////////8=",
   });
   expect(results.update).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "update",
     Success: true,
     Data: "//////////8=",
     Error: null,
   });
   expect(results.fractional).toMatchObject({
-    ContractVersion: 6,
+    ContractVersion: 7,
     Operation: "serialize",
     Success: false,
     Data: null,
@@ -868,7 +868,7 @@ test("each major failure category uses the same release-safe contract", async ({
 
   for (const [name, failure] of Object.entries(failures)) {
     expect(failure).toMatchObject({
-      ContractVersion: 6,
+      ContractVersion: 7,
       Success: false,
       Data: null,
       Error: {

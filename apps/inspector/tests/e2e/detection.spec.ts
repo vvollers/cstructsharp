@@ -117,7 +117,7 @@ test("TIFF directory pointers and SQLite header fields decode actual values", as
       { schema, bytes: [...bytes] },
     );
     expect(result.Success).toBe(true);
-    const json = JSON.stringify(JSON.parse(result.Data));
+    const json = JSON.stringify(result.Data);
     if (ext === "tif") expect(json).toContain('"Name":"ImageWidth","Value":256');
     for (const [key, value] of Object.entries(expected))
       expect(json).toContain(`"${key}":${value}`);

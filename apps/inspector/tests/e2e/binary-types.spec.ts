@@ -33,7 +33,7 @@ test("conditional update reachability and anonymous inactive fields survive WASM
   expect(result.rejected).toBe(true);
   expect(result.encoded).toEqual([1, 42, 99]);
   expect(result.parsed.Success).toBe(true);
-  expect(JSON.parse(result.parsed.Data).root).toEqual({ tag: 1, value: 42, tail: 99 });
+  expect(result.parsed.Data.root).toEqual({ tag: 1, value: 42, tail: 99 });
 });
 
 test("conditional groups retain outer discriminators across nested fields and array elements", async ({
@@ -50,7 +50,7 @@ test("conditional groups retain outer discriminators across nested fields and ar
     const parsed = JSON.parse(wasm.parseWithDebug(definition, bytes, options));
     const encoded = wasm.serialize(
       definition,
-      JSON.stringify(JSON.parse(parsed.Data).root),
+      JSON.stringify(parsed.Data.root),
       options,
     );
     const changed = wasm.updateStream(definition, bytes, "root.items[0].child.tag", "2", options);
@@ -62,7 +62,7 @@ test("conditional groups retain outer discriminators across nested fields and ar
   });
   expect(result.parsed.Success).toBe(true);
   expect(result.encoded).toEqual([1, 0, 42, 88, 0, 52, 18]);
-  expect(JSON.parse(result.updated.Data).root.items).toEqual([
+  expect(result.updated.Data.root.items).toEqual([
     { tag: 1, child: { tag: 2 }, value: 42, trailer: 88 },
     { tag: 0, other: 4660 },
   ]);
@@ -116,8 +116,8 @@ test("PE and GLB schemas select alternatives from the loaded bytes", async ({ pa
         { schema, bytes: [...bytes] },
       );
       expect(result.Success, JSON.stringify(result.Error)).toBe(true);
-      expect(result.Data).toContain(`"${active}"`);
-      expect(result.Data).not.toContain(`"${inactive}"`);
+      expect(JSON.stringify(result.Data)).toContain(`"${active}"`);
+      expect(JSON.stringify(result.Data)).not.toContain(`"${inactive}"`);
     }
   }
 });
@@ -151,7 +151,7 @@ test("one CRX schema selects versioned headers from runtime bytes", async ({ pag
       { schema, bytes: [...bytes] },
     );
     expect(result.Success).toBe(true);
-    const header = JSON.parse(result.Data).root.header;
+    const header = result.Data.root.header;
     if (bytes === v2) expect(header.signature_bytes).toEqual([22, 33]);
     else expect(header.signed_header).toEqual([44, 55]);
   }
@@ -185,7 +185,7 @@ test("ZIP selects each entry's own text encoding with native conditions", async 
     { schema, bytes: [...bytes] },
   );
   expect(result.Success).toBe(true);
-  const entries = JSON.parse(result.Data).root.header.entries;
+  const entries = result.Data.root.header.entries;
   expect(entries[0].filename_utf8).toBe("é.txt");
   expect(entries[0]).not.toHaveProperty("filename_cp437");
   expect(entries[1].filename_cp437).toBe("é.txt");
@@ -226,10 +226,10 @@ test("identifiers and fixed-point values round-trip through WASM", async ({ page
     };
   });
   expect(result.parsed.Success).toBe(true);
-  expect(JSON.parse(result.parsed.Data).root).toEqual(result.value);
+  expect(result.parsed.Data.root).toEqual(result.value);
   expect(result.bytes.slice(0, 8)).toEqual([0, 17, 34, 51, 68, 85, 102, 119]);
   expect(result.bytes.slice(16, 24)).toEqual([51, 34, 17, 0, 85, 68, 119, 102]);
-  expect(JSON.parse(result.updated.Data).root.windows).toBe("00000000-0000-0000-0000-000000000000");
+  expect(result.updated.Data.root.windows).toBe("00000000-0000-0000-0000-000000000000");
   expect(result.parsed.DebugData).toContainEqual(
     expect.objectContaining({ DebugStackString: "root.windows", CurPos: 16, EndPos: 32 }),
   );
@@ -274,10 +274,10 @@ test("LEB128 preserves 64-bit values and rejects extent-changing updates in WASM
     };
   });
   expect(result.parsed.Success).toBe(true);
-  expect(JSON.parse(result.parsed.Data).root).toEqual(result.value);
+  expect(result.parsed.Data.root).toEqual(result.value);
   expect(result.length).toBe(21);
   expect(result.rejected).toBe(true);
-  expect(JSON.parse(result.changed.Data).root.unsigned_value).toBe("18446744073709551614");
+  expect(result.changed.Data.root.unsigned_value).toBe("18446744073709551614");
   expect(result.parsed.DebugData).toContainEqual(
     expect.objectContaining({ DebugStackString: "root.signed_value", CurPos: 10, EndPos: 20 }),
   );
@@ -310,7 +310,7 @@ test("PNG international text is bounded and compressed payloads stay opaque", as
       { schema, bytes: [...bytes] },
     );
     expect(result.Success).toBe(true);
-    const chunk = JSON.parse(result.Data).root.header.chunk_0.international;
+    const chunk = result.Data.root.header.chunk_0.international;
     expect(chunk.translated_keyword).toBe("标题");
     expect(chunk.language_tag).toBe("nl");
     if (compressed) expect(chunk.compressed_text).toEqual([...Buffer.from("你好🌍")]);

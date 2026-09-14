@@ -12,7 +12,7 @@ using Enum = System.Enum;
 /// <summary>Validates untrusted browser inputs and creates the stable transport envelope.</summary>
 public partial class CStructExports
 {
-    private const int InteropContractVersion = 6;
+    private const int InteropContractVersion = 7;
     private const int MaximumBinaryInputLength = 4 * 1024 * 1024;
     private const int MaximumDefinitionLength = 128 * 1024;
     private const int MaximumExpressionNestingDepth = 256;
@@ -330,8 +330,8 @@ public partial class CStructExports
         }
     }
 
-    /// <summary>Creates the common successful result used by all browser operations.</summary>
-    private static InteropResultDto CreateSuccess(string operation, string data)
+    /// <summary>Creates a successful result whose Data is an already-parsed JSON value (the compiled-layout handshake).</summary>
+    private static InteropResultDto CreateSuccess(string operation, JsonElement data)
     {
         return new InteropResultDto
         {
@@ -342,6 +342,13 @@ public partial class CStructExports
             DebugData = [],
             Error = null,
         };
+    }
+
+    /// <summary>An empty JSON object value for envelopes that carry no data.</summary>
+    private static JsonElement EmptyObject()
+    {
+        using JsonDocument document = JsonDocument.Parse("{}");
+        return document.RootElement.Clone();
     }
 
     /// <summary>Creates a release-safe categorized error without echoing raw caller input.</summary>

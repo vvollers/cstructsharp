@@ -69,8 +69,17 @@ export interface DebugDataItem {
   Value: string | null;
 }
 export type Operation = "parse" | "serialize" | "update";
+/**
+ * A parsed value as JavaScript data (contract v7): numbers, booleans, strings (fixed text keeps its
+ * padding characters; integers beyond Number's exact range and 64-bit enum values arrive as decimal strings),
+ * nested objects for structs, arrays, and the tagged shapes for enums ({ Enum, Name, Value }), unions
+ * ({ $kind: "union", Union, RawStorage, Members, SelectedMember }) and pointers ({ Address, Depth, IsDereferenced, Value }).
+ */
+export type ParsedValue = null | boolean | number | string | ParsedValue[] | { [name: string]: ParsedValue };
+/** A successful parse result's Data: the selected root's value under its name, e.g. Data.header.kind. */
+export type ParsedData = { [rootName: string]: ParsedValue };
 export type Result<T, O extends Operation> = {
-  ContractVersion: 6;
+  ContractVersion: 7;
   Operation: O;
   DebugData: DebugDataItem[];
 } & (
@@ -96,7 +105,7 @@ export interface RawWasmAdapter {
   error: null;
   exports: unknown;
   /** Asynchronous paged source API. Prefer public parse/parseWithDebug. */
-  parseSource(definition: string, source: BinarySource, options?: ParseWithDebugOptions | null, debug?: boolean): Promise<Result<string, "parse">>;
+  parseSource(definition: string, source: BinarySource, options?: ParseWithDebugOptions | null, debug?: boolean): Promise<Result<ParsedData, "parse">>;
   parseWithDebug(
     definition: string,
     bytes: Uint8Array,
@@ -119,18 +128,18 @@ export type BinaryChunk = ArrayBufferLike | ArrayBufferView;
 /** Streams/iterables yield binary chunks only and are staged to temporary storage before parsing. */
 export type BinarySource = BinaryChunk | Blob | Response | ReadableStream<BinaryChunk>
   | Iterable<BinaryChunk> | AsyncIterable<BinaryChunk> | { getFile(): Promise<File> };
-/** Parse a binary source without debug byte copies. Data is JSON text with the selected root wrapper.
+/** Parse a binary source without debug byte copies. Data is the parsed value with the selected root wrapper.
  * Large source length is independent of the read/array/string limits and returned value size.
  */
-export function parse(definition: string, source: BinarySource, options?: ParseWithDebugOptions | null): Promise<Result<string, "parse">>;
-/** Read bytes. Successful Data is JSON text with a root wrapper, e.g. values.header.kind.
- * Large integers in that JSON may be decimal strings; do not coerce them to Number.
+export function parse(definition: string, source: BinarySource, options?: ParseWithDebugOptions | null): Promise<Result<ParsedData, "parse">>;
+/** Read bytes. Successful Data is the parsed value with a root wrapper, e.g. result.Data.header.kind.
+ * Large integers arrive as decimal strings; do not coerce them to Number.
  */
 export function parseWithDebug(
   definition: string,
   bytes: BinarySource,
   options?: ParseWithDebugOptions | null,
-): Promise<Result<string, "parse">>;
+): Promise<Result<ParsedData, "parse">>;
 /** Create bytes. Pass the selected root's fields without the parse result's root wrapper. */
 export function serialize(
   definition: string,
@@ -153,8 +162,8 @@ export type CompiledParseOptions = Omit<ParseWithDebugOptions, keyof LayoutOptio
 };
 /** Owns a dedicated worker/runtime. Calls are queued; always dispose when finished. */
 export interface CompiledLayout {
-  parse(source: BinarySource, options?: CompiledParseOptions | null): Promise<Result<string, "parse">>;
-  parseWithDebug(source: BinarySource, options?: CompiledParseOptions | null): Promise<Result<string, "parse">>;
+  parse(source: BinarySource, options?: CompiledParseOptions | null): Promise<Result<ParsedData, "parse">>;
+  parseWithDebug(source: BinarySource, options?: CompiledParseOptions | null): Promise<Result<ParsedData, "parse">>;
   /** Idempotent; cancels outstanding calls, closes sources and releases the runtime. */
   dispose(): Promise<void>;
 }

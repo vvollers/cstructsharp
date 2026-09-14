@@ -46,7 +46,7 @@ test("decompression streams feed the source parser", async ({ page }) => {
     );
   });
   expect(result.Success).toBe(true);
-  expect(JSON.parse(result.Data as string)).toEqual({ root: { value: 42 } });
+  expect(result.Data).toEqual({ root: { value: 42 } });
 });
 
 test("browser sources preserve view boundaries and stage one-pass data", async ({ page }) => {
@@ -78,7 +78,7 @@ test("browser sources preserve view boundaries and stage one-pass data", async (
   });
   for (const result of results) {
     expect(result.Success).toBe(true);
-    expect(JSON.parse(result.Data as string)).toEqual({ root: { value: 42 } });
+    expect(result.Data).toEqual({ root: { value: 42 } });
     expect(result.DebugData).toEqual([]);
   }
 });
@@ -106,7 +106,7 @@ test("pointers can reach beyond 4 GiB and read across a page boundary", async ({
     );
   });
   expect(result.Success).toBe(true);
-  expect(JSON.parse(result.Data as string).root.ptr).toMatchObject({
+  expect(result.Data.root.ptr).toMatchObject({
     Address: 2 ** 32 + 65535,
     Value: 42,
     IsDereferenced: true,

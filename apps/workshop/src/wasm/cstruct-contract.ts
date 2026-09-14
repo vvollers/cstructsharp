@@ -16,7 +16,7 @@ export type {
  * these shapes by the Playwright success and failure matrix.
  */
 
-export const INTEROP_CONTRACT_VERSION = 6 as const;
+export const INTEROP_CONTRACT_VERSION = 7 as const;
 
 export interface UnionValue {
   $kind: "union";
@@ -48,6 +48,11 @@ export interface ParsedEnumValue {
   Value: number | string;
 }
 
+/** A parsed value as JavaScript data (contract v7); large integers arrive as decimal strings. */
+export type ParsedValue = null | boolean | number | string | ParsedValue[] | { [name: string]: ParsedValue };
+/** A successful parse result's Data: the selected root's value under its name. */
+export type ParsedData = { [rootName: string]: ParsedValue };
+
 export interface DebugDataItem {
   CurPos: number;
   EndPos: number;
@@ -66,14 +71,14 @@ export interface ErrorDetails {
 export type InteropOperation = "parse" | "serialize" | "update";
 
 /**
- * Data is JSON text for "parse" (the decoded value), raw bytes for "serialize"/"update" (a native Uint8Array -
+ * Data is the parsed value for "parse" (an object with the root wrapper, contract v7), raw bytes for "serialize"/"update" (a native Uint8Array -
  * the managed bridge no longer transports binary payloads as Base64 text), or null on failure.
  */
 export interface InteropResult {
   ContractVersion: typeof INTEROP_CONTRACT_VERSION;
   Operation: InteropOperation;
   Success: boolean;
-  Data: string | Uint8Array | null;
+  Data: ParsedData | Uint8Array | null;
   DebugData: DebugDataItem[];
   Error: ErrorDetails | null;
 }

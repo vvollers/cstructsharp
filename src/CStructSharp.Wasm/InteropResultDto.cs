@@ -1,13 +1,19 @@
 namespace CStructSharpWeb.Wasm;
 
 using System.Collections.Generic;
+using System.Text.Json;
 
-/// <summary>Describes the versioned result envelope returned by every browser operation.</summary>
+/// <summary>
+///     Describes the versioned result envelope returned by every browser operation. Since contract v7 a parse
+///     operation's <see cref="Data"/> is the parsed value itself (a JSON object), not JSON text; successful parse
+///     envelopes are written directly by <see cref="ParsedJsonWriter"/>, so this DTO is serialized only for
+///     failures and the compiled-layout handshake.
+/// </summary>
 public sealed class InteropResultDto
 {
     public int ContractVersion { get; set; }
 
-    public string? Data { get; set; }
+    public JsonElement? Data { get; set; }
 
     public List<DebugDataDto> DebugData { get; set; } = [];
 

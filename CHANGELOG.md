@@ -4,6 +4,13 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- **Breaking (browser contract version 7):** a successful `parse`/`parseWithDebug` result carries `Data` as the
+  parsed value itself (an object with the selected root wrapper, e.g. `result.Data.header.kind`) instead of JSON
+  text to `JSON.parse`. Values, options, error codes and `DebugData` items are unchanged; `serialize`/`update`
+  still return a `Uint8Array`. The envelope is now written in one pass without escaping the payload into a
+  string and the browser parses it once: a mid-size parse (`nested-x256`) drops from 3.2 ms to about 2.3 ms in
+  the interpreter bundle. Replace `JSON.parse(result.Data)` with `result.Data`; TypeScript users get the new
+  `ParsedData`/`ParsedValue` types.
 - Browser/WASM: the publication is fully trimmed and no longer ships the C# runtime binder (`Microsoft.CSharp`):
   33 → 27 files, 5.35 → 4.36 MB raw, 2.05 → 1.66 MB gzip. The first `parse` call after startup no longer pays
   the binder's ~125 ms initialization (142 → 17 ms in Node); results, options, and the contract are unchanged.

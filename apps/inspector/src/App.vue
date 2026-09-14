@@ -60,12 +60,8 @@ const selectedDebugIndices = ref<ReadonlySet<number>>(new Set());
 const focusPath = ref<string[] | null>(null);
 const debugData = computed(() => (result.value?.Success ? result.value.DebugData : []));
 const parsedResult = computed<unknown>(() => {
-  if (!result.value?.Success || typeof result.value.Data !== "string") return undefined;
-  try {
-    return JSON.parse(result.value.Data);
-  } catch {
-    return undefined;
-  }
+  if (!result.value?.Success || result.value.Operation !== "parse" || result.value.Data instanceof Uint8Array) return undefined;
+  return result.value.Data;
 });
 const schemaDisabled = computed(() => wasmStatus.value !== "ready" || isRunning.value);
 

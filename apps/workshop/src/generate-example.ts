@@ -139,7 +139,7 @@ export function generateExample(
     : !observed.Success
       ? `These inputs currently fail in the browser: ${observed.Error?.Code}.\nExpected: the error handler reports the invalid input or exceeded limit.`
       : operation === "parse"
-        ? `Observed browser values (C# uses its native value types without the outer root wrapper):\n${observed.Data}`
+        ? `Observed browser values (C# uses its native value types without the outer root wrapper):\n${JSON.stringify(observed.Data)}`
         : `Expected output bytes (hex): ${Array.from(observed.Data as Uint8Array, (b) => b.toString(16).padStart(2, "0")).join(" ")}`;
   const options = nonDefaultOptions(request);
   const policy = Object.entries(options)
@@ -264,8 +264,8 @@ ${comment(expected)
   .join("\n")}
 ${
   operation === "parse"
-    ? `        // Data contains JSON text, including a root wrapper and exact large-integer strings.
-        console.log(JSON.parse(result.Data));`
+    ? `        // Data is the parsed value, including a root wrapper and exact large-integer strings.
+        console.log(result.Data);`
     : `        // Data is already a Uint8Array, ready to save, send, or read again.
         const output = result.Data;
         console.log(Array.from(output, b => b.toString(16).padStart(2, "0")).join(" "));`

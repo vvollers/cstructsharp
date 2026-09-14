@@ -28,7 +28,7 @@ for (const f of fixtures.filter(f=>label!=='main'||!f.conditional)) {
   const check=await action();
   if(op.startsWith('public') || op.startsWith('compiled')) {
     if(!check.Success) throw Error(JSON.stringify(check));
-    if(JSON.stringify(JSON.parse(check.Data).root)!==JSON.stringify(compiledData)) throw Error('Data mismatch '+f.name);
+    if(JSON.stringify(check.Data.root)!==JSON.stringify(compiledData)) throw Error('Data mismatch '+f.name);
   }
   let sink, count=0, start=performance.now();
   while(performance.now()-start<600){sink=await action();count++;}

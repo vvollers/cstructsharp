@@ -279,7 +279,7 @@ function parseInteropResult(json: string, expectedOperation: InteropOperation): 
     value.ContractVersion !== INTEROP_CONTRACT_VERSION ||
     value.Operation !== expectedOperation ||
     typeof value.Success !== "boolean" ||
-    (typeof value.Data !== "string" && value.Data !== null) ||
+    (value.Success ? typeof value.Data !== "object" || value.Data === null || Array.isArray(value.Data) : value.Data !== null) ||
     !Array.isArray(value.DebugData) ||
     !value.DebugData.every(isDebugDataItem) ||
     !isErrorDetails(value.Error) ||

@@ -41,7 +41,7 @@ export async function verifyFixture(env, id) {
   const options = fixtureOptions(document);
   const result = await env.api.parse(document.definition, bytes, options);
   if (!result.Success) throw new Error(`${id}: public parse failed: ${JSON.stringify(result.Error)}`);
-  const parsed = JSON.parse(result.Data);
+  const parsed = result.Data;
   const actual = JSON.stringify(parsed[document.root]);
   if (document.expected !== null && document.expected !== undefined) {
     const expected = JSON.stringify(document.expected);

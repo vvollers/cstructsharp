@@ -35,10 +35,10 @@ describe("ResultPanel", () => {
       props: {
         bytes: new Uint8Array(),
         result: {
-          ContractVersion: 6,
+          ContractVersion: 7,
           Operation: "parse",
           Success: true,
-          Data: '{"value":42}',
+          Data: { value: 42 },
           Error: null,
           DebugData: values.map(([Type, Value], index) => ({
             Type: Type!,
@@ -57,7 +57,7 @@ describe("ResultPanel", () => {
     expect(jsonEditor.props("modelValue")).toBe('{\n  "value": 42 // 0x2A\n}');
     expect(jsonEditor.props("language")).toBe("json");
     expect(jsonEditor.props("readOnly")).toBe("");
-    expect(wrapper.props("result")!.Data).toBe('{"value":42}');
+    expect(wrapper.props("result")!.Data).toEqual({ value: 42 });
   });
 
   it("uses VueHex as an editable binary viewer for successful output", async () => {
@@ -66,10 +66,10 @@ describe("ResultPanel", () => {
       props: {
         bytes,
         result: {
-          ContractVersion: 6,
+          ContractVersion: 7,
           Operation: "parse",
           Success: true,
-          Data: '{"value":42}',
+          Data: { value: 42 },
           DebugData: [],
           Error: null,
         },

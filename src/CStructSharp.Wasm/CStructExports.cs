@@ -84,7 +84,7 @@ public partial class CStructExports
         try
         {
             workerLayout = CreateCStruct(definition, ParseOptions(optionsJson));
-            return SerializeInteropResult(CreateSuccess("parse", "{}"));
+            return SerializeInteropResult(CreateSuccess("parse", EmptyObject()));
         }
         catch (Exception exception)
         {
@@ -227,8 +227,6 @@ public partial class CStructExports
                 });
         }
 
-        InteropResultDto response = CreateSuccess("parse", SerializeParsedValue(result));
-        response.DebugData = debugDataDtos;
-        return SerializeInteropResult(response);
+        return SerializeParseEnvelope(result, debugDataDtos);
     }
 }

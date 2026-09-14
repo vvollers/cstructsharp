@@ -27,15 +27,11 @@ const parsedJson = computed<unknown>(() => {
   if (
     !props.result?.Success ||
     props.result.Operation !== "parse" ||
-    typeof props.result.Data !== "string"
+    props.result.Data instanceof Uint8Array
   ) {
     return null;
   }
-  try {
-    return JSON.parse(props.result.Data);
-  } catch {
-    return null;
-  }
+  return props.result.Data;
 });
 
 const recovery = computed(() => {

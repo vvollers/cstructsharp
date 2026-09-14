@@ -13,7 +13,7 @@ const compiled = await compileLargeSource(definition, options);
 options.aligned = true;
 const a = new Uint8Array([1, 42, 0, 0, 0, 7]);
 const b = new Uint8Array([0, 19, 0, 8]);
-function value(result) { assert.equal(result.Success, true, JSON.stringify(result)); return JSON.parse(result.Data).root; }
+function value(result) { assert.equal(result.Success, true, JSON.stringify(result)); return result.Data.root; }
 try {
   const results = await Promise.all(Array.from({length: 20}, (_, i) => compiled.parse(i % 2 ? b : a)));
   results.forEach((result, i) => assert.deepEqual(value(result), i % 2 ? {tag:0,small:19,tail:8} : {tag:1,value:42,tail:7}));
@@ -70,6 +70,6 @@ console.log('PASS ordinary source staging remains independent');
 const roots = await compileLargeSource('struct first { uint8 small; }; struct root { uint16 value; };', {rootTypeName:'root'});
 try {
   assert.equal(value(await roots.parse(new Uint8Array([1,2]), {rootTypeName:undefined})).value, 513);
-  assert.equal(JSON.parse((await roots.parse(new Uint8Array([1,2]), {rootTypeName:'first'})).Data).first.small, 1);
+  assert.equal((await roots.parse(new Uint8Array([1,2]), {rootTypeName:'first'})).Data.first.small, 1);
 } finally { await roots.dispose(); }
 console.log('PASS compiled root defaults and per-read root overrides');

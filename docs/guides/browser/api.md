@@ -20,8 +20,8 @@ lives for the process/page lifetime; no explicit disposal is needed for normal N
 | --- | --- | --- |
 | `await loadCStructSharpWasm()` | None | Loaded raw API, for advanced integration |
 | `await getVersion()` | None | Version string from the loaded managed library |
-| `await parse(definition, source, options)` | Layout string, binary source, options | Result with root-wrapped JSON text in `Data`, without debug capture |
-| `await parseWithDebug(definition, source, options)` | Layout string, binary source, options | Result with JSON text in `Data` and field ranges in `DebugData` |
+| `await parse(definition, source, options)` | Layout string, binary source, options | Result with the parsed value (root-wrapped object) in `Data`, without debug capture |
+| `await parseWithDebug(definition, source, options)` | Layout string, binary source, options | Result with the parsed value in `Data` and field ranges in `DebugData` |
 | `await serialize(definition, value, options)` | Layout, JavaScript value, options | Result with a `Uint8Array` in `Data` |
 | `await update(definition, bytes, path, value, options)` | Layout, original bytes, field path, replacement, options | Result with the complete updated `Uint8Array` in `Data` |
 
@@ -30,7 +30,7 @@ and `Error`. Check `Success` before using `Data`. A failure has an error `Code`,
 `Offset`. Loading problems and invalid JavaScript arguments can instead throw; keep a `try`/`catch` around calls.
 Each `DebugData` item names a field path (`DebugStackString`), its `Type`, its `Value` as text, and the byte range
 `CurPos`–`EndPos` (end exclusive) in the input you supplied; slice your own bytes to inspect them. The current
-`ContractVersion` is 6.
+`ContractVersion` is 7.
 
 See [large files, buffers, and streams](large-data.md) for `File`/`Blob`, views, responses, streams, and iterable
 inputs, plus `signal` cancellation and the `maxSpoolBytes` staging limit. These read APIs automatically page data
@@ -60,8 +60,9 @@ copied unchanged into JavaScript.
 
 ## Convert values deliberately
 
-- Parse `Data` is a string: call `JSON.parse(result.Data)` after checking success. A debug parse retains the root
-  wrapper: the header example is read as `values.header.kind`. C# `Parse` returns the selected struct directly.
+- Parse `Data` is the parsed value (an object; before contract version 7 it was JSON text that needed
+  `JSON.parse`). It keeps the root wrapper: the header example is read as `result.Data.header.kind`. C# `Parse`
+  returns the selected struct directly.
 - For serialize, pass the selected struct's fields, such as `{ kind: 3, length: 6 }`, without the debug root wrapper.
 - Write/update `Data` is already a `Uint8Array`. Use it directly for reading, saving, or sending bytes.
 - Large integers can arrive as decimal strings. Keep them as strings or convert them to `BigInt`; converting to
@@ -107,6 +108,6 @@ if (result.Success) {
 }
 ```
 
-The result type narrows on `Success`. Read `Data` remains JSON text, while create/update `Data` is a byte array.
+The result type narrows on `Success`. Read `Data` is the parsed value (`ParsedData`), while create/update `Data` is a byte array.
 Declarations include option help and the raw adapter's distinct text transport types. They do not change runtime
 validation: loading and invalid JavaScript arguments can still throw, and parsed large integers can still be strings.

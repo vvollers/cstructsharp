@@ -30,10 +30,10 @@ test("public wrapper returns byte arrays for writes, preserves errors and parse 
     },
     parseWithDebug: () =>
       JSON.stringify({
-        ContractVersion: 6,
+        ContractVersion: 7,
         Operation: "parse",
         Success: true,
-        Data: '{"root":{"value":2}}',
+        Data: { root: { value: 2 } },
         DebugData: [],
         Error: null,
       }),
@@ -49,7 +49,7 @@ test("public wrapper returns byte arrays for writes, preserves errors and parse 
     assert.equal(updateInput, serialized.Data);
     assert.deepEqual(updated.Data, written);
 
-    assert.equal((await parseWithDebug("layout", updated.Data)).Data, '{"root":{"value":2}}');
+    assert.deepEqual((await parseWithDebug("layout", updated.Data)).Data, { root: { value: 2 } });
 
     shouldFail = true;
     const failedSerialize = await serialize("layout", {});
@@ -70,7 +70,7 @@ test("parse takes the synchronous path for small byte inputs and the worker path
   const previous = globalThis.CStructSharpWasm;
   const calls = [];
   const envelope = (data) =>
-    JSON.stringify({ ContractVersion: 6, Operation: "parse", Success: true, Data: data, DebugData: [], Error: null });
+    JSON.stringify({ ContractVersion: 7, Operation: "parse", Success: true, Data: data, DebugData: [], Error: null });
   globalThis.CStructSharpWasm = {
     ready: true,
     parseBytes: (definition, bytes, options, debug) => {

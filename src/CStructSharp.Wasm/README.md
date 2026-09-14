@@ -35,7 +35,7 @@ the old synchronous byte-array transport ceiling; returned values and read budge
 import { parse } from "./cstructsharp-wasm.js";
 const result = await parse("struct header { uint32 signature; };", file, { rootTypeName: "header" });
 if (!result.Success) throw new Error(result.Error.Message);
-console.log(JSON.parse(result.Data).header.signature);
+console.log(result.Data.header.signature);
 ```
 
 See [large files, buffers, and streams](https://vvollers.github.io/cstructsharp/docs/guides/browser/large-data.html)
@@ -54,7 +54,7 @@ try {
     { rootTypeName: "header" },
   );
   if (result.Success) {
-    const values = JSON.parse(result.Data);
+    const values = result.Data;
     console.log(values.header.kind); // 2; debug parses include the root wrapper
   } else {
     console.error(result.Error.Code, result.Error.Path, result.Error.Offset);
@@ -80,7 +80,7 @@ large integers, union values, and the differences from C#. Read the
 ## TypeScript
 
 Keep `cstructsharp-wasm.d.ts` beside the public JavaScript entry point. Editors discover the options and
-success/failure result types from the same import. After checking `Success`, parse `Data` is JSON text and
+success/failure result types from the same import. After checking `Success`, parse `Data` is the parsed value and
 serialize/update `Data` is a `Uint8Array`. No explorer source or separate type package is required.
 
 ## Reusing a compiled layout
@@ -92,13 +92,13 @@ const layout = await compile("struct root { uint32 value; };", { littleEndian: t
 try {
   const result = await layout.parse(new Uint8Array([42, 0, 0, 0]));
   const debug = await layout.parseWithDebug(new Blob([new Uint8Array([42, 0, 0, 0])]));
-  if (result.Success) console.log(JSON.parse(result.Data));
+  if (result.Success) console.log(result.Data);
 } finally {
   await layout.dispose();
 }
 ```
 
-`compile(definition, layoutOptions)` validates and retains an immutable layout in a dedicated worker/runtime. It rejects on invalid definitions; the error's `details` property contains the bridge diagnostic. `parse` and `parseWithDebug` accept the same binary sources and read limits as the existing functions and return the same version-6 envelopes (including JSON text in `Data`). Compiler settings are fixed; read options may override `rootTypeName`, addressing and resource limits. Passing a compiler setting to a retained read rejects.
+`compile(definition, layoutOptions)` validates and retains an immutable layout in a dedicated worker/runtime. It rejects on invalid definitions; the error's `details` property contains the bridge diagnostic. `parse` and `parseWithDebug` accept the same binary sources and read limits as the existing functions and return the same version-7 envelopes (with the parsed value in `Data`). Compiler settings are fixed; read options may override `rootTypeName`, addressing and resource limits. Passing a compiler setting to a retained read rejects.
 
 Calls on one handle are queued, with independent read state. Byte views are snapshotted when their queued read starts; keep inputs unchanged until the read completes. Separate handles have separate runtimes. Cancellation rejects with `AbortError`; an active parse is stopped by terminating its worker. The next read recreates the runtime and recompiles the saved definition. Cancelling a queued read does not cancel the active read. Always `await dispose()` to cancel outstanding calls, finish source cleanup, and release the worker and layout. Disposal is idempotent; subsequent reads reject. Keep handles only for layouts you need: each owns a WASM runtime, not merely a small native descriptor. Node idle workers do not keep the process alive.
 

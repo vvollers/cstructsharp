@@ -57,6 +57,14 @@ internal sealed class ParsedJsonWriter
         this.length = 0;
     }
 
+    /// <summary>Appends bytes that are already valid JSON (envelope framing, source-generated fragments).</summary>
+    public void WriteRawBytes(ReadOnlySpan<byte> bytes)
+    {
+        this.Ensure(bytes.Length);
+        bytes.CopyTo(this.buffer.AsSpan(this.length));
+        this.length += bytes.Length;
+    }
+
     /// <summary>Writes one parsed value (the top-level or any nested one).</summary>
     public void WriteValue(object? value)
     {

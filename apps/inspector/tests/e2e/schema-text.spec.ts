@@ -26,7 +26,7 @@ test("bounded legacy and UTF-16 encodings survive the real WASM writer", async (
   });
   for (const result of results) {
     expect(result.parsed.Success).toBe(true);
-    expect(JSON.parse(result.parsed.Data).root).toEqual({ text: result.text, tail: 99 });
+    expect(result.parsed.Data.root).toEqual({ text: result.text, tail: 99 });
     expect(result.written).toEqual([...result.bytes, 99]);
     expect(result.updated).toEqual([...result.bytes.map(() => 0), 99]);
   }
@@ -64,10 +64,10 @@ test("bounded UTF-8 works through the WASM parse, serialize and update bridge", 
     };
   });
   expect(result.parsed.Success).toBe(true);
-  expect(JSON.parse(result.parsed.Data).root).toEqual({ length: 6, name: "é🌍", tail: 99 });
+  expect(result.parsed.Data.root).toEqual({ length: 6, name: "é🌍", tail: 99 });
   expect(result.serialized).toEqual([6, 0xc3, 0xa9, 0xf0, 0x9f, 0x8c, 0x8d, 99]);
   expect(result.updated.Success).toBe(true);
-  expect(JSON.parse(result.updated.Data).root).toEqual({ length: 6, name: "你好", tail: 99 });
+  expect(result.updated.Data.root).toEqual({ length: 6, name: "你好", tail: 99 });
   expect(result.parsed.DebugData).toContainEqual(
     expect.objectContaining({ DebugStackString: "root.name", CurPos: 1, EndPos: 7 }),
   );
@@ -217,7 +217,7 @@ test("text fields produce strings while retaining their byte extents and binary 
       { schema: schemaForFile(ext, bytes), bytes: [...bytes] },
     );
     expect(result.Success, `${ext}: ${JSON.stringify(result.Error)}`).toBe(true);
-    expect(JSON.parse(result.Data).root.header, ext).toMatchObject(expected);
+    expect(result.Data.root.header, ext).toMatchObject(expected);
     const ranges = result.DebugData.filter(
       (entry: { DebugStackString: string }) => entry.DebugStackString === field,
     );
@@ -286,7 +286,7 @@ test("Ogg second-page comment packets decode bounded UTF-8 metadata", async ({ p
             ? [
                 ...wasm.serialize(
                   schema.definition,
-                  JSON.stringify(JSON.parse(parsed.Data).root),
+                  JSON.stringify(parsed.Data.root),
                   options,
                 ),
               ]
@@ -297,7 +297,7 @@ test("Ogg second-page comment packets decode bounded UTF-8 metadata", async ({ p
     );
     expect(result.parsed.Success, JSON.stringify(result.parsed.Error)).toBe(true);
     expect(result.encoded).toEqual([...bytes]);
-    expect(JSON.parse(result.parsed.Data).root.header.comment_header).toMatchObject({
+    expect(result.parsed.Data.root.header.comment_header).toMatchObject({
       vendor: "工具",
       comment_count: 1,
       comments: [{ text: "TITLE=é🌍" }],
@@ -340,7 +340,7 @@ test("FBX node identifiers preserve raw code units across both header widths", a
             ? [
                 ...wasm.serialize(
                   schema.definition,
-                  JSON.stringify(JSON.parse(parsed.Data).root),
+                  JSON.stringify(parsed.Data.root),
                   options,
                 ),
               ]
@@ -350,7 +350,7 @@ test("FBX node identifiers preserve raw code units across both header widths", a
       { schema, bytes: [...bytes] },
     );
     expect(result.parsed.Success, JSON.stringify(result.parsed.Error)).toBe(true);
-    expect(JSON.parse(result.parsed.Data).root.header.first_node.name).toBe("A\0ÿP");
+    expect(result.parsed.Data.root.header.first_node.name).toBe("A\0ÿP");
     expect(result.encoded).toEqual([...bytes]);
     const spans = result.parsed.DebugData.filter(
       (entry: { DebugStackString: string }) =>

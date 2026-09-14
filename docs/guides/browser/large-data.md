@@ -7,7 +7,7 @@ description: Parse JavaScript binary sources with paged reads, worker execution,
 
 Pass a binary source directly to `parse` or `parseWithDebug`. You do not need to split a file into parser calls,
 raise the old 4 MiB transport limit, or call `file.arrayBuffer()` first. Both functions return the usual result
-envelope with root-wrapped JSON text in `Data`. `parse` returns empty `DebugData` and avoids debug byte copies;
+envelope with the root-wrapped parsed value in `Data`. `parse` returns empty `DebugData` and avoids debug byte copies;
 prefer it when you only need values.
 
 ```js
@@ -18,7 +18,7 @@ const options = { rootTypeName: "header" };
 const file = document.querySelector('input[type="file"]').files[0];
 const result = await parse(definition, file, options);
 if (!result.Success) throw new Error(result.Error.Message);
-console.log(JSON.parse(result.Data).header.kind);
+console.log(result.Data.header.kind);
 
 // Inspect field byte ranges when building a binary viewer.
 const inspected = await parseWithDebug(definition, file, options);
@@ -97,7 +97,7 @@ const result = await parse(
   { rootTypeName: "header", maxSpoolBytes: 2 * 1024 ** 3 },
 );
 if (!result.Success) throw new Error(result.Error.Message);
-console.log(JSON.parse(result.Data).header);
+console.log(result.Data.header);
 ```
 
 Use binary mode: a stream configured with a text encoding yields strings and is rejected. Pass `Buffer` directly

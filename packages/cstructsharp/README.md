@@ -22,7 +22,7 @@ const options = { rootTypeName: "header" };
 const bytes = new Uint8Array([2, 0, 6, 0, 0, 0]);
 const read = await parseWithDebug(definition, bytes, options);
 if (!read.Success) throw new Error(read.Error.Message);
-console.log(JSON.parse(read.Data).header.kind); // 2
+console.log(read.Data.header.kind); // 2
 
 const written = await serialize(definition, { kind: 3, length: 6 }, options);
 if (!written.Success) throw new Error(written.Error.Message);
@@ -60,7 +60,7 @@ const result = await parse(
   { rootTypeName: "header", signal: controller.signal },
 );
 if (!result.Success) throw new Error(result.Error.Message);
-console.log(JSON.parse(result.Data).header);
+console.log(result.Data.header);
 ```
 
 In Node, pass `createReadStream("capture.bin")` from `node:fs`, or a resident `Buffer`. For a network response,
@@ -116,7 +116,7 @@ and `connect-src 'self'` for same-origin assets). No cross-origin isolation head
 
 The package includes TypeScript declarations. All five public functions return promises:
 `parseWithDebug`, `serialize`, `update`, `getVersion`, and `loadCStructSharpWasm`.
-Read results contain JSON text with a root wrapper; writes return `Uint8Array`. Check `Success` before using
+Read results contain the parsed value with a root wrapper; writes return `Uint8Array`. Check `Success` before using
 `Data`; operation errors carry `Code`, `Message`, `Path`, and `Offset`. Loading and argument failures reject the
 promise, so use `try/catch` at the application boundary as well. BigInt input is preserved as decimal text;
 large integers in read JSON may be strings and should not be coerced to Number.
@@ -143,13 +143,13 @@ const layout = await compile("struct root { uint32 value; };", { littleEndian: t
 try {
   const result = await layout.parse(new Uint8Array([42, 0, 0, 0]));
   const debug = await layout.parseWithDebug(new Blob([new Uint8Array([42, 0, 0, 0])]));
-  if (result.Success) console.log(JSON.parse(result.Data));
+  if (result.Success) console.log(result.Data);
 } finally {
   await layout.dispose();
 }
 ```
 
-`compile(definition, layoutOptions)` validates and retains an immutable layout in a dedicated worker/runtime. It rejects on invalid definitions; the error's `details` property contains the bridge diagnostic. `parse` and `parseWithDebug` accept the same binary sources and read limits as the existing functions and return the same version-6 envelopes (including JSON text in `Data`). Compiler settings are fixed; read options may override `rootTypeName`, addressing and resource limits. Passing a compiler setting to a retained read rejects.
+`compile(definition, layoutOptions)` validates and retains an immutable layout in a dedicated worker/runtime. It rejects on invalid definitions; the error's `details` property contains the bridge diagnostic. `parse` and `parseWithDebug` accept the same binary sources and read limits as the existing functions and return the same version-7 envelopes (with the parsed value in `Data`). Compiler settings are fixed; read options may override `rootTypeName`, addressing and resource limits. Passing a compiler setting to a retained read rejects.
 
 Calls on one handle are queued, with independent read state. Byte views are snapshotted when their queued read starts; keep inputs unchanged until the read completes. Separate handles have separate runtimes. Cancellation rejects with `AbortError`; an active parse is stopped by terminating its worker. The next read recreates the runtime and recompiles the saved definition. Cancelling a queued read does not cancel the active read. Always `await dispose()` to cancel outstanding calls, finish source cleanup, and release the worker and layout. Disposal is idempotent; subsequent reads reject. Keep handles only for layouts you need: each owns a WASM runtime, not merely a small native descriptor. Node idle workers do not keep the process alive.
 

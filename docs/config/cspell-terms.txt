@@ -100,3 +100,9 @@ VINT
 varint
 varints
 unmappable
+trimmable
+TrimmableAssembly
+ParsedData
+ParsedValue
+PrimitiveArray
+StructValue

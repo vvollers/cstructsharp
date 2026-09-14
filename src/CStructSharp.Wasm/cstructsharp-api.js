@@ -1,5 +1,5 @@
 /** Shared operation conversions for the ZIP, Node, and browser adapters. */
-const INTEROP_CONTRACT_VERSION = 6;
+const INTEROP_CONTRACT_VERSION = 7;
 /**
  * Byte inputs up to this size, without a cancellation signal, are parsed on the calling thread (E3.6). Kept in
  * step with SYNCHRONOUS_PARSE_LIMIT in large-source.js; this module is staged at the npm package root while the
@@ -8,11 +8,11 @@ const INTEROP_CONTRACT_VERSION = 6;
 const SYNCHRONOUS_PARSE_LIMIT = 64 * 1024;
 
 export function createPublicApi(loadCStructSharpWasm) {
-  /** Parse bytes; successful Data is JSON text with the selected root wrapper.
+  /** Parse bytes; successful Data is the parsed value with the selected root wrapper (contract v7).
    * @param {string} definition Portable layout source.
    * @param {import("./cstructsharp-wasm.js").BinarySource} bytes Binary source.
    * @param {import("./cstructsharp-wasm.js").ParseWithDebugOptions | null} [options]
-   * @returns {Promise<import("./cstructsharp-wasm.js").Result<string, "parse">>}
+   * @returns {Promise<import("./cstructsharp-wasm.js").Result<import("./cstructsharp-wasm.js").ParsedData, "parse">>}
    */
   async function parseWithDebug(definition, bytes, options = null) {
     const api = await loadCStructSharpWasm();

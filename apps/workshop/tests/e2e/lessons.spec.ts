@@ -147,12 +147,12 @@ test("conditional lesson exercises produce the documented changes", async ({ pag
     ];
   }, lessons);
   for (const result of results.slice(0, 3)) expect(result.Success).toBe(true);
-  const tagItems = JSON.parse(results[0].Data).root.items;
+  const tagItems = results[0].Data.root.items;
   expect(tagItems[0]).toEqual({ tag: 2, some_parameter: 0, low: 10, second: 11 });
-  const parameterItems = JSON.parse(results[1].Data).root.items;
+  const parameterItems = results[1].Data.root.items;
   expect(parameterItems[0]).toEqual({ tag: 1, some_parameter: 1, high: 10, first: 11 });
   expect(tagItems.slice(1)).toEqual(parameterItems.slice(1));
-  expect(JSON.parse(results[2].Data).root.items).toEqual([
+  expect(results[2].Data.root.items).toEqual([
     { tag: 1, count: 1, payload: [42] },
     { tag: 0 },
   ]);
@@ -223,7 +223,7 @@ test("all curated operation presets match real managed results", async ({ page }
           const actual = !result.Success
             ? { error: result.Error.Code }
             : operation === "parse"
-              ? { data: JSON.parse(result.Data as string) }
+              ? { data: result.Data }
               : {
                   hex: Array.from(result.Data as Uint8Array, (b) =>
                     b.toString(16).padStart(2, "0"),

@@ -26,7 +26,7 @@ try {
     { rootTypeName: "header" },
   );
   if (!result.Success) throw new Error(result.Error.Message);
-  console.log(JSON.parse(result.Data).header.kind); // 2
+  console.log(result.Data.header.kind); // 2
 } catch (error) {
   console.error(error);
 }
@@ -94,7 +94,7 @@ The script import uses `../` to reach its parent directory.
 [!code-javascript[Starter JavaScript](../../../src/CStructSharp.Wasm/starter/app.js)]
 
 `type="module"` allows JavaScript imports. `await` waits for the runtime and the operation to finish.
-The result's `Success` field tells you whether the operation worked. Parse `Data` is JSON text; write and update
+The result's `Success` field tells you whether the operation worked. Parse `Data` is the parsed value; write and update
 `Data` is a `Uint8Array` ready to use. The starter decodes the read JSON and keeps operation failures separate
 from loading errors.
 

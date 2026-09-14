@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "name": "browser-rc1",
   "packageVersion": "0.2.0-preview",
-  "contractVersion": 6,
+  "contractVersion": 7,
   "managedExports": [
     "GetVersion",
     "ParseBytes",
@@ -70,6 +70,11 @@
     "browserEngine": "Playwright Chromium"
   },
   "history": [
+    {
+      "contractVersion": 7,
+      "date": "2026-09-14",
+      "change": "Performance plan E3.3(b): a successful parse envelope carries Data as the parsed JSON value itself (an object with the selected root wrapper, e.g. Data.header.kind), no longer as JSON text to JSON.parse. Failure envelopes keep Data null; serialize/update keep returning bytes. Every value, option, error code and DebugData item is unchanged."
+    },
     {
       "contractVersion": 6,
       "date": "2026-09-12",

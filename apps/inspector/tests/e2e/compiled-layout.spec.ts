@@ -41,7 +41,7 @@ test("compiled browser layouts retain decisions per read and recover after cance
       await layout.dispose();
     }
   });
-  expect(results.parsed.map((result) => JSON.parse(result.Data!))).toEqual([
+  expect(results.parsed.map((result) => result.Data)).toEqual([
     { root: { tag: 1, value: 42 } },
     { root: { tag: 2, small: 19 } },
     { root: { tag: 3, fallback: 7 } },

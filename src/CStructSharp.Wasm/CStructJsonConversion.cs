@@ -11,6 +11,11 @@ using CStructSharp;
 /// <summary>Contains the explicit JSON conversion rules used at the browser boundary.</summary>
 public partial class CStructExports
 {
+    private static readonly byte[] ParseEnvelopeHead = Encoding.UTF8.GetBytes("{\"ContractVersion\":" + InteropContractVersion + ",\"Operation\":\"parse\",\"Success\":true,\"Data\":");
+    private static readonly byte[] ParseEnvelopeDebugData = ",\"DebugData\":"u8.ToArray();
+    private static readonly byte[] ParseEnvelopeTail = ",\"Error\":null}"u8.ToArray();
+    private static readonly byte[] EmptyArray = "[]"u8.ToArray();
+
     [ThreadStatic]
     private static ParsedJsonWriter? projectionWriter;
 
@@ -166,14 +171,42 @@ public partial class CStructExports
         return ConvertJsonElement(document.RootElement);
     }
 
-    /// <summary>Serializes a parsed struct or union through the boundary's exact recursive number policy.</summary>
+    /// <summary>
+    ///     Writes the whole successful parse envelope in one pass (E3.3(b), contract v7): the parsed value is
+    ///     projected straight into the envelope as a JSON value - no intermediate Data string, no escaping pass, one
+    ///     JSON.parse on the JavaScript side.
+    /// </summary>
+    private static string SerializeParseEnvelope(object result, List<DebugDataDto> debugData)
+    {
+        ParsedJsonWriter writer = projectionWriter ??= new ParsedJsonWriter(16 * 1024);
+        writer.Reset();
+        writer.WriteRawBytes(ParseEnvelopeHead);
+        writer.WriteValue(result);
+        writer.WriteRawBytes(ParseEnvelopeDebugData);
+        if (debugData.Count == 0)
+        {
+            writer.WriteRawBytes(EmptyArray);
+        }
+        else
+        {
+            writer.WriteRawBytes(JsonSerializer.SerializeToUtf8Bytes(debugData, CStructJsonContext.Default.ListDebugDataDto));
+        }
+
+        writer.WriteRawBytes(ParseEnvelopeTail);
+        return FinishProjection(writer);
+    }
+
+    /// <summary>Serializes a parsed struct or union alone (benchmark projection cases).</summary>
     private static string SerializeParsedValue(object value)
     {
-        // Written straight from the parse result (E3.3) by the bridge's own writer (E3.3b): no dictionary copy,
-        // no MemoryStream, no Utf8JsonWriter state machine; the buffer is reused across calls on this thread.
         ParsedJsonWriter writer = projectionWriter ??= new ParsedJsonWriter(16 * 1024);
         writer.Reset();
         writer.WriteValue(value);
+        return FinishProjection(writer);
+    }
+
+    private static string FinishProjection(ParsedJsonWriter writer)
+    {
         string json = Encoding.UTF8.GetString(writer.WrittenSpan);
         if (writer.Capacity > 4 * 1024 * 1024)
         {

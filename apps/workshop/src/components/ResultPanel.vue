@@ -38,17 +38,14 @@ const ranges = computed<DebugRange[]>(() =>
     end: Math.max(item.CurPos + 1, item.EndPos),
   })),
 );
-// Only "parse" results are ever rendered as parsed JSON (the template guards on Operation === "parse"
-// before using this); "serialize"/"update" results carry a Uint8Array here instead of JSON text.
+// Only "parse" results are ever rendered as parsed data (the template guards on Operation === "parse"
+// before using this); "serialize"/"update" results carry a Uint8Array here instead. Since contract v7 the
+// parsed value arrives as an object, not as JSON text.
 const parsedData = computed(() => {
-  if (props.result?.Operation !== "parse" || typeof props.result.Data !== "string") {
+  if (props.result?.Operation !== "parse" || props.result.Data instanceof Uint8Array) {
     return null;
   }
-  try {
-    return JSON.parse(props.result.Data) as unknown;
-  } catch {
-    return props.result.Data;
-  }
+  return props.result.Data as unknown;
 });
 function rangeFor(index: number): DebugRange | undefined {
   return ranges.value.find((range) => index >= range.start && index < range.end);

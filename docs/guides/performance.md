@@ -44,7 +44,7 @@ try {
   for (const bytes of records) {
     const result = await layout.parse(bytes);
     if (!result.Success) throw new Error(result.Error.Message);
-    consume(JSON.parse(result.Data));
+    consume(result.Data);
   }
 } finally {
   await layout.dispose();
