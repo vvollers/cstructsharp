@@ -11,6 +11,7 @@ internal sealed class CompiledCompositeType : CompiledType
 {
     private StructShape? shape;
     private StaticReadPlan? staticPlan;
+    private System.Collections.Concurrent.ConcurrentDictionary<Type, TypedReadPlan?>? typedReadPlans;
     private bool staticPlanBuilt;
 
     public CompiledCompositeType(CompiledTypeSymbol symbol, ImmutableArray<CompiledField> fields)
@@ -193,5 +194,17 @@ internal sealed class CompiledCompositeType : CompiledType
         }
 
         visiting.Remove(this);
+    }
+
+    /// <summary>
+    ///     Typed read plans (E2.7) bound to this composite's static plan, one per target type, created on the first
+    ///     typed read so a layout never read into a POCO does not pay for the table.
+    /// </summary>
+    public TypedReadPlan? GetOrAddTypedReadPlan(Type targetType, Func<Type, StaticReadPlan, TypedReadPlan?> build)
+    {
+        System.Collections.Concurrent.ConcurrentDictionary<Type, TypedReadPlan?> plans = this.typedReadPlans ??
+            System.Threading.Interlocked.CompareExchange(ref this.typedReadPlans, new System.Collections.Concurrent.ConcurrentDictionary<Type, TypedReadPlan?>(), null) ??
+            this.typedReadPlans;
+        return plans.GetOrAdd(targetType, key => build(key, this.StaticPlan!));
     }
 }

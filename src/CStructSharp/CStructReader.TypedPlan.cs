@@ -23,17 +23,6 @@ public partial class CStruct
         DynamicallyAccessedMemberTypes.PublicProperties |
         DynamicallyAccessedMemberTypes.PublicFields;
 
-    private readonly ConcurrentDictionary<(StaticReadPlan Plan, Type Target), TypedReadPlan?> typedReadPlans = new();
-
-    private enum TypedMemberMode : byte
-    {
-        Scalar,
-        TypedArrayCopy,
-        TypedNested,
-        TypedNestedArray,
-        Materialize,
-    }
-
     /// <summary>
     ///     Reads a composite at the current position into a new <paramref name="targetType"/> through its typed
     ///     plan when the plan is exactly equivalent to parse-then-convert; returns null (having consumed nothing)
@@ -54,7 +43,7 @@ public partial class CStruct
             return null;
         }
 
-        TypedReadPlan? typedPlan = this.typedReadPlans.GetOrAdd((plan, targetType), key => TypedReadPlan.TryBuild(key.Plan, key.Target));
+        TypedReadPlan? typedPlan = composite.GetOrAddTypedReadPlan(targetType, static (target, staticPlan) => TypedReadPlan.TryBuild(staticPlan, target));
         if (typedPlan is null || !state.Stream.TryReadSpanWithinBudget(plan.Size, out ReadOnlySpan<byte> bytes))
         {
             return null;
@@ -301,157 +290,6 @@ public partial class CStruct
             }
 
             return builder.ToString();
-        }
-    }
-
-    /// <summary>One target member bound to one plan operation, or to the failure the general path raises for it.</summary>
-    private sealed class TypedMember
-    {
-        public TypedValueConverter.MappedMember Member { get; init; } = null!;
-
-        public string SourceName { get; init; } = string.Empty;
-
-        public StaticReadOperation? Operation { get; init; }
-
-        public TypedMemberMode Mode { get; init; }
-
-        public TypedReadPlan? Nested { get; init; }
-
-        public Type? ElementType { get; init; }
-
-        /// <summary>The concrete <see cref="List{T}"/> type to build when the member is a list shape; null for an array.</summary>
-        public Type? ElementList { get; init; }
-
-        public Func<string, CStructReadException>? Failure { get; init; }
-    }
-
-    private sealed class TypedReadPlan
-    {
-        private TypedReadPlan(TypedValueConverter.ObjectMap map, TypedMember[] members)
-        {
-            this.Map = map;
-            this.Members = members;
-        }
-
-        public TypedValueConverter.ObjectMap Map { get; }
-
-        public TypedMember[] Members { get; }
-
-        /// <summary>Binds a POCO type to a plan; null when the general path would not build a member map for the type at all.</summary>
-        public static TypedReadPlan? TryBuild(StaticReadPlan plan, [DynamicallyAccessedMembers(TypedPlanMembers)] Type targetType)
-        {
-            if (!IsPocoTarget(targetType))
-            {
-                return null;
-            }
-
-            TypedValueConverter.ObjectMap map;
-            try
-            {
-                map = TypedValueConverter.GetObjectMap(targetType);
-            }
-            catch (CStructReadException)
-            {
-                return null;
-            }
-
-            var members = new TypedMember[map.Members.Count];
-            for (int index = 0; index < members.Length; index++)
-            {
-                members[index] = Bind(plan, targetType, map.Members[index]);
-            }
-
-            return new TypedReadPlan(map, members);
-        }
-
-        /// <summary>
-        ///     Whether the general converter would map a parsed struct to this type through its member map, rather
-        ///     than return the <see cref="StructValue"/> itself, treat it as a collection, or fail on the type.
-        /// </summary>
-        private static bool IsPocoTarget(Type type)
-        {
-            Type effective = Nullable.GetUnderlyingType(type) ?? type;
-            return effective.IsClass && !effective.IsAbstract && effective != typeof(object) && effective != typeof(string) &&
-                   !effective.IsAssignableFrom(typeof(StructValue)) && !effective.IsArray &&
-                   !TypedValueConverter.TryGetListElementTypeOf(effective, out _) && effective.GetConstructor(Type.EmptyTypes) is not null;
-        }
-
-        private static TypedMember Bind(StaticReadPlan plan, Type targetType, TypedValueConverter.MappedMember member)
-        {
-            // The same resolution the general path applies to a parsed value's keys: an exact name first, then a
-            // single case-insensitive match; the plan's operations are the composite's member names in order.
-            StaticReadOperation? exact = null;
-            StaticReadOperation? insensitive = null;
-            bool ambiguous = false;
-            foreach (StaticReadOperation operation in plan.Operations)
-            {
-                string name = operation.Field.Declaration.Name.Name;
-                if (string.Equals(name, member.Name, StringComparison.Ordinal))
-                {
-                    exact = operation;
-                    break;
-                }
-
-                if (string.Equals(name, member.Name, StringComparison.OrdinalIgnoreCase))
-                {
-                    ambiguous |= insensitive is not null;
-                    insensitive = operation;
-                }
-            }
-
-            StaticReadOperation? resolved = exact ?? insensitive;
-            if (exact is null && ambiguous)
-            {
-                return new TypedMember { Member = member, Failure = _ => TypedValueConverter.AmbiguousMember(member.Name) };
-            }
-
-            if (resolved is null)
-            {
-                return new TypedMember { Member = member, Failure = path => TypedValueConverter.MissingMember(path, targetType, member.Name) };
-            }
-
-            string sourceName = resolved.Field.Declaration.Name.Name;
-            Type valueType = member.ValueType;
-            switch (resolved.Kind)
-            {
-            case StaticReadKind.NumericArray:
-                {
-                    // A parsed numeric array converts element by element into an array of the codec's own type; the
-                    // typed copy yields the same elements. Every other target shape converts the parsed value.
-                    Type codecType = PrimitiveArrayReader.GetElementType(resolved.Field.Codec);
-                    bool exactArray = valueType.IsArray && valueType.GetElementType() == codecType && resolved.Count > 0;
-                    return new TypedMember { Member = member, SourceName = sourceName, Operation = resolved, Mode = exactArray ? TypedMemberMode.TypedArrayCopy : TypedMemberMode.Materialize };
-                }
-
-            case StaticReadKind.Nested:
-                {
-                    TypedReadPlan? nested = IsPocoTarget(valueType) ? TryBuild(resolved.NestedPlan!, valueType) : null;
-                    return new TypedMember { Member = member, SourceName = sourceName, Operation = resolved, Mode = nested is null ? TypedMemberMode.Materialize : TypedMemberMode.TypedNested, Nested = nested };
-                }
-
-            case StaticReadKind.NestedArray:
-                {
-                    Type? elementType = null;
-                    Type? listType = null;
-                    if (valueType.IsArray)
-                    {
-                        elementType = valueType.GetElementType();
-                    }
-                    else if (TypedValueConverter.TryGetListElementTypeOf(valueType, out Type? listElement))
-                    {
-                        elementType = listElement;
-                        listType = typeof(List<>).MakeGenericType(listElement);
-                    }
-
-                    TypedReadPlan? nested = elementType is not null && IsPocoTarget(elementType) ? TryBuild(resolved.NestedPlan!, elementType) : null;
-                    return nested is null
-                               ? new TypedMember { Member = member, SourceName = sourceName, Operation = resolved, Mode = TypedMemberMode.Materialize }
-                               : new TypedMember { Member = member, SourceName = sourceName, Operation = resolved, Mode = TypedMemberMode.TypedNestedArray, Nested = nested, ElementType = elementType, ElementList = listType };
-                }
-
-            default:
-                return new TypedMember { Member = member, SourceName = sourceName, Operation = resolved, Mode = TypedMemberMode.Scalar };
-            }
         }
     }
 }
