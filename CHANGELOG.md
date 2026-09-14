@@ -4,6 +4,14 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Browser/WASM: `parse` reads a layout whose members are all statically placed directly in JavaScript. A new
+  managed export, `GetStaticPlan`, describes such a root's member offsets, codecs, counts, nested plans and enum
+  tables once (the compiler's own static read plan); the adapter then executes each parse as a `DataView` walk
+  with no WebAssembly call. Byte inputs up to 64 KiB with layout-only options take this path: a small record
+  49 → 2.7 µs, a 256-record nested value 2.2 ms → 0.13 ms, a PNG header 53 → 2.7 µs, with zero managed allocation.
+  Values, envelopes, error codes and `parseWithDebug` are unchanged; read limits, pointer settings, cancellation,
+  streamed or larger inputs and every other layout use the managed parse as before. The bundle declares dynamic
+  code unsupported (it never compiled code), which trims another 84 KB.
 - Performance: `ReadValue<T>` of a struct whose members are all statically placed fills the POCO straight from the
   bytes instead of parsing to a `StructValue` and mapping it by name: a 256-record nested read into POCOs
   412 → 75 µs (−81 % allocation), a small record 942 → 339 ns. Member resolution (exact name, then a single

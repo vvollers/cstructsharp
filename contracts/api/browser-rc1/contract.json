@@ -8,7 +8,8 @@
     "ParseBytes",
     "ParseWithDebug",
     "Serialize",
-    "UpdateStream"
+    "UpdateStream",
+    "GetStaticPlan"
   ],
   "operations": [
     "parse",
@@ -84,6 +85,11 @@
       "contractVersion": 6,
       "date": "2026-09-12",
       "change": "Performance plan E3.6: new managed export ParseBytes(definition, bytes, optionsJson, debug) used by the adapters to parse byte inputs up to 64 KiB on the calling thread; the envelope is unchanged."
+    },
+    {
+      "contractVersion": 7,
+      "date": "2026-09-14",
+      "change": "Performance plan E3.9: new managed export GetStaticPlan(definition, optionsJson) returns the static read plan of a fully fixed root (the compiler's member offsets, codecs, counts, nested plans and enum tables) as JSON, or an empty string; the adapters' parse() executes such a plan with DataView in JavaScript and falls back to ParseBytes/ParseSource otherwise. The envelope and every value are unchanged."
     }
   ]
 }

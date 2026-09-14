@@ -66,9 +66,18 @@ export function createCStructSharpWasm(assemblyExports) {
     getVersion() {
       return managed.GetVersion();
     },
+    /** E3.9: the static read plan of a root as JSON text, or "" when the layout is not fully fixed (older bundles: undefined). */
+    getStaticPlan: bindOptional(managed, "GetStaticPlan", (definition, options = null) =>
+      managed.GetStaticPlan(definition, stringifyOptions(options)),
+    ),
     ready: true,
     error: null,
   };
+}
+
+/** Exports added after the reviewed baseline are optional: an older bundle simply lacks the feature. */
+function bindOptional(managed, name, binding) {
+  return typeof managed[name] === "function" ? binding : undefined;
 }
 
 function stringifyOptions(options) {

@@ -21,6 +21,11 @@ The reviewed `browser-rc1` description targets package candidate `0.2.0-preview`
 - `Serialize`
 - `UpdateStream`
 
+Later revisions of the same contract version added `ParseBytes` (parses small byte inputs on the calling thread)
+and `GetStaticPlan` (describes a fully fixed root's member offsets and codecs as JSON so the adapters can read such
+layouts in JavaScript); both leave the envelope and every value unchanged, and an adapter treats their absence as
+"feature not available".
+
 Binary data crosses the boundary as a native `byte[]`/`Uint8Array`, never Base64 text. `ParseWithDebug` still
 returns the same outer object, called an *envelope* - its fields are `ContractVersion`,
 `Operation`, `Success`, `Data`, `DebugData`, and `Error` - since contract version 7 its `Data` is the parsed value itself.

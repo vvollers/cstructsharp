@@ -17,6 +17,9 @@
     <!-- The browser bridge uses source-generated JSON metadata and explicit value projection. -->
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
+    <!-- The bridge never binds POCOs through compiled accessors; declaring dynamic code unsupported lets the trimmer
+         drop those branches (and System.Linq.Expressions with them) instead of shipping 360 KB for a dead path. -->
+    <DynamicCodeSupport>false</DynamicCodeSupport>
     <!--
       Suppresses IL2026/IL2075/IL2067/IL2072/IL2111 warnings from CStruct.TryGetMemberValue's and
       TypedValueConverter's unannotated reflection (the POCO fallback used by Serialize/UpdateStream when a value

@@ -53,6 +53,9 @@ off once any assembly is interpreted.
 - Every run first verifies that the public JS `parse` reproduces the C# expected JSON (or its SHA-256) for every
   fixture with an expectation that the bridge can parse (44 of 56; the digest comparison re-serializes the JS value
   with the C# canonical escaping), so timing never runs on a build that disagrees with the managed library.
+  Since E3.9 the public `parse` of a fully fixed layout (prim-le-record, nested-x256, real-png among the timed
+  fixtures) runs the static plan in JavaScript, so `public.parse.*` measures that path for those fixtures and
+  the managed parse + envelope for the others; `direct.parseSource.*` always measures the managed path.
 - `BenchOptionsParse`, `BenchEnvelope` and `BenchLayoutLookup` (benchmark-only exports) split the public path's
   fixed cost into its stages (options parse, envelope serialization, layout cache lookup).
 - Batched timing: warm-up ≥ 600 ms, batch calibrated to ~100 ms, 9 batches; the reported median/RSD are over the

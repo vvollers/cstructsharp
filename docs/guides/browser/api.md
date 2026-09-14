@@ -32,6 +32,14 @@ Each `DebugData` item names a field path (`DebugStackString`), its `Type`, its `
 `CurPos`–`EndPos` (end exclusive) in the input you supplied; slice your own bytes to inspect them. The current
 `ContractVersion` is 7.
 
+`parse` reads a layout whose members are all statically placed (fixed-width numbers, enums, `char[N]` buffers,
+fixed arrays, nested such structs) directly in JavaScript: the bundle describes the layout's member offsets and
+codecs once, and each parse is then a `DataView` walk with no WebAssembly call, producing exactly the values the
+managed projection produces. That path is taken for byte inputs up to 64 KiB when the options carry only layout
+settings (`aligned`, `littleEndian`, `pointerSize`, `rootTypeName`, compile limits); read limits, pointer settings,
+`signal`, larger or streamed inputs, `parseWithDebug`, and every other layout use the managed parse. Results are
+identical either way, so the choice is not observable except in timing.
+
 See [large files, buffers, and streams](large-data.md) for `File`/`Blob`, views, responses, streams, and iterable
 inputs, plus `signal` cancellation and the `maxSpoolBytes` staging limit. These read APIs automatically page data
 through a worker; the legacy synchronous raw byte adapter and `update` retain their 4 MiB input ceiling.

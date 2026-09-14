@@ -26,7 +26,7 @@ foreach ($path in @($baselinePath, $contractPath, $boundaryPath, $exportsPath, $
 $baseline = Get-Content -LiteralPath $baselinePath -Raw | ConvertFrom-Json
 $contract = (Get-Content -LiteralPath $contractPath -Raw) + (Get-Content -LiteralPath (Join-Path $RepositoryRoot 'src/CStructSharp.Wasm/cstructsharp-wasm.d.ts') -Raw)
 $boundary = Get-Content -LiteralPath $boundaryPath -Raw
-$exports = Get-Content -LiteralPath $exportsPath -Raw
+$exports = (Get-Content -LiteralPath $exportsPath -Raw) + "`n" + (Get-Content -LiteralPath (Join-Path $RepositoryRoot 'src/CStructSharp.Wasm/StaticPlanExport.cs') -Raw)
 $bootstrap = Get-Content -LiteralPath $bootstrapPath -Raw
 $package = Get-Content -LiteralPath $packagePath -Raw | ConvertFrom-Json
 $dtoSource = ($dtoPaths | ForEach-Object { Get-Content -LiteralPath $_ -Raw }) -join "`n"
