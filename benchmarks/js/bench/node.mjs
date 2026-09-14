@@ -7,7 +7,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { runCases, formatRecord, sinkValue } from "./harness.mjs";
 import { boundaryCases, coreCases, publicCases, streamCases, comparatorCases, verifyFixture } from "./cases.mjs";
-import { loadFixture, repositoryRoot } from "./fixtures.mjs";
+import { loadFixture, manifest, repositoryRoot } from "./fixtures.mjs";
 import { captureEnvironment } from "./environment.mjs";
 import { loadBundle } from "./runtime.mjs";
 
@@ -40,9 +40,14 @@ const env = {
 // Correctness gate before timing: the public JS path must reproduce the C# expected JSON for every fixture that
 // has an inline expectation or a digest (large arrays are compared by SHA-256).
 const verified = [];
-for (const id of ["prim-le-record", "prim-le-x1k", "nested-x256", "aligned-x256", "array-u8-1024", "array-u32-be-256", "dynamic-64", "bitfield-x1k", "enum-x1k", "union-x1k", "strings-1024", "pointer-depth-8", "cond-if128", "real-bmp", "real-png", "real-pe-exe", "real-tar"]) {
-  await verifyFixture(env, id);
-  verified.push(id);
+for (const entry of manifest().fixtures) {
+  const { document } = loadFixture(entry.id);
+  // Every fixture the bridge can parse: an expectation, bytes within the synchronous path, and read limits within
+  // the browser contract's bounds (the 1 MiB uint8 array needs maxArrayElements above the bridge's cap).
+  if ((document.expected === null || document.expected === undefined) && !document.expectedSha256) continue;
+  if (document.byteLength > 4 * 1024 * 1024 || (document.readOptions?.maxArrayElements ?? 0) > 1_000_000) continue;
+  await verifyFixture(env, entry.id);
+  verified.push(entry.id);
 }
 console.log(`Verified ${verified.length} fixtures against C# expectations through the public JS API.`);
 

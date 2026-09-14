@@ -119,6 +119,18 @@ public partial class CStructExports
     [JSExport]
     public static double BenchAllocatedBytes() => GC.GetTotalAllocatedBytes(precise: false);
 
+    /// <summary>Options JSON deserialization alone (public-path fixed cost breakdown, E3.5/E3.8 scoping).</summary>
+    [JSExport]
+    public static int BenchOptionsParse(string optionsJson) => ParseOptions(optionsJson).PointerSize ?? 0;
+
+    /// <summary>Envelope serialization alone for a given Data payload.</summary>
+    [JSExport]
+    public static int BenchEnvelope(string data) => SerializeInteropResult(CreateSuccess("parse", data)).Length;
+
+    /// <summary>Layout cache lookup alone (definition hashing + options → compilation options).</summary>
+    [JSExport]
+    public static int BenchLayoutLookup(string definition, string optionsJson) => CreateCStruct(definition, ParseOptions(optionsJson)).PointerSize;
+
     /// <summary>
     ///     Marker for the AOT profiler (E3.1b): a profiler-enabled bundle is started with
     ///     <c>aotProfilerOptions.writeAt</c> naming this method, so the profile is written when the recorder calls it

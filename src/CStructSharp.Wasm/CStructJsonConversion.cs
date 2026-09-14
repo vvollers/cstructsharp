@@ -1,12 +1,9 @@
 namespace CStructSharpWeb.Wasm;
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Dynamic;
-using System.Globalization;
 using System.IO;
-using System.Numerics;
 using System.Text;
 using System.Text.Json;
 using CStructSharp;
@@ -14,6 +11,9 @@ using CStructSharp;
 /// <summary>Contains the explicit JSON conversion rules used at the browser boundary.</summary>
 public partial class CStructExports
 {
+    [ThreadStatic]
+    private static ParsedJsonWriter? projectionWriter;
+
     /// <summary>Converts browser JSON into the primitive, expando, and list values accepted by the core writer.</summary>
     private static object? ConvertJsonElement(JsonElement element)
     {
@@ -167,307 +167,20 @@ public partial class CStructExports
     }
 
     /// <summary>Serializes a parsed struct or union through the boundary's exact recursive number policy.</summary>
-    [ThreadStatic]
-    private static ArrayBufferWriter<byte>? projectionBuffer;
-
     private static string SerializeParsedValue(object value)
     {
-        // Written straight from the parse result (E3.3): the former dictionary copy of the whole tree, the
-        // MemoryStream, and the ToArray() are gone; the pooled buffer is reused across calls on this thread.
-        ArrayBufferWriter<byte> buffer = projectionBuffer ??= new ArrayBufferWriter<byte>(16 * 1024);
-        buffer.ResetWrittenCount();
-        using (var writer = new Utf8JsonWriter(buffer))
-        {
-            WriteJsonValue(writer, value);
-        }
-
-        string json = Encoding.UTF8.GetString(buffer.WrittenSpan);
-        if (buffer.Capacity > 4 * 1024 * 1024)
+        // Written straight from the parse result (E3.3) by the bridge's own writer (E3.3b): no dictionary copy,
+        // no MemoryStream, no Utf8JsonWriter state machine; the buffer is reused across calls on this thread.
+        ParsedJsonWriter writer = projectionWriter ??= new ParsedJsonWriter(16 * 1024);
+        writer.Reset();
+        writer.WriteValue(value);
+        string json = Encoding.UTF8.GetString(writer.WrittenSpan);
+        if (writer.Capacity > 4 * 1024 * 1024)
         {
             // Do not pin a multi-megabyte buffer to the thread after one unusually large result.
-            projectionBuffer = null;
+            projectionWriter = null;
         }
 
         return json;
-    }
-
-    /// <summary>Writes supported .NET values without reflection or lossy Int64-to-JavaScript conversion.</summary>
-    private static void WriteJsonValue(Utf8JsonWriter writer, object? value)
-    {
-        switch (value)
-        {
-        case null:
-            writer.WriteNullValue();
-            return;
-        case string text:
-            writer.WriteStringValue(text);
-            return;
-        case bool boolean:
-            writer.WriteBooleanValue(boolean);
-            return;
-        case Guid identifier:
-            writer.WriteStringValue(identifier.ToString("D"));
-            return;
-        case byte number:
-            writer.WriteNumberValue(number);
-            return;
-        case sbyte number:
-            writer.WriteNumberValue(number);
-            return;
-        case short number:
-            writer.WriteNumberValue(number);
-            return;
-        case ushort number:
-            writer.WriteNumberValue(number);
-            return;
-        case int number:
-            writer.WriteNumberValue(number);
-            return;
-        case uint number:
-            writer.WriteNumberValue(number);
-            return;
-        case long number:
-            WriteJavaScriptSafeInteger(writer, number);
-            return;
-        case ulong number:
-            WriteJavaScriptSafeInteger(writer, number);
-            return;
-        case BigInteger number:
-            WriteJavaScriptSafeInteger(writer, number);
-            return;
-        case float number:
-            writer.WriteNumberValue(number);
-            return;
-        case double number:
-            writer.WriteNumberValue(number);
-            return;
-        case decimal number:
-            writer.WriteNumberValue(number);
-            return;
-        case byte[] bytes:
-            writer.WriteBase64StringValue(bytes);
-            return;
-        case UnionValue unionValue:
-            writer.WriteStartObject();
-            writer.WriteString("$kind", "union");
-            writer.WriteString("Union", unionValue.UnionName);
-            writer.WritePropertyName("RawStorage");
-            if (unionValue.HasRawStorage)
-            {
-                writer.WriteBase64StringValue(unionValue.RawStorage!.Value.Span);
-            }
-            else
-            {
-                writer.WriteNullValue();
-            }
-
-            writer.WritePropertyName("Members");
-            writer.WriteStartObject();
-            foreach (KeyValuePair<string, object?> member in unionValue.Members)
-            {
-                writer.WritePropertyName(member.Key);
-                WriteJsonValue(writer, member.Value);
-            }
-
-            writer.WriteEndObject();
-            writer.WritePropertyName("SelectedMember");
-            WriteJsonValue(writer, unionValue.SelectedMember);
-            writer.WriteEndObject();
-            return;
-        case Pointer pointer:
-            writer.WriteStartObject();
-            writer.WriteNumber("Address", pointer.Address);
-            writer.WriteNumber("Depth", pointer.Depth);
-            writer.WriteBoolean("IsDereferenced", pointer.IsDereferenced);
-            writer.WritePropertyName("Value");
-            WriteJsonValue(writer, pointer.Value);
-            writer.WriteEndObject();
-            return;
-        case EnumValueResult enumValue:
-            writer.WriteStartObject();
-            writer.WriteString("Enum", enumValue.Enum);
-            writer.WritePropertyName("Name");
-            WriteJsonValue(writer, enumValue.Name);
-            writer.WritePropertyName("Value");
-            WriteJavaScriptSafeInteger(writer, enumValue.Value);
-            writer.WriteEndObject();
-            return;
-        case StructValue structValue:
-            // The parsed-struct enumerator is a struct that walks the slot array; no boxed enumerator per object.
-            writer.WriteStartObject();
-            foreach (KeyValuePair<string, object?> member in structValue)
-            {
-                writer.WritePropertyName(member.Key);
-                WriteJsonValue(writer, member.Value);
-            }
-
-            writer.WriteEndObject();
-            return;
-        case IDictionary<string, object?> dictionary:
-            writer.WriteStartObject();
-            foreach (KeyValuePair<string, object?> member in dictionary)
-            {
-                writer.WritePropertyName(member.Key);
-                WriteJsonValue(writer, member.Value);
-            }
-
-            writer.WriteEndObject();
-            return;
-
-        // Typed parsed arrays (E2.3) are written from their span: no boxing and no per-element type dispatch.
-        case PrimitiveArray<byte> array:
-            writer.WriteStartArray();
-            foreach (byte number in array.Span)
-            {
-                writer.WriteNumberValue(number);
-            }
-
-            writer.WriteEndArray();
-            return;
-        case PrimitiveArray<sbyte> array:
-            writer.WriteStartArray();
-            foreach (sbyte number in array.Span)
-            {
-                writer.WriteNumberValue(number);
-            }
-
-            writer.WriteEndArray();
-            return;
-        case PrimitiveArray<bool> array:
-            writer.WriteStartArray();
-            foreach (bool flag in array.Span)
-            {
-                writer.WriteBooleanValue(flag);
-            }
-
-            writer.WriteEndArray();
-            return;
-        case PrimitiveArray<short> array:
-            writer.WriteStartArray();
-            foreach (short number in array.Span)
-            {
-                writer.WriteNumberValue(number);
-            }
-
-            writer.WriteEndArray();
-            return;
-        case PrimitiveArray<ushort> array:
-            writer.WriteStartArray();
-            foreach (ushort number in array.Span)
-            {
-                writer.WriteNumberValue(number);
-            }
-
-            writer.WriteEndArray();
-            return;
-        case PrimitiveArray<int> array:
-            writer.WriteStartArray();
-            foreach (int number in array.Span)
-            {
-                writer.WriteNumberValue(number);
-            }
-
-            writer.WriteEndArray();
-            return;
-        case PrimitiveArray<uint> array:
-            writer.WriteStartArray();
-            foreach (uint number in array.Span)
-            {
-                writer.WriteNumberValue(number);
-            }
-
-            writer.WriteEndArray();
-            return;
-        case PrimitiveArray<long> array:
-            writer.WriteStartArray();
-            foreach (long number in array.Span)
-            {
-                WriteJavaScriptSafeInteger(writer, number);
-            }
-
-            writer.WriteEndArray();
-            return;
-        case PrimitiveArray<ulong> array:
-            writer.WriteStartArray();
-            foreach (ulong number in array.Span)
-            {
-                WriteJavaScriptSafeInteger(writer, number);
-            }
-
-            writer.WriteEndArray();
-            return;
-        case PrimitiveArray<float> array:
-            writer.WriteStartArray();
-            foreach (float number in array.Span)
-            {
-                writer.WriteNumberValue(number);
-            }
-
-            writer.WriteEndArray();
-            return;
-        case PrimitiveArray<double> array:
-            writer.WriteStartArray();
-            foreach (double number in array.Span)
-            {
-                writer.WriteNumberValue(number);
-            }
-
-            writer.WriteEndArray();
-            return;
-        case IEnumerable<object?> sequence:
-            writer.WriteStartArray();
-            foreach (object? item in sequence)
-            {
-                WriteJsonValue(writer, item);
-            }
-
-            writer.WriteEndArray();
-            return;
-        default:
-            writer.WriteStringValue(value.ToString());
-            return;
-        }
-    }
-
-    /// <summary>Writes signed integers as decimal text only when JavaScript cannot represent them exactly.</summary>
-    private static void WriteJavaScriptSafeInteger(Utf8JsonWriter writer, long value)
-    {
-        const long maximumSafeInteger = 9_007_199_254_740_991;
-        if (value is >= -maximumSafeInteger and <= maximumSafeInteger)
-        {
-            writer.WriteNumberValue(value);
-        }
-        else
-        {
-            writer.WriteStringValue(value.ToString(CultureInfo.InvariantCulture));
-        }
-    }
-
-    /// <summary>Writes unsigned integers as decimal text only when JavaScript cannot represent them exactly.</summary>
-    private static void WriteJavaScriptSafeInteger(Utf8JsonWriter writer, ulong value)
-    {
-        const ulong maximumSafeInteger = 9_007_199_254_740_991;
-        if (value <= maximumSafeInteger)
-        {
-            writer.WriteNumberValue(value);
-        }
-        else
-        {
-            writer.WriteStringValue(value.ToString(CultureInfo.InvariantCulture));
-        }
-    }
-
-    /// <summary>Writes exact enum mathematics using the same JavaScript-safe number-or-string convention.</summary>
-    private static void WriteJavaScriptSafeInteger(Utf8JsonWriter writer, BigInteger value)
-    {
-        BigInteger maximumSafeInteger = new(9_007_199_254_740_991L);
-        if (value >= -maximumSafeInteger && value <= maximumSafeInteger)
-        {
-            writer.WriteNumberValue((long)value);
-        }
-        else
-        {
-            writer.WriteStringValue(value.ToString(CultureInfo.InvariantCulture));
-        }
     }
 }

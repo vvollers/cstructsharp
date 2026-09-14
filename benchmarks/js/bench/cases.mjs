@@ -47,10 +47,50 @@ export async function verifyFixture(env, id) {
     const expected = JSON.stringify(document.expected);
     if (actual !== expected) throw new Error(`${id}: JS result differs from the C# expected JSON`);
   } else if (document.expectedSha256) {
-    const digest = await sha256Hex(env, actual);
+    // The digest is over the C# canonical text (Utf8JsonWriter default escaping), so re-serialize with the same
+    // escaping before hashing; JSON.stringify would leave non-ASCII characters raw.
+    const digest = await sha256Hex(env, canonicalJson(parsed[document.root]));
     if (digest !== document.expectedSha256) throw new Error(`${id}: JS result SHA-256 ${digest} != ${document.expectedSha256}`);
   }
   return true;
+}
+
+// Serializes like the fixture tool's CanonicalJson (Utf8JsonWriter with JavaScriptEncoder.Default): object members
+// in insertion order, no whitespace, and strings escaped the .NET way (letters, digits and a small punctuation
+// set pass through; everything else, including quotes and non-ASCII, becomes \uXXXX with uppercase hex).
+export function canonicalJson(value) {
+  if (value === null || value === undefined) return "null";
+  if (typeof value === "string") return canonicalString(value);
+  if (typeof value === "number" || typeof value === "boolean") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  // Utf8JsonWriter.WriteBase64StringValue writes base64 without escaping, so a union's RawStorage keeps its raw
+  // "+" and "/" while every other string escapes "+" as \u002B.
+  return `{${Object.entries(value).map(([key, item]) => `${canonicalString(key)}:${key === "RawStorage" && typeof item === "string" ? `"${item}"` : canonicalJson(item)}`).join(",")}}`;
+}
+
+const unescapedAscii = /^[A-Za-z0-9 !#$%()*,\-./:;=?@[\]^_`{|}~]$/;
+function canonicalString(text) {
+  let out = '"';
+  for (const ch of text) {
+    if (unescapedAscii.test(ch)) out += ch;
+    else if (ch === "\\") out += "\\\\";
+    else if (ch === "\n") out += "\\n";
+    else if (ch === "\r") out += "\\r";
+    else if (ch === "\t") out += "\\t";
+    else if (ch === "\b") out += "\\b";
+    else if (ch === "\f") out += "\\f";
+    else {
+      const code = ch.codePointAt(0);
+      if (code > 0xffff) {
+        const high = Math.floor((code - 0x10000) / 0x400) + 0xd800;
+        const low = ((code - 0x10000) % 0x400) + 0xdc00;
+        out += `\\u${high.toString(16).toUpperCase().padStart(4, "0")}\\u${low.toString(16).toUpperCase().padStart(4, "0")}`;
+      } else {
+        out += `\\u${code.toString(16).toUpperCase().padStart(4, "0")}`;
+      }
+    }
+  }
+  return `${out}"`;
 }
 
 async function sha256Hex(env, text) {
