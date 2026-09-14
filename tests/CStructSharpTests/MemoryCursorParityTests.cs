@@ -12,7 +12,7 @@ using CStructSharp.Tests;
 [TestClass]
 public class MemoryCursorParityTests
 {
-    /// <summary>Every fixture parses identically through the span, MemoryStream, and chunked-stream paths, ending at the same position.</summary>
+    /// <summary>Every fixture parses identically through the span, MemoryStream, chunked-stream and plan-free paths, ending at the same position.</summary>
     [TestMethod]
     public void EveryFixture_ParsesIdenticallyThroughMemoryAndStreamPaths()
     {
@@ -44,13 +44,22 @@ public class MemoryCursorParityTests
             using var chunked = new ChunkedMemoryStream(bytes, 7, writable: false);
             (object? chunkedResult, string? chunkedError) = Try(() => layout.ParseStream(chunked, rootName, options: readOptions));
 
+            // The same memory-backed source through the general reader only (static read plans disabled, E2.5).
+            using var unplanned = new MemoryStream(bytes, writable: false);
+            StaticReadPlan.DisabledForTesting = true;
+            (object? unplannedResult, string? unplannedError) = Try(() => layout.ParseStream(unplanned, rootName, options: readOptions));
+            StaticReadPlan.DisabledForTesting = false;
+
             Assert.AreEqual(spanError, memoryError, id);
             Assert.AreEqual(spanError, chunkedError, id);
+            Assert.AreEqual(spanError, unplannedError, id);
             Assert.AreEqual(chunked.Position, memoryStream.Position, id + ": final position");
+            Assert.AreEqual(unplanned.Position, memoryStream.Position, id + ": final position without plan");
             if (spanError is null)
             {
                 Assert.IsTrue(StructurallyEqual(spanResult, memoryResult), id + ": span vs MemoryStream");
                 Assert.IsTrue(StructurallyEqual(spanResult, chunkedResult), id + ": span vs chunked stream");
+                Assert.IsTrue(StructurallyEqual(spanResult, unplannedResult), id + ": plan vs general reader");
             }
 
             compared++;

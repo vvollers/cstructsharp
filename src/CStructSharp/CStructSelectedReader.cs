@@ -1,14 +1,41 @@
 namespace CStructSharp;
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CStructSharp.Structure;
+using CstructEnum = CStructSharp.Structure.Enum;
 
 /// <summary>Reads a selected nested object without materializing unrelated siblings.</summary>
 public partial class CStruct
 {
+    /// <summary>The general reader's scalar capture rule (E2.6a/E2.6): in-range values become literals, others shadow stale entries.</summary>
+    private static void CaptureScalar(CStructOperationContext state, string name, object? value)
+    {
+        if (Int32Capture.TryConvert(value, out int captured))
+        {
+            state.Variables[name] = new Literal(captured);
+        }
+        else
+        {
+            state.Variables.Remove(name);
+        }
+    }
+
+    /// <summary>A <c>char[N]</c> buffer is one Latin-1 character per byte, exactly as the per-element <c>char</c> reader produces.</summary>
+    private static string ReadLatin1Characters(ReadOnlySpan<byte> bytes)
+    {
+        Span<char> chars = bytes.Length <= 256 ? stackalloc char[bytes.Length] : new char[bytes.Length];
+        for (int index = 0; index < chars.Length; index++)
+        {
+            chars[index] = (char)bytes[index];
+        }
+
+        return new string(chars);
+    }
+
     /// <summary>Restores the expression context so overlapping union views cannot influence one another or later fields.</summary>
     private static void RestoreVariables(
         Dictionary<string, Expr> destination,
@@ -44,8 +71,51 @@ public partial class CStruct
         CStructOperationContext state,
         DebugPath? debugStack)
     {
-        var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned);
         CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
+
+        // Static read plan (E2.5): a fully fixed composite is read from one span of its exact size. The span is
+        // taken only when the whole extent is present and within the read budget, so every truncation and limit
+        // failure still comes from the general path below, at the field it always reported.
+        // The destination must be this composite's own value: a promoted anonymous member reads into its parent's
+        // container, whose slots belong to the parent's shape.
+        // Limits that the general reader reports at a field inside the composite are checked up front, so a plan
+        // never consumes bytes and then fails: such inputs go to the general reader and fail where they always did.
+        if (!state.Debug && !StaticReadPlan.DisabledForTesting && ReferenceEquals(destination.Shape, composite.Shape) && composite.StaticPlan is StaticReadPlan plan &&
+            state.StructureDepth + plan.NestingDepth <= state.MaxNestingDepth && plan.MaximumArrayCount <= state.MaxArrayElements)
+        {
+            if (state.Stream.TryReadSpanWithinBudget(plan.Size, out ReadOnlySpan<byte> staticBytes))
+            {
+                this.ExecuteStaticPlan(plan, staticBytes, destination, state);
+                state.CurrentBitOffset = 0;
+                state.CurrentBitfieldType = null;
+                state.NextPosition = state.Stream.Position;
+                return;
+            }
+
+            // A stream source (FileStream, a MemoryStream without an exposed buffer) reads the composite's extent
+            // into a pooled block first; composites beyond the block size stay on the general reader.
+            if (plan.Size <= StaticReadPlan.MaximumBlockSize)
+            {
+                byte[] block = ArrayPool<byte>.Shared.Rent(plan.Size);
+                try
+                {
+                    if (state.Stream.TryReadBlockWithinBudget(block.AsSpan(0, plan.Size)))
+                    {
+                        this.ExecuteStaticPlan(plan, block.AsSpan(0, plan.Size), destination, state);
+                        state.CurrentBitOffset = 0;
+                        state.CurrentBitfieldType = null;
+                        state.NextPosition = state.Stream.Position;
+                        return;
+                    }
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(block);
+                }
+            }
+        }
+
+        var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned);
         var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
         var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) : null;
 
@@ -89,6 +159,123 @@ public partial class CStruct
         state.CurrentBitOffset = 0;
         state.CurrentBitfieldType = null;
         state.NextPosition = state.Stream.Position;
+    }
+
+    /// <summary>Runs a static read plan over the composite's bytes, reproducing the general reader's side effects.</summary>
+    private void ExecuteStaticPlan(StaticReadPlan plan, ReadOnlySpan<byte> bytes, StructValue destination, CStructOperationContext state)
+    {
+        state.EnterStructure();
+        try
+        {
+            StaticReadOperation[] operations = plan.Operations;
+            for (int index = 0; index < operations.Length; index++)
+            {
+                StaticReadOperation operation = operations[index];
+                CompiledField field = operation.Field;
+                switch (operation.Kind)
+                {
+                case StaticReadKind.Numeric:
+                    {
+                        object value = field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
+                        destination.SetFreshSlot(operation.Slot, value);
+                        if (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+                        {
+                            CaptureScalar(state, field.Declaration.Name.Name, value);
+                        }
+
+                        break;
+                    }
+
+                case StaticReadKind.Enum:
+                    {
+                        object storage = field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
+                        var enm = (CstructEnum)field.Type.Symbol.Declaration!;
+                        EnumValueResult value = this.CreateEnumValue(enm, storage);
+                        destination.SetFreshSlot(operation.Slot, value);
+                        if (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+                        {
+                            this.UpdateExactLayoutVariable(state.Variables, field.Declaration.Name.Name, value.Value);
+                        }
+
+                        break;
+                    }
+
+                case StaticReadKind.CharArray:
+                    {
+                        if (operation.Count > state.MaxArrayElements)
+                        {
+                            throw new CStructReadLimitException("Array length exceeds the configured limit: " + field.Declaration.Name.Name);
+                        }
+
+                        string text = ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count));
+                        destination.SetFreshSlot(operation.Slot, text);
+                        if (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+                        {
+                            state.Variables[field.Declaration.Name.Name] = new Identifier(text);
+                        }
+
+                        break;
+                    }
+
+                case StaticReadKind.NumericArray:
+                    {
+                        if (operation.Count > state.MaxArrayElements)
+                        {
+                            throw new CStructReadLimitException("Array length exceeds the configured limit: " + field.Declaration.Name.Name);
+                        }
+
+                        if (operation.Count == 0)
+                        {
+                            destination.SetFreshSlot(operation.Slot, new List<object?>(0));
+                            break;
+                        }
+
+                        IList<object?> values = PrimitiveArrayReader.Decode(bytes.Slice(operation.Offset, operation.Count * field.Codec.Size), field.Codec, operation.Count);
+                        destination.SetFreshSlot(operation.Slot, values);
+                        if (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+                        {
+                            CaptureScalar(state, field.Declaration.Name.Name, values[operation.Count - 1]);
+                        }
+
+                        break;
+                    }
+
+                case StaticReadKind.Nested:
+                    {
+                        var nested = new StructValue(operation.NestedComposite!.Shape);
+                        destination.SetFreshSlot(operation.Slot, nested);
+                        this.ExecuteStaticPlan(operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nested, state);
+                        break;
+                    }
+
+                case StaticReadKind.NestedArray:
+                    {
+                        if (operation.Count > state.MaxArrayElements)
+                        {
+                            throw new CStructReadLimitException("Array length exceeds the configured limit: " + field.Declaration.Name.Name);
+                        }
+
+                        var elements = new List<object?>(operation.Count);
+                        destination.SetFreshSlot(operation.Slot, elements);
+                        StaticReadPlan nestedPlan = operation.NestedPlan!;
+                        StructShape nestedShape = operation.NestedComposite!.Shape;
+                        int elementOffset = operation.Offset;
+                        for (int element = 0; element < operation.Count; element++, elementOffset += nestedPlan.Size)
+                        {
+                            var nested = new StructValue(nestedShape);
+                            elements.Add(nested);
+                            this.ExecuteStaticPlan(nestedPlan, bytes.Slice(elementOffset, nestedPlan.Size), nested, state);
+                        }
+
+                        break;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            state.ExitStructure();
+        }
     }
 
     /// <summary>Reads one compiled struct or union at an already resolved address.</summary>

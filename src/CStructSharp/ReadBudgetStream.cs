@@ -150,6 +150,52 @@ internal sealed unsafe class ReadBudgetStream : Stream
         return false;
     }
 
+    /// <summary>
+    ///     Like <see cref="TryReadSpan"/> but also fails, without charging or throwing, when the read would exceed the
+    ///     total read budget - so a caller can fall back to a path that reports the limit failure at its usual place.
+    /// </summary>
+    public bool TryReadSpanWithinBudget(int count, out ReadOnlySpan<byte> bytes)
+    {
+        if (this.memoryBacked && this.position + count <= this.memoryLength && this.bytesRead + (long)count <= this.maxTotalBytesRead)
+        {
+            return this.TryReadSpan(count, out bytes);
+        }
+
+        bytes = default;
+        return false;
+    }
+
+    /// <summary>
+    ///     Stream-source counterpart of <see cref="TryReadSpanWithinBudget"/>: fills <paramref name="destination"/> with the
+    ///     next <c>destination.Length</c> bytes when the seekable source provably holds them and the budget allows,
+    ///     charging the budget exactly as a sequence of reads would; false (nothing consumed) otherwise.
+    /// </summary>
+    public bool TryReadBlockWithinBudget(Span<byte> destination)
+    {
+        if (this.memoryBacked || destination.Length == 0)
+        {
+            return false;
+        }
+
+        long available;
+        try
+        {
+            available = this.inner.CanSeek ? this.inner.Length - this.inner.Position : -1;
+        }
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
+        {
+            return false;
+        }
+
+        if (available < destination.Length || this.bytesRead + (long)destination.Length > this.maxTotalBytesRead)
+        {
+            return false;
+        }
+
+        BinaryPrimitiveIO.ReadExactlyOrThrow(this, destination);
+        return true;
+    }
+
     /// <summary>Writes the memory-mode position back to the inner stream; a no-op for stream sources.</summary>
     public void FlushPosition()
     {

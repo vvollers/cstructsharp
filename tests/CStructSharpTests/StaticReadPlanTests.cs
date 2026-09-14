@@ -1,0 +1,147 @@
+namespace CStructSharp.Tests;
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+/// <summary>
+///     Pins the static read plan (E2.5): a fully fixed composite read from one span must be indistinguishable from
+///     the general reader - values, captured variables, limits, truncation failures and final positions - and the
+///     plan must exist exactly for the composites the plan's conditions describe.
+/// </summary>
+[TestClass]
+public class StaticReadPlanTests
+{
+    private const string Layout = """
+        enum kind : uint8 { a = 1, b = 2 };
+        struct leaf { uint8 k; uint32 v; };
+        struct inner { leaf first; leaf second; uint16 pad; };
+        struct root {
+            uint16 magic;
+            char tag[4];
+            kind which;
+            inner nested;
+            uint32 samples[3];
+            uint8 none[0];
+            struct { uint8 p; uint8 q; };
+            uint8 n;
+            uint8 items[n];
+            uint8 tail;
+        };
+        """;
+
+    /// <summary>Composites get a plan exactly when every member is statically placed and decodable.</summary>
+    [TestMethod]
+    public void StaticPlan_ExistsForFixedComposites_Only()
+    {
+        Assert.IsTrue(HasPlan("struct root { uint16 a; uint32 b; char name[4]; uint8 raw[8]; };", "root"));
+        Assert.IsTrue(HasPlan("struct leaf { uint8 k; }; struct root { leaf x; leaf y; struct { uint8 p; }; };", "root"));
+        Assert.IsTrue(HasPlan("enum e : uint16 { one = 1 }; struct root { e value; };", "root"));
+        Assert.IsTrue(HasPlan("struct root { uint16 a; uint32 b; };", "root", aligned: true));
+        Assert.IsFalse(HasPlan("struct root { uint8 n; uint8 items[n]; };", "root"), "dynamic array");
+        Assert.IsFalse(HasPlan("struct root { uint8 flag; if (flag == 1) { uint8 yes; } };", "root"), "conditional");
+        Assert.IsFalse(HasPlan("struct root { uint8 *p; };", "root"), "pointer");
+        Assert.IsFalse(HasPlan("struct root { uint8 low : 4; uint8 high : 4; };", "root"), "bitfield");
+        Assert.IsFalse(HasPlan("union u { uint8 a; uint16 b; }; struct root { u value; };", "root"), "union member");
+        Assert.IsFalse(HasPlan("struct root { uint8 grid[2][2]; };", "root"), "multidimensional array");
+        Assert.IsFalse(HasPlan("struct root { wchar name[4]; };", "root"), "wide characters");
+        Assert.IsFalse(HasPlan("struct root { uint8 a; uint8 b @1; };", "root"), "offset assertion");
+        Assert.IsFalse(HasPlan("struct root { utf8 text[4]; };", "root"), "bounded text");
+    }
+
+    /// <summary>Full parses, every truncation, every read budget and small limits behave identically through the span (plan) and chunked-stream (general) paths.</summary>
+    [TestMethod]
+    public void StaticPlan_MatchesGeneralReader_OnValuesFailuresAndPositions()
+    {
+        var layout = new CStruct(Layout);
+        byte[] bytes = [0x34, 0x12, (byte)'I', (byte)'H', (byte)'D', (byte)'R', 2, 9, 1, 0, 0, 0, 8, 2, 0, 0, 0, 0xEE, 0xFF, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 0xAA, 0xBB, 2, 0x51, 0x52, 0x99];
+        dynamic parsed = layout.Parse(bytes, "root");
+        Assert.AreEqual((ushort)0x1234, parsed.magic);
+        Assert.AreEqual("IHDR", parsed.tag);
+        Assert.AreEqual("b", ((EnumValueResult)parsed.which).Name);
+        Assert.AreEqual(0x00000001u, parsed.nested.first.v);
+        Assert.AreEqual((byte)8, parsed.nested.second.k);
+        Assert.AreEqual((ushort)0xFFEE, parsed.nested.pad);
+        CollectionAssert.AreEqual(new uint[] { 1, 2, 3 }, ((PrimitiveArray<uint>)parsed.samples).ToArray());
+        Assert.AreEqual(0, ((IList<object?>)parsed.none).Count);
+        Assert.AreEqual((byte)0xBB, parsed.q);
+        Assert.AreEqual(2, ((IList<object?>)parsed.items).Count, "n was captured by the static path for the dynamic sibling");
+        Assert.AreEqual((byte)0x99, parsed.tail);
+
+        for (int length = 0; length < bytes.Length; length++)
+        {
+            AssertSameOutcome(layout, bytes[..length], null, $"truncated to {length}");
+        }
+
+        for (long budget = 1; budget <= bytes.Length; budget++)
+        {
+            AssertSameOutcome(layout, bytes, new ReadOptions { MaxTotalBytesRead = budget }, $"budget {budget}");
+        }
+
+        AssertSameOutcome(layout, bytes, new ReadOptions { MaxArrayElements = 2 }, "array limit");
+        AssertSameOutcome(layout, bytes, new ReadOptions { MaxNestingDepth = 2 }, "nesting limit");
+        AssertSameOutcome(layout, bytes, new ReadOptions { MaxNestingDepth = 3 }, "nesting limit 3");
+    }
+
+    private static bool HasPlan(string definition, string root, bool aligned = false)
+    {
+        var layout = new CStruct(definition, aligned: aligned);
+        CompiledLayoutModel model = layout.CompiledModel;
+        CompiledCompositeType composite = (CompiledCompositeType)model.Symbols[root].Symbol.Definition!;
+        return composite.StaticPlan is not null;
+    }
+
+    /// <summary>The same input with and without the plan (thread-static test hook) for a span, a MemoryStream without an exposed buffer (block path) and a 5-byte chunked stream.</summary>
+    private static void AssertSameOutcome(CStruct layout, byte[] bytes, ReadOptions? options, string label)
+    {
+        foreach ((string source, Func<Stream?> create) in new (string, Func<Stream?>)[]
+        {
+            ("span", () => null),
+            ("memory stream", () => new MemoryStream(bytes, writable: false)),
+            ("chunked stream", () => new ChunkedMemoryStream(bytes, 5, writable: false)),
+        })
+        {
+            using Stream? withPlan = create();
+            using Stream? withoutPlan = create();
+            (object? fast, Exception? fastError) = Try(() => withPlan is null ? layout.Parse(bytes, "root", options: options) : layout.ParseStream(withPlan, "root", options: options));
+            StaticReadPlan.DisabledForTesting = true;
+            (object? general, Exception? generalError) = Try(() => withoutPlan is null ? layout.Parse(bytes, "root", options: options) : layout.ParseStream(withoutPlan, "root", options: options));
+            StaticReadPlan.DisabledForTesting = false;
+            string caseLabel = label + " / " + source;
+            Assert.AreEqual(generalError?.GetType(), fastError?.GetType(), caseLabel);
+            Assert.AreEqual((generalError as CStructException)?.Offset, (fastError as CStructException)?.Offset, caseLabel + ": failure offset");
+            Assert.AreEqual(withoutPlan?.Position, withPlan?.Position, caseLabel + ": final position");
+            if (fastError is null)
+            {
+                Assert.AreEqual(Render(general), Render(fast), caseLabel);
+            }
+        }
+    }
+
+    private static (object? Result, Exception? Error) Try(Func<object> parse)
+    {
+        try
+        {
+            return (parse(), null);
+        }
+        catch (CStructException exception)
+        {
+            return (null, exception);
+        }
+    }
+
+    private static string Render(object? value)
+    {
+        return value switch
+        {
+            null => "null",
+            StructValue s => "{" + string.Join(",", s.Select(pair => pair.Key + ":" + Render(pair.Value))) + "}",
+            EnumValueResult e => e.Enum + "." + (e.Name ?? "?") + "=" + e.Value,
+            string text => "\"" + text + "\"",
+            System.Collections.IEnumerable items => "[" + string.Join(",", items.Cast<object?>().Select(Render)) + "]",
+            _ => value.GetType().Name + ":" + value,
+        };
+    }
+}

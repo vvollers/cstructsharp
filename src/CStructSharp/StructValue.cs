@@ -43,6 +43,9 @@ public sealed class StructValue : DynamicObject, IDictionary<string, object?>, I
     /// <summary>Gets the number of members present.</summary>
     public int Count => this.count;
 
+    /// <summary>The member table this value was created for (the static read plan requires the composite's own).</summary>
+    internal StructShape Shape => this.shape;
+
     bool ICollection<KeyValuePair<string, object?>>.IsReadOnly => false;
 
     /// <summary>Gets the member names in insertion order.</summary>
@@ -263,6 +266,13 @@ public sealed class StructValue : DynamicObject, IDictionary<string, object?>, I
 
         value = slot;
         return true;
+    }
+
+    /// <summary>Direct slot write for the static read plan: the shape guarantees the index and that the slot was unset.</summary>
+    internal void SetFreshSlot(int index, object? value)
+    {
+        this.slots[index] = value;
+        this.count++;
     }
 
     /// <summary>Slot write for bound call sites.</summary>

@@ -1006,10 +1006,16 @@ public partial class CStruct
     /// <summary>Decodes one enum through its validated backing domain and declaration-order symbolic table.</summary>
     private EnumValueResult ReadEnumValue(CompiledField field, CstructEnum enm, Stream stream)
     {
-        CompiledEnumType compiled = this.compiledModelQueries.GetCompiledEnum(enm);
         object storageValue = field.Reader?.Invoke(stream) ??
                               throw new InvalidOperationException(
                                   "Compiled enum has no storage reader: " + enm.Name.Name);
+        return this.CreateEnumValue(enm, storageValue);
+    }
+
+    /// <summary>Maps a decoded storage value to the enum result (shared by the general and static readers).</summary>
+    private EnumValueResult CreateEnumValue(CstructEnum enm, object storageValue)
+    {
+        CompiledEnumType compiled = this.compiledModelQueries.GetCompiledEnum(enm);
         BigInteger value = compiled.Integer.FromStorageValue(storageValue);
         ulong rawBits = compiled.Integer.ToRawBits(value);
         return new EnumValueResult(

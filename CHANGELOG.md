@@ -4,6 +4,12 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Performance: a struct whose members are all statically placed (fixed-width numbers, enums, `char[N]` buffers,
+  fixed numeric arrays, nested such structs and fixed arrays of them) is read by a per-struct plan built once at
+  first use and executed over its bytes, instead of interpreting the declaration per field. Fully fixed layouts
+  parse 55–97 % faster (a 1,024-record file 407 → 94 µs; a tar header 18 µs → 0.6 µs) with 20–90 % less
+  allocation; layouts mixing fixed and dynamic parts gain for their fixed sub-structs. Values, variables, limits,
+  failure positions and debug output are unchanged (debug parses use the general reader).
 - **Breaking (managed API):** a one-dimensional array of a fixed-width numeric primitive (`uint8`…`uint64`,
   `int8`…`int64`, `int24`/`uint24`, `bool`, `float32`, `float64`, any byte order) now parses to
   `CStructSharp.PrimitiveArray<T>` instead of a `List<object?>`. It is still the documented `IList<object?>`

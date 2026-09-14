@@ -44,6 +44,73 @@ internal static class PrimitiveArrayReader
         };
     }
 
+    /// <summary>Decodes <paramref name="count"/> elements that are already in memory (static read plan, E2.5).</summary>
+    public static IList<object?> Decode(ReadOnlySpan<byte> bytes, PrimitiveCodec codec, int count)
+    {
+        bool le = codec.LittleEndian;
+        switch (codec.Kind)
+        {
+        case PrimitiveCodecKind.UInt8:
+            return new PrimitiveArray<byte>(bytes.ToArray());
+        case PrimitiveCodecKind.Int8:
+            {
+                var values = new sbyte[count];
+                bytes.CopyTo(MemoryMarshal.AsBytes(values.AsSpan()));
+                return new PrimitiveArray<sbyte>(values);
+            }
+
+        case PrimitiveCodecKind.Bool:
+            {
+                var values = new bool[count];
+                DecodeBooleans(bytes, values);
+                return new PrimitiveArray<bool>(values);
+            }
+
+        case PrimitiveCodecKind.Int16:
+            return new PrimitiveArray<short>(DecodeIntegers<short>(bytes, count, le));
+        case PrimitiveCodecKind.UInt16:
+            return new PrimitiveArray<ushort>(DecodeIntegers<ushort>(bytes, count, le));
+        case PrimitiveCodecKind.Int32:
+            return new PrimitiveArray<int>(DecodeIntegers<int>(bytes, count, le));
+        case PrimitiveCodecKind.UInt32:
+            return new PrimitiveArray<uint>(DecodeIntegers<uint>(bytes, count, le));
+        case PrimitiveCodecKind.Int64:
+            return new PrimitiveArray<long>(DecodeIntegers<long>(bytes, count, le));
+        case PrimitiveCodecKind.UInt64:
+            return new PrimitiveArray<ulong>(DecodeIntegers<ulong>(bytes, count, le));
+        case PrimitiveCodecKind.Float32:
+            {
+                var values = new float[count];
+                DecodeIntegers(bytes, MemoryMarshal.Cast<float, uint>(values.AsSpan()), le);
+                return new PrimitiveArray<float>(values);
+            }
+
+        case PrimitiveCodecKind.Float64:
+            {
+                var values = new double[count];
+                DecodeIntegers(bytes, MemoryMarshal.Cast<double, ulong>(values.AsSpan()), le);
+                return new PrimitiveArray<double>(values);
+            }
+
+        case PrimitiveCodecKind.Int24:
+            {
+                var values = new int[count];
+                DecodeInt24(bytes, values, le);
+                return new PrimitiveArray<int>(values);
+            }
+
+        case PrimitiveCodecKind.UInt24:
+            {
+                var values = new uint[count];
+                DecodeUInt24(bytes, values, le);
+                return new PrimitiveArray<uint>(values);
+            }
+
+        default:
+            throw new InvalidOperationException("Codec is not a fixed-width numeric primitive: " + codec.Kind);
+        }
+    }
+
     /// <summary>
     ///     Boxed variant for multidimensional arrays, which are reshaped into nested lists after the read: appends
     ///     <paramref name="count"/> elements to <paramref name="target"/> and returns the last value.
@@ -122,6 +189,14 @@ internal static class PrimitiveArrayReader
         }
 
         return result;
+    }
+
+    private static T[] DecodeIntegers<T>(ReadOnlySpan<byte> source, int count, bool littleEndian)
+        where T : unmanaged
+    {
+        var values = new T[count];
+        DecodeIntegers(source, values.AsSpan(), littleEndian);
+        return values;
     }
 
     private static void DecodeBooleans(ReadOnlySpan<byte> source, Span<bool> destination)

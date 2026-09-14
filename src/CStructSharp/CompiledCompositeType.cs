@@ -10,6 +10,8 @@ using CStructSharp.Structure;
 internal sealed class CompiledCompositeType : CompiledType
 {
     private StructShape? shape;
+    private StaticReadPlan? staticPlan;
+    private bool staticPlanBuilt;
 
     public CompiledCompositeType(CompiledTypeSymbol symbol, ImmutableArray<CompiledField> fields)
         : base(symbol)
@@ -78,6 +80,22 @@ internal sealed class CompiledCompositeType : CompiledType
     ///     arms all get a slot; an arm that is not selected simply leaves its slot unset.
     /// </summary>
     public StructShape Shape => this.shape ??= this.BuildShape();
+
+    /// <summary>The span read plan (E2.5) when every member is statically placed; null otherwise. Built on first use.</summary>
+    public StaticReadPlan? StaticPlan
+    {
+        get
+        {
+            if (!this.staticPlanBuilt)
+            {
+                // Built after the whole model is bound; a benign race builds the same plan twice.
+                this.staticPlan = StaticReadPlan.TryBuild(this);
+                this.staticPlanBuilt = true;
+            }
+
+            return this.staticPlan;
+        }
+    }
 
     /// <summary>Finishes scope metadata after recursive pointer symbols have all been bound.</summary>
     internal void CompleteConditionalScope()
