@@ -5,6 +5,8 @@ import {
   update,
   getVersion,
   loadCStructSharpWasm,
+  type ParsedData,
+  type ParsedValue,
 } from "./cstructsharp-wasm.js";
 
 const definition = "struct root { uint64 value; };";
@@ -17,9 +19,13 @@ if (created.Success) {
   const bytes: Uint8Array = created.Data;
   const parsed = await parseWithDebug(definition, bytes, { origin: "9007199254740993" });
   if (parsed.Success) {
-    const text: string = parsed.Data;
-    JSON.parse(text);
-    // @ts-expect-error Parse Data remains JSON text, not bytes.
+    const data: ParsedData = parsed.Data;
+    const root: ParsedValue = data.root;
+    void root;
+    // @ts-expect-error Parse Data is the parsed value, not JSON text.
+    const wrongText: string = parsed.Data;
+    void wrongText;
+    // @ts-expect-error Parse Data is the parsed value, not bytes.
     const wrong: Uint8Array = parsed.Data;
     void wrong;
   } else {

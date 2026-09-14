@@ -60,7 +60,7 @@ try {
       );
     }
     const parsed = await parseWithDebug(definition, bytes, options);
-    find("result").textContent = JSON.stringify(JSON.parse(dataOrThrow(parsed)), null, 2);
+    find("result").textContent = JSON.stringify(dataOrThrow(parsed), null, 2);
     for (const field of parsed.DebugData) {
       const button = document.createElement("button");
       button.type = "button";

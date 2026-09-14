@@ -34,7 +34,7 @@ try {
       const input = new Uint8Array([2, 0, 6, 0, 0, 0]);
       const parsed = requireData(await parseWithDebug(definition, input, options));
       if (parsed === null) return;
-      const values = JSON.parse(parsed);
+      const values = parsed;
       const written = requireData(await serialize(definition, { kind: 3, length: 6 }, options));
       if (written === null) return;
       const bytes = written;
@@ -47,7 +47,7 @@ try {
         `Read: ${JSON.stringify(values)}`,
         `Created: ${hex(bytes)}`,
         `Updated: ${hex(updatedBytes)}`,
-        `Read again: ${JSON.stringify(JSON.parse(reread))}`,
+        `Read again: ${JSON.stringify(reread)}`,
       ].join("\n");
     } catch (error) {
       output.textContent = `JavaScript or runtime error: ${error.message}`;
