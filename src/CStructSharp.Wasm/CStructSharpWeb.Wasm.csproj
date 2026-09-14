@@ -17,9 +17,6 @@
     <!-- The browser bridge uses source-generated JSON metadata and explicit value projection. -->
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
-    <!-- The bridge never binds POCOs through compiled accessors; declaring dynamic code unsupported lets the trimmer
-         drop those branches (and System.Linq.Expressions with them) instead of shipping 360 KB for a dead path. -->
-    <DynamicCodeSupport>false</DynamicCodeSupport>
     <!--
       Suppresses IL2026/IL2075/IL2067/IL2072/IL2111 warnings from CStruct.TryGetMemberValue's and
       TypedValueConverter's unannotated reflection (the POCO fallback used by Serialize/UpdateStream when a value
@@ -51,6 +48,12 @@
     -->
     <TrimmableAssembly Include="CStructSharp" />
     <TrimmableAssembly Include="CStructSharpWeb.Wasm" />
+    <!--
+      The bridge never binds POCOs through compiled accessors (its values are dictionary/list shaped). Switching the
+      library's CStructSharp.CompiledAccessors feature off lets the trimmer drop that code path and
+      System.Linq.Expressions with it (~360 KB) instead of shipping a dead path.
+    -->
+    <RuntimeHostConfigurationOption Include="CStructSharp.CompiledAccessors" Value="false" Trim="true" />
   </ItemGroup>
 
 </Project>

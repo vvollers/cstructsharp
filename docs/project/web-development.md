@@ -52,11 +52,12 @@ were measured when the settings changed (performance plan E3.10):
   reflection calls themselves; it can only remove members nothing references, and no browser-reachable code
   depends on members that are reached only through reflection. One consequence stands: the `bindingMode` interop
   option (`WriteOptions.BindingMode`) has no observable effect through the JS API.
-- The project declares `DynamicCodeSupport=false`. The library's compiled POCO accessors (`PocoCompiledAccessors`,
-  E2.10) are guarded by `RuntimeFeature.IsDynamicCodeSupported`, so the trimmer removes them - and
-  `System.Linq.Expressions` with them - from the publication, where they would never run; the browser keeps
-  reflection for the POCO fallback it never takes. The setting also lets the trimmer drop the runtime's own
-  dynamic-code paths (about 100 KB of `System.Private.CoreLib` and `dotnet.native.wasm`).
+- The project switches the library's `CStructSharp.CompiledAccessors` feature off (a
+  `RuntimeHostConfigurationOption` with `Trim="true"`). The compiled POCO accessors (`PocoCompiledAccessors`,
+  E2.10) are behind that switch, so the trimmer removes them - and `System.Linq.Expressions` with them - from the
+  publication, where they would never run; the browser keeps reflection for the POCO fallback it never takes.
+  (Declaring dynamic code unsupported would trim the same code but was measured to add ≈ 820 B of managed
+  allocation to every export call through `System.Text.Json`, so the library-specific switch is used instead.)
 
 Measured effect of the full trim (publication as shipped by `publish-wasm.mjs`): 33 → 27 files, 5.35 → 4.36 MB
 raw, 2.05 → 1.66 MB gzip; Node cold start: first public parse 142 → 17 ms, process wall −25 %; runtime creation

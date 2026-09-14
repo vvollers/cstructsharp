@@ -5,7 +5,6 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 /// <summary>Reads named and indexed values from caller-supplied POCO, dictionary, or dynamic data.</summary>
 internal static class PocoDataBinding
@@ -124,18 +123,18 @@ internal static class PocoDataBinding
                            type.GetField(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
 
         // A compiled accessor replaces reflection's per-call invoke (E2.10); it is built once per (type, name).
-        // Where dynamic code is unsupported (the trimmed browser bundle, which never binds POCOs), reflection stays
-        // and the expression-tree assembly is not linked in.
+        // A publication that switches compiled accessors off (the trimmed browser bundle, which never binds POCOs)
+        // keeps reflection and does not link the expression-tree assembly.
         Func<object, object?>? getter = null;
         if (property is { CanRead: true })
         {
-            getter = RuntimeFeature.IsDynamicCodeSupported
+            getter = PocoCompiledAccessors.IsSupported
                          ? PocoCompiledAccessors.BuildPropertyGetter(property)
                          : target => property.GetValue(target);
         }
         else if (field is not null)
         {
-            getter = RuntimeFeature.IsDynamicCodeSupported
+            getter = PocoCompiledAccessors.IsSupported
                          ? PocoCompiledAccessors.BuildFieldGetter(field)
                          : target => field.GetValue(target);
         }

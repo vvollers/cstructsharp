@@ -10,6 +10,17 @@ using System.Reflection;
 /// </summary>
 internal static class PocoCompiledAccessors
 {
+    /// <summary>
+    ///     Feature switch <c>CStructSharp.CompiledAccessors</c> (default on). A trimmed publication that never binds
+    ///     POCOs - the browser bundle - sets it to false so the trimmer removes the expression-tree code path and the
+    ///     <c>System.Linq.Expressions</c> assembly with it.
+    /// </summary>
+#if NET9_0_OR_GREATER
+    [System.Diagnostics.CodeAnalysis.FeatureSwitchDefinition("CStructSharp.CompiledAccessors")]
+#endif
+    public static bool IsSupported =>
+        !AppContext.TryGetSwitch("CStructSharp.CompiledAccessors", out bool enabled) || enabled;
+
     public static Func<object, object?> BuildPropertyGetter(PropertyInfo property)
     {
         ParameterExpression target = Expression.Parameter(typeof(object), "target");
