@@ -24,6 +24,9 @@ Examples that produce `CStructLayoutException` with `InvalidLayout` include:
 - negative/overflowing array counts; and
 - source, nesting, dependency, or expression work above compilation limits.
 
+A syntax error's message starts with `Layout definition contains invalid syntax:` and names the line and column of
+the first unexpected character (or the end of the text) together with what the parser expected there.
+
 The [Differences from C](differences-from-c.md) page lists 17 representative rejected C forms executed on both target
 frameworks.
 

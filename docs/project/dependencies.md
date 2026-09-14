@@ -15,21 +15,23 @@ Use project manifests, the local .NET tool manifest, and npm lockfiles for curre
 
 | Scope | Dependency | Why it is used |
 | --- | --- | --- |
-| Core runtime | [Pidgin](https://www.nuget.org/packages/Pidgin/3.5.1) | Recognizes layout source with parser combinators |
 | CI build, private | Microsoft.SourceLink.GitHub | Connects symbols to repository source |
 | Build, private | Roslynator.Analyzers | Finds C# correctness and maintainability issues |
 | Build, private | StyleCop.Analyzers | Checks source style |
 | Tests | Microsoft.NET.Test.Sdk | Hosts managed tests |
 | Tests | MSTest | Defines and runs test cases |
+| Tests | Pidgin | Frozen reference grammar for the parser differential tests |
 | Tests, private | coverlet.collector / coverlet.msbuild | Measures line and branch coverage |
 | Benchmarks | BenchmarkDotNet | Measures timing and allocation |
 | Local tool | dotnet-stryker | Runs mutation tests |
 | Local tool | PublicApiGenerator.Tool | Produces the managed API signature snapshot |
 | Local tool | DocFX | Builds conceptual and generated API documentation |
 
-Pidgin is the only package needed by the core at runtime. It recognizes tokens and grammar. CStructSharp remains
-responsible for name resolution, layout calculation, value conversion, safety limits, and every public operation.
-Changing parser implementation must not silently change the documented language.
+The core library has no runtime package dependencies: the layout parser is hand-written (`LayoutParser`), and
+CStructSharp itself performs name resolution, layout calculation, value conversion, safety limits, and every public
+operation. Pidgin, the parser-combinator library the parser was originally built on, now lives only in the test
+project as a frozen reference grammar; `ParserDifferentialTests` parses the fixture corpus and thousands of
+mutations of it through both parsers so a parser change cannot silently change the documented language.
 
 `PrivateAssets` prevents analyzer and build packages from becoming dependencies of an application that installs the
 library. Source Link is enabled in CI/release-style builds where repository metadata is available.

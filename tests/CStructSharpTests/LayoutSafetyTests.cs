@@ -3,7 +3,6 @@ namespace CStructSharp.Tests;
 using System.Collections.Generic;
 using System.IO;
 using CStructSharp.Structure;
-using Pidgin;
 
 /// <summary>Exercises layout-calculation and resource-limit cases that are easy to miss in ordinary format fixtures.</summary>
 [TestClass]
@@ -329,10 +328,10 @@ public class LayoutSafetyTests
     [TestMethod]
     public void Expressions_UseSharedPrecedenceRows()
     {
-        Assert.AreEqual(4, CStructDefinitionParser.Expr.ParseOrThrow("6 * 2 / 3").Calc());
-        Assert.AreEqual(7, CStructDefinitionParser.Expr.ParseOrThrow("1 + 2 * 3").Calc());
-        Assert.AreEqual(4, CStructDefinitionParser.Expr.ParseOrThrow("1 << 1 + 1").Calc());
-        Assert.AreEqual(4, CStructDefinitionParser.Expr.ParseOrThrow("8 >> 1 & 7").Calc());
+        Assert.AreEqual(4, CStructDefinitionParser.ParseExpression("6 * 2 / 3").Calc());
+        Assert.AreEqual(7, CStructDefinitionParser.ParseExpression("1 + 2 * 3").Calc());
+        Assert.AreEqual(4, CStructDefinitionParser.ParseExpression("1 << 1 + 1").Calc());
+        Assert.AreEqual(4, CStructDefinitionParser.ParseExpression("8 >> 1 & 7").Calc());
     }
 
     /// <summary>

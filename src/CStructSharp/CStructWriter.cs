@@ -10,7 +10,6 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using CStructSharp.Structure;
-using Pidgin;
 using CstructEnum = CStructSharp.Structure.Enum;
 
 /// <summary>

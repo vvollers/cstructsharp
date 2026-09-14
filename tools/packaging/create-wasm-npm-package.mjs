@@ -58,7 +58,6 @@ assert.ok(pack?.PackageDirectory, "Cannot locate runtime license files.");
 const notices = ["LICENSE.TXT", "THIRD-PARTY-NOTICES.TXT"].map((name) =>
   fs.readFileSync(path.join(pack.PackageDirectory, name), "utf8"),
 );
-notices.push(fs.readFileSync(path.join(source, "PIDGIN-LICENSE.txt"), "utf8"));
 fs.writeFileSync(path.join(stage, "THIRD-PARTY-NOTICES.txt"), notices.join("\n\n"));
 // This child exits naturally and checks the real managed version before pack, catching stale WASM builds.
 const check = `import { getVersion } from ${JSON.stringify(pathToFileURL(path.join(stage, "node.js")).href)}; console.log(await getVersion());`;

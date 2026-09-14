@@ -13,8 +13,15 @@ internal class Identifier : Expr
     /// <summary>Creates an identifier, removing pointer stars from its name while remembering their count.</summary>
     public Identifier(string name)
     {
+        // Most names carry no stars; skip the scan-and-copy for them (the parser constructs one per word).
+        if (!name.Contains('*'))
+        {
+            this.Name = name;
+            return;
+        }
+
         this.PointerDepth = name.Count(c => c == '*');
-        this.Name = name.Replace("*", string.Empty).Trim();
+        this.Name = name.Replace("*", string.Empty);
         this.IsPointer = this.PointerDepth > 0;
     }
 

@@ -3,7 +3,6 @@ namespace CStructSharp.Tests;
 using System;
 using System.IO;
 using CStructSharp.Structure;
-using Pidgin;
 
 /// <summary>Groups tests for robustness tests so changes to this behavior are caught.</summary>
 [TestClass]
@@ -191,8 +190,8 @@ public class RobustnessTests
     [TestMethod]
     public void Expressions_RejectUndefinedIdentifiersAndCalls()
     {
-        Assert.Throws<KeyNotFoundException>(() => CStructDefinitionParser.Expr.ParseOrThrow("missing").Calc());
-        Assert.Throws<NotSupportedException>(() => CStructDefinitionParser.Expr.ParseOrThrow("unsupported(1)").Calc());
+        Assert.Throws<KeyNotFoundException>(() => CStructDefinitionParser.ParseExpression("missing").Calc());
+        Assert.Throws<NotSupportedException>(() => CStructDefinitionParser.ParseExpression("unsupported(1)").Calc());
     }
 
     /// <summary>

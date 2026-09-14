@@ -9,7 +9,6 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using CStructSharp.Structure;
-using Pidgin;
 using CstructEnum = CStructSharp.Structure.Enum;
 
 /// <summary>
@@ -91,20 +90,17 @@ public sealed partial class CStruct
 
         // Parse the layout text and index only exported top-level names. Anonymous inline declarations stay attached
         // to their containing field and receive declaration identity in the compiled model.
+        // Syntax errors already carry the "invalid syntax" prefix; the remaining implementation exceptions can only
+        // come from semantic projections of otherwise well-formed text and are normalized to the same public shape.
         IReadOnlyList<CStructElement> structResult;
         try
         {
-            structResult = CStructDefinitionParser.Parser.ParseOrThrow(this.Source).ToArray();
+            structResult = CStructDefinitionParser.ParseLayout(this.Source);
         }
-        catch (Exception exception) when (exception is ParseException or FormatException or OverflowException or
+        catch (Exception exception) when (exception is FormatException or OverflowException or
                                           InvalidOperationException or ArgumentException)
         {
-            // Parser combinators and their semantic projections can fail through different implementation exceptions.
-            // Normalize all expected invalid-input failures at the public compilation boundary.
-            string detail = exception is ParseException parseException
-                                ? parseException.Message
-                                : exception.Message;
-            throw new CStructLayoutException("Layout definition contains invalid syntax: " + detail, exception);
+            throw new CStructLayoutException(LayoutParser.SyntaxErrorPrefix + exception.Message, exception);
         }
 
         foreach (CStructElement declaration in structResult)

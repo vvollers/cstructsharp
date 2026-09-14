@@ -32,8 +32,8 @@ public class LayoutParsingValidationTests
     ///     garbage.
     /// </summary>
     /// <remarks>
-    ///     Every failure must be a layout error. Nonempty syntax errors must retain line and column information and
-    ///     their underlying cause so a user can locate the faulty declaration.
+    ///     Every failure must be a layout error. Nonempty syntax errors must carry line and column information and
+    ///     the shared "invalid syntax" prefix so a user can locate the faulty declaration.
     /// </remarks>
     [TestMethod]
     public void LayoutParser_MalformedCorpusHasStableLocatedDiagnostics()
@@ -57,9 +57,9 @@ public class LayoutParsingValidationTests
                 continue;
             }
 
+            StringAssert.Contains(exception.Message, "Layout definition contains invalid syntax: ");
             StringAssert.Contains(exception.Message, "line");
-            StringAssert.Contains(exception.Message, "col");
-            Assert.IsNotNull(exception.InnerException);
+            StringAssert.Contains(exception.Message, "column");
         }
     }
 
@@ -76,6 +76,26 @@ public class LayoutParsingValidationTests
         Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { ; };"));
         Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { byte value[0x]; };"));
         Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { byte value[0b_]; };"));
+    }
+
+    /// <summary>
+    ///     A prefix-operator chain as long as the definition-length limit allows parses without exhausting the
+    ///     stack; the expression depth limit then rejects it as an ordinary layout error.
+    /// </summary>
+    /// <remarks>
+    ///     Parentheses and braces are bounded by the source validator before parsing, but nothing bounds a run of
+    ///     <c>-</c>, <c>~</c>, or <c>!</c> except the source length, so the parser must collect such a chain
+    ///     iteratively rather than one stack frame per operator.
+    /// </remarks>
+    [TestMethod]
+    public void LayoutParser_LongPrefixOperatorChainsDoNotOverflowTheStack()
+    {
+        string layout = "#define A " + new string('-', 100_000) + "1\nstruct root { uint8 a[A]; };";
+        CStructLayoutException exception = Assert.Throws<CStructLayoutException>(() => new CStruct(layout));
+        StringAssert.Contains(exception.Message, "depth");
+
+        CStructSharp.Structure.Expr parsed = CStructDefinitionParser.ParseExpression("!~-" + new string('-', 50_000) + "7");
+        Assert.IsInstanceOfType<CStructSharp.Structure.UnaryOp>(parsed);
     }
 
     /// <summary>

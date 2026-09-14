@@ -2,7 +2,6 @@ namespace CStructSharpTests;
 
 using CStructSharp;
 using CStructSharp.Structure;
-using Pidgin;
 
 /// <summary>
 ///     Verifies typedef syntax and resolution across primitive, structure, pointer, array, chained, and invalid aliases.
@@ -20,7 +19,7 @@ public class TypedefResolutionTests
     [TestMethod]
     public void PrimitiveTypedef_UsesAliasNameAndUnderlyingType()
     {
-        var alias = (Typedef)CStructDefinitionParser.Typedef.ParseOrThrow("typedef uint16 word;");
+        var alias = (Typedef)CStructDefinitionParser.ParseElement("typedef uint16 word;");
 
         Assert.AreEqual("word", alias.Name.Name);
         Assert.AreEqual("uint16", alias.Type.Name);

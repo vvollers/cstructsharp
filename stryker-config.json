@@ -12,7 +12,7 @@
       "CStructAddressResolver.cs",
       "CStructCompilationOptions.cs",
       "CStructCompiledModel.cs",
-      "CStructDefinitionParser.cs",
+      "LayoutParser.cs",
       "EnumFieldValueParser.cs",
       "EnumIntegerCodec.cs",
       "EnumIntegerCodecTable.cs",

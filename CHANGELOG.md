@@ -4,6 +4,17 @@ All notable changes to CStructSharp are documented here.
 
 ## Unreleased
 
+- Performance: layout definitions are recognized by a hand-written recursive-descent parser instead of the Pidgin
+  parser-combinator grammar. Compiling a layout is 3–7× faster (a 2-field struct 22.6 → 7.5 µs, a 128-field struct
+  656 → 97 µs, a 512-field struct 2.8 ms → 0.43 ms, real-format headers 160–230 µs → 26–37 µs) with 8–23 % less
+  allocation; in the browser the first compile after startup drops 25–40 % (250 → 160 ms in Node) and each further
+  fresh compile 71–85 %. The accepted language and the produced declarations are unchanged - a differential test
+  parses every fixture, contract, demo and documentation layout plus thousands of mutations through both parsers -
+  with one exception: a `/* */` block comment may now contain a lone `*` (`/* a * b */`), as the documented grammar
+  always stated. Syntax errors are still `CStructLayoutException`s starting with
+  `Layout definition contains invalid syntax: `, now with a one-line `unexpected … at line L, column C; expected …`
+  detail and no inner exception. The library has no runtime package dependencies anymore: the NuGet package and
+  the browser bundle (−107 KB raw) no longer include Pidgin, and the npm package no longer ships its license notice.
 - **Breaking (browser contract version 7):** a successful `parse`/`parseWithDebug` result carries `Data` as the
   parsed value itself (an object with the selected root wrapper, e.g. `result.Data.header.kind`) instead of JSON
   text to `JSON.parse`. Values, options, error codes and `DebugData` items are unchanged; `serialize`/`update`

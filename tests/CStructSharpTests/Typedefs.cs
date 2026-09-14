@@ -1,7 +1,6 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Structure;
-using Pidgin;
 
 /// <summary>Groups tests for typedefs so changes to this behavior are caught.</summary>
 [TestClass]
@@ -17,7 +16,7 @@ public class Typedefs
     [TestMethod]
     public void TestSimpleTypedef()
     {
-        var def = (Typedef)CStructDefinitionParser.Typedef.ParseOrThrow("typedef int myint;");
+        var def = (Typedef)CStructDefinitionParser.ParseElement("typedef int myint;");
         Assert.AreEqual("myint", def.Name.Name);
         Assert.AreEqual("int", def.Type.Name);
     }
@@ -32,7 +31,7 @@ public class Typedefs
     [TestMethod]
     public void TestTypedefStruct()
     {
-        var def = (Typedef)CStructDefinitionParser.Typedefstruct.ParseOrThrow(
+        var def = (Typedef)CStructDefinitionParser.ParseElement(
                                                                               "typedef struct mystruct_t { int a; int b; } mystruct;");
         Assert.AreEqual("mystruct", def.Name.Name);
         Assert.AreEqual("struct", def.Type.Name);

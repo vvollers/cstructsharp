@@ -58,8 +58,8 @@ Assert-Condition ($configuredFiles.Count -eq 46) `
     "The permanent mutation allowlist must contain exactly 46 semantic files; found $($configuredFiles.Count)."
 Assert-Condition ($configuredFiles.Count -eq @($configuredFiles | Select-Object -Unique).Count) `
     'The permanent mutation allowlist contains duplicate files.'
-Assert-Condition ($configuredFiles -contains 'CStructDefinitionParser.cs') `
-    'The public definition parser must remain in the permanent mutation allowlist.'
+Assert-Condition ($configuredFiles -contains 'LayoutParser.cs') `
+    'The layout parser must remain in the permanent mutation allowlist.'
 
 Assert-Condition ([string]$report.schemaVersion -eq '2') `
     "Unsupported Stryker report schema '$($report.schemaVersion)'."
@@ -109,7 +109,6 @@ foreach ($fileProperty in $report.files.PSObject.Properties) {
     [void]$configuredReportPaths.Add($match[0])
 }
 
-$parserCompileErrors = 0
 foreach ($configuredFile in $configuredFiles) {
     $suffix = "/CStructSharp/$configuredFile"
     $fileProperty = @(
@@ -129,13 +128,6 @@ foreach ($configuredFile in $configuredFiles) {
         (Get-MutantCount -Mutants $mutants -Status 'Survived') +
         (Get-MutantCount -Mutants $mutants -Status 'NoCoverage') +
         (Get-MutantCount -Mutants $mutants -Status 'RuntimeError')
-
-    if ($configuredFile -eq 'CStructDefinitionParser.cs') {
-        $parserCompileErrors = Get-MutantCount -Mutants $mutants -Status 'CompileError'
-        Assert-Condition ($validCount -eq 0 -and $parserCompileErrors -gt 0) `
-            'The known definition-parser instrumentation limitation changed and requires review.'
-        continue
-    }
 
     Assert-Condition ($validCount -gt 0) `
         "Configured semantic file '$configuredFile' produced no valid mutants."
@@ -166,5 +158,5 @@ Write-Output (
     "Permanent mutation gate passed: $detected/$valid detected " +
     "($scoreText%), $killed killed, $timedOut timed out, " +
     "$survived survived, $noCoverage uncovered, $runtimeErrors runtime errors; " +
-    "$compileErrors compile errors ($parserCompileErrors in CStructDefinitionParser.cs), " +
+    "$compileErrors compile errors, " +
     "$ignored ignored; $testCount tests; 46 configured files; SHA-256 $hash.")

@@ -1,7 +1,6 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Structure;
-using Pidgin;
 
 /// <summary>Verifies one checked, depth-limited, work-limited expression policy across every core operation.</summary>
 [TestClass]
@@ -340,7 +339,7 @@ public class ExpressionSafetyTests
         Assert.Throws<CStructLayoutException>(
             () => new CStruct("#define COUNT 2147483647 + 1\nstruct root { byte values[COUNT]; };"));
 
-        Field zeroWidth = CStructDefinitionParser.FieldGroup.ParseOrThrow("uint8 value: 0;").Single();
+        Field zeroWidth = CStructDefinitionParser.ParseFieldGroup("uint8 value: 0;").Single();
         Assert.Throws<InvalidOperationException>(() => _ = zeroWidth.BitSize);
     }
 
@@ -355,50 +354,49 @@ public class ExpressionSafetyTests
     [TestMethod]
     public void StandaloneExpressions_HaveExplicitNumericFailureSemantics()
     {
-        Assert.AreEqual(4, CStructDefinitionParser.Expr.ParseOrThrow("10 - 3 * 2").Calc());
-        Assert.AreEqual(4, CStructDefinitionParser.Expr.ParseOrThrow("8 / 2").Calc());
-        Assert.AreEqual(1, CStructDefinitionParser.Expr.ParseOrThrow("5 & 3").Calc());
-        Assert.AreEqual(5, CStructDefinitionParser.Expr.ParseOrThrow("4 | 1").Calc());
-        Assert.AreEqual(-1, CStructDefinitionParser.Expr.ParseOrThrow("~0").Calc());
-        Assert.AreEqual(-1, CStructDefinitionParser.Expr.ParseOrThrow("-2 >> 1").Calc());
-        Assert.AreEqual(int.MinValue, CStructDefinitionParser.Expr.ParseOrThrow("-1 << 31").Calc());
-        Assert.AreEqual(int.MaxValue, CStructDefinitionParser.Expr.ParseOrThrow("2147483647 << 0").Calc());
+        Assert.AreEqual(4, CStructDefinitionParser.ParseExpression("10 - 3 * 2").Calc());
+        Assert.AreEqual(4, CStructDefinitionParser.ParseExpression("8 / 2").Calc());
+        Assert.AreEqual(1, CStructDefinitionParser.ParseExpression("5 & 3").Calc());
+        Assert.AreEqual(5, CStructDefinitionParser.ParseExpression("4 | 1").Calc());
+        Assert.AreEqual(-1, CStructDefinitionParser.ParseExpression("~0").Calc());
+        Assert.AreEqual(-1, CStructDefinitionParser.ParseExpression("-2 >> 1").Calc());
+        Assert.AreEqual(int.MinValue, CStructDefinitionParser.ParseExpression("-1 << 31").Calc());
+        Assert.AreEqual(int.MaxValue, CStructDefinitionParser.ParseExpression("2147483647 << 0").Calc());
         Assert.AreEqual(0, NoneExpr.Instance.Calc());
 
         Assert.Throws<OverflowException>(
-            () => CStructDefinitionParser.Expr.ParseOrThrow("2147483647 + 1").Calc());
+            () => CStructDefinitionParser.ParseExpression("2147483647 + 1").Calc());
         Assert.Throws<OverflowException>(
             () => new BinaryOp(
                 BinaryOperatorType.Minus,
                 new Literal(int.MinValue),
                 new Literal(1)).Calc());
         Assert.Throws<OverflowException>(
-            () => CStructDefinitionParser.Expr.ParseOrThrow("2147483647 * 2").Calc());
+            () => CStructDefinitionParser.ParseExpression("2147483647 * 2").Calc());
         Assert.Throws<OverflowException>(
-            () => CStructDefinitionParser.Expr.ParseOrThrow("1073741824 << 1").Calc());
+            () => CStructDefinitionParser.ParseExpression("1073741824 << 1").Calc());
         Assert.Throws<OverflowException>(
             () => new UnaryOp(UnaryOperatorType.Neg, new Literal(int.MinValue)).Calc());
         Assert.Throws<OverflowException>(
-            () => CStructDefinitionParser.Expr.ParseOrThrow("0x80000000 / -1").Calc());
+            () => CStructDefinitionParser.ParseExpression("0x80000000 / -1").Calc());
         Assert.Throws<DivideByZeroException>(
-            () => CStructDefinitionParser.Expr.ParseOrThrow("1 / 0").Calc());
+            () => CStructDefinitionParser.ParseExpression("1 / 0").Calc());
         Assert.Throws<InvalidOperationException>(
-            () => CStructDefinitionParser.Expr.ParseOrThrow("1 << 32").Calc());
+            () => CStructDefinitionParser.ParseExpression("1 << 32").Calc());
         Assert.Throws<InvalidOperationException>(
             () => new BinaryOp(BinaryOperatorType.ShiftRight, new Literal(1), new Literal(-1)).Calc());
 
-        Assert.AreEqual(-1, CStructDefinitionParser.LiteralHex.ParseOrThrow("0xFFFFFFFF").Calc());
-        Assert.AreEqual(int.MinValue, CStructDefinitionParser.LiteralHex.ParseOrThrow("0x80000000").Calc());
+        Assert.AreEqual(-1, CStructDefinitionParser.ParseLiteral("0xFFFFFFFF", 16).Calc());
+        Assert.AreEqual(int.MinValue, CStructDefinitionParser.ParseLiteral("0x80000000", 16).Calc());
         Assert.AreEqual(
             -1,
-            CStructDefinitionParser.LiteralBinary.ParseOrThrow(
-                "0b11111111111111111111111111111111").Calc());
-        Assert.AreEqual(-1, CStructDefinitionParser.LiteralOctal.ParseOrThrow("0o37777777777").Calc());
-        Assert.AreEqual(1, CStructDefinitionParser.LiteralHex.ParseOrThrow("-0xFFFFFFFF").Calc());
+            CStructDefinitionParser.ParseLiteral("0b11111111111111111111111111111111", 2).Calc());
+        Assert.AreEqual(-1, CStructDefinitionParser.ParseLiteral("0o37777777777", 8).Calc());
+        Assert.AreEqual(1, CStructDefinitionParser.ParseLiteral("-0xFFFFFFFF", 16).Calc());
         Assert.Throws<OverflowException>(
-            () => CStructDefinitionParser.LiteralHex.ParseOrThrow("-0x80000000").Calc());
+            () => CStructDefinitionParser.ParseLiteral("-0x80000000", 16).Calc());
         Assert.Throws<OverflowException>(
-            () => CStructDefinitionParser.LiteralHex.ParseOrThrow("0x100000000").Calc());
+            () => CStructDefinitionParser.ParseLiteral("0x100000000", 16).Calc());
 
         // Since LANG-03b, "1u" itself is a valid suffixed literal (equal to 1); combine the suffix with a negative
         // sign instead, which is still rejected for an unrelated, still-current reason (negative array length).

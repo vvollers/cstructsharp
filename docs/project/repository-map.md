@@ -10,8 +10,8 @@ and which direction their dependencies point.
 
 | Path | What belongs here | Direct project/package relationship |
 | --- | --- | --- |
-| `src/CStructSharp/` | Public library, layout parser/preparation, codecs, reads, writes, and updates | Uses the Pidgin runtime package |
-| `tests/CStructSharpTests/` | Unit, integration, regression, property, limit, concurrency, and compatibility tests | References core and fuzz support |
+| `src/CStructSharp/` | Public library, layout parser/preparation, codecs, reads, writes, and updates | No runtime package dependencies |
+| `tests/CStructSharpTests/` | Unit, integration, regression, property, limit, concurrency, and compatibility tests; `Reference/` holds the frozen Pidgin grammar used only by the parser differential tests | References core and fuzz support, plus Pidgin (test-only) |
 | `tests/CStructSharp.Fuzz/` | Bounded fuzz targets and replay corpus | References core |
 | `benchmarks/CStructSharp.Benchmarks/` | BenchmarkDotNet timing and allocation scenarios | References core |
 | `tests/CStructSharp.PackageConsumer/` | A small external-style app that installs a built package | Uses the packed NuGet file, not the core project |

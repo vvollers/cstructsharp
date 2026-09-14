@@ -1,7 +1,6 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Structure;
-using Pidgin;
 using Enum = CStructSharp.Structure.Enum;
 
 /// <summary>Groups tests for enums so changes to this behavior are caught.</summary>
@@ -18,7 +17,7 @@ public class Enums
     [TestMethod]
     public void TestEnums()
     {
-        var enm = (Enum)CStructDefinitionParser.Enum.ParseOrThrow("enum zing { Red = 5 , Green, Blue  };");
+        var enm = (Enum)CStructDefinitionParser.ParseElement("enum zing { Red = 5 , Green, Blue  };");
 
         Assert.AreEqual("zing", enm.Name.Name);
         Assert.HasCount(3, enm.Values);
@@ -43,7 +42,7 @@ public class Enums
     [TestMethod]
     public void TestEnumsWithType()
     {
-        var enm = (Enum)CStructDefinitionParser.Enum.ParseOrThrow(
+        var enm = (Enum)CStructDefinitionParser.ParseElement(
                                                                   "enum zang : uint8 {Dark,Grey=0xFFF,Light=0b1001_0110+5};");
 
         Assert.AreEqual("zang", enm.Name.Name);
@@ -68,20 +67,20 @@ public class Enums
     [TestMethod]
     public void TestEnumValue()
     {
-        EnumValue? enumValue1 = CStructDefinitionParser.EnumValue.ParseOrThrow("Red=2");
+        EnumValue? enumValue1 = CStructDefinitionParser.ParseEnumValue("Red=2");
         Assert.AreEqual(2, enumValue1.Value.Calc());
         Assert.AreEqual("Red", enumValue1.Name.Name);
 
-        EnumValue? enumValue2 = CStructDefinitionParser.EnumValue.ParseOrThrow("  Blue =4 ");
+        EnumValue? enumValue2 = CStructDefinitionParser.ParseEnumValue("  Blue =4 ");
         Assert.AreEqual(4, enumValue2.Value.Calc());
         Assert.AreEqual("Blue", enumValue2.Name.Name);
 
-        EnumValue? enumValue3 = CStructDefinitionParser.EnumValue.ParseOrThrow("     Green=   0xFF     ");
+        EnumValue? enumValue3 = CStructDefinitionParser.ParseEnumValue("     Green=   0xFF     ");
         Assert.AreEqual(0xFF, enumValue3.Value.Calc());
         Assert.AreEqual("Green", enumValue3.Name.Name);
 
-        Assert.AreEqual("Yellow", CStructDefinitionParser.EnumValue.ParseOrThrow("Yellow").Name.Name);
-        Assert.AreEqual("Purple", CStructDefinitionParser.EnumValue.ParseOrThrow("     Purple    ").Name.Name);
+        Assert.AreEqual("Yellow", CStructDefinitionParser.ParseEnumValue("Yellow").Name.Name);
+        Assert.AreEqual("Purple", CStructDefinitionParser.ParseEnumValue("     Purple    ").Name.Name);
     }
 
     /// <summary>
@@ -94,7 +93,7 @@ public class Enums
     [TestMethod]
     public void TestEnumValues()
     {
-        List<EnumValue> enums = CStructDefinitionParser.EnumValues.ParseOrThrow(" Red = 5, Green, Blue=9 ").ToList();
+        List<EnumValue> enums = CStructDefinitionParser.ParseEnumValues(" Red = 5, Green, Blue=9 ").ToList();
         Assert.HasCount(3, enums);
         Assert.AreEqual(5, enums[0].Value.Calc());
         Assert.AreSame(NoneExpr.Instance, enums[1].Value);
@@ -114,8 +113,7 @@ public class Enums
     [TestMethod]
     public void TestEnumValuesInBrackets()
     {
-        List<EnumValue> enums = CStructDefinitionParser.EnumValuesInBrackets.
-                                                        ParseOrThrow("{ Silver = 5, Gold, Diamond=0  }").
+        List<EnumValue> enums = CStructDefinitionParser.ParseEnumValuesInBrackets("{ Silver = 5, Gold, Diamond=0  }").
                                                         ToList();
 
         Assert.HasCount(3, enums);
@@ -126,8 +124,7 @@ public class Enums
         Assert.AreEqual("Gold", enums[1].Name.Name);
         Assert.AreEqual("Diamond", enums[2].Name.Name);
 
-        List<EnumValue> enums2 = CStructDefinitionParser.EnumValuesInBrackets.
-                                                         ParseOrThrow("{SilverA=5,GoldB,DiamondC=9}").
+        List<EnumValue> enums2 = CStructDefinitionParser.ParseEnumValuesInBrackets("{SilverA=5,GoldB,DiamondC=9}").
                                                          ToList();
 
         Assert.HasCount(3, enums2);
@@ -138,8 +135,7 @@ public class Enums
         Assert.AreEqual("GoldB", enums2[1].Name.Name);
         Assert.AreEqual("DiamondC", enums2[2].Name.Name);
 
-        List<EnumValue> enums3 = CStructDefinitionParser.EnumValuesInBrackets.
-                                                         ParseOrThrow("{SilverD = 5, GoldE=    0xFF, DiamondF}").
+        List<EnumValue> enums3 = CStructDefinitionParser.ParseEnumValuesInBrackets("{SilverD = 5, GoldE=    0xFF, DiamondF}").
                                                          ToList();
 
         Assert.HasCount(3, enums3);
