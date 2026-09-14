@@ -193,13 +193,7 @@ test("RIFF native variants reselect metadata from bytes and preserve unknown chu
         return {
           parsed,
           encoded: parsed.Success
-            ? [
-                ...wasm.serialize(
-                  schema.definition,
-                  JSON.stringify(parsed.Data.root),
-                  options,
-                ),
-              ]
+            ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.Data.root), options)]
             : [],
         };
       },
@@ -264,13 +258,7 @@ test("PNG native tags and lengths select metadata without regenerating the schem
         return {
           parsed,
           encoded: parsed.Success
-            ? [
-                ...wasm.serialize(
-                  schema.definition,
-                  JSON.stringify(parsed.Data.root),
-                  options,
-                ),
-              ]
+            ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.Data.root), options)]
             : [],
         };
       },
@@ -329,13 +317,7 @@ test("PNG international text uses runtime compression flags and bounded UTF-8", 
         return {
           parsed,
           encoded: parsed.Success
-            ? [
-                ...wasm.serialize(
-                  schema.definition,
-                  JSON.stringify(parsed.Data.root),
-                  options,
-                ),
-              ]
+            ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.Data.root), options)]
             : [],
         };
       },
@@ -376,13 +358,7 @@ test("WebAssembly sections expose LEB128 counts, indexes and custom UTF-8 names"
       return {
         parsed,
         encoded: parsed.Success
-          ? [
-              ...wasm.serialize(
-                schema.definition,
-                JSON.stringify(parsed.Data.root),
-                options,
-              ),
-            ]
+          ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.Data.root), options)]
           : [],
       };
     },
@@ -480,13 +456,7 @@ test("movie headers decode versioned times and mixed-scale fixed-point matrices"
         return {
           parsed,
           encoded: parsed.Success
-            ? [
-                ...wasm.serialize(
-                  schema.definition,
-                  JSON.stringify(parsed.Data.root),
-                  options,
-                ),
-              ]
+            ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.Data.root), options)]
             : [],
         };
       },
@@ -548,13 +518,7 @@ test("BMP calibration uses fixed-point values only for calibrated RGB", async ({
           return {
             parsed,
             encoded: parsed.Success
-              ? [
-                  ...wasm.serialize(
-                    schema.definition,
-                    JSON.stringify(parsed.Data.root),
-                    options,
-                  ),
-                ]
+              ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.Data.root), options)]
               : [],
           };
         },
@@ -605,13 +569,7 @@ test("Palm record IDs use three-byte big-endian integers with exact array stride
       return {
         parsed,
         encoded: parsed.Success
-          ? [
-              ...wasm.serialize(
-                schema.definition,
-                JSON.stringify(parsed.Data.root),
-                options,
-              ),
-            ]
+          ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.Data.root), options)]
           : [],
       };
     },

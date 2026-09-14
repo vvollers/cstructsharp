@@ -25,7 +25,7 @@
     "baselineEvidence": {
       "summaries": [
         {
-          "file": "agentdocs/perf-baselines/2026-09-14/results/phase3-short-summary.json",
+          "file": "artifacts/baseline/phase3-short-summary.json",
           "sha256": "834BA0EF2E2EC2DE8567CAAAE8405FCE0FDD109845069964F5F596BE2C7BEF64",
           "source": "CStructSharp.Benchmarks.Baseline0.ComparatorBenchmarks-report-full.json;CStructSharp.Benchmarks.Baseline0.CompileBenchmarks-report-full.json;CStructSharp.Benchmarks.Baseline0.DebugBenchmarks-report-full.json;CStructSharp.Benchmarks.Baseline0.LargeStreamBenchmarks-report-full.json;CStructSharp.Benchmarks.Baseline0.MalformedBenchmarks-report-full.json;CStructSharp.Benchmarks.Baseline0.ParseBenchmarks-report-full.json;CStructSharp.Benchmarks.Baseline0.PathAndTypedBenchmarks-report-full.json;CStructSharp.Benchmarks.Baseline0.StreamBenchmarks-report-full.json;CStructSharp.Benchmarks.Baseline0.UpdateBenchmarks-report-full.json;CStructSharp.Benchmarks.Baseline0.WriteBenchmarks-report-full.json",
           "revision": "b959dbb8c672e00037d96f7e28afbc9b93a9fb5d",

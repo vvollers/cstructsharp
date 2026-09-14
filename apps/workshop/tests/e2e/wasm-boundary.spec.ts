@@ -292,7 +292,7 @@ test("real managed exports parse, serialize, and update through the browser", as
     Success: true,
     Error: null,
   });
-  expect((results.parse.Data ?? {})).toEqual({
+  expect(results.parse.Data ?? {}).toEqual({
     root: { value: 42 },
   });
   expect(results.scopedInlineParse).toMatchObject({
@@ -301,7 +301,7 @@ test("real managed exports parse, serialize, and update through the browser", as
     Success: true,
     Error: null,
   });
-  expect((results.scopedInlineParse.Data ?? {})).toEqual({
+  expect(results.scopedInlineParse.Data ?? {}).toEqual({
     first: { value: { small: 42 } },
   });
   expect(results.pointerUnionParse).toMatchObject({
@@ -310,7 +310,7 @@ test("real managed exports parse, serialize, and update through the browser", as
     Success: true,
     Error: null,
   });
-  expect((results.pointerUnionParse.Data ?? {})).toEqual({
+  expect(results.pointerUnionParse.Data ?? {}).toEqual({
     root: {
       target: {
         Address: 1,
@@ -332,7 +332,7 @@ test("real managed exports parse, serialize, and update through the browser", as
     Success: true,
     Error: null,
   });
-  expect((results.unionParse.Data ?? {})).toEqual({
+  expect(results.unionParse.Data ?? {}).toEqual({
     $kind: "union",
     Union: "choice",
     RawStorage: "NBI=",
@@ -442,7 +442,7 @@ test("real managed exports parse, serialize, and update through the browser", as
     Success: true,
     Error: null,
   });
-  expect((results.explicitBigEndianWideParse.Data ?? {})).toEqual({
+  expect(results.explicitBigEndianWideParse.Data ?? {}).toEqual({
     root: { value: "A" },
   });
   expect(results.explicitBigEndianWideSerialize).toMatchObject({
@@ -487,7 +487,7 @@ test("64-bit values remain exact and invalid options return stable errors", asyn
     };
   });
 
-  expect((results.parse.Data ?? {})).toEqual({
+  expect(results.parse.Data ?? {}).toEqual({
     root: { value: "18446744073709551615" },
   });
   expect(results.serialize).toMatchObject({
@@ -547,7 +547,7 @@ test("v4 options control endian behavior and enforce caller-selected safety budg
     Success: true,
     Error: null,
   });
-  expect((results.bigEndian.Data ?? {})).toEqual({
+  expect(results.bigEndian.Data ?? {}).toEqual({
     root: { value: 0x1234 },
   });
   expect(results.readBudget).toMatchObject({
@@ -617,8 +617,7 @@ test("all signed and unsigned JavaScript precision boundaries round-trip exactly
   });
 
   for (const result of results) {
-    const parsedValue = (result.parsed.Data ?? {}).root.value as
-      number | string;
+    const parsedValue = (result.parsed.Data ?? {}).root.value as number | string;
     expect(String(parsedValue)).toBe(result.expected);
     expect(result.parsed).toMatchObject({
       ContractVersion: 7,
@@ -688,7 +687,7 @@ test("full-width enum values remain exact across browser parse, serialize, and u
     };
   });
 
-  expect((results.unknown.Data ?? {})).toEqual({
+  expect(results.unknown.Data ?? {}).toEqual({
     root: {
       value: {
         Enum: "state",
@@ -700,7 +699,7 @@ test("full-width enum values remain exact across browser parse, serialize, and u
   expect(results.unknown.DebugData).toEqual([
     expect.objectContaining({ Value: "18446744073709551615" }),
   ]);
-  expect((results.known.Data ?? {})).toEqual({
+  expect(results.known.Data ?? {}).toEqual({
     root: {
       value: {
         Enum: "state",

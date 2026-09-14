@@ -49,7 +49,8 @@ export interface ParsedEnumValue {
 }
 
 /** A parsed value as JavaScript data (contract v7); large integers arrive as decimal strings. */
-export type ParsedValue = null | boolean | number | string | ParsedValue[] | { [name: string]: ParsedValue };
+export type ParsedValue =
+  null | boolean | number | string | ParsedValue[] | { [name: string]: ParsedValue };
 /** A successful parse result's Data: the selected root's value under its name. */
 export type ParsedData = { [rootName: string]: ParsedValue };
 

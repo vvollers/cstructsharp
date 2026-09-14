@@ -48,11 +48,7 @@ test("conditional groups retain outer discriminators across nested fields and ar
     const options = { rootTypeName: "root", aligned: false };
     const bytes = new Uint8Array([1, 0, 42, 88, 0, 52, 18]);
     const parsed = JSON.parse(wasm.parseWithDebug(definition, bytes, options));
-    const encoded = wasm.serialize(
-      definition,
-      JSON.stringify(parsed.Data.root),
-      options,
-    );
+    const encoded = wasm.serialize(definition, JSON.stringify(parsed.Data.root), options);
     const changed = wasm.updateStream(definition, bytes, "root.items[0].child.tag", "2", options);
     return {
       parsed,

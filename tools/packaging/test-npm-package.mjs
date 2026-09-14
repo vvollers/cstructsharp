@@ -60,11 +60,9 @@ const allowed = new Set([
   ...info.runtime.files.map((file) => `runtime/${file.path}`),
 ]);
 assert.deepEqual(actualFiles, [...allowed].sort(), "Unexpected or missing tarball files");
-assert.ok(
-  fs
-    .readFileSync(path.join(installed, "THIRD-PARTY-NOTICES.txt"), "utf8")
-    .includes("Benjamin Hodgson"),
-);
+const noticesText = fs.readFileSync(path.join(installed, "THIRD-PARTY-NOTICES.txt"), "utf8");
+assert.ok(noticesText.includes(".NET Foundation and Contributors"), "Missing the runtime license");
+assert.ok(noticesText.includes(".NET Runtime uses third-party libraries"), "Missing the runtime notices");
 const env = { ...process.env, EXPECTED_VERSION: info.version };
 fs.copyFileSync(
   new URL("./npm-consumer-check.mjs", import.meta.url),

@@ -466,7 +466,9 @@ export async function compileLargeSource(definition, options = {}, { parseBytes 
         ? frozenOptions.rootTypeName : readOptions.rootTypeName,
     };
     if (parseBytes && isSmallByteInput(input, readOptions)) {
-      const { signal, maxSpoolBytes, ...parserOptions } = merged;
+      const parserOptions = { ...merged };
+      delete parserOptions.signal;
+      delete parserOptions.maxSpoolBytes;
       try {
         return Promise.resolve(JSON.parse(parseBytes(definition, byteView(input), parserOptions, debug)));
       } catch (error) {

@@ -283,13 +283,7 @@ test("Ogg second-page comment packets decode bounded UTF-8 metadata", async ({ p
         return {
           parsed,
           encoded: parsed.Success
-            ? [
-                ...wasm.serialize(
-                  schema.definition,
-                  JSON.stringify(parsed.Data.root),
-                  options,
-                ),
-              ]
+            ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.Data.root), options)]
             : [],
         };
       },
@@ -337,13 +331,7 @@ test("FBX node identifiers preserve raw code units across both header widths", a
         return {
           parsed,
           encoded: parsed.Success
-            ? [
-                ...wasm.serialize(
-                  schema.definition,
-                  JSON.stringify(parsed.Data.root),
-                  options,
-                ),
-              ]
+            ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.Data.root), options)]
             : [],
         };
       },

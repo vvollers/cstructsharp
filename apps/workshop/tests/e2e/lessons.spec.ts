@@ -152,10 +152,7 @@ test("conditional lesson exercises produce the documented changes", async ({ pag
   const parameterItems = results[1].Data.root.items;
   expect(parameterItems[0]).toEqual({ tag: 1, some_parameter: 1, high: 10, first: 11 });
   expect(tagItems.slice(1)).toEqual(parameterItems.slice(1));
-  expect(results[2].Data.root.items).toEqual([
-    { tag: 1, count: 1, payload: [42] },
-    { tag: 0 },
-  ]);
+  expect(results[2].Data.root.items).toEqual([{ tag: 1, count: 1, payload: [42] }, { tag: 0 }]);
   expect(results[3].Success).toBe(false);
   expect(results[3].Error.Code).toBe("invalid-layout");
 });

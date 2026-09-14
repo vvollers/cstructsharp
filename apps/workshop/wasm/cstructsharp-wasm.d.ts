@@ -75,7 +75,8 @@ export type Operation = "parse" | "serialize" | "update";
  * nested objects for structs, arrays, and the tagged shapes for enums ({ Enum, Name, Value }), unions
  * ({ $kind: "union", Union, RawStorage, Members, SelectedMember }) and pointers ({ Address, Depth, IsDereferenced, Value }).
  */
-export type ParsedValue = null | boolean | number | string | ParsedValue[] | { [name: string]: ParsedValue };
+export type ParsedValue =
+  null | boolean | number | string | ParsedValue[] | { [name: string]: ParsedValue };
 /** A successful parse result's Data: the selected root's value under its name, e.g. Data.header.kind. */
 export type ParsedData = { [rootName: string]: ParsedValue };
 export type Result<T, O extends Operation> = {
@@ -105,7 +106,12 @@ export interface RawWasmAdapter {
   error: null;
   exports: unknown;
   /** Asynchronous paged source API. Prefer public parse/parseWithDebug. */
-  parseSource(definition: string, source: BinarySource, options?: ParseWithDebugOptions | null, debug?: boolean): Promise<Result<ParsedData, "parse">>;
+  parseSource(
+    definition: string,
+    source: BinarySource,
+    options?: ParseWithDebugOptions | null,
+    debug?: boolean,
+  ): Promise<Result<ParsedData, "parse">>;
   parseWithDebug(
     definition: string,
     bytes: Uint8Array,
@@ -126,12 +132,22 @@ export function loadCStructSharpWasm(): Promise<RawWasmAdapter>;
 /** Raw bytes of a view are used, respecting byteOffset/byteLength; no numeric element conversion. */
 export type BinaryChunk = ArrayBufferLike | ArrayBufferView;
 /** Streams/iterables yield binary chunks only and are staged to temporary storage before parsing. */
-export type BinarySource = BinaryChunk | Blob | Response | ReadableStream<BinaryChunk>
-  | Iterable<BinaryChunk> | AsyncIterable<BinaryChunk> | { getFile(): Promise<File> };
+export type BinarySource =
+  | BinaryChunk
+  | Blob
+  | Response
+  | ReadableStream<BinaryChunk>
+  | Iterable<BinaryChunk>
+  | AsyncIterable<BinaryChunk>
+  | { getFile(): Promise<File> };
 /** Parse a binary source without debug byte copies. Data is the parsed value with the selected root wrapper.
  * Large source length is independent of the read/array/string limits and returned value size.
  */
-export function parse(definition: string, source: BinarySource, options?: ParseWithDebugOptions | null): Promise<Result<ParsedData, "parse">>;
+export function parse(
+  definition: string,
+  source: BinarySource,
+  options?: ParseWithDebugOptions | null,
+): Promise<Result<ParsedData, "parse">>;
 /** Read bytes. Successful Data is the parsed value with a root wrapper, e.g. result.Data.header.kind.
  * Large integers arrive as decimal strings; do not coerce them to Number.
  */
@@ -162,10 +178,19 @@ export type CompiledParseOptions = Omit<ParseWithDebugOptions, keyof LayoutOptio
 };
 /** Owns a dedicated worker/runtime. Calls are queued; always dispose when finished. */
 export interface CompiledLayout {
-  parse(source: BinarySource, options?: CompiledParseOptions | null): Promise<Result<ParsedData, "parse">>;
-  parseWithDebug(source: BinarySource, options?: CompiledParseOptions | null): Promise<Result<ParsedData, "parse">>;
+  parse(
+    source: BinarySource,
+    options?: CompiledParseOptions | null,
+  ): Promise<Result<ParsedData, "parse">>;
+  parseWithDebug(
+    source: BinarySource,
+    options?: CompiledParseOptions | null,
+  ): Promise<Result<ParsedData, "parse">>;
   /** Idempotent; cancels outstanding calls, closes sources and releases the runtime. */
   dispose(): Promise<void>;
 }
 /** Compile once. Invalid definitions reject with Error (details contains the bridge diagnostic). */
-export function compile(definition: string, options?: LayoutOptions | null): Promise<CompiledLayout>;
+export function compile(
+  definition: string,
+  options?: LayoutOptions | null,
+): Promise<CompiledLayout>;
