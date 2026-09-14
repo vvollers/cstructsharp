@@ -37,6 +37,7 @@ internal sealed class ParsedJsonWriter
     private static readonly byte[] EnumName = ",\"Name\":"u8.ToArray();
     private static readonly byte[] EnumValue = ",\"Value\":"u8.ToArray();
     private static readonly byte[] HexDigits = "0123456789abcdef"u8.ToArray();
+    private static readonly SearchValues<byte> UnescapedUtf8 = SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !#$%()*,-./:;=?@[]^_`{|}~"u8);
 
     private byte[] buffer;
     private int length;
@@ -490,13 +491,33 @@ internal sealed class ParsedJsonWriter
     /// </summary>
     private void WriteString(string text)
     {
-        this.Ensure((text.Length * 6) + 2);
+        // Transcode once (the runtime's vectorized UTF-8 encoder), then only the bytes that need escaping are
+        // rewritten: a byte-level IndexOfAnyExcept over the safe set finds them, and text without any (the common
+        // case for identifiers and char[] buffers) costs one copy.
+        this.Ensure((text.Length * 3) + 2);
+        this.buffer[this.length++] = (byte)'"';
+        int encoded = Encoding.UTF8.GetBytes(text, this.buffer.AsSpan(this.length));
+        ReadOnlySpan<byte> utf8 = this.buffer.AsSpan(this.length, encoded);
+        int firstUnsafe = utf8.IndexOfAnyExcept(UnescapedUtf8);
+        if (firstUnsafe < 0)
+        {
+            this.length += encoded;
+            this.buffer[this.length++] = (byte)'"';
+            return;
+        }
+
+        // Escape from the first unsafe character on, character by character, into a fresh region past the
+        // transcoded bytes (which are then discarded).
+        int prefixLength = firstUnsafe;
+        int suffixStart = this.length + prefixLength;
+        this.length += prefixLength;
+        string tail = Encoding.UTF8.GetString(this.buffer.AsSpan(suffixStart, encoded - prefixLength));
+        this.Ensure((tail.Length * 6) + 1);
         byte[] target = this.buffer;
         int position = this.length;
-        target[position++] = (byte)'"';
-        for (int index = 0; index < text.Length; index++)
+        for (int index = 0; index < tail.Length; index++)
         {
-            char character = text[index];
+            char character = tail[index];
             if (character < 0x7F && IsUnescapedAscii(character))
             {
                 target[position++] = (byte)character;
