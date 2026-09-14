@@ -1,0 +1,57 @@
+{
+  "id": "real-ico",
+  "scenario": "S-REAL",
+  "tags": [
+    "warm",
+    "cold",
+    "boundary",
+    "debug",
+    "compile",
+    "typed"
+  ],
+  "notes": "Imported from apps/inspector/src/formats.ts (WellKnownFormatFixtures.Ico_IconDirectory_DecodesCountDrivenEntryArray).",
+  "definition": "struct icon_dir_entry {\n    uint8 width;\n    uint8 height;\n    uint8 color_count;\n    uint8 reserved;\n    uint16 color_planes;\n    uint16 bits_per_pixel;\n    uint32 size_in_bytes;\n    uint32 data_offset;\n};\n\nstruct root {\n    uint16 reserved;\n    uint16 image_type;\n    uint16 image_count;\n    icon_dir_entry entries[image_count];\n};",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "000001000200101000000100200068040000260000002020000001002000a81000008e040000"
+  },
+  "byteLength": 38,
+  "expectedError": null,
+  "expected": {
+    "reserved": 0,
+    "image_type": 1,
+    "image_count": 2,
+    "entries": [
+      {
+        "width": 16,
+        "height": 16,
+        "color_count": 0,
+        "reserved": 0,
+        "color_planes": 1,
+        "bits_per_pixel": 32,
+        "size_in_bytes": 1128,
+        "data_offset": 38
+      },
+      {
+        "width": 32,
+        "height": 32,
+        "color_count": 0,
+        "reserved": 0,
+        "color_planes": 1,
+        "bits_per_pixel": 32,
+        "size_in_bytes": 4264,
+        "data_offset": 1166
+      }
+    ]
+  },
+  "expectedSha256": "d72e9d06cdaa1dc0d33db5f0198d757cb5131a62097d0f1558c1bfe2c4c3fe19",
+  "expectedJsonLength": 317
+}

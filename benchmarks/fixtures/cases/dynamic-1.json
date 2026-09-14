@@ -1,0 +1,36 @@
+{
+  "id": "dynamic-1",
+  "scenario": "S-DYNAMIC",
+  "tags": [
+    "warm",
+    "expression"
+  ],
+  "definition": "#define TRAILER_WORDS 1\nstruct child { uint16 value; }; struct root { uint16 count; child children[count]; uint32 trailer[TRAILER_WORDS]; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "010062bbbebafeca"
+  },
+  "byteLength": 8,
+  "expectedError": null,
+  "expected": {
+    "count": 1,
+    "children": [
+      {
+        "value": 47970
+      }
+    ],
+    "trailer": [
+      3405691582
+    ]
+  },
+  "expectedSha256": "f2743ee257580696cd9d3e24c33ce00bf7db404788ef8f6aacb9d6b94d9e66ea",
+  "expectedJsonLength": 63
+}

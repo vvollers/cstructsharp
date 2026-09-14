@@ -1,0 +1,298 @@
+namespace CStructSharp.Tests;
+
+using System.Collections.ObjectModel;
+using System.Dynamic;
+using System.Reflection;
+
+/// <summary>Defines the lock-free concurrent-reuse contract.</summary>
+[TestClass]
+public class ConcurrentReuseTests
+{
+    private const string Layout = """
+                                  union choice { uint16 wide; uint8 narrow; };
+                                  struct root {
+                                      uint8 prefix;
+                                      uint16> big;
+                                      uint16< little;
+                                      uint16 values[N];
+                                      uint8 low:4;
+                                      uint8 high:4;
+                                      choice selected;
+                                      char label[2];
+                                      uint8 **ptr;
+                                  };
+                                  """;
+
+    /// <summary>
+    ///     The sample contains an enum and a recursive node pointer.
+    /// </summary>
+    /// <remarks>
+    ///     After construction, every shared instance reference must be readonly and every compiled symbol frozen. This
+    ///     prevents later operations from changing metadata that another thread may be reading.
+    /// </remarks>
+    [TestMethod]
+    public void ConstructedLayout_PublishesOnlyFrozenSharedState()
+    {
+        var cstruct = new CStruct(
+            "enum mode : uint8 { One=1 }; struct node { node *next; mode value; };",
+            pointerSize: 1);
+
+        FieldInfo[] instanceFields = typeof(CStruct).GetFields(
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        Assert.IsNotEmpty(instanceFields);
+        foreach (FieldInfo field in instanceFields)
+        {
+            Assert.IsTrue(field.IsInitOnly, $"CStruct.{field.Name} must be readonly after construction.");
+        }
+
+        AssertFrozenMetadata(cstruct.CStructElements, nameof(cstruct.CStructElements));
+        AssertFrozenMetadata(cstruct.FieldAlignments, nameof(cstruct.FieldAlignments));
+        AssertFrozenMetadata(cstruct.FieldHandlers, nameof(cstruct.FieldHandlers));
+        AssertFrozenMetadata(cstruct.WriteHandlers, nameof(cstruct.WriteHandlers));
+
+        Type symbolType = typeof(CompiledTypeSymbol);
+        PropertyInfo frozenProperty = symbolType.GetProperty(
+                                          "IsFrozen",
+                                          BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic) ??
+                                      throw new AssertFailedException(
+                                          "CompiledTypeSymbol must expose its construction-sealed state.");
+        IEnumerable<object> symbols = cstruct.CompiledModel.Symbols.Values.
+            Select(reference => (object)reference.Symbol).
+            Concat(cstruct.CompiledModel.Composites.Values).
+            Distinct(ReferenceEqualityComparer.Instance);
+        foreach (object symbol in symbols)
+        {
+            Assert.AreEqual(true, frozenProperty.GetValue(symbol), "Every published compiled symbol must be frozen.");
+        }
+    }
+
+    /// <summary>
+    ///     A compiled type symbol can be connected to its definition during construction and then frozen.
+    /// </summary>
+    /// <remarks>
+    ///     Rebinding it must fail, and an unresolved recursive symbol cannot be published as frozen. These state
+    ///     transitions ensure callers never observe a type whose definition can still change.
+    /// </remarks>
+    [TestMethod]
+    public void CompiledTypeSymbol_SealsExactlyOnceAfterBinding()
+    {
+        var symbol = new CompiledTypeSymbol(
+            "value",
+            CompiledTypeKind.Primitive,
+            null,
+            1,
+            1,
+            null,
+            null);
+        var definition = new CompiledPrimitiveType(symbol);
+
+        symbol.Bind(definition);
+
+        Assert.IsTrue(symbol.IsBound);
+        Assert.IsFalse(symbol.IsFrozen);
+        Assert.Throws<CStructLayoutException>(() => symbol.Bind(definition));
+
+        symbol.Freeze();
+
+        Assert.IsTrue(symbol.IsFrozen);
+        Assert.Throws<CStructLayoutException>(() => symbol.Bind(definition));
+
+        var unbound = new CompiledTypeSymbol(
+            "unbound",
+            CompiledTypeKind.Primitive,
+            null,
+            1,
+            1,
+            null,
+            null);
+        Assert.Throws<CStructLayoutException>(() => unbound.Freeze());
+        Assert.IsFalse(unbound.IsFrozen);
+    }
+
+    /// <summary>
+    ///     Workers share one constructed layout, variable dictionary, and options but each owns its stream.
+    /// </summary>
+    /// <remarks>
+    ///     A barrier starts groups of operations together. Values, addresses, debug results, and output must remain
+    ///     correct across alignment and byte-order combinations, showing that one operation's temporary state does not
+    ///     leak into another.
+    /// </remarks>
+    /// <param name="aligned">Whether portable field alignment is enabled.</param>
+    /// <param name="isLittleEndian">Whether neutral numeric fields use little-endian encoding.</param>
+    /// <returns>A task that completes after every coordinated operation worker finishes.</returns>
+    [TestMethod]
+    [DataRow(false, true)]
+    [DataRow(false, false)]
+    [DataRow(true, true)]
+    [DataRow(true, false)]
+    public async Task ConstructedLayout_SupportsConcurrentCoreOperations(
+        bool aligned,
+        bool isLittleEndian)
+    {
+        var cstruct = new CStruct(
+            Layout,
+            pointerSize: 1,
+            aligned: aligned,
+            isLittleEndian: isLittleEndian);
+        IReadOnlyDictionary<string, int> variables = new ReadOnlyDictionary<string, int>(
+            new Dictionary<string, int> { ["N"] = 2, });
+        var readOptions = new ReadOptions();
+        var writeOptions = new WriteOptions();
+        var updateOptions = new UpdateOptions();
+
+        IDictionary<string, object?> payload = CreatePayload(0);
+        byte[] sizingBytes = cstruct.Serialize("root", payload, variables, writeOptions);
+        int pointerCell = checked(sizingBytes.Length + 1);
+        int targetAddress = checked(pointerCell + 2);
+        payload = CreatePayload(pointerCell);
+        byte[] rootBytes = cstruct.Serialize("root", payload, variables, writeOptions);
+        byte[] source = new byte[targetAddress + 1];
+        rootBytes.CopyTo(source, 0);
+        source[pointerCell] = checked((byte)targetAddress);
+        source[targetAddress] = 0x44;
+
+        Action[] operationBodies =
+        [
+            () =>
+            {
+                using var stream = new MemoryStream((byte[])source.Clone());
+                dynamic parsed = cstruct.ParseStream(stream, "root", variables, readOptions);
+                Assert.AreEqual((byte)0xA5, (byte)parsed.prefix);
+                Assert.AreEqual((ushort)0x1234, (ushort)parsed.big);
+                Assert.AreEqual((ushort)0x5678, (ushort)parsed.little);
+            },
+            () =>
+            {
+                using var stream = new MemoryStream((byte[])source.Clone());
+                Assert.AreEqual(
+                    (ushort)0x1234,
+                    cstruct.ReadValue<ushort>(stream, "root.big", variables, readOptions));
+            },
+            () =>
+            {
+                using var stream = new MemoryStream((byte[])source.Clone());
+                (List<DebugData> debug, dynamic parsed) =
+                    cstruct.ParseStreamWithDebug(stream, "root", variables, readOptions);
+                Assert.IsNotEmpty(debug);
+                Assert.IsNotNull(parsed);
+            },
+            () =>
+            {
+                using var stream = new MemoryStream((byte[])source.Clone());
+                Assert.AreEqual(
+                    targetAddress,
+                    cstruct.ResolveAddress(stream, "root.ptr.value.value", variables, readOptions));
+                Assert.AreEqual(0L, stream.Position);
+            },
+            () =>
+            {
+                using var stream = new MemoryStream((byte[])source.Clone());
+                Assert.AreEqual(
+                    2,
+                    cstruct.GetDynamicArrayLength(stream, "root.values", variables, readOptions));
+                Assert.AreEqual(0L, stream.Position);
+            },
+            () => CollectionAssert.AreEqual(
+                rootBytes,
+                cstruct.Serialize("root", CreatePayload(pointerCell), variables, writeOptions)),
+            () =>
+            {
+                using var stream = new MemoryStream();
+                cstruct.WriteStream(
+                    stream,
+                    "root",
+                    CreatePayload(pointerCell),
+                    variables,
+                    writeOptions);
+                CollectionAssert.AreEqual(rootBytes, stream.ToArray());
+            },
+            () =>
+            {
+                using var stream = new MemoryStream((byte[])source.Clone());
+                cstruct.UpdateStream(
+                    stream,
+                    "root.values[1]",
+                    (ushort)0xBEEF,
+                    variables,
+                    updateOptions);
+                stream.Position = 0;
+                dynamic parsed = cstruct.ParseStream(stream, "root", variables, readOptions);
+                Assert.AreEqual((ushort)0xBEEF, (ushort)parsed.values[1]);
+            },
+            () =>
+            {
+                using var stream = new MemoryStream((byte[])source.Clone());
+                cstruct.UpdateStream(
+                    stream,
+                    "root.ptr.value.value",
+                    (byte)0x7E,
+                    variables,
+                    updateOptions);
+                Assert.AreEqual((byte)0x7E, stream.ToArray()[targetAddress]);
+                Assert.AreEqual(0L, stream.Position);
+            },
+            () =>
+            {
+                Assert.IsGreaterThan(0, cstruct.GetStructAlignmentInBytes("root"));
+                Assert.AreEqual(
+                    rootBytes.Length,
+                    cstruct.Serialize("root", CreatePayload(pointerCell), variables, writeOptions).Length);
+            },
+        ];
+
+        using var start = new Barrier(operationBodies.Length);
+        Task[] operations = operationBodies.Select(
+            operation => Task.Factory.StartNew(
+                () =>
+                {
+                    start.SignalAndWait();
+                    for (int iteration = 0; iteration < 24; iteration++)
+                    {
+                        operation();
+                    }
+                },
+                CancellationToken.None,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default)).ToArray();
+        await Task.WhenAll(operations);
+    }
+
+    /// <summary>
+    ///     Compiled metadata must be sealed for concurrent readers: read-only through every interface it exposes and
+    ///     never a plain mutable <see cref="Dictionary{TKey, TValue}"/>. Until the performance plan's E1.3a the check
+    ///     demanded a <c>System.Collections.Frozen</c> type; building those cost a quarter of a small layout's
+    ///     compilation, so the layout's own tables are now sealed <see cref="ConstructionDictionary{TKey, TValue}"/>
+    ///     instances (whose builder handle is withdrawn on <c>Freeze</c>) while the shared primitive registries stay
+    ///     frozen. Reads on a dictionary that is never written after publication are safe from any thread.
+    /// </summary>
+    private static void AssertFrozenMetadata<TKey, TValue>(
+        IReadOnlyDictionary<TKey, TValue> metadata,
+        string name)
+        where TKey : notnull
+    {
+        Type type = metadata.GetType();
+        bool sealedTable = type.Namespace == "System.Collections.Frozen" ||
+                           (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ConstructionDictionary<,>) &&
+                            (bool)type.GetProperty("IsFrozen")!.GetValue(metadata)!);
+        Assert.IsTrue(sealedTable, $"{name} must be a sealed snapshot, not a wrapper over a mutable dictionary.");
+        Assert.IsTrue(
+            metadata is ICollection<KeyValuePair<TKey, TValue>> { IsReadOnly: true },
+            $"{name} must be read-only through its collection view.");
+    }
+
+    private static IDictionary<string, object?> CreatePayload(int pointerCell)
+    {
+        return new Dictionary<string, object?>
+        {
+            ["prefix"] = (byte)0xA5,
+            ["big"] = (ushort)0x1234,
+            ["little"] = (ushort)0x5678,
+            ["values"] = new ushort[] { 0x1111, 0x2222, },
+            ["low"] = (byte)5,
+            ["high"] = (byte)10,
+            ["selected"] = UnionValue.FromMember("choice", "wide", (ushort)0xBEEF),
+            ["label"] = "AZ",
+            ["ptr"] = pointerCell,
+        };
+    }
+}

@@ -1,0 +1,198 @@
+/* VS Code's own Dark Modern palette, so the app chrome (top bar, sidebar, panel headers, buttons) reads
+   as a native-feeling desktop application rather than a marketing/landing-page theme. This intentionally
+   matches dockview's bundled `themeVisualStudio` (see App.vue), which already uses these exact colors for
+   the dockable workspace itself. */
+:root {
+  --color-bg-primary: #1e1e1e;
+  --color-bg-secondary: #252526;
+  --color-bg-tertiary: #2d2d30;
+  --color-accent: #007acc;
+  --color-accent-glow: rgba(0, 122, 204, 0.35);
+  --color-success: #89d185;
+  --color-error: #f48771;
+  --color-text: #cccccc;
+  --color-text-muted: #969696;
+  --font-mono: "Consolas", "JetBrains Mono", "Courier New", monospace;
+  --font-sans: "Segoe UI", "Inter", system-ui, sans-serif;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --shadow-glow: none;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Desktop app shell: fill the viewport exactly, no page-level scroll - each column scrolls internally. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg-primary);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+}
+
+/* Button styles - flat, no gradient/glow/uppercase, matching VS Code's own command buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    background-color 0.1s ease,
+    opacity 0.1s ease;
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: #ffffff;
+}
+
+.button-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.btn-primary:hover {
+  background: #1a8cd8;
+}
+
+.btn-primary:active {
+  background: #006bb3;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Card styles */
+.card {
+  min-width: 0;
+  background: var(--color-bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+/* Code block styles */
+.code-block {
+  background: var(--color-bg-tertiary);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.code-block pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Loading state */
+.loading {
+  animation: pulse 1.5s infinite;
+}
+
+/* Status indicators */
+.status-success {
+  color: var(--color-success);
+}
+
+.status-error {
+  color: var(--color-error);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}

@@ -1,0 +1,8 @@
+dist/
+node_modules/
+playwright-report/
+public/
+test-results/
+vite.config.d.ts
+vite.config.js
+artifacts/

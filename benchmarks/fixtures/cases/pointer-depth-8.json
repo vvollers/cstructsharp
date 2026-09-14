@@ -1,0 +1,100 @@
+{
+  "id": "pointer-depth-8",
+  "scenario": "S-POINTER",
+  "tags": [
+    "warm",
+    "update"
+  ],
+  "notes": "Absolute addressing (default). Address 0 terminates the chain as a null pointer.",
+  "definition": "struct node { node *next; uint32 value; }; struct root { node *head; };",
+  "options": {
+    "pointerSize": 4,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": {
+    "maxPointerDepth": 64
+  },
+  "bytes": {
+    "kind": "hex",
+    "hex": "040000000c000000e803000014000000e90300001c000000ea03000024000000eb0300002c000000ec03000034000000ed0300003c000000ee03000000000000ef030000"
+  },
+  "byteLength": 68,
+  "expectedError": null,
+  "expected": {
+    "head": {
+      "Address": 4,
+      "Depth": 1,
+      "IsDereferenced": true,
+      "Value": {
+        "next": {
+          "Address": 12,
+          "Depth": 1,
+          "IsDereferenced": true,
+          "Value": {
+            "next": {
+              "Address": 20,
+              "Depth": 1,
+              "IsDereferenced": true,
+              "Value": {
+                "next": {
+                  "Address": 28,
+                  "Depth": 1,
+                  "IsDereferenced": true,
+                  "Value": {
+                    "next": {
+                      "Address": 36,
+                      "Depth": 1,
+                      "IsDereferenced": true,
+                      "Value": {
+                        "next": {
+                          "Address": 44,
+                          "Depth": 1,
+                          "IsDereferenced": true,
+                          "Value": {
+                            "next": {
+                              "Address": 52,
+                              "Depth": 1,
+                              "IsDereferenced": true,
+                              "Value": {
+                                "next": {
+                                  "Address": 60,
+                                  "Depth": 1,
+                                  "IsDereferenced": true,
+                                  "Value": {
+                                    "next": {
+                                      "Address": 0,
+                                      "Depth": 1,
+                                      "IsDereferenced": false,
+                                      "Value": null
+                                    },
+                                    "value": 1007
+                                  }
+                                },
+                                "value": 1006
+                              }
+                            },
+                            "value": 1005
+                          }
+                        },
+                        "value": 1004
+                      }
+                    },
+                    "value": 1003
+                  }
+                },
+                "value": 1002
+              }
+            },
+            "value": 1001
+          }
+        },
+        "value": 1000
+      }
+    }
+  },
+  "expectedSha256": "cdd99b08a70ad64c5b0fd9d0e8037c4c65aec85ea5a5952f72d2ffbd3cb4bf9f",
+  "expectedJsonLength": 683
+}

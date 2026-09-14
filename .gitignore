@@ -1,0 +1,111 @@
+# Local-only project records
+/.local-docs/
+/agentdocs/
+
+# .NET SDK/tool state and build outputs
+/.dotnet/
+**/bin/
+**/obj/
+**/out/
+**/artifacts/
+**/publish/
+**/BenchmarkDotNet.Artifacts/
+**/StrykerOutput/
+*.binlog
+
+# Test, coverage, and analysis output
+**/TestResults/
+**/coverage/
+**/coverage-results/
+*.trx
+*.coverage
+*.coveragexml
+*.cobertura.xml
+*.sarif
+
+# NuGet caches and packages
+**/.nuget/
+**/packages/
+!/packages/
+!/packages/cstructsharp/
+!/packages/cstructsharp/**
+*.nupkg
+*.snupkg
+
+# Node, Vite, Vitest, and browser-test output
+**/node_modules/
+**/dist/
+**/.vite/
+**/.vitest/
+**/.nyc_output/
+**/playwright-report/
+**/test-results/
+**/blob-report/
+**/*.tsbuildinfo
+*.eslintcache
+*.stylelintcache
+
+# Generated WebAssembly/frontend assets
+apps/workshop/public/wasm/
+apps/workshop/public/wasm*
+apps/workshop/src/generated/test-demos.json
+apps/workshop/vite.config.d.ts
+apps/workshop/vite.config.d.ts.map
+apps/inspector/public/wasm/
+apps/inspector/public/wasm*
+apps/inspector/vite.config.d.ts
+apps/inspector/vite.config.d.ts.map
+
+# Tool caches, telemetry, and machine-local state
+**/.cache/
+**/.telemetry/
+**/.tmp/
+**/tmp/
+.npm/
+.pnpm-store/
+.yarn/
+
+# IDE and editor state
+.vs/
+.vscode/
+.idea/
+*.iml
+*.suo
+*.user
+*.userosscache
+*.rsuser
+*.sln.docstates
+*.DotSettings.user
+_ReSharper.Caches/
+
+# Logs, crash dumps, and temporary files
+*.log
+*.dmp
+*.pid
+*.tmp
+*.temp
+*.bak
+*.orig
+*~
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local environment files (checked-in examples remain allowed)
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# OS-generated files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Generated documentation exports
+/docs/examples/recipes/*.cs
+/docs/examples/recipes/*.md
+!/docs/examples/recipes/index.md
+/docs/examples/recipes/toc.yml
+/docs/guides/recipes/index.md

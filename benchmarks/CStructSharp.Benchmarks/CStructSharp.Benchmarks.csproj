@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CStructSharp\CStructSharp.csproj" />
+    <!-- Fixture loading (benchmarks/fixtures) is shared with the fixture tool so both read identical inputs. -->
+    <ProjectReference Include="..\CStructSharp.FixtureTool\CStructSharp.FixtureTool.csproj" />
+  </ItemGroup>
+
+</Project>

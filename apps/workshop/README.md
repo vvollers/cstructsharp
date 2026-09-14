@@ -1,0 +1,3 @@
+# Test and lesson workshop
+
+`src/` contains the independent Vue application and curated lessons. `scripts/generate-test-demos.mjs` extracts documented managed tests from `tests/CStructSharpTests/`; `src/generated/test-demos.json` is ignored output. `wasm/` holds this app's authored TypeScript declarations. `tests/` covers browser behavior, generated C#, and public consumers. Run `npm ci`, `npm run build`, `npm run test:unit`, and `npm run test:e2e` here. The full build publishes WASM, stages it, and builds `dist/`; `npm run build:frontend` assumes staging already exists. Run `npm run test:demos` to verify extraction. Package commands call repository-owned tooling under `tools/`.

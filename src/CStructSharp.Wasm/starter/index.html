@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Read your first binary header</title>
+    <style>
+      body {
+        font: 1rem/1.6 system-ui;
+        max-width: 48rem;
+        margin: 3rem auto;
+        padding: 0 1rem;
+      }
+      button {
+        font: inherit;
+        padding: 0.5rem 1rem;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        background: #eee;
+        padding: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Read your first binary header</h1>
+    <p>
+      Six bytes describe a message kind and length. Read them, create new bytes, and change one
+      field.
+    </p>
+    <p id="status" role="status">Loading WebAssembly…</p>
+    <button id="run" disabled>Read, write, and update</button>
+    <pre id="output" aria-live="polite"></pre>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

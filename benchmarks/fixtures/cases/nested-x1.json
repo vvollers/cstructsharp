@@ -1,0 +1,54 @@
+{
+  "id": "nested-x1",
+  "scenario": "S-NESTED",
+  "tags": [
+    "warm",
+    "write"
+  ],
+  "definition": "struct leaf { uint8 kind; uint32 value; }; struct mid { leaf first; leaf second; uint16 tail; }; struct top { mid left; mid right; uint8 mark; }; struct root { top items[1]; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "87df0c7d1f2c96115a24e2b6f623bc0d9807cf5656c288e38c"
+  },
+  "byteLength": 25,
+  "expectedError": null,
+  "expected": {
+    "items": [
+      {
+        "left": {
+          "first": {
+            "kind": 135,
+            "value": 528288991
+          },
+          "second": {
+            "kind": 44,
+            "value": 609882518
+          },
+          "tail": 46818
+        },
+        "right": {
+          "first": {
+            "kind": 246,
+            "value": 2551036963
+          },
+          "second": {
+            "kind": 7,
+            "value": 3260438223
+          },
+          "tail": 58248
+        },
+        "mark": 140
+      }
+    ]
+  },
+  "expectedSha256": "0be0f0910d593d3f41abfb6ebab689e1a46d84a33d349d1e6394aecb6d0de2ea",
+  "expectedJsonLength": 226
+}

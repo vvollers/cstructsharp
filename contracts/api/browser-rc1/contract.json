@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "name": "browser-rc1",
+  "packageVersion": "0.2.0-preview",
+  "contractVersion": 7,
+  "managedExports": [
+    "GetVersion",
+    "ParseBytes",
+    "ParseWithDebug",
+    "Serialize",
+    "UpdateStream",
+    "GetStaticPlan"
+  ],
+  "operations": [
+    "parse",
+    "serialize",
+    "update"
+  ],
+  "envelopeFields": [
+    "ContractVersion",
+    "Operation",
+    "Success",
+    "Data",
+    "DebugData",
+    "Error"
+  ],
+  "optionFields": [
+    "addressingMode",
+    "aligned",
+    "bindingMode",
+    "clearUnionStorage",
+    "dereferencePointers",
+    "littleEndian",
+    "maxArrayElements",
+    "maxDefinitionLength",
+    "maxExpressionNestingDepth",
+    "maxExpressionTokens",
+    "maxLayoutNestingDepth",
+    "maxNestingDepth",
+    "maxPointerDepth",
+    "maxPointerTargetBytes",
+    "maxStringBytes",
+    "maxTotalBytesRead",
+    "maxTotalBytesWritten",
+    "maxTraversalBytesRead",
+    "maxTraversalNestingDepth",
+    "maxTraversalPointerDepth",
+    "maxTraversalPointerTargetBytes",
+    "maxTraversalStringBytes",
+    "origin",
+    "pointerSize",
+    "requireExistingPointerTarget",
+    "rootTypeName"
+  ],
+  "errorCodes": [
+    "invalid-input",
+    "invalid-json",
+    "invalid-layout",
+    "invalid-path",
+    "operation-failed",
+    "read-budget",
+    "read-failed",
+    "write-budget",
+    "write-failed"
+  ],
+  "compatibilityPolicy": "Exact until a reviewed contract-version increment updates this baseline.",
+  "evidence": {
+    "unitTests": 7,
+    "bootstrapTests": 3,
+    "browserTests": 8,
+    "browserEngine": "Playwright Chromium"
+  },
+  "history": [
+    {
+      "contractVersion": 7,
+      "date": "2026-09-14",
+      "change": "Performance plan E3.3(b): a successful parse envelope carries Data as the parsed JSON value itself (an object with the selected root wrapper, e.g. Data.header.kind), no longer as JSON text to JSON.parse. Failure envelopes keep Data null; serialize/update keep returning bytes. Every value, option, error code and DebugData item is unchanged."
+    },
+    {
+      "contractVersion": 6,
+      "date": "2026-09-12",
+      "change": "Performance plan E3.3/E3.7: the parse envelope is written without indentation straight from the parse result, and DebugData items no longer carry the field bytes as a comma-separated decimal string (Buffer removed); CurPos/EndPos identify the byte range in the caller's own input. Data stays JSON text with the selected root wrapper; every value is unchanged."
+    },
+    {
+      "contractVersion": 6,
+      "date": "2026-09-12",
+      "change": "Performance plan E3.6: new managed export ParseBytes(definition, bytes, optionsJson, debug) used by the adapters to parse byte inputs up to 64 KiB on the calling thread; the envelope is unchanged."
+    },
+    {
+      "contractVersion": 7,
+      "date": "2026-09-14",
+      "change": "Performance plan E3.9: new managed export GetStaticPlan(definition, optionsJson) returns the static read plan of a fully fixed root (the compiler's member offsets, codecs, counts, nested plans and enum tables) as JSON, or an empty string; the adapters' parse() executes such a plan with DataView in JavaScript and falls back to ParseBytes/ParseSource otherwise. The envelope and every value are unchanged."
+    }
+  ]
+}

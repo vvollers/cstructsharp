@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "dotnet-stryker": {
+      "version": "4.16.0",
+      "commands": [
+        "dotnet-stryker"
+      ],
+      "rollForward": false
+    },
+    "publicapigenerator.tool": {
+      "version": "11.5.4",
+      "commands": [
+        "generate-public-api"
+      ],
+      "rollForward": false
+    },
+    "docfx": {
+      "version": "2.78.5",
+      "commands": [
+        "docfx"
+      ],
+      "rollForward": false
+    }
+  }
+}

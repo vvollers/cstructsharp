@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "compiler-observation",
+  "claim": "observation-only",
+  "fixture": {
+    "id": "portable-host-facts",
+    "source": "tools/compiler-fixtures/portable-host-facts.c",
+    "sha256": "0EB21304C3244E2323E000AD6C3080F0D693380B21D2023148A85837C43A5FC2"
+  },
+  "compiler": {
+    "family": "Clang",
+    "executable": "clang.exe",
+    "version": "21.1.7",
+    "versionOutput": "clang version 21.1.7\nTarget: x86_64-pc-windows-msvc\nThread model: posix\nInstalledDir: C:\\Program Files\\LLVM\\bin",
+    "target": "x86_64-pc-windows-msvc",
+    "language": "C11",
+    "flags": [
+      "-std=c11",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic"
+    ]
+  },
+  "host": {
+    "os": "Windows",
+    "architecture": "X64"
+  },
+  "facts": {
+    "endian": "little",
+    "char": {
+      "size": 1,
+      "alignment": 1,
+      "signed": true
+    },
+    "short": {
+      "size": 2,
+      "alignment": 2
+    },
+    "int": {
+      "size": 4,
+      "alignment": 4
+    },
+    "long": {
+      "size": 4,
+      "alignment": 4
+    },
+    "longLong": {
+      "size": 8,
+      "alignment": 8
+    },
+    "wchar": {
+      "size": 2,
+      "alignment": 2
+    },
+    "pointer": {
+      "size": 8,
+      "alignment": 8
+    },
+    "enum": {
+      "size": 4,
+      "alignment": 4
+    },
+    "fixedWidthAggregate": {
+      "size": 12,
+      "alignment": 4,
+      "offsets": {
+        "tag": 0,
+        "count": 4,
+        "code": 8
+      },
+      "bytes": "110000005544332277660000"
+    },
+    "nestedArray": {
+      "size": 24,
+      "alignment": 4,
+      "offsets": {
+        "prefix": 0,
+        "items0Tag": 4,
+        "items0Value": 8,
+        "items1Tag": 12,
+        "items1Value": 16,
+        "tail": 20
+      },
+      "bytes": "34120000A100000044332211A200000088776655EE000000"
+    },
+    "union": {
+      "size": 4,
+      "alignment": 4,
+      "offsets": {
+        "small": 0,
+        "large": 0
+      },
+      "bytes": "A5000000"
+    },
+    "bitfield": {
+      "size": 4,
+      "alignment": 2,
+      "offsets": {
+        "next": 2
+      },
+      "bytes": "8D003412"
+    },
+    "pointerAggregate": {
+      "size": 16,
+      "alignment": 8,
+      "offsets": {
+        "marker": 0,
+        "target": 8
+      }
+    }
+  }
+}

@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "budgetId": "non-web-rc1",
+  "status": "enforced",
+  "workItem": "QA-08",
+  "date": "2026-09-12",
+  "benchmark": {
+    "generator": "BenchmarkDotNet",
+    "generatorVersion": "0.15.8",
+    "targetFramework": "net10.0",
+    "runtimePrefix": ".NET 10.",
+    "category": "ReleaseGate",
+    "job": {
+      "launchCount": 3,
+      "warmupCount": 5,
+      "iterationCount": 8,
+      "unrollFactor": 1
+    },
+    "minimumSamples": 16,
+    "timingMetric": "medianNanoseconds",
+    "maximumMedianMultiplier": 4.0,
+    "minimumMedianBudgetNanoseconds": 10000,
+    "maximumRelativeStandardDeviation": 0.35,
+    "maximumAllocationGrowthRatio": 0.05,
+    "minimumAllocationHeadroomBytes": 1024,
+    "baselineEvidence": {
+      "summary": "artifacts/baseline/rc1-rebase-summary.json",
+      "summarySha256": "550C347C439C965F26577E6A8C4B4CDEC2517D8C03CD276E31F3DBD025146F57",
+      "rawReport": "artifacts/baseline/rc1-rebase/results/*-report-full.json",
+      "rawReportSha256": null,
+      "environment": "Linux Ubuntu 26.04.1 LTS (Resolute Raccoon); AMD EPYC 9645; X64; .NET 10.0.10 (10.0.10, 10.0.1026.32716); SDK 10.0.302",
+      "worktreeDirty": false,
+      "revision": "f782a8e5a08ddce5f31a6e2aa2bbcee28e75023c",
+      "note": "Re-baselined after performance plan Phase 1 (E2.6a, E3.2/E1.1, E2.8, E2.12, E1.3a, E2.9, E2.3) on the Phase 0 devbox. The previous baseline (2026-07-26, Ryzen 9 9950X) had case keys broken by a [Params] on ReadBenchmarks and an allocation budget CompileMaximumSource had already exceeded on main (978,904 B measured in Phase 0 against 884,360 B); that pre-existing allocation growth is carried into this baseline and tracked in the (local, untracked) performance log."
+    },
+    "cases": [
+      {
+        "type": "AddressBenchmarks",
+        "method": "ResolveFixedNestedArray",
+        "parameters": "Index=0",
+        "baselineMedianNanoseconds": 325.79,
+        "baselineAllocatedBytes": 1560
+      },
+      {
+        "type": "AddressBenchmarks",
+        "method": "ResolveFixedNestedArray",
+        "parameters": "Index=127",
+        "baselineMedianNanoseconds": 382.955,
+        "baselineAllocatedBytes": 1848
+      },
+      {
+        "type": "AddressBenchmarks",
+        "method": "ResolveFixedNestedArray",
+        "parameters": "Index=255",
+        "baselineMedianNanoseconds": 381.962,
+        "baselineAllocatedBytes": 1848
+      },
+      {
+        "type": "CompilationBenchmarks",
+        "method": "CompileMaximumSource",
+        "parameters": "",
+        "baselineMedianNanoseconds": 2759234.719,
+        "baselineAllocatedBytes": 966888
+      },
+      {
+        "type": "CompilationBenchmarks",
+        "method": "CompileMedium",
+        "parameters": "",
+        "baselineMedianNanoseconds": 635665.712,
+        "baselineAllocatedBytes": 254760
+      },
+      {
+        "type": "CompilationBenchmarks",
+        "method": "CompileSmall",
+        "parameters": "",
+        "baselineMedianNanoseconds": 21743.132,
+        "baselineAllocatedBytes": 22648
+      },
+      {
+        "type": "ReadBenchmarks",
+        "method": "ParsePrimitiveArray1KiB",
+        "parameters": "",
+        "baselineMedianNanoseconds": 7068.419,
+        "baselineAllocatedBytes": 33968
+      },
+      {
+        "type": "ReadBenchmarks",
+        "method": "ParseSmallRootMemory",
+        "parameters": "",
+        "baselineMedianNanoseconds": 919.377,
+        "baselineAllocatedBytes": 1984
+      },
+      {
+        "type": "ReadBenchmarks",
+        "method": "ReadSelectedScalarTypedMemory",
+        "parameters": "",
+        "baselineMedianNanoseconds": 473.983,
+        "baselineAllocatedBytes": 1472
+      },
+      {
+        "type": "ReadBenchmarks",
+        "method": "ReadTypedSmallRootMemory",
+        "parameters": "",
+        "baselineMedianNanoseconds": 8281.505,
+        "baselineAllocatedBytes": 5632
+      },
+      {
+        "type": "WriteAndUpdateBenchmarks",
+        "method": "SerializePocoToBufferWriter",
+        "parameters": "",
+        "baselineMedianNanoseconds": 922.169,
+        "baselineAllocatedBytes": 1560
+      },
+      {
+        "type": "WriteAndUpdateBenchmarks",
+        "method": "SerializePocoToSpan",
+        "parameters": "",
+        "baselineMedianNanoseconds": 857.432,
+        "baselineAllocatedBytes": 1544
+      },
+      {
+        "type": "WriteAndUpdateBenchmarks",
+        "method": "SerializeTerminatedUtf8",
+        "parameters": "",
+        "baselineMedianNanoseconds": 5893.225,
+        "baselineAllocatedBytes": 14048
+      },
+      {
+        "type": "WriteAndUpdateBenchmarks",
+        "method": "UpdatePointerTarget",
+        "parameters": "",
+        "baselineMedianNanoseconds": 878.4,
+        "baselineAllocatedBytes": 3160
+      }
+    ]
+  },
+  "package": {
+    "baselineEvidence": {
+      "path": "artifacts/baseline/qa-07-managed-final-package-artifacts.json",
+      "sha256": "0B03E9D3C2F127EA74127B192ED2AD6A96CD5F541A07DCDA95134230059A5C8D"
+    },
+    "baseline": {
+      "files": 2,
+      "bytes": 374078,
+      "gzipBytes": 373032
+    },
+    "maximumBytes": 393216,
+    "maximumGzipBytes": 393216,
+    "extensions": [
+      {
+        "extension": ".nupkg",
+        "baselineBytes": 286491,
+        "baselineGzipBytes": 285700,
+        "maximumBytes": 307200,
+        "maximumGzipBytes": 307200
+      },
+      {
+        "extension": ".snupkg",
+        "baselineBytes": 87587,
+        "baselineGzipBytes": 87332,
+        "maximumBytes": 92160,
+        "maximumGzipBytes": 92160
+      }
+    ]
+  },
+  "webIntegration": "WASM raw/compressed size, deployable file count, and browser startup budgets remain deferred to the consolidated final Web/WASM phase."
+}

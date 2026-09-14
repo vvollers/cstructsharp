@@ -1,0 +1,45 @@
+{
+  "id": "real-jpg",
+  "scenario": "S-REAL",
+  "tags": [
+    "warm",
+    "cold",
+    "boundary",
+    "debug",
+    "compile",
+    "typed"
+  ],
+  "notes": "Imported from apps/inspector/src/formats.ts (WellKnownFormatFixtures.Jpg_SoiAndJfifApp0Segment_DecodeExpectedFields).",
+  "definition": "struct app0_segment {\n    uint16> marker;\n    uint16> length;\n    char identifier[5];\n    uint8 version_major;\n    uint8 version_minor;\n    uint8 density_units;\n    uint16> x_density;\n    uint16> y_density;\n    uint8 thumbnail_width;\n    uint8 thumbnail_height;\n};\n\nstruct root {\n    uint16> soi_marker;\n    app0_segment app0;\n};",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "ffd8ffe000104a46494600010101004800480000"
+  },
+  "byteLength": 20,
+  "expectedError": null,
+  "expected": {
+    "soi_marker": 65496,
+    "app0": {
+      "marker": 65504,
+      "length": 16,
+      "identifier": "JFIF\u0000",
+      "version_major": 1,
+      "version_minor": 1,
+      "density_units": 1,
+      "x_density": 72,
+      "y_density": 72,
+      "thumbnail_width": 0,
+      "thumbnail_height": 0
+    }
+  },
+  "expectedSha256": "fcfe6445eea3a56584ef3173105ecebbeb5b9348027b9cede316a3cb48a2f746",
+  "expectedJsonLength": 207
+}

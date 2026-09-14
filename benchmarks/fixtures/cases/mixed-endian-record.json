@@ -1,0 +1,31 @@
+{
+  "id": "mixed-endian-record",
+  "scenario": "S-MIXED-ENDIAN",
+  "tags": [
+    "warm"
+  ],
+  "definition": "struct root { uint16< a; uint16> b; uint32< c; uint32> d; uint64> e; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "34121234efbeaddedeadbeef0102030405060708"
+  },
+  "byteLength": 20,
+  "expectedError": null,
+  "expected": {
+    "a": 4660,
+    "b": 4660,
+    "c": 3735928559,
+    "d": 3735928559,
+    "e": "72623859790382856"
+  },
+  "expectedSha256": "b19b49dd0d382bf02e97e0bb3368d67090c312da12cba706bce4de4010b19459",
+  "expectedJsonLength": 73
+}

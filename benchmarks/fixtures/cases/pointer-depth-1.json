@@ -1,0 +1,44 @@
+{
+  "id": "pointer-depth-1",
+  "scenario": "S-POINTER",
+  "tags": [
+    "warm",
+    "update"
+  ],
+  "notes": "Absolute addressing (default). Address 0 terminates the chain as a null pointer.",
+  "definition": "struct node { node *next; uint32 value; }; struct root { node *head; };",
+  "options": {
+    "pointerSize": 4,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": {
+    "maxPointerDepth": 64
+  },
+  "bytes": {
+    "kind": "hex",
+    "hex": "0400000000000000e8030000"
+  },
+  "byteLength": 12,
+  "expectedError": null,
+  "expected": {
+    "head": {
+      "Address": 4,
+      "Depth": 1,
+      "IsDereferenced": true,
+      "Value": {
+        "next": {
+          "Address": 0,
+          "Depth": 1,
+          "IsDereferenced": false,
+          "Value": null
+        },
+        "value": 1000
+      }
+    }
+  },
+  "expectedSha256": "c6b04769761df91aa5d3d2132300c1adfa3ba6b84f8286eaa00a8af0d6f9aa36",
+  "expectedJsonLength": 144
+}

@@ -1,0 +1,28 @@
+{
+  "id": "strings-65536",
+  "scenario": "S-STRINGS",
+  "tags": [
+    "warm",
+    "write"
+  ],
+  "definition": "struct root { char name[32]; char cstr[]; utf8_string_zero utf8_text; wchar< wide[]; unicode_string_zero< utf16_text; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": {
+    "maxStringBytes": 786432
+  },
+  "bytes": {
+    "kind": "file",
+    "file": "data/strings-65536.bin"
+  },
+  "byteLength": 419470,
+  "expectedError": null,
+  "expected": null,
+  "expectedSha256": "33b868b12d55408af5ce1d44c38598b8e934dbe13b767014b1b1dc49a9d123b4",
+  "expectedJsonLength": 393428
+}

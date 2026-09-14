@@ -1,0 +1,225 @@
+{
+  "id": "dynamic-64",
+  "scenario": "S-DYNAMIC",
+  "tags": [
+    "warm",
+    "expression"
+  ],
+  "definition": "#define TRAILER_WORDS 1\nstruct child { uint16 value; }; struct root { uint16 count; child children[count]; uint32 trailer[TRAILER_WORDS]; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "40000f82472e9c8204fe2ec35754cbd6f1e98d94c2fea38215580aaa29c1d40d8a2d77f799643fc4c966e2d1c1be507cdf36ac60198c93037b8c728f26a7fd204dec14236d2e8f9e6a4fa93a1413ea6b11f1ea9c45c6379714a5f339ff876cf20992bb1d3e0dbdd9ecfaf277e7304faf6c9badbe63ed3f4e1f0ad5c71cb694f40652bebafeca"
+  },
+  "byteLength": 134,
+  "expectedError": null,
+  "expected": {
+    "count": 64,
+    "children": [
+      {
+        "value": 33295
+      },
+      {
+        "value": 11847
+      },
+      {
+        "value": 33436
+      },
+      {
+        "value": 65028
+      },
+      {
+        "value": 49966
+      },
+      {
+        "value": 21591
+      },
+      {
+        "value": 54987
+      },
+      {
+        "value": 59889
+      },
+      {
+        "value": 38029
+      },
+      {
+        "value": 65218
+      },
+      {
+        "value": 33443
+      },
+      {
+        "value": 22549
+      },
+      {
+        "value": 43530
+      },
+      {
+        "value": 49449
+      },
+      {
+        "value": 3540
+      },
+      {
+        "value": 11658
+      },
+      {
+        "value": 63351
+      },
+      {
+        "value": 25753
+      },
+      {
+        "value": 50239
+      },
+      {
+        "value": 26313
+      },
+      {
+        "value": 53730
+      },
+      {
+        "value": 48833
+      },
+      {
+        "value": 31824
+      },
+      {
+        "value": 14047
+      },
+      {
+        "value": 24748
+      },
+      {
+        "value": 35865
+      },
+      {
+        "value": 915
+      },
+      {
+        "value": 35963
+      },
+      {
+        "value": 36722
+      },
+      {
+        "value": 42790
+      },
+      {
+        "value": 8445
+      },
+      {
+        "value": 60493
+      },
+      {
+        "value": 8980
+      },
+      {
+        "value": 11885
+      },
+      {
+        "value": 40591
+      },
+      {
+        "value": 20330
+      },
+      {
+        "value": 15017
+      },
+      {
+        "value": 4884
+      },
+      {
+        "value": 27626
+      },
+      {
+        "value": 61713
+      },
+      {
+        "value": 40170
+      },
+      {
+        "value": 50757
+      },
+      {
+        "value": 38711
+      },
+      {
+        "value": 42260
+      },
+      {
+        "value": 14835
+      },
+      {
+        "value": 34815
+      },
+      {
+        "value": 62060
+      },
+      {
+        "value": 37385
+      },
+      {
+        "value": 7611
+      },
+      {
+        "value": 3390
+      },
+      {
+        "value": 55741
+      },
+      {
+        "value": 64236
+      },
+      {
+        "value": 30706
+      },
+      {
+        "value": 12519
+      },
+      {
+        "value": 44879
+      },
+      {
+        "value": 39788
+      },
+      {
+        "value": 48813
+      },
+      {
+        "value": 60771
+      },
+      {
+        "value": 20031
+      },
+      {
+        "value": 2591
+      },
+      {
+        "value": 51157
+      },
+      {
+        "value": 46620
+      },
+      {
+        "value": 62612
+      },
+      {
+        "value": 20998
+      }
+    ],
+    "trailer": [
+      3405691582
+    ]
+  },
+  "expectedSha256": "1e8e0390ea635f12ff06ab4cba2160478cdc9ae68e40f7fc7c04f57947e23cd8",
+  "expectedJsonLength": 1063
+}

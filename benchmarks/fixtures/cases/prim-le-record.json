@@ -1,0 +1,37 @@
+{
+  "id": "prim-le-record",
+  "scenario": "S-PRIM",
+  "tags": [
+    "warm",
+    "cold",
+    "write",
+    "update",
+    "boundary"
+  ],
+  "definition": "struct root { uint8 a; int16 b; uint32 c; int64 d; float32 e; float64 f; bool g; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "978dce3d243a36b8530806bffeffffaaf194415839b448ec79224101"
+  },
+  "byteLength": 28,
+  "expectedError": null,
+  "expected": {
+    "a": 151,
+    "b": -12659,
+    "c": 909780029,
+    "d": -1378583293000,
+    "e": 18.618,
+    "f": 605430.142,
+    "g": true
+  },
+  "expectedSha256": "6264d95bc6d8b05b9ec3807c5efb481cc7f5abccba4df328ab54012baf219b5b",
+  "expectedJsonLength": 88
+}

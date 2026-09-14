@@ -1,0 +1,69 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-net/master/src/Stryker.CLI/Stryker.CLI/Resources/stryker.schema.json",
+  "stryker-config": {
+    "project": "src/CStructSharp/CStructSharp.csproj",
+    "test-projects": [
+      "tests/CStructSharpTests/CStructSharpTests.csproj"
+    ],
+    "coverage-analysis": "off",
+    "test-case-filter": "FullyQualifiedName!=CStructSharp.Tests.PublicApiSurfaceTests.ExportedTypesAndSignatures_AreDeliberateAndImplementationAgnostic",
+    "mutate": [
+      "CStruct.cs",
+      "CStructAddressResolver.cs",
+      "CStructCompilationOptions.cs",
+      "CStructCompiledModel.cs",
+      "LayoutParser.cs",
+      "EnumFieldValueParser.cs",
+      "EnumIntegerCodec.cs",
+      "EnumIntegerCodecTable.cs",
+      "ExceptionContext.cs",
+      "BitfieldCodecTable.cs",
+      "CStructLayout.cs",
+      "LayoutMath.cs",
+      "CStructOperationContext.cs",
+      "CStructElementWriterState.cs",
+      "ReadOperationSettings.cs",
+      "CStructPathResolver.cs",
+      "CStructPointerArithmetic.cs",
+      "CStructPrimitiveCodecs.cs",
+      "CStructReader.cs",
+      "CStructSelectedReader.cs",
+      "SymbolValidation.cs",
+      "CStructValueReader.cs",
+      "CStructWriter.cs",
+      "ConstructionDictionary.cs",
+      "EnumValueResult.cs",
+      "ExpressionEvaluationLimits.cs",
+      "ExpressionEvaluator.cs",
+      "LayoutVariableInput.cs",
+      "LayoutVariableResolver.cs",
+      "Pointer.cs",
+      "ReadBudgetStream.cs",
+      "SparseUpdateStream.cs",
+      "TypedValueConverter.cs",
+      "Structure/Enum.cs",
+      "Structure/Field.cs",
+      "Structure/Literal.cs",
+      "UnionValue.cs",
+      "WriteBudgetStream.cs",
+      "CompiledCompositeType.cs",
+      "CompiledField.cs",
+      "CompiledSizeQueries.cs",
+      "ConditionalFieldSelection.cs",
+      "ConditionalVariableScope.cs",
+      "CStructConditionalFields.cs",
+      "DebugPath.cs",
+      "FixedPointCodec.cs"
+    ],
+    "reporters": [
+      "progress",
+      "json",
+      "html"
+    ],
+    "thresholds": {
+      "high": 75,
+      "low": 75,
+      "break": 75
+    }
+  }
+}

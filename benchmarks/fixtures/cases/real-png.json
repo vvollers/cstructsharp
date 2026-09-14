@@ -1,0 +1,58 @@
+{
+  "id": "real-png",
+  "scenario": "S-REAL",
+  "tags": [
+    "warm",
+    "cold",
+    "boundary",
+    "debug",
+    "compile",
+    "typed"
+  ],
+  "notes": "Imported from apps/inspector/src/formats.ts (WellKnownFormatFixtures.Png_SignatureAndIhdrChunk_DecodeBigEndianFields).",
+  "definition": "enum png_color_type : uint8 {\n    Grayscale = 0,\n    Rgb = 2,\n    Palette = 3,\n    GrayscaleAlpha = 4,\n    Rgba = 6\n};\n\nstruct ihdr_chunk {\n    uint32 length;\n    char chunk_type[4];\n    uint32 width;\n    uint32 height;\n    uint8 bit_depth;\n    png_color_type color_type;\n    uint8 compression_method;\n    uint8 filter_method;\n    uint8 interlace_method;\n    uint32 crc;\n};\n\nstruct root {\n    uint8 signature[8];\n    ihdr_chunk ihdr;\n};",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": false
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "89504e470d0a1a0a0000000d494844520000000100000001080200000000000000"
+  },
+  "byteLength": 33,
+  "expectedError": null,
+  "expected": {
+    "signature": [
+      137,
+      80,
+      78,
+      71,
+      13,
+      10,
+      26,
+      10
+    ],
+    "ihdr": {
+      "length": 13,
+      "chunk_type": "IHDR",
+      "width": 1,
+      "height": 1,
+      "bit_depth": 8,
+      "color_type": {
+        "Enum": "png_color_type",
+        "Name": "Rgb",
+        "Value": 2
+      },
+      "compression_method": 0,
+      "filter_method": 0,
+      "interlace_method": 0,
+      "crc": 0
+    }
+  },
+  "expectedSha256": "6f14037d600b7ac039b97ff4bdd279d512f29db4ce268e7aea359df4fc318d6f",
+  "expectedJsonLength": 248
+}

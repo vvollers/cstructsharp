@@ -1,0 +1,29 @@
+<Project>
+  <!--
+    Benchmark-only managed exports for benchmarks/js. Injected into the WASM project via
+    -p:CustomAfterMicrosoftCommonTargets=<this file>, exactly like benchmarks/ConditionalComparison/Benchmark.targets,
+    so normal builds, packages, and the public API never contain them.
+  -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'CStructSharpWeb.Wasm'">
+    <Compile Include="$(MSBuildThisFileDirectory)BenchmarkExports.cs" />
+  </ItemGroup>
+  <!--
+    The AOT profiler (E3.1b recording) hands its data to Interop/Runtime::DumpAotProfileData, which the full trim
+    removes as unreferenced; keep the interop assembly whole for profiler-enabled builds only.
+  -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'CStructSharpWeb.Wasm' and $(WasmProfilers.Contains('aot'))">
+    <TrimmerRootAssembly Include="System.Runtime.InteropServices.JavaScript" />
+  </ItemGroup>
+  <!--
+    E3.1b sizing sweep: -p:BenchAotAssemblies=CStructSharp+CStructSharpWeb.Wasm ('+'-separated, since ';' would split
+    the MSBuild property) AOT-compiles only the listed
+    assemblies and forces every other one to the interpreter (the SDK's own _AOT_InternalForceInterpretAssemblies
+    hook), so the size/speed trade-off of partial AOT can be measured per assembly set.
+  -->
+  <Target Name="_BenchForceInterpretUnlistedAssemblies" BeforeTargets="_WasmAotCompileApp" Condition="'$(BenchAotAssemblies)' != ''">
+    <ItemGroup>
+      <_AOT_InternalForceInterpretAssemblies Include="@(_WasmAssembliesInternal)" Condition="!$([System.String]::Copy('+$(BenchAotAssemblies)+').Contains('+%(Filename)+'))" />
+    </ItemGroup>
+    <Message Importance="high" Text="AOT restricted to: $(BenchAotAssemblies); interpreted: @(_AOT_InternalForceInterpretAssemblies->'%(Filename)', ', ')" />
+  </Target>
+</Project>

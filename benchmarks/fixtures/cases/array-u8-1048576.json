@@ -1,0 +1,31 @@
+{
+  "id": "array-u8-1048576",
+  "scenario": "S-ARRAY-U8",
+  "tags": [
+    "warm",
+    "boundary",
+    "stream"
+  ],
+  "definition": "struct root { uint8 values[1048576]; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": {
+    "maxArrayElements": 2097152,
+    "maxTotalBytesRead": 4194304
+  },
+  "bytes": {
+    "kind": "xorshift",
+    "seed": 1593638944,
+    "size": 1048576
+  },
+  "byteLength": 1048576,
+  "expectedError": null,
+  "expected": null,
+  "expectedSha256": "a950c0d188fe0146572e01b5c3dcdebbe37509efc199e6c7c67ac466f3d90630",
+  "expectedJsonLength": 3743739
+}

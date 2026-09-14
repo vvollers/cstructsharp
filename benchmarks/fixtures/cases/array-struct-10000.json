@@ -1,0 +1,26 @@
+{
+  "id": "array-struct-10000",
+  "scenario": "S-ARRAY-STRUCT",
+  "tags": [
+    "warm",
+    "path"
+  ],
+  "definition": "struct record { uint32 id; uint16 tag; }; struct root { record items[10000]; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "file",
+    "file": "data/array-struct-10000.bin"
+  },
+  "byteLength": 60000,
+  "expectedError": null,
+  "expected": null,
+  "expectedSha256": "9670a178a2c2925f7cedb66cdb0516458f3abc663b58805c5f8db287858d0b0b",
+  "expectedJsonLength": 295813
+}

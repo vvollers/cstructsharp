@@ -1,0 +1,43 @@
+items:
+- name: Portable language
+  href: index.md
+- name: Tutorial
+  href: tutorial/
+- name: Portable v1 rules
+  href: portable-v1-reference.md
+- name: Source text and names
+  href: lexical-rules.md
+- name: Grammar
+  href: grammar.md
+- name: Primitive types
+  href: primitive-types.md
+- name: Supported declarations
+  href: structs-unions-enums-typedefs.md
+- name: Names and scopes
+  href: names-and-scopes.md
+- name: Preparing and reusing layouts
+  href: compilation-and-operations.md
+- name: Expressions, defines, and variables
+  href: expressions-defines-and-variables.md
+- name: Layout, alignment, and padding
+  href: layout-alignment-and-padding.md
+- name: Characters and strings
+  href: arrays-and-strings.md
+- name: Portable bitfields
+  href: bitfields.md
+- name: Paths and selection
+  href: paths-and-selection.md
+- name: Read results and inputs
+  href: values-reading-and-writing.md
+- name: Pointers and addressing
+  href: pointers-and-addressing.md
+- name: Writing and updating
+  href: writing-and-updating.md
+- name: Errors and limits
+  href: limits-and-diagnostics.md
+- name: Feature and operation matrix
+  href: operation-matrix.md
+- name: Differences from C
+  href: differences-from-c.md
+- name: Cookbook
+  href: cookbook/

@@ -1,0 +1,90 @@
+name: npm package CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+concurrency:
+  group: npm-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.5.0
+          cache: npm
+          cache-dependency-path: apps/workshop/package-lock.json
+      - run: dotnet workload restore src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
+      - run: npm ci
+        working-directory: apps/workshop
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/workshop
+      - name: Build once and test the actual tarball
+        working-directory: apps/workshop
+        run: |
+          npm run build:wasm
+          npm run pack:npm
+          npm run test:npm
+          npm run test:npm-release
+          npm run test:bootstrap
+          npm run test:wasm-publication
+      - name: Verify workshop catalog and browser integration
+        working-directory: apps/workshop
+        run: |
+          npm run copy:wasm
+          npm run build:frontend
+          npm run test:demos
+          npm run test:unit
+          npm run test:e2e
+          npm run test:generated-csharp
+          npm run test:wasm-reproducibility
+      - name: Verify independent inspector against the same WASM
+        working-directory: apps/inspector
+        run: |
+          npm ci
+          npm run build
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - name: Verify standalone WASM onboarding
+        shell: pwsh
+        run: |
+          node tools/packaging/create-wasm-package.mjs
+          Compress-Archive -Path artifacts/wasm-package/* -DestinationPath artifacts/wasm-onboarding.zip
+          ./tools/packaging/Test-OnboardingBrowser.ps1 -ArchivePath artifacts/wasm-onboarding.zip
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: npm-package
+          path: |
+            artifacts/npm/*.tgz
+            artifacts/npm/package-info.json
+          if-no-files-found: error
+
+  node:
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [22.14.0, 24.0.0]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: npm-package
+          path: artifacts/npm
+      - run: npm run test:npm:node
+        working-directory: apps/workshop

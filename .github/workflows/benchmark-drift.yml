@@ -1,0 +1,102 @@
+name: Benchmark drift report
+
+# Non-failing performance drift report (performance plan Phase 0, item 7). Runs the release-gate benchmark cases
+# with the Short job on the CI runner, normalizes the report with the Node converter, and compares medians and
+# allocations against the recorded baselines with soft thresholds (+10 % median, +5 % allocation). Findings land in
+# the job summary and as an artifact; the job never fails on drift because ubuntu-latest runner variance has not
+# been characterized yet. Flip `--strict` on once it has.
+
+on:
+  schedule:
+    - cron: "41 4 * * 1"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "src/CStructSharp/**"
+      - "benchmarks/**"
+      - "contracts/performance/**"
+      - "tools/quality/convert-benchmark-baseline.mjs"
+      - "tools/quality/compare-benchmark-baseline.mjs"
+      - ".github/workflows/benchmark-drift.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    name: Release-gate drift (non-failing)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/*.csproj"
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.5.0
+
+      - name: Build benchmarks (Release)
+        run: dotnet build ./benchmarks/CStructSharp.Benchmarks/CStructSharp.Benchmarks.csproj -c Release -f net10.0
+
+      - name: Run release-gate cases (Short job, net10.0)
+        env:
+          CSTRUCTSHARP_BENCHMARK_JOB: Short
+          CSTRUCTSHARP_BENCHMARK_RUNTIMES: net10.0
+          CSTRUCTSHARP_BENCHMARK_ARTIFACTS: artifacts/drift/benchmarks
+        run: >-
+          dotnet run --project ./benchmarks/CStructSharp.Benchmarks/CStructSharp.Benchmarks.csproj
+          -c Release -f net10.0 --no-build --
+          --filter "*" --anyCategories ReleaseGate
+
+      - name: Normalize report
+        run: node ./tools/quality/convert-benchmark-baseline.mjs artifacts/drift/benchmarks/results artifacts/drift/summary.json
+
+      - name: Compare against the release-gate baseline (soft thresholds)
+        id: compare
+        continue-on-error: true
+        run: >-
+          node ./tools/quality/compare-benchmark-baseline.mjs
+          --baseline ./contracts/performance/non-web-rc1.json
+          --summary artifacts/drift/summary.json
+          --markdown artifacts/drift/drift-rc1.md
+          --median-ratio 0.10 --allocation-ratio 0.05
+
+      - name: Compare against the Phase 0 baseline (net10.0 cases, soft thresholds)
+        continue-on-error: true
+        run: >-
+          node ./tools/quality/compare-benchmark-baseline.mjs
+          --baseline ./contracts/performance/non-web-rc2.json
+          --summary artifacts/drift/summary.json
+          --markdown artifacts/drift/drift-rc2.md
+
+      - name: Publish job summary
+        if: always()
+        run: |
+          {
+            echo "Runner medians are expected to differ from the recorded (developer machine) baselines; read the Δ column relative to previous runs of this workflow, not as an absolute gate."
+            echo
+            cat artifacts/drift/drift-rc1.md 2>/dev/null || echo "rc1 comparison did not run."
+            echo
+            cat artifacts/drift/drift-rc2.md 2>/dev/null || echo "rc2 comparison did not run."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload drift artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: benchmark-drift
+          path: |
+            artifacts/drift/summary.json
+            artifacts/drift/drift-rc1.md
+            artifacts/drift/drift-rc2.md
+            artifacts/drift/benchmarks/results/*.json
+          if-no-files-found: warn

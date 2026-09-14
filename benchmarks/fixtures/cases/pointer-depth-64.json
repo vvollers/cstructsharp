@@ -1,0 +1,548 @@
+{
+  "id": "pointer-depth-64",
+  "scenario": "S-POINTER",
+  "tags": [
+    "warm",
+    "update"
+  ],
+  "notes": "Absolute addressing (default). Address 0 terminates the chain as a null pointer.",
+  "definition": "struct node { node *next; uint32 value; }; struct root { node *head; };",
+  "options": {
+    "pointerSize": 4,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": {
+    "maxPointerDepth": 64
+  },
+  "bytes": {
+    "kind": "hex",
+    "hex": "040000000c000000e803000014000000e90300001c000000ea03000024000000eb0300002c000000ec03000034000000ed0300003c000000ee03000044000000ef0300004c000000f003000054000000f10300005c000000f203000064000000f30300006c000000f403000074000000f50300007c000000f603000084000000f70300008c000000f803000094000000f90300009c000000fa030000a4000000fb030000ac000000fc030000b4000000fd030000bc000000fe030000c4000000ff030000cc00000000040000d400000001040000dc00000002040000e400000003040000ec00000004040000f400000005040000fc0000000604000004010000070400000c0100000804000014010000090400001c0100000a040000240100000b0400002c0100000c040000340100000d0400003c0100000e040000440100000f0400004c0100001004000054010000110400005c0100001204000064010000130400006c0100001404000074010000150400007c0100001604000084010000170400008c0100001804000094010000190400009c0100001a040000a40100001b040000ac0100001c040000b40100001d040000bc0100001e040000c40100001f040000cc01000020040000d401000021040000dc01000022040000e401000023040000ec01000024040000f401000025040000fc010000260400000000000027040000"
+  },
+  "byteLength": 516,
+  "expectedError": null,
+  "expected": {
+    "head": {
+      "Address": 4,
+      "Depth": 1,
+      "IsDereferenced": true,
+      "Value": {
+        "next": {
+          "Address": 12,
+          "Depth": 1,
+          "IsDereferenced": true,
+          "Value": {
+            "next": {
+              "Address": 20,
+              "Depth": 1,
+              "IsDereferenced": true,
+              "Value": {
+                "next": {
+                  "Address": 28,
+                  "Depth": 1,
+                  "IsDereferenced": true,
+                  "Value": {
+                    "next": {
+                      "Address": 36,
+                      "Depth": 1,
+                      "IsDereferenced": true,
+                      "Value": {
+                        "next": {
+                          "Address": 44,
+                          "Depth": 1,
+                          "IsDereferenced": true,
+                          "Value": {
+                            "next": {
+                              "Address": 52,
+                              "Depth": 1,
+                              "IsDereferenced": true,
+                              "Value": {
+                                "next": {
+                                  "Address": 60,
+                                  "Depth": 1,
+                                  "IsDereferenced": true,
+                                  "Value": {
+                                    "next": {
+                                      "Address": 68,
+                                      "Depth": 1,
+                                      "IsDereferenced": true,
+                                      "Value": {
+                                        "next": {
+                                          "Address": 76,
+                                          "Depth": 1,
+                                          "IsDereferenced": true,
+                                          "Value": {
+                                            "next": {
+                                              "Address": 84,
+                                              "Depth": 1,
+                                              "IsDereferenced": true,
+                                              "Value": {
+                                                "next": {
+                                                  "Address": 92,
+                                                  "Depth": 1,
+                                                  "IsDereferenced": true,
+                                                  "Value": {
+                                                    "next": {
+                                                      "Address": 100,
+                                                      "Depth": 1,
+                                                      "IsDereferenced": true,
+                                                      "Value": {
+                                                        "next": {
+                                                          "Address": 108,
+                                                          "Depth": 1,
+                                                          "IsDereferenced": true,
+                                                          "Value": {
+                                                            "next": {
+                                                              "Address": 116,
+                                                              "Depth": 1,
+                                                              "IsDereferenced": true,
+                                                              "Value": {
+                                                                "next": {
+                                                                  "Address": 124,
+                                                                  "Depth": 1,
+                                                                  "IsDereferenced": true,
+                                                                  "Value": {
+                                                                    "next": {
+                                                                      "Address": 132,
+                                                                      "Depth": 1,
+                                                                      "IsDereferenced": true,
+                                                                      "Value": {
+                                                                        "next": {
+                                                                          "Address": 140,
+                                                                          "Depth": 1,
+                                                                          "IsDereferenced": true,
+                                                                          "Value": {
+                                                                            "next": {
+                                                                              "Address": 148,
+                                                                              "Depth": 1,
+                                                                              "IsDereferenced": true,
+                                                                              "Value": {
+                                                                                "next": {
+                                                                                  "Address": 156,
+                                                                                  "Depth": 1,
+                                                                                  "IsDereferenced": true,
+                                                                                  "Value": {
+                                                                                    "next": {
+                                                                                      "Address": 164,
+                                                                                      "Depth": 1,
+                                                                                      "IsDereferenced": true,
+                                                                                      "Value": {
+                                                                                        "next": {
+                                                                                          "Address": 172,
+                                                                                          "Depth": 1,
+                                                                                          "IsDereferenced": true,
+                                                                                          "Value": {
+                                                                                            "next": {
+                                                                                              "Address": 180,
+                                                                                              "Depth": 1,
+                                                                                              "IsDereferenced": true,
+                                                                                              "Value": {
+                                                                                                "next": {
+                                                                                                  "Address": 188,
+                                                                                                  "Depth": 1,
+                                                                                                  "IsDereferenced": true,
+                                                                                                  "Value": {
+                                                                                                    "next": {
+                                                                                                      "Address": 196,
+                                                                                                      "Depth": 1,
+                                                                                                      "IsDereferenced": true,
+                                                                                                      "Value": {
+                                                                                                        "next": {
+                                                                                                          "Address": 204,
+                                                                                                          "Depth": 1,
+                                                                                                          "IsDereferenced": true,
+                                                                                                          "Value": {
+                                                                                                            "next": {
+                                                                                                              "Address": 212,
+                                                                                                              "Depth": 1,
+                                                                                                              "IsDereferenced": true,
+                                                                                                              "Value": {
+                                                                                                                "next": {
+                                                                                                                  "Address": 220,
+                                                                                                                  "Depth": 1,
+                                                                                                                  "IsDereferenced": true,
+                                                                                                                  "Value": {
+                                                                                                                    "next": {
+                                                                                                                      "Address": 228,
+                                                                                                                      "Depth": 1,
+                                                                                                                      "IsDereferenced": true,
+                                                                                                                      "Value": {
+                                                                                                                        "next": {
+                                                                                                                          "Address": 236,
+                                                                                                                          "Depth": 1,
+                                                                                                                          "IsDereferenced": true,
+                                                                                                                          "Value": {
+                                                                                                                            "next": {
+                                                                                                                              "Address": 244,
+                                                                                                                              "Depth": 1,
+                                                                                                                              "IsDereferenced": true,
+                                                                                                                              "Value": {
+                                                                                                                                "next": {
+                                                                                                                                  "Address": 252,
+                                                                                                                                  "Depth": 1,
+                                                                                                                                  "IsDereferenced": true,
+                                                                                                                                  "Value": {
+                                                                                                                                    "next": {
+                                                                                                                                      "Address": 260,
+                                                                                                                                      "Depth": 1,
+                                                                                                                                      "IsDereferenced": true,
+                                                                                                                                      "Value": {
+                                                                                                                                        "next": {
+                                                                                                                                          "Address": 268,
+                                                                                                                                          "Depth": 1,
+                                                                                                                                          "IsDereferenced": true,
+                                                                                                                                          "Value": {
+                                                                                                                                            "next": {
+                                                                                                                                              "Address": 276,
+                                                                                                                                              "Depth": 1,
+                                                                                                                                              "IsDereferenced": true,
+                                                                                                                                              "Value": {
+                                                                                                                                                "next": {
+                                                                                                                                                  "Address": 284,
+                                                                                                                                                  "Depth": 1,
+                                                                                                                                                  "IsDereferenced": true,
+                                                                                                                                                  "Value": {
+                                                                                                                                                    "next": {
+                                                                                                                                                      "Address": 292,
+                                                                                                                                                      "Depth": 1,
+                                                                                                                                                      "IsDereferenced": true,
+                                                                                                                                                      "Value": {
+                                                                                                                                                        "next": {
+                                                                                                                                                          "Address": 300,
+                                                                                                                                                          "Depth": 1,
+                                                                                                                                                          "IsDereferenced": true,
+                                                                                                                                                          "Value": {
+                                                                                                                                                            "next": {
+                                                                                                                                                              "Address": 308,
+                                                                                                                                                              "Depth": 1,
+                                                                                                                                                              "IsDereferenced": true,
+                                                                                                                                                              "Value": {
+                                                                                                                                                                "next": {
+                                                                                                                                                                  "Address": 316,
+                                                                                                                                                                  "Depth": 1,
+                                                                                                                                                                  "IsDereferenced": true,
+                                                                                                                                                                  "Value": {
+                                                                                                                                                                    "next": {
+                                                                                                                                                                      "Address": 324,
+                                                                                                                                                                      "Depth": 1,
+                                                                                                                                                                      "IsDereferenced": true,
+                                                                                                                                                                      "Value": {
+                                                                                                                                                                        "next": {
+                                                                                                                                                                          "Address": 332,
+                                                                                                                                                                          "Depth": 1,
+                                                                                                                                                                          "IsDereferenced": true,
+                                                                                                                                                                          "Value": {
+                                                                                                                                                                            "next": {
+                                                                                                                                                                              "Address": 340,
+                                                                                                                                                                              "Depth": 1,
+                                                                                                                                                                              "IsDereferenced": true,
+                                                                                                                                                                              "Value": {
+                                                                                                                                                                                "next": {
+                                                                                                                                                                                  "Address": 348,
+                                                                                                                                                                                  "Depth": 1,
+                                                                                                                                                                                  "IsDereferenced": true,
+                                                                                                                                                                                  "Value": {
+                                                                                                                                                                                    "next": {
+                                                                                                                                                                                      "Address": 356,
+                                                                                                                                                                                      "Depth": 1,
+                                                                                                                                                                                      "IsDereferenced": true,
+                                                                                                                                                                                      "Value": {
+                                                                                                                                                                                        "next": {
+                                                                                                                                                                                          "Address": 364,
+                                                                                                                                                                                          "Depth": 1,
+                                                                                                                                                                                          "IsDereferenced": true,
+                                                                                                                                                                                          "Value": {
+                                                                                                                                                                                            "next": {
+                                                                                                                                                                                              "Address": 372,
+                                                                                                                                                                                              "Depth": 1,
+                                                                                                                                                                                              "IsDereferenced": true,
+                                                                                                                                                                                              "Value": {
+                                                                                                                                                                                                "next": {
+                                                                                                                                                                                                  "Address": 380,
+                                                                                                                                                                                                  "Depth": 1,
+                                                                                                                                                                                                  "IsDereferenced": true,
+                                                                                                                                                                                                  "Value": {
+                                                                                                                                                                                                    "next": {
+                                                                                                                                                                                                      "Address": 388,
+                                                                                                                                                                                                      "Depth": 1,
+                                                                                                                                                                                                      "IsDereferenced": true,
+                                                                                                                                                                                                      "Value": {
+                                                                                                                                                                                                        "next": {
+                                                                                                                                                                                                          "Address": 396,
+                                                                                                                                                                                                          "Depth": 1,
+                                                                                                                                                                                                          "IsDereferenced": true,
+                                                                                                                                                                                                          "Value": {
+                                                                                                                                                                                                            "next": {
+                                                                                                                                                                                                              "Address": 404,
+                                                                                                                                                                                                              "Depth": 1,
+                                                                                                                                                                                                              "IsDereferenced": true,
+                                                                                                                                                                                                              "Value": {
+                                                                                                                                                                                                                "next": {
+                                                                                                                                                                                                                  "Address": 412,
+                                                                                                                                                                                                                  "Depth": 1,
+                                                                                                                                                                                                                  "IsDereferenced": true,
+                                                                                                                                                                                                                  "Value": {
+                                                                                                                                                                                                                    "next": {
+                                                                                                                                                                                                                      "Address": 420,
+                                                                                                                                                                                                                      "Depth": 1,
+                                                                                                                                                                                                                      "IsDereferenced": true,
+                                                                                                                                                                                                                      "Value": {
+                                                                                                                                                                                                                        "next": {
+                                                                                                                                                                                                                          "Address": 428,
+                                                                                                                                                                                                                          "Depth": 1,
+                                                                                                                                                                                                                          "IsDereferenced": true,
+                                                                                                                                                                                                                          "Value": {
+                                                                                                                                                                                                                            "next": {
+                                                                                                                                                                                                                              "Address": 436,
+                                                                                                                                                                                                                              "Depth": 1,
+                                                                                                                                                                                                                              "IsDereferenced": true,
+                                                                                                                                                                                                                              "Value": {
+                                                                                                                                                                                                                                "next": {
+                                                                                                                                                                                                                                  "Address": 444,
+                                                                                                                                                                                                                                  "Depth": 1,
+                                                                                                                                                                                                                                  "IsDereferenced": true,
+                                                                                                                                                                                                                                  "Value": {
+                                                                                                                                                                                                                                    "next": {
+                                                                                                                                                                                                                                      "Address": 452,
+                                                                                                                                                                                                                                      "Depth": 1,
+                                                                                                                                                                                                                                      "IsDereferenced": true,
+                                                                                                                                                                                                                                      "Value": {
+                                                                                                                                                                                                                                        "next": {
+                                                                                                                                                                                                                                          "Address": 460,
+                                                                                                                                                                                                                                          "Depth": 1,
+                                                                                                                                                                                                                                          "IsDereferenced": true,
+                                                                                                                                                                                                                                          "Value": {
+                                                                                                                                                                                                                                            "next": {
+                                                                                                                                                                                                                                              "Address": 468,
+                                                                                                                                                                                                                                              "Depth": 1,
+                                                                                                                                                                                                                                              "IsDereferenced": true,
+                                                                                                                                                                                                                                              "Value": {
+                                                                                                                                                                                                                                                "next": {
+                                                                                                                                                                                                                                                  "Address": 476,
+                                                                                                                                                                                                                                                  "Depth": 1,
+                                                                                                                                                                                                                                                  "IsDereferenced": true,
+                                                                                                                                                                                                                                                  "Value": {
+                                                                                                                                                                                                                                                    "next": {
+                                                                                                                                                                                                                                                      "Address": 484,
+                                                                                                                                                                                                                                                      "Depth": 1,
+                                                                                                                                                                                                                                                      "IsDereferenced": true,
+                                                                                                                                                                                                                                                      "Value": {
+                                                                                                                                                                                                                                                        "next": {
+                                                                                                                                                                                                                                                          "Address": 492,
+                                                                                                                                                                                                                                                          "Depth": 1,
+                                                                                                                                                                                                                                                          "IsDereferenced": true,
+                                                                                                                                                                                                                                                          "Value": {
+                                                                                                                                                                                                                                                            "next": {
+                                                                                                                                                                                                                                                              "Address": 500,
+                                                                                                                                                                                                                                                              "Depth": 1,
+                                                                                                                                                                                                                                                              "IsDereferenced": true,
+                                                                                                                                                                                                                                                              "Value": {
+                                                                                                                                                                                                                                                                "next": {
+                                                                                                                                                                                                                                                                  "Address": 508,
+                                                                                                                                                                                                                                                                  "Depth": 1,
+                                                                                                                                                                                                                                                                  "IsDereferenced": true,
+                                                                                                                                                                                                                                                                  "Value": {
+                                                                                                                                                                                                                                                                    "next": {
+                                                                                                                                                                                                                                                                      "Address": 0,
+                                                                                                                                                                                                                                                                      "Depth": 1,
+                                                                                                                                                                                                                                                                      "IsDereferenced": false,
+                                                                                                                                                                                                                                                                      "Value": null
+                                                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                                                    "value": 1063
+                                                                                                                                                                                                                                                                  }
+                                                                                                                                                                                                                                                                },
+                                                                                                                                                                                                                                                                "value": 1062
+                                                                                                                                                                                                                                                              }
+                                                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                                                            "value": 1061
+                                                                                                                                                                                                                                                          }
+                                                                                                                                                                                                                                                        },
+                                                                                                                                                                                                                                                        "value": 1060
+                                                                                                                                                                                                                                                      }
+                                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                                    "value": 1059
+                                                                                                                                                                                                                                                  }
+                                                                                                                                                                                                                                                },
+                                                                                                                                                                                                                                                "value": 1058
+                                                                                                                                                                                                                                              }
+                                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                                            "value": 1057
+                                                                                                                                                                                                                                          }
+                                                                                                                                                                                                                                        },
+                                                                                                                                                                                                                                        "value": 1056
+                                                                                                                                                                                                                                      }
+                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                    "value": 1055
+                                                                                                                                                                                                                                  }
+                                                                                                                                                                                                                                },
+                                                                                                                                                                                                                                "value": 1054
+                                                                                                                                                                                                                              }
+                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                            "value": 1053
+                                                                                                                                                                                                                          }
+                                                                                                                                                                                                                        },
+                                                                                                                                                                                                                        "value": 1052
+                                                                                                                                                                                                                      }
+                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                    "value": 1051
+                                                                                                                                                                                                                  }
+                                                                                                                                                                                                                },
+                                                                                                                                                                                                                "value": 1050
+                                                                                                                                                                                                              }
+                                                                                                                                                                                                            },
+                                                                                                                                                                                                            "value": 1049
+                                                                                                                                                                                                          }
+                                                                                                                                                                                                        },
+                                                                                                                                                                                                        "value": 1048
+                                                                                                                                                                                                      }
+                                                                                                                                                                                                    },
+                                                                                                                                                                                                    "value": 1047
+                                                                                                                                                                                                  }
+                                                                                                                                                                                                },
+                                                                                                                                                                                                "value": 1046
+                                                                                                                                                                                              }
+                                                                                                                                                                                            },
+                                                                                                                                                                                            "value": 1045
+                                                                                                                                                                                          }
+                                                                                                                                                                                        },
+                                                                                                                                                                                        "value": 1044
+                                                                                                                                                                                      }
+                                                                                                                                                                                    },
+                                                                                                                                                                                    "value": 1043
+                                                                                                                                                                                  }
+                                                                                                                                                                                },
+                                                                                                                                                                                "value": 1042
+                                                                                                                                                                              }
+                                                                                                                                                                            },
+                                                                                                                                                                            "value": 1041
+                                                                                                                                                                          }
+                                                                                                                                                                        },
+                                                                                                                                                                        "value": 1040
+                                                                                                                                                                      }
+                                                                                                                                                                    },
+                                                                                                                                                                    "value": 1039
+                                                                                                                                                                  }
+                                                                                                                                                                },
+                                                                                                                                                                "value": 1038
+                                                                                                                                                              }
+                                                                                                                                                            },
+                                                                                                                                                            "value": 1037
+                                                                                                                                                          }
+                                                                                                                                                        },
+                                                                                                                                                        "value": 1036
+                                                                                                                                                      }
+                                                                                                                                                    },
+                                                                                                                                                    "value": 1035
+                                                                                                                                                  }
+                                                                                                                                                },
+                                                                                                                                                "value": 1034
+                                                                                                                                              }
+                                                                                                                                            },
+                                                                                                                                            "value": 1033
+                                                                                                                                          }
+                                                                                                                                        },
+                                                                                                                                        "value": 1032
+                                                                                                                                      }
+                                                                                                                                    },
+                                                                                                                                    "value": 1031
+                                                                                                                                  }
+                                                                                                                                },
+                                                                                                                                "value": 1030
+                                                                                                                              }
+                                                                                                                            },
+                                                                                                                            "value": 1029
+                                                                                                                          }
+                                                                                                                        },
+                                                                                                                        "value": 1028
+                                                                                                                      }
+                                                                                                                    },
+                                                                                                                    "value": 1027
+                                                                                                                  }
+                                                                                                                },
+                                                                                                                "value": 1026
+                                                                                                              }
+                                                                                                            },
+                                                                                                            "value": 1025
+                                                                                                          }
+                                                                                                        },
+                                                                                                        "value": 1024
+                                                                                                      }
+                                                                                                    },
+                                                                                                    "value": 1023
+                                                                                                  }
+                                                                                                },
+                                                                                                "value": 1022
+                                                                                              }
+                                                                                            },
+                                                                                            "value": 1021
+                                                                                          }
+                                                                                        },
+                                                                                        "value": 1020
+                                                                                      }
+                                                                                    },
+                                                                                    "value": 1019
+                                                                                  }
+                                                                                },
+                                                                                "value": 1018
+                                                                              }
+                                                                            },
+                                                                            "value": 1017
+                                                                          }
+                                                                        },
+                                                                        "value": 1016
+                                                                      }
+                                                                    },
+                                                                    "value": 1015
+                                                                  }
+                                                                },
+                                                                "value": 1014
+                                                              }
+                                                            },
+                                                            "value": 1013
+                                                          }
+                                                        },
+                                                        "value": 1012
+                                                      }
+                                                    },
+                                                    "value": 1011
+                                                  }
+                                                },
+                                                "value": 1010
+                                              }
+                                            },
+                                            "value": 1009
+                                          }
+                                        },
+                                        "value": 1008
+                                      }
+                                    },
+                                    "value": 1007
+                                  }
+                                },
+                                "value": 1006
+                              }
+                            },
+                            "value": 1005
+                          }
+                        },
+                        "value": 1004
+                      }
+                    },
+                    "value": 1003
+                  }
+                },
+                "value": 1002
+              }
+            },
+            "value": 1001
+          }
+        },
+        "value": 1000
+      }
+    }
+  },
+  "expectedSha256": "c5626387a2373652b707c0f6b7e2436a625649e9b47be9cbcb7d072a5ab0dac7",
+  "expectedJsonLength": 5047
+}

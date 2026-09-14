@@ -1,0 +1,16 @@
+items:
+- name: Home
+  href: index.md
+- name: Guides
+  href: guides/
+- name: JavaScript and WASM
+  href: guides/browser/
+- name: Layout language
+  href: language/
+- name: API reference
+  href: api/
+- name: Examples
+  href: examples/
+  homepage: guides/recipes/index.md
+- name: Project
+  href: project/

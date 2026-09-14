@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Inspect a binary record file</title>
+    <style>
+      body {
+        font: 1rem/1.6 system-ui;
+        max-width: 55rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      button,
+      input {
+        font: inherit;
+        margin: 0.3rem;
+        padding: 0.4rem;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        background: #eee;
+        padding: 1rem;
+      }
+      #fields button {
+        display: block;
+        text-align: left;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Inspect a binary record file</h1>
+    <p>
+      This teaching format contains a CS signature, version 1, count 2, and two records. Each record
+      has a two-byte id and one-byte flags value.
+    </p>
+    <p id="status" role="status">Loading WebAssembly…</p>
+    <button id="fixture" disabled>Load the ten-byte example</button>
+    <label>Or open a file <input id="file" type="file" disabled /></label>
+    <pre id="bytes" aria-label="Current bytes"></pre>
+    <label
+      >Record 1 flags (0–255) <input id="flags" type="number" min="0" max="255" value="165"
+    /></label>
+    <button id="patch" disabled>Update flags</button>
+    <a id="download" hidden download="records-updated.bin">Download updated file</a>
+    <h2>Field map</h2>
+    <p>Select a field to see its byte positions and bytes.</p>
+    <div id="fields"></div>
+    <p id="selection" role="status"></p>
+    <pre id="result" aria-live="polite"></pre>
+    <script type="module" src="./inspector.js"></script>
+  </body>
+</html>

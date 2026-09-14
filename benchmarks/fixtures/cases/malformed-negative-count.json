@@ -1,0 +1,25 @@
+{
+  "id": "malformed-negative-count",
+  "scenario": "S-MALFORMED",
+  "tags": [
+    "error"
+  ],
+  "definition": "struct root { int16 count; uint8 values[count]; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "ffff00000000000000000000000000000000"
+  },
+  "byteLength": 18,
+  "expectedError": "CStructReadException",
+  "expected": null,
+  "expectedSha256": null,
+  "expectedJsonLength": null
+}

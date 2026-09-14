@@ -1,0 +1,32 @@
+{
+  "id": "strings-8",
+  "scenario": "S-STRINGS",
+  "tags": [
+    "warm",
+    "write"
+  ],
+  "definition": "struct root { char name[32]; char cstr[]; utf8_string_zero utf8_text; wchar< wide[]; unicode_string_zero< utf16_text; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "hex",
+    "hex": "66697865642d6e616d650000000000000000000000000000000000000000000042495057444b525900e4b89864656667e4b89d696a0044004b005200590046004d005400410000001a4e66006700680069001f4e6b006c000000"
+  },
+  "byteLength": 90,
+  "expectedError": null,
+  "expected": {
+    "name": "fixed-name\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+    "cstr": "BIPWDKRY",
+    "utf8_text": "丘defg丝ij",
+    "wide": "DKRYFMTA",
+    "utf16_text": "业fghi丟kl"
+  },
+  "expectedSha256": "5150918c86cd7d77bf351520531c6fd6bf1d02ddb2d060e64b2dc3d1cd026ac6",
+  "expectedJsonLength": 256
+}
