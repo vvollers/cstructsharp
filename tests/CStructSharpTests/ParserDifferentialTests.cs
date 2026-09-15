@@ -38,8 +38,7 @@ public class ParserDifferentialTests
     /// </summary>
     /// <remarks>
     ///     A mismatch names the corpus entry and shows both trees (or the differing verdicts). The block-comment
-    ///     exception is the one documented deviation: the reference grammar rejected a lone <c>*</c> inside
-    ///     <c>/* */</c>, which the language grammar always allowed.
+    ///     exceptions cover documented grammar corrections: lone comment stars and empty alignment arguments.
     /// </remarks>
     [TestMethod]
     public void Corpus_ParsesIdenticallyThroughBothParsers()
@@ -333,7 +332,7 @@ public class ParserDifferentialTests
     }
 
     /// <summary>
-    ///     The single documented deviation: a block comment may contain a lone <c>*</c>.
+    ///     A documented deviation: a block comment may contain a lone <c>*</c>.
     /// </summary>
     /// <remarks>
     ///     The reference grammar's block-comment terminator committed to <c>*</c> and then failed on the next
@@ -348,6 +347,17 @@ public class ParserDifferentialTests
         IReadOnlyList<CStructElement> elements = CStructDefinitionParser.ParseLayout(layout);
         Assert.HasCount(1, elements);
         _ = new CStruct(layout);
+    }
+
+    /// <summary>The old parser backtracks from empty alignment into an offset call; alignment requires an expression.</summary>
+    [TestMethod]
+    public void EmptyAlignment_IsRejectedInsteadOfBecomingAnOffsetCall()
+    {
+        const string layout = "struct Root8 { uint *p @align( ); };";
+        Assert.IsTrue(ReferenceAccepts(layout));
+        Assert.Throws<CStructLayoutException>(() => new CStruct(layout));
+        Assert.IsNull(Compare("empty-alignment", layout, out bool accepted));
+        Assert.IsFalse(accepted);
     }
 
     /// <summary>
@@ -482,6 +492,16 @@ public class ParserDifferentialTests
         if (referenceDump is null && HasLoneStarInsideBlockComment(source))
         {
             accepted = true;
+            return null;
+        }
+
+        // The reference's Try(AlignmentOverride) backtracks and accepts @align() as an offset call.
+        // Empty alignment is invalid in the public language; the current parser commits to that diagnostic.
+        // Only exempt this rejected spelling, never an accepted candidate or another syntax diagnostic.
+        if (referenceDump is not null && candidateDump is null &&
+            candidateError?.EndsWith("expected an expression.", StringComparison.Ordinal) == true &&
+            Regex.IsMatch(source, @"@align\s*\(\s*\)"))
+        {
             return null;
         }
 
