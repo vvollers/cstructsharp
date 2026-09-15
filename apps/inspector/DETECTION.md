@@ -1,78 +1,37 @@
-# File detection and schema coverage
+# Detection and standalone schemas
 
-Use **Load & detect**, above **New schema**, to choose a file and select a schema from its contents.
-The **Load file** button in Binary Data keeps the current schema, which is useful for comparing files.
-Detection and parsing run locally; files are not uploaded.
+**Load & detect** identifies the content using `file-type` and selects a fixed definition from
+[detected-schemas.ts](src/detected-schemas.ts). The same extension always produces identical source and parser
+settings. Detection can seek through a Blob to identify its format, but its only contribution to schema selection
+is the extension. No format-specific scanner supplies counts, offsets, parser variables or secondary roots.
+Detection and parsing run locally. A 15-second timeout stops stalled detection.
 
-The installed `file-type` 22.1.0 catalog contains 184 extensions. Each extension has an explicit
-registration in [detected-schemas.ts](src/detected-schemas.ts). Related formats share their container
-layout, but each loaded file receives its own named CStruct declaration and parser settings.
-All 184 types are available in the filterable schema list, along with the existing DLL example.
-Search by extension (with or without a leading dot) or format name. The existing sample-backed
-buttons still load their tested sample bytes. Entries labelled **Schema · load your file** keep
-the currently loaded file, or let you load one afterward. Loading a file specializes an unedited
-schema template to the file's variant; edited schemas are preserved.
+**Load file** replaces the binary source while keeping the definition and settings, including unedited examples.
+Use it to demonstrate how one native `if`/`switch` layout handles different inputs. **Load & detect** deliberately
+selects a new definition. Selecting a sample loads its fixture; selecting a schema-only entry preserves the file.
+Changing selection cancels pending detection and parsing.
 
-Detection is a signature hint, not validation. A successful parse means the selected fields were read,
-not that the entire file is valid. The comments at the top of each generated schema describe its scope.
+The catalog covers all 184 extensions supported by the installed detector, plus the DLL teaching sample.
+The nine sample-backed examples retain their small managed-library fixtures. Detected layouts can be broader;
+for example, the ZIP sample demonstrates a local header, while the detected ZIP layout branches on the signature
+and can also handle an empty archive. A signature match and a successful field read do not establish file validity.
 
-## What the schemas read
+The first 64 KiB loaded into the UI is a hex preview only. The parser receives the complete Blob. Definitions
+open pretty-printed and can be copied into ordinary CStructSharp consumers with the displayed parser settings.
+Formats such as TIFF and PCAP require the user to choose the matching byte order. Pointer width describes the
+stored offset, not the host OS or the file's length.
 
-Text fields use explicit bounded `utf8`, `latin1`, `cp437` or UTF-16 encodings where the
-format specifies them. ZIP filenames honor each entry's UTF-8 flag; legacy names use CP437.
-Registry filenames retain UTF-16LE `wchar<` arrays. Other `char` arrays preserve raw one-byte
-code units without assuming an encoding. See the [text-field audit](SCHEMA-REVIEW.md#text-field-audit) for changes and exceptions.
-
-The [schema-by-schema review](SCHEMA-REVIEW.md) records all 184 detector types and the DLL sample,
-including the 110 expanded registrations, their language features and remaining opportunities.
-
-- ZIP containers: named flags/compression and up to 16 complete local entries; empty archives use EOCD.
-- PNG/APNG, RIFF, GLB: native chunk alternatives, bounded text and typed metadata. ISO media/QuickTime adds bounded movie-header timestamps, fixed-point rate and mixed-scale matrices; PCAP exposes packet records.
-- TIFF: named tag/type enums and first IFD, including BigTIFF widths. PE: optional headers and data directories. ELF: typed program/section table pointers.
-- SFNT/WOFF: directories with typed pointers to uncompressed `head` tables when visible.
-- FLAC/Ogg/GIF/BMP: packed parameters, metadata/identification fields and selected image header variants. Complete supported Ogg comment packets expose bounded UTF-8 vendor and comment strings.
-- SQLite: first B-tree page header and cell offsets. STL: normals and triangle vertices as float arrays.
-- WebAssembly: LEB128 section lengths/counts, function/start indexes and bounded UTF-8 custom names. LZ4/Zstandard: frame descriptor variants and first block framing.
-- Photoshop, CRX, Blender, FBX, KTX, DICOM, CHM, MIDI, AIFF and ICNS: selected additional metadata or records.
-- Other formats retain their documented headers or directories; the review identifies possible next steps.
-
-**Prefix-only coverage:** DWG, InDesign, JMP, MIE, PDF, RTF, PostScript/EPS, XML, iCalendar, vCard,
-WebVTT, registry exports and SketchUp. These have explicit format-specific prefix layouts; they do
-not decode document/model records. Some other headers, such as Parquet and Avro, are also intentionally
-small because their metadata uses a separate serialization format.
-
-Compressed member contents, image/audio/video codecs, encryption, arbitrary text grammars, and all
-possible format revisions are not decoded. Header/container support must not be described as complete
-file-format support. The registry is an extensible starting point for deeper CStruct layouts.
-
-The first 64 KiB selects bounded record coverage and any preview-dependent layouts. Native
-conditions select supported per-record variants from the bytes during parsing. Reload detection when changing
-format-defining bytes. Pointer reads still use the full file. Detection itself uses a Blob-backed
-tokenizer in a worker and can seek beyond the preview; a 15-second timeout stops stalled detection.
-Starting another load or selecting a sample discards the previous detection result.
+See the [schema coverage and catalog audit](SCHEMA-REVIEW.md).
+Some formats expose only their signature or a fixed header. PDF text grammar, JPEG entropy decoding, ZIP footer
+searches, decompression and arbitrary record discovery are not silently performed outside the definition.
 
 ## Verification
 
-`npm run test:unit` checks registration parity with `supportedExtensions` and variant selection.
-`npx playwright test tests/e2e/detection.spec.ts` checks the real file chooser, content-based detection,
-schema loading, manual loading and compilation of every registered schema in the WASM runtime.
+`npm run test:unit` checks detector parity and formatting. Browser tests compile every registered layout in WASM,
+parse native variants with identical definitions, check distant pointers and configurable budgets, and exercise
+manual/detected file loading. For the optional upstream fixture audit, set `CSTRUCT_FILE_TYPE_FIXTURES` to a local
+`file-type` fixture directory and run `npx playwright test tests/e2e/detected-fixtures.spec.ts`.
+Truncated detection fixtures may legitimately produce read errors; that audit checks layout compilation.
 
-For an optional compatibility audit, point `CSTRUCT_FILE_TYPE_FIXTURES` at a local copy of the upstream
-`file-type` fixture directory and run:
-
-```powershell
-npx playwright test tests/e2e/detected-fixtures.spec.ts
-```
-
-The audit attaches per-file results and rejects invalid CStruct layouts. Detection fixtures sometimes
-contain only a signature or truncated header, so a read error is not automatically a schema defect.
-This audit does not establish full format validity or codec support.
-
-## References
-
-- [file-type detector and format list](https://github.com/sindresorhus/file-type)
-- [CStruct grammar](../../docs/language/grammar.md) and [pointer behavior](../../docs/language/pointers-and-addressing.md)
-- [PNG specification](https://www.w3.org/TR/png-3/)
-- [SQLite database header](https://www.sqlite.org/fileformat.html)
-- [Kaitai executable format specifications](https://formats.kaitai.io/)
-- [Microsoft Shell Link specification](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-shllink/a6c2f32d-2297-4727-bcd3-5d3669573bcb)
+References: [file-type](https://github.com/sindresorhus/file-type),
+[CStruct grammar](../../docs/language/grammar.md), [pointers](../../docs/language/pointers-and-addressing.md).

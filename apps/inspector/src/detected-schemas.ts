@@ -1,7 +1,8 @@
 import { supportedExtensions } from "file-type";
 import type { FormatExample } from "./formats";
+import { formatLayout } from "./format-layout";
 import { formats } from "./formats";
-import { expandSchema, expansionReviews } from "./schema-expansions";
+import { standaloneLayouts } from "./standalone-layouts";
 
 export interface SchemaProfile {
   family: string;
@@ -41,7 +42,7 @@ register(
   "mp4 m4a m4v m4p m4b f4v f4p f4b f4a 3gp 3g2 mov heic avif cr3",
   "ISO base media",
   "uint32 box_size; char box_type[4];",
-  "First box header. Extended-size boxes and brand records are selected from the loaded bytes; media samples remain encoded.",
+  "First ISO box size and type only. Extended sizes, brands and media payloads are not decoded.",
   { littleEndian: false },
 );
 register(
@@ -55,14 +56,12 @@ register(
   "wav avi webp qcp",
   "RIFF",
   "char signature[4]; uint32 file_size_minus_8; char form_type[4]; char first_chunk_type[4]; uint32 first_chunk_size;",
-  "RIFF form and first chunk header. WAVE fmt and WebP VP8X fields are expanded when present.",
+  "RIFF form and first chunk header only. Chunk payloads are not decoded.",
 );
 register(
   "oga ogg ogv opus spx ogm ogx",
   "Ogg",
-  `char signature[4]; uint8 version; uint8 header_flags; uint64 granule_position;
-  uint32 stream_serial; uint32 page_sequence; uint32 checksum; uint8 segment_count;
-  uint8 segment_sizes[segment_count];`,
+  "char signature[4]; uint8 version; uint8 continued_packet:1; uint8 beginning_of_stream:1; uint8 end_of_stream:1; uint8 reserved:5; uint64 granule_position;\n  uint32 stream_serial; uint32 page_sequence; uint32 checksum; uint8 segment_count;\n  uint8 segment_sizes[segment_count];",
   "First Ogg page header and lacing table. Codec packets remain encoded.",
 );
 register(
@@ -125,7 +124,7 @@ register(
 register(
   "gz tar.gz",
   "gzip",
-  "uint8 signature[2]; uint8 compression; uint8 flags; uint32 modified_time; uint8 extra_flags; uint8 operating_system;",
+  "uint8 signature[2]; uint8 compression; uint8 text:1; uint8 header_crc_present:1; uint8 extra_present:1; uint8 name_present:1; uint8 comment_present:1; uint8 reserved:3; uint32 modified_time; uint8 extra_flags; uint8 operating_system;",
   "Fixed gzip header. Optional fields and compressed content require further decoding.",
 );
 register(
@@ -181,7 +180,7 @@ register(
 register(
   "flac",
   "FLAC",
-  "char signature[4]; uint8 metadata_flags; uint24> metadata_length_be; uint16 minimum_block_size; uint16 maximum_block_size; uint24> minimum_frame_size_be; uint24> maximum_frame_size_be; uint64 stream_parameters; uint8 md5[16];",
+  "char signature[4]; uint8 metadata_type:7; uint8 last_metadata:1; uint24> metadata_length_be; uint16 minimum_block_size; uint16 maximum_block_size; uint24> minimum_frame_size_be; uint24> maximum_frame_size_be; uint64 total_samples:36; uint64 bits_per_sample_minus_one:5; uint64 channels_minus_one:3; uint64 sample_rate:20; uint8 md5[16];",
   "STREAMINFO metadata, including packed sample rate/channel/sample count bits and MD5. Audio frames remain encoded.",
   { littleEndian: false },
 );
@@ -226,7 +225,7 @@ register(
 register(
   "xz",
   "XZ",
-  "uint8 signature[6]; uint8 stream_flags[2]; uint32 header_crc32;",
+  "uint8 signature[6]; uint8 reserved; uint8 check_type:4; uint8 reserved_flags:4; uint32 header_crc32;",
   "Stream header and CRC. Block compression is not decoded.",
 );
 register(
@@ -245,7 +244,7 @@ register(
 register(
   "Z",
   "Unix compress",
-  "uint8 signature[2]; uint8 flags;",
+  "uint8 signature[2]; uint8 maximum_code_bits:5; uint8 reserved:2; uint8 block_mode:1;",
   "LZW signature and flags. Compressed codes remain encoded.",
 );
 register(
@@ -283,7 +282,7 @@ register(
   "pcap",
   "Packet capture",
   "uint32 signature; uint16 major_version; uint16 minor_version; int32 timezone; uint32 accuracy; uint32 snapshot_length; uint32 link_type;",
-  "Classic PCAP global header with detected byte order. Packet records are not decoded.",
+  "Classic PCAP global header using the selected byte order. Packet records are not decoded.",
 );
 register(
   "lnk",
@@ -313,7 +312,7 @@ register(
 register(
   "flv",
   "Flash video",
-  "char signature[3]; uint8 version; uint8 flags; uint32 data_offset;",
+  "char signature[3]; uint8 version; uint8 video_present:1; uint8 reserved_low:1; uint8 audio_present:1; uint8 reserved_high:5; uint32 data_offset;",
   "FLV header. Audio/video tags are not decoded.",
   { littleEndian: false },
 );
@@ -326,8 +325,8 @@ register(
 register(
   "crx",
   "Chrome extension",
-  "char signature[4]; uint32 version; uint32 header_length_or_public_key_length;",
-  "CRX version and first length field. CRX2 and CRX3 use different signing headers.",
+  "char signature[4]; uint32 version; switch (version) { case 2: { uint32 public_key_length; uint32 signature_length; uint8 public_key[public_key_length]; uint8 signature_bytes[signature_length]; } case 3: { uint32 header_length; uint8 signed_header[header_length]; } default: { uint32 unknown_header_length; } }",
+  "CRX native version switch decodes CRX2 key/signature lengths and bytes or the CRX3 signed-header bytes.",
 );
 register(
   "asf",
@@ -436,8 +435,12 @@ register(
 register(
   "jxr",
   "JPEG XR",
-  "char byte_order[2]; uint16 signature; uint32 first_directory;",
+  "char byte_order[2]; uint16 signature; ifd *first_directory;",
   "JPEG XR container header and directory offset.",
+  {
+    types:
+      " enum tiff_tag_id : uint16 { ImageWidth=256,ImageLength=257,BitsPerSample=258,Compression=259,Photometric=262,StripOffsets=273,SamplesPerPixel=277,RowsPerStrip=278,StripByteCounts=279,XResolution=282,YResolution=283,Software=305,DateTime=306,ExifIfd=34665,GpsIfd=34853 }; enum tiff_value_type : uint16 { Byte=1,Ascii=2,Short=3,Long=4,Rational=5,SByte=6,Undefined=7,SShort=8,SLong=9,SRational=10,Float=11,Double=12,Ifd=13,Long8=16,SLong8=17,Ifd8=18 }; struct tag { tiff_tag_id id; tiff_value_type data_type; uint32 count; uint32 value_or_offset; }; struct ifd { uint16 entry_count; tag entries[entry_count]; uint32 next_directory; };",
+  },
 );
 register(
   "raf",
@@ -490,7 +493,7 @@ register(
   "macho",
   "Mach-O",
   "uint32 signature; uint32 cpu_type; uint32 cpu_subtype; uint32 file_type; uint32 command_count; uint32 commands_size; uint32 flags;",
-  "Mach-O executable header; 64-bit reserved word and universal-binary architecture directory are selected from the magic.",
+  "Mach-O magic and fixed 32-bit header fields using the selected byte order. Universal-binary directories and 64-bit extensions are not decoded.",
 );
 register(
   "mobi",
@@ -508,17 +511,25 @@ register(
   "uint32 eot_size; uint32 font_data_size; uint32 version; uint32 flags; uint8 panose[10]; uint8 charset; uint8 italic; uint32 weight; uint16 embedding_flags; uint16 magic; uint32 unicode_ranges[4]; uint32 codepage_ranges[2]; uint32 checksum_adjustment; uint32 reserved[4];",
   "EOT fixed header, embedding permissions and Unicode/codepage coverage.",
 );
+// Both DICOM length encodings use the same value decoder.
+const dicomValueFields =
+  "if (value_representation == 17729 || value_representation == 21313 || value_representation == 21315 || value_representation == 16708 || value_representation == 21316 || value_representation == 21572 || value_representation == 21321 || value_representation == 20300 || value_representation == 21580 || value_representation == 20048 || value_representation == 18515 || value_representation == 21587 || value_representation == 19796 || value_representation == 17237 || value_representation == 18773 || value_representation == 21077 || value_representation == 21589) { char text[value_length]; } else { switch (value_representation) { case 21333: { if (value_length / 2 * 2 == value_length) { uint16 values_US[value_length / 2]; } else { uint8 malformed_US[value_length]; } } case 21331: { if (value_length / 2 * 2 == value_length) { int16 values_SS[value_length / 2]; } else { uint8 malformed_SS[value_length]; } } case 19541: { if (value_length / 4 * 4 == value_length) { uint32 values_UL[value_length / 4]; } else { uint8 malformed_UL[value_length]; } } case 19539: { if (value_length / 4 * 4 == value_length) { int32 values_SL[value_length / 4]; } else { uint8 malformed_SL[value_length]; } } case 19526: { if (value_length / 4 * 4 == value_length) { float32 values_FL[value_length / 4]; } else { uint8 malformed_FL[value_length]; } } case 17478: { if (value_length / 8 * 8 == value_length) { float64 values_FD[value_length / 8]; } else { uint8 malformed_FD[value_length]; } } case 22101: { if (value_length / 8 * 8 == value_length) { uint64 values_UV[value_length / 8]; } else { uint8 malformed_UV[value_length]; } } case 22099: { if (value_length / 8 * 8 == value_length) { int64 values_SV[value_length / 8]; } else { uint8 malformed_SV[value_length]; } } default: { uint8 bytes[value_length]; } } }";
+
 register(
   "dcm",
   "DICOM",
-  "uint8 preamble[128]; char signature[4]; uint16 first_tag_group; uint16 first_tag_element; char value_representation[2];",
+  `uint8 preamble[128]; char signature[4]; uint16 first_tag_group; uint16 first_tag_element; dicom_vr value_representation; if (!(value_representation == 17729 || value_representation == 21313 || value_representation == 21569 || value_representation == 21315 || value_representation == 16708 || value_representation == 21316 || value_representation == 21572 || value_representation == 19526 || value_representation == 17478 || value_representation == 21321 || value_representation == 20300 || value_representation == 21580 || value_representation == 20048 || value_representation == 18515 || value_representation == 19539 || value_representation == 21331 || value_representation == 21587 || value_representation == 19796 || value_representation == 18773 || value_representation == 19541 || value_representation == 21333)) { struct { uint16 reserved; uint32 value_length; ${dicomValueFields} } long_value; } else { struct { uint16 value_length; ${dicomValueFields} } short_value; }`,
   "DICOM file preamble and first explicit-VR metadata tag. Transfer syntax determines the later dataset layout.",
+  {
+    types:
+      " enum dicom_vr : uint16 { AE=17729,AS=21313,CS=21315,DA=16708,DS=21316,DT=21572,IS=21321,LO=20300,LT=21580,PN=20048,SH=18515,ST=21587,TM=19796,UC=17237,UI=18773,UR=21077,UT=21589,OB=16975,OD=17487,OF=17999,OL=19535,OV=22095,OW=22351,SQ=20819,SV=22099,UV=22101,UN=20053,US=21333,SS=21331,UL=19541,SL=19539,FL=19526,FD=17478,AT=21569 };",
+  },
 );
 register(
   "iso",
   "ISO 9660",
   "uint8 system_area[32768]; uint8 descriptor_type; char standard_identifier[5]; uint8 descriptor_version;",
-  "System area and first volume descriptor. The primary volume descriptor fields are expanded when type 1 is present.",
+  "System area and first volume descriptor type, identifier and version only.",
 );
 register(
   "pst",
@@ -559,20 +570,20 @@ register(
 register(
   "mp1 mp2 mp3",
   "MPEG audio",
-  "uint32 frame_header;",
-  "First MPEG audio frame's packed header, or ID3 tag header when the file starts with ID3. Audio frames are not decoded.",
+  "uint32 emphasis:2; uint32 original:1; uint32 copyright:1; uint32 mode_extension:2; uint32 channel_mode:2; uint32 private_bit:1; uint32 padding:1; uint32 sample_rate_index:2; uint32 bitrate_index:4; uint32 no_crc:1; uint32 layer:2; uint32 mpeg_version:2; uint32 sync:11;",
+  "First MPEG audio frame packed header. ID3-prefixed input requires a separate tag layout; audio samples are not decoded.",
   { littleEndian: false },
 );
 register(
   "aac",
   "AAC ADTS",
   "uint8 fixed_header[7];",
-  "Seven-byte ADTS header (sync, profile, sample-rate/channel configuration and frame length are packed bits). ID3-prefixed files expose the tag header.",
+  "Seven raw ADTS header bytes. Packed parameters and ID3 tags are not decoded.",
 );
 register(
   "ac3",
   "Dolby AC-3",
-  "uint16 syncword; uint16 crc1; uint8 sample_rate_and_frame_size; uint8 bitstream_id_and_mode;",
+  "uint16 syncword; uint16 crc1; uint8 frame_size_code:6; uint8 sample_rate_code:2; uint8 bitstream_mode:3; uint8 bitstream_id:5;",
   "AC-3 synchronization header and packed stream parameters.",
   { littleEndian: false },
 );
@@ -586,8 +597,8 @@ register(
 register(
   "mts",
   "MPEG transport stream",
-  "uint8 sync; uint16> transport_flags_and_pid; uint8 adaptation_and_continuity;",
-  "First transport packet header, after a four-byte arrival timestamp for M2TS input. Payload and adaptation fields remain encoded.",
+  "uint8 sync; uint16> pid:13; uint16> transport_priority:1; uint16> payload_unit_start:1; uint16> transport_error:1; uint8 continuity_counter:4; uint8 adaptation_control:2; uint8 scrambling_control:2;",
+  "First MPEG transport packet header at offset zero with packed flags. M2TS timestamp prefixes require an adapted layout.",
 );
 register(
   "mxf",
@@ -622,7 +633,7 @@ register(
   "jxl",
   "JPEG XL",
   "uint16 signature;",
-  "JPEG XL codestream signature, or boxed container signature selected from the bytes. Bit-packed image metadata is not decoded.",
+  "JPEG XL two-byte signature prefix only. Boxed containers and bit-packed image metadata are not decoded.",
   { littleEndian: false },
 );
 register(
@@ -705,13 +716,13 @@ register(
   "amr",
   "AMR audio",
   "char signature[6];",
-  "AMR narrowband magic; wideband magic is selected from the input. Speech frames remain encoded.",
+  "Six-byte AMR narrowband signature prefix. Wideband extensions and speech frames are not decoded.",
 );
 register(
   "mkv webm",
   "EBML",
   "uint32 signature;",
-  "EBML header and its first-level elements. Variable-length IDs and lengths are specialized from the file's header.",
+  "EBML signature and first encoded size octet only. Variable-length elements are not decoded.",
   { littleEndian: false },
 );
 
@@ -733,13 +744,13 @@ register(
   "ps eps",
   "PostScript",
   "char signature[2];",
-  "PostScript header line, or binary EPS preview directory when present. The PostScript program is not interpreted.",
+  "Two-byte PostScript/EPS prefix only. Binary preview directories and PostScript programs are not decoded.",
   { coverage: "prefix" },
 );
 register(
   "xml",
   "XML",
-  "uint8 declaration_prefix[PREFIX_BYTES];",
+  "uint8 declaration_prefix[16];",
   "XML declaration prefix only; text encoding and XML elements are not decoded.",
   { coverage: "prefix" },
 );
@@ -782,229 +793,60 @@ register(
   "pgp",
   "OpenPGP",
   "uint8 packet_header;",
-  "First OpenPGP packet header and encoded length. Encrypted or compressed packet bodies are not decoded.",
+  "First OpenPGP packet-header octet only. Lengths and packet bodies are not decoded.",
 );
 
 export const detectableFormatCount = supportedExtensions.size;
 
-export function schemaForFile(ext: string, bytes: Uint8Array): FormatExample {
+// Install fixed profiles once. This never inspects a file or calculates record positions.
+for (const [ext, profile] of Object.entries(schemaProfiles)) {
+  const key =
+    profile.family === "ZIP"
+      ? "zip"
+      : ext === "apng"
+        ? "png"
+        : profile.family === "TIFF"
+          ? "tif"
+          : ext;
+  if (standaloneLayouts[key]) Object.assign(profile, standaloneLayouts[key]);
+}
+
+export function schemaForFile(ext: string): FormatExample {
+  if (ext === "dll") ext = "exe";
   const profile = schemaProfiles[ext];
-  if (!profile) throw new Error(`No schema registered for detected type ${ext}`);
-  let fields = profile.fields;
-  let types = profile.types ?? "";
-  let littleEndian = profile.littleEndian ?? true;
-  let pointerSize = profile.pointerSize ?? 4;
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const ascii = (offset: number, length: number) =>
-    String.fromCharCode(...bytes.subarray(offset, offset + length));
-  if (ext === "pgp" && bytes.length > 1) {
-    if (bytes[0]! & 0x40) {
-      fields += " uint8 length_code;";
-      if (bytes[1] === 255) fields += " uint32> body_length;";
-      else if (bytes[1]! >= 192 && bytes[1]! < 224) fields += " uint8 length_tail;";
-    } else {
-      const width = [1, 2, 4, 0][bytes[0]! & 3]!;
-      if (width) fields += ` uint${width * 8}${width === 1 ? "" : ">"} body_length;`;
-    }
-  }
-  if (ext === "ps" || ext === "eps") {
-    if (bytes.length >= 4 && view.getUint32(0, true) === 0xc6d3d0c5) {
-      fields =
-        "uint32 signature; uint32 postscript_offset; uint32 postscript_length; uint32 metafile_offset; uint32 metafile_length; uint32 tiff_offset; uint32 tiff_length; uint16 checksum;";
-    } else {
-      const lineEnd = bytes.subarray(0, 256).indexOf(10);
-      fields = `char header_line[${lineEnd < 0 ? Math.min(bytes.length, 256) : lineEnd + 1}];`;
-    }
-  }
-  if (ext === "pdf") {
-    const start = ascii(0, 1024).indexOf("%PDF-");
-    if (start > 0) fields = `uint8 leading_bytes[${start}]; ` + fields;
-  }
-  if (ext === "macho" && bytes.length >= 4) {
-    const magic = view.getUint32(0, false);
-    littleEndian =
-      magic === 0xcefaedfe || magic === 0xcffaedfe || magic === 0xbebafeca || magic === 0xbfbafeca;
-    if ([0xcafebabe, 0xbebafeca, 0xcafebabf, 0xbfbafeca].includes(magic)) {
-      const word = magic === 0xcafebabf || magic === 0xbfbafeca ? "uint64" : "uint32";
-      fields =
-        "uint32 signature; uint32 architecture_count; architecture architectures[architecture_count];";
-      types = `struct architecture { uint32 cpu_type; uint32 cpu_subtype; ${word} offset; ${word} size; uint32 alignment_power; ${word === "uint64" ? "uint32 reserved;" : ""} };`;
-    } else if (magic === 0xfeedfacf || magic === 0xcffaedfe) fields += " uint32 reserved;";
-  }
-  if (ext === "mkv" || ext === "webm") {
-    // EBML's variable-width integers choose the fixed widths in this file-specific schema.
-    const vint = (offset: number, keepMarker: boolean) => {
-      const first = bytes[offset] ?? 0;
-      let width = 1;
-      while (width <= 8 && !(first & (0x80 >> (width - 1)))) width++;
-      if (width > 8 || offset + width > bytes.length) return null;
-      let value = keepMarker ? first : first & ((0x80 >> (width - 1)) - 1);
-      for (let i = 1; i < width; i++) value = value * 256 + bytes[offset + i]!;
-      return { width, value };
-    };
-    const length = vint(4, false);
-    if (length) {
-      fields += ` uint8 header_size_encoded[${length.width}];`;
-      let offset = 4 + length.width;
-      const end = Math.min(bytes.length, offset + length.value);
-      const names: Record<number, string> = {
-        0x4286: "ebml_version",
-        0x42f7: "read_version",
-        0x42f2: "maximum_id_length",
-        0x42f3: "maximum_size_length",
-        0x4282: "document_type",
-        0x4287: "document_type_version",
-        0x4285: "document_type_read_version",
-      };
-      for (let i = 0; i < 32 && offset < end; i++) {
-        const id = vint(offset, true);
-        if (!id) break;
-        const size = vint(offset + id.width, false);
-        if (!size || size.value > end - offset - id.width - size.width) break;
-        const name = `${names[id.value] ?? "element"}_${i}`;
-        const valueField =
-          id.value === 0x4282
-            ? `char value[${size.value}];`
-            : [1, 2, 4, 8].includes(size.value)
-              ? `uint${size.value * 8}${size.value === 1 ? "" : ">"} value;`
-              : `uint8 value[${size.value}];`;
-        types += ` struct ${name} { uint8 id[${id.width}]; uint8 size_encoded[${size.width}]; ${valueField} };`;
-        fields += ` ${name} ${name};`;
-        offset += id.width + size.width + size.value;
-      }
-    }
-  }
-  if (profile.family === "gzip" && bytes.length >= 10) {
-    const flags = bytes[3]!;
-    if (flags & 4) fields += " uint16 extra_length; uint8 extra[extra_length];";
-    if (flags & 8) fields += " char original_filename[];";
-    if (flags & 16) fields += " char comment[];";
-    if (flags & 2) fields += " uint16 header_crc16;";
-  }
-  if (ext === "cpio" && bytes.length >= 6) {
-    const signature = ascii(0, 6);
-    if (signature === "070701" || signature === "070702") {
-      fields =
-        "char signature[6]; char inode[8]; char mode[8]; char uid[8]; char gid[8]; char link_count[8]; char modified_time[8]; char file_size[8]; char device_major[8]; char device_minor[8]; char special_device_major[8]; char special_device_minor[8]; char name_size[8]; char checksum[8];";
-    } else if (signature === "070707") {
-      fields =
-        "char signature[6]; char device[6]; char inode[6]; char mode[6]; char uid[6]; char gid[6]; char link_count[6]; char special_device[6]; char modified_time[11]; char name_size[6]; char file_size[11];";
-    } else {
-      littleEndian = bytes[0] === 0xc7;
-      fields =
-        "uint16 signature; uint16 device; uint16 inode; uint16 mode; uint16 uid; uint16 gid; uint16 link_count; uint16 special_device; uint16 modified_time_words[2]; uint16 name_size; uint16 file_size_words[2]; char name[name_size];";
-    }
-  }
-  if (ext === "iso" && bytes.length > 32768 && bytes[32768] === 1) {
-    fields +=
-      " uint8 unused; char system_identifier[32]; char volume_identifier[32]; uint8 unused_2[8]; uint32< volume_blocks_le; uint32> volume_blocks_be; uint8 unused_3[32]; uint16< volume_set_size_le; uint16> volume_set_size_be; uint16< volume_sequence_le; uint16> volume_sequence_be; uint16< logical_block_size_le; uint16> logical_block_size_be; uint32< path_table_size_le; uint32> path_table_size_be; uint32< path_table_l; uint32< optional_path_table_l; uint32> path_table_m; uint32> optional_path_table_m; uint8 root_directory_record[34];";
-  }
-  if (["mp1", "mp2", "mp3", "aac"].includes(ext) && ascii(0, 3) === "ID3")
-    fields =
-      "char signature[3]; uint8 major_version; uint8 revision; uint8 flags; uint8 syncsafe_tag_size[4];";
-  if (ext === "amr" && ascii(0, 9) === "#!AMR-WB\n") fields = "char signature[9];";
-  if (ext === "mts" && bytes[0] !== 0x47 && bytes[4] === 0x47)
-    fields = "uint32> arrival_timestamp; " + fields;
-  if (ext === "rar" && bytes.length >= 8) {
-    if (bytes[6] === 1) fields = "uint8 signature[8]; uint32 header_crc;";
-    else fields += " uint16 header_crc; uint8 header_type; uint16 flags; uint16 header_size;";
-  }
-  if (ext === "jxl" && bytes[0] === 0)
-    fields = "uint32 signature_box_size; char box_type[4]; uint32 signature;";
-  if (ext === "sav" && bytes.length >= 68)
-    littleEndian = view.getInt32(64, true) === 2 || view.getInt32(64, true) === 3;
-  if (profile.family === "TIFF" && bytes.length >= 8) {
-    littleEndian = ascii(0, 2) !== "MM";
-    if (view.getUint16(2, littleEndian) === 43) {
-      pointerSize = 8;
-      fields =
-        "char byte_order[2]; uint16 version; uint16 offset_size; uint16 reserved; ifd *first_directory;";
-      types =
-        "struct tag { uint16 id; uint16 data_type; uint64 count; uint64 value_or_offset; }; struct ifd { uint64 entry_count; tag entries[entry_count]; uint64 next_directory; };";
-    }
-  }
-  if (ext === "pcap" && bytes.length >= 4) littleEndian = bytes[0] === 0xd4 || bytes[0] === 0x4d;
-  if (ext === "ktx" && bytes.length >= 16) littleEndian = view.getUint32(12, true) === 0x04030201;
-  if (ext === "gif" && bytes.length >= 13 && bytes[10]! & 0x80) {
-    fields += ` rgb global_palette[${1 << ((bytes[10]! & 7) + 1)}];`;
-    types = "struct rgb { uint8 red; uint8 green; uint8 blue; };";
-  }
-  if (ext === "bmp" && bytes.length >= 18) {
-    const size = view.getUint32(14, true);
-    if (size === 12) fields += " uint16 width; uint16 height; uint16 planes; uint16 bit_depth;";
-    else if (size >= 40)
-      fields +=
-        " int32 width; int32 height; uint16 planes; uint16 bit_depth; uint32 compression; uint32 image_size; int32 horizontal_pixels_per_meter; int32 vertical_pixels_per_meter; uint32 palette_colors; uint32 important_colors;";
-  }
-  if (profile.family === "RIFF" && bytes.length >= 20) {
-    if (ext === "wav" && ascii(12, 4) === "fmt " && view.getUint32(16, true) >= 16)
-      fields +=
-        " uint16 audio_format; uint16 channels; uint32 sample_rate; uint32 byte_rate; uint16 block_alignment; uint16 bits_per_sample;";
-    if (ext === "webp" && ascii(12, 4) === "VP8X")
-      fields +=
-        " uint8 feature_flags; uint8 reserved[3]; uint24< canvas_width_minus_one_le; uint24< canvas_height_minus_one_le;";
-  }
-  if (profile.family === "ISO base media" && bytes.length >= 8) {
-    const extended = view.getUint32(0, false) === 1;
-    if (extended) fields += " uint64 extended_box_size;";
-    if (ascii(4, 4) === "ftyp") {
-      const headerSize = extended ? 16 : 8;
-      fields += " char major_brand[4]; uint32 minor_version;";
-      const size =
-        extended && bytes.length >= 16
-          ? Number(view.getBigUint64(8, false))
-          : view.getUint32(0, false);
-      const brands = Math.max(0, Math.min(64, Math.floor((size - headerSize - 8) / 4)));
-      fields += ` brand compatible_brands[${brands}];`;
-      types = "struct brand { char code[4]; };";
-    }
-  }
-  if (ext === "elf" && bytes.length >= 16) {
-    littleEndian = bytes[5] !== 2;
-    const word = bytes[4] === 2 ? "uint64" : "uint32";
-    fields += ` uint16 object_type; uint16 machine; uint32 elf_version; ${word} entry_point; ${word} program_headers_offset; ${word} section_headers_offset; uint32 flags; uint16 header_size; uint16 program_header_size; uint16 program_header_count; uint16 section_header_size; uint16 section_header_count; uint16 section_names_index;`;
-  }
-  if (profile.family === "ZIP" && bytes.length >= 4 && view.getUint32(0, true) === 0x06054b50)
-    fields =
-      "uint32 signature; uint16 disk; uint16 directory_disk; uint16 disk_entries; uint16 total_entries; uint32 directory_size; uint32 directory_offset; uint16 comment_length; char comment[comment_length];";
-  if (
-    profile.family === "JPEG" &&
-    bytes.length >= 4 &&
-    bytes[2] === 0xff &&
-    ![0xd8, 0xd9, 0x01].includes(bytes[3]!)
-  )
-    fields += " uint16 segment_length; uint8 segment_data[segment_length - 2];";
-  ({ fields, types, littleEndian, pointerSize } = expandSchema(ext, bytes, {
-    fields,
-    types,
-    littleEndian,
-    pointerSize,
-  }));
-  const scope = expansionReviews[ext]?.scope ?? profile.scope;
-  const name = `file_${ext.replace(/[^a-zA-Z0-9_]/g, "_")}`;
-  const declarations = `${types}\nstruct ${name} { ${fields} };\nstruct root { ${name} header; };`;
-  let depth = 0;
-  const formatted = declarations
-    .replace(/\{\s*/g, "{\n")
-    .replace(/;\s*/g, ";\n")
-    .split("\n")
-    .map((line) => {
-      const trimmed = line.trim();
-      if (trimmed.startsWith("}")) depth--;
-      const result = "    ".repeat(Math.max(0, depth)) + trimmed;
-      if (trimmed.endsWith("{")) depth++;
-      return result;
-    })
-    .join("\n");
-  const definition = `// ${ext.toUpperCase()} — ${profile.family}\n// ${scope}\n// Preview determines bounded coverage; native conditions select supported record variants. Reload detection after structural changes.\n// char preserves byte code units; explicit utf8/latin1/cp437/utf16 types decode declared encodings.\n// Detection is a signature hint, not file validation.\n#define PREFIX_BYTES ${Math.min(bytes.length, 256)}\n${formatted}`;
+  if (!profile) throw new Error("No schema registered for detected type " + ext);
+  const name = "file_" + ext.replace(/[^a-zA-Z0-9_]/g, "_");
+  const scope = profile.scope;
+  const definition = formatLayout(
+    "// " +
+      ext.toUpperCase() +
+      " - " +
+      profile.family +
+      "\n// " +
+      scope +
+      "\n// Standalone CStruct. All conditions, lengths and pointer reads execute in the library.\n" +
+      "// No file scans, generated offsets, record discovery or merged parse results.\n" +
+      (profile.types ?? "") +
+      "\nstruct " +
+      name +
+      " { " +
+      profile.fields +
+      " };\nstruct root { " +
+      name +
+      " header; };",
+  );
   return {
-    id: `detected-${ext}`,
+    id: "detected-" + ext,
     extension: ext,
-    title: `${ext.toUpperCase()} · ${profile.family}`,
+    title: ext.toUpperCase() + " · " + profile.family,
     definition,
     binaryHex: "",
     rootType: "root",
-    parserOptions: { aligned: false, littleEndian, pointerSize },
+    parserOptions: {
+      aligned: false,
+      littleEndian: profile.littleEndian ?? true,
+      pointerSize: profile.pointerSize ?? 4,
+    },
     documentation: { summary: scope },
     sourceFixture: "",
   };
@@ -1016,18 +858,20 @@ export const schemaCatalog: FormatExample[] = [
     const sample = formats.find((format) => format.id === (ext === "exe" ? "pe-exe" : ext));
     return sample
       ? { ...sample, extension: ext }
-      : { ...schemaForFile(ext, new Uint8Array()), id: `schema-${ext}`, schemaOnly: true };
+      : { ...schemaForFile(ext), id: `schema-${ext}`, schemaOnly: true };
   }),
   ...formats
     .filter((format) => format.id === "pe-dll")
     .map((format) => ({ ...format, extension: "dll" })),
 ].sort((a, b) => a.extension!.localeCompare(b.extension!, undefined, { sensitivity: "base" }));
 
-export function rawFileSchema(bytes: Uint8Array): FormatExample {
+export function rawFileSchema(): FormatExample {
   return {
     id: "detected-unknown",
     title: "Unknown format",
-    definition: `// Unrecognized file. Select an example or edit this schema.\nstruct root { uint8 prefix[${Math.min(bytes.length, 256)}]; };`,
+    definition: formatLayout(
+      `// Unrecognized file. Select an example or edit this schema.\nstruct root { uint8 prefix[1]; };`,
+    ),
     binaryHex: "",
     rootType: "root",
     parserOptions: { aligned: false, littleEndian: true, pointerSize: 4 },

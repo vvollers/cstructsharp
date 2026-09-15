@@ -27,7 +27,9 @@ test("large ZIP files retain the full source and parse", async ({ page }) => {
   await expect(page.locator(".file-name")).toContainText("Sample data");
 });
 
-test("empty ZIP archives explain the example's scope", async ({ page }) => {
+test("manual loading preserves the local ZIP example and returns the library read error", async ({
+  page,
+}) => {
   await page.getByTestId("example-zip").click();
   const [chooser] = await Promise.all([
     page.waitForEvent("filechooser"),
@@ -38,8 +40,7 @@ test("empty ZIP archives explain the example's scope", async ({ page }) => {
   await chooser.setFiles({ name: "empty.zip", mimeType: "application/zip", buffer: bytes });
   await expect(page.locator(".file-name")).toContainText("empty.zip");
   await page.getByRole("button", { name: /^Run$/ }).click();
-  await expect(page.locator(".result-status")).toContainText("empty ZIP");
-  await expect(page.locator(".error-details")).toContainText("0 (0x0)");
+  await expect(page.locator(".result-status")).toContainText("Unexpected end");
 });
 
 test("the real bridge preserves actionable input and read diagnostics", async ({ page }) => {
@@ -56,7 +57,7 @@ test("the real bridge preserves actionable input and read diagnostics", async ({
         maxArrayElements: 1,
       }),
       option: parse("struct root { uint8 value; };", new Uint8Array(1), {
-        maxArrayElements: 1000001,
+        maxArrayElements: 0,
       }),
     };
   });
@@ -67,5 +68,5 @@ test("the real bridge preserves actionable input and read diagnostics", async ({
   expect(results.truncated.Error.Message).toContain("Unexpected end");
   expect(results.encoding.Error.Message).toContain("declared encoding");
   expect(results.budget.Error.Message).toContain("MaxArrayElements");
-  expect(results.option.Error.Message).toContain("between 1 and 1000000; received 1000001");
+  expect(results.option.Error.Message).toContain("between 1 and 2147483647; received 0");
 });

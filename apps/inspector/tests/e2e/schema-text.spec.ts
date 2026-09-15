@@ -124,8 +124,8 @@ test("text fields produce strings while retaining their byte extents and binary 
     {
       ext: "zip",
       bytes: zip,
-      expected: { entries: [{ filename_cp437: "a.txt", extra: [255], compressed_payload: [128] }] },
-      field: "root.header.entries[0].filename_cp437",
+      expected: { local: { filename_cp437: "a.txt", extra: [255] } },
+      field: "root.header.local.filename_cp437",
       start: 30,
       end: 35,
     },
@@ -197,8 +197,8 @@ test("text fields produce strings while retaining their byte extents and binary 
     {
       ext: "png",
       bytes: png,
-      expected: { chunk_0: { text: "k\0é!" } },
-      field: "root.header.chunk_0.text",
+      expected: { chunk_1: { keyword_and_text: "k\0é!" } },
+      field: "root.header.chunk_1.keyword_and_text",
       start: 41,
       end: 45,
     },
@@ -214,7 +214,7 @@ test("text fields produce strings while retaining their byte extents and binary 
           }),
         );
       },
-      { schema: schemaForFile(ext, bytes), bytes: [...bytes] },
+      { schema: schemaForFile(ext), bytes: [...bytes] },
     );
     expect(result.Success, `${ext}: ${JSON.stringify(result.Error)}`).toBe(true);
     expect(result.Data.root.header, ext).toMatchObject(expected);
@@ -223,87 +223,6 @@ test("text fields produce strings while retaining their byte extents and binary 
     );
     expect(Math.min(...ranges.map((entry: { CurPos: number }) => entry.CurPos)), field).toBe(start);
     expect(Math.max(...ranges.map((entry: { EndPos: number }) => entry.EndPos)), field).toBe(end);
-  }
-});
-
-test("Ogg second-page comment packets decode bounded UTF-8 metadata", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.locator(".status-badge")).toContainText("Ready");
-  const oggPage = (payload: Buffer, sequence: number) => {
-    const bytes = Buffer.alloc(28 + payload.length);
-    bytes.write("OggS");
-    bytes.writeUInt32LE(42, 14);
-    bytes.writeUInt32LE(sequence, 18);
-    bytes[26] = 1;
-    bytes[27] = payload.length;
-    payload.copy(bytes, 28);
-    return bytes;
-  };
-  for (const opus of [false, true]) {
-    const identification = Buffer.alloc(opus ? 19 : 30);
-    if (opus) identification.write("OpusHead");
-    else {
-      identification[0] = 1;
-      identification.write("vorbis", 1);
-    }
-    const prefix = Buffer.from(opus ? "OpusTags" : "\x03vorbis");
-    const vendor = Buffer.from("工具", "utf8"),
-      comment = Buffer.from("TITLE=é🌍", "utf8");
-    const content = Buffer.alloc(
-      prefix.length + 4 + vendor.length + 4 + 4 + comment.length + (opus ? 0 : 1),
-    );
-    prefix.copy(content);
-    content.writeUInt32LE(vendor.length, prefix.length);
-    vendor.copy(content, prefix.length + 4);
-    const countAt = prefix.length + 4 + vendor.length;
-    content.writeUInt32LE(1, countAt);
-    content.writeUInt32LE(comment.length, countAt + 4);
-    comment.copy(content, countAt + 8);
-    if (!opus) content[content.length - 1] = 1;
-    const bytes = Buffer.concat([oggPage(identification, 0), oggPage(content, 1)]);
-    const secondPage = 28 + identification.length;
-    for (const invalid of ["continued", "different-stream", "oversized-vendor"] as const) {
-      const altered = Buffer.from(bytes);
-      if (invalid === "continued") altered[secondPage + 5] = 1;
-      if (invalid === "different-stream") altered.writeUInt32LE(43, secondPage + 14);
-      if (invalid === "oversized-vendor")
-        altered.writeUInt32LE(0xffffffff, secondPage + 28 + prefix.length);
-      expect(schemaForFile(opus ? "opus" : "ogg", altered).definition, invalid).not.toContain(
-        "ogg_comment_header",
-      );
-    }
-    const schema = schemaForFile(opus ? "opus" : "ogg", bytes);
-    const result = await page.evaluate(
-      ({ schema, bytes }) => {
-        const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
-        const options = { ...schema.parserOptions, rootTypeName: "root" };
-        const parsed = JSON.parse(
-          wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), options),
-        );
-        return {
-          parsed,
-          encoded: parsed.Success
-            ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.Data.root), options)]
-            : [],
-        };
-      },
-      { schema, bytes: [...bytes] },
-    );
-    expect(result.parsed.Success, JSON.stringify(result.parsed.Error)).toBe(true);
-    expect(result.encoded).toEqual([...bytes]);
-    expect(result.parsed.Data.root.header.comment_header).toMatchObject({
-      vendor: "工具",
-      comment_count: 1,
-      comments: [{ text: "TITLE=é🌍" }],
-    });
-    const start = 28 + identification.length + 28 + prefix.length + 4;
-    expect(result.parsed.DebugData).toContainEqual(
-      expect.objectContaining({
-        DebugStackString: "root.header.comment_header.vendor",
-        CurPos: start,
-        EndPos: start + vendor.length,
-      }),
-    );
   }
 });
 
@@ -320,7 +239,7 @@ test("FBX node identifiers preserve raw code units across both header widths", a
     else bytes.writeUInt32LE(bytes.length, 27);
     bytes[start - 1] = 4;
     bytes.set([65, 0, 255, 80], start);
-    const schema = schemaForFile("fbx", bytes);
+    const schema = schemaForFile("fbx");
     const result = await page.evaluate(
       ({ schema, bytes }) => {
         const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;

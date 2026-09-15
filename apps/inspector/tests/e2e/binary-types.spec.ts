@@ -94,7 +94,7 @@ test("PE and GLB schemas select alternatives from the loaded bytes", async ({ pa
     ["exe", pe(false), pe(true), "pe32", "pe64"],
     ["glb", glb(true), glb(false), "json_data", "binary_data"],
   ] as const) {
-    const schema = schemaForFile(ext, first);
+    const schema = schemaForFile(ext);
     for (const [bytes, active, inactive] of [
       [first, firstName, secondName],
       [second, secondName, firstName],
@@ -132,7 +132,7 @@ test("one CRX schema selects versioned headers from runtime bytes", async ({ pag
   v3.writeUInt32LE(3, 4);
   v3.writeUInt32LE(2, 8);
   v3.set([44, 55], 12);
-  const schema = schemaForFile("crx", v2);
+  const schema = schemaForFile("crx");
   for (const bytes of [v2, v3]) {
     const result = await page.evaluate(
       ({ schema, bytes }) => {
@@ -165,34 +165,27 @@ test("ZIP selects each entry's own text encoding with native conditions", async 
     name.copy(bytes, 30);
     return bytes;
   };
-  const bytes = Buffer.concat([entry(true), entry(false)]);
-  const schema = schemaForFile("zip", bytes);
-  expect(schema.definition).toContain("if (utf8_names)");
-  const result = await page.evaluate(
-    ({ schema, bytes }) => {
-      const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
-      return JSON.parse(
-        wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), {
-          ...schema.parserOptions,
-          rootTypeName: "root",
-        }),
-      );
-    },
-    { schema, bytes: [...bytes] },
-  );
-  expect(result.Success).toBe(true);
-  const entries = result.Data.root.header.entries;
-  expect(entries[0].filename_utf8).toBe("é.txt");
-  expect(entries[0]).not.toHaveProperty("filename_cp437");
-  expect(entries[1].filename_cp437).toBe("é.txt");
-  expect(entries[1]).not.toHaveProperty("filename_utf8");
-  expect(result.DebugData).toContainEqual(
-    expect.objectContaining({
-      DebugStackString: "root.header.entries[1].filename_cp437",
-      CurPos: 66,
-      EndPos: 71,
-    }),
-  );
+  for (const utf8 of [true, false]) {
+    const bytes = entry(utf8);
+    const schema = schemaForFile("zip");
+    expect(schema.definition).toContain("if (utf8_names)");
+    const result = await page.evaluate(
+      ({ schema, bytes }) => {
+        const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
+        return JSON.parse(
+          wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), {
+            ...schema.parserOptions,
+            rootTypeName: "root",
+          }),
+        );
+      },
+      { schema, bytes: [...bytes] },
+    );
+    expect(result.Success).toBe(true);
+    const local = result.Data.root.header.local;
+    expect(local[utf8 ? "filename_utf8" : "filename_cp437"]).toBe("é.txt");
+    expect(local).not.toHaveProperty(utf8 ? "filename_cp437" : "filename_utf8");
+  }
 });
 
 test("identifiers and fixed-point values round-trip through WASM", async ({ page }) => {
@@ -279,7 +272,7 @@ test("LEB128 preserves 64-bit values and rejects extent-changing updates in WASM
   );
 });
 
-test("PNG international text is bounded and compressed payloads stay opaque", async ({ page }) => {
+test("PNG international text stays opaque without external separator scans", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".status-badge")).toContainText("Ready");
   const payload = Buffer.concat([Buffer.from("Title\0\0\0nl\0"), Buffer.from("标题\0你好🌍")]);
@@ -292,7 +285,7 @@ test("PNG international text is bounded and compressed payloads stay opaque", as
     payload.copy(bytes, 41);
     if (compressed) bytes[47] = 1;
     bytes.write("IEND", bytes.length - 8);
-    const schema = schemaForFile("png", bytes);
+    const schema = schemaForFile("png");
     const result = await page.evaluate(
       ({ schema, bytes }) => {
         const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
@@ -306,14 +299,8 @@ test("PNG international text is bounded and compressed payloads stay opaque", as
       { schema, bytes: [...bytes] },
     );
     expect(result.Success).toBe(true);
-    const chunk = result.Data.root.header.chunk_0.international;
-    expect(chunk.translated_keyword).toBe("标题");
-    expect(chunk.language_tag).toBe("nl");
-    if (compressed) expect(chunk.compressed_text).toEqual([...Buffer.from("你好🌍")]);
-    else {
-      expect(chunk.translated_keyword).toBe("标题");
-      expect(chunk.text).toBe("你好🌍");
-      expect(chunk.language_tag).toBe("nl");
-    }
+    expect(result.Data.root.header.chunk_1.payload).toEqual([
+      ...bytes.subarray(41, 41 + payload.length),
+    ]);
   }
 });

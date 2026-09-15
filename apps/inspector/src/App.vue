@@ -13,9 +13,10 @@ import SchemaPanelHost from "./components/SchemaPanelHost.vue";
 import BinaryPanelHost from "./components/BinaryPanelHost.vue";
 import ResultPanelHost from "./components/ResultPanelHost.vue";
 import { formats, type FormatExample } from "./formats";
+import { formatLayout } from "./format-layout";
 import { detectFile } from "./detect-file";
 import { rawFileSchema, schemaForFile, schemaProfiles, schemaCatalog } from "./detected-schemas";
-import { parseFailure, validateZipHeader } from "./parse-diagnostics";
+import { parseFailure } from "./parse-diagnostics";
 import {
   findDebugEntryIndexByOffset,
   findDebugEntryIndicesByPath,
@@ -36,7 +37,7 @@ const wasmVersion = ref("");
 const wasmError = ref("");
 
 const selectedExample = shallowRef<FormatExample | null>(formats[0] ?? null);
-const definition = ref(selectedExample.value?.definition ?? "");
+const definition = ref(formatLayout(selectedExample.value?.definition ?? ""));
 const bytes = shallowRef<Uint8Array>(hexToBytesSafe(selectedExample.value?.binaryHex ?? ""));
 const loadedFileName = ref<string | null>(null);
 const fileSource = shallowRef<Blob | null>(null);
@@ -91,28 +92,21 @@ function hexToBytesSafe(hex: string): Uint8Array {
 function selectExample(example: FormatExample): void {
   cancelDetection();
   parseController?.abort();
+  fileLoadVersion += 1;
   if (example.schemaOnly && example.extension) {
-    fileLoadVersion += 1;
     if (!loadedFileName.value) bytes.value = new Uint8Array();
-    const schema = {
-      ...schemaForFile(example.extension, bytes.value),
+    selectedExample.value = {
+      ...schemaForFile(example.extension),
       id: example.id,
       schemaOnly: true,
     };
-    selectedExample.value = schema;
-    definition.value = schema.definition;
-    result.value = null;
-    selectedDebugIndices.value = new Set();
-    focusPath.value = null;
-    resetCount.value += 1;
-    return;
+  } else {
+    fileSource.value = null;
+    loadedFileName.value = null;
+    selectedExample.value = { ...example, definition: formatLayout(example.definition) };
+    bytes.value = hexToBytesSafe(example.binaryHex);
   }
-  fileSource.value = null;
-  fileLoadVersion += 1;
-  selectedExample.value = example;
-  definition.value = example.definition;
-  loadedFileName.value = null;
-  bytes.value = hexToBytesSafe(example.binaryHex);
+  definition.value = selectedExample.value.definition;
   result.value = null;
   selectedDebugIndices.value = new Set();
   focusPath.value = null;
@@ -144,29 +138,15 @@ async function loadFile(file: File, autoDetect = false): Promise<void> {
   try {
     const buffer = await file.slice(0, 65536).arrayBuffer();
     if (version !== fileLoadVersion) return;
-    const preview = new Uint8Array(buffer);
-    if (
-      !autoDetect &&
-      selectedExample.value?.schemaOnly &&
-      selectedExample.value.extension &&
-      definition.value === selectedExample.value.definition
-    ) {
-      const schema = {
-        ...schemaForFile(selectedExample.value.extension, preview),
-        id: selectedExample.value.id,
-        schemaOnly: true,
-      };
-      selectedExample.value = schema;
-      definition.value = schema.definition;
-      resetCount.value += 1;
-    }
+
     if (autoDetect) {
-      let schema = rawFileSchema(preview);
+      let schema = rawFileSchema();
       try {
         const detected = await detectFile(file, controller.signal);
         if (version !== fileLoadVersion) return;
         if (detected) {
-          schema = schemaForFile(detected.ext, preview);
+          schema = schemaForFile(detected.ext);
+          if (version !== fileLoadVersion) return;
           const coverage = schemaProfiles[detected.ext]!.coverage;
           detectionMessage.value = `${detected.ext.toUpperCase()} detected · ${coverage === "prefix" ? "Prefix only" : "Schema loaded"}`;
         } else {
@@ -228,20 +208,6 @@ async function runParse(options: ParseWithDebugOptions): Promise<void> {
   selectedDebugIndices.value = new Set();
   focusPath.value = null;
   try {
-    if (
-      selectedExample.value?.id === "zip" &&
-      definition.value === selectedExample.value.definition
-    ) {
-      const header = fileSource.value
-        ? new Uint8Array(await fileSource.value.slice(0, 131100).arrayBuffer())
-        : bytes.value;
-      if (controller.signal.aborted) return;
-      const failure = validateZipHeader(header);
-      if (failure) {
-        result.value = failure;
-        return;
-      }
-    }
     const parsed = await parseSourceWithDebug(definition.value, fileSource.value ?? bytes.value, {
       ...options,
       signal: controller.signal,

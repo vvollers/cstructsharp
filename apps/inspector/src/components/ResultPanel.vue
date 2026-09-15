@@ -40,11 +40,10 @@ const recovery = computed(() => {
     "invalid-path": "Check the root and field names, including their letter case.",
     "read-failed":
       "Check that all required bytes are present and that the root, byte order, and pointer settings match the format.",
-    "read-budget": "Compare the expected field sizes with Safety limits in the schema settings.",
+    "read-budget":
+      "Compare the expected field sizes with Decoded-data budgets in the schema settings.",
     "invalid-input":
       "Check the input and schema settings. File size is independent of the read safety limits.",
-    "format-mismatch":
-      "This example reads the first local file header, not the entire ZIP archive. See the example description for its scope.",
     "file-read-failed": "Reload the file after checking its location and access permissions.",
   };
   return (

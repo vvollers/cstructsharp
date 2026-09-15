@@ -2,12 +2,13 @@
 export function formatLayout(source: string): string {
   const tokens =
     source.match(
-      /^[\t ]*#[^\r\n]*|\/\/[^\r\n]*|\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[{};()]|\s+|[^\s{};()"'/]+|./gm,
+      /^[\t ]*#[^\r\n]*|\/\/[^\r\n]*|\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[{};,()]|\s+|[^\s{};,()"'/]+|./gm,
     ) ?? [];
   const lines: string[] = [];
   let line = "";
   let depth = 0;
   let parentheses = 0;
+  const enumScopes: boolean[] = [];
   const flush = () => {
     if (line.trim()) lines.push("    ".repeat(depth) + line.trim());
     line = "";
@@ -24,16 +25,21 @@ export function formatLayout(source: string): string {
     } else if (/^\s+$/.test(token)) {
       if (line && !line.endsWith(" ")) line += " ";
     } else if (token === "{") {
+      enumScopes.push(/^\s*enum\b/.test(line));
       line = line.trimEnd() + " {";
       flush();
       depth++;
     } else if (token === "}") {
       flush();
       depth = Math.max(0, depth - 1);
+      enumScopes.pop();
       line = "}";
     } else if (token === ";") {
       line = line.trimEnd() + ";";
       if (!parentheses) flush();
+    } else if (token === "," && !parentheses && enumScopes[enumScopes.length - 1]) {
+      line = line.trimEnd() + ",";
+      flush();
     } else {
       line += token;
       if (token === "(") parentheses++;

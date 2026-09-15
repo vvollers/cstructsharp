@@ -218,3 +218,16 @@ test("clicking a scalar array field activates every element, not just the first"
   // 4 elements x 2 bytes x 2 columns (hex + ascii) = 16 active cells; each element is one uint16 (2 bytes).
   await expect(page.locator('[data-testid="binary-panel-hex"] .field-active')).toHaveCount(16);
 });
+
+test("sample and schema-only definitions open with one field per editor line", async ({ page }) => {
+  for (const id of ["tar", "schema-sqlite"]) {
+    await page.getByTestId(`example-${id}`).click();
+    const lines = page.getByTestId("definition-editor").locator(".view-lines .view-line");
+    await expect(lines.first()).toBeVisible();
+    await expect
+      .poll(async () => (await lines.allTextContents()).filter((line) => line.includes(";")).length)
+      .toBeGreaterThan(3);
+    for (const line of await lines.allTextContents())
+      expect(line.match(/;/g)?.length ?? 0).toBeLessThanOrEqual(1);
+  }
+});

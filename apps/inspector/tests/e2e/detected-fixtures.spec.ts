@@ -26,7 +26,7 @@ test("upstream detection fixtures compile with their selected schemas", async ({
       continue;
     }
     if (!type) continue;
-    const schema = schemaForFile(type.ext, bytes.subarray(0, 65536));
+    const schema = schemaForFile(type.ext);
     const result = await page.evaluate(
       ({ schema, bytes }) => {
         const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;

@@ -66,7 +66,7 @@ test("unknown files get a raw schema and manual loading preserves the selected s
 });
 
 test("every registered schema compiles in the real WASM parser", async ({ page }) => {
-  const cases = Object.keys(schemaProfiles).map((ext) => schemaForFile(ext, new Uint8Array(1024)));
+  const cases = Object.keys(schemaProfiles).map((ext) => schemaForFile(ext));
   const failures = await page.evaluate((schemas) => {
     const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
     return schemas.flatMap((schema) => {
@@ -103,7 +103,7 @@ test("TIFF directory pointers and SQLite header fields decode actual values", as
     ["tif", tiff, { value_or_offset: 640 }],
     ["sqlite", sqlite, { page_size: 4096, page_count: 23 }],
   ] as const) {
-    const schema = schemaForFile(ext, bytes);
+    const schema = schemaForFile(ext);
     const result = await page.evaluate(
       ({ schema, bytes }) => {
         const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
