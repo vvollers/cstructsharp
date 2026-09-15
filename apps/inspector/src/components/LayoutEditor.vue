@@ -16,9 +16,14 @@ const height = ref(160);
 let instance: editor.IStandaloneCodeEditor | undefined;
 let model: editor.ITextModel | undefined;
 let disposed = false;
+
+// Load Monaco when this editor first appears. The import is asynchronous, so check that the
+// component still exists before creating the editor: the user might have closed the panel meanwhile.
 onMounted(async () => {
   const { monaco, CSTRUCT_LANGUAGE_ID } = await import("../monaco-layout");
   if (disposed || !host.value) return;
+
+  // The model holds the text; the editor instance provides the visible controls for editing it.
   model = monaco.editor.createModel(props.modelValue, props.language ?? CSTRUCT_LANGUAGE_ID);
   model.updateOptions({ tabSize: 4, insertSpaces: true });
   instance = monaco.editor.create(host.value, {
@@ -39,11 +44,14 @@ onMounted(async () => {
     ariaLabel: props.label ?? "Binary layout (CStruct definition)",
     stickyScroll: { enabled: false },
   });
+
   const resize = () => {
     height.value = Math.min(440, Math.max(130, instance!.getContentHeight()));
   };
   instance.onDidContentSizeChange(resize);
   instance.onDidChangeModelContent(() => emit("update:modelValue", instance!.getValue()));
+
+  // Register our formatter only for CStruct text, not for any other language shown in this editor.
   if (!props.language || props.language === CSTRUCT_LANGUAGE_ID)
     instance.addAction({
       id: "format-binary-layout",
@@ -56,8 +64,12 @@ onMounted(async () => {
         ]);
       },
     });
+
   resize();
 });
+
+// Parent updates must reach Monaco too. Skip text that already matches: it may be the edit Monaco
+// just sent to the parent, and calling setValue again would unnecessarily clear its undo history.
 watch(
   () => props.modelValue,
   (value) => {

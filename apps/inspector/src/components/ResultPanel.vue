@@ -31,6 +31,7 @@ const parsedJson = computed<unknown>(() => {
   ) {
     return null;
   }
+
   return props.result.Data;
 });
 
@@ -46,6 +47,7 @@ const recovery = computed(() => {
       "Check the input and schema settings. File size is independent of the read safety limits.",
     "file-read-failed": "Reload the file after checking its location and access permissions.",
   };
+
   return (
     hints[props.result?.Error?.Code ?? ""] ??
     "Review the code, path, and offset below and compare with the schema."
@@ -54,12 +56,8 @@ const recovery = computed(() => {
 
 const selectionTypes: readonly string[] = Object.values(SelectionType);
 
-/**
- * json-editor-vue does not declare "select" in its component emits, so Vue also attaches @select as
- * a plain native DOM listener alongside the real onSelect passthrough - a native "select" event (a
- * bare Event, not a JSONEditorSelection) can reach this handler too. Only a real selection object
- * carries a recognized `type` discriminant; anything else is the stray native event and is ignored.
- */
+// This handler can receive either a JSON-tree selection or a normal browser `select` event.
+// Only JSON selections have one of these recognized types, so check before reading their path.
 function handleSelect(selection: unknown): void {
   if (
     !selection ||
@@ -75,10 +73,13 @@ function handleSelect(selection: unknown): void {
     emit("select-path", null);
     return;
   }
+
   const path = getFocusPath(typed);
   emit("select-path", path.length ? path : null);
 }
 
+// A click in the hex view gives us a JSON path such as ["root", "header", "size"].
+// Wait until Vue has updated the result panel, then select that field and scroll to it.
 watch(
   () => props.focusPath,
   async (path) => {
@@ -86,13 +87,16 @@ watch(
     if (!editor) {
       return;
     }
+
     if (!path) {
       editor.select(undefined);
       return;
     }
+
     editor.select(createValueSelection(path));
     await editor.scrollTo(path);
   },
+  { flush: "post" },
 );
 </script>
 

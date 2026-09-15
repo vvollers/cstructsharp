@@ -84,6 +84,56 @@ test("schema settings dialog opens and closes", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Schema settings" })).toBeHidden();
 });
 
+test("editing the schema or parser settings clears the previous result", async ({ page }) => {
+  await page.getByRole("button", { name: /^Run$/ }).click();
+  await expect(page.locator(".result-status")).toHaveText("Parse completed");
+  await page.getByTestId("definition-editor").locator(".monaco-editor").click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.insertText("\n// edited");
+  await expect(page.getByTestId("result-json")).toHaveCount(0);
+  await expect(page.locator(".result-panel .placeholder")).toBeVisible();
+
+  await page.getByRole("button", { name: /^Run$/ }).click();
+  await expect(page.locator(".result-status")).toHaveText("Parse completed");
+  await page.getByRole("button", { name: "Schema settings" }).click();
+  await page.getByLabel("Default byte order").selectOption("big");
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(page.getByTestId("result-json")).toHaveCount(0);
+});
+
+test("manual file loads preserve settings and choosing a schema resets them", async ({ page }) => {
+  const settingsButton = page.getByRole("button", { name: "Schema settings" });
+  await settingsButton.click();
+  await page.getByLabel("Root type/path").fill("custom_root");
+  await page.getByLabel("Pointer bytes").selectOption("1");
+  await page.keyboard.press("Escape");
+  await expect(settingsButton).toBeFocused();
+
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Load file", exact: true }).click();
+  await (
+    await chooser
+  ).setFiles({
+    name: "manual.bin",
+    mimeType: "application/octet-stream",
+    buffer: Buffer.from([42]),
+  });
+  await expect(page.locator(".file-name")).toHaveText("manual.bin");
+  await settingsButton.click();
+  await expect(page.getByLabel("Root type/path")).toHaveValue("custom_root");
+  await expect(page.getByLabel("Pointer bytes")).toHaveValue("1");
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+
+  await page.getByTestId("example-png").click();
+  await settingsButton.click();
+  await expect(page.getByLabel("Root type/path")).toHaveValue("root");
+  await expect(page.getByLabel("Default byte order")).toHaveValue("big");
+  await expect(page.getByLabel("Pointer bytes")).toHaveValue("8");
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.getByRole("button", { name: /^Run$/ }).click();
+  await expect(page.locator(".result-status")).toHaveText("Parse completed");
+});
+
 test("loading a file replaces the binary data and shows its name", async ({ page }) => {
   const [chooser] = await Promise.all([
     page.waitForEvent("filechooser"),

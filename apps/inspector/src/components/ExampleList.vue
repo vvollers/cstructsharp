@@ -5,7 +5,20 @@ import { filePresentation } from "../file-type-icons";
 import type { FormatExample } from "../formats";
 import { detectableFormatCount } from "../detected-schemas";
 
-// Bundle the small set of icons locally so the catalog also works offline.
+const props = defineProps<{
+  examples: FormatExample[];
+  selectedId: string | null;
+  selectedExtension?: string;
+  detecting?: boolean;
+  detectionMessage?: string;
+}>();
+const emit = defineEmits<{
+  select: [example: FormatExample];
+  new: [];
+  detect: [];
+}>();
+
+// Teaching samples have more specific labels than the extension catalog.
 const fileTypes: Record<string, { label: string; kind: string }> = {
   bmp: { label: "BMP", kind: "Bitmap image" },
   wav: { label: "WAV", kind: "Wave audio" },
@@ -29,33 +42,24 @@ function fileType(example: FormatExample) {
   };
 }
 
-const props = defineProps<{
-  examples: FormatExample[];
-  selectedId: string | null;
-  selectedExtension?: string;
-  detecting?: boolean;
-  detectionMessage?: string;
-}>();
 const filter = ref("");
+const presentedExamples = computed(() =>
+  props.examples.map((example) => ({ example, type: fileType(example) })),
+);
 const filteredExamples = computed(() => {
   const terms = filter.value.trim().toLowerCase().replace(/^\./, "").split(/\s+/).filter(Boolean);
-  return props.examples.filter((example) => {
-    const type = fileType(example);
+  return presentedExamples.value.filter(({ example, type }) => {
     const text = `${type.label} ${type.kind} ${type.family} ${example.title}`.toLowerCase();
     return terms.every((term) => text.includes(term));
   });
 });
+
 function isSelected(example: FormatExample): boolean {
   return (
     example.id === props.selectedId ||
     (!!props.selectedExtension && example.extension === props.selectedExtension)
   );
 }
-const emit = defineEmits<{
-  select: [example: FormatExample];
-  new: [];
-  detect: [];
-}>();
 </script>
 
 <template>
@@ -105,7 +109,7 @@ const emit = defineEmits<{
       {{ filteredExamples.length }} of {{ examples.length }} schemas
     </p>
     <ul>
-      <li v-for="example in filteredExamples" :key="example.id">
+      <li v-for="{ example, type } in filteredExamples" :key="example.id">
         <button
           class="example-item"
           type="button"
@@ -115,10 +119,10 @@ const emit = defineEmits<{
           :title="example.documentation.summary"
           @click="emit('select', example)"
         >
-          <Icon class="file-icon" :icon="fileType(example).icon" aria-hidden="true" />
+          <Icon class="file-icon" :icon="type.icon" aria-hidden="true" />
           <span class="file-label">
-            <span class="example-title">{{ fileType(example).label }}</span>
-            <span class="example-hint">{{ fileType(example).kind }}</span>
+            <span class="example-title">{{ type.label }}</span>
+            <span class="example-hint">{{ type.kind }}</span>
             <span v-if="example.schemaOnly" class="schema-only">Schema · load your file</span>
           </span>
         </button>
