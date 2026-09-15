@@ -1,5 +1,19 @@
 # CStructSharp
 
+<p align="center">
+  <a href="LICENSE.txt"><img alt="License" src="https://img.shields.io/github/license/vvollers/cstructsharp"></a>
+  <a href="https://www.npmjs.com/package/cstructsharp"><img alt="npm version" src="https://img.shields.io/npm/v/cstructsharp"></a>
+  <a href="https://www.npmjs.com/package/cstructsharp"><img alt="npm unpacked size, including WASM" src="https://img.shields.io/npm/unpacked-size/cstructsharp?label=npm%20unpacked"></a>
+  <a href="https://www.nuget.org/packages/CStructSharp"><img alt="NuGet version" src="https://img.shields.io/nuget/v/CStructSharp"></a>
+  <a href="https://github.com/vvollers/cstructsharp/releases/latest"><img alt="NuGet package download size" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvvollers%2Fcstructsharp%2Fbadges%2Fnuget-size.json"></a>
+</p>
+<p align="center">
+  <a href="https://github.com/vvollers/cstructsharp/actions/workflows/ci.yml"><img alt="Managed CI" src="https://github.com/vvollers/cstructsharp/actions/workflows/ci.yml/badge.svg?branch=main&amp;event=push"></a>
+  <a href="https://github.com/vvollers/cstructsharp/tree/badges"><img alt="C# line coverage on .NET 10" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvvollers%2Fcstructsharp%2Fbadges%2Fline-coverage.json"></a>
+  <a href="https://github.com/vvollers/cstructsharp/tree/badges"><img alt="C# branch coverage on .NET 10" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvvollers%2Fcstructsharp%2Fbadges%2Fbranch-coverage.json"></a>
+  <a href="https://github.com/vvollers/cstructsharp/tree/badges"><img alt="C# test results on .NET 10" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvvollers%2Fcstructsharp%2Fbadges%2Ftests.json"></a>
+</p>
+
 CStructSharp reads and writes binary data using a description that looks like a C struct. Give it a layout and
 some bytes, and it gives you named values. Give it values, and it can create bytes or change a field in existing
 data. Use it from C#, Node.js, or JavaScript in a browser.

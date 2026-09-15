@@ -47,13 +47,36 @@ jobs:
       - name: Build
         run: dotnet build ./CStructSharp.NonWeb.sln -c Release --no-restore
 
-      - name: Test
+      - name: Test .NET 8
         run: >-
           dotnet test ./tests/CStructSharpTests/CStructSharpTests.csproj
           -c Release
+          -f net8.0
           --no-build
           --logger trx
           --results-directory ./artifacts/test-results
+
+      - name: Test .NET 10 with library coverage
+        run: >-
+          dotnet test ./tests/CStructSharpTests/CStructSharpTests.csproj
+          -c Release -f net10.0 --no-build
+          --logger trx --collect:"XPlat Code Coverage"
+          --results-directory ./artifacts/test-results/net10
+          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Include="[CStructSharp]*"
+
+      - name: Generate README quality badges
+        shell: pwsh
+        run: >-
+          ./tools/quality/Write-ReadmeBadges.ps1
+          -ResultsDirectory artifacts/test-results/net10
+          -OutputDirectory artifacts/readme-badges
+          -RunUrl "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Upload README quality badges
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: readme-badges
+          path: artifacts/readme-badges
 
       - name: Set up Node for documentation recipe export
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -81,5 +104,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: test-results
-          path: artifacts/test-results/*.trx
+          path: |
+            artifacts/test-results/**/*.trx
+            artifacts/test-results/**/coverage.cobertura.xml
           if-no-files-found: warn

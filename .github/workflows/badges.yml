@@ -1,0 +1,68 @@
+name: README badges
+
+on:
+  workflow_run:
+    workflows: [CI, Release]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: readme-badges
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event != 'pull_request')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Check out badge data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: badges
+
+      # Download data only; never run code from the upstream artifact.
+      - name: Get latest successful main CI statistics
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          run_id=$(gh run list --workflow ci.yml --branch main --event push --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          test -n "$run_id"
+          gh run download "$run_id" --name readme-badges --dir "$RUNNER_TEMP/readme-badges"
+          cp "$RUNNER_TEMP/readme-badges/"*.json .
+          cp "$RUNNER_TEMP/readme-badges/README.md" .
+
+      - name: Measure released NuGet package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api "repos/$GH_REPO/releases/latest" > "$RUNNER_TEMP/latest-release.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const release = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/latest-release.json`, 'utf8'));
+          const asset = release.assets.find(a => a.name === `CStructSharp.${release.tag_name.slice(1)}.nupkg`);
+          if (!asset || asset.size <= 0) throw Error('Released NuGet package is missing');
+          fs.writeFileSync('nuget-size.json', JSON.stringify({schemaVersion: 1, label: 'NuGet download', message: `${(asset.size / 1024).toFixed(1)} KiB`, color: 'blue'}) + '\n');
+          fs.appendFileSync('README.md', `\nNuGet download size: ${asset.size} bytes from [${release.tag_name}](${release.html_url}).\n`);
+          NODE
+
+      - name: Publish badge data
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md line-coverage.json branch-coverage.json tests.json nuget-size.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update README badge statistics'
+            git push origin HEAD:badges
+          fi
