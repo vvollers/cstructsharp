@@ -87,14 +87,13 @@ Keep inputs unchanged until their reads finish. See [large inputs](large-data.md
 
 Reading and updating both accept `dereferencePointers`; reading also accepts `maxArrayElements`, `maxStringBytes`,
 `maxTotalBytesRead`, and `maxNestingDepth`. Writing has `maxTotalBytesWritten`; updating adds traversal limits.
-The bridge enforces upper bounds, so arbitrary increases are not accepted: `maxArrayElements` cannot exceed
-1,000,000, so an array with more elements than that (for example a 1 MiB `uint8` array) cannot be parsed from
-JavaScript today, regardless of the option value. The
-[versioned contract](../../../contracts/api/browser-rc1/contract.json) lists exact option bounds and error categories.
+The default limits are configurable: arrays and string-byte budgets can be raised to `2_147_483_647`, and total
+read/write budgets to `Number.MAX_SAFE_INTEGER`. These limits count decoded work, not file size or pointer distance.
+Compilation and traversal-depth caps still apply. See [scattered pointers and budgets](large-data.md#scattered-pointers-and-read-budgets).
 
 The browser API does not expose the C# runtime-variable dictionary, CLR streams/spans, or typed class mapping.
-Use fixed array counts or layout constants in browser examples. Do not assume a runtime-sized C# recipe can be
-copied unchanged into JavaScript.
+Use earlier count fields, fixed counts or layout constants in browser examples. Caller-supplied C# variables
+need an equivalent source field or constant when adapting a recipe to JavaScript.
 
 ## Convert values deliberately
 

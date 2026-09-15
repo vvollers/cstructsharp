@@ -530,7 +530,7 @@ test("v4 options control endian behavior and enforce caller-selected safety budg
       ),
       optionCap: parse(
         wasm.parseWithDebug("struct root { byte value; };", toBytes("Kg=="), {
-          maxArrayElements: 1_000_001,
+          maxArrayElements: 0,
         }),
       ),
       definitionBudget: parse(

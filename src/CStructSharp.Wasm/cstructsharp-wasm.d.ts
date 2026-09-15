@@ -25,8 +25,11 @@ export interface ParseWithDebugOptions extends LayoutOptions {
   dereferencePointers?: boolean;
   maxPointerDepth?: number;
   maxPointerTargetBytes?: number | null;
+  /** Default: 1,000,000. Configurable through 2,147,483,647; decoded results must fit memory. */
   maxArrayElements?: number;
+  /** Default: 16 MiB. Configurable through 2,147,483,647 encoded bytes. */
   maxStringBytes?: number;
+  /** Default: 64 MiB. Counts actual reads, not pointer distance. Maximum: Number.MAX_SAFE_INTEGER. */
   maxTotalBytesRead?: number;
   maxNestingDepth?: number;
 }
@@ -36,7 +39,9 @@ export interface SerializeOptions extends LayoutOptions {
   /** Address origin. Use a decimal string or bigint for an exact large integer. */
   origin?: number | string | bigint;
   bindingMode?: "PublicReadable" | "PublicReadWrite";
+  /** Default: 1,000,000. Configurable through 2,147,483,647; decoded results must fit memory. */
   maxArrayElements?: number;
+  /** Default: 16 MiB. Configurable through 2,147,483,647 encoded bytes. */
   maxStringBytes?: number;
   maxTotalBytesWritten?: number;
   maxNestingDepth?: number;

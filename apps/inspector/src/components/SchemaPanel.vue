@@ -75,7 +75,8 @@ const settingExplanations = computed<Record<string, string>>(() => ({
   "Follow pointers": dereferencePointers.value
     ? "Parsing can visit the data at a pointer's target."
     : "Parsing keeps the pointer address without reading its target.",
-  Total: "This budget limits bytes read, including rereads during debug traversal.",
+  Total:
+    "Limits bytes actually decoded, including debug rereads. File size and pointer distance are unrestricted by this budget: a pointer beyond 4 GiB can still read only a few bytes.",
   Elements: "An array may contain at most this many elements.",
 }));
 
@@ -210,7 +211,11 @@ function submit(): void {
           </div>
         </section>
         <section class="settings-group" aria-labelledby="safety-settings-title">
-          <h3 id="safety-settings-title">Safety limits</h3>
+          <h3 id="safety-settings-title">Decoded-data budgets</h3>
+          <p>
+            These limits count decoded work, not file size or pointer distance. Raise them when
+            reading larger payloads.
+          </p>
           <div class="option-grid">
             <div class="field">
               <label for="max-array">Array elements</label>
@@ -221,7 +226,7 @@ function submit(): void {
               <input id="max-string" v-model.number="maxStringBytes" type="number" min="1" />
             </div>
             <div class="field">
-              <label for="max-total">Total bytes</label>
+              <label for="max-total">Total bytes read</label>
               <input id="max-total" v-model.number="maxTotalBytes" type="number" min="1" />
             </div>
             <div class="field">

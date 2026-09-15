@@ -20,11 +20,14 @@ public partial class CStructExports
     private const int MaximumJsonInputLength = 1024 * 1024;
     private const int MaximumLayoutNestingDepth = 256;
     private const int MaximumNestingDepth = 256;
-    private const int MaximumArrayElements = 1_000_000;
+    private const int DefaultArrayElements = 1_000_000;
+    private const int MaximumArrayElements = int.MaxValue;
     private const int MaximumPathLength = 4096;
     private const int MaximumPointerDepth = 64;
-    private const long MaximumStringBytes = 16 * 1024 * 1024;
-    private const long MaximumTotalBytes = 64 * 1024 * 1024;
+    private const long DefaultStringBytes = 16 * 1024 * 1024;
+    private const long MaximumStringBytes = int.MaxValue;
+    private const long DefaultTotalBytes = 64 * 1024 * 1024;
+    private const long MaximumTotalBytes = 9_007_199_254_740_991;
 
     /// <summary>Deserializes the one browser options object accepted by every operation.</summary>
     private static InteropOptionsDto ParseOptions(string optionsJson)
@@ -97,17 +100,17 @@ public partial class CStructExports
                 nameof(options.MaxPointerTargetBytes)),
             MaxArrayElements = Bounded(
                 options.MaxArrayElements,
-                MaximumArrayElements,
+                DefaultArrayElements,
                 MaximumArrayElements,
                 nameof(options.MaxArrayElements)),
             MaxStringBytes = Bounded(
                 options.MaxStringBytes,
-                MaximumStringBytes,
+                DefaultStringBytes,
                 MaximumStringBytes,
                 nameof(options.MaxStringBytes)),
             MaxTotalBytesRead = Bounded(
                 options.MaxTotalBytesRead,
-                MaximumTotalBytes,
+                DefaultTotalBytes,
                 MaximumTotalBytes,
                 nameof(options.MaxTotalBytesRead)),
             MaxNestingDepth = Bounded(
@@ -128,17 +131,17 @@ public partial class CStructExports
             BindingMode = ParseBindingMode(options.BindingMode),
             MaxArrayElements = Bounded(
                 options.MaxArrayElements,
-                MaximumArrayElements,
+                DefaultArrayElements,
                 MaximumArrayElements,
                 nameof(options.MaxArrayElements)),
             MaxStringBytes = Bounded(
                 options.MaxStringBytes,
-                MaximumStringBytes,
+                DefaultStringBytes,
                 MaximumStringBytes,
                 nameof(options.MaxStringBytes)),
             MaxTotalBytesWritten = Bounded(
                 options.MaxTotalBytesWritten,
-                MaximumTotalBytes,
+                DefaultTotalBytes,
                 MaximumTotalBytes,
                 nameof(options.MaxTotalBytesWritten)),
             MaxNestingDepth = Bounded(
@@ -177,12 +180,12 @@ public partial class CStructExports
                 nameof(options.MaxTraversalPointerTargetBytes)),
             MaxTraversalStringBytes = Bounded(
                 options.MaxTraversalStringBytes,
-                MaximumStringBytes,
+                DefaultStringBytes,
                 MaximumStringBytes,
                 nameof(options.MaxTraversalStringBytes)),
             MaxTraversalBytesRead = Bounded(
                 options.MaxTraversalBytesRead,
-                MaximumTotalBytes,
+                DefaultTotalBytes,
                 MaximumTotalBytes,
                 nameof(options.MaxTraversalBytesRead)),
             MaxTraversalNestingDepth = Bounded(

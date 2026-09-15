@@ -41,6 +41,7 @@ public sealed class ReadOptions
     /// <summary>
     ///     Gets the greatest fixed-size target, in bytes, that can be read through one pointer.
     ///     A null value leaves the target size unrestricted. Variable-length string targets are rejected when a limit is set.
+    ///     This is a target's decoded size, never a maximum pointer address or seek distance.
     /// </summary>
     public long? MaxPointerTargetBytes { get; init; }
 
@@ -53,7 +54,11 @@ public sealed class ReadOptions
     /// </summary>
     public long MaxStringBytes { get; init; } = 16 * 1024 * 1024;
 
-    /// <summary>Gets the greatest total bytes one public read-like operation may physically read.</summary>
+    /// <summary>
+    ///     Gets the greatest total bytes one public read-like operation may physically read. Seeking across a gap
+    ///     does not consume this budget: a small target several terabytes into a file costs only its decoded bytes.
+    ///     Set a larger value, up to <see cref="long.MaxValue"/>, when intentionally reading more payload data.
+    /// </summary>
     public long MaxTotalBytesRead { get; init; } = 64 * 1024 * 1024;
 
     /// <summary>Gets the greatest active struct depth permitted during one read-like operation.</summary>

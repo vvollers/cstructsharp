@@ -121,6 +121,28 @@ async function jumpToByte(): Promise<void> {
   hexEditor.value?.scrollToByte?.(offset);
 }
 
+// A pointer target can be far beyond the currently rendered byte window.
+watch(
+  () => props.selectedIndices,
+  async (indices, _previous, onCleanup) => {
+    let current = true;
+    onCleanup(() => {
+      current = false;
+    });
+    let offset = Number.POSITIVE_INFINITY;
+    for (const index of indices) {
+      const entry = props.debugData[index];
+      if (entry) offset = Math.min(offset, entry.CurPos);
+    }
+    if (!Number.isFinite(offset)) return;
+    await nextTick();
+    if (!current) return;
+    hexEditor.value?.scrollToByte?.(offset);
+    await nextTick();
+    if (current) hexEditor.value?.scrollToByte?.(offset);
+  },
+);
+
 const { isOverDropZone } = useDropZone(dropZone, {
   multiple: false,
   onDrop(files) {

@@ -145,3 +145,69 @@ in-memory APIs; this change does not add streamed writes.
 The [binary inspector](inspector.md) parses against the full source and loads a separate hex window on demand.
 Use **Go to byte** with a decimal or `0x` hexadecimal offset to inspect a distant location. Scrolling, searching,
 and session edits do not require a full-file `Uint8Array`.
+
+## Scattered pointers and read budgets
+
+A distant pointer does not consume a budget equal to its address. The budget counts bytes read at the target;
+seeking over unused space costs no decoded bytes. The source reader fetches small pages, and the parser restores
+the parent position after each target. Multiple pointers can move forwards and backwards through a large file.
+
+For a file whose first 24 bytes contain three little-endian, eight-byte file offsets:
+
+```c
+struct record {
+    uint32 kind;
+    uint32 length;
+    uint8 payload[length];
+};
+
+struct root {
+    record *records[3];
+};
+```
+
+```js
+const result = await parse(definition, file, {
+  rootTypeName: "root",
+  pointerSize: 8,
+  littleEndian: true,
+});
+if (!result.Success) throw new Error(result.Error.Message);
+console.log(result.Data.root.records[0].Value);
+```
+
+No offset calculation, file splitting, preprocessing or special large-address option is required. Absolute pointer
+address zero is null. The source must contain the targets, and pointer width and byte order must match the file.
+Browser source positions must be exact JavaScript safe integers (up to `Number.MAX_SAFE_INTEGER`). Managed
+seekable streams use signed 64-bit positions. Neither guarantee implies that the browser, OS or filesystem can
+create files of every representable length.
+
+The same definition works with a managed `FileStream`, which avoids reading the whole file into an array:
+
+```csharp
+var layout = new CStructSharp.CStruct(definition, pointerSize: 8, isLittleEndian: true);
+using var stream = File.OpenRead("large.bin");
+dynamic root = layout.ParseStream(stream, "root");
+Console.WriteLine(root.records[0].Value.kind);
+```
+
+The default budgets remain one million elements per array, 16 MiB per string and 64 MiB of total reads. They
+limit decoded work, not source length or pointer distance. Debug rereads and repeated target visits also count.
+If you intentionally decode larger payloads, set larger budgets:
+
+```js
+const result = await parse(definition, file, {
+  rootTypeName: "root",
+  pointerSize: 8,
+  maxArrayElements: 8_000_000,
+  maxStringBytes: 32 * 1024 ** 2,
+  maxTotalBytesRead: 256 * 1024 ** 2,
+});
+```
+
+Browser array/string limits can be raised to `2_147_483_647`; total read/write and pointer-target byte budgets can
+be raised to `Number.MAX_SAFE_INTEGER`. The corresponding update traversal budgets use the same byte bounds.
+Compilation, pointer-depth and nesting limits retain their existing bounds. The inspector exposes array, string
+and total-read budgets in its settings dialog. Available memory is still the practical limit: parsing materializes
+values and debug ranges. Prefer small typed pointer targets when you need metadata scattered through a large file.
+Managed callers can also raise `ReadOptions` budgets; `MaxTotalBytesRead` accepts values through `long.MaxValue`.
