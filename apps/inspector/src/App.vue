@@ -9,7 +9,7 @@ import {
 import ExampleList from "./components/ExampleList.vue";
 import InspectorHeader from "./components/InspectorHeader.vue";
 import InspectorDockPanel, { type InspectorPanelParams } from "./components/InspectorDockPanel.vue";
-import { schemaCatalog } from "./detected-schemas";
+import { schemaCatalog } from "./schema-catalog";
 import { useInspector } from "./composables/useInspector";
 
 const inspector = useInspector();

@@ -1,7 +1,11 @@
 import { computed, onMounted, onScopeDispose, ref, shallowRef } from "vue";
 import { detectFile } from "../detect-file";
-import { rawFileSchema, schemaForFile, schemaProfiles } from "../detected-schemas";
-import { formats, type FormatExample } from "../formats";
+import {
+  rawFileSchema,
+  schemaForFile,
+  sampleExamples,
+  type InspectorExample,
+} from "../schema-catalog";
 import { formatLayout } from "../format-layout";
 import {
   getVersion,
@@ -19,7 +23,7 @@ import { useParseSession } from "./useParseSession";
  */
 export function useInspector() {
   const parse = useParseSession();
-  const selectedExample = shallowRef<FormatExample | null>(formats[0] ?? null);
+  const selectedExample = shallowRef<InspectorExample | null>(sampleExamples[0] ?? null);
   const definition = ref(formatLayout(selectedExample.value?.definition ?? ""));
   const bytes = shallowRef(hexToBytes(selectedExample.value?.binaryHex ?? ""));
   const fileSource = shallowRef<Blob | null>(null);
@@ -59,7 +63,7 @@ export function useInspector() {
     parse.invalidate();
   }
 
-  function applySchema(example: FormatExample | null): void {
+  function applySchema(example: InspectorExample | null): void {
     selectedExample.value = example;
     definition.value = example?.definition ?? "struct root {\n    uint8 value;\n};";
 
@@ -68,13 +72,13 @@ export function useInspector() {
     schemaRevision.value++;
   }
 
-  function selectExample(example: FormatExample): void {
+  function selectExample(example: InspectorExample): void {
     invalidateDocument();
 
-    if (example.schemaOnly && example.extension) {
+    if (example.schemaOnly) {
       // A schema-only entry describes a format but has no sample bytes. Keep the user's file.
       if (!fileSource.value) bytes.value = new Uint8Array();
-      applySchema({ ...schemaForFile(example.extension), id: example.id, schemaOnly: true });
+      applySchema(example);
     } else {
       // A teaching example includes its own bytes, so it replaces the loaded file as well.
       fileSource.value = null;
@@ -128,7 +132,7 @@ export function useInspector() {
       // The user may have changed the document while we were waiting for the read.
       if (attempt.signal.aborted) return;
 
-      let schema: FormatExample | undefined;
+      let schema: InspectorExample | undefined;
       let message = "";
       if (autoDetect) {
         schema = rawFileSchema();
@@ -140,7 +144,7 @@ export function useInspector() {
           // Detection chooses an existing schema. It does not build fields from the file contents.
           if (detected) {
             schema = schemaForFile(detected.ext);
-            message = `${detected.ext.toUpperCase()} detected · ${schemaProfiles[detected.ext]!.coverage === "prefix" ? "Prefix only" : "Schema loaded"}`;
+            message = `${detected.ext.toUpperCase()} detected · ${schema.coverage === "prefix" ? "Prefix only" : "Schema loaded"}`;
           } else {
             message = "Type not recognized. Choose a schema or inspect the raw bytes.";
           }

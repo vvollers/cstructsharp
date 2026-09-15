@@ -3,7 +3,7 @@ import path from "node:path";
 import { env } from "node:process";
 import { expect, test } from "@playwright/test";
 import { fileTypeFromBuffer } from "file-type";
-import { schemaForFile } from "../../src/detected-schemas";
+import { schemaForFile } from "../../src/schema-catalog";
 import type { RawWasmAdapter } from "../../src/wasm/cstruct-contract";
 
 // Optional compatibility audit against a local copy of file-type's upstream fixtures.

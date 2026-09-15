@@ -2,43 +2,28 @@
 import { Icon } from "@iconify/vue";
 import { computed, ref } from "vue";
 import { filePresentation } from "../file-type-icons";
-import type { FormatExample } from "../formats";
-import { detectableFormatCount } from "../detected-schemas";
+import type { InspectorExample } from "../schema-catalog";
+import { detectableFormatCount } from "../schema-catalog";
 
 const props = defineProps<{
-  examples: FormatExample[];
+  examples: InspectorExample[];
   selectedId: string | null;
   selectedExtension?: string;
   detecting?: boolean;
   detectionMessage?: string;
 }>();
 const emit = defineEmits<{
-  select: [example: FormatExample];
+  select: [example: InspectorExample];
   new: [];
   detect: [];
 }>();
 
-// Teaching samples have more specific labels than the extension catalog.
-const fileTypes: Record<string, { label: string; kind: string }> = {
-  bmp: { label: "BMP", kind: "Bitmap image" },
-  wav: { label: "WAV", kind: "Wave audio" },
-  zip: { label: "ZIP", kind: "ZIP archive" },
-  png: { label: "PNG", kind: "PNG image" },
-  jpg: { label: "JPG", kind: "JPEG image" },
-  "pe-exe": { label: "EXE", kind: "Executable" },
-  "pe-dll": { label: "DLL", kind: "Shared library" },
-  ico: { label: "ICO", kind: "Windows icon" },
-  tar: { label: "TAR", kind: "TAR archive" },
-};
-
-function fileType(example: FormatExample) {
-  const extension = example.extension ?? example.id.replace(/^pe-/, "");
+function fileType(example: InspectorExample) {
+  const extension = example.extension ?? "";
   return {
     ...filePresentation(extension),
-    ...(fileTypes[example.id] ?? {
-      label: extension.toUpperCase(),
-      kind: example.title.split(" · ").slice(1).join(" · ") || example.title,
-    }),
+    label: extension.toUpperCase(),
+    kind: example.description,
   };
 }
 
@@ -54,7 +39,7 @@ const filteredExamples = computed(() => {
   });
 });
 
-function isSelected(example: FormatExample): boolean {
+function isSelected(example: InspectorExample): boolean {
   return (
     example.id === props.selectedId ||
     (!!props.selectedExtension && example.extension === props.selectedExtension)

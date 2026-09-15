@@ -1,7 +1,7 @@
 # Detection and standalone schemas
 
 **Load & detect** identifies the content using `file-type` and selects a fixed definition from
-[detected-schemas.ts](src/detected-schemas.ts). The same extension always produces identical source and parser
+[schema-catalog.ts](src/schema-catalog.ts). The same extension always produces identical source and parser
 settings. Detection can seek through a Blob to identify its format, but its only contribution to schema selection
 is the extension. No format-specific scanner supplies counts, offsets, parser variables or secondary roots.
 Detection and parsing run locally. A 15-second timeout stops stalled detection.

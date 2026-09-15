@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { schemaForFile } from "../../src/detected-schemas";
+import { schemaForFile } from "../../src/schema-catalog";
 import type { RawWasmAdapter } from "../../src/wasm/cstruct-contract";
 
 test("conditional update reachability and anonymous inactive fields survive WASM trimming", async ({

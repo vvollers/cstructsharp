@@ -26,18 +26,18 @@ See the [schema coverage and catalog audit](SCHEMA-REVIEW.md),
 `App.vue` creates one inspection session, connects file dialogs, and sets the initial dock layout.
 The session belongs to that app instance; there is no global UI store.
 
-| Module                                                       | Responsibility                                                                                              |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `composables/useInspector.ts`                                | Current schema/source, runtime readiness, file loading and detection; actions that invalidate outdated work |
-| `composables/useParseSession.ts`                             | Parse cancellation, immutable result snapshots, and JSON/hex selection                                      |
-| `composables/useBinarySource.ts`                             | Blob windows and undo/redo; delegates byte operations to `blob-hex.ts`                                      |
-| `components/InspectorDockPanel.vue`                          | Typed adapter for Dockview's nested params; connects session refs/actions to ordinary panel props/events    |
-| `components/SchemaPanel.vue`, `SchemaSettings.vue`           | Editor and run action; parser settings and their dialog                                                     |
-| `components/BinaryPanel.vue`, `ResultPanel.vue`              | Hex navigation/highlighting and JSON results; neither owns the document                                     |
-| `components/InspectorHeader.vue`, `ExampleList.vue`          | Runtime/source status and searchable schema catalog                                                         |
-| `components/LayoutEditor.vue`, `monaco-layout.ts`            | Monaco lifecycle and language integration                                                                   |
-| `detected-schemas.ts`, `standalone-layouts.ts`, `formats.ts` | Detector profiles, extended native layouts, and teaching samples                                            |
-| `wasm/cstruct-wasm.ts`                                       | Runtime loading and validation of the browser bridge's result envelope                                      |
+| Module                                              | Responsibility                                                                                              |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `composables/useInspector.ts`                       | Current schema/source, runtime readiness, file loading and detection; actions that invalidate outdated work |
+| `composables/useParseSession.ts`                    | Parse cancellation, immutable result snapshots, and JSON/hex selection                                      |
+| `composables/useBinarySource.ts`                    | Blob windows and undo/redo; delegates byte operations to `blob-hex.ts`                                      |
+| `components/InspectorDockPanel.vue`                 | Typed adapter for Dockview's nested params; connects session refs/actions to ordinary panel props/events    |
+| `components/SchemaPanel.vue`, `SchemaSettings.vue`  | Editor and run action; parser settings and their dialog                                                     |
+| `components/BinaryPanel.vue`, `ResultPanel.vue`     | Hex navigation/highlighting and JSON results; neither owns the document                                     |
+| `components/InspectorHeader.vue`, `ExampleList.vue` | Runtime/source status and searchable schema catalog                                                         |
+| `components/LayoutEditor.vue`, `monaco-layout.ts`   | Monaco lifecycle and language integration                                                                   |
+| `schema-catalog.ts`                                 | One registry for file extensions, detection layouts, sample definitions/bytes, and sidebar descriptions     |
+| `wasm/cstruct-wasm.ts`                              | Runtime loading and validation of the browser bridge's result envelope                                      |
 
 The flow is **panel event → session action → refs → panels**. Document changes cancel pending reads/parses
 and clear result selection. File loads publish the preview, full Blob and optional detected schema together;
@@ -54,6 +54,22 @@ When extending the app, put document transitions in `useInspector`, parser/selec
 
 This organization follows Vue's guidance on [composables](https://vuejs.org/guide/reusability/composables.html)
 and [shallow reactivity for large immutable structures](https://vuejs.org/guide/best-practices/performance.html#reduce-reactivity-overhead-for-large-immutable-structures).
+
+### Adding or changing a format
+
+Edit the format's entry in `src/schema-catalog.ts`. Its `extensions` select the detection layout;
+`aliases` explicitly share a layout with another extension, such as DLL with EXE. `fields`, `types`,
+parser settings and `scope` describe what detection loads. Add an optional `samples` entry beside them
+when the format has demonstration bytes; give the sample its extension explicitly. The sidebar is
+built from those registrations, so there is no separate ID-to-extension or description map to update.
+
+Sample layouts sometimes cover less than the detection layout because their small fixtures teach a
+specific feature. Keeping both as explicit variants preserves those examples without an override pass.
+Identical declarations, such as the EXE/DLL sample layout and TAR fields, are shared within the catalog.
+Catalog tests check detector coverage, unique IDs/extensions, aliases and sample placement.
+
+`apps/workshop/src/lessons.ts` belongs to the separate workshop application. It teaches language
+features through lessons and expected results; it is not used for the inspector's file-type selection.
 
 ### Build and verification
 

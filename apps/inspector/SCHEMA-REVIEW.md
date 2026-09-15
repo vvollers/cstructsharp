@@ -2,7 +2,7 @@
 
 All 184 detector registrations use fixed declarations. This replaces the earlier preview-expansion audit: input-dependent record counts, offsets, variant selection and region discovery have been removed. The nine sample-backed demonstrations retain their managed fixtures. The additional DLL entry shares the PE sample definition.
 
-The source of truth is [detected-schemas.ts](src/detected-schemas.ts), with fixed native declarations in [standalone-layouts.ts](src/standalone-layouts.ts). No module receives file bytes to construct a layout. Each editor definition is self-contained and formatted.
+The source of truth is [schema-catalog.ts](src/schema-catalog.ts), which registers each format's extensions, detection layout and optional sample examples together. No module receives file bytes to construct a layout. Each editor definition is self-contained and formatted.
 
 ## Language features and text
 

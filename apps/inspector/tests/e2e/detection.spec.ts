@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { schemaForFile, schemaProfiles } from "../../src/detected-schemas";
+import { schemaForFile, detectorExtensions } from "../../src/schema-catalog";
 import type { RawWasmAdapter } from "../../src/wasm/cstruct-contract";
 
 test.beforeEach(async ({ page }) => {
@@ -66,7 +66,7 @@ test("unknown files get a raw schema and manual loading preserves the selected s
 });
 
 test("every registered schema compiles in the real WASM parser", async ({ page }) => {
-  const cases = Object.keys(schemaProfiles).map((ext) => schemaForFile(ext));
+  const cases = detectorExtensions.map((ext) => schemaForFile(ext));
   const failures = await page.evaluate((schemas) => {
     const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
     return schemas.flatMap((schema) => {

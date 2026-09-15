@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h, isReactive } from "vue";
 import { mount } from "@vue/test-utils";
 import { detectFile } from "../detect-file";
-import { formats } from "../formats";
+import { sampleExamples } from "../schema-catalog";
 import { parseFailure } from "../parse-diagnostics";
 import { parseSourceWithDebug } from "../wasm/cstruct-wasm";
 import { useInspector, type Inspector } from "./useInspector";
@@ -126,7 +126,7 @@ describe("inspection session", () => {
     pending.resolve(parseFailure("Too late"));
     await run;
     expect(inspector.result.value?.Error?.Code).toBe("cancelled");
-    inspector.selectExample(formats[1]!);
+    inspector.selectExample(sampleExamples[1]!);
     expect(inspector.result.value).toBeNull();
   });
 });

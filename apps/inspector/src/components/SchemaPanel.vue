@@ -2,14 +2,14 @@
 import { ref, watch } from "vue";
 import LayoutEditor from "./LayoutEditor.vue";
 import SchemaSettings, { type SchemaSettingsValues } from "./SchemaSettings.vue";
-import type { FormatExample } from "../formats";
+import type { InspectorExample } from "../schema-catalog";
 import type { ParseWithDebugOptions } from "../wasm/cstruct-contract";
 
 const props = defineProps<{
   disabled: boolean;
   running: boolean;
   loadingFile: boolean;
-  example: FormatExample | null;
+  example: InspectorExample | null;
   revision: number;
 }>();
 const emit = defineEmits<{
