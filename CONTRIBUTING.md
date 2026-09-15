@@ -94,7 +94,7 @@ not replace the baseline simply to make the check green. For an intentional publ
 1. Decide whether the package version or release plan must change.
 2. Update the baseline revision and its reason and hash history.
 3. Add or update behavior tests and package-consumer tests.
-4. Update the changelog and migration or compatibility notes.
+4. Put migration notes in `CHANGELOG.md` and update guides and API documentation to describe the current behavior.
 
 ### Browser bridge and web workbench
 
@@ -106,7 +106,8 @@ contract check when exports, options, result envelopes, error categories, or num
 ```
 
 A browser change must also pass the relevant frontend checks locally. The release workflow builds the production
-WASM test explorer, but deliberately does not repeat formatting, audit, compatibility, or browser-test gates.
+WASM explorer and inspector and runs their unit and browser tests, along with package-consumer checks.
+Use the owning app's README for local formatting, audit, and compatibility checks.
 
 ### Fuzzing
 
@@ -221,6 +222,6 @@ Most contributions do not need this section. Before preparing a release candidat
 Triggering `.github/workflows/release.yml` is the release decision: the workflow first builds and verifies every
 artifact (managed tests, packages, documentation, WebAssembly bundle, onboarding and browser checks) with no write
 access to the repository, then — only if that verification succeeds — commits and tags the version bump, publishes
-the NuGet package, deploys the documentation/explorer site, and creates the GitHub Release. There is no separate,
+the NuGet and npm packages, deploys the documentation/explorer/inspector site, and creates the GitHub Release. There is no separate,
 manually-approved publish step after triggering; see
 [the release process guide](docs/project/release-process.md) for detail.

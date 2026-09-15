@@ -68,7 +68,8 @@ the repository root `MUTATION_TESTING.md`.
 The layout parser has its own oracle: `ParserDifferentialTests` parses every fixture, contract, demo, and
 documentation layout - and thousands of deterministic mutations of them - through both `LayoutParser` and the
 frozen Pidgin reference grammar kept under `tests/CStructSharpTests/Reference/`, requiring identical accept/reject
-decisions and identical syntax trees. Extend the language in `LayoutParser` and, for the differential test to
+decisions and identical syntax trees except for explicitly tested grammar corrections (comment stars and empty
+alignment arguments). The Portable contract defines the intended behavior for these cases. Extend the language in `LayoutParser` and, for the differential test to
 keep its meaning, in the reference grammar too.
 
 Do not lower thresholds, add broad exclusions, or classify a real survivor away to make a run green.

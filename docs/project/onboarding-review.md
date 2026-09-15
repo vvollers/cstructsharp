@@ -55,5 +55,5 @@ recipes on .NET 10. The browser check extracts the real ZIP and runs it under `/
 and a downloaded-file byte comparison. It needs the web project's installed dependencies and Playwright Chromium.
 
 The release workflow runs these artifact checks before publishing their corresponding artifacts. Documentation
-editing remains independent of WASM builds. Keep historical compatibility snapshots labeled as historical;
-development metadata and published releases answer different version questions.
+editing remains independent of WASM builds. Check the installed package version when reviewing a published
+artifact; the repository project file identifies the development version.

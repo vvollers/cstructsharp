@@ -24,8 +24,8 @@ For a deeper foundation, read [how C structs occupy memory](native-c-memory.md) 
 arrays and pointers, platform ABIs, byte order, and text encodings, with exercises and worked answers.
 They assume introductory programming knowledge, not operating-systems or compiler courses.
 
-If you used an earlier release, read [Upgrade to the current API](upgrading.md) for managed result types,
-browser contract 7, debug ranges, and layout reuse.
+Read [reading values](reading-values.md) for managed result types and the [JavaScript API](browser/api.md)
+for browser results, debug ranges, and compiled-layout reuse.
 
 The remaining guides cover data shapes and operational concerns:
 

@@ -29,8 +29,7 @@ Use project manifests, the local .NET tool manifest, and npm lockfiles for curre
 
 The core library has no runtime package dependencies: the layout parser is hand-written (`LayoutParser`), and
 CStructSharp itself performs name resolution, layout calculation, value conversion, safety limits, and every public
-operation. Pidgin, the parser-combinator library the parser was originally built on, now lives only in the test
-project as a frozen reference grammar; `ParserDifferentialTests` parses the fixture corpus and thousands of
+operation. The test project uses Pidgin, a parser-combinator library, for a frozen reference grammar; `ParserDifferentialTests` parses the fixture corpus and thousands of
 mutations of it through both parsers so a parser change cannot silently change the documented language.
 
 `PrivateAssets` prevents analyzer and build packages from becoming dependencies of an application that installs the
@@ -57,7 +56,7 @@ library. Source Link is enabled in CI/release-style builds where repository meta
 | `@axe-core/playwright` | Serious and critical automated accessibility findings |
 
 The documentation manifest pins exact versions and commits `package-lock.json`. Its `js-yaml` override is fixed at
-5.2.2 so the lint dependency tree does not retain the earlier vulnerable release. Use Node 24 or 26. These tools do
+5.4.1 to satisfy the documentation dependency audit. Use Node 24 or 26. These tools do
 not enter either the NuGet package or the generated static site.
 
 Install exactly the locked documentation tree with:

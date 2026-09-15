@@ -26,7 +26,7 @@ A whole union write accepts `UnionValue`:
 - a new selected-member write starts with zero-filled union storage; and
 - a wrong union name, raw length, or member name fails before union bytes are submitted.
 
-Legacy dictionary, expando, or POCO values cannot stand in for a whole union because they do not state which member
+Dictionary, expando, or POCO values cannot stand in for a whole union because they do not state which member
 or raw bytes to preserve. `Members` and raw storage are read-only snapshots. `WithoutSelection` returns to raw
 pass-through when a raw snapshot exists.
 

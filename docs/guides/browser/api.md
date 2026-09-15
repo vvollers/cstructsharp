@@ -97,8 +97,7 @@ need an equivalent source field or constant when adapting a recipe to JavaScript
 
 ## Convert values deliberately
 
-- Parse `Data` is the parsed value (an object; before contract version 7 it was JSON text that needed
-  `JSON.parse`). It keeps the root wrapper: the header example is read as `result.Data.header.kind`. C# `Parse`
+- Parse `Data` is the parsed object. It keeps the root wrapper: the header example is read as `result.Data.header.kind`. C# `Parse`
   returns the selected struct directly.
 - For serialize, pass the selected struct's fields, such as `{ kind: 3, length: 6 }`, without the debug root wrapper.
 - Write/update `Data` is already a `Uint8Array`. Use it directly for reading, saving, or sending bytes.
@@ -113,8 +112,10 @@ need an equivalent source field or constant when adapting a recipe to JavaScript
 Try the [large integer lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=large-integer) and
 [fixed text lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=text).
 
-If adapting an older wrapper example, remove the `atob(result.Data)` conversion after serialize or update.
-Binary data now crosses the boundary as native bytes end to end, so no Base64 decoding step remains. For parse results, also apply the contract-version-7 `Data` change above. Union `RawStorage` remains a byte-number array.
+Union `RawStorage` is an array of byte numbers. Keep it when an unchanged union must preserve its exact bytes.
+
+Deploy the JavaScript wrapper, TypeScript declarations, and runtime assets from the same npm package version or
+release ZIP. Mixing assets can produce incompatible results.
 
 ## Diagnose a failure
 

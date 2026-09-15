@@ -16,8 +16,9 @@ Constructing [`CStruct`](xref:CStructSharp.CStruct) has four stages:
    recursive-descent parser: one cursor over the source, direct character tests, and one method per grammar
    production. It builds the small model classes (`Struct`, `Field`, `Enum`, `Typedef`, `Defines`, and the `Expr`
    tree) the later stages consume, and reports every syntax error as a `CStructLayoutException` with a line and
-   column. The test project keeps the earlier parser-combinator grammar as a frozen reference and parses the whole
-   fixture corpus through both to prove they accept the same language and build the same tree.
+   column. The test project keeps a parser-combinator grammar as a frozen reference and parses the whole
+   fixture corpus through both to check accepted syntax and resulting trees. Explicitly documented exceptions
+   cover intentional differences; the Portable contract defines the supported language.
 2. **Check meaning.** The constructor resolves names and aliases, checks expression dependencies and value ranges,
    rejects recursive by-value storage, and confirms that each declaration has supported behavior.
 3. **Prepare the layout.** `CStructCompiledModel` records field order, direct value codecs, array counts and strides,

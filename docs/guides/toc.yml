@@ -7,8 +7,6 @@ items:
   href: native-c-memory.md
 - name: Memory addresses and stored data
   href: memory-and-stored-data.md
-- name: Upgrade to the current API
-  href: upgrading.md
 - name: Install and first parse
   href: install-and-first-parse.md
 - name: Continue with the header

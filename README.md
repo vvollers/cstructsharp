@@ -18,6 +18,9 @@ CStructSharp reads and writes binary data using a description that looks like a 
 some bytes, and it gives you named values. Give it values, and it can create bytes or change a field in existing
 data. Use it from C#, Node.js, or JavaScript in a browser.
 
+**Zero runtime package dependencies.** The core .NET library uses only the .NET runtime, keeping integration
+simple and your application's dependency tree small.
+
 ## Choose your starting point
 
 - [Try the browser lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=header): no installation.
@@ -65,7 +68,8 @@ By default, fields are packed together, numbers use little-endian byte order, an
 The [binary layout basics](https://vvollers.github.io/cstructsharp/docs/guides/binary-layout-basics.html) explain these choices.
 For the background, read [how C structs occupy memory](docs/guides/native-c-memory.md) and
 [memory addresses and stored data](docs/guides/memory-and-stored-data.md).
-Existing users can follow the [upgrade guide](docs/guides/upgrading.md).
+See [reading values](docs/guides/reading-values.md) for managed result types and the
+[JavaScript API](docs/guides/browser/api.md) for browser results.
 Try changing `0x02` to `0x03`: `kind` becomes `3`.
 
 ## A portable C struct definition language
@@ -148,8 +152,7 @@ JavaScript API, result conversion, and common loading errors.
 - [Read release notes](https://github.com/vvollers/CStructSharp/blob/main/CHANGELOG.md)
 
 The package targets .NET 8 and .NET 10. Release assets describe published versions; the repository's
-`src/CStructSharp/CStructSharp.csproj` records the development version. Historical compatibility snapshots have their
-own labels and do not identify the latest release.
+`src/CStructSharp/CStructSharp.csproj` records the development version.
 
 ## Work on the project
 

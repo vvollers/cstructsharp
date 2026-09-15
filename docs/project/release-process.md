@@ -102,8 +102,7 @@ gh workflow run release.yml --ref main -f mode=recover -f recovery_run_id=ORIGIN
 ```
 
 Replace ORIGINAL_RUN_ID with the numeric run ID. Recovery checks the package's integrity before skipping its upload.
-Do not start another normal patch release to complete a partly published version. This recovery path was used for
-0.4.1 after npm's processing delay; the existing tested artifacts completed publication successfully.
+Do not start another normal patch release to complete a partly published version.
 
 ## Build and test npm locally
 

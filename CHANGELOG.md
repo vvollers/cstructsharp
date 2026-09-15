@@ -1,8 +1,31 @@
 # Changelog
 
 Notable changes to CStructSharp, newest first. Release versions and dates were reconstructed from the original
-Git history preserved before the repository history reset. Entries focus on features, fixes, and migration steps;
-routine refactoring, dependency updates, and benchmark bookkeeping are omitted.
+Git history preserved before the repository history reset. Entries focus on features, fixes, and migration steps.
+Related changes are consolidated; routine formatting and benchmark bookkeeping are omitted.
+
+## 0.4.3 — 2026-09-15
+
+- Highlighted the core .NET library's zero runtime package dependencies in the README and website landing page.
+- Added repository-wide agent guidance for source documentation, current-API teaching material, changelog upkeep,
+  and focused validation.
+- Added centered README badges for license, package versions and sizes, CI status, managed coverage, and test
+  totals. Custom badge data and measurement details are hosted on GitHub Pages and refreshed on site/release builds.
+- Consolidated API guidance into current-state reading and JavaScript guides, corrected inspector schema coverage
+  and contributor procedures, and kept project migration notes in this changelog.
+
+## 0.4.2 — 2026-09-15
+
+- Allowed larger configurable browser read budgets and distant pointers without treating file size or pointer
+  distance as decoded work. Added regression coverage for sparse sources and pointers beyond 4 GiB.
+- Consolidated the binary inspector's format definitions, extension matching, and teaching samples into one schema
+  catalog. Detected schemas are self-contained CStruct definitions, with conditions and stored offsets interpreted
+  by the library. Format discovery no longer generates layouts or combines separate parse results.
+- Expanded CAB file tables and paths, LHA first-entry names, RAR first-header metadata, LZ4 and Zstandard frame
+  fields, ISO primary-volume metadata, MIDI track chunks, and ASF child objects. Compressed payloads remain opaque.
+- Simplified inspector component and state responsibilities, grouped related helpers, and clarified source comments.
+- Added native C memory-layout teaching material and current-API examples; documented the parser's intentional
+  empty-alignment difference from its reference grammar and refreshed the workshop catalog baseline.
 
 ## 0.4.1 — 2026-09-14
 
@@ -19,7 +42,9 @@ routine refactoring, dependency updates, and benchmark bookkeeping are omitted.
   implement `IList<object?>`, but have a fixed size. Replace explicit list casts; use `Span` or `ToArray()` for
   access to typed elements without boxing.
 - Browser contract version 7 returns the parsed object directly in `Data`. Replace `JSON.parse(result.Data)`
-  with `result.Data`. Serialization and update results remain `Uint8Array` values.
+  with `result.Data`. Serialization and update results are `Uint8Array` values; remove `atob(result.Data)` from older wrappers.
+  Keep the parse root wrapper (`result.Data.header`), but pass only the selected root's fields to serialization.
+  Deploy the wrapper, declarations, and runtime assets from the same package or release ZIP.
 - Browser debug records no longer include `Buffer`. Use `CurPos` and `EndPos` to select bytes from the original
   input. This change was introduced in contract version 6 and remains in version 7.
 

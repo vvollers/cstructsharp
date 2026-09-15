@@ -9,12 +9,12 @@ using System.Reflection;
 
 /// <summary>
 ///     A parsed struct: the members of one composite in declaration order, readable through <see langword="dynamic"/>
-///     member access (<c>parsed.header.length</c>), through <see cref="IDictionary{TKey, TValue}"/> /
+///     member access (<c>parsed.length</c>), through <see cref="IDictionary{TKey, TValue}"/> /
 ///     <see cref="IReadOnlyDictionary{TKey, TValue}"/> (<c>values["length"]</c>), or by enumerating key/value pairs.
 ///     Members that a conditional arm did not select are absent rather than null. Values are the same objects the
 ///     documented value table describes (boxed primitives, <see cref="string"/>, nested <see cref="StructValue"/>,
 ///     <see cref="IList{T}"/> of <see cref="object"/> for arrays, <see cref="UnionValue"/>, <see cref="Pointer"/>,
-///     <see cref="EnumValueResult"/>). Instances are mutable like the <c>ExpandoObject</c> they replace, so a parsed
+///     <see cref="EnumValueResult"/>). Instances are mutable, so a parsed
 ///     value can be edited and handed back to <c>Serialize</c>/<c>UpdateStream</c>.
 /// </summary>
 public sealed class StructValue : DynamicObject, IDictionary<string, object?>, IReadOnlyDictionary<string, object?>

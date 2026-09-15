@@ -67,6 +67,22 @@ Deployment is manual:
 The deploy job consumes only the complete artifact produced by its successful build job. It shares the release
 workflow's concurrency group so those deployments cannot overlap. The `Documentation` workflow validates and uploads review artifacts only.
 
+## README badge data
+
+The complete Pages site includes `/badges/`, which holds JSON endpoints for README images and a page explaining
+those measurements. Managed CI produces the `readme-badges` artifact from .NET 10 coverage and test results.
+`prepare-site-badges.mjs` downloads that artifact from the latest successful main-branch push run. Website and
+release workflows need `actions: read` permission for this step; assembly fails if required badge files are missing.
+
+Coverage measures CStructSharp library lines and branches. Test totals cover the managed .NET 10 run, excluding
+Vue and browser tests. The details page links to the source CI run. These values refresh when the complete site is
+deployed, including during a full release. The README's CI status badge updates independently through GitHub.
+
+The NuGet size badge measures the package archive: the built package during a release, or the latest GitHub Release
+asset during a website-only build. The npm size badge reports unpacked package size, including WASM assets, so the
+two sizes measure different things. Inspect the [badge details](https://vvollers.github.io/cstructsharp/badges/)
+when interpreting the numbers.
+
 ## Verify the live site
 
 The intended documentation URL is `https://vvollers.github.io/cstructsharp/docs/`. The project landing page is at

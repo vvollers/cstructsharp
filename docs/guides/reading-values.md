@@ -84,6 +84,12 @@ The non-generic `ReadValue` method returns the direct representation for the sel
 These richer enum, union, and pointer objects retain information that a plain integer or dictionary would lose. Keep
 them when you intend to write the value back faithfully.
 
+A `StructValue` supports dynamic member access and dictionary lookup. Field names match the layout exactly.
+`PrimitiveArray<T>` has a fixed length: you can replace an element, but cannot add or remove one. Its `Span`
+accesses typed elements without boxing (wrapping a value in an object); `ToArray()` makes an independent copy.
+Multidimensional arrays use nested collections, and text buffers return strings. Editing a parsed value does not
+change the input bytes. Use serialization or an explicit update to write those changes.
+
 ## Stream position and failures
 
 Successful parse and read calls advance a stream through the value they consumed. `TryReadValue<T>` behaves
