@@ -53,6 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
@@ -228,6 +229,12 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: ./tools/packaging/Test-OnboardingBrowser.ps1 -ArchivePath "./artifacts/cstructsharp-wasm-v$env:VERSION.zip"
+
+      - name: Prepare README badges
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: node tools/packaging/prepare-site-badges.mjs "artifacts/package/CStructSharp.${VERSION}.nupkg"
 
       - name: Assemble GitHub Pages site
         run: node tools/packaging/assemble-site.mjs

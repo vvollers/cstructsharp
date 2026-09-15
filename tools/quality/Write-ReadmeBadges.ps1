@@ -56,6 +56,6 @@ Source: [CI run]($RunUrl).
 
 Coverage measures only the CStructSharp managed library on .NET 10. Test counts include
 parameterized cases from that framework once; they exclude the Vue and browser test suites.
-The badges represent the latest successful main-branch CI run, not an in-progress or failed run.
+The website deployment refreshes these statistics from a successful main-branch CI run.
 Full TRX and Cobertura reports are available in that run's test-results artifact.
 "@ | Set-Content -LiteralPath (Join-Path $OutputDirectory 'README.md') -Encoding utf8

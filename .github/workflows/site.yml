@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: release
@@ -56,6 +57,11 @@ jobs:
           npx playwright install --with-deps chromium
           npm run test:unit
           npm run test:e2e
+      - name: Prepare README badges
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/packaging/prepare-site-badges.mjs
+
       - name: Assemble complete website
         run: node tools/packaging/assemble-site.mjs
 

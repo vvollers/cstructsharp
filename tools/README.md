@@ -5,10 +5,12 @@
 ## Manual measurements
 
 README quality badges come from `quality/Write-ReadmeBadges.ps1`, using CI's .NET 10 TRX and
-library-only Cobertura reports. The `README badges` workflow publishes the latest successful main
-CI statistics and latest released NuGet download size to the generated `badges` branch. It runs
-after successful CI/release workflows and can be dispatched manually. The branch's README links
-to the measured CI run; no coverage service account or website deployment is required.
+library-only Cobertura reports. Website and release builds run `packaging/prepare-site-badges.mjs`
+to retrieve the latest successful main CI statistics and measure the NuGet download. Releases use
+the newly built package; website-only deployments use the latest published release asset.
+`packaging/assemble-site.mjs` includes these files under `/badges/` alongside the complete site.
+Badge links lead to the measured CI run. Statistics refresh with site deployments; no generated
+Git branch or separate publishing workflow is needed.
 
 Use `quality/Measure-ArtifactBaseline.ps1 -PackageDirectory artifacts/package -OutputPath artifacts/package-sizes.json` to capture raw and gzip-equivalent package sizes. Pass that report to `quality/Validate-NonWebReleaseBudgets.ps1 -PackageArtifactPath artifacts/package-sizes.json`. The same meter accepts `-WasmDirectory` and `-FrontendDirectory`. Benchmark JSON conversion is documented in [benchmarks](../benchmarks/README.md). Reports are generated output; historical raw measurements are not required inputs.
 
