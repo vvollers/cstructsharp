@@ -26,18 +26,18 @@ See the [schema coverage and catalog audit](SCHEMA-REVIEW.md),
 `App.vue` creates one inspection session, connects file dialogs, and sets the initial dock layout.
 The session belongs to that app instance; there is no global UI store.
 
-| Module                                              | Responsibility                                                                                              |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `composables/useInspector.ts`                       | Current schema/source, runtime readiness, file loading and detection; actions that invalidate outdated work |
-| `composables/useParseSession.ts`                    | Parse cancellation, immutable result snapshots, and JSON/hex selection                                      |
-| `composables/useBinarySource.ts`                    | Blob windows and undo/redo; delegates byte operations to `blob-hex.ts`                                      |
-| `components/InspectorDockPanel.vue`                 | Typed adapter for Dockview's nested params; connects session refs/actions to ordinary panel props/events    |
-| `components/SchemaPanel.vue`, `SchemaSettings.vue`  | Editor and run action; parser settings and their dialog                                                     |
-| `components/BinaryPanel.vue`, `ResultPanel.vue`     | Hex navigation/highlighting and JSON results; neither owns the document                                     |
-| `components/InspectorHeader.vue`, `ExampleList.vue` | Runtime/source status and searchable schema catalog                                                         |
-| `components/LayoutEditor.vue`, `monaco-layout.ts`   | Monaco lifecycle and language integration                                                                   |
-| `schema-catalog.ts`                                 | One registry for file extensions, detection layouts, sample definitions/bytes, and sidebar descriptions     |
-| `wasm/cstruct-wasm.ts`                              | Runtime loading and validation of the browser bridge's result envelope                                      |
+| Module                                               | Responsibility                                                                                              |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `composables/useInspector.ts`                        | Current schema/source, runtime readiness, file loading and detection; actions that invalidate outdated work |
+| `composables/useParseSession.ts`                     | Parse cancellation, success/error results, and JSON/hex selection                                           |
+| `composables/useBinarySource.ts`                     | Blob windows, undo/redo, byte editing and search                                                            |
+| `components/InspectorDockPanel.vue`                  | Typed adapter for Dockview's nested params; connects session refs/actions to ordinary panel props/events    |
+| `components/SchemaPanel.vue`, `SchemaSettings.vue`   | Editor and run action; parser settings and their dialog                                                     |
+| `components/BinaryPanel.vue`, `ResultPanel.vue`      | Hex navigation/highlighting and JSON results; neither owns the document                                     |
+| `components/InspectorHeader.vue`, `ExampleList.vue`  | Runtime/source status and searchable schema catalog                                                         |
+| `components/LayoutEditor.vue`, `cstruct-language.ts` | Editor component lifecycle; lazy Monaco setup, worker, highlighting and language help                       |
+| `schema-catalog.ts`                                  | One registry for file extensions, detection layouts, sample definitions/bytes, and sidebar descriptions     |
+| `wasm/cstruct-wasm.ts`                               | Runtime loading and validation of the browser bridge's result envelope                                      |
 
 The flow is **panel event → session action → refs → panels**. Document changes cancel pending reads/parses
 and clear result selection. File loads publish the preview, full Blob and optional detected schema together;

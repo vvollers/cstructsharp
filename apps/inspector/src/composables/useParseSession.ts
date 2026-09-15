@@ -4,7 +4,7 @@ import {
   findDebugEntryIndexByOffset,
   findDebugEntryIndicesByPath,
 } from "../debug-path";
-import { parseFailure } from "../parse-diagnostics";
+import { INTEROP_CONTRACT_VERSION } from "../wasm/cstruct-contract";
 import {
   parseSourceWithDebug,
   type InteropResult,
@@ -131,5 +131,21 @@ export function useParseSession() {
     fail,
     selectByte,
     selectPath,
+  };
+}
+
+/** Give UI errors the same result shape as errors returned by the parser. */
+export function parseFailure(
+  message: string,
+  code = "invalid-input",
+  offset: number | null = null,
+): InteropResult {
+  return {
+    ContractVersion: INTEROP_CONTRACT_VERSION,
+    Operation: "parse",
+    Success: false,
+    Data: null,
+    DebugData: [],
+    Error: { Code: code, Message: message, Offset: offset, Path: null },
   };
 }

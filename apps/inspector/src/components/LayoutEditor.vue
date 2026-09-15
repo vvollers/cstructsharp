@@ -20,7 +20,7 @@ let disposed = false;
 // Load Monaco when this editor first appears. The import is asynchronous, so check that the
 // component still exists before creating the editor: the user might have closed the panel meanwhile.
 onMounted(async () => {
-  const { monaco, CSTRUCT_LANGUAGE_ID } = await import("../monaco-layout");
+  const { monaco, CSTRUCT_LANGUAGE_ID } = await import("../cstruct-language");
   if (disposed || !host.value) return;
 
   // The model holds the text; the editor instance provides the visible controls for editing it.

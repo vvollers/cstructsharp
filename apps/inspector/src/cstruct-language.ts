@@ -1,14 +1,9 @@
-// Registers a dedicated Monaco language for the CStruct DSL (previously approximated with the built-in
-// "c" language for highlighting only, see monaco-layout.ts) - a Monarch tokenizer, bracket/comment
-// configuration, and completion/hover providers covering the language's keywords, primitive type
-// spellings, and any struct/union/enum/typedef/#define names the user has already declared in the current
-// document (see cstruct-symbols.ts's collectSymbols).
-//
-// collectSymbols is a lightweight regex-based scanner, not a real parser reusing the WASM boundary's own
-// grammar (which only ever accepts/returns the whole definition as one opaque string, see
-// cstruct-wasm.ts) - good enough for symbol-name completion and hover text, not full semantic validation.
-// Real diagnostics still only appear when the user hits Run.
+// Loaded lazily by LayoutEditor. This module sets up Monaco's worker, syntax highlighting,
+// completion and hover help together. The symbol scanner stays in cstruct-symbols.ts so it can
+// run without loading Monaco; actual schema validation still happens in WASM when the user runs it.
 import * as monaco from "monaco-editor/editor";
+import "monaco-editor/features/register.all";
+import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 import {
   collectSymbols,
   CSTRUCT_KEYWORD_DOCS,
@@ -216,3 +211,11 @@ monaco.languages.registerHoverProvider(CSTRUCT_LANGUAGE_ID, {
     return null;
   },
 });
+
+// Monaco asks for a worker when an editor needs background work. Vite supplies its bundled URL.
+// Register the factory during this one-time module load, before LayoutEditor creates an editor.
+globalThis.MonacoEnvironment = {
+  getWorker: () => new EditorWorker(),
+};
+
+export { monaco };

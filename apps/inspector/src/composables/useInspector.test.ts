@@ -3,7 +3,7 @@ import { defineComponent, h, isReactive } from "vue";
 import { mount } from "@vue/test-utils";
 import { detectFile } from "../detect-file";
 import { sampleExamples } from "../schema-catalog";
-import { parseFailure } from "../parse-diagnostics";
+import { parseFailure } from "./useParseSession";
 import { parseSourceWithDebug } from "../wasm/cstruct-wasm";
 import { useInspector, type Inspector } from "./useInspector";
 
