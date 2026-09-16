@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests;
 
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -508,10 +509,12 @@ public class ParserDifferentialTests
         }
 
         // The frozen reference grammar matches a keyword as a bare prefix (`structroot` parses as `struct root`),
-        // reads a function-like macro's parameter list as a call expression, and lets a `#define` value continue on
-        // the next line; the parser follows C on all three (a directive ends at its line), so those sources are
-        // compared for acceptance only where the divergence is the token or line boundary.
-        if (referenceDump is not null && (HasGluedKeyword(source) || HasFunctionLikeMacro(source) || HasLineBrokenDefine(source)))
+        // reads a function-like macro's parameter list as a call expression, and skips any trivia - comments and
+        // newlines included - between a `#define` name and its value; the parser follows C on all three (a directive
+        // ends at its line), so those sources are compared for acceptance only where the divergence is the token or
+        // line boundary.
+        if (referenceDump is not null &&
+            (HasGluedKeyword(source) || HasFunctionLikeMacro(source) || RejectsLineAfterDefine(source, candidateError)))
         {
             accepted = candidateDump is not null;
             return null;
@@ -608,19 +611,33 @@ public class ParserDifferentialTests
     }
 
     /// <summary>
-    ///     True when a <c>#define NAME</c> line has no value and the next non-blank line is not a declaration or
-    ///     directive, which the reference reads as the macro's value (<c>#define COUNT\n 2</c>).
+    ///     True when the candidate's syntax diagnostic points at the line after a <c>#define</c> directive: the
+    ///     reference read that line as the macro's value (<c>#define COUNT\n 2</c>, <c>#define AB// c\nC == 1</c>),
+    ///     the line-scoped parser did not.
     /// </summary>
-    private static bool HasLineBrokenDefine(string source)
+    private static bool RejectsLineAfterDefine(string source, string? candidateError)
     {
-        foreach (Match match in Regex.Matches(source, @"#\s*define[ \t]+[A-Za-z_]\w*[ \t]*\r?\n(?<next>[ \t]*\S)"))
+        if (candidateError is null)
         {
-            char first = match.Groups["next"].Value[^1];
-            if (first is not ('#' or '}' or ';') &&
-                !Regex.IsMatch(source[(match.Index + match.Length - 1)..], @"^(struct|union|enum|typedef|flag)\b"))
+            return false;
+        }
+
+        Match position = Regex.Match(candidateError, @" at line (?<line>\d+), column \d+");
+        if (!position.Success)
+        {
+            return false;
+        }
+
+        string[] lines = source.Split('\n');
+        int errorLine = int.Parse(position.Groups["line"].Value, CultureInfo.InvariantCulture) - 1;
+        for (int line = Math.Min(errorLine, lines.Length) - 1; line >= 0; line--)
+        {
+            if (lines[line].Trim().Length == 0)
             {
-                return true;
+                continue;
             }
+
+            return Regex.IsMatch(lines[line], @"^\s*#\s*define\b");
         }
 
         return false;
@@ -769,21 +786,19 @@ public class ParserDifferentialTests
             AddDefinitions("compiler-fixture:" + Path.GetFileNameWithoutExtension(file), document.RootElement, Add);
         }
 
-        string demos = Path.Combine(root, "apps", "workshop", "src", "generated", "test-demos.json");
-        if (File.Exists(demos))
-        {
-            using JsonDocument document = JsonDocument.Parse(File.ReadAllText(demos), DeepJson);
-            foreach (JsonElement test in document.RootElement.GetProperty("tests").EnumerateArray())
-            {
-                if (test.TryGetProperty("definition", out JsonElement definition) && definition.ValueKind == JsonValueKind.String)
-                {
-                    Add("demo:" + test.GetProperty("id").GetString(), definition.GetString());
-                }
-            }
-        }
-
+        // Only committed sources: the corpus, and with it the seeded mutation stream, must be the same on every
+        // machine. The generated demo catalog restates the test literals below, and a docs checkout may carry
+        // node_modules, the built site, and the exported recipes.
         foreach (string file in Directory.GetFiles(Path.Combine(root, "docs"), "*.md", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
         {
+            string relative = Path.GetRelativePath(root, file).Replace('\\', '/');
+            if (relative.Contains("/node_modules/", StringComparison.Ordinal) ||
+                relative.StartsWith("docs/_site/", StringComparison.Ordinal) ||
+                relative.StartsWith("docs/examples/recipes/", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
             string text = File.ReadAllText(file);
             foreach (Match match in Regex.Matches(text, "```[a-zA-Z]*\\r?\\n(.*?)```", RegexOptions.Singleline))
             {
