@@ -30,7 +30,8 @@ public class ManualLanguageFixtureTests
                 fixture.Definition,
                 (byte)fixture.PointerSize,
                 fixture.Aligned,
-                fixture.LittleEndian);
+                fixture.LittleEndian,
+                CreateCompilationOptions(fixture.Compilation));
             byte[] bytes = Convert.FromHexString(fixture.Bytes);
 
             Assert.AreEqual(fixture.Alignment, cstruct.GetStructAlignmentInBytes(fixture.Root), pair.Id);
@@ -115,6 +116,24 @@ public class ManualLanguageFixtureTests
                 pair.Id);
             Assert.AreEqual(expectedCode, readFailure.Code, pair.Id);
         }
+    }
+
+    /// <summary>The compilation options a fixture names (the constructor defaults when it names none).</summary>
+    private static CStructCompilationOptions? CreateCompilationOptions(CompilationFixture? compilation)
+    {
+        if (compilation is null)
+        {
+            return null;
+        }
+
+        return new CStructCompilationOptions
+        {
+            CLongWidth = compilation.CLongWidth ?? 64,
+            DefaultEnumStorage = compilation.DefaultEnumStorage,
+            BitfieldAllocation = compilation.BitfieldAllocation is null
+                                     ? BitfieldAllocation.LowBitFirst
+                                     : Enum.Parse<BitfieldAllocation>(compilation.BitfieldAllocation),
+        };
     }
 
     private static object? SelectPath(object value, string rootName, string path)
@@ -245,6 +264,18 @@ public class ManualLanguageFixtureTests
         public Dictionary<string, long> Offsets { get; init; } = new(StringComparer.Ordinal);
 
         public Dictionary<string, string> Values { get; init; } = new(StringComparer.Ordinal);
+
+        public CompilationFixture? Compilation { get; init; }
+    }
+
+    /// <summary>The <see cref="CStructCompilationOptions"/> members a fixture may set; absent members keep their defaults.</summary>
+    private sealed class CompilationFixture
+    {
+        public int? CLongWidth { get; init; }
+
+        public string? DefaultEnumStorage { get; init; }
+
+        public string? BitfieldAllocation { get; init; }
     }
 
     private sealed class InvalidFixture

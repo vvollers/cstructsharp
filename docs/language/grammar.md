@@ -30,6 +30,7 @@ declaration      = struct-declaration
                  | typedef-struct-declaration
                  | typedef-union-declaration
                  | typedef-tag-alias
+                 | typedef-enum-declaration
                  | typedef-declaration
                  | enum-declaration ;
 
@@ -48,7 +49,10 @@ typedef-union-declaration
 typedef-aliases  = ";" | typedef-alias, { ",", typedef-alias }, ";" ;
 typedef-alias    = pointer-stars, identifier ;
 typedef-tag-alias
-                 = "typedef", ( "struct" | "union" ), identifier, identifier, ";" ;
+                 = "typedef", ( "struct" | "union" | "enum" ), identifier, identifier, ";" ;
+typedef-enum-declaration
+                 = "typedef", ( "enum" | "flag" ), [ identifier ], [ enum-storage ], "{", [ enum-values ], [ "," ], "}",
+                   typedef-aliases ;
 typedef-declaration
                  = "typedef", type-name, typedef-declarator, { ",", typedef-declarator }, ";" ;
 typedef-declarator
@@ -56,7 +60,7 @@ typedef-declarator
 enum-declaration = ( "enum" | "flag" ), [ identifier ], [ enum-storage ],
                    "{", [ enum-values ], [ "," ], "}", ";" ;
 enum-storage     = ":", identifier ;
-enum-values      = enum-value, { ",", enum-value } ;
+enum-values      = enum-value, { [ "," ], enum-value } ;
 enum-value       = enum-member-name, [ "=", expression ] ;
 enum-member-name = identifier | decimal-digit, { identifier-continue } ;
 preprocessor-line
@@ -65,7 +69,8 @@ preprocessor-line
 define-declaration
                  = "#define", identifier, expression ;
 constant-definition
-                 = "#define", identifier, [ quoted-literal | "b", quoted-literal | macro-parameters, rest-of-line ] ;
+                 = "#define", identifier, [ quoted-literal | "b", quoted-literal | macro-parameters, rest-of-line
+                                          | rest-of-line ] ;
 macro-parameters = "(", { non-line-end-character }, ")" ;
 undef-line       = "#undef", identifier ;
 include-line     = "#include", ( "<", { non-line-end-character }, ">" | '"', { non-line-end-character }, '"' ) ;
@@ -79,8 +84,9 @@ conditional-field = "if", "(", expression, ")", field-block, [ "else", field-blo
 switch-field     = "switch", "(", expression, ")", "{", { switch-case }, [ "default", ":", field-block ], "}" ;
 switch-case      = "case", expression, ":", field-block ;
 inline-struct-field
-                 = "struct", [ alignment-override ], "{", { struct-field }, "}", [ identifier ], ";"
-                 | "union", [ alignment-override ], "{", { union-field }, "}", [ identifier ], ";" ;
+                 = "struct", [ identifier ], [ alignment-override ], "{", { struct-field }, "}", [ declarator-list ], ";"
+                 | "union", [ identifier ], [ alignment-override ], "{", { union-field }, "}", [ declarator-list ], ";" ;
+declarator-list  = declarator, { ",", declarator } ;
 union-field      = field | inline-struct-field ;
 field            = { type-qualifier }, [ tag-keyword ], type-name, declarator, { ",", declarator }, ";" ;
 declarator       = named-declarator | anonymous-bitfield ;
@@ -248,17 +254,18 @@ The table explains each production and links to the page that defines its additi
 | `typedef-union-declaration` | Named-tag or anonymous union body with one or more aliases; [typedefs](structs-unions-enums-typedefs.md#typedefs) |
 | `typedef-aliases` | `;` alone (tag only) or a comma-separated alias list |
 | `typedef-alias` | One alias with its own pointer depth (`*PX`) |
-| `typedef-tag-alias` | `typedef struct tag alias;` - an alias of a declared tag, kind-checked |
+| `typedef-tag-alias` | `typedef struct tag alias;` (or `union`/`enum`) - an alias of a declared tag, kind-checked |
+| `typedef-enum-declaration` | Tagged or anonymous `enum`/`flag` body with aliases, mirroring the struct forms; [typedefs](structs-unions-enums-typedefs.md#typedefs) |
 | `typedef-declaration` | One type spelling with one or more declarators |
 | `typedef-declarator` | Alias name with optional pointer depth and fixed array dimensions (`typedef T name[N];`) |
 | `enum-declaration` | Named integral enum or `flag` (bitmask enum); an unnamed one declares constants |
 | `enum-storage` | Optional explicit integral backing (any accepted integer spelling or a typedef of one) |
-| `enum-values` | Comma-separated member sequence |
+| `enum-values` | Member sequence; the comma is optional because a value can never be followed by a name |
 | `enum-value` | Member name plus optional bounded expression |
-| `enum-member-name` | An identifier, or a digit-led name containing a letter or `_` (`32BIT_MACHINE`) |
+| `enum-member-name` | An identifier, or a name that starts with (or consists of) digits (`32BIT_MACHINE`, `0`) |
 | `preprocessor-line` | One `#` line; see [source text](lexical-rules.md#preprocessor-lines) |
 | `define-declaration` | Object-like integer expression binding |
-| `constant-definition` | A text, byte, bare, or function-like `#define` published as a constant |
+| `constant-definition` | A text, byte, bare, function-like, or otherwise non-expression `#define` published as a constant |
 | `macro-parameters` | The parameter list glued to a function-like macro name |
 | `undef-line` | Removes a constant for the rest of the source |
 | `include-line` | Recorded path, never resolved |
@@ -266,10 +273,11 @@ The table explains each production and links to the page that defines its additi
 | `conditional-line` | `#ifdef`/`#ifndef`/`#else`/`#endif` over defined names |
 | `quoted-literal` | A `"`- or `'`-delimited literal with C escapes (`\n`, `\r`, `\t`, `\0`, `\xHH`, `\"`) |
 | `struct-field` | Ordinary, named-inline-struct, or anonymous-promoted-struct member |
-| `inline-struct-field` | Lexically scoped inline struct or union member; anonymous (promoted) when the trailing `identifier` is omitted (LANG-14) |
+| `inline-struct-field` | Inline struct or union member; anonymous (promoted) without a declarator (LANG-14); a tag makes the body a global type as well; [declarations](structs-unions-enums-typedefs.md#inline-structs) |
+| `declarator-list` | The member declarators of a tagged inline body (`} gen, *pgen;`) |
 | `union-field` | Ordinary field or an inline composite; conditionals are not accepted in a union |
 | `field` | One optionally qualified, optionally tagged type, one or more comma-separated declarators |
-| `declarator` | A named declarator or an anonymous nonzero-width bitfield |
+| `declarator` | A named declarator, a `_` padding field, or an anonymous nonzero-width bitfield; [padding fields](structs-unions-enums-typedefs.md#padding-fields) |
 | `named-declarator` | One name with its own optional qualifiers, pointer stars, optional array, optional bit width, and optional placement suffix; or a function-pointer declarator, stored as an opaque pointer |
 | `anonymous-bitfield` | A nameless bit-width-only declarator used as pure padding (LANG-17) |
 | `type-qualifier` | A recognized layout-neutral qualifier, discarded with no effect on the compiled field |

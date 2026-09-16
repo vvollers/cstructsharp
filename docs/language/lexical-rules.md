@@ -15,8 +15,8 @@ library silently ignores.
 ## Identifiers and case
 
 An identifier starts with `_` or a Unicode letter. Later characters may also contain Unicode decimal digits. The one
-exception is an enum member, which may start with a digit as long as it contains a letter or `_` (`32BIT_MACHINE`,
-as Windows headers spell it):
+exception is an enum member, which may start with, or consist of, digits (`32BIT_MACHINE` as Windows headers spell
+it, `0` in an enum of character codes):
 
 ```c
 struct header_2 {
@@ -25,7 +25,9 @@ struct header_2 {
 ```
 
 Names are case-sensitive. `Header`, `header`, and `HEADER` are three different names. Lowercase words such as
-`struct`, `union`, `enum`, and `typedef` are language keywords.
+`struct`, `union`, `enum`, `flag`, and `typedef` are language keywords, and only as whole tokens: `structX` is an
+identifier, as in C. A field named `_` is unnamed padding (see
+[padding fields](structs-unions-enums-typedefs.md#padding-fields)).
 
 Portable does not have C's separate namespace for `struct` tags. After:
 

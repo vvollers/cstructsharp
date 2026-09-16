@@ -50,6 +50,16 @@ unused high bits.
 The `portable-bitfields` fixture checks `low=5`, `high=17`, `next=4660`, offsets, size 3, alignment 2, and bytes
 `8D 34 12` on both frameworks.
 
+### Allocating from the high bit
+
+Formats specified by big-endian ABIs or RFC bit diagrams number the first field from the most significant bit.
+`CStructCompilationOptions { BitfieldAllocation = BitfieldAllocation.HighBitFirst }` selects that reading (it is
+also what dissect.cstruct does under a big-endian layout): with `uint16 a : 4; uint16 b : 12;` the big-endian bytes
+`12 34` give `a = 1`, `b = 0x234` instead of the low-bit-first `a = 4`, `b = 0x123`. Storage-unit grouping, unit
+sizes, offsets, and byte order are unaffected; only each field's position inside its unit changes, so every
+operation (read, write, update, typed read, address) agrees. The option is part of the compiled-layout cache key.
+The `bitfield-allocation` fixture checks both readings of the same bytes.
+
 ## Storage types and byte order
 
 Storage must be one of the 31 direct fixed primitive spellings in the [primitive table](primitive-types.md), including

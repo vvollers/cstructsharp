@@ -40,4 +40,25 @@ public class BitfieldAllocationTests
 
         Assert.AreNotSame(CStruct.GetOrCompile(Layout), CStruct.GetOrCompile(Layout, compilationOptions: options));
     }
+
+    /// <summary>Debug ranges and addresses describe the storage unit, which the allocation order does not move; a stream write matches serialize.</summary>
+    [TestMethod]
+    public void HighBitFirst_KeepsUnitPlacement()
+    {
+        var options = new CStructCompilationOptions { BitfieldAllocation = BitfieldAllocation.HighBitFirst, };
+        var layout = new CStruct(Layout, isLittleEndian: false, compilationOptions: options);
+        byte[] bytes = [0x12, 0x34, 0x26,];
+        using var stream = new MemoryStream(bytes);
+
+        List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
+        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.b" && item.CurPos == 0 && item.EndPos == 2));
+        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.d" && item.CurPos == 2 && item.EndPos == 3));
+        stream.Position = 0;
+        Assert.AreEqual(0, layout.ResolveAddress(stream, "root.b"));
+        Assert.AreEqual(2, layout.ResolveAddress(stream, "root.c"));
+
+        using var target = new MemoryStream();
+        layout.WriteStream(target, "root", new Dictionary<string, object?> { ["a"] = 1, ["b"] = 0x234, ["c"] = 1, ["d"] = 6, });
+        CollectionAssert.AreEqual(bytes, target.ToArray());
+    }
 }

@@ -129,12 +129,15 @@ backing width. Arithmetic never wraps.
 ## Non-integer defines and conditionals
 
 A header's other `#define` forms are accepted so it can be pasted unchanged, but they are constants, not expression
-inputs: `#define MAGIC "CD001"` (text), `#define RAW b"\x00\x01"` (bytes), `#define HAS_TAIL` (a bare name), and
-`#define SZ(x) ((x) + 1)` (a function-like macro kept as text, never expanded). `CStruct.Constants` publishes every
-define by name as a `LayoutConstant` whose `Kind` says which form it was; an integer define that could be evaluated
-without caller variables is published as `Integer`, one that depends on a variable as `Expression`. Using a
-non-integer constant in an expression is a layout error. `#ifdef`/`#ifndef` test whether a name has been defined by
-any form so far, or listed in `CStructCompilationOptions.Defined`.
+inputs: `#define MAGIC "CD001"` (text), `#define RAW b"\x00\x01"` (bytes), `#define HAS_TAIL` (a bare name),
+`#define SZ(x) ((x) + 1)` (a function-like macro kept as text, never expanded), and any line whose value is not an
+integer expression at all (kept as text, as dissect keeps it). `CStruct.Constants` publishes every define by name
+as a `LayoutConstant` whose `Kind` says which form it was; an integer define that could be evaluated without caller
+variables is published as `Integer` - with its exact value even beyond the 32-bit expression domain, so a header's
+`(1 << 63)` masks are published - and one that depends on a variable as `Expression`. Using a non-integer constant,
+or a value outside the 32-bit domain, in a count is a layout error; a define that names an unknown identifier and is
+never used is not (a compiler ignores an unused macro too). `#ifdef`/`#ifndef` test whether a name has been defined
+by any form so far, or listed in `CStructCompilationOptions.Defined`.
 
 ## Evaluation limits and reuse
 

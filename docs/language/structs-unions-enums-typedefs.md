@@ -69,6 +69,18 @@ as a `UnionValue` exactly like a field of a named union type. A union body may i
 unions. Apart from name reuse, an inline composite follows the same placement, read, write, and update rules as a
 named child. An inline composite is always a single member; declare an array of a named type for repeated ones.
 
+A tagged inline body (`struct gen { ... } gen;` or `union version_information { ... };` inside another body)
+declares its tag as a global type, exactly as C and dissect do: the member-name form is then an ordinary field of
+that type (with every declarator shape: `} gen[2];`, `} *p;`), and the form without a member name promotes the body
+(the reading MSVC's anonymous-member extension and dissect give it) while still declaring the tag.
+
+### Padding fields
+
+A field named `_` is unnamed padding, the way an [anonymous bitfield](bitfields.md) is: it is read and skipped,
+written as zeroes without a caller value, absent from every result, addressable by nobody, and free to repeat in
+one body. It must be a fixed-size primitive or a fixed primitive array (`uint32 _; char _[3];`); a struct, pointer,
+or runtime-sized `_` is rejected.
+
 ### Anonymous promoted members
 
 The *member declarator* itself - not the inline struct's own type, which is already always unnamed - may also be
@@ -172,12 +184,18 @@ struct root {
 };
 ```
 
-The optional backing type must resolve to a supported fixed integral type. Without one, storage is unsigned `byte`,
-not a compiler-selected C `int`.
+The optional backing type must resolve to a supported fixed integral type. Without one, storage follows the rule C
+compilers apply: 32 bits, `uint32` unless a member is written as a negative number, which selects `int32`. That is
+GCC's choice for an enum without negative members and the `uint32` dissect.cstruct assumes;
+`CStructCompilationOptions.DefaultEnumStorage` names any other spelling (`"byte"` for the smallest storage,
+`"int32"` for MSVC's fixed `int`).
 
 Members are evaluated in order. The first omitted value is zero; each later omitted value is the previous value plus
-one. Duplicate names, values outside the backing range, circular/unknown expression dependencies, and unsupported
-backing types produce `InvalidLayout`.
+one. The comma between members is optional, because a value can never be followed by a name: members separated by
+line breaks alone (the Windows-header habit) are unambiguous, and a trailing comma is allowed as in C. A member name
+may start with, or consist of, digits (`32BIT_MACHINE`, or `0 = 0x30` in an enum of character codes). Duplicate
+names, values outside the backing range, circular/unknown expression dependencies, and unsupported backing types
+produce `InvalidLayout`.
 
 Reading returns `EnumValueResult`:
 
@@ -255,7 +273,14 @@ typedef union { uint8 small; uint16 large; } choice_t;
 typedef union tagged_choice { uint8 small; uint16 large; } tagged_choice_t;
 typedef struct NAME { uint8 a; };
 typedef struct _X x_alias;
+typedef enum _KIND : uint8 { NONE, CODE } KIND, *PKIND;
+typedef flag { READ, WRITE } access_t;
+typedef enum _KIND kind_alias;
 ```
+
+The `enum` and `flag` spellings follow the same forms: a tagged body declares the tag and aliases it, an anonymous
+body is the alias's own enum, an alias equal to the tag never collides with itself, and `typedef enum Tag Alias;`
+aliases an enum declared elsewhere.
 
 The `typedefs` fixture checks that `word value` reads `34 12` as 4660 and that a packed root followed by one byte has
 size/alignment `3/2`.
@@ -283,7 +308,7 @@ declaration (`struct node;`) is accepted and declares nothing: a self-referentia
 | Inline struct (named member) | Sequential, nested | Nested dynamic object | No | Assuming member promotion |
 | Inline struct (anonymous member) | Sequential, promoted | Spliced into the parent object | No | Assuming a nested container still exists |
 | Union | Overlapping | `UnionValue` | Yes | Guessing an active member |
-| Enum | One backing integer | `EnumValueResult` | Yes | Assuming C `int` backing |
+| Enum | One backing integer | `EnumValueResult` | Yes | Assuming a compiler's signedness for values at bit 31 |
 | Typedef | Same as its target | Same as its target | Alias | Expecting a new ABI/layout |
 
 See [Names and scopes](names-and-scopes.md), [Layout and padding](layout-alignment-and-padding.md), and the

@@ -99,6 +99,29 @@ public class PrimitiveSpellingTests
         Assert.AreEqual(8, cachedNarrow.GetStructSizeInBytes("root"));
     }
 
+    /// <summary>A 32-bit <c>long</c> layout goes through every operation with 4-byte storage.</summary>
+    [TestMethod]
+    public void CLongWidth_RoundTripsThroughEveryOperation()
+    {
+        var layout = new CStruct("struct root { long a; unsigned long b; uint8 tail; };", compilationOptions: new CStructCompilationOptions { CLongWidth = 32, });
+        byte[] bytes = [0xFF, 0xFF, 0xFF, 0xFF, 2, 0, 0, 0, 7,];
+        using var stream = new MemoryStream((byte[])bytes.Clone());
+
+        List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
+        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.b" && item.CurPos == 4 && item.EndPos == 8));
+        stream.Position = 0;
+        Assert.AreEqual(8, layout.ResolveAddress(stream, "root.tail"));
+        Assert.AreEqual(-1, layout.ReadValue<int>(bytes.AsSpan(), "root.a"));
+
+        byte[] written = layout.Serialize("root", new Dictionary<string, object?> { ["a"] = -1, ["b"] = 2U, ["tail"] = (byte)7, });
+        CollectionAssert.AreEqual(bytes, written);
+        using var target = new MemoryStream();
+        layout.WriteStream(target, "root", new Dictionary<string, object?> { ["a"] = -1, ["b"] = 2U, ["tail"] = (byte)7, });
+        CollectionAssert.AreEqual(bytes, target.ToArray());
+        layout.UpdateStream(stream, "root.b", 9U);
+        CollectionAssert.AreEqual(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 9, 0, 0, 0, 7, }, stream.ToArray());
+    }
+
     /// <summary>A layout may carry its own <c>typedef</c> of an alias spelling; the layout's definition wins.</summary>
     [TestMethod]
     public void UserTypedef_ShadowsBuiltInAlias()

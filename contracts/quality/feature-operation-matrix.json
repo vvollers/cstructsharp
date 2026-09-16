@@ -1470,6 +1470,90 @@
           "tests/CStructSharpTests/WidePrimitiveTests.cs#WidePrimitives_RoundTripThroughEveryOperation"
         ]
       }
+    },
+    {
+      "featureId": "bitfield-allocation",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Every bit slice round-trips exactly under either allocation order."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/BitfieldAllocationTests.cs#HighBitFirst_TakesTheTopBitsFirst"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The same BitfieldAllocation option is used for parsing and serialization."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/BitfieldAllocationTests.cs#HighBitFirst_KeepsUnitPlacement"
+        ]
+      }
+    },
+    {
+      "featureId": "c-long-width",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "A long-family value round-trips within the selected width's domain."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_RoundTripsThroughEveryOperation"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The same CLongWidth is used for parsing and serialization."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_RoundTripsThroughEveryOperation"
+        ]
+      }
+    },
+    {
+      "featureId": "default-enum-storage",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "An enum value round-trips within the selected storage's domain, named or not."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/DefaultEnumStorageTests.cs#NamedStorage_RoundTripsThroughEveryOperation"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The same DefaultEnumStorage is used for parsing and serialization."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/DefaultEnumStorageTests.cs#NamedStorage_RoundTripsThroughEveryOperation"
+        ]
+      }
+    },
+    {
+      "featureId": "nested-references",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The nested field's value is captured on every operation, so the count is the same for parsing and serialization."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_RoundTripsThroughEveryOperation"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The same nested value determines the extent on both sides."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_RoundTripsThroughEveryOperation"
+        ]
+      }
     }
   ],
   "knownContractLimits": [
@@ -5393,6 +5477,308 @@
       "limitations": [
         "None of the wide primitives is bitfield storage or an enum backing type, and none takes the span fast paths.",
         "void * and function pointers are opaque: the address is read and written, never followed."
+      ]
+    },
+    {
+      "id": "bitfield-allocation",
+      "manual": "docs/language/bitfields.md#allocating-from-the-high-bit",
+      "fixture": "bitfield-allocation",
+      "title": "CStructCompilationOptions.BitfieldAllocation: high-bit-first storage units",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/BitfieldAllocationTests.cs#HighBitFirst_TakesTheTopBitsFirst",
+          "operations": [
+            "parse",
+            "serialize",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/BitfieldAllocationTests.cs#HighBitFirst_KeepsUnitPlacement",
+          "operations": [
+            "debug",
+            "address",
+            "write"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        }
+      ],
+      "limitations": [
+        "Only each field's position inside its storage unit changes; unit grouping, sizes, and byte order follow the same rules as low-bit-first allocation.",
+        "A layout compiled with the option is its own cache entry."
+      ]
+    },
+    {
+      "id": "c-long-width",
+      "manual": "docs/language/primitive-types.md#alias-spellings",
+      "fixture": "c-long-width",
+      "title": "CStructCompilationOptions.CLongWidth: the width of the C long family",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_SelectsTheLongFamilyWidthOnly",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_AppliesToEnumsBitfieldsAndCacheKey",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_RoundTripsThroughEveryOperation",
+          "operations": [
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        }
+      ],
+      "limitations": [
+        "Accepted values are 32 and 64; Windows LONG/ULONG and the explicit-width spellings are never affected."
+      ]
+    },
+    {
+      "id": "default-enum-storage",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#enums",
+      "fixture": "default-enum-storage",
+      "title": "CStructCompilationOptions.DefaultEnumStorage: storage of an enum declared without a backing type",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/DefaultEnumStorageTests.cs#CompilerRule_Selects32BitsAndSignednessFromTheMembers",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/DefaultEnumStorageTests.cs#NamedStorage_RoundTripsThroughEveryOperation",
+          "operations": [
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        }
+      ],
+      "limitations": [
+        "Without the option the compiler rule applies: 32 bits, uint32 unless a member is written as a negative literal; a member computed to be negative in a uint32 enum is a layout error."
+      ]
+    },
+    {
+      "id": "nested-references",
+      "manual": "docs/language/expressions-defines-and-variables.md#a-nested-fields-value",
+      "fixture": "nested-references",
+      "title": "Dotted references to a nested struct's field in expressions (hdr.n)",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "runtime-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "verified",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_RoundTripsThroughEveryOperation",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_SelectsTheNamedField",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_ReachesThroughLevels",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_ToNothing_FailsAtUse",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "The head of a dotted path must be a scalar struct or union field (not an array element or a pointer target); an element's field is reached through the bare name after the element is read.",
+        "A dotted path that names no struct field is an undefined identifier when evaluated, like any other unknown name."
       ]
     }
   ],
