@@ -507,10 +507,11 @@ public class ParserDifferentialTests
             return null;
         }
 
-        // The frozen reference grammar matches a keyword as a bare prefix (`structroot` parses as `struct root`) and
-        // reads a function-like macro's parameter list as a call expression; the parser follows C on both, so those
-        // sources are compared for acceptance only where the divergence is the keyword boundary.
-        if (referenceDump is not null && (HasGluedKeyword(source) || HasFunctionLikeMacro(source)))
+        // The frozen reference grammar matches a keyword as a bare prefix (`structroot` parses as `struct root`),
+        // reads a function-like macro's parameter list as a call expression, and lets a `#define` value continue on
+        // the next line; the parser follows C on all three (a directive ends at its line), so those sources are
+        // compared for acceptance only where the divergence is the token or line boundary.
+        if (referenceDump is not null && (HasGluedKeyword(source) || HasFunctionLikeMacro(source) || HasLineBrokenDefine(source)))
         {
             accepted = candidateDump is not null;
             return null;
@@ -601,6 +602,25 @@ public class ParserDifferentialTests
             }
 
             index = cursor;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///     True when a <c>#define NAME</c> line has no value and the next non-blank line is not a declaration or
+    ///     directive, which the reference reads as the macro's value (<c>#define COUNT\n 2</c>).
+    /// </summary>
+    private static bool HasLineBrokenDefine(string source)
+    {
+        foreach (Match match in Regex.Matches(source, @"#\s*define[ \t]+[A-Za-z_]\w*[ \t]*\r?\n(?<next>[ \t]*\S)"))
+        {
+            char first = match.Groups["next"].Value[^1];
+            if (first is not ('#' or '}' or ';') &&
+                !Regex.IsMatch(source[(match.Index + match.Length - 1)..], @"^(struct|union|enum|typedef|flag)\b"))
+            {
+                return true;
+            }
         }
 
         return false;
