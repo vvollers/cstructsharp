@@ -28,7 +28,7 @@ public class LayoutParsingValidationTests
     }
 
     /// <summary>
-    ///     The inputs include empty text, broken fields, an incomplete number, unsupported include syntax, and trailing
+    ///     The inputs include empty text, broken fields, an incomplete number, malformed directives, and trailing
     ///     garbage.
     /// </summary>
     /// <remarks>
@@ -44,7 +44,8 @@ public class LayoutParsingValidationTests
             "struct root { ; };",
             "struct root { byte value[0x]; };",
             "struct root { byte value; }; struct broken {",
-            "#include <stdint.h>\nstruct root { byte value; };",
+            "#define\nstruct root { byte value; };",
+            "#include stdint.h\nstruct root { byte value; };",
             "struct root { byte value; };\nunsupported",
         ];
 
@@ -113,6 +114,13 @@ public class LayoutParsingValidationTests
             compilationOptions: new CStructCompilationOptions { MaxLayoutNestingDepth = 1, });
 
         Assert.Throws<CStructLayoutException>(() => new CStruct("union root { char text[]; byte value; };"));
-        Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { byte values[]; };"));
+        Assert.Throws<CStructLayoutException>(() => new CStruct("union root { byte values[]; byte value; };"));
+        Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { cstring values[]; };"));
+        Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { utf8 values[]; };"));
+
+        // `T values[]` on a non-character type is an array terminated by an all-zero element, not unbounded storage.
+        var terminated = new CStruct("struct root { byte values[]; };");
+        var root = (CompiledCompositeType)terminated.CompiledModel.Composites[terminated.GetStruct("root")].Definition!;
+        Assert.AreEqual(CompiledArrayKind.Terminated, root.Fields[0].Array.Kind);
     }
 }

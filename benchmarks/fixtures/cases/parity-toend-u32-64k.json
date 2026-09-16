@@ -1,0 +1,26 @@
+{
+  "id": "parity-toend-u32-64k",
+  "scenario": "S-PARITY",
+  "tags": [
+    "warm"
+  ],
+  "notes": null,
+  "definition": "struct root { uint32 magic; uint32 values[EOF]; };",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": {
+    "kind": "file",
+    "file": "data/parity-toend-u32-64k.bin"
+  },
+  "byteLength": 65540,
+  "expectedError": null,
+  "expected": null,
+  "expectedSha256": "76a84add9d3b0d1ed74a12e153c9274a3357eb55876f76cef317c2cd91ce0acc",
+  "expectedJsonLength": 176165
+}

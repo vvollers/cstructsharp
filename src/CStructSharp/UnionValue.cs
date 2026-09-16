@@ -27,9 +27,12 @@ public sealed class UnionValue : DynamicObject, IReadOnlyDictionary<string, obje
         string? selectedMember,
         object? selectedValue)
     {
-        if (string.IsNullOrWhiteSpace(unionName))
+        // An anonymous (promoted) union has no name of its own (the empty string); its value is only ever an
+        // intermediate. Any other name must be a real declaration name.
+        ArgumentNullException.ThrowIfNull(unionName);
+        if (unionName.Length > 0 && string.IsNullOrWhiteSpace(unionName))
         {
-            throw new ArgumentException("A union name is required.", nameof(unionName));
+            throw new ArgumentException("Union name must not be whitespace.", nameof(unionName));
         }
 
         this.UnionName = unionName;
@@ -83,7 +86,7 @@ public sealed class UnionValue : DynamicObject, IReadOnlyDictionary<string, obje
     /// <param name="unionName">The case-sensitive declared union type name.</param>
     /// <param name="rawStorage">The complete union storage to snapshot.</param>
     /// <returns>A union value configured for byte-exact raw pass-through.</returns>
-    /// <exception cref="ArgumentException"><paramref name="unionName"/> is empty or whitespace.</exception>
+    /// <exception cref="ArgumentException"><paramref name="unionName"/> is whitespace (the empty string names an anonymous union).</exception>
     public static UnionValue FromRaw(string unionName, ReadOnlySpan<byte> rawStorage)
     {
         return new UnionValue(
@@ -99,7 +102,7 @@ public sealed class UnionValue : DynamicObject, IReadOnlyDictionary<string, obje
     /// <param name="memberName">The case-sensitive declared member name to select.</param>
     /// <param name="value">The selected member value, including <see langword="null"/> for a null pointer member.</param>
     /// <returns>A union value configured to encode <paramref name="memberName"/>.</returns>
-    /// <exception cref="ArgumentException"><paramref name="unionName"/> or <paramref name="memberName"/> is empty or whitespace.</exception>
+    /// <exception cref="ArgumentException"><paramref name="unionName"/> is whitespace, or <paramref name="memberName"/> is empty or whitespace.</exception>
     public static UnionValue FromMember(string unionName, string memberName, object? value)
     {
         ValidateMemberName(memberName);

@@ -79,7 +79,8 @@ public class LayoutMathTests
             activeUnitSize: 0,
             activeAlignment: 4,
             bitsUsed: 0,
-            nextField: BitField("uint32", bitSize: 3),
+            nextUnitType: "uint32",
+            nextBitSize: 3,
             nextUnitSize: 4,
             nextAlignment: 4);
 
@@ -95,7 +96,8 @@ public class LayoutMathTests
             activeUnitSize: 4,
             activeAlignment: 4,
             bitsUsed: 2,
-            nextField: BitField("uint16", bitSize: 3),
+            nextUnitType: "uint16",
+            nextBitSize: 3,
             nextUnitSize: 2,
             nextAlignment: 2);
 
@@ -111,7 +113,8 @@ public class LayoutMathTests
             activeUnitSize: 4,
             activeAlignment: 4,
             bitsUsed: 2,
-            nextField: BitField("uint32", bitSize: 3),
+            nextUnitType: "uint32",
+            nextBitSize: 3,
             nextUnitSize: 4,
             nextAlignment: 1);
 
@@ -127,7 +130,8 @@ public class LayoutMathTests
             activeUnitSize: 4,
             activeAlignment: 4,
             bitsUsed: 2,
-            nextField: BitField("uint32", bitSize: 3),
+            nextUnitType: "uint32",
+            nextBitSize: 3,
             nextUnitSize: 4,
             nextAlignment: 4);
 
@@ -143,7 +147,8 @@ public class LayoutMathTests
             activeUnitSize: 1,
             activeAlignment: 1,
             bitsUsed: 6,
-            nextField: BitField("uint8", bitSize: 3),
+            nextUnitType: "uint8",
+            nextBitSize: 3,
             nextUnitSize: 1,
             nextAlignment: 1);
 
@@ -159,7 +164,8 @@ public class LayoutMathTests
             activeUnitSize: 1,
             activeAlignment: 1,
             bitsUsed: 3,
-            nextField: BitField("uint8", bitSize: 3),
+            nextUnitType: "uint8",
+            nextBitSize: 3,
             nextUnitSize: 1,
             nextAlignment: 1);
 
@@ -175,15 +181,11 @@ public class LayoutMathTests
             activeUnitSize: 1,
             activeAlignment: 1,
             bitsUsed: 5,
-            nextField: BitField("uint8", bitSize: 3),
+            nextUnitType: "uint8",
+            nextBitSize: 3,
             nextUnitSize: 1,
             nextAlignment: 1);
 
         Assert.IsFalse(result);
-    }
-
-    private static Field BitField(string typeName, int bitSize)
-    {
-        return new Field(new Identifier(typeName), new Identifier("value"), Field.NoArray, bitSize);
     }
 }

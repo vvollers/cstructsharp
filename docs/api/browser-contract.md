@@ -34,6 +34,12 @@ an `Error` field alongside a native byte-array success payload, so they report f
 thrown JS `Error`'s message is the same JSON-serialized `Code`/`Message`/`Offset`/`Path` shape the envelope's
 `Error` field already uses, so callers reconstruct an identical error object either way.
 
+Values inside `Data` keep their tagged shapes across versions: enums are `{ Enum, Name, Value }`, and a value read
+from a `flag` declaration adds `Names` and `Remainder` to those three keys (an additive shape introduced with the
+dissect.cstruct parity work; the envelope, exports, options, and error codes were unchanged, so the version stayed
+at 7 and the contract's history records the addition). A promoted (anonymous) struct or union member's fields sit
+directly on the parent object, and a `_` padding field never appears.
+
 The complete list of accepted options and error categories is in the
 [machine-readable browser description](../../contracts/api/browser-rc1/contract.json). Use that JSON file when changing
 or testing the adapter; this page is an orientation guide, not a substitute for the exact field list.

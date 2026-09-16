@@ -35,8 +35,25 @@ public partial class CStruct
     private static readonly IReadOnlyDictionary<string, byte> BaseFieldAlignments =
         MeasureBaseFieldAlignments(BaseFieldHandlers);
 
-    private static readonly Lazy<PrimitiveRegistry> LittleEndianRegistry = new(() => CreatePrimitiveRegistry(true));
-    private static readonly Lazy<PrimitiveRegistry> BigEndianRegistry = new(() => CreatePrimitiveRegistry(false));
+    /// <summary>
+    ///     One registry per (byte order, <c>long</c> width) pair. Each is built once per process on first use, so a
+    ///     layout only ever pays a table lookup for its primitive vocabulary.
+    /// </summary>
+    private static readonly Lazy<PrimitiveRegistry> LittleEndianRegistry = new(() => CreatePrimitiveRegistry(true, 64));
+    private static readonly Lazy<PrimitiveRegistry> BigEndianRegistry = new(() => CreatePrimitiveRegistry(false, 64));
+    private static readonly Lazy<PrimitiveRegistry> LittleEndianLong32Registry = new(() => CreatePrimitiveRegistry(true, 32));
+    private static readonly Lazy<PrimitiveRegistry> BigEndianLong32Registry = new(() => CreatePrimitiveRegistry(false, 32));
+
+    private static PrimitiveRegistry GetPrimitiveRegistry(bool littleEndian, int cLongWidth)
+    {
+        return (littleEndian, cLongWidth) switch
+        {
+            (true, 32) => LittleEndianLong32Registry.Value,
+            (false, 32) => BigEndianLong32Registry.Value,
+            (true, _) => LittleEndianRegistry.Value,
+            (false, _) => BigEndianRegistry.Value,
+        };
+    }
 
     /// <summary>Builds the process-wide, direction-suffixed primitive reader table (see <see cref="BaseFieldHandlers" />).</summary>
     private static Dictionary<string, Func<Stream, object>> BuildBaseFieldHandlers()
@@ -82,6 +99,16 @@ public partial class CStruct
             ["int32<"] = stream => BinaryPrimitiveIO.ReadInt32(stream, true),
             ["uint32>"] = stream => BinaryPrimitiveIO.ReadUInt32(stream, false),
             ["uint32<"] = stream => BinaryPrimitiveIO.ReadUInt32(stream, true),
+            ["int48>"] = stream => BinaryPrimitiveIO.ReadInt48(stream, false),
+            ["int48<"] = stream => BinaryPrimitiveIO.ReadInt48(stream, true),
+            ["uint48>"] = stream => BinaryPrimitiveIO.ReadUInt48(stream, false),
+            ["uint48<"] = stream => BinaryPrimitiveIO.ReadUInt48(stream, true),
+            ["int128>"] = stream => BinaryPrimitiveIO.ReadInt128(stream, false),
+            ["int128<"] = stream => BinaryPrimitiveIO.ReadInt128(stream, true),
+            ["uint128>"] = stream => BinaryPrimitiveIO.ReadUInt128(stream, false),
+            ["uint128<"] = stream => BinaryPrimitiveIO.ReadUInt128(stream, true),
+            ["float16>"] = stream => BinaryPrimitiveIO.ReadHalf(stream, false),
+            ["float16<"] = stream => BinaryPrimitiveIO.ReadHalf(stream, true),
             ["int64>"] = stream => BinaryPrimitiveIO.ReadInt64(stream, false),
             ["int64<"] = stream => BinaryPrimitiveIO.ReadInt64(stream, true),
             ["uint64>"] = stream => BinaryPrimitiveIO.ReadUInt64(stream, false),
@@ -147,6 +174,16 @@ public partial class CStruct
             ["int32<"] = (stream, value) => BinaryPrimitiveIO.WriteInt32(stream, Convert.ToInt32(value), true),
             ["uint32>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt32(stream, Convert.ToUInt32(value), false),
             ["uint32<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt32(stream, Convert.ToUInt32(value), true),
+            ["int48>"] = (stream, value) => BinaryPrimitiveIO.WriteInt48(stream, Convert.ToInt64(value), false),
+            ["int48<"] = (stream, value) => BinaryPrimitiveIO.WriteInt48(stream, Convert.ToInt64(value), true),
+            ["uint48>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt48(stream, Convert.ToUInt64(value), false),
+            ["uint48<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt48(stream, Convert.ToUInt64(value), true),
+            ["int128>"] = (stream, value) => BinaryPrimitiveIO.WriteInt128(stream, WideIntegerConversion.ToInt128(value), false),
+            ["int128<"] = (stream, value) => BinaryPrimitiveIO.WriteInt128(stream, WideIntegerConversion.ToInt128(value), true),
+            ["uint128>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt128(stream, WideIntegerConversion.ToUInt128(value), false),
+            ["uint128<"] = (stream, value) => BinaryPrimitiveIO.WriteUInt128(stream, WideIntegerConversion.ToUInt128(value), true),
+            ["float16>"] = (stream, value) => BinaryPrimitiveIO.WriteHalf(stream, WideIntegerConversion.ToHalf(value), false),
+            ["float16<"] = (stream, value) => BinaryPrimitiveIO.WriteHalf(stream, WideIntegerConversion.ToHalf(value), true),
             ["int64>"] = (stream, value) => BinaryPrimitiveIO.WriteInt64(stream, Convert.ToInt64(value), false),
             ["int64<"] = (stream, value) => BinaryPrimitiveIO.WriteInt64(stream, Convert.ToInt64(value), true),
             ["uint64>"] = (stream, value) => BinaryPrimitiveIO.WriteUInt64(stream, Convert.ToUInt64(value), false),
@@ -238,8 +275,12 @@ public partial class CStruct
         return alignments;
     }
 
-    /// <summary>Builds immutable primitive descriptors once per byte order, independent of user layouts and pointer widths.</summary>
-    private static PrimitiveRegistry CreatePrimitiveRegistry(bool littleEndian)
+    /// <summary>
+    ///     Builds immutable primitive descriptors once per byte order and <c>long</c> width, independent of user
+    ///     layouts and pointer widths. Alias spellings (<see cref="PrimitiveSpellings"/>) resolve to their canonical
+    ///     symbol exactly like a user typedef would, so a compiled field's terminal name is always canonical.
+    /// </summary>
+    private static PrimitiveRegistry CreatePrimitiveRegistry(bool littleEndian, int cLongWidth)
     {
         var readers = new Dictionary<string, Func<Stream, object>>(BaseFieldHandlers, StringComparer.Ordinal);
         var writers = new Dictionary<string, Action<Stream, object>>(BaseWriteHandlers, StringComparer.Ordinal);
@@ -253,21 +294,43 @@ public partial class CStruct
             alignments.Add(neutral, alignments[canonical]);
         }
 
-        foreach ((string alias, string canonical) in PrimitiveCodecs.FieldTypeAliasses)
-        {
-            readers.Add(alias, readers[canonical]);
-            writers.Add(alias, writers[canonical]);
-            alignments.Add(alias, alignments[canonical]);
-        }
-
+        // Every canonical name (suffixed and neutral) gets its own symbol; aliases below share those symbols.
         var symbols = ImmutableDictionary.CreateBuilder<string, CompiledTypeReference>(StringComparer.Ordinal);
         foreach ((string name, Func<Stream, object> reader) in readers)
         {
             int? size = PrimitiveCodecs.IsVariableLengthType(name) || Leb128Codec.IsType(name) ? null : alignments[name];
-            var symbol = new CompiledTypeSymbol(name, CompiledTypeKind.Primitive, null, size == 3 || name is "uuid" or "guid" ? 1 : alignments[name], size, reader, writers[name]);
+            var symbol = new CompiledTypeSymbol(name, CompiledTypeKind.Primitive, null, size is 3 or 6 || name is "uuid" or "guid" ? 1 : alignments[name], size, reader, writers[name]);
             symbol.Bind(new CompiledPrimitiveType(symbol));
             symbol.Freeze();
             symbols.Add(name, new CompiledTypeReference(symbol, 0, name));
+        }
+
+        // `void` is a type with no value of its own: only `void *` (an opaque address) is storable, which the
+        // compiler enforces; the symbol exists so the name resolves.
+        var voidSymbol = new CompiledTypeSymbol("void", CompiledTypeKind.Primitive, null, 1, 0, null, null);
+        voidSymbol.Bind(new CompiledPrimitiveType(voidSymbol));
+        voidSymbol.Freeze();
+        symbols.Add("void", new CompiledTypeReference(voidSymbol, 0, "void"));
+        foreach ((string spelling, string pointee) in PrimitiveSpellings.PointerSpellings)
+        {
+            symbols.Add(spelling, new CompiledTypeReference(symbols[pointee].Symbol, 1, pointee));
+        }
+
+        var aliases = new Dictionary<string, string>(PrimitiveSpellings.Aliases, StringComparer.Ordinal);
+        foreach ((string spelling, bool isUnsigned) in PrimitiveSpellings.LongFamilyIsUnsigned)
+        {
+            aliases.Add(spelling, PrimitiveSpellings.LongCanonical(isUnsigned, cLongWidth));
+        }
+
+        foreach ((string alias, string canonical) in aliases)
+        {
+            symbols.Add(alias, symbols[canonical]);
+            if (readers.TryGetValue(canonical, out Func<Stream, object>? reader))
+            {
+                readers.Add(alias, reader);
+                writers.Add(alias, writers[canonical]);
+                alignments.Add(alias, alignments[canonical]);
+            }
         }
 
         return new PrimitiveRegistry(
@@ -275,7 +338,8 @@ public partial class CStruct
             writers.ToFrozenDictionary(StringComparer.Ordinal),
             alignments.ToFrozenDictionary(StringComparer.Ordinal),
             symbols.ToImmutable(),
-            new BitfieldCodecTable(littleEndian, alignments, readers, writers, PrimitiveCodecs.FieldTypeAliasses));
+            new BitfieldCodecTable(littleEndian, alignments, readers, writers, aliases),
+            aliases.ToFrozenDictionary(StringComparer.Ordinal));
     }
 
     /// <summary>Selects strict UTF-16 in the explicit field order, or in the layout order for neutral <c>wchar</c>.</summary>
@@ -300,5 +364,6 @@ public partial class CStruct
         FrozenDictionary<string, Action<Stream, object>> Writers,
         FrozenDictionary<string, byte> Alignments,
         ImmutableDictionary<string, CompiledTypeReference> Symbols,
-        BitfieldCodecTable Bitfields);
+        BitfieldCodecTable Bitfields,
+        FrozenDictionary<string, string> Aliases);
 }

@@ -47,19 +47,48 @@ Expressions support decimal, hexadecimal (`0x`), binary (`0b`), and octal (`0o`)
 
 | Precedence, high to low | Operators |
 | --- | --- |
-| Unary | `!`, `-`, `~` |
-| Multiply/divide | `*`, `/` |
+| Unary | `-`, `~`, `!` |
+| Multiply/divide/remainder | `*`, `/`, `%` |
 | Add/subtract | `+`, `-` |
 | Shift | `<<`, `>>` |
-| Relational comparison | `<`, `<=`, `>`, `>=` |
+| Relational | `<`, `<=`, `>`, `>=` |
 | Equality | `==`, `!=` |
 | Bitwise AND | `&` |
+| Bitwise XOR | `^` |
 | Bitwise OR | `\|` |
 | Logical AND | `&&` |
 | Logical OR | `\|\|` |
+| Conditional | `c ? a : b` (right-associative; only the selected arm is evaluated) |
 
-Operators on the same row are evaluated left to right. Function-call-looking syntax is recognized only so the
-constructor can report that it is unsupported; it never invokes user code.
+Operators on the same row are evaluated left to right; `%` truncates like `/` and fails on a zero divisor. The two
+calls `sizeof(type)` and `offsetof(type, field)` are accepted in array dimensions and fold to literals when the
+layout is constructed: the type may be a primitive, a typedef, an enum, a pointer (`sizeof(uint8*)` is the pointer
+width), or a complete fixed-size struct or union declared anywhere in the layout, and the field must be statically
+placed. No other call is accepted, and nothing ever invokes user code. A qualified `enum.Member` names one member of
+a named enum or flag as a constant.
+
+## A nested field's value
+
+A scalar read earlier in the same struct, or in any struct read before, is a variable under its bare name: after
+`h hdr;` with `struct h { uint8 n; }`, `uint8 v[n]` counts with the `n` just read. When two nested fields have the
+same member name, or a header is clearer when spelled as a path, name the field through the struct field that
+holds it:
+
+```c
+struct h { uint8 n; uint8 pad; };
+struct root {
+    h a;
+    h b;
+    uint8 first[a.n];
+    uint8 second[b.n];
+};
+```
+
+`a.n` and `b.n` are the values of `n` inside `a` and `b`; a path may reach through several levels (`a.b.n`). The
+head of a path is a scalar struct or union field of the layout (not an array element and not a pointer target),
+and the value is published while that field is read, written, or measured, so every operation counts with the same
+number. A path that names no such field is an undefined identifier when it is evaluated, like any other unknown
+name. The `nested-references` fixture checks `v[hdr.n]` through parsing, addressing, and serialization.
 
 ## Counts and bit widths use signed 32-bit values
 
@@ -96,6 +125,19 @@ range-checked. `enum state : uint8 { Maximum = 255, Next }` fails because `Next`
 
 Bitwise enum operations use signed two's-complement `BigInteger` behavior, and shift counts must be less than the
 backing width. Arithmetic never wraps.
+
+## Non-integer defines and conditionals
+
+A header's other `#define` forms are accepted so it can be pasted unchanged, but they are constants, not expression
+inputs: `#define MAGIC "CD001"` (text), `#define RAW b"\x00\x01"` (bytes), `#define HAS_TAIL` (a bare name),
+`#define SZ(x) ((x) + 1)` (a function-like macro kept as text, never expanded), and any line whose value is not an
+integer expression at all (kept as text, as dissect keeps it). `CStruct.Constants` publishes every define by name
+as a `LayoutConstant` whose `Kind` says which form it was; an integer define that could be evaluated without caller
+variables is published as `Integer` - with its exact value even beyond the 32-bit expression domain, so a header's
+`(1 << 63)` masks are published - and one that depends on a variable as `Expression`. Using a non-integer constant,
+or a value outside the 32-bit domain, in a count is a layout error; a define that names an unknown identifier and is
+never used is not (a compiler ignores an unused macro too). `#ifdef`/`#ifndef` test whether a name has been defined
+by any form so far, or listed in `CStructCompilationOptions.Defined`.
 
 ## Evaluation limits and reuse
 

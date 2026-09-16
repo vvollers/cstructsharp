@@ -249,7 +249,7 @@ public class Parsing
     public void ParsingEnumTest()
     {
         const string structDef = """
-                                 enum myenum { Red = 5, Green, Blue = 9 };
+                                 enum myenum : uint8 { Red = 5, Green, Blue = 9 };
                                  struct mystruct { myenum a; myenum b; myenum c; };
                                  """;
 

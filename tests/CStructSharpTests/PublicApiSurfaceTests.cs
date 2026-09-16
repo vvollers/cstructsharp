@@ -9,6 +9,7 @@ public class PublicApiSurfaceTests
 {
     private static readonly string[] AllowedExportedTypes =
     [
+        "CStructSharp.BitfieldAllocation",
         "CStructSharp.CStruct",
         "CStructSharp.CStructCompilationOptions",
         "CStructSharp.CStructErrorCode",
@@ -21,6 +22,16 @@ public class PublicApiSurfaceTests
         "CStructSharp.CStructWriteLimitException",
         "CStructSharp.DebugData",
         "CStructSharp.EnumValueResult",
+        "CStructSharp.FlagValueResult",
+        "CStructSharp.ICustomCodec",
+        "CStructSharp.LayoutArrayKind",
+        "CStructSharp.LayoutConstant",
+        "CStructSharp.LayoutConstantKind",
+        "CStructSharp.LayoutDeclarationInfo",
+        "CStructSharp.LayoutDeclarationKind",
+        "CStructSharp.LayoutEnumMemberInfo",
+        "CStructSharp.LayoutFieldInfo",
+        "CStructSharp.LayoutInfo",
         "CStructSharp.Pointer",
         "CStructSharp.PointerAddressingMode",
         "CStructSharp.PrimitiveArray`1",

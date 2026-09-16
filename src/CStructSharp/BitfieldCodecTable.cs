@@ -58,6 +58,15 @@ internal sealed class BitfieldCodecTable
     }
 
     /// <summary>Extracts one unsigned bit slice from a signed or unsigned primitive storage value.</summary>
+    /// <summary>
+    ///     The shift of a slice inside its unit: the declaration-order offset itself for low-bit-first allocation, or
+    ///     counted down from the unit's top bit for high-bit-first allocation.
+    /// </summary>
+    public static int EffectiveShift(int bitOffset, int bitSize, int unitBits, bool highBitFirst)
+    {
+        return highBitFirst ? unitBits - bitOffset - bitSize : bitOffset;
+    }
+
     public static ulong ExtractBitfieldValue(object storageValue, int bitOffset, int bitSize)
     {
         ulong rawValue = ConvertBitfieldStorageToUnsigned(storageValue);

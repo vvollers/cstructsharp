@@ -104,6 +104,10 @@ need an equivalent source field or constant when adapting a recipe to JavaScript
 - Large integers can arrive as decimal strings. Keep them as strings or convert them to `BigInt`; converting to
   JavaScript `Number` can lose precision. The public wrapper converts BigInt values to decimal strings when writing.
 - Enums include their enum name, optional member name, and numeric value. An unknown member name can be `null`.
+  A `flag` adds `Names` (the members whose bits are set) and `Remainder` (the bits no member covers); serialize
+  accepts `"READ|HIDDEN"`, one name, or a number for it.
+- A promoted (anonymous) struct or union member's fields sit directly on the parent object, and a `_` padding field
+  never appears; serialize does not need a value for either.
 - Unions include `$kind: "union"`, `Union`, `RawStorage`, `Members`, and `SelectedMember`. Preserve raw storage for
   an unchanged round trip, or explicitly select a member when creating a different value.
 - Fixed text can contain a zero character, displayed as `\u0000` in JSON. Capacity and termination are format rules,

@@ -28,10 +28,18 @@ public partial class CStruct
     {
         Field field = compiledField.EffectiveField;
 
-        // A bitfield always lives inside a primitive number. A nested struct has no single number to edit.
+        // A bitfield always lives inside a primitive number. A nested struct has no single number to edit; an enum
+        // or flag value is first resolved to its raw bits and then merged like any other slice.
         if (isKnownStruct)
         {
-            throw new InvalidOperationException("Bitfields cannot be structs.");
+            if (structElement is not CstructEnum bitfieldEnum)
+            {
+                throw new InvalidOperationException("Bitfields cannot be structs.");
+            }
+
+            CompiledEnumType compiledBitfieldEnum = this.compiledModelQueries.GetCompiledEnum(bitfieldEnum);
+            value = compiledBitfieldEnum.Integer.ToRawBits(
+                EnumFieldValueParser.GetEnumValue(compiledBitfieldEnum, bitfieldEnum, value, state.BindingMode));
         }
 
         // Work out the size of the whole storage value first, not just the small field being changed.
@@ -79,7 +87,11 @@ public partial class CStruct
 
         // Keep the bits belonging to earlier fields and replace only this field's masked range.
         ulong existing = BinaryPrimitiveIO.ReadUnsigned(buffer, storageIsLittleEndian);
-        ulong newValue = BitfieldCodecTable.MergeBitfieldValue(existing, fieldValue, state.CurrentBitOffset, field.BitSize);
+        ulong newValue = BitfieldCodecTable.MergeBitfieldValue(
+            existing,
+            fieldValue,
+            BitfieldCodecTable.EffectiveShift(state.CurrentBitOffset, field.BitSize, elementBitSize, this.highBitFirst),
+            field.BitSize);
 
         // Convert the merged number back to bytes, then overwrite exactly this storage unit.
         byte[] output = BinaryPrimitiveIO.WriteUnsigned(newValue, byteSize, storageIsLittleEndian);
@@ -199,6 +211,13 @@ public partial class CStruct
 
                 if (composite.PromotedFields.Contains(field))
                 {
+                    if (field.Declaration is Struct { IsUnion: true, } promotedUnion)
+                    {
+                        this.WritePromotedUnion(promotedUnion, field, data, state, cursor);
+                        variableScope?.CompleteField(field, state.Variables);
+                        continue;
+                    }
+
                     // An anonymous promoted member (LANG-14) has no name to look up - splice its own children
                     // into the same `data` object the parent struct already uses. WriteFieldValue's existing
                     // Struct dispatch recurses WriteStruct with this same `data`, so the promoted member's own
@@ -210,9 +229,9 @@ public partial class CStruct
 
                 if (field.EffectiveField.Name.Name.Length == 0)
                 {
-                    // An anonymous nonzero-width bitfield (LANG-17) is pure padding with no caller-supplied value -
-                    // there is no member to look up, so write its canonical zero bits directly.
-                    this.WriteFieldValue(field, 0, state, -1, cursor);
+                    // An anonymous nonzero-width bitfield (LANG-17) or a `_` padding field is pure padding with no
+                    // caller-supplied value - there is no member to look up, so write its canonical zero bits directly.
+                    this.WriteFieldValue(field, CreatePaddingValue(field), state, -1, cursor);
                     variableScope?.CompleteField(field, state.Variables);
                     continue;
                 }
@@ -234,6 +253,101 @@ public partial class CStruct
         {
             state.ExitStructure();
         }
+    }
+
+    /// <summary>
+    ///     Writes an anonymous promoted union from the parent's data: the union has no name of its own, so the
+    ///     member to write is chosen from the members the data supplies - the widest one first, so a value that
+    ///     came from a parse (where every view is present) reproduces the complete storage - and the rest of the
+    ///     union extent is cleared, exactly as <see cref="UnionValue.FromMember"/> would do.
+    /// </summary>
+    private void WritePromotedUnion(Struct union, CompiledField field, object data, CStructElementWriterState state, CompositeFieldPlacementCursor cursor)
+    {
+        (long unionPosition, _) = cursor.AdvanceToField(field);
+        this.ValidateOffsetAssertionAtRuntime(field, unionPosition, state.Variables);
+        state.Stream.Position = unionPosition;
+        CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(union);
+        int unionSize = this.compiledSizeQueries.GetCompiledStructSizeInBytes(composite, state.Variables, false);
+
+        CompiledField? selected = null;
+        object? selectedValue = null;
+        foreach (CompiledField member in composite.Fields.OrderByDescending(item => item.FixedStorageSize ?? int.MaxValue))
+        {
+            if (composite.PromotedFields.Contains(member))
+            {
+                if (this.SuppliesAnyPromotedMember(member, data, state))
+                {
+                    selected = member;
+                    selectedValue = data;
+                    break;
+                }
+
+                continue;
+            }
+
+            string name = member.EffectiveField.Name.Name;
+            if (name.Length > 0 && PocoDataBinding.TryGetMemberValue(data, name, state.BindingMode, out object? value))
+            {
+                selected = member;
+                selectedValue = value;
+                break;
+            }
+        }
+
+        if (selected is null)
+        {
+            throw new CStructWriteException(
+                "No member of the anonymous union was supplied; provide one of: " +
+                string.Join(", ", composite.Shape.Names));
+        }
+
+        byte[] stagedBytes = new byte[unionSize];
+        using (var stagingStream = new MemoryStream(stagedBytes, writable: true))
+        {
+            var stagingState = new CStructElementWriterState(
+                stagingStream,
+                new LayoutVariables(state.Variables),
+                state.Aligned,
+                state.Options,
+                state.StructureDepth);
+            this.WriteFieldValue(selected, selectedValue!, stagingState, 0);
+        }
+
+        long unionEnd = checked(unionPosition + unionSize);
+        state.Stream.Write(stagedBytes, 0, stagedBytes.Length);
+        state.Stream.Position = unionEnd;
+        state.NextPosition = unionEnd;
+        cursor.CompleteField(unionEnd);
+    }
+
+    /// <summary>Whether the data supplies at least one leaf of an anonymous promoted member (transitively).</summary>
+    private bool SuppliesAnyPromotedMember(CompiledField promoted, object data, CStructElementWriterState state)
+    {
+        if (promoted.Type.Symbol.Definition is not CompiledCompositeType composite)
+        {
+            return false;
+        }
+
+        foreach (CompiledField member in composite.Fields)
+        {
+            if (composite.PromotedFields.Contains(member))
+            {
+                if (this.SuppliesAnyPromotedMember(member, data, state))
+                {
+                    return true;
+                }
+
+                continue;
+            }
+
+            string name = member.EffectiveField.Name.Name;
+            if (name.Length > 0 && PocoDataBinding.TryGetMemberValue(data, name, state.BindingMode, out _))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Validates and stages a complete explicit union value before submitting its fixed extent once.</summary>
@@ -339,6 +453,24 @@ public partial class CStruct
     }
 
     /// <summary>Writes one already compiled field without resolving aliases or codec names again.</summary>
+    /// <summary>The all-zero value an unnamed padding field is written with: a zero scalar, or one zero per fixed element.</summary>
+    private static object CreatePaddingValue(CompiledField field)
+    {
+        if (field.Array.Kind == CompiledArrayKind.Scalar)
+        {
+            return 0;
+        }
+
+        if (CharacterFieldTypes.IsCharArrayField(field.EffectiveField))
+        {
+            return string.Empty;
+        }
+
+        var zeroes = new object[field.Array.TotalFixedElementCount ?? 0];
+        Array.Fill(zeroes, 0);
+        return zeroes;
+    }
+
     private void WriteFieldValue(
         CompiledField compiledField,
         object value,
@@ -360,8 +492,14 @@ public partial class CStruct
         bool unknownArray = false;
         bool hasFixedArrayDeclarator =
             compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime;
+        bool dataSizedArray = compiledField.Array.Kind is CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
 
-        if (compiledField.Array.Kind != CompiledArrayKind.Scalar)
+        if (dataSizedArray)
+        {
+            // A data-sized array writes exactly the supplied elements (plus its terminator, below).
+            unknownArray = true;
+        }
+        else if (compiledField.Array.Kind != CompiledArrayKind.Scalar)
         {
             if (compiledField.Array.Kind == CompiledArrayKind.Flexible)
             {
@@ -474,7 +612,8 @@ public partial class CStruct
                                                 activeUnitSize,
                                                 activeUnitSize,
                                                 state.CurrentBitOffset,
-                                                effectiveField,
+                                                compiledField.BitUnitType,
+                                                effectiveField.BitSize,
                                                 bitCapacity / 8,
                                                 bitCapacity / 8);
                 if (startsNewStorageUnit)
@@ -486,7 +625,7 @@ public partial class CStruct
 
                 if (state.CurrentBitOffset == 0)
                 {
-                    state.CurrentBitfieldType = effectiveField.Type.Name;
+                    state.CurrentBitfieldType = compiledField.BitUnitType;
                     state.CurrentBitfieldSize = compiledField.BitStorageSize ??
                                                 throw new InvalidOperationException(
                                                     "Compiled bitfield has no storage size: " +
@@ -525,7 +664,7 @@ public partial class CStruct
             if (effectiveField.BitSize > 0)
             {
                 state.CurrentBitOffset = bitOffset;
-                state.CurrentBitfieldType = effectiveField.Type.Name;
+                state.CurrentBitfieldType = compiledField.BitUnitType;
                 state.CurrentBitfieldSize = compiledField.BitStorageSize ??
                                             throw new InvalidOperationException(
                                                 "Compiled bitfield has no storage size: " + effectiveField.Name.Name);
@@ -608,6 +747,14 @@ public partial class CStruct
                 {
                     _ = this.WriteSingleFieldValue(compiledField, items[i], state);
                 }
+
+                if (compiledField.Array.Kind == CompiledArrayKind.Terminated)
+                {
+                    // One all-zero element closes the array.
+                    int elementSize = compiledField.FixedElementSize ??
+                                      throw new InvalidOperationException("Data-sized array has no fixed element size: " + effectiveField.Name.Name);
+                    state.WriteZeroes(elementSize);
+                }
             }
         }
         else
@@ -645,6 +792,8 @@ public partial class CStruct
             {
                 WriterVariableProjection.UpdateVariablesFromValue(state, effectiveField.Name.Name, value!);
             }
+
+            state.PublishQualified(effectiveField.Name.Name);
         }
     }
 
@@ -848,8 +997,19 @@ public partial class CStruct
                     compiledEnum.Integer.ToStorageValue(enumValue));
                 return enumValue;
             case Struct strct:
-                this.WriteCStructElement(strct, value, state);
-                return null;
+                {
+                    // A field named through a dotted path (`hdr.n`) republishes its nested values under the
+                    // qualified prefix while its body is written.
+                    string? outerPrefix = state.QualifiedPrefix;
+                    if (compiledField.HasQualifiedPrefix && compiledField.Array.Kind == CompiledArrayKind.Scalar)
+                    {
+                        state.QualifiedPrefix = outerPrefix is null ? compiledField.QualifiedPrefix : outerPrefix + compiledField.QualifiedPrefix;
+                    }
+
+                    this.WriteCStructElement(strct, value, state);
+                    state.QualifiedPrefix = outerPrefix;
+                    return null;
+                }
             }
         }
 
@@ -875,7 +1035,7 @@ public partial class CStruct
                                             "Compiled field has no writer: " + field.CodecName);
         try
         {
-            if (stream is WriteBudgetStream { IsSparseUpdate: true } && field.Codec.IsLeb128)
+            if (stream is WriteBudgetStream { IsSparseUpdate: true } && (field.Codec.IsLeb128 || (field.Codec.IsCustom && !field.FixedElementSize.HasValue)))
             {
                 long start = stream.Position;
                 _ = field.Reader!(stream);
@@ -1000,7 +1160,7 @@ public partial class CStruct
 
         // Copy caller variables and calculate #defines so array lengths are evaluated exactly as they are for normal writes.
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
-        IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
 
         if (segments.Count == 0)
         {
@@ -1080,7 +1240,7 @@ public partial class CStruct
                     // A later bitfield starts at the same byte address as its predecessors. Seed the shared writer
                     // state from the semantic target so only the selected bit range changes.
                     state.CurrentBitOffset = target.BitOffset;
-                    state.CurrentBitfieldType = writableField.Type.Name;
+                    state.CurrentBitfieldType = writableCompiledField.BitUnitType;
                     state.CurrentBitfieldSize = target.BitStorageSize;
                     state.CurrentFieldAlignment = target.Alignment;
                     state.NextPosition = checked(target.Address + target.BitStorageSize);
@@ -1186,7 +1346,7 @@ public partial class CStruct
 
         // Definitions and supplied variables form the small expression environment used for array counts.
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
-        IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
 
         if (segments.Count == 0)
         {

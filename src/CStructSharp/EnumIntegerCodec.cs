@@ -37,12 +37,12 @@ internal sealed class EnumIntegerCodec
         {
             "byte" or "uint8" => new EnumIntegerCodec("uint8", 8, false),
             "int8" => new EnumIntegerCodec("int8", 8, true),
-            "uint16" or "ushort" => new EnumIntegerCodec("uint16", 16, false),
-            "int16" or "short" => new EnumIntegerCodec("int16", 16, true),
-            "uint32" or "uint" => new EnumIntegerCodec("uint32", 32, false),
-            "int32" or "int" => new EnumIntegerCodec("int32", 32, true),
-            "uint64" or "ulong" => new EnumIntegerCodec("uint64", 64, false),
-            "int64" or "long" => new EnumIntegerCodec("int64", 64, true),
+            "uint16" => new EnumIntegerCodec("uint16", 16, false),
+            "int16" => new EnumIntegerCodec("int16", 16, true),
+            "uint32" => new EnumIntegerCodec("uint32", 32, false),
+            "int32" => new EnumIntegerCodec("int32", 32, true),
+            "uint64" => new EnumIntegerCodec("uint64", 64, false),
+            "int64" => new EnumIntegerCodec("int64", 64, true),
             _ => null,
         };
         return codec is not null;

@@ -55,3 +55,5 @@ items:
   href: recipes/
 - name: Binary metadata types
   href: binary-metadata-types.md
+- name: Migrating from dissect.cstruct
+  href: migrating-from-dissect.md

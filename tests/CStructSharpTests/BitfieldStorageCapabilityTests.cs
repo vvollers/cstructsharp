@@ -36,10 +36,10 @@ public class BitfieldStorageCapabilityTests
     }
 
     /// <summary>
-    ///     The cases try pointers, arrays, structs, enums, typedefs, and floating-point types as bitfield storage.
+    ///     The cases try pointers, arrays, structs, and floating-point types (directly or through a typedef) as bitfield storage.
     /// </summary>
     /// <remarks>
-    ///     These forms are outside the library's supported direct integral bitfields. Each must produce a layout error,
+    ///     These forms have no integral storage to allocate bits from. Each must produce a layout error,
     ///     preventing different operations from inventing inconsistent storage rules.
     /// </remarks>
     /// <param name="layout">A complete layout containing one unsupported bitfield declaration.</param>
@@ -47,13 +47,25 @@ public class BitfieldStorageCapabilityTests
     [DataRow("struct root { uint8 *flags:4; };")]
     [DataRow("struct root { uint8 flags[2]:4; };")]
     [DataRow("struct bits { byte value; }; struct root { bits flags:4; };")]
-    [DataRow("enum bits : uint8 { none = 0, one = 1 }; struct root { bits flags:4; };")]
-    [DataRow("typedef uint8 bits; struct root { bits flags:4; };")]
+    [DataRow("typedef float bits; struct root { bits flags:4; };")]
     [DataRow("struct root { float flags:4; };")]
     [DataRow("struct root { double flags:4; };")]
     public void IndirectOrCollectionBitfieldStorage_IsRejectedDuringCompilation(string layout)
     {
         Assert.Throws<CStructLayoutException>(() => new CStruct(layout, pointerSize: 1));
+    }
+
+    /// <summary>
+    ///     A typedef or enum whose resolved storage is integral is valid bitfield storage (dissect parity, D1.7): the
+    ///     bits are allocated from the resolved integer and, for an enum, read back as enum values.
+    /// </summary>
+    [TestMethod]
+    [DataRow("enum bits : uint8 { none = 0, one = 1 }; struct root { bits flags:4; };")]
+    [DataRow("typedef uint8 bits; struct root { bits flags:4; };")]
+    [DataRow("typedef uint8 BYTE; typedef BYTE bits; struct root { bits flags:4; };")]
+    public void ResolvedIntegralBitfieldStorage_IsAcceptedDuringCompilation(string layout)
+    {
+        Assert.AreEqual(1, new CStruct(layout, pointerSize: 1).GetStructSizeInBytes("root"));
     }
 
     /// <summary>

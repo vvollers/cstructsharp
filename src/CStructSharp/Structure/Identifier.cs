@@ -10,6 +10,10 @@ internal class Identifier : Expr
     // public static Identifier DEFAULT = new("default");
     public static readonly Identifier BYTE = new("byte");
 
+    public static readonly Identifier INT32 = new("int32");
+
+    public static readonly Identifier UINT32 = new("uint32");
+
     /// <summary>Creates an identifier, removing pointer stars from its name while remembering their count.</summary>
     public Identifier(string name)
     {

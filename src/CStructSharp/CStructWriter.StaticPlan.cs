@@ -124,6 +124,7 @@ public partial class CStruct
                 if (capture)
                 {
                     WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
+                    state.PublishQualified(name);
                 }
 
                 break;
@@ -137,6 +138,7 @@ public partial class CStruct
                     if (capture)
                     {
                         this.UpdateExactLayoutVariable(state.Variables, name, enumValue);
+                        state.PublishQualified(name);
                     }
 
                     break;
@@ -164,16 +166,28 @@ public partial class CStruct
                     if (capture)
                     {
                         WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
+                        state.PublishQualified(name);
                     }
 
                     break;
                 }
 
             case StaticReadKind.Nested:
-                this.ExecuteStaticWritePlan(operation.NestedPlan!, operation.NestedComposite!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), value, state);
+                {
+                    string? outerPrefix = state.QualifiedPrefix;
+                    if (field.HasQualifiedPrefix)
+                    {
+                        state.QualifiedPrefix = outerPrefix is null ? field.QualifiedPrefix : outerPrefix + field.QualifiedPrefix;
+                    }
+
+                    this.ExecuteStaticWritePlan(operation.NestedPlan!, operation.NestedComposite!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), value, state);
+                    state.QualifiedPrefix = outerPrefix;
+                }
+
                 if (capture)
                 {
                     WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
+                    state.PublishQualified(name);
                 }
 
                 break;
@@ -199,6 +213,7 @@ public partial class CStruct
                     if (capture)
                     {
                         WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
+                        state.PublishQualified(name);
                     }
 
                     break;

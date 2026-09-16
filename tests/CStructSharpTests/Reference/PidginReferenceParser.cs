@@ -319,7 +319,7 @@ internal static class PidginReferenceParser
                 Select<CStructElement>(o => CStructSharpEnum.CreateUnevaluated(
                     id,
                     [.. o,],
-                    type.HasValue ? type.Value : Structure.Identifier.BYTE))));
+                    type.HasValue ? type.Value : Structure.Identifier.UINT32))));
 
     public static readonly Parser<char, Maybe<Expr>> Array = Map(
         (_, expr, _) => expr,

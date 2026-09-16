@@ -47,6 +47,126 @@ internal static class BinaryPrimitiveIO
         WriteUInt24(stream, unchecked((uint)value) & 0xffffff, isLittleEndian);
     }
 
+    /// <summary>Reads an unsigned six-byte integer in the requested byte order.</summary>
+    public static ulong ReadUInt48(Stream stream, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[6];
+        ReadExactlyOrThrow(stream, buffer);
+        ulong value = 0;
+        for (int index = 0; index < 6; index++)
+        {
+            int shift = isLittleEndian ? index * 8 : (5 - index) * 8;
+            value |= (ulong)buffer[index] << shift;
+        }
+
+        return value;
+    }
+
+    /// <summary>Reads a six-byte integer and sign-extends bit 47.</summary>
+    public static long ReadInt48(Stream stream, bool isLittleEndian)
+        => unchecked((long)(ReadUInt48(stream, isLittleEndian) << 16)) >> 16;
+
+    /// <summary>Writes an unsigned six-byte integer after checking its range.</summary>
+    public static void WriteUInt48(Stream stream, ulong value, bool isLittleEndian)
+    {
+        if (value > 0xffff_ffff_ffff)
+        {
+            throw new CStructWriteException("Value is outside the uint48 range.");
+        }
+
+        Span<byte> buffer = stackalloc byte[6];
+        for (int index = 0; index < 6; index++)
+        {
+            int shift = isLittleEndian ? index * 8 : (5 - index) * 8;
+            buffer[index] = (byte)(value >> shift);
+        }
+
+        stream.Write(buffer);
+    }
+
+    /// <summary>Writes a signed six-byte integer after checking its range.</summary>
+    public static void WriteInt48(Stream stream, long value, bool isLittleEndian)
+    {
+        if (value is < -140_737_488_355_328 or > 140_737_488_355_327)
+        {
+            throw new CStructWriteException("Value is outside the int48 range.");
+        }
+
+        WriteUInt48(stream, unchecked((ulong)value) & 0xffff_ffff_ffff, isLittleEndian);
+    }
+
+    /// <summary>Reads a sixteen-byte signed integer in the requested byte order.</summary>
+    public static Int128 ReadInt128(Stream stream, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[16];
+        ReadExactlyOrThrow(stream, buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadInt128LittleEndian(buffer) : BinaryPrimitives.ReadInt128BigEndian(buffer);
+    }
+
+    /// <summary>Reads a sixteen-byte unsigned integer in the requested byte order.</summary>
+    public static UInt128 ReadUInt128(Stream stream, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[16];
+        ReadExactlyOrThrow(stream, buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadUInt128LittleEndian(buffer) : BinaryPrimitives.ReadUInt128BigEndian(buffer);
+    }
+
+    /// <summary>Writes a sixteen-byte signed integer in the requested byte order.</summary>
+    public static void WriteInt128(Stream stream, Int128 value, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[16];
+        if (isLittleEndian)
+        {
+            BinaryPrimitives.WriteInt128LittleEndian(buffer, value);
+        }
+        else
+        {
+            BinaryPrimitives.WriteInt128BigEndian(buffer, value);
+        }
+
+        stream.Write(buffer);
+    }
+
+    /// <summary>Writes a sixteen-byte unsigned integer in the requested byte order.</summary>
+    public static void WriteUInt128(Stream stream, UInt128 value, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[16];
+        if (isLittleEndian)
+        {
+            BinaryPrimitives.WriteUInt128LittleEndian(buffer, value);
+        }
+        else
+        {
+            BinaryPrimitives.WriteUInt128BigEndian(buffer, value);
+        }
+
+        stream.Write(buffer);
+    }
+
+    /// <summary>Reads an IEEE-754 binary16 value bit for bit.</summary>
+    public static Half ReadHalf(Stream stream, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[2];
+        ReadExactlyOrThrow(stream, buffer);
+        return isLittleEndian ? BinaryPrimitives.ReadHalfLittleEndian(buffer) : BinaryPrimitives.ReadHalfBigEndian(buffer);
+    }
+
+    /// <summary>Writes an IEEE-754 binary16 value bit for bit.</summary>
+    public static void WriteHalf(Stream stream, Half value, bool isLittleEndian)
+    {
+        Span<byte> buffer = stackalloc byte[2];
+        if (isLittleEndian)
+        {
+            BinaryPrimitives.WriteHalfLittleEndian(buffer, value);
+        }
+        else
+        {
+            BinaryPrimitives.WriteHalfBigEndian(buffer, value);
+        }
+
+        stream.Write(buffer);
+    }
+
     /// <summary>Reads one required byte and turns an unexpected end of stream into a layout-specific error.</summary>
     public static byte ReadByteExactly(Stream stream)
     {

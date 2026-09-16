@@ -157,6 +157,35 @@ internal sealed class ExpressionEvaluator
             this.limits);
     }
 
+    /// <summary>Whether the tree contains a call node (<c>sizeof(T)</c>, <c>offsetof(T, f)</c>), which the compiler folds before compilation.</summary>
+    public static bool ContainsCall(Expr expression)
+    {
+        var pending = new Stack<Expr>();
+        pending.Push(expression);
+        while (pending.Count > 0)
+        {
+            switch (pending.Pop())
+            {
+            case Call:
+                return true;
+            case UnaryOp unary:
+                pending.Push(unary.Expr);
+                break;
+            case BinaryOp binary:
+                pending.Push(binary.Left);
+                pending.Push(binary.Right);
+                break;
+            case ConditionalExpr conditional:
+                pending.Push(conditional.Condition);
+                pending.Push(conditional.WhenTrue);
+                pending.Push(conditional.WhenFalse);
+                break;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Compiles one expression now so unsupported or over-budget trees fail during layout construction.</summary>
     public void Compile(Expr expression)
     {
@@ -203,6 +232,29 @@ internal sealed class ExpressionEvaluator
             {
                 instructions.Add(CreateOperatorInstruction(frame.Expression, frame.Depth));
                 frame.Patch!.Target = instructions.Count;
+                continue;
+            }
+
+            if (frame.BranchStage == 3)
+            {
+                // Conditional: the test is on the stack; skip to the else arm when it is zero.
+                instructions.Add(new ExpressionInstruction(ExpressionOpcode.BranchIfFalse, BigInteger.Zero, null, frame.Depth, frame.Patch));
+                continue;
+            }
+
+            if (frame.BranchStage == 4)
+            {
+                // End of the then arm: jump over the else arm, and the else arm starts here.
+                instructions.Add(new ExpressionInstruction(ExpressionOpcode.Jump, BigInteger.Zero, null, frame.Depth, frame.ElsePatch));
+                frame.Patch!.Target = instructions.Count;
+                continue;
+            }
+
+            if (frame.BranchStage == 5)
+            {
+                // Both arms land here; the join is a no-op at run time and keeps the static stack count honest.
+                instructions.Add(new ExpressionInstruction(ExpressionOpcode.Join, BigInteger.Zero, null, frame.Depth));
+                frame.Patch!.Target = instructions.Count - 1;
                 continue;
             }
 
@@ -267,6 +319,16 @@ internal sealed class ExpressionEvaluator
                 pending.Push(new CompilationFrame(binary.Right, frame.Depth + 1, false, Conditional: frame.Conditional));
                 pending.Push(new CompilationFrame(binary.Left, frame.Depth + 1, false, Conditional: frame.Conditional));
                 break;
+            case ConditionalExpr conditional:
+                var elsePatch = new BranchPatch();
+                var endPatch = new BranchPatch();
+                pending.Push(new CompilationFrame(conditional, frame.Depth, false, 5, endPatch));
+                pending.Push(new CompilationFrame(conditional.WhenFalse, frame.Depth + 1, false, Conditional: true));
+                pending.Push(new CompilationFrame(conditional, frame.Depth, false, 4, elsePatch, ElsePatch: endPatch));
+                pending.Push(new CompilationFrame(conditional.WhenTrue, frame.Depth + 1, false, Conditional: true));
+                pending.Push(new CompilationFrame(conditional, frame.Depth, false, 3, elsePatch));
+                pending.Push(new CompilationFrame(conditional.Condition, frame.Depth + 1, false, Conditional: frame.Conditional));
+                break;
             case Call:
                 throw new NotSupportedException("Expression calls are parsed but are not supported.");
             default:
@@ -305,6 +367,8 @@ internal sealed class ExpressionEvaluator
             BinaryOp { Type: BinaryOperatorType.Or, } => ExpressionOpcode.Or,
             BinaryOp { Type: BinaryOperatorType.ShiftLeft, } => ExpressionOpcode.ShiftLeft,
             BinaryOp { Type: BinaryOperatorType.ShiftRight, } => ExpressionOpcode.ShiftRight,
+            BinaryOp { Type: BinaryOperatorType.Mod, } => ExpressionOpcode.Modulo,
+            BinaryOp { Type: BinaryOperatorType.Xor, } => ExpressionOpcode.Xor,
             BinaryOp binary => throw new InvalidOperationException("Unknown binary operator: " + binary.Type),
             _ => throw new InvalidOperationException("Expression node has no executable operator."),
         };
@@ -447,6 +511,18 @@ internal sealed class ExpressionEvaluator
                         }
 
                         break;
+                    case ExpressionOpcode.BranchIfFalse:
+                        if (values[--valueCount] == 0)
+                        {
+                            pc = instruction.Patch!.Target - 1;
+                        }
+
+                        break;
+                    case ExpressionOpcode.Jump:
+                        pc = instruction.Patch!.Target - 1;
+                        break;
+                    case ExpressionOpcode.Join:
+                        break;
                     case ExpressionOpcode.Identifier:
                         if (instruction.Conditional && this.variables.TryGetValue(instruction.Name!, out Expr? selected))
                         {
@@ -539,6 +615,8 @@ internal sealed class ExpressionEvaluator
                 ExpressionOpcode.Or => left | right,
                 ExpressionOpcode.ShiftLeft => CheckedShiftLeft(left, right),
                 ExpressionOpcode.ShiftRight => CheckedShiftRight(left, right),
+                ExpressionOpcode.Modulo => checked(left % right),
+                ExpressionOpcode.Xor => left ^ right,
                 _ => throw new InvalidOperationException("Unknown compiled binary expression opcode: " + opcode),
             };
         }
@@ -606,6 +684,9 @@ internal sealed class ExpressionEvaluator
                 Identifier identifier => this.EvaluateIdentifier(identifier.Name, depth + 1),
                 UnaryOp unary => this.EvaluateUnary(unary, depth),
                 BinaryOp binary => this.EvaluateBinary(binary, depth),
+                ConditionalExpr conditional => this.Evaluate(conditional.Condition, depth + 1).IsZero
+                                                   ? this.Evaluate(conditional.WhenFalse, depth + 1)
+                                                   : this.Evaluate(conditional.WhenTrue, depth + 1),
                 Call => throw new NotSupportedException("Expression calls are parsed but are not supported."),
                 _ => throw new NotSupportedException(
                     "Unsupported expression node type: " + expression.GetType().Name),
@@ -701,6 +782,8 @@ internal sealed class ExpressionEvaluator
                 BinaryOperatorType.Or => left | right,
                 BinaryOperatorType.ShiftLeft => left << this.ValidateShiftCount(right),
                 BinaryOperatorType.ShiftRight => left >> this.ValidateShiftCount(right),
+                BinaryOperatorType.Mod => right.IsZero ? throw new DivideByZeroException() : BigInteger.Remainder(left, right),
+                BinaryOperatorType.Xor => left ^ right,
                 _ => throw new InvalidOperationException("Unknown binary operator: " + binary.Type),
             };
         }
@@ -756,6 +839,15 @@ internal sealed class ExpressionEvaluator
                 case ExpressionOpcode.Complement:
                 case ExpressionOpcode.Negate:
                     break;
+                case ExpressionOpcode.BranchIfFalse:
+                    // The test is consumed at run time, but counting it as still present keeps the count positive
+                    // through the then arm; Jump and Join take the two surplus entries back off, so a conditional
+                    // nets one pushed value and the maximum only over-estimates by one slot.
+                    break;
+                case ExpressionOpcode.Jump:
+                case ExpressionOpcode.Join:
+                    stackSize--;
+                    break;
                 default:
                     stackSize--;
                     break;
@@ -791,7 +883,7 @@ internal sealed class ExpressionEvaluator
     }
 
     /// <summary>Represents one iterative compilation frame.</summary>
-    private readonly record struct CompilationFrame(Expr Expression, int Depth, bool EmitOperator, int BranchStage = 0, BranchPatch? Patch = null, bool Conditional = false);
+    private readonly record struct CompilationFrame(Expr Expression, int Depth, bool EmitOperator, int BranchStage = 0, BranchPatch? Patch = null, bool Conditional = false, BranchPatch? ElsePatch = null);
 
     private sealed class BranchPatch
     {
@@ -843,5 +935,10 @@ internal sealed class ExpressionEvaluator
         Or,
         ShiftLeft,
         ShiftRight,
+        Modulo,
+        Xor,
+        BranchIfFalse,
+        Jump,
+        Join,
     }
 }

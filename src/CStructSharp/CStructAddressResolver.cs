@@ -62,23 +62,30 @@ public partial class CStruct
                 state.EnsureStructureDepth(1);
             }
 
+            // A typedef, enum, or spelled root (`uint16[EOF]`) is one compiled field: expose it so the length
+            // query and selected reads see its array shape and codec like a nested field's.
+            CompiledField? rootField = declaredRoot is Typedef or CstructEnum ? this.compiledModelQueries.GetCompiledRootField(declaredRoot) : null;
+            bool rootIsArray = rootField is not null &&
+                               rootField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
+            int? rootArrayLength = rootIsArray ? this.GetBoundedArrayCount(rootField!, state, rootStart) : null;
+
             int? fixedSize = rootTargetStruct is null
-                                 ? null
+                                 ? rootField?.FixedStorageSize
                                  : this.TryGetStructFixedSize(rootTargetStruct, state.Variables);
             int alignment = rootTargetStruct is null
-                                ? 1
+                                ? rootField?.Alignment ?? 1
                                 : this.compiledSizeQueries.GetCompiledComposite(rootTargetStruct).Symbol.Alignment;
             return new ResolvedTarget(
                 rootStart,
                 ResolvedTargetKind.Root,
-                null,
-                null,
-                null,
+                rootField?.Declaration,
+                rootField?.EffectiveField,
+                rootField?.EffectiveField,
                 targetElement,
                 new CStructElement[] { targetElement, },
-                targetElement.Name.Name,
-                false,
-                null,
+                rootField?.CodecName ?? targetElement.Name.Name,
+                rootIsArray,
+                rootArrayLength,
                 null,
                 Array.Empty<int>(),
                 0,
@@ -91,7 +98,9 @@ public partial class CStruct
                 0,
                 alignment,
                 fixedSize,
-                0);
+                0,
+                rootField,
+                rootField);
         }
 
         if (resolvedRoot is not Struct rootStruct)
@@ -157,6 +166,20 @@ public partial class CStruct
         PathSegment requested = segments[pathIndex];
         if (strct.IsUnion)
         {
+            CompiledCompositeType unionComposite = this.compiledSizeQueries.GetCompiledComposite(strct);
+            if (!unionComposite.FieldsByName.ContainsKey(requested.Name))
+            {
+                // An anonymous struct member of the union (LANG-14) contributes its own names to the union's
+                // namespace; every member starts at the union's address.
+                foreach (CompiledField promoted in unionComposite.PromotedFields)
+                {
+                    if (promoted.Declaration is Struct promotedMember && this.TryFindCompiledField(promotedMember, requested.Name, out _))
+                    {
+                        return this.ResolveTargetInStruct(promotedMember, structStart, segments, pathIndex, state, context);
+                    }
+                }
+            }
+
             CompiledField compiledUnionField = this.FindCompiledField(strct, requested.Name);
             Field effectiveUnionField = compiledUnionField.EffectiveField;
             int bitStorageSize = effectiveUnionField.BitSize > 0
@@ -253,7 +276,8 @@ public partial class CStruct
     {
         Field declaredField = compiledField.Declaration;
         PathSegment segment = segments[pathIndex];
-        bool declaredIsArray = compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime;
+        bool declaredIsArray = compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or
+                               CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
 
         if (segment.Indexes.Count > 0 && !declaredIsArray)
         {
@@ -272,7 +296,7 @@ public partial class CStruct
         long elementStart = fieldStart;
         foreach (int suppliedIndex in segment.Indexes)
         {
-            int dimensionCount = this.GetBoundedArrayCount(resolvedField, state);
+            int dimensionCount = this.GetBoundedArrayCount(resolvedField, state, elementStart);
             if (suppliedIndex >= dimensionCount)
             {
                 throw new CStructPathException(
@@ -283,8 +307,9 @@ public partial class CStruct
             resolvedField = resolvedField.SelectArrayElement();
         }
 
-        bool remainingIsArray = resolvedField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime;
-        int? arrayLength = remainingIsArray ? this.GetBoundedArrayCount(resolvedField, state) : null;
+        bool remainingIsArray = resolvedField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or
+                                CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
+        int? arrayLength = remainingIsArray ? this.GetBoundedArrayCount(resolvedField, state, elementStart) : null;
         int? selectedArrayIndex = segment.Indexes.Count > 0 && !remainingIsArray ? segment.Indexes[^1] : null;
 
         context = context.EnterField(declaredField, segment.Indexes);
@@ -773,7 +798,7 @@ public partial class CStruct
             return current;
         }
 
-        if (compiledField.Codec.IsLeb128)
+        if (compiledField.Codec.IsLeb128 || (compiledField.Codec.IsCustom && !compiledField.FixedElementSize.HasValue))
         {
             state.Stream.Position = fieldStart;
             int leaves = checked(index * (elementField.Array.TotalFixedElementCount ?? 1));
@@ -790,8 +815,13 @@ public partial class CStruct
     }
 
     /// <summary>Evaluates one fixed array count and rejects it before traversal can loop over excessive elements.</summary>
-    private int GetBoundedArrayCount(CompiledField field, CStructOperationContext state)
+    private int GetBoundedArrayCount(CompiledField field, CStructOperationContext state, long fieldStart)
     {
+        if (field.Array.Kind is CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated)
+        {
+            return this.CountDataSizedElements(field, state, fieldStart);
+        }
+
         int count = this.compiledSizeQueries.GetCompiledArrayCount(field, state.Variables, false);
         if (count > state.MaxArrayElements)
         {
@@ -809,8 +839,13 @@ public partial class CStruct
     ///     bounds checks), this is the flat row-major leaf count a full measurement walk must actually visit -
     ///     the two coincide for every 1-D field, since a 1-D shape's only dimension is both.
     /// </summary>
-    private int GetBoundedTotalElementCount(CompiledField field, CStructOperationContext state)
+    private int GetBoundedTotalElementCount(CompiledField field, CStructOperationContext state, long fieldStart)
     {
+        if (field.Array.Kind is CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated)
+        {
+            return this.CountDataSizedElements(field, state, fieldStart);
+        }
+
         int count = this.compiledSizeQueries.GetCompiledFieldTotalElementCount(field, state.Variables, false);
         if (count > state.MaxArrayElements)
         {
@@ -819,6 +854,24 @@ public partial class CStruct
         }
 
         return count;
+    }
+
+    /// <summary>The element count of a data-sized array at a known start, restoring the stream position afterwards.</summary>
+    private int CountDataSizedElements(CompiledField field, CStructOperationContext state, long fieldStart)
+    {
+        int elementSize = field.FixedElementSize ??
+                          throw new InvalidOperationException("Data-sized array has no fixed element size: " + field.EffectiveField.Name.Name);
+        long position = state.Stream.Position;
+        try
+        {
+            return field.Array.Kind == CompiledArrayKind.ToEnd
+                       ? DynamicArrayExtent.CountToEnd(state.Stream, fieldStart, elementSize, state.MaxArrayElements, field.EffectiveField.Name.Name)
+                       : DynamicArrayExtent.CountTerminated(state.Stream, fieldStart, elementSize, state.MaxArrayElements, field.EffectiveField.Name.Name);
+        }
+        finally
+        {
+            state.Stream.Position = position;
+        }
     }
 
     /// <summary>Measures one complete field without decoding unrelated pointer targets.</summary>
@@ -834,7 +887,7 @@ public partial class CStruct
         {
             int count = compiledField.Array.Kind == CompiledArrayKind.Scalar
                             ? 1
-                            : this.GetBoundedTotalElementCount(compiledField, state);
+                            : this.GetBoundedTotalElementCount(compiledField, state, fieldStart);
 
             // Unlike GetArrayElementStart, this walk cannot be replaced by FixedElementSize * count even when the
             // element size is statically known: a later sibling field of the containing struct is still to be
@@ -842,12 +895,22 @@ public partial class CStruct
             // expose a scalar from inside one of these elements (by its bare field name) that a later field's
             // runtime array-count expression depends on. Skipping elements here could silently drop that capture.
             long current = fieldStart;
+            string? outerPrefix = state.QualifiedPrefix;
+            if (compiledField.HasQualifiedPrefix && compiledField.Array.Kind == CompiledArrayKind.Scalar)
+            {
+                // A field named through a dotted path (`hdr.n`) republishes its nested values under the prefix.
+                state.QualifiedPrefix = outerPrefix is null ? compiledField.QualifiedPrefix : outerPrefix + compiledField.QualifiedPrefix;
+            }
+
             for (int i = 0; i < count; i++)
             {
                 current = this.MeasureStructEnd(nested, current, state);
             }
 
-            return current;
+            state.QualifiedPrefix = outerPrefix;
+            return compiledField.Array.Kind == CompiledArrayKind.Terminated
+                       ? checked(current + (compiledField.FixedElementSize ?? 0))
+                       : current;
         }
 
         if (compiledField.Array.Kind == CompiledArrayKind.Scalar && compiledField.Codec.IsTerminatedText)
@@ -874,9 +937,10 @@ public partial class CStruct
             return state.Stream.Position;
         }
 
-        if (compiledField.Codec.IsLeb128)
+        if (compiledField.Codec.IsLeb128 || (compiledField.Codec.IsCustom && !compiledField.FixedElementSize.HasValue))
         {
-            int count = compiledField.Array.Kind == CompiledArrayKind.Scalar ? 1 : this.GetBoundedTotalElementCount(compiledField, state);
+            // Variable-length codecs are measured by reading them; a custom codec's own reader defines its extent.
+            int count = compiledField.Array.Kind == CompiledArrayKind.Scalar ? 1 : this.GetBoundedTotalElementCount(compiledField, state, fieldStart);
             state.Stream.Position = fieldStart;
             for (int i = 0; i < count; i++)
             {
@@ -888,9 +952,15 @@ public partial class CStruct
 
         int scalarCount = compiledField.Array.Kind == CompiledArrayKind.Scalar
                               ? 1
-                              : this.GetBoundedTotalElementCount(compiledField, state);
+                              : this.GetBoundedTotalElementCount(compiledField, state, fieldStart);
         int elementSize = compiledField.FixedElementSize ??
                           this.compiledSizeQueries.GetCompiledFieldElementSize(compiledField, state.Variables, false);
+        if (compiledField.Array.Kind == CompiledArrayKind.Terminated)
+        {
+            // The terminator element is part of the field's extent.
+            scalarCount = checked(scalarCount + 1);
+        }
+
         int storageSize = checked(elementSize * scalarCount);
         return checked(fieldStart + storageSize);
     }
@@ -962,9 +1032,14 @@ public partial class CStruct
         {
             Field field = compiledField.EffectiveField;
             CStructElement? namedElement = compiledField.NamedElement;
+
+            // A data-sized array's count is not known without a position; its element type's own limits are still
+            // checked once through the element walk that follows a real resolution.
             int count = compiledField.Array.Kind == CompiledArrayKind.Scalar
                             ? 1
-                            : this.GetBoundedArrayCount(compiledField, state);
+                            : compiledField.Array.Kind is CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated
+                                ? 1
+                                : this.GetBoundedArrayCount(compiledField, state, 0);
             if (count == 0 || field.PointerDepth > 0 || namedElement is not Struct nested)
             {
                 continue;
@@ -1061,6 +1136,7 @@ public partial class CStruct
             {
                 BigInteger exact = this.compiledModelQueries.GetCompiledEnum(enm).Integer.FromStorageValue(value);
                 this.UpdateExactLayoutVariable(state.Variables, field.Name.Name, exact);
+                state.PublishQualified(field.Name.Name);
             }
 
             return;
@@ -1081,7 +1157,8 @@ public partial class CStruct
 
         if (field.BitSize > 0)
         {
-            value = BitfieldCodecTable.ExtractBitfieldValue(value, bitOffset, field.BitSize);
+            int unitBits = checked((compiledField.BitStorageSize ?? 0) * 8);
+            value = BitfieldCodecTable.ExtractBitfieldValue(value, BitfieldCodecTable.EffectiveShift(bitOffset, field.BitSize, unitBits, this.highBitFirst), field.BitSize);
         }
 
         // A scalar outside the expression language's Int32 domain is still a valid field; it simply cannot be a count.
@@ -1096,6 +1173,8 @@ public partial class CStruct
         {
             state.Variables.Remove(field.Name.Name);
         }
+
+        state.PublishQualified(field.Name.Name);
     }
 
     /// <summary>Finds one exact compiled field name in a struct.</summary>

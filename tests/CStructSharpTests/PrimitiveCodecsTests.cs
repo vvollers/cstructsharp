@@ -41,12 +41,13 @@ public class PrimitiveCodecsTests
 
     /// <summary>The C-style and shorthand aliases must resolve to their documented canonical spelling.</summary>
     [TestMethod]
-    public void FieldTypeAliasses_MapsCStyleAndShorthandNamesToCanonicalSpellings()
+    public void Aliases_MapCStyleAndShorthandNamesToCanonicalSpellings()
     {
-        Assert.AreEqual("int32", PrimitiveCodecs.FieldTypeAliasses["int"]);
-        Assert.AreEqual("uint64", PrimitiveCodecs.FieldTypeAliasses["ulong"]);
-        Assert.AreEqual("unicode_string_zero", PrimitiveCodecs.FieldTypeAliasses["string"]);
-        Assert.AreEqual("ascii_string_zero", PrimitiveCodecs.FieldTypeAliasses["cstring"]);
+        Assert.AreEqual("int32", PrimitiveSpellings.Aliases["int"]);
+        Assert.AreEqual("uint64", PrimitiveSpellings.Canonicalize("ulong", 64));
+        Assert.AreEqual("uint32", PrimitiveSpellings.Canonicalize("ulong", 32));
+        Assert.AreEqual("unicode_string_zero", PrimitiveSpellings.Aliases["string"]);
+        Assert.AreEqual("ascii_string_zero", PrimitiveSpellings.Aliases["cstring"]);
     }
 
     /// <summary>A character within the one-byte domain converts directly.</summary>

@@ -250,7 +250,6 @@
       "int8",
       "uint8",
       "bool",
-      "_Bool",
       "char",
       "utf8",
       "latin1",
@@ -290,35 +289,21 @@
       "float64",
       "float64>",
       "float64<",
-      "float",
-      "double",
-      "short",
-      "ushort",
-      "int",
-      "uint",
-      "long",
-      "ulong",
-      "signed",
-      "unsigned",
-      "signed int",
-      "unsigned int",
-      "signed short",
-      "unsigned short",
-      "signed long",
-      "unsigned long",
-      "long long",
-      "signed long long",
-      "unsigned long long",
-      "signed char",
-      "unsigned char",
-      "int8_t",
-      "uint8_t",
-      "int16_t",
-      "uint16_t",
-      "int32_t",
-      "uint32_t",
-      "int64_t",
-      "uint64_t"
+      "int48",
+      "int48<",
+      "int48>",
+      "uint48",
+      "uint48<",
+      "uint48>",
+      "int128",
+      "int128<",
+      "int128>",
+      "uint128",
+      "uint128<",
+      "uint128>",
+      "float16",
+      "float16<",
+      "float16>"
     ],
     "terminated": [
       "ascii_string_zero",
@@ -335,11 +320,165 @@
       "string>",
       "string<",
       "cstring"
+    ],
+    "aliases": [
+      "BYTE",
+      "CHAR",
+      "DOUBLE",
+      "DWORD",
+      "DWORD32",
+      "DWORD64",
+      "DWORDLONG",
+      "FLOAT",
+      "INT",
+      "INT128",
+      "INT16",
+      "INT32",
+      "INT64",
+      "INT8",
+      "LONG",
+      "LONG32",
+      "LONG64",
+      "LONGLONG",
+      "OWORD",
+      "QWORD",
+      "SHORT",
+      "UCHAR",
+      "UINT",
+      "UINT128",
+      "UINT16",
+      "UINT32",
+      "UINT64",
+      "UINT8",
+      "ULONG",
+      "ULONG32",
+      "ULONG64",
+      "ULONGLONG",
+      "USHORT",
+      "VOID",
+      "WCHAR",
+      "WORD",
+      "_BYTE",
+      "_Bool",
+      "_DWORD",
+      "_OWORD",
+      "_QWORD",
+      "_WORD",
+      "__int128",
+      "__int16",
+      "__int32",
+      "__int64",
+      "__int8",
+      "__s128",
+      "__s16",
+      "__s32",
+      "__s64",
+      "__s8",
+      "__u128",
+      "__u16",
+      "__u32",
+      "__u64",
+      "__u8",
+      "double",
+      "float",
+      "ileb128",
+      "int",
+      "int128_t",
+      "int16_t",
+      "int32_t",
+      "int64_t",
+      "int8_t",
+      "long",
+      "long int",
+      "long long",
+      "long long int",
+      "off_t",
+      "s128",
+      "s16",
+      "s32",
+      "s64",
+      "s8",
+      "short",
+      "short int",
+      "signed",
+      "signed char",
+      "signed int",
+      "signed long",
+      "signed long int",
+      "signed long long",
+      "signed long long int",
+      "signed short",
+      "signed short int",
+      "sleb128",
+      "time_t",
+      "u128",
+      "u16",
+      "u32",
+      "u64",
+      "u8",
+      "u_char",
+      "u_int",
+      "u_int16_t",
+      "u_int32_t",
+      "u_int64_t",
+      "u_int8_t",
+      "u_short",
+      "uchar",
+      "uint",
+      "uint128_t",
+      "uint16_t",
+      "uint32_t",
+      "uint64_t",
+      "uint8_t",
+      "uleb128",
+      "ulong",
+      "unsigned",
+      "unsigned __int128",
+      "unsigned __int16",
+      "unsigned __int32",
+      "unsigned __int64",
+      "unsigned __int8",
+      "unsigned char",
+      "unsigned int",
+      "unsigned long",
+      "unsigned long int",
+      "unsigned long long",
+      "unsigned long long int",
+      "unsigned short",
+      "unsigned short int",
+      "ushort",
+      "wchar_t"
+    ],
+    "pointerSized": [
+      "DWORD_PTR",
+      "HANDLE",
+      "INT_PTR",
+      "LONG_PTR",
+      "LPCSTR",
+      "LPCVOID",
+      "LPCWSTR",
+      "LPSTR",
+      "LPVOID",
+      "LPWSTR",
+      "PCSTR",
+      "PCWSTR",
+      "PSTR",
+      "PVOID",
+      "PWSTR",
+      "SIZE_T",
+      "SSIZE_T",
+      "UINT_PTR",
+      "ULONG_PTR",
+      "intptr_t",
+      "ptrdiff_t",
+      "size_t",
+      "ssize_t",
+      "uintptr_t"
     ]
   },
   "canonicalReference": {
     "profile": "Portable",
-    "contractRevision": 1,
+    "contractRevision": 2,
     "contract": "contracts/language/portable-v1.json",
     "manualFixtures": "contracts/language/manual-fixtures-v1.json",
     "reference": "docs/language/index.md",
@@ -1110,6 +1249,311 @@
           "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations"
         ]
       }
+    },
+    {
+      "featureId": "alias-spellings",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "An alias resolves to its canonical codec, so the canonical codec's value domain applies (the long family follows CLongWidth, the pointer-sized family follows the pointer size)."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/PrimitiveSpellingTests.cs#Aliases_ResolveToCanonicalCodecs",
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The same byte order, CLongWidth, and pointer size are used for parsing and serialization."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/CanonicalPortableReferenceTests.cs#AliasSpellings_BehaveLikeTheirCanonicalCodec",
+          "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations"
+        ]
+      }
+    },
+    {
+      "featureId": "typedef-forms",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "A typedef alias, tag alias, pointer alias, or array typedef reads and writes exactly as the resolved declaration does."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/TypedefFormTests.cs#ArrayTypedef_RoundTripsThroughEveryOperation",
+          "tests/CStructSharpTests/TypedefFormTests.cs#DeclaratorList_DeclaresEveryAlias"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The resolved declaration's byte image is the alias's byte image; no alias adds storage."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/TypedefFormTests.cs#ArrayTypedef_RoundTripsThroughEveryOperation"
+        ]
+      }
+    },
+    {
+      "featureId": "top-level-declarations",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "A trailing variable name after a named body is ignored; an anonymous body's trailing name is the type, so the value shape is the body's shape."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/TopLevelDeclarationTests.cs#AnonymousBody_RoundTripsThroughEveryOperation"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The body's byte image is unchanged by the declaration form."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/TopLevelDeclarationTests.cs#AnonymousBody_RoundTripsThroughEveryOperation"
+        ]
+      }
+    },
+    {
+      "featureId": "preprocessor-lines",
+      "value": {
+        "status": "conditional",
+        "conditions": [
+          "Text, bytes, empty, and macro constants are published but never serialized; only integer defines and #pragma pack affect the value shape, and the same Defined set must be supplied for every operation."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/PreprocessorTests.cs#PragmaPack_RoundTripsThroughEveryOperation",
+          "tests/CStructSharpTests/PreprocessorTests.cs#Defines_PublishEveryConstantKind"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "A #pragma pack clamp is part of the compiled placement, so parsing and serialization agree on the byte image."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/PreprocessorTests.cs#PragmaPack_RoundTripsThroughEveryOperation"
+        ]
+      }
+    },
+    {
+      "featureId": "inline-unions",
+      "value": {
+        "status": "conditional",
+        "conditions": [
+          "A named inline union round-trips as a UnionValue; an anonymous union writes through whichever promoted member the caller supplies (the widest wins when several are supplied), so a value round trip is exact only through the member that was read."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/InlineUnionTests.cs#NamedInlineUnion_ReadsAsUnionValue",
+          "tests/CStructSharpTests/InlineUnionTests.cs#AnonymousUnion_WritesThroughASuppliedMember"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The union's raw storage is preserved by UnionValue and by writing the widest member, so the byte image round-trips."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/InlineUnionTests.cs#NamedInlineUnion_ReadsAsUnionValue",
+          "tests/CStructSharpTests/InlineUnionTests.cs#AnonymousUnion_WritesThroughASuppliedMember"
+        ]
+      }
+    },
+    {
+      "featureId": "data-sized-arrays",
+      "value": {
+        "status": "conditional",
+        "conditions": [
+          "A terminated array's elements must not themselves be all-zero (an all-zero element ends the array); an [EOF] array must be the last data in the input."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/DataSizedArrayTests.cs#ToEnd_RoundTripsThroughEveryOperation",
+          "tests/CStructSharpTests/DataSizedArrayTests.cs#Terminated_StructArrayRoundTrips"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "Writing a terminated array appends one all-zero element; writing an [EOF] array appends nothing, so the parsed byte image is reproduced exactly."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/DataSizedArrayTests.cs#ToEnd_RoundTripsThroughEveryOperation",
+          "tests/CStructSharpTests/DataSizedArrayTests.cs#Terminated_StructArrayRoundTrips"
+        ]
+      }
+    },
+    {
+      "featureId": "flags",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "A flag value is its backing integer; names are a decomposition view, and any bit pattern (including unnamed bits) round-trips."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_RoundTripsThroughEveryOperation",
+          "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_WritesFromEveryInputShape"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The backing integer's byte order applies, as for enums."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_RoundTripsThroughEveryOperation"
+        ]
+      }
+    },
+    {
+      "featureId": "enum-bitfields",
+      "value": {
+        "status": "conditional",
+        "conditions": [
+          "The stored value is truncated to the declared bit width, so a value round trip is exact only for members that fit the width."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FlagDeclarationTests.cs#EnumBitfield_StoresBitsInTheBackingType"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "Bits are allocated in the enum's backing type exactly as for the same integer bitfield."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/FlagDeclarationTests.cs#EnumBitfield_StoresBitsInTheBackingType",
+          "tests/CStructSharpTests/FlagDeclarationTests.cs#EnumBitfield_IsAddressable"
+        ]
+      }
+    },
+    {
+      "featureId": "expression-extensions",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "%, ^, ?:, sizeof, offsetof, and Enum.Member fold to integers before any operation, so every operation sees the same counts."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/ExpressionExtensionTests.cs#Extensions_RoundTripThroughEveryOperation"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "Folded counts are part of the compiled layout, so parsing and serialization agree on the byte image."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/ExpressionExtensionTests.cs#Extensions_RoundTripThroughEveryOperation"
+        ]
+      }
+    },
+    {
+      "featureId": "wide-primitives",
+      "value": {
+        "status": "conditional",
+        "conditions": [
+          "int48/uint48 and int128/uint128 round-trip every value of their width; float16 is bit-exact for finite and infinite values, while a NaN payload is preserved as bits, not as a distinguishable CLR value."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/WidePrimitiveTests.cs#WidePrimitives_RoundTripThroughEveryOperation",
+          "tests/CStructSharpTests/WidePrimitiveTests.cs#Float16_IsBitExact"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The layout byte order (or explicit < and > suffix) is used for parsing and serialization."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/WidePrimitiveTests.cs#WidePrimitives_RoundTripThroughEveryOperation"
+        ]
+      }
+    },
+    {
+      "featureId": "bitfield-allocation",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "Every bit slice round-trips exactly under either allocation order."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/BitfieldAllocationTests.cs#HighBitFirst_TakesTheTopBitsFirst"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The same BitfieldAllocation option is used for parsing and serialization."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/BitfieldAllocationTests.cs#HighBitFirst_KeepsUnitPlacement"
+        ]
+      }
+    },
+    {
+      "featureId": "c-long-width",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "A long-family value round-trips within the selected width's domain."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_RoundTripsThroughEveryOperation"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The same CLongWidth is used for parsing and serialization."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_RoundTripsThroughEveryOperation"
+        ]
+      }
+    },
+    {
+      "featureId": "default-enum-storage",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "An enum value round-trips within the selected storage's domain, named or not."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/DefaultEnumStorageTests.cs#NamedStorage_RoundTripsThroughEveryOperation"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The same DefaultEnumStorage is used for parsing and serialization."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/DefaultEnumStorageTests.cs#NamedStorage_RoundTripsThroughEveryOperation"
+        ]
+      }
+    },
+    {
+      "featureId": "nested-references",
+      "value": {
+        "status": "verified",
+        "conditions": [
+          "The nested field's value is captured on every operation, so the count is the same for parsing and serialization."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_RoundTripsThroughEveryOperation"
+        ]
+      },
+      "bytes": {
+        "status": "verified",
+        "conditions": [
+          "The same nested value determines the extent on both sides."
+        ],
+        "evidence": [
+          "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_RoundTripsThroughEveryOperation"
+        ]
+      }
     }
   ],
   "knownContractLimits": [
@@ -1488,8 +1932,8 @@
         }
       ],
       "limitations": [
-        "The accepted alias table is curated; general C type-name spellings outside the documented list are still rejected.",
-        "An integer-literal suffix is recognized as any combination of u/U/l/L and discarded; it does not validate C's exact suffix grammar."
+        "The accepted alias table is curated (see the alias-spellings feature); general C type-name spellings outside the documented list are still unknown types.",
+        "The long family width follows CStructCompilationOptions.CLongWidth."
       ]
     },
     {
@@ -2643,7 +3087,7 @@
         }
       ],
       "limitations": [
-        "Structs only - an anonymous union member requires inline union member support to exist at all first (see the anonymous-promoted-union-members exclusion); a struct cannot nest a union member, named or anonymous, today.",
+        "An anonymous union member promotes the same way (see the inline-unions feature).",
         "A name collision anywhere in the flattened, transitively-promoted namespace (own fields, sibling promoted members, or a deeper promoted member) is a construction-time error, not a shadowing/precedence rule.",
         "Promotion changes only path/POCO/JSON visibility - placement, size, and alignment are identical to the equivalent named inline struct."
       ]
@@ -4161,6 +4605,1181 @@
       "limitations": [
         "Only active fields exist. Inactive selection fails and updates cannot change branch decisions or storage ranges. Update validation reads the complete root."
       ]
+    },
+    {
+      "id": "alias-spellings",
+      "manual": "docs/language/primitive-types.md#alias-spellings",
+      "fixture": "alias-spellings",
+      "title": "Built-in C, Windows, kernel, IDA, and dissect primitive spellings",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#PrimitiveScalarCases_AgreeAcrossCoreOperations",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#Aliases_ResolveToCanonicalCodecs",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_SelectsTheLongFamilyWidthOnly",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#UserTypedef_ShadowsBuiltInAlias",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#EnumBacking_AcceptsAliasSpellings",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#BitfieldStorage_AcceptsAliasesAndTypedefs",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#PointerSizedSpellings_FollowThePointerSize",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/CanonicalPortableReferenceTests.cs#AliasSpellings_BehaveLikeTheirCanonicalCodec",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "The alias table is curated; an unlisted spelling (intmax_t) is still an unknown type unless the layout typedefs it.",
+        "The long family follows CStructCompilationOptions.CLongWidth (64 by default); Windows LONG/ULONG are always 32 bits; size_t and its relatives follow the layout's pointer size.",
+        "An alias resolves to its canonical codec at construction time, so debug records and EnumValueResult.StorageType report the canonical name."
+      ]
+    },
+    {
+      "id": "typedef-forms",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#typedefs",
+      "fixture": "typedef-forms",
+      "title": "Typedef declarator lists, tags, tag aliases, and array typedefs",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/TypedefFormTests.cs#DeclaratorList_DeclaresEveryAlias",
+          "operations": [
+            "parse",
+            "address"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/TypedefFormTests.cs#TagOnlyTypedef_DeclaresTheTag",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/TypedefFormTests.cs#Tag_IsGlobalAndUnique",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/TypedefFormTests.cs#TagAlias_ResolvesExistingTag",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/TypedefFormTests.cs#ArrayTypedef_AddsInnerDimensions",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/TypedefFormTests.cs#ArrayTypedef_RoundTripsThroughEveryOperation",
+          "operations": [
+            "debug",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ScopedInlineTypeTests.cs#TypedefBackingNames_AreGlobalTags",
+          "operations": [
+            "parse",
+            "debug"
+          ]
+        }
+      ],
+      "limitations": [
+        "A pointer to an array typedef and an unsized array typedef are rejected.",
+        "An array typedef used as a field contributes inner dimensions; a runtime-sized outer dimension on such a field is subject to the multidimensional-array rule."
+      ]
+    },
+    {
+      "id": "top-level-declarations",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#top-level-declaration-forms",
+      "fixture": "top-level-declarations",
+      "title": "Anonymous top-level bodies, object declarations, and forward declarations",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested",
+          "typedef"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/TopLevelDeclarationTests.cs#AnonymousBody_TrailingNameIsTheType",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/TopLevelDeclarationTests.cs#NamedBody_TrailingVariableIsIgnored",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/TopLevelDeclarationTests.cs#ForwardDeclaration_IsAccepted",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/TopLevelDeclarationTests.cs#AnonymousBody_RoundTripsThroughEveryOperation",
+          "operations": [
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "The object name after a named body declares nothing and does not reserve its name.",
+        "A forward declaration declares nothing; using the tag by value before its body is an unknown type."
+      ]
+    },
+    {
+      "id": "preprocessor-lines",
+      "manual": "docs/language/lexical-rules.md#preprocessor-lines",
+      "fixture": "preprocessor-lines",
+      "title": "Non-integer defines, conditionals, undef, include, pragma pack, and line continuations",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/PreprocessorTests.cs#Defines_PublishEveryConstantKind",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PreprocessorTests.cs#Conditionals_SelectDeclarations",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PreprocessorTests.cs#Undef_RemovesTheConstant",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PreprocessorTests.cs#Include_IsRecorded",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PreprocessorTests.cs#PragmaPack_ClampsFollowingComposites",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PreprocessorTests.cs#LineContinuation_JoinsLines",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PreprocessorTests.cs#PragmaPack_RoundTripsThroughEveryOperation",
+          "operations": [
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "#define is never textual macro expansion; text, byte, bare, and macro constants are published on CStruct.Constants and cannot appear in expressions.",
+        "#include is recorded on CStruct.Includes and never read; #pragma other than pack is ignored; #ifdef tests defined names only (no expressions)."
+      ]
+    },
+    {
+      "id": "inline-unions",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#anonymous-promoted-members",
+      "fixture": "inline-unions",
+      "title": "Inline unions in structs, inline composites in unions, and anonymous promoted union members",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "overlapping"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "nested",
+          "inline"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/InlineUnionTests.cs#NamedInlineUnion_ReadsAsUnionValue",
+          "operations": [
+            "parse",
+            "serialize",
+            "write"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/InlineUnionTests.cs#AnonymousUnion_PromotesMembers",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/InlineUnionTests.cs#AnonymousUnion_MembersAreAddressable",
+          "operations": [
+            "address",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/InlineUnionTests.cs#AnonymousUnion_WritesThroughASuppliedMember",
+          "operations": [
+            "serialize",
+            "write"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/InlineUnionTests.cs#AnonymousUnion_DebugPathsSkipTheAnonymousLevel",
+          "operations": [
+            "debug"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/InlineUnionTests.cs#Union_AcceptsInlineComposites",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/InlineUnionTests.cs#AnonymousUnion_RejectsNameCollisions",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "An inline composite is a single member; arrays of inline composites are not accepted (declare a named type).",
+        "Writing a promoted union encodes the widest supplied member and clears the rest of the extent; the union's raw storage is not published under a name of its own.",
+        "A union body cannot contain conditional fields, and a union member still needs fixed storage."
+      ]
+    },
+    {
+      "id": "data-sized-arrays",
+      "manual": "docs/language/arrays-and-strings.md#data-sized-arrays",
+      "fixture": "data-sized-arrays",
+      "title": "Read-to-end ([EOF]) and zero-terminated (T v[]) arrays",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little"
+        ],
+        "alignment": [
+          "unaligned"
+        ],
+        "cardinality": [
+          "runtime-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "truncated",
+          "over-budget",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "verified",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/DataSizedArrayTests.cs#ToEnd_ReadsEveryRemainingElement",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/DataSizedArrayTests.cs#ToEnd_RoundTripsThroughEveryOperation",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/DataSizedArrayTests.cs#Terminated_ReadsUntilAZeroElement",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/DataSizedArrayTests.cs#Terminated_StructArrayRoundTrips",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/DataSizedArrayTests.cs#DataSizedArrays_HaveNoFixedSize",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "The element type must have one fixed size; a trailing partial element, a missing terminator, and a non-seekable read-to-end input are read errors.",
+        "The terminated form's terminator is an element whose bytes are all zero, so padded element types must have their padding zero as well.",
+        "A count is never changed by an update; the containing struct has no fixed size and takes no span fast path."
+      ]
+    },
+    {
+      "id": "flags",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#flags",
+      "fixture": "flags",
+      "title": "flag declarations (bitmask enums) with member decomposition",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "fixed-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_ReadsDecomposedNames",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_WritesFromEveryInputShape",
+          "operations": [
+            "serialize",
+            "write",
+            "update"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_TypedReadMapsToClrEnum",
+          "operations": [
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_AutoValuesFollowTheHighestBit",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_RoundTripsThroughEveryOperation",
+          "operations": [
+            "debug",
+            "address",
+            "update",
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "An omitted member is the next bit above every bit seen so far; a member that would overflow the backing type is a layout error.",
+        "Names are computed on first use; a struct holding a flag is read by the general interpreter, not the span fast path or its JavaScript twin."
+      ]
+    },
+    {
+      "id": "enum-bitfields",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#enums",
+      "fixture": "enum-bitfields",
+      "title": "Enum and flag typed bitfields",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/FlagDeclarationTests.cs#EnumBitfield_StoresBitsInTheBackingType",
+          "operations": [
+            "parse",
+            "debug",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/FlagDeclarationTests.cs#EnumBitfield_IsAddressable",
+          "operations": [
+            "address"
+          ]
+        }
+      ],
+      "limitations": [
+        "The bits live in the backing type's storage unit, shared with adjacent bitfields of that type or of other enums on it; an enum backed by a type wider than 64 bits cannot be bitfield storage."
+      ]
+    },
+    {
+      "id": "expression-extensions",
+      "manual": "docs/language/expressions-defines-and-variables.md#operators-and-precedence",
+      "fixture": "expression-extensions",
+      "title": "Remainder, XOR, the conditional operator, sizeof/offsetof, and qualified enum members",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "fixed-array",
+          "runtime-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/ExpressionExtensionTests.cs#ModuloAndXor_FollowCPrecedence",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ExpressionExtensionTests.cs#Conditional_EvaluatesOnlyTheSelectedArm",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ExpressionExtensionTests.cs#SizeofAndOffsetof_FoldAtConstruction",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ExpressionExtensionTests.cs#QualifiedEnumMember_IsAConstant",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ExpressionExtensionTests.cs#Extensions_RoundTripThroughEveryOperation",
+          "operations": [
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "sizeof/offsetof are accepted in array dimensions and fold at construction; the named type must be complete and fixed-size, and no other call is accepted.",
+        "A qualified member (Enum.Member) is the only way to name an enum member from an expression; the bare name stays local to its enum."
+      ]
+    },
+    {
+      "id": "wide-primitives",
+      "manual": "docs/language/primitive-types.md#fixed-primitives",
+      "fixture": "wide-primitives",
+      "title": "Six- and sixteen-byte integers, binary16 floats, void pointers, and function pointers",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big",
+          "explicit-little",
+          "explicit-big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct",
+          "pointer"
+        ],
+        "placement": [
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/WidePrimitiveTests.cs#Int48_ReadsAndWritesSixBytes",
+          "operations": [
+            "parse",
+            "serialize",
+            "write"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/WidePrimitiveTests.cs#Int128_ReadsAndWritesSixteenBytes",
+          "operations": [
+            "parse",
+            "serialize",
+            "write"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/WidePrimitiveTests.cs#Float16_IsBitExact",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/WidePrimitiveTests.cs#VoidAndFunctionPointers_AreOpaqueAddresses",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/WidePrimitiveTests.cs#WidePrimitives_RoundTripThroughEveryOperation",
+          "operations": [
+            "debug",
+            "address",
+            "update",
+            "read-value"
+          ]
+        }
+      ],
+      "limitations": [
+        "None of the wide primitives is bitfield storage or an enum backing type, and none takes the span fast paths.",
+        "void * and function pointers are opaque: the address is read and written, never followed."
+      ]
+    },
+    {
+      "id": "bitfield-allocation",
+      "manual": "docs/language/bitfields.md#allocating-from-the-high-bit",
+      "fixture": "bitfield-allocation",
+      "title": "CStructCompilationOptions.BitfieldAllocation: high-bit-first storage units",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/BitfieldAllocationTests.cs#HighBitFirst_TakesTheTopBitsFirst",
+          "operations": [
+            "parse",
+            "serialize",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/BitfieldAllocationTests.cs#HighBitFirst_KeepsUnitPlacement",
+          "operations": [
+            "debug",
+            "address",
+            "write"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        }
+      ],
+      "limitations": [
+        "Only each field's position inside its storage unit changes; unit grouping, sizes, and byte order follow the same rules as low-bit-first allocation.",
+        "A layout compiled with the option is its own cache entry."
+      ]
+    },
+    {
+      "id": "c-long-width",
+      "manual": "docs/language/primitive-types.md#alias-spellings",
+      "fixture": "c-long-width",
+      "title": "CStructCompilationOptions.CLongWidth: the width of the C long family",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_SelectsTheLongFamilyWidthOnly",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_AppliesToEnumsBitfieldsAndCacheKey",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/PrimitiveSpellingTests.cs#CLongWidth_RoundTripsThroughEveryOperation",
+          "operations": [
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        }
+      ],
+      "limitations": [
+        "Accepted values are 32 and 64; Windows LONG/ULONG and the explicit-width spellings are never affected."
+      ]
+    },
+    {
+      "id": "default-enum-storage",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#enums",
+      "fixture": "default-enum-storage",
+      "title": "CStructCompilationOptions.DefaultEnumStorage: storage of an enum declared without a backing type",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "notApplicable",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/DefaultEnumStorageTests.cs#CompilerRule_Selects32BitsAndSignednessFromTheMembers",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/DefaultEnumStorageTests.cs#NamedStorage_RoundTripsThroughEveryOperation",
+          "operations": [
+            "debug",
+            "address",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_PredictBytesOffsetsAndValues",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        }
+      ],
+      "limitations": [
+        "Without the option the compiler rule applies: 32 bits, uint32 unless a member is written as a negative literal; a member computed to be negative in a uint32 enum is a layout error."
+      ]
+    },
+    {
+      "id": "nested-references",
+      "manual": "docs/language/expressions-defines-and-variables.md#a-nested-fields-value",
+      "fixture": "nested-references",
+      "title": "Dotted references to a nested struct's field in expressions (hdr.n)",
+      "support": "supported",
+      "dimensions": {
+        "endian": [
+          "little",
+          "big"
+        ],
+        "alignment": [
+          "unaligned",
+          "aligned"
+        ],
+        "cardinality": [
+          "scalar",
+          "runtime-array"
+        ],
+        "indirection": [
+          "direct"
+        ],
+        "placement": [
+          "root",
+          "nested"
+        ],
+        "dataState": [
+          "valid",
+          "invalid-layout",
+          "invalid-value"
+        ]
+      },
+      "operations": {
+        "parse": "verified",
+        "debug": "verified",
+        "address": "verified",
+        "length": "verified",
+        "serialize": "verified",
+        "write": "verified",
+        "update": "verified",
+        "read-value": "verified"
+      },
+      "evidence": [
+        {
+          "test": "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_RoundTripsThroughEveryOperation",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "length",
+            "serialize",
+            "write",
+            "update",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_SelectsTheNamedField",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_ReachesThroughLevels",
+          "operations": [
+            "parse",
+            "address",
+            "serialize"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_ToNothing_FailsAtUse",
+          "operations": [
+            "parse"
+          ]
+        }
+      ],
+      "limitations": [
+        "The head of a dotted path must be a scalar struct or union field (not an array element or a pointer target); an element's field is reached through the bare name after the element is read.",
+        "A dotted path that names no struct field is an undefined identifier when evaluated, like any other unknown name."
+      ]
     }
   ],
   "exclusions": [
@@ -4183,60 +5802,6 @@
       ]
     },
     {
-      "id": "general-flexible-array-members",
-      "syntax": "non-character T values[]",
-      "rationale": "There is no implicit safe count or byte extent for a general flexible member.",
-      "diagnosticPolicy": "Reject until an explicit extent policy is supplied.",
-      "workItems": [
-        "LANG-06"
-      ]
-    },
-    {
-      "id": "function-pointers",
-      "syntax": "return_type (*callback)(arguments)",
-      "rationale": "The current data-pointer grammar cannot safely distinguish or invoke function pointers.",
-      "diagnosticPolicy": "Reject rather than treating the declaration as a data pointer.",
-      "workItems": [
-        "LANG-08"
-      ]
-    },
-    {
-      "id": "abi-specific-bitfield-forms",
-      "syntax": "zero-width separators, typedef/enum storage, and ABI-specific allocation",
-      "rationale": "The accepted portable subset requires direct built-in integral storage; native compilers disagree on zero-width and ABI-specific allocation rules, so these have no single portable meaning until a named ABI profile defines them.",
-      "diagnosticPolicy": "Reject during layout compilation with a storage-capability diagnostic.",
-      "workItems": [
-        "LANG-10"
-      ]
-    },
-    {
-      "id": "full-preprocessor",
-      "syntax": "includes, function macros, conditionals, token pasting, and stringification",
-      "rationale": "CStructSharp consumes standalone layout definitions and is not a general C preprocessor.",
-      "diagnosticPolicy": "Reject unsupported directives; a future header frontend must be an explicit separate boundary.",
-      "workItems": [
-        "LANG-11"
-      ]
-    },
-    {
-      "id": "anonymous-promoted-union-members",
-      "syntax": "an anonymous union member promoted into the containing path",
-      "rationale": "Anonymous promoted struct members (LANG-14) are supported, but a struct cannot contain an inline union member at all yet, named or anonymous - promoting one requires inline union member support to exist first, which is separate, unimplemented work (ADR-014).",
-      "diagnosticPolicy": "Reject an inline union member of any kind inside a struct.",
-      "workItems": [
-        "LANG-14"
-      ]
-    },
-    {
-      "id": "source-packing-controls",
-      "syntax": "#pragma pack, packed attributes, and explicit alignas/declspec alignment",
-      "rationale": "Only the constructor's portable aligned/unaligned policy is currently available.",
-      "diagnosticPolicy": "Reject unknown directives/attributes; never infer host packing.",
-      "workItems": [
-        "LANG-15"
-      ]
-    },
-    {
       "id": "compiler-abi-profiles",
       "syntax": "named compiler/target layout behavior",
       "rationale": "No compiler profile may be claimed without approved identity/version rules and differential fixtures.",
@@ -4244,6 +5809,33 @@
       "workItems": [
         "LANG-16",
         "QA-03"
+      ]
+    },
+    {
+      "id": "textual-macro-expansion",
+      "syntax": "#define with parameters used in later source, token pasting, stringification, #if expressions",
+      "rationale": "CStructSharp accepts the preprocessor lines a header carries (defines of every kind, conditionals over defined names, undef, include, pragma pack) but is not a general C preprocessor: a name is never substituted into later source text.",
+      "diagnosticPolicy": "Function-like macros are kept as opaque constants; #if/#elif and unknown directives are rejected.",
+      "workItems": [
+        "LANG-11"
+      ]
+    },
+    {
+      "id": "attribute-packing-controls",
+      "syntax": "__attribute__((packed)), __declspec(align(N)), alignas",
+      "rationale": "#pragma pack and the composite @align(N) clamp cover the portable packing controls; compiler attribute syntax is not parsed.",
+      "diagnosticPolicy": "Reject attribute syntax; never infer host packing.",
+      "workItems": [
+        "LANG-15"
+      ]
+    },
+    {
+      "id": "zero-width-bitfields",
+      "syntax": "uint8 reserved : 0;",
+      "rationale": "Native compilers disagree on zero-width separator semantics; typedef, alias, enum, and flag storage are now accepted, so only the zero-width form has no portable meaning.",
+      "diagnosticPolicy": "Reject during layout compilation with a storage-capability diagnostic.",
+      "workItems": [
+        "LANG-10"
       ]
     }
   ]

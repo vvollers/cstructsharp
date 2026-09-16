@@ -262,7 +262,7 @@ public class ExpressionSafetyTests
         const string layout = """
                               #define WIDTH 1 + 1
                               #define FIRST 4
-                              enum mode { Value = FIRST + 1 };
+                              enum mode : uint8 { Value = FIRST + 1 };
                               struct root { uint8 flags: WIDTH; byte values[WIDTH]; mode value; };
                               """;
         var cstruct = new CStruct(layout);

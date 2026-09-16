@@ -11,8 +11,9 @@ using Pidgin;
 ///     Differential oracle for the hand-written <see cref="LayoutParser"/> (E1.2): every layout in the repository's
 ///     corpus - benchmark fixtures, language contracts, compiler-fixture baselines, workshop demos, documentation
 ///     snippets, and every layout-looking string literal in this test project - plus thousands of deterministic
-///     mutations of them, is parsed by both the new parser and the frozen Pidgin grammar it replaced. Both must
-///     agree on accept/reject, and on acceptance must produce structurally identical trees.
+///     mutations of them, is parsed by both the new parser and the frozen Pidgin grammar it replaced. Everything the
+///     reference accepts, the current parser must accept with a structurally identical tree; the reference grammar
+///     is a frozen subset, so it may reject sources the extended language now accepts.
 /// </summary>
 [TestClass]
 public class ParserDifferentialTests
@@ -374,7 +375,8 @@ public class ParserDifferentialTests
         (string Source, string Detail)[] cases =
         [
             ("struct root {\n  uint8 a\n};", "unexpected '}' at line 3, column 1; expected ';'."),
-            ("struct root { uint8 a; } trailing", "unexpected 't' at line 1, column 26; expected the end of the layout."),
+            ("struct root { uint8 a; } trailing", "unexpected end of input at line 1, column 34; expected ';'."),
+            ("struct root { uint8 a; } trailing garbage", "unexpected 'g' at line 1, column 35; expected ';'."),
             ("struct root { uint8 a;", "unexpected end of input at line 1, column 23; expected '}'."),
             ("struct", "unexpected end of input at line 1, column 7; expected an identifier."),
             ("struct root { uint8 a[1 +]; };", "unexpected ']' at line 1, column 26; expected an expression."),
@@ -505,6 +507,26 @@ public class ParserDifferentialTests
             return null;
         }
 
+        // The frozen reference grammar matches a keyword as a bare prefix (`structroot` parses as `struct root`),
+        // reads a function-like macro's parameter list as a call expression, and lets a `#define` value continue on
+        // the next line; the parser follows C on all three (a directive ends at its line), so those sources are
+        // compared for acceptance only where the divergence is the token or line boundary.
+        if (referenceDump is not null && (HasGluedKeyword(source) || HasFunctionLikeMacro(source) || HasLineBrokenDefine(source)))
+        {
+            accepted = candidateDump is not null;
+            return null;
+        }
+
+        // One-way oracle since the dissect-parity work: the frozen reference grammar defines a subset of the
+        // language, so a source it rejects may legitimately be accepted by the current parser (typedef declarator
+        // lists, top-level anonymous composites, preprocessor lines, inline unions, ...). What must never happen is
+        // the reverse, or a different tree for a source both accept.
+        if (referenceDump is null && candidateDump is not null)
+        {
+            accepted = true;
+            return null;
+        }
+
         if (referenceDump is null || candidateDump is null)
         {
             return $"[{id}] verdict mismatch{Environment.NewLine}source: {Escape(source)}{Environment.NewLine}" +
@@ -533,6 +555,75 @@ public class ParserDifferentialTests
         {
             return false;
         }
+    }
+
+    /// <summary>True when a declaration keyword or directive is glued to the identifier that follows it (<c>structroot</c>, <c>#defineX</c>).</summary>
+    private static bool HasGluedKeyword(string source)
+    {
+        foreach (string keyword in new[] { "struct", "union", "enum", "typedef", "flag", "#define", "#undef", "#ifdef", "#ifndef", })
+        {
+            int index = 0;
+            while ((index = source.IndexOf(keyword, index, StringComparison.Ordinal)) >= 0)
+            {
+                int after = index + keyword.Length;
+                bool startsToken = index == 0 || !(char.IsLetterOrDigit(source[index - 1]) || source[index - 1] == '_');
+                if (startsToken && after < source.Length && (char.IsLetterOrDigit(source[after]) || source[after] == '_'))
+                {
+                    return true;
+                }
+
+                index = after;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>True when the source defines a function-like macro (<c>#define NAME(</c>).</summary>
+    private static bool HasFunctionLikeMacro(string source)
+    {
+        int index = 0;
+        while ((index = source.IndexOf("#define", index, StringComparison.Ordinal)) >= 0)
+        {
+            int cursor = index + "#define".Length;
+            while (cursor < source.Length && source[cursor] is ' ' or '\t')
+            {
+                cursor++;
+            }
+
+            while (cursor < source.Length && (char.IsLetterOrDigit(source[cursor]) || source[cursor] == '_'))
+            {
+                cursor++;
+            }
+
+            if (cursor < source.Length && source[cursor] == '(')
+            {
+                return true;
+            }
+
+            index = cursor;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///     True when a <c>#define NAME</c> line has no value and the next non-blank line is not a declaration or
+    ///     directive, which the reference reads as the macro's value (<c>#define COUNT\n 2</c>).
+    /// </summary>
+    private static bool HasLineBrokenDefine(string source)
+    {
+        foreach (Match match in Regex.Matches(source, @"#\s*define[ \t]+[A-Za-z_]\w*[ \t]*\r?\n(?<next>[ \t]*\S)"))
+        {
+            char first = match.Groups["next"].Value[^1];
+            if (first is not ('#' or '}' or ';') &&
+                !Regex.IsMatch(source[(match.Index + match.Length - 1)..], @"^(struct|union|enum|typedef|flag)\b"))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>True when a <c>/* */</c> comment contains a <c>*</c> that is not immediately followed by <c>/</c>.</summary>

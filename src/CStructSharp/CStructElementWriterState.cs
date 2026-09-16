@@ -15,7 +15,12 @@ internal sealed class CStructElementWriterState
     ///     constructor is the only place that needs to know the concrete type is always a
     ///     <see cref="WriteBudgetStream" />.
     /// </summary>
+    /// <summary>The variable-dictionary key that holds the active qualified prefix; no field can be spelled this way.</summary>
+    private const string QualifiedPrefixKey = "\0qualified-prefix";
+
     private readonly WriteBudgetStream budgetStream;
+
+    private bool hasQualifiedPrefix;
 
     /// <summary>Creates the write state from a stream, compiled lookup tables, and write settings.</summary>
     public CStructElementWriterState(
@@ -76,6 +81,33 @@ internal sealed class CStructElementWriterState
     ///     expressions reference (<see cref="CompiledField.CapturesLayoutVariable"/>) are captured.
     /// </summary>
     public bool CaptureAllLayoutVariables { get; }
+
+    /// <summary>
+    ///     The dotted prefix (<c>hdr.</c>, <c>a.b.</c>) of the nested struct fields being read, when an expression
+    ///     names one of them through its path (<see cref="CompiledField.QualifiedPrefix"/>); otherwise null.
+    /// </summary>
+    public string? QualifiedPrefix
+    {
+        get => this.hasQualifiedPrefix ? ((Identifier)this.Variables[QualifiedPrefixKey]).Name : null;
+        set
+        {
+            // The prefix lives in the operation's own variable dictionary (an entry only a layout with dotted
+            // references ever adds) and a bool in the state's padding, so every other operation allocates exactly
+            // what it did before the feature existed.
+            this.hasQualifiedPrefix = value is not null;
+            if (value is null)
+            {
+                this.Variables.Remove(QualifiedPrefixKey);
+            }
+            else
+            {
+                this.Variables[QualifiedPrefixKey] = new Identifier(value);
+            }
+        }
+    }
+
+    /// <summary>Whether a qualified prefix is active - the one check a capture site pays.</summary>
+    public bool HasQualifiedPrefix => this.hasQualifiedPrefix;
 
     public int CurrentBitOffset { get; set; }
 
@@ -153,5 +185,22 @@ internal sealed class CStructElementWriterState
     public void WriteZeroes(int count)
     {
         this.budgetStream.WriteZeroes(count);
+    }
+
+    /// <summary>Republishes a just-captured variable under its qualified name when a dotted reference needs it.</summary>
+    public void PublishQualified(string name)
+    {
+        if (this.hasQualifiedPrefix)
+        {
+            string prefix = this.QualifiedPrefix!;
+            if (this.Variables.TryGetValue(name, out Expr? value))
+            {
+                this.Variables[prefix + name] = value;
+            }
+            else
+            {
+                this.Variables.Remove(prefix + name);
+            }
+        }
     }
 }

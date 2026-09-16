@@ -11,7 +11,7 @@ public class CompileBenchmarks
     private FixtureOptions options = null!;
     private string[] roundRobin = null!;
 
-    [Params("compile-small", "compile-medium-128", "compile-large-512", "compile-nested", "real-png", "real-pe-exe", "real-tar")]
+    [Params("compile-small", "compile-medium-128", "compile-large-512", "compile-nested", "compile-windows-header", "real-png", "real-pe-exe", "real-tar")]
     public string Fixture { get; set; } = null!;
 
     [GlobalSetup]

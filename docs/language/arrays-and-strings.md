@@ -47,8 +47,8 @@ one. The `fixed-arrays` fixture checks values `17`, `34`, and `126` at offsets `
 
 ## Runtime expression arrays
 
-The expression may depend on a `#define`, enum member, an earlier field exposed by an operation, or an integer
-variable supplied by the caller:
+The expression may depend on a `#define`, a qualified enum member (`kind.Max`), an earlier field exposed by an
+operation, `sizeof`/`offsetof` of a fixed type, or an integer variable supplied by the caller:
 
 ```c
 struct root {
@@ -63,8 +63,31 @@ Because `N` can change, `GetStructSizeInBytes("root")` cannot return one fixed s
 parse, address, length, serialize, write, and update operations. Counts remain subject to
 `ReadOptions.MaxArrayElements` and the corresponding write limits.
 
-An unsized non-character declaration such as `uint16 values[]` is not a “read the remaining bytes” field. It fails
-with `InvalidLayout` because no safe extent is defined.
+## Data-sized arrays
+
+Two declarations take their count from the data instead of an expression. Both need an element type with one fixed
+size (a primitive, an enum, a fixed struct, or a pointer), so every element can be stepped over:
+
+```c
+struct record {
+    uint32 magic;
+    uint16 values[EOF];
+};
+struct table {
+    entry entries[];
+    uint8 tail;
+};
+```
+
+`values[EOF]` reads every whole element that remains in the input: for memory input and seekable streams the
+count is `(length - position) / element size`, computed once per array; a trailing partial element is a read error,
+a non-seekable stream is a read error, and `EOF` keeps its ordinary meaning if the layout defines it. `entries[]` on a
+non-character type reads elements until an element whose bytes are all zero; that terminator is consumed and does not
+appear in the value (an element type with padding bytes must have those bytes zero too). Writing a data-sized array
+writes exactly the elements supplied (plus one zero element for the terminated form); updating an element changes it
+in place; the count cannot be changed by an update; `GetDynamicArrayLength` reports the count; and the containing
+struct has no fixed size. `char name[]` and `wchar name[]` remain terminated strings. The `data-sized-arrays` fixture
+checks both forms.
 
 ## Fixed character buffers
 

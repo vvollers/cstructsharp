@@ -107,20 +107,28 @@ public class CompilerDifferentialFixtureTests
     ///     Portable long is eight bytes, while the recorded native long is four and native pointers are eight.
     /// </summary>
     /// <remarks>
-    ///     The test preserves those differences instead of redefining the library's aliases to match one compiler
-    ///     target. Binary schemas should use the documented library widths rather than assume host C widths.
+    ///     The test preserves those differences instead of redefining the library's default aliases to match one
+    ///     compiler target; a layout that needs the 32-bit long opts in through <c>CLongWidth</c>.
     /// </remarks>
     [TestMethod]
     public void NativeScalarDifferences_DoNotBecomePortableClaims()
     {
         using JsonDocument contract = LoadJson("portable-v1.json");
+        JsonElement longAlias = contract.RootElement
+            .GetProperty("aliasSpellings")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("spelling").GetString() == "long");
+        string canonical = longAlias.GetProperty("canonical").GetString()!;
         int portableLongSize = contract.RootElement
             .GetProperty("fixedPrimitives")
             .EnumerateArray()
-            .Single(item => item.GetProperty("spelling").GetString() == "long")
+            .Single(item => item.GetProperty("spelling").GetString() == canonical)
             .GetProperty("bytes")
             .GetInt32();
         Assert.AreEqual(8, portableLongSize);
+
+        // The 32-bit long of the recorded compilers is reachable only through CLongWidth = 32, never by default.
+        Assert.AreEqual("int32", longAlias.GetProperty("cLongWidth32").GetString());
 
         JsonElement[] baselines = LoadBaselines();
         foreach (JsonElement baseline in baselines)

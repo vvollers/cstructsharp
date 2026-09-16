@@ -108,8 +108,8 @@ public class DuplicateNameValidationTests
     public void Constructor_AllowsEnumMembersInSeparateCaseSensitiveScopes()
     {
         const string layout = """
-                              enum first_state { Ready = 1, ready = 2 };
-                              enum second_state { Ready = 3 };
+                              enum first_state : uint8 { Ready = 1, ready = 2 };
+                              enum second_state : uint8 { Ready = 3 };
                               struct Ready { byte Ready; first_state state; };
                               """;
 

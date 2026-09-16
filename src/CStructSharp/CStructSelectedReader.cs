@@ -184,6 +184,7 @@ public partial class CStruct
                         if (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
                         {
                             CaptureScalar(state, field.Declaration.Name.Name, value);
+                            state.PublishQualified(field.Declaration.Name.Name);
                         }
 
                         break;
@@ -198,6 +199,7 @@ public partial class CStruct
                         if (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
                         {
                             this.UpdateExactLayoutVariable(state.Variables, field.Declaration.Name.Name, value.Value);
+                            state.PublishQualified(field.Declaration.Name.Name);
                         }
 
                         break;
@@ -215,6 +217,7 @@ public partial class CStruct
                         if (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
                         {
                             state.Variables[field.Declaration.Name.Name] = new Identifier(text);
+                            state.PublishQualified(field.Declaration.Name.Name);
                         }
 
                         break;
@@ -238,6 +241,7 @@ public partial class CStruct
                         if (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
                         {
                             CaptureScalar(state, field.Declaration.Name.Name, values[operation.Count - 1]);
+                            state.PublishQualified(field.Declaration.Name.Name);
                         }
 
                         break;
@@ -247,7 +251,14 @@ public partial class CStruct
                     {
                         var nested = new StructValue(operation.NestedComposite!.Shape);
                         destination.SetFreshSlot(operation.Slot, nested);
+                        string? outerPrefix = state.QualifiedPrefix;
+                        if (field.HasQualifiedPrefix)
+                        {
+                            state.QualifiedPrefix = outerPrefix is null ? field.QualifiedPrefix : outerPrefix + field.QualifiedPrefix;
+                        }
+
                         this.ExecuteStaticPlan(operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nested, state);
+                        state.QualifiedPrefix = outerPrefix;
                         break;
                     }
 

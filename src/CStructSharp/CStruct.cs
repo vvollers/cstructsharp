@@ -29,9 +29,15 @@ public sealed partial class CStruct
     private readonly ConstructionDictionary<string, CStructElement> cStructElements =
         new(StringComparer.Ordinal);
 
-    private readonly ConstructionDictionary<string, byte> fieldAlignments = new(StringComparer.Ordinal);
+    private readonly ConstructionDictionary<string, byte> fieldAlignments;
     private readonly FrozenDictionary<string, Func<Stream, object>> fieldHandlers;
     private readonly PrimitiveRegistry primitiveRegistry;
+
+    /// <summary>Caller-supplied codecs (<see cref="CStructCompilationOptions.Codecs"/>) as type symbols; empty for every layout that has none.</summary>
+    private readonly IReadOnlyDictionary<string, CompiledTypeReference> customSymbols;
+
+    /// <summary>Whether bitfields take a storage unit from its top bit down (<see cref="CStructCompilationOptions.BitfieldAllocation"/>).</summary>
+    private readonly bool highBitFirst;
 
     private readonly CompiledModelQueries compiledModelQueries;
     private readonly CompiledSizeQueries compiledSizeQueries;
@@ -41,6 +47,9 @@ public sealed partial class CStruct
     private readonly LayoutVariableResolver layoutVariableResolver;
     private readonly IReadOnlyDictionary<string, Expr> staticLayoutVariables;
     private readonly FrozenDictionary<string, Action<Stream, object>> writeHandlers;
+
+    private readonly Lazy<IReadOnlyDictionary<string, LayoutConstant>> constants;
+    private readonly Lazy<LayoutInfo> layoutInfo;
 
     /// <summary>
     ///     Creates a reusable layout from C-like source text.
@@ -64,6 +73,18 @@ public sealed partial class CStruct
     {
         CStructCompilationOptions effectiveCompilationOptions =
             compilationOptions ?? new CStructCompilationOptions();
+        this.CompilationOptions = effectiveCompilationOptions;
+        this.layoutInfo = new Lazy<LayoutInfo>(this.BuildLayoutInfo);
+        this.constants = new Lazy<IReadOnlyDictionary<string, LayoutConstant>>(this.BuildConstants);
+        this.highBitFirst = effectiveCompilationOptions.BitfieldAllocation == BitfieldAllocation.HighBitFirst;
+        if (!string.IsNullOrEmpty(effectiveCompilationOptions.Prelude))
+        {
+            ArgumentNullException.ThrowIfNull(layout);
+
+            // The prelude is simply earlier source text: one parse, one namespace, one cache entry.
+            layout = effectiveCompilationOptions.Prelude + "\n" + layout;
+        }
+
         LayoutSourceValidator.ValidateLayoutSource(layout, effectiveCompilationOptions);
         this.expressionEvaluator = new ExpressionEvaluator(
             ExpressionEvaluationLimits.FromOptions(effectiveCompilationOptions));
@@ -82,20 +103,33 @@ public sealed partial class CStruct
         this.IsLittleEndian = isLittleEndian;
 
         // Primitive readers and writers are built once because their byte order is part of the layout contract.
-        this.primitiveRegistry = (this.IsLittleEndian ? LittleEndianRegistry : BigEndianRegistry).Value;
-        this.fieldHandlers = this.primitiveRegistry.Readers;
-        this.writeHandlers = this.primitiveRegistry.Writers;
-        this.fieldAlignments.ReplaceWith(this.primitiveRegistry.Alignments);
+        this.primitiveRegistry = GetPrimitiveRegistry(this.IsLittleEndian, effectiveCompilationOptions.CLongWidth);
+
+        // The registry's alignments are the shared baseline; only this layout's declarations are added on top.
+        this.fieldAlignments = new ConstructionDictionary<string, byte>(StringComparer.Ordinal, this.primitiveRegistry.Alignments);
         this.bitfieldCodecs = this.primitiveRegistry.Bitfields;
+        if (effectiveCompilationOptions.Codecs is { Count: > 0, } customCodecs)
+        {
+            // Only a layout that registers codecs builds its own handler tables; every other layout shares the
+            // process-wide registry as before.
+            (this.fieldHandlers, this.writeHandlers, this.customSymbols) = this.RegisterCustomCodecs(customCodecs);
+        }
+        else
+        {
+            this.fieldHandlers = this.primitiveRegistry.Readers;
+            this.writeHandlers = this.primitiveRegistry.Writers;
+            this.customSymbols = FrozenDictionary<string, CompiledTypeReference>.Empty;
+        }
 
         // Parse the layout text and index only exported top-level names. Anonymous inline declarations stay attached
         // to their containing field and receive declaration identity in the compiled model.
         // Syntax errors already carry the "invalid syntax" prefix; the remaining implementation exceptions can only
         // come from semantic projections of otherwise well-formed text and are normalized to the same public shape.
         IReadOnlyList<CStructElement> structResult;
+        bool usesQualifiedIdentifiers;
         try
         {
-            structResult = CStructDefinitionParser.ParseLayout(this.Source);
+            structResult = CStructDefinitionParser.ParseLayout(this.Source, effectiveCompilationOptions.Defined, effectiveCompilationOptions.DefaultEnumStorage, out usesQualifiedIdentifiers);
         }
         catch (Exception exception) when (exception is FormatException or OverflowException or
                                           InvalidOperationException or ArgumentException)
@@ -103,8 +137,16 @@ public sealed partial class CStruct
             throw new CStructLayoutException(LayoutParser.SyntaxErrorPrefix + exception.Message, exception);
         }
 
+        var includes = new List<string>();
         foreach (CStructElement declaration in structResult)
         {
+            if (declaration is IncludeDirective include)
+            {
+                // Recorded, never resolved: the core does not read translation-unit files.
+                includes.Add(include.Path);
+                continue;
+            }
+
             SymbolValidation.ValidateBuiltInNameCollision(declaration, this.fieldHandlers);
             if (this.cStructElements.TryGetValue(declaration.Name.Name, out CStructElement? existing))
             {
@@ -116,17 +158,28 @@ public sealed partial class CStruct
             this.cStructElements.Add(declaration.Name.Name, declaration);
         }
 
+        this.Includes = includes.Count == 0 ? Array.Empty<string>() : includes.ToArray();
+        structResult = structResult.Where(declaration => declaration is not IncludeDirective).ToArray();
+
+        // Validate enum storage before either expression evaluation or alignment can narrow/lookup the backing type.
+        this.enumIntegerCodecs = new EnumIntegerCodecTable(structResult, this.cStructElements, effectiveCompilationOptions.CLongWidth, this.PointerSize);
+
         // Resolve layout-wide constants once. Operation-specific variables later reuse this resolver's static cache
         // and invalidate only definitions downstream of a caller override.
         Defines[] definitions = this.CStructElements.Values.OfType<Defines>().ToArray();
+        if (usesQualifiedIdentifiers)
+        {
+            // `Enum.Member` in an expression: evaluate every named enum against the plain definitions first, then
+            // publish each member as a literal constant next to them. Only layouts that spell a qualified name pay
+            // for this second resolver.
+            definitions = [.. definitions, .. this.CreateQualifiedMemberDefinitions(structResult, definitions),];
+        }
+
         this.layoutVariableResolver = new LayoutVariableResolver(
             definitions,
             this.expressionEvaluator,
             this.FindExactEnumDefinitionDependencies(structResult, definitions));
         this.staticLayoutVariables = this.layoutVariableResolver.CreateStatic();
-
-        // Validate enum storage before either expression evaluation or alignment can narrow/lookup the backing type.
-        this.enumIntegerCodecs = new EnumIntegerCodecTable(structResult, this.cStructElements);
 
         // Compile every retained expression with this layout's immutable limits. Bit widths and enum values are static;
         // array expressions keep their compiled program because caller variables may change their result per operation.
@@ -136,6 +189,32 @@ public sealed partial class CStruct
                 declaration => new KeyValuePair<string, CStructElement>(
                     declaration.Name.Name,
                     declaration)));
+
+        // `typedef struct tag { ... } alias;` declares the tag as well as the alias, as in C. Registered after
+        // normalization so the tag names the same (normalized) declaration instance the alias does.
+        foreach (CStructElement declaration in structResult)
+        {
+            if (declaration is not Typedef { Struct: { } tagged, } || tagged.Name.Name == declaration.Name.Name)
+            {
+                continue;
+            }
+
+            if (this.cStructElements.TryGetValue(tagged.Name.Name, out CStructElement? existing))
+            {
+                if (ReferenceEquals(existing, tagged))
+                {
+                    continue;
+                }
+
+                throw new CStructLayoutException(
+                    $"Duplicate global declaration name '{tagged.Name.Name}': " +
+                    $"{SymbolValidation.GetDeclarationKind(existing)} and {SymbolValidation.GetDeclarationKind(tagged)}.");
+            }
+
+            SymbolValidation.ValidateBuiltInNameCollision(tagged, this.fieldHandlers);
+            this.cStructElements.Add(tagged.Name.Name, tagged);
+            structResult = [.. structResult, tagged,];
+        }
 
         // A compiled layout cannot safely expose duplicate field or enum-member names: readers, writers, and paths
         // would otherwise select different declarations from the same lexical scope.
@@ -182,6 +261,19 @@ public sealed partial class CStruct
 
     /// <summary>Gets whether composite fields use their portable alignment boundaries.</summary>
     public bool Aligned { get; }
+
+    /// <summary>
+    ///     Gets the paths of the layout's <c>#include</c> lines in source order, exactly as written. They are recorded
+    ///     for the caller's benefit only; the core never reads or resolves them.
+    /// </summary>
+    public IReadOnlyList<string> Includes { get; }
+
+    /// <summary>
+    ///     Gets every <c>#define</c> of the layout by name: integer constants (evaluated without caller variables),
+    ///     text and byte literals, bare names, and function-like macros kept as text. Only integer constants take
+    ///     part in layout expressions.
+    /// </summary>
+    public IReadOnlyDictionary<string, LayoutConstant> Constants => this.constants.Value;
 
     /// <summary>Gets primitive-codec and exported-type alignments without exposing anonymous or backing-tag identities.</summary>
     internal IReadOnlyDictionary<string, byte> FieldAlignments => this.fieldAlignments;
@@ -241,6 +333,7 @@ public sealed partial class CStruct
                 Struct strct => this.NormalizeStructExpressions(strct),
                 Typedef { Struct: not null, } typedef =>
                     new Typedef(typedef.Name, this.NormalizeStructExpressions(typedef.Struct)),
+                Typedef { ArrayShape.Count: > 0, } typedef => this.NormalizeTypedefArray(typedef),
                 CstructEnum enm => this.EvaluateEnumDeclaration(enm),
                 _ => declaration,
             };
@@ -254,6 +347,178 @@ public sealed partial class CStruct
             throw new CStructLayoutException(
                 "Layout declaration contains an invalid expression: " + exception.Message,
                 exception);
+        }
+    }
+
+    /// <summary>Adds the caller's codecs to per-layout copies of the reader, writer, and alignment tables.</summary>
+    private (FrozenDictionary<string, Func<Stream, object>> Readers, FrozenDictionary<string, Action<Stream, object>> Writers, IReadOnlyDictionary<string, CompiledTypeReference> Symbols)
+        RegisterCustomCodecs(IReadOnlyList<ICustomCodec> codecs)
+    {
+        var readers = new Dictionary<string, Func<Stream, object>>(this.primitiveRegistry.Readers, StringComparer.Ordinal);
+        var writers = new Dictionary<string, Action<Stream, object>>(this.primitiveRegistry.Writers, StringComparer.Ordinal);
+        var symbols = new Dictionary<string, CompiledTypeReference>(StringComparer.Ordinal);
+        foreach (ICustomCodec codec in codecs)
+        {
+            ArgumentNullException.ThrowIfNull(codec, nameof(codecs));
+            string name = codec.Name;
+            if (string.IsNullOrEmpty(name) || !(name[0] == '_' || char.IsLetter(name[0])) || name.Any(character => character != '_' && !char.IsLetterOrDigit(character)))
+            {
+                throw new ArgumentException($"Custom codec name '{name}' is not an identifier.", nameof(codecs));
+            }
+
+            if (this.primitiveRegistry.Symbols.ContainsKey(name) || symbols.ContainsKey(name))
+            {
+                throw new ArgumentException($"Custom codec name '{name}' is already a primitive type.", nameof(codecs));
+            }
+
+            if (codec.Alignment <= 0 || (codec.Alignment & (codec.Alignment - 1)) != 0 || codec.FixedSize is < 0)
+            {
+                throw new ArgumentException($"Custom codec '{name}' needs a power-of-two alignment and a non-negative size.", nameof(codecs));
+            }
+
+            ICustomCodec captured = codec;
+            Func<Stream, object> reader = stream => captured.Read(stream);
+            Action<Stream, object> writer = (stream, value) => captured.Write(stream, value);
+            readers.Add(name, reader);
+            writers.Add(name, writer);
+            this.fieldAlignments[name] = (byte)Math.Min(codec.Alignment, byte.MaxValue);
+            var symbol = new CompiledTypeSymbol(name, CompiledTypeKind.Primitive, null, codec.Alignment, codec.FixedSize, reader, writer, isCustomCodec: true);
+            symbol.Bind(new CompiledPrimitiveType(symbol));
+            symbol.Freeze();
+            symbols.Add(name, new CompiledTypeReference(symbol, 0, name));
+        }
+
+        return (readers.ToFrozenDictionary(StringComparer.Ordinal), writers.ToFrozenDictionary(StringComparer.Ordinal), symbols);
+    }
+
+    private IReadOnlyDictionary<string, LayoutConstant> BuildConstants()
+    {
+        var result = new Dictionary<string, LayoutConstant>(StringComparer.Ordinal);
+        foreach (CStructElement declaration in this.CStructElements.Values)
+        {
+            switch (declaration)
+            {
+            case ConstantDefinition constant:
+                result.Add(constant.Name.Name, new LayoutConstant(constant.Name.Name, constant.Kind, constant.Value));
+                break;
+            case Defines define:
+                bool isStatic = this.staticLayoutVariables.TryGetValue(define.Name.Name, out Expr? value) && value is Literal;
+                LayoutConstant published = isStatic
+                                               ? new LayoutConstant(define.Name.Name, LayoutConstantKind.Integer, ((Literal)value!).ExactValue)
+                                               : new LayoutConstant(define.Name.Name, LayoutConstantKind.Expression, null);
+                result.Add(define.Name.Name, published);
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>Compiles the fixed dimensions of a <c>typedef T name[N];</c> alias; every count must be a static, non-negative integer.</summary>
+    private Typedef NormalizeTypedefArray(Typedef typedef)
+    {
+        return new Typedef(typedef.Name, typedef.Type) { ArrayShape = this.EvaluateTypedefShape(typedef), TypeKeywordHint = typedef.TypeKeywordHint, };
+    }
+
+    private Expr[] EvaluateTypedefShape(Typedef typedef)
+    {
+        var dimensions = new Expr[typedef.ArrayShape.Count];
+        for (int index = 0; index < dimensions.Length; index++)
+        {
+            Expr dimension = typedef.ArrayShape[index];
+            if (dimension is Literal)
+            {
+                dimensions[index] = dimension;
+                continue;
+            }
+
+            this.expressionEvaluator.Compile(dimension);
+            int count = this.layoutExpressionEvaluator.Evaluate(
+                dimension,
+                this.staticLayoutVariables,
+                "array length for typedef " + typedef.Name.Name);
+            if (count < 0)
+            {
+                throw new CStructLayoutException("Array length cannot be negative: " + typedef.Name.Name);
+            }
+
+            dimensions[index] = new Literal(count);
+        }
+
+        return dimensions;
+    }
+
+    /// <summary>
+    ///     Follows a field's typedef chain to the first <c>typedef T name[N];</c> alias and returns the element type
+    ///     and dimensions it contributes; a field declared with a pointer to such an alias is rejected because the
+    ///     language has no pointer-to-array storage.
+    /// </summary>
+    private (Identifier Type, IReadOnlyList<Expr> Shape)? ResolveTypedefArrayShape(Field field)
+    {
+        string name = field.Type.Name;
+        List<Expr>? shape = null;
+        int guard = 0;
+        while (this.cStructElements.TryGetValue(name, out CStructElement? element) && element is Typedef { Struct: null, } alias)
+        {
+            if (alias.ArrayShape.Count > 0)
+            {
+                if (field.PointerDepth > 0 || alias.Type.PointerDepth > 0)
+                {
+                    throw new CStructLayoutException(
+                        "A pointer to a typedef array is not supported: " + field.Name.Name);
+                }
+
+                // `typedef pair grid[2];` over `typedef uint16 pair[2];` is uint16[2][2]: outer alias first.
+                (shape ??= []).AddRange(this.EvaluateTypedefShape(alias));
+            }
+            else if (alias.Type.PointerDepth > 0)
+            {
+                break;
+            }
+
+            if (++guard > 256)
+            {
+                break;
+            }
+
+            name = alias.Type.Name;
+        }
+
+        return shape is null ? null : (new Identifier(name), shape);
+    }
+
+    /// <summary>Evaluates every named enum with a preliminary resolver and returns one <c>Enum.Member</c> literal definition per member.</summary>
+    private List<Defines> CreateQualifiedMemberDefinitions(IReadOnlyList<CStructElement> declarations, Defines[] definitions)
+    {
+        var preliminary = new LayoutVariableResolver(
+            definitions,
+            this.expressionEvaluator,
+            this.FindExactEnumDefinitionDependencies(declarations, definitions));
+        IReadOnlyDictionary<string, Expr> variables = preliminary.CreateStatic();
+        var result = new List<Defines>();
+        foreach (CstructEnum enm in declarations.OfType<CstructEnum>())
+        {
+            EnumIntegerCodec codec = this.enumIntegerCodecs.Get(enm.Name.Name);
+            CstructEnum evaluated = enm.Evaluate(this.expressionEvaluator, variables, codec.BitWidth, codec.Minimum, codec.Maximum);
+            foreach (EnumValue member in evaluated.Values)
+            {
+                result.Add(new Defines(new Identifier(enm.Name.Name + "." + member.Name.Name), member.Value));
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>A text, byte, bare, or macro constant has no integer value, so naming it in an expression is a layout error, not a missing variable.</summary>
+    private void RejectNonIntegerConstants(Expr expression, string fieldName)
+    {
+        foreach (string dependency in this.expressionEvaluator.GetDependencies(expression))
+        {
+            if (this.cStructElements.TryGetValue(dependency, out CStructElement? element) && element is ConstantDefinition constant)
+            {
+                throw new CStructLayoutException(
+                    $"'{constant.Name.Name}' is a {constant.Kind.ToString().ToLowerInvariant()} constant and has no integer value: {fieldName}");
+            }
         }
     }
 
@@ -378,12 +643,14 @@ public sealed partial class CStruct
             // that is never itself an expression to compile.
             foreach (Expr dimension in field.ArrayCount)
             {
-                if (ReferenceEquals(dimension, Field.UnknownArraysize))
+                if (ReferenceEquals(dimension, Field.UnknownArraysize) || ExpressionEvaluator.ContainsCall(dimension))
                 {
+                    // A sizeof/offsetof dimension is folded to a literal once the types it names are compiled.
                     continue;
                 }
 
                 this.expressionEvaluator.Compile(dimension);
+                this.RejectNonIntegerConstants(dimension, field.Name.Name);
                 if (this.expressionEvaluator.GetDependencies(dimension).All(this.staticLayoutVariables.ContainsKey))
                 {
                     int count = this.layoutExpressionEvaluator.Evaluate(
@@ -412,11 +679,27 @@ public sealed partial class CStruct
                 }
             }
 
+            Identifier fieldType = field.Type;
+            IReadOnlyList<Expr> arrayCount = field.ArrayCount;
+            if (this.ResolveTypedefArrayShape(field) is (Identifier elementType, IReadOnlyList<Expr> typedefShape))
+            {
+                // `typedef uint32 quad[4]; quad rows[n];` is the array `uint32 rows[n][4]`: the field's own
+                // dimensions are the outer ones.
+                fieldType = elementType;
+                bool unsized = arrayCount.Count == 1 && ReferenceEquals(arrayCount[0], Field.UnknownArraysize);
+                if (unsized)
+                {
+                    throw new CStructLayoutException("An unsized array of a typedef array is not supported: " + field.Name.Name);
+                }
+
+                arrayCount = [.. arrayCount, .. typedefShape,];
+            }
+
             fields.Add(
                 new Field(
-                    field.Type,
+                    fieldType,
                     field.Name,
-                    field.ArrayCount,
+                    arrayCount,
                     bitSize,
                     field.PointerDepth,
                     field.TypeKeywordHint,
@@ -493,7 +776,7 @@ public sealed partial class CStruct
     {
         ArgumentNullException.ThrowIfNull(stream);
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
-        IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         var state = new CStructOperationContext(
             stream,
@@ -514,7 +797,8 @@ public sealed partial class CStruct
                                           throw new CStructPathException(
                                               "Path does not resolve to a compiled field: " + elementNameOrPath);
 
-            if (compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime)
+            if (compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or
+                CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated)
             {
                 return target.ArrayLength ??
                        throw new CStructPathException("Resolved array target has no compiled length.");
@@ -562,6 +846,22 @@ public sealed partial class CStruct
         if (!this.compiledModelQueries.TryGetCompiledDeclaration(name, out CStructElement? value))
         {
             throw new CStructPathException("Unknown struct declaration: " + name);
+        }
+
+        // A typedef of a struct or union (`typedef struct _X { } X;`, `typedef X Y;`) names the same storage.
+        int guard = 0;
+        while (value is Typedef alias && ++guard < 256)
+        {
+            if (alias.Struct is not null)
+            {
+                return alias.Struct;
+            }
+
+            if (alias.Type.PointerDepth > 0 || alias.ArrayShape.Count > 0 ||
+                !this.compiledModelQueries.TryGetCompiledDeclaration(alias.Type.Name, out value))
+            {
+                break;
+            }
         }
 
         if (value is Struct str)
@@ -770,7 +1070,7 @@ public sealed partial class CStruct
         bool debug)
     {
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
-        IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
         if (segments.Count == 1)
         {
             (StructValue root, _) = this.ParseStreamInternal(
@@ -783,7 +1083,13 @@ public sealed partial class CStruct
             var rootValues = (IDictionary<string, object?>)root;
             if (!rootValues.TryGetValue(segments[0].Name, out object? selected) || selected is null)
             {
-                throw new CStructPathException("The selected path does not resolve to a composite object.");
+                // `typedef struct _X { ... } X;` parsed as `X` is stored under its tag, `_X`.
+                if (!this.compiledModelQueries.TryGetCompiledDeclaration(segments[0].Name, out CStructElement? rootDeclaration) ||
+                    rootDeclaration is not Typedef { Struct: { } tagged, } ||
+                    !rootValues.TryGetValue(tagged.Name.Name, out selected) || selected is null)
+                {
+                    throw new CStructPathException("The selected path does not resolve to a composite object.");
+                }
             }
 
             dynamic returnedValue = debug ? (selected is UnionValue ? selected : root) : selected;
@@ -862,7 +1168,7 @@ public sealed partial class CStruct
     {
         ArgumentNullException.ThrowIfNull(stream);
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
-        IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         var state = new CStructOperationContext(
             stream,

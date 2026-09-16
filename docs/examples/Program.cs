@@ -38,6 +38,11 @@ internal static partial class Program
         ("fixed-point", FixedPoint),
         ("identifier-order", IdentifierOrder),
         ("conditional-records", ConditionalRecords),
+        ("windows-header", WindowsHeader),
+        ("flags-and-data-sized-arrays", FlagsAndDataSizedArrays),
+        ("header-preprocessor", HeaderPreprocessor),
+        ("layout-introspection", LayoutIntrospection),
+        ("custom-codec", CustomCodec),
     ];
 
     public static int Main(string[] args)

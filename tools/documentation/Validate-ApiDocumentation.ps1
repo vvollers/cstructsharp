@@ -25,7 +25,7 @@ $typeNames = [System.Collections.Generic.List[string]]::new()
 $declaringType = $null
 foreach ($match in [regex]::Matches(
         $baseline,
-        '(?m)^(?<indent> *)public (?:abstract |sealed |static |readonly )*(?:class|enum|struct) (?<name>[A-Za-z][A-Za-z0-9]*)'))
+        '(?m)^(?<indent> *)public (?:abstract |sealed |static |readonly )*(?:class|enum|struct|interface) (?<name>[A-Za-z][A-Za-z0-9]*)'))
 {
     $name = $match.Groups['name'].Value
     if ($match.Groups['indent'].Value.Length -le 4)
@@ -40,7 +40,7 @@ foreach ($match in [regex]::Matches(
 }
 
 $typeNames = @($typeNames | Sort-Object -Unique)
-Assert-Condition ($typeNames.Count -eq 23) "Expected 23 baseline types, found $($typeNames.Count)."
+Assert-Condition ($typeNames.Count -eq 34) "Expected 34 baseline types, found $($typeNames.Count)."
 
 # A generic type's metadata file carries its arity (PrimitiveArray-1.yml).
 $missingTypes = @(
@@ -132,6 +132,9 @@ $expectedUidCount =
     @($baseline -split '\r?\n' | Where-Object { $_ -match '^\s*(?:public|protected) ' }).Count +
     @($baseline -split '\r?\n' |
         Where-Object { $_ -match '^\s{8}[A-Za-z][A-Za-z0-9]* = -?\d+,' }).Count +
+    # Interface members carry no access modifier (ICustomCodec).
+    @($baseline -split '\r?\n' |
+        Where-Object { $_ -match '^\s{8}(?!public |protected )[A-Za-z][\w?<>., \[\]]* [A-Za-z]\w*(?: \{ get; \}|\(.*\);)$' }).Count +
     $recordSynthesizedUids.Count
 
 $uids = [Collections.Generic.List[string]]::new()
@@ -248,7 +251,7 @@ foreach ($file in Get-ChildItem -LiteralPath $ApiDirectory -File -Filter '*.yml'
         }
 
         if ($item -match '(?m)^  type: Method\r?$' -and
-            $item -match '(?m)^    content: (?!public (?:static |readonly |override |virtual |sealed )*void )')
+            $item -match '(?m)^    content: (?!(?:public (?:static |readonly |override |virtual |sealed )*)?void )')
         {
             $returnCount++
             $return = [regex]::Match(

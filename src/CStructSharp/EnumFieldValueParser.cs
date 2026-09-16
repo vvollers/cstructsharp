@@ -31,6 +31,11 @@ internal static class EnumFieldValueParser
                 {
                     result = compiled.Integer.FromRawBits(member.RawBits);
                 }
+                else if (compiled.IsFlag && text.Contains('|'))
+                {
+                    // `A|C` names the union of flag members.
+                    result = CombineFlagMembers(compiled, enm, text.Split('|', StringSplitOptions.TrimEntries));
+                }
                 else if (!BigInteger.TryParse(
                              text,
                              NumberStyles.Integer,
@@ -44,6 +49,10 @@ internal static class EnumFieldValueParser
             else if (EnumIntegerCodec.TryConvertIntegral(value, out result))
             {
                 // The direct integral shape is already exact.
+            }
+            else if (compiled.IsFlag && value is System.Collections.Generic.IEnumerable<string> members)
+            {
+                result = CombineFlagMembers(compiled, enm, members);
             }
             else
             {
@@ -67,6 +76,27 @@ internal static class EnumFieldValueParser
     }
 
     /// <summary>Reads the browser/POCO enum object shape and rejects absent or contradictory metadata.</summary>
+    private static BigInteger CombineFlagMembers(CompiledEnumType compiled, CstructEnum enm, System.Collections.Generic.IEnumerable<string> names)
+    {
+        ulong rawBits = 0;
+        foreach (string name in names)
+        {
+            if (name.Length == 0)
+            {
+                continue;
+            }
+
+            if (!compiled.MembersByName.TryGetValue(name, out CompiledEnumMember member))
+            {
+                throw new InvalidOperationException($"Flag '{enm.Name.Name}' has no member named '{name}'.");
+            }
+
+            rawBits |= member.RawBits;
+        }
+
+        return compiled.Integer.FromRawBits(rawBits);
+    }
+
     private static BigInteger GetEnumObjectValue(
         CompiledEnumType compiled,
         CstructEnum enm,

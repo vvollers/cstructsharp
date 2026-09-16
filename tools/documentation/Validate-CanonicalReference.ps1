@@ -31,7 +31,7 @@ $reference = [string]::Join(
     @($referenceFiles | ForEach-Object { Get-Content -Raw -LiteralPath $_.FullName }))
 
 Assert-Condition ($contract.schemaVersion -eq 1) 'Unsupported canonical Portable contract schema version.'
-Assert-Condition ($contract.contractRevision -eq 1) 'Unsupported canonical Portable contract revision.'
+Assert-Condition ($contract.contractRevision -eq 2) 'Unsupported canonical Portable contract revision.'
 Assert-Condition ($contract.profile -eq 'Portable') 'The canonical contract must describe the Portable profile.'
 Assert-Condition (@($contract.shippedProfiles).Count -eq 1 -and $contract.shippedProfiles[0] -eq 'Portable') `
     'Portable must be the sole shipped profile.'
@@ -84,17 +84,24 @@ foreach ($primitive in @($contract.fixedPrimitives)) {
     $context = "Fixed primitive '$($primitive.spelling)'"
     Assert-Condition (-not [string]::IsNullOrWhiteSpace([string]$primitive.canonical)) `
         "$context has no canonical codec."
-    Assert-Condition ($primitive.bytes -in @(1, 2, 3, 4, 8, 16)) "$context has an invalid byte width."
-    $expectedAlignment = if ($primitive.bytes -in @(3, 16)) { 1 } else { $primitive.bytes }
+    Assert-Condition ($primitive.bytes -in @(1, 2, 3, 4, 6, 8, 16)) "$context has an invalid byte width."
+    $expectedAlignment = if ($primitive.bytes -in @(3, 6) -or $primitive.spelling -in @('uuid', 'guid')) { 1 } else { $primitive.bytes }
     Assert-Condition ($primitive.alignment -eq $expectedAlignment) `
         "$context has an incorrect Portable alignment."
     if ($primitive.bytes -eq 3) {
         Assert-Condition ($primitive.spelling -match '^(?:u?int24)[<>]?$') "$context is not a supported three-byte integer."
         Assert-Condition ($primitive.clr -in @('Int32', 'UInt32')) "$context must use a 32-bit CLR result."
     }
-    if ($primitive.bytes -eq 16) {
-        Assert-Condition ($primitive.spelling -in @('uuid', 'guid')) "$context is not a supported identifier."
+    if ($primitive.bytes -eq 6) {
+        Assert-Condition ($primitive.spelling -match '^(?:u?int48)[<>]?$') "$context is not a supported six-byte integer."
+        Assert-Condition ($primitive.clr -in @('Int64', 'UInt64')) "$context must use a 64-bit CLR result."
+    }
+    if ($primitive.bytes -eq 16 -and $primitive.spelling -in @('uuid', 'guid')) {
         Assert-Condition ($primitive.clr -eq 'Guid' -and $primitive.endian -eq 'independent') "$context must use explicit identifier byte order."
+    }
+    elseif ($primitive.bytes -eq 16) {
+        Assert-Condition ($primitive.spelling -match '^(?:u?int128)[<>]?$') "$context is not a supported sixteen-byte integer."
+        Assert-Condition ($primitive.clr -in @('Int128', 'UInt128')) "$context must use a 128-bit CLR result."
     }
     if ($primitive.signedness -eq 'fixed-point') {
         Assert-Condition ($primitive.spelling -match '^(?:u?fixed16_16|fixed2_30|ufixed8_8)[<>]?$') "$context has an unsupported fixed-point scale."
@@ -186,9 +193,25 @@ foreach ($spelling in @($fixedSpellings + $terminatedSpellings)) {
     Assert-Condition ($reference.Contains('`' + $spelling + '`', [StringComparison]::Ordinal)) `
         "The canonical reference does not name primitive spelling '$spelling'."
 }
+$aliasSpellings = @($contract.aliasSpellings | ForEach-Object { [string]$_.spelling })
+Assert-Condition ($aliasSpellings.Count -eq @($aliasSpellings | Select-Object -Unique).Count) `
+    'The canonical alias table contains duplicate spellings.'
+# The matrix catalogues each spelling once: an alias that is also a terminated-string spelling (`string`, `cstring`)
+# sits in its terminated list rather than in aliases.
+$matrixAliases = @($matrix.primitiveSpellings.aliases | ForEach-Object { [string]$_ }) +
+    @($matrix.primitiveSpellings.pointerSized | ForEach-Object { [string]$_ }) +
+    @($matrix.primitiveSpellings.terminated | ForEach-Object { [string]$_ } | Where-Object { $_ -in $aliasSpellings })
+Assert-Condition (@(Compare-Object $matrixAliases $aliasSpellings).Count -eq 0) `
+    'The canonical alias spellings differ from the feature-operation matrix.'
+foreach ($alias in @($contract.aliasSpellings)) {
+    Assert-Condition (-not [string]::IsNullOrWhiteSpace([string]$alias.canonical)) "Alias '$($alias.spelling)' has no canonical codec."
+    Assert-Condition ($reference.Contains('`' + $alias.spelling + '`', [StringComparison]::Ordinal)) `
+        "The canonical reference does not name alias spelling '$($alias.spelling)'."
+}
 
 Write-Host 'Canonical Portable reference validation passed.'
 Write-Host "Fixed primitives: $($fixedSpellings.Count)"
 Write-Host "Terminated primitives: $($terminatedSpellings.Count)"
 Write-Host "Predictive layout examples: $($exampleIds.Count)"
+Write-Host "Alias spellings: $($aliasSpellings.Count)"
 Write-Host "Unsupported C constructs: $($unsupportedIds.Count)"

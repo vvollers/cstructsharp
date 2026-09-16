@@ -21,7 +21,7 @@ public class Enums
 
         Assert.AreEqual("zing", enm.Name.Name);
         Assert.HasCount(3, enm.Values);
-        Assert.AreSame(Identifier.BYTE, enm.Type);
+        Assert.AreSame(Identifier.UINT32, enm.Type);
 
         Assert.AreEqual("Red", enm.Values[0].Name.Name);
         Assert.AreEqual(5, enm.Values[0].Value.Calc());

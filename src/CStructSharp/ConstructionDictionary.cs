@@ -3,49 +3,50 @@ namespace CStructSharp;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 ///     Builds one lookup table during layout compilation, then irreversibly publishes a frozen snapshot and releases
-///     the mutable builder.
+///     the mutable builder. An optional shared baseline (a process-wide table) sits under the layout's own entries,
+///     so a layout never copies the baseline: its entries shadow the baseline's on lookup and enumeration.
 /// </summary>
 internal sealed class ConstructionDictionary<TKey, TValue> : IReadOnlyDictionary<TKey, TValue>, ICollection<KeyValuePair<TKey, TValue>>
     where TKey : notnull
 {
     private readonly Dictionary<TKey, TValue> storage;
+    private readonly IReadOnlyDictionary<TKey, TValue> baseline;
     private bool frozen;
 
-    /// <summary>Creates an empty construction table with the requested key comparer.</summary>
-    public ConstructionDictionary(IEqualityComparer<TKey>? comparer = null)
+    /// <summary>Creates an empty construction table with the requested key comparer and an optional shared baseline.</summary>
+    public ConstructionDictionary(IEqualityComparer<TKey>? comparer = null, IReadOnlyDictionary<TKey, TValue>? baseline = null)
     {
         this.storage = new Dictionary<TKey, TValue>(comparer);
+        this.baseline = baseline ?? EmptyBaseline.Instance;
     }
 
-    public int Count => this.Current.Count;
+    public int Count => this.baseline.Count == 0 ? this.storage.Count : this.storage.Count + this.baseline.Count(pair => !this.storage.ContainsKey(pair.Key));
 
     /// <summary>Gets whether the mutable builder has been discarded and the snapshot published.</summary>
     public bool IsFrozen => this.frozen;
 
-    public IEnumerable<TKey> Keys => this.Current.Keys;
+    public IEnumerable<TKey> Keys => this.Select(pair => pair.Key);
 
-    /// <summary>Gets the immutable snapshot after <see cref="Freeze" /> has completed.</summary>
     /// <summary>
     ///     The frozen, read-only view. Freezing no longer copies into a <c>FrozenDictionary</c>: that construction
     ///     was a quarter of a small layout's compile time (E1.3a), while the same dictionary used read-only after
     ///     the builder handle is withdrawn gives identical immutability for the caller.
     /// </summary>
     public IReadOnlyDictionary<TKey, TValue> Snapshot =>
-        this.frozen ? this.storage : throw new InvalidOperationException("The construction dictionary has not been frozen.");
+        this.frozen ? this : throw new InvalidOperationException("The construction dictionary has not been frozen.");
 
-    public IEnumerable<TValue> Values => this.Current.Values;
+    public IEnumerable<TValue> Values => this.Select(pair => pair.Value);
 
     /// <summary>The collection view is read-only for every consumer; only the construction-phase methods mutate.</summary>
     bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => true;
 
-    private Dictionary<TKey, TValue> Current => this.storage;
-
     public TValue this[TKey key]
     {
-        get => this.Current[key];
+        get => this.TryGetValue(key, out TValue? value) ? value : throw new KeyNotFoundException($"The key '{key}' was not present in the dictionary.");
         set => this.GetBuilder()[key] = value;
     }
 
@@ -57,7 +58,7 @@ internal sealed class ConstructionDictionary<TKey, TValue> : IReadOnlyDictionary
 
     public bool ContainsKey(TKey key)
     {
-        return this.Current.ContainsKey(key);
+        return this.storage.ContainsKey(key) || this.baseline.ContainsKey(key);
     }
 
     /// <summary>Irreversibly converts the builder to the read-optimized immutable representation.</summary>
@@ -69,7 +70,18 @@ internal sealed class ConstructionDictionary<TKey, TValue> : IReadOnlyDictionary
 
     public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
     {
-        return this.Current.GetEnumerator();
+        foreach (KeyValuePair<TKey, TValue> pair in this.storage)
+        {
+            yield return pair;
+        }
+
+        foreach (KeyValuePair<TKey, TValue> pair in this.baseline)
+        {
+            if (!this.storage.ContainsKey(pair.Key))
+            {
+                yield return pair;
+            }
+        }
     }
 
     /// <summary>Replaces all construction-time entries while retaining the configured key comparer.</summary>
@@ -85,7 +97,7 @@ internal sealed class ConstructionDictionary<TKey, TValue> : IReadOnlyDictionary
 
     public bool TryGetValue(TKey key, out TValue value)
     {
-        return this.Current.TryGetValue(key, out value!);
+        return this.storage.TryGetValue(key, out value!) || this.baseline.TryGetValue(key, out value!);
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -105,12 +117,15 @@ internal sealed class ConstructionDictionary<TKey, TValue> : IReadOnlyDictionary
 
     bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
     {
-        return ((ICollection<KeyValuePair<TKey, TValue>>)this.storage).Contains(item);
+        return this.TryGetValue(item.Key, out TValue? value) && EqualityComparer<TValue>.Default.Equals(value, item.Value);
     }
 
     void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
     {
-        ((ICollection<KeyValuePair<TKey, TValue>>)this.storage).CopyTo(array, arrayIndex);
+        foreach (KeyValuePair<TKey, TValue> pair in this)
+        {
+            array[arrayIndex++] = pair;
+        }
     }
 
     bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
@@ -123,5 +138,10 @@ internal sealed class ConstructionDictionary<TKey, TValue> : IReadOnlyDictionary
         return this.frozen
                    ? throw new InvalidOperationException("The construction dictionary is already frozen.")
                    : this.storage;
+    }
+
+    private static class EmptyBaseline
+    {
+        public static readonly IReadOnlyDictionary<TKey, TValue> Instance = new Dictionary<TKey, TValue>();
     }
 }

@@ -39,7 +39,8 @@ public class ManagedFuzzTests
     /// <remarks>
     ///     Success counts, documented-failure counts, and digests must match the saved expectations for every target.
     ///     Stable results make unexpected behavior changes visible and let the same cases be reproduced across
-    ///     supported .NET targets.
+    ///     supported .NET targets. The expression target was re-frozen for the dissect-parity operators (<c>%</c>,
+    ///     <c>^</c>, <c>?:</c>): one mutated expression that used to be a syntax error now evaluates.
     /// </remarks>
     [TestMethod]
     public void ReviewedRun_MatchesTheFrozenReplayManifest()
@@ -56,9 +57,9 @@ public class ManagedFuzzTests
                 128,
                 "7656099E98432A41718C6821C82A588E492D4271FC4E4AC70AD855E65D313095"),
             ["expression"] = (
-                4,
-                128,
-                "6665169390EA6ED68F9870863353BD085EF27B845ED68765FAFCD88FC3428801"),
+                5,
+                127,
+                "048AB5601B50C06A5EEE44A4656A7502350FC64FFDDB2ABC681E19242891FE7C"),
             ["path"] = (
                 0,
                 132,

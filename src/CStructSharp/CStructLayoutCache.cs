@@ -60,7 +60,13 @@ internal sealed class CStructLayoutCache
             options.MaxDefinitionLength,
             options.MaxLayoutNestingDepth,
             options.MaxExpressionNestingDepth,
-            options.MaxExpressionTokens);
+            options.MaxExpressionTokens,
+            options.CLongWidth,
+            options.DefaultEnumStorage,
+            options.Defined is null or { Count: 0 } ? string.Empty : string.Join('\0', options.Defined.Order(StringComparer.Ordinal)),
+            options.Codecs is null or { Count: 0 } ? null : options.Codecs,
+            options.Prelude,
+            options.BitfieldAllocation);
 
         lock (this.gate)
         {
@@ -123,7 +129,13 @@ internal sealed class CStructLayoutCache
         int MaxDefinitionLength,
         int MaxLayoutNestingDepth,
         int MaxExpressionNestingDepth,
-        int MaxExpressionTokens);
+        int MaxExpressionTokens,
+        int CLongWidth,
+        string? DefaultEnumStorage,
+        string Defined,
+        object? Codecs,
+        string? Prelude,
+        BitfieldAllocation BitfieldAllocation);
 
     private sealed record Entry(Key Key, CStruct Layout);
 }

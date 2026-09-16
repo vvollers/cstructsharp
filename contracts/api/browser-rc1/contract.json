@@ -90,6 +90,11 @@
       "contractVersion": 7,
       "date": "2026-09-14",
       "change": "Performance plan E3.9: new managed export GetStaticPlan(definition, optionsJson) returns the static read plan of a fully fixed root (the compiler's member offsets, codecs, counts, nested plans and enum tables) as JSON, or an empty string; the adapters' parse() executes such a plan with DataView in JavaScript and falls back to ParseBytes/ParseSource otherwise. The envelope and every value are unchanged."
+    },
+    {
+      "contractVersion": 7,
+      "date": "2026-09-16",
+      "change": "dissect.cstruct parity (additive, no envelope, export, option, or error-code change): a value read from a `flag` declaration carries `Names` (the set members) and `Remainder` (bits no member covers) next to the unchanged `Enum`/`Name`/`Value` keys; a promoted (anonymous) struct or union member's fields sit directly on the parent object; `_` padding fields never appear; int48/int128/float16 values render like the existing wide integers and floats. Every pre-existing definition produces byte-identical envelopes."
     }
   ]
 }

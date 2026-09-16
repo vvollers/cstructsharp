@@ -11,7 +11,7 @@ using System.Numerics;
 ///     The exact numeric value and storage bits remain available even when no declared member matches. Writers
 ///     validate the declaration name, width, signedness, raw bits, and optional member name before reusing this model.
 /// </remarks>
-public sealed class EnumValueResult
+public class EnumValueResult
 {
     /// <summary>Creates one self-describing value from its validated compiled enum descriptor.</summary>
     internal EnumValueResult(

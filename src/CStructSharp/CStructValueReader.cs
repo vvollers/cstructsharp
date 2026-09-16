@@ -109,7 +109,7 @@ public sealed partial class CStruct
         ReadOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
         try
         {
             // A fully fixed struct read into a POCO takes the typed plan (E2.7) inside ReadValueCore and comes back
@@ -197,7 +197,7 @@ public sealed partial class CStruct
         [DynamicallyAccessedMembers(TypedReadMembers)] Type? typedTarget = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        IReadOnlyList<PathSegment> segments = CStructPathResolver.Parse(elementNameOrPath);
+        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         var state = new CStructOperationContext(
@@ -336,7 +336,7 @@ public sealed partial class CStruct
         if (target.BitOffset > 0)
         {
             state.CurrentBitOffset = target.BitOffset;
-            state.CurrentBitfieldType = selectedField.EffectiveField.Type.Name;
+            state.CurrentBitfieldType = selectedField.BitUnitType;
             state.CurrentBitfieldSize = target.BitStorageSize;
             state.CurrentFieldAlignment = selectedField.Alignment;
             state.NextPosition = checked(target.Address + target.BitStorageSize);
