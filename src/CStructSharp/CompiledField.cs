@@ -87,11 +87,15 @@ internal sealed class CompiledField
     public ImmutableArray<CompiledConditionalBranch> ConditionalBranches { get; internal set; } = [];
 
     /// <summary>
-    ///     For a nested struct field that an expression names through a dotted path (<c>hdr.n</c>): the prefix
-    ///     (<c>hdr.</c>) under which its nested fields are published as well. <see langword="null"/> for every other
-    ///     field, so operations pay one null check.
+    ///     Whether an expression names a field of this nested struct field through a dotted path (<c>hdr.n</c>), so
+    ///     its nested fields are published under <see cref="QualifiedPrefix"/> as well. A bool in the descriptor's
+    ///     padding: a compiled field is copied per operation for array elements and pointer targets, so a reference
+    ///     field here would cost every operation eight bytes.
     /// </summary>
-    public string? QualifiedPrefix { get; internal set; }
+    public bool HasQualifiedPrefix { get; internal set; }
+
+    /// <summary>The prefix (<c>hdr.</c>) under which the nested fields are published; <see langword="null"/> for every other field.</summary>
+    public string? QualifiedPrefix => this.HasQualifiedPrefix ? this.Declaration.Name.Name + "." : null;
 
     public ImmutableArray<string> VisibleNames { get; internal set; } = [];
 

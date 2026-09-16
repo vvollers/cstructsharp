@@ -1001,7 +1001,7 @@ public partial class CStruct
                     // A field named through a dotted path (`hdr.n`) republishes its nested values under the
                     // qualified prefix while its body is written.
                     string? outerPrefix = state.QualifiedPrefix;
-                    if (compiledField.QualifiedPrefix is not null && compiledField.Array.Kind == CompiledArrayKind.Scalar)
+                    if (compiledField.HasQualifiedPrefix && compiledField.Array.Kind == CompiledArrayKind.Scalar)
                     {
                         state.QualifiedPrefix = outerPrefix is null ? compiledField.QualifiedPrefix : outerPrefix + compiledField.QualifiedPrefix;
                     }

@@ -1124,7 +1124,7 @@ public partial class CStruct
                         qualifiedHeads.Contains(field.Declaration.Name.Name))
                     {
                         // `hdr.n`: the nested fields of `hdr` are published under the qualified name as well.
-                        field.QualifiedPrefix = field.Declaration.Name.Name + ".";
+                        field.HasQualifiedPrefix = true;
                     }
                 }
             }

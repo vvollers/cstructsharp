@@ -896,7 +896,7 @@ public partial class CStruct
             // runtime array-count expression depends on. Skipping elements here could silently drop that capture.
             long current = fieldStart;
             string? outerPrefix = state.QualifiedPrefix;
-            if (compiledField.QualifiedPrefix is not null && compiledField.Array.Kind == CompiledArrayKind.Scalar)
+            if (compiledField.HasQualifiedPrefix && compiledField.Array.Kind == CompiledArrayKind.Scalar)
             {
                 // A field named through a dotted path (`hdr.n`) republishes its nested values under the prefix.
                 state.QualifiedPrefix = outerPrefix is null ? compiledField.QualifiedPrefix : outerPrefix + compiledField.QualifiedPrefix;

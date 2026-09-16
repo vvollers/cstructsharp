@@ -252,7 +252,7 @@ public partial class CStruct
                         var nested = new StructValue(operation.NestedComposite!.Shape);
                         destination.SetFreshSlot(operation.Slot, nested);
                         string? outerPrefix = state.QualifiedPrefix;
-                        if (field.QualifiedPrefix is not null)
+                        if (field.HasQualifiedPrefix)
                         {
                             state.QualifiedPrefix = outerPrefix is null ? field.QualifiedPrefix : outerPrefix + field.QualifiedPrefix;
                         }

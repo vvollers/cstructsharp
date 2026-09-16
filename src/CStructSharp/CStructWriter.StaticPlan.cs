@@ -175,7 +175,7 @@ public partial class CStruct
             case StaticReadKind.Nested:
                 {
                     string? outerPrefix = state.QualifiedPrefix;
-                    if (field.QualifiedPrefix is not null)
+                    if (field.HasQualifiedPrefix)
                     {
                         state.QualifiedPrefix = outerPrefix is null ? field.QualifiedPrefix : outerPrefix + field.QualifiedPrefix;
                     }

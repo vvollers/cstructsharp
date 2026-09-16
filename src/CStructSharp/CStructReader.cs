@@ -569,7 +569,7 @@ public partial class CStruct
                                     // A field named through a dotted path (`hdr.n`) republishes its nested values under
                                     // the qualified prefix while its body is read.
                                     string? outerPrefix = state.QualifiedPrefix;
-                                    if (compiledField.QualifiedPrefix is not null && !isArray)
+                                    if (compiledField.HasQualifiedPrefix && !isArray)
                                     {
                                         state.QualifiedPrefix = outerPrefix is null ? compiledField.QualifiedPrefix : outerPrefix + compiledField.QualifiedPrefix;
                                     }
@@ -796,7 +796,7 @@ public partial class CStruct
                                     }
                                 }
 
-                                if (state.QualifiedPrefix is not null && (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
+                                if (state.HasQualifiedPrefix && (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
                                 {
                                     state.PublishQualified(f.Name.Name);
                                 }
