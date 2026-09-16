@@ -42,11 +42,21 @@ foreach ($metric in @('line', 'branch')) {
     Write-Badge "$metric-coverage" "C# $metric coverage" $percent $color
 }
 
-$passed = [int]$counters.GetAttribute('passed')
-$failed = [int]$counters.GetAttribute('failed')
-$skipped = [int]$counters.GetAttribute('notExecuted')
+# Count the per-test outcomes rather than trusting the summary counters: MSTest reports a conditionally
+# skipped test (Assert.Inconclusive) as total-but-not-executed and in no other counter.
+$results = @($tests.SelectNodes('//*[local-name()="Results"]/*[local-name()="UnitTestResult"]'))
+$outcomes = @{}
+foreach ($result in $results) {
+    $outcome = $result.GetAttribute('outcome')
+    $outcomes[$outcome] = 1 + [int]$outcomes[$outcome]
+}
+$passed = [int]$outcomes['Passed']
+$failed = 0
+foreach ($name in @('Failed', 'Error', 'Timeout', 'Aborted', 'PassedButRunAborted', 'Disconnected')) { $failed += [int]$outcomes[$name] }
+$skipped = 0
+foreach ($name in @('NotExecuted', 'Inconclusive', 'NotRunnable')) { $skipped += [int]$outcomes[$name] }
 $total = [int]$counters.GetAttribute('total')
-if ($total -le 0 -or $passed + $failed + $skipped -ne $total) { throw 'Incomplete or inconsistent test results.' }
+if ($total -le 0 -or $results.Count -ne $total -or $passed + $failed + $skipped -ne $total) { throw 'Incomplete or inconsistent test results.' }
 Write-Badge 'tests' 'C# tests' "$passed passed / $failed failed / $skipped skipped" $(if ($failed) { 'red' } else { 'brightgreen' })
 
 @"
