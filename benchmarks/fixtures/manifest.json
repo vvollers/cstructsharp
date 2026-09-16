@@ -305,6 +305,62 @@
       "file": "cases/union-x1k.json"
     },
     {
+      "id": "parity-alias-x1k",
+      "scenario": "S-PARITY",
+      "tags": [
+        "warm",
+        "update"
+      ],
+      "byteLength": 7168,
+      "file": "cases/parity-alias-x1k.json"
+    },
+    {
+      "id": "parity-inline-union-x1k",
+      "scenario": "S-PARITY",
+      "tags": [
+        "warm"
+      ],
+      "byteLength": 9216,
+      "file": "cases/parity-inline-union-x1k.json"
+    },
+    {
+      "id": "parity-flag-x1k",
+      "scenario": "S-PARITY",
+      "tags": [
+        "warm"
+      ],
+      "byteLength": 4096,
+      "file": "cases/parity-flag-x1k.json"
+    },
+    {
+      "id": "parity-terminated-struct-1k",
+      "scenario": "S-PARITY",
+      "tags": [
+        "warm",
+        "update"
+      ],
+      "byteLength": 4101,
+      "file": "cases/parity-terminated-struct-1k.json"
+    },
+    {
+      "id": "parity-toend-u32-64k",
+      "scenario": "S-PARITY",
+      "tags": [
+        "warm"
+      ],
+      "byteLength": 65540,
+      "file": "cases/parity-toend-u32-64k.json"
+    },
+    {
+      "id": "parity-primitive-root-256",
+      "scenario": "S-PARITY",
+      "tags": [
+        "warm"
+      ],
+      "byteLength": 1024,
+      "file": "cases/parity-primitive-root-256.json"
+    },
+    {
       "id": "strings-8",
       "scenario": "S-STRINGS",
       "tags": [
@@ -591,6 +647,15 @@
       ],
       "byteLength": null,
       "file": "cases/compile-nested.json"
+    },
+    {
+      "id": "compile-windows-header",
+      "scenario": "S-COMPILE",
+      "tags": [
+        "compile"
+      ],
+      "byteLength": null,
+      "file": "cases/compile-windows-header.json"
     },
     {
       "id": "compile-k100",

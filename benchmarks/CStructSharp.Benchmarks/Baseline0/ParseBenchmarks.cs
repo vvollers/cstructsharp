@@ -57,7 +57,13 @@ public class ParseBenchmarks
         "real-pe-exe",
         "real-pe-dll",
         "real-ico",
-        "real-tar")]
+        "real-tar",
+        "parity-alias-x1k",
+        "parity-inline-union-x1k",
+        "parity-flag-x1k",
+        "parity-terminated-struct-1k",
+        "parity-toend-u32-64k",
+        "parity-primitive-root-256")]
     public string Fixture { get; set; } = null!;
 
     [GlobalSetup]

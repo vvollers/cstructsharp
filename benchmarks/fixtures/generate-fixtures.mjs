@@ -387,6 +387,86 @@ for (const count of [1, 64, 1024]) {
   });
 }
 
+// ---------------------------------------------------------------- S-PARITY (dissect.cstruct parity features) --------------------
+
+{
+  // Alias spellings resolve at construction; this record is byte-identical to a uint32/uint16/uint8 one.
+  const next = xorshift32(0x5eed00d0);
+  const b = new ByteBuilder();
+  for (let i = 0; i < 1024; i++) { b.u32(next()); b.u16(next() & 0xffff); b.u8(next() & 0xff); }
+  add({
+    id: "parity-alias-x1k",
+    scenario: "S-PARITY",
+    tags: ["warm", "update"],
+    definition: "struct rec { DWORD a; WORD b; BYTE c; }; struct root { rec items[1024]; };",
+    bytes: b.toBytes(),
+  });
+}
+{
+  // A promoted (anonymous) union inside each element: x/y are spliced into rec.
+  const next = xorshift32(0x5eed00d1);
+  const b = new ByteBuilder();
+  for (let i = 0; i < 1024; i++) { b.u32(next()); b.u32(next()); b.u8(next() & 0xff); }
+  add({
+    id: "parity-inline-union-x1k",
+    scenario: "S-PARITY",
+    tags: ["warm"],
+    definition: "struct rec { uint32 a; union { uint32 x; uint16 y; }; uint8 z; }; struct root { rec items[1024]; };",
+    bytes: b.toBytes(),
+  });
+}
+{
+  // A flag decomposes lazily; a warm parse must cost what an enum parse costs.
+  const next = xorshift32(0x5eed00d2);
+  const b = new ByteBuilder();
+  for (let i = 0; i < 1024; i++) { b.u16(next() & 0x0107); b.u16(next() & 0xffff); }
+  add({
+    id: "parity-flag-x1k",
+    scenario: "S-PARITY",
+    tags: ["warm"],
+    definition: "flag access : uint16 { READ, WRITE, EXEC, HIDDEN = 0x100 }; struct rec { access mode; uint16 v; }; struct root { rec items[1024]; };",
+    bytes: b.toBytes(),
+  });
+}
+{
+  // A struct array terminated by an all-zero element, then a trailing field (the exFAT/APFS shape).
+  const next = xorshift32(0x5eed00d3);
+  const b = new ByteBuilder();
+  for (let i = 0; i < 1024; i++) { b.u16((next() & 0xfffe) + 1); b.u16(next() & 0xffff); }
+  b.u16(0).u16(0).u8(0x99);
+  add({
+    id: "parity-terminated-struct-1k",
+    scenario: "S-PARITY",
+    tags: ["warm", "update"],
+    definition: "struct entry { uint16 a; uint16 b; }; struct root { entry items[]; uint8 tail; };",
+    bytes: b.toBytes(),
+  });
+}
+{
+  // Read-to-end primitive array: one length probe, then the bulk primitive path.
+  const b = new ByteBuilder();
+  b.u32(0x4d5a0001);
+  b.push(xorshiftBytes(0x5eed00d4, 65536));
+  add({
+    id: "parity-toend-u32-64k",
+    scenario: "S-PARITY",
+    tags: ["warm"],
+    definition: "struct root { uint32 magic; uint32 values[EOF]; };",
+    bytes: b.toBytes(),
+  });
+}
+{
+  // A synthetic root: no declaration is selected, the spelling is the layout.
+  add({
+    id: "parity-primitive-root-256",
+    scenario: "S-PARITY",
+    tags: ["warm"],
+    definition: "struct unused { uint8 a; };",
+    root: "uint32[256]",
+    bytes: xorshiftBytes(0x5eed00d5, 1024),
+  });
+}
+
 // ---------------------------------------------------------------- S-STRINGS ----------------------------------------------------
 
 for (const length of [8, 1024, 65536]) {
@@ -538,6 +618,25 @@ const compileFixtures = [
   { id: "compile-medium-128", definition: wideDefinition(128, 0x5eed00c0) },
   { id: "compile-large-512", definition: wideDefinition(512, 0x5eed00c1) },
   { id: "compile-nested", definition: nestedDefinition(16) },
+  {
+    id: "compile-windows-header",
+    notes: "The paste-a-header case: SDK spellings, typedef declarator lists, flag, tagged and anonymous inline unions, `_` padding, #define lines, #pragma pack.",
+    definition: [
+      "#pragma pack(push, 1)",
+      "#define IMAGE_DOS_SIGNATURE 0x5A4D",
+      "#define IMAGE_NT_SIGNATURE 0x00004550",
+      "typedef struct _IMAGE_DOS_HEADER { WORD e_magic; WORD e_cblp; WORD e_cp; WORD e_crlc; WORD e_cparhdr; WORD e_minalloc; WORD e_maxalloc; WORD e_ss; WORD e_sp; WORD e_csum; WORD e_ip; WORD e_cs; WORD e_lfarlc; WORD e_ovno; WORD e_res[4]; WORD e_oemid; WORD e_oeminfo; WORD e_res2[10]; LONG e_lfanew; } IMAGE_DOS_HEADER, *PIMAGE_DOS_HEADER;",
+      "flag IMAGE_FILE_CHARACTERISTICS : WORD { RELOCS_STRIPPED = 0x0001, EXECUTABLE_IMAGE = 0x0002, LINE_NUMS_STRIPPED = 0x0004, LOCAL_SYMS_STRIPPED = 0x0008, AGGRESIVE_WS_TRIM = 0x0010, LARGE_ADDRESS_AWARE = 0x0020, BYTES_REVERSED_LO = 0x0080, 32BIT_MACHINE = 0x0100, DEBUG_STRIPPED = 0x0200, DLL = 0x2000 };",
+      "typedef struct _IMAGE_FILE_HEADER { WORD Machine; WORD NumberOfSections; DWORD TimeDateStamp; DWORD PointerToSymbolTable; DWORD NumberOfSymbols; WORD SizeOfOptionalHeader; IMAGE_FILE_CHARACTERISTICS Characteristics; } IMAGE_FILE_HEADER, *PIMAGE_FILE_HEADER;",
+      "typedef struct _IMAGE_DATA_DIRECTORY { DWORD VirtualAddress; DWORD Size; } IMAGE_DATA_DIRECTORY, *PIMAGE_DATA_DIRECTORY;",
+      "typedef struct _IMAGE_SECTION_HEADER { BYTE Name[8]; union { DWORD PhysicalAddress; DWORD VirtualSize; } Misc; DWORD VirtualAddress; DWORD SizeOfRawData; DWORD PointerToRawData; DWORD PointerToRelocations; DWORD PointerToLinenumbers; WORD NumberOfRelocations; WORD NumberOfLinenumbers; DWORD Characteristics; } IMAGE_SECTION_HEADER, *PIMAGE_SECTION_HEADER;",
+      "typedef struct _IMAGE_RESOURCE_DIRECTORY_ENTRY { union { struct { DWORD NameOffset:31; DWORD NameIsString:1; }; DWORD Name; WORD Id; }; union { DWORD OffsetToData; struct { DWORD OffsetToDirectory:31; DWORD DataIsDirectory:1; }; }; } IMAGE_RESOURCE_DIRECTORY_ENTRY, *PIMAGE_RESOURCE_DIRECTORY_ENTRY;",
+      "typedef struct _IMAGE_OPTIONAL_HEADER { WORD Magic; BYTE MajorLinkerVersion; BYTE MinorLinkerVersion; DWORD SizeOfCode; DWORD SizeOfInitializedData; DWORD SizeOfUninitializedData; DWORD AddressOfEntryPoint; DWORD BaseOfCode; DWORD BaseOfData; DWORD ImageBase; DWORD SectionAlignment; DWORD FileAlignment; WORD MajorOperatingSystemVersion; WORD MinorOperatingSystemVersion; WORD MajorImageVersion; WORD MinorImageVersion; WORD MajorSubsystemVersion; WORD MinorSubsystemVersion; DWORD Win32VersionValue; DWORD SizeOfImage; DWORD SizeOfHeaders; DWORD CheckSum; WORD Subsystem; WORD DllCharacteristics; DWORD SizeOfStackReserve; DWORD SizeOfStackCommit; DWORD SizeOfHeapReserve; DWORD SizeOfHeapCommit; DWORD LoaderFlags; DWORD NumberOfRvaAndSizes; IMAGE_DATA_DIRECTORY DataDirectory[16]; } IMAGE_OPTIONAL_HEADER32, *PIMAGE_OPTIONAL_HEADER32;",
+      "typedef struct _IMAGE_NT_HEADERS { DWORD Signature; IMAGE_FILE_HEADER FileHeader; IMAGE_OPTIONAL_HEADER32 OptionalHeader; } IMAGE_NT_HEADERS32, *PIMAGE_NT_HEADERS32;",
+      "struct root { IMAGE_DOS_HEADER dos; WORD _; WORD _; IMAGE_NT_HEADERS32 nt; IMAGE_SECTION_HEADER sections[4]; };",
+      "#pragma pack(pop)",
+    ].join("\n"),
+  },
   {
     id: "compile-k100",
     notes: "100 distinct schemas for the repeated-schema workload; compile round-robin.",

@@ -1,0 +1,23 @@
+{
+  "id": "compile-windows-header",
+  "scenario": "S-COMPILE",
+  "tags": [
+    "compile"
+  ],
+  "notes": "The paste-a-header case: SDK spellings, typedef declarator lists, flag, tagged and anonymous inline unions, `_` padding, #define lines, #pragma pack.",
+  "definition": "#pragma pack(push, 1)\n#define IMAGE_DOS_SIGNATURE 0x5A4D\n#define IMAGE_NT_SIGNATURE 0x00004550\ntypedef struct _IMAGE_DOS_HEADER { WORD e_magic; WORD e_cblp; WORD e_cp; WORD e_crlc; WORD e_cparhdr; WORD e_minalloc; WORD e_maxalloc; WORD e_ss; WORD e_sp; WORD e_csum; WORD e_ip; WORD e_cs; WORD e_lfarlc; WORD e_ovno; WORD e_res[4]; WORD e_oemid; WORD e_oeminfo; WORD e_res2[10]; LONG e_lfanew; } IMAGE_DOS_HEADER, *PIMAGE_DOS_HEADER;\nflag IMAGE_FILE_CHARACTERISTICS : WORD { RELOCS_STRIPPED = 0x0001, EXECUTABLE_IMAGE = 0x0002, LINE_NUMS_STRIPPED = 0x0004, LOCAL_SYMS_STRIPPED = 0x0008, AGGRESIVE_WS_TRIM = 0x0010, LARGE_ADDRESS_AWARE = 0x0020, BYTES_REVERSED_LO = 0x0080, 32BIT_MACHINE = 0x0100, DEBUG_STRIPPED = 0x0200, DLL = 0x2000 };\ntypedef struct _IMAGE_FILE_HEADER { WORD Machine; WORD NumberOfSections; DWORD TimeDateStamp; DWORD PointerToSymbolTable; DWORD NumberOfSymbols; WORD SizeOfOptionalHeader; IMAGE_FILE_CHARACTERISTICS Characteristics; } IMAGE_FILE_HEADER, *PIMAGE_FILE_HEADER;\ntypedef struct _IMAGE_DATA_DIRECTORY { DWORD VirtualAddress; DWORD Size; } IMAGE_DATA_DIRECTORY, *PIMAGE_DATA_DIRECTORY;\ntypedef struct _IMAGE_SECTION_HEADER { BYTE Name[8]; union { DWORD PhysicalAddress; DWORD VirtualSize; } Misc; DWORD VirtualAddress; DWORD SizeOfRawData; DWORD PointerToRawData; DWORD PointerToRelocations; DWORD PointerToLinenumbers; WORD NumberOfRelocations; WORD NumberOfLinenumbers; DWORD Characteristics; } IMAGE_SECTION_HEADER, *PIMAGE_SECTION_HEADER;\ntypedef struct _IMAGE_RESOURCE_DIRECTORY_ENTRY { union { struct { DWORD NameOffset:31; DWORD NameIsString:1; }; DWORD Name; WORD Id; }; union { DWORD OffsetToData; struct { DWORD OffsetToDirectory:31; DWORD DataIsDirectory:1; }; }; } IMAGE_RESOURCE_DIRECTORY_ENTRY, *PIMAGE_RESOURCE_DIRECTORY_ENTRY;\ntypedef struct _IMAGE_OPTIONAL_HEADER { WORD Magic; BYTE MajorLinkerVersion; BYTE MinorLinkerVersion; DWORD SizeOfCode; DWORD SizeOfInitializedData; DWORD SizeOfUninitializedData; DWORD AddressOfEntryPoint; DWORD BaseOfCode; DWORD BaseOfData; DWORD ImageBase; DWORD SectionAlignment; DWORD FileAlignment; WORD MajorOperatingSystemVersion; WORD MinorOperatingSystemVersion; WORD MajorImageVersion; WORD MinorImageVersion; WORD MajorSubsystemVersion; WORD MinorSubsystemVersion; DWORD Win32VersionValue; DWORD SizeOfImage; DWORD SizeOfHeaders; DWORD CheckSum; WORD Subsystem; WORD DllCharacteristics; DWORD SizeOfStackReserve; DWORD SizeOfStackCommit; DWORD SizeOfHeapReserve; DWORD SizeOfHeapCommit; DWORD LoaderFlags; DWORD NumberOfRvaAndSizes; IMAGE_DATA_DIRECTORY DataDirectory[16]; } IMAGE_OPTIONAL_HEADER32, *PIMAGE_OPTIONAL_HEADER32;\ntypedef struct _IMAGE_NT_HEADERS { DWORD Signature; IMAGE_FILE_HEADER FileHeader; IMAGE_OPTIONAL_HEADER32 OptionalHeader; } IMAGE_NT_HEADERS32, *PIMAGE_NT_HEADERS32;\nstruct root { IMAGE_DOS_HEADER dos; WORD _; WORD _; IMAGE_NT_HEADERS32 nt; IMAGE_SECTION_HEADER sections[4]; };\n#pragma pack(pop)",
+  "options": {
+    "pointerSize": 8,
+    "aligned": false,
+    "littleEndian": true
+  },
+  "root": "root",
+  "variables": {},
+  "readOptions": null,
+  "bytes": null,
+  "byteLength": null,
+  "expectedError": null,
+  "expected": null,
+  "expectedSha256": null,
+  "expectedJsonLength": null
+}

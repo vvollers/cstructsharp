@@ -106,6 +106,20 @@ public static class CanonicalJson
             Write(writer, enumValue.Name);
             writer.WritePropertyName("Value");
             Write(writer, enumValue.Value);
+            if (enumValue is FlagValueResult flagValue)
+            {
+                // The browser envelope adds the decomposition to the three enum keys; the canonical text matches it.
+                writer.WriteStartArray("Names");
+                foreach (string name in flagValue.Names)
+                {
+                    writer.WriteStringValue(name);
+                }
+
+                writer.WriteEndArray();
+                writer.WritePropertyName("Remainder");
+                Write(writer, flagValue.Remainder);
+            }
+
             writer.WriteEndObject();
             return;
         case UnionValue union:
