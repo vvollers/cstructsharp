@@ -696,9 +696,150 @@ const lessonTopics: Lesson[] = [
       operations: { parse: { expected: { data: { root: { tag: 0, tail: 9 } } } } },
     },
   ),
+  lesson(
+    "windows-header",
+    "Read a pasted Windows header",
+    "typedef struct _RECORD { DWORD Magic; WORD Version; WORD _; union version_information { DWORD Packed; struct { BYTE Major; BYTE Minor; WORD Build; }; }; DWORD _; } RECORD, *PRECORD;",
+    "4d 5a 00 00 02 00 ff ff 0a 00 39 30 ee ee ee ee",
+    "RECORD",
+    {
+      level: "Intermediate",
+      tags: ["windows", "dissect", "alias", "typedef", "union", "padding"],
+      sourceScenario: "windows-header",
+      summary:
+        "SDK spellings, a typedef with a tag and two aliases, a tagged union whose members are promoted, and `_` padding fields all work as pasted. Padding is skipped and never appears in the result.",
+      prerequisite: "Complete the union lesson and know what a typedef is.",
+      exercise: "Change the two FF bytes at offsets 6 and 7 to 00 and read again.",
+      answer:
+        "Nothing in the result changes: those bytes are the `_` padding field, which is read and discarded.",
+      guide: "guides/migrating-from-dissect.html",
+      options: { aligned: true },
+      operations: {
+        parse: {
+          expected: {
+            data: {
+              RECORD: {
+                Magic: 23117,
+                Version: 2,
+                Packed: 809041930,
+                Major: 10,
+                Minor: 0,
+                Build: 12345,
+              },
+            },
+          },
+        },
+        serialize: {
+          json: '{"Magic":23117,"Version":2,"Packed":809041930}',
+          expected: { hex: "4d 5a 00 00 02 00 00 00 0a 00 39 30 00 00 00 00" },
+        },
+      },
+    },
+  ),
+  lesson(
+    "flags",
+    "Decompose a flag value into names",
+    "flag access : uint16 { READ, WRITE, EXEC, HIDDEN = 0x100 }; struct root { access mode; uint8 tail; };",
+    "05 01 07",
+    "root",
+    {
+      level: "Intermediate",
+      tags: ["flag", "enum", "bitmask", "names"],
+      sourceScenario: "flags-and-data-sized-arrays",
+      summary:
+        "A flag is a bitmask enum: omitted members take the next unused bit. The result keeps the number and lists every member whose bits are set.",
+      prerequisite: "Complete the enum lesson.",
+      exercise: "Change the first byte from 05 to 03 and read again.",
+      answer:
+        "Names becomes READ, WRITE, HIDDEN and Value 259. A bit with no member would show up in Remainder instead.",
+      guide: "guides/enums.html",
+      operations: {
+        parse: {
+          expected: {
+            data: {
+              root: {
+                mode: {
+                  Enum: "access",
+                  Name: null,
+                  Value: 261,
+                  Names: ["READ", "EXEC", "HIDDEN"],
+                  Remainder: 0,
+                },
+                tail: 7,
+              },
+            },
+          },
+        },
+        serialize: { json: '{"mode":"READ|HIDDEN","tail":7}', expected: { hex: "01 01 07" } },
+      },
+    },
+  ),
+  lesson(
+    "data-sized-arrays",
+    "Read arrays that the data terminates",
+    "struct entry { uint8 kind; uint8 size; }; struct root { entry entries[]; uint16 trailer[EOF]; };",
+    "01 0a 02 14 00 00 34 12 78 56",
+    "root",
+    {
+      level: "Advanced",
+      tags: ["array", "terminated", "EOF", "dissect"],
+      sourceScenario: "flags-and-data-sized-arrays",
+      summary:
+        "`entries[]` reads struct elements until an all-zero element and consumes it; `trailer[EOF]` takes every whole element to the end of the input.",
+      prerequisite: "Complete the arrays and terminated-text lessons.",
+      exercise: "Remove the last byte (56) and read again.",
+      answer:
+        "The read fails: nine bytes leave one byte after the terminator, which is not a whole uint16 element.",
+      guide: "language/arrays-and-strings.html",
+      operations: {
+        parse: {
+          expected: {
+            data: {
+              root: {
+                entries: [
+                  { kind: 1, size: 10 },
+                  { kind: 2, size: 20 },
+                ],
+                trailer: [4660, 22136],
+              },
+            },
+          },
+        },
+        serialize: {
+          json: '{"entries":[{"kind":3,"size":30}],"trailer":[1]}',
+          expected: { hex: "03 1e 00 00 01 00" },
+        },
+      },
+    },
+  ),
+  lesson(
+    "header-preprocessor",
+    "Keep a header's defines and size expressions",
+    '#define MAGIC "CD001"\n#define LEGACY_VERSION 1\nstruct header { uint8 kind; uint32 length; };\nstruct root { uint16 count; uint8 payload[count % 4 == 0 ? sizeof(header) : offsetof(header, length)]; };',
+    "04 00 01 02 03 04 05",
+    "root",
+    {
+      level: "Advanced",
+      tags: ["define", "preprocessor", "sizeof", "offsetof", "expression"],
+      sourceScenario: "header-preprocessor",
+      summary:
+        "A text #define is kept as a constant, and a count may use %, the conditional operator, sizeof, and offsetof. Count 4 is a multiple of 4, so the payload has sizeof(header) = 5 elements.",
+      prerequisite: "Complete the file header lesson and read the expressions page.",
+      exercise: "Change the first byte from 04 to 03 and remove the last four payload bytes.",
+      answer:
+        "Count 3 selects offsetof(header, length) = 1, so the payload has one element and the input needs only 03 00 01.",
+      guide: "language/expressions-defines-and-variables.html",
+      operations: {
+        parse: { expected: { data: { root: { count: 4, payload: [1, 2, 3, 4, 5] } } } },
+      },
+    },
+  ),
 ];
 
 const operationTitles: Record<string, [string, string?, string?]> = {
+  "windows-header": ["Read a pasted Windows header", "Write a pasted Windows header"],
+  flags: ["Decompose a flag value into names", "Write a flag from its names"],
+  "data-sized-arrays": ["Read arrays that the data terminates", "Write a terminated array"],
   "integers-24": [
     "Read three-byte integers",
     "Write three-byte integers",
@@ -746,6 +887,14 @@ const operationTitles: Record<string, [string, string?, string?]> = {
 };
 
 const readExplanations: Record<string, string> = {
+  "windows-header":
+    "DWORD, WORD, and BYTE are built-in spellings of uint32, uint16, and uint8. The typedef declares the tag _RECORD and the aliases RECORD and PRECORD. The union version_information is declared as a global type and its members Packed, Major, Minor, and Build are promoted into the record; the two `_` fields are padding, read and discarded. Aligned placement puts the union at offset 8.",
+  flags:
+    "Bytes 05 01 hold 0x0105 = 261. READ (1), EXEC (4), and HIDDEN (0x100) are set, so Names lists those three; Name is null because no single member equals 261, and Remainder is 0 because every set bit belongs to a member.",
+  "data-sized-arrays":
+    "entries[] reads two-byte entry elements until an all-zero element (00 00), which is consumed and not reported. trailer[EOF] then reads whole uint16 elements to the end: 4660 and 22136. A trailing partial element is an error.",
+  "header-preprocessor":
+    "MAGIC is a text constant, never an expression input. LEGACY_VERSION is an integer constant. The payload count is count % 4 == 0 ? sizeof(header) : offsetof(header, length): count 4 selects sizeof(header) = 5, so five payload bytes follow the two-byte count.",
   "conditional-decisions":
     "A decision is evaluated once per group, per struct instance, per operation. Each item reads its own tag and some_parameter first. Parameters 0, 1, and -1 select low, high, and low; tags 1, 2, and 3 select first, second, and default's other. A selected group keeps its decision for all its fields. Later and nested groups decide when reached. Reusing a compiled layout does not share decisions between items or parses.",
   "conditional-scope":
@@ -795,6 +944,12 @@ const readExplanations: Record<string, string> = {
 };
 
 const writeExplanations: Record<string, string> = {
+  "windows-header":
+    "Write Magic, Version, and the union through its Packed member; the promoted union writes the widest member the JSON supplies. Both `_` padding fields are written as zeroes without a JSON value.",
+  flags:
+    "Write the flag from the member names READ|HIDDEN, which combine to 0x0101, followed by tail 7. A number or a single name is accepted as well.",
+  "data-sized-arrays":
+    "Write one entry and then the all-zero terminator element; the read-to-end trailer writes exactly the supplied elements and nothing after them.",
   "integers-24":
     "Serialize the supplied metadata values with the declared encodings and byte order. Three-byte integers keep a three-byte stride. The unsigned size is 16777215 and the signed delta is -2.",
   "bounded-encodings":

@@ -7,6 +7,7 @@ const examples = path.join(root, "docs/examples");
 const original = fs.readFileSync(path.join(examples, "Program.cs"), "utf8");
 const more = fs.readFileSync(path.join(examples, "MoreExamples.cs"), "utf8");
 const binaryTypes = fs.readFileSync(path.join(examples, "BinaryTypeExamples.cs"), "utf8");
+const parity = fs.readFileSync(path.join(examples, "DissectParityExamples.cs"), "utf8");
 function between(start, end) {
   const first = original.indexOf(start);
   return original.slice(first, original.indexOf(end, first)).trimEnd();
@@ -49,6 +50,11 @@ const recipes = [
   ["variable-integers", "Read and patch LEB128 values", "Advanced", "recipe-variable-integers", "127 and 128 in different byte widths, signed -65, and a same-width update to 129", "LEB128 has a runtime storage width. Decoded counts can size arrays; updates must preserve the encoded extent.", "Replace 128 with 1 through UpdateStream.", "The replacement needs one byte instead of two, so the update fails and leaves the buffer unchanged.", "binary-metadata-types", null],
   ["fixed-point", "Preserve exact fixed-point values", "Intermediate", "recipe-fixed-point", "revision -1.5, volume 0.5, and rejected quantization of 0.1", "Fixed-point values are binary-scaled integers exposed as Double. Writers require an exact representable value rather than rounding silently.", "Change volume from 0.5 to 0.25.", "The unsigned 8.8 raw value becomes 64, stored as 40 00 in little-endian order.", "binary-metadata-types", null],
   ["identifier-order", "Distinguish UUID and GUID storage", "Intermediate", "recipe-identifier-order", "the same Guid value in two distinct 16-byte storage orders", "UUID stores bytes in network order; Windows GUID storage reverses the first three integer fields. The enclosing layout byte order does not select between them.", "Swap the uuid and guid type names without changing bytes.", "Both fields still consume 16 bytes, but the first groups of the interpreted identifiers change.", "binary-metadata-types", null],
+  ["windows-header", "Paste a Windows header as it is", "Intermediate", "recipe-windows-header", "Magic 0x5A4D, promoted union members Major 10 and Build 12345, padding absent, and a 20-byte write with zeroed padding", "SDK spellings, a tagged typedef with two aliases, a tagged inline union whose members are promoted, `_` padding fields, and a PWSTR pointer compile as pasted from a Windows header or a dissect definition.", "Change the WORD _ padding bytes FF FF to 00 00.", "Nothing in the parsed values changes: padding is read and discarded, and a write always zeroes it.", "migrating-from-dissect", "windows-header"],
+  ["flags-and-data-sized-arrays", "Read flags and data-terminated arrays", "Intermediate", "recipe-flags-and-data-sized-arrays", "READ, EXEC and HIDDEN from 0x0105, two entries before the all-zero terminator, a read-to-end trailer, and a write that appends the terminator", "A flag decomposes into member names; `entry entries[]` reads until an all-zero element and `uint16 trailer[EOF]` takes every whole element that remains.", "Drop the final trailer byte.", "The read fails: a partial trailing element is not a whole uint16, and [EOF] never rounds down silently.", "migrating-from-dissect", "flags"],
+  ["header-preprocessor", "Keep a header's defines and size expressions", "Advanced", "recipe-header-preprocessor", "a text constant, a 64-bit mask constant, an #ifdef-selected typedef, and payload counts of 5 and 1 from a conditional sizeof/offsetof expression", "Text and 64-bit defines are published on Constants, #ifdef selects declarations (also through CStructCompilationOptions.Defined), and counts may use %, ?:, sizeof, and offsetof.", "Change the count bytes 04 00 to 03 00 and shorten the payload to one byte.", "Count 3 is not a multiple of 4, so the payload has offsetof(header, length) = 1 element.", "../language/expressions-defines-and-variables", "header-preprocessor"],
+  ["layout-introspection", "Inspect a compiled layout", "Intermediate", "recipe-layout-introspection", "a 7-byte root with length at offset 1, enum member DATA = 2, a definition rendered by ToDefinition that compiles to the same size, and a big-endian sibling layout", "Layout lists every declaration with sizes, offsets, array kinds, and enum members; ToDefinition renders Portable text back; WithEndianness returns the cached sibling for the other byte order.", "Ask the sibling for pointer size 4 instead.", "WithPointerSize(4) returns another cached layout; the root size stays 7 because no field is a pointer.", "debug-data-and-addresses", null],
+  ["custom-codec", "Register a custom codec", "Advanced", "recipe-custom-codec", "varint fields decoded as 2, 128, and 5 with an exact round trip and address 4 for the second id", "An ICustomCodec supplies the name, size, alignment, reader, and writer of a caller-defined type; the layout uses it like any primitive, including as an array count.", "Change the second varint from 80 01 to 81 01.", "id becomes 129 (0x81 & 0x7F plus 1 << 7); the field still occupies two bytes.", "migrating-from-dissect", null],
   ["conditional-records", "Parse tagged records with native branches", "Advanced", "recipe-conditional-records", "a UTF-8 label, a 24-bit number at offset 7, an inactive-path error, and rejected branch-changing update", "A runtime tag selects the fields that consume storage. Each array element chooses its own branch, and inactive fields do not appear in results.", "Change the first record kind through UpdateStream.", "Changing active branches is rejected. Serialize a new record when its layout must change.", "binary-metadata-types", null],
 ];
 
@@ -59,6 +65,7 @@ const browserLessons = {
   "integers-24": "integers-24", "bounded-encodings": "bounded-encodings",
   "variable-integers": "variable-integers", "fixed-point": "fixed-point",
   "identifier-order": "identifier-order", "conditional-records": "conditional-records",
+  "windows-header": "windows-header", "flags-and-data-sized-arrays": "flags", "header-preprocessor": "header-preprocessor",
 };
 for (const recipe of recipes) recipe[9] ??= browserLessons[recipe[0]] ?? null;
 
@@ -66,7 +73,7 @@ const out = path.join(examples, "recipes");
 fs.mkdirSync(out, { recursive: true });
 const toc = ["items:"];
 for (const [id, title, level, region, expected, explanation, exercise, answer, guide, lesson] of recipes) {
-  const text = [original, more, binaryTypes].find(source => source.includes(`#region ${region}\n`) || source.includes(`#region ${region}\r\n`));
+  const text = [original, more, binaryTypes, parity].find(source => source.includes(`#region ${region}\n`) || source.includes(`#region ${region}\r\n`));
   if (!text) throw new Error(`Missing example region ${region}`);
   const start = text.indexOf(`#region ${region}`);
   if (start < 0) throw new Error(`Missing example region ${region}`);

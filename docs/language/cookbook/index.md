@@ -139,6 +139,39 @@ For a relative format, use `AddressingMode = Relative` and the correct `Origin`.
 fit the stream/memory region and configured traversal limits. Serialization writes a coordinate and does not
 relocate target data.
 
+## Paste a header as it is
+
+A Windows SDK, Linux kernel, or dissect.cstruct definition compiles unchanged: the alias spellings are built in,
+`typedef struct _X { ... } X, *PX;` declares the tag and both aliases, a tagged inline union is a global type whose
+unnamed member is promoted, and `_` fields are padding that never reach the result:
+
+[!code-csharp[Paste a Windows header](../../examples/DissectParityExamples.cs#recipe-windows-header)]
+
+Only the `long` width (`CLongWidth`), the storage of an enum without a backing type (`DefaultEnumStorage`), and
+big-endian bitfield order (`BitfieldAllocation`) are choices a header leaves to the compiler; the
+[migration guide](../../guides/migrating-from-dissect.md) lists the reading each option selects.
+
+## Read flags and data-terminated arrays
+
+A `flag` decomposes into member names, `entry entries[]` reads until an all-zero element, and `uint16 trailer[EOF]`
+takes every whole element to the end of the input:
+
+[!code-csharp[Flags and data-sized arrays](../../examples/DissectParityExamples.cs#recipe-flags-and-data-sized-arrays)]
+
+## Keep a header's defines and size expressions
+
+Text and 64-bit `#define` values are published on `CStruct.Constants`, `#ifdef` selects declarations (also through
+`CStructCompilationOptions.Defined`), and a count may use `%`, `?:`, `sizeof`, and `offsetof`:
+
+[!code-csharp[Preprocessor lines and expressions](../../examples/DissectParityExamples.cs#recipe-header-preprocessor)]
+
+## Register a codec of your own
+
+A format-specific encoding (a protobuf varint, a SID blob) is an `ICustomCodec` the layout uses by name, including as
+an array count:
+
+[!code-csharp[A custom codec](../../examples/DissectParityExamples.cs#recipe-custom-codec)]
+
 ## Patch one field in existing data
 
 Use a path and `UpdateStream` when surrounding bytes and positions must stay fixed:

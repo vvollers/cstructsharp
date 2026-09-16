@@ -1,7 +1,7 @@
 {
-  "totalTests": 923,
-  "runnableTests": 90,
-  "testInputsSha256": "2ceb29443f93e3c929896aee1f73bda57f553ddb85d01347e55cbe9a5b48808f",
+  "totalTests": 1012,
+  "runnableTests": 98,
+  "testInputsSha256": "d5ea7bfe6ef4c92870a0219f5c6e97d48ae8a9b33504871216eeba92c5e482da",
   "lessonIds": [
     "header",
     "header-serialize",
@@ -52,7 +52,14 @@
     "conditional-records-update",
     "conditional-decisions",
     "conditional-scope",
-    "conditional-nesting"
+    "conditional-nesting",
+    "windows-header",
+    "windows-header-serialize",
+    "flags",
+    "flags-serialize",
+    "data-sized-arrays",
+    "data-sized-arrays-serialize",
+    "header-preprocessor"
   ],
-  "lessonTopics": 24
+  "lessonTopics": 28
 }

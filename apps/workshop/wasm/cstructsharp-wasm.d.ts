@@ -72,8 +72,11 @@ export type Operation = "parse" | "serialize" | "update";
 /**
  * A parsed value as JavaScript data (contract v7): numbers, booleans, strings (fixed text keeps its
  * padding characters; integers beyond Number's exact range and 64-bit enum values arrive as decimal strings),
- * nested objects for structs, arrays, and the tagged shapes for enums ({ Enum, Name, Value }), unions
+ * nested objects for structs, arrays, and the tagged shapes for enums ({ Enum, Name, Value }; a flag adds
+ * Names, the set members, and Remainder, the bits no member covers), unions
  * ({ $kind: "union", Union, RawStorage, Members, SelectedMember }) and pointers ({ Address, Depth, IsDereferenced, Value }).
+ * A promoted (anonymous) struct or union member's fields appear directly on the parent object, and a `_` padding
+ * field never appears.
  */
 export type ParsedValue =
   null | boolean | number | string | ParsedValue[] | { [name: string]: ParsedValue };

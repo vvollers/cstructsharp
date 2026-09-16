@@ -733,6 +733,26 @@ function extractMethods(filePath) {
       continue;
     }
 
+    if (
+      /\b(?:CLongWidth|DefaultEnumStorage|BitfieldAllocation|Defined|Codecs|Prelude)\s*=/.test(body)
+    ) {
+      // The browser bridge exposes the constructor's pointer size, alignment, and byte order but not the compilation
+      // options (CLongWidth, DefaultEnumStorage, BitfieldAllocation, Defined, Codecs, Prelude); a layout compiled
+      // with one would read different bytes here.
+      tests.push({
+        id: `${className}.${methodName}`,
+        className,
+        methodName,
+        filePath: relativePath,
+        line,
+        documentation,
+        runnable: false,
+        reason:
+          "This test compiles the layout with compilation options the browser bridge does not expose.",
+      });
+      continue;
+    }
+
     const definition = extractDefinition(body, stringMap);
     const binaryBytes = extractDemoData(body, stringMap);
 

@@ -73,6 +73,12 @@ Keep `cstructsharp-wasm.js`, `cstructsharp-api.js`, `main.js`, `bootstrap.js`, t
 Serve over HTTP(S), not `file://`, with `.wasm` served as `application/wasm`. Relative imports work under a deployment
 subdirectory when the complete bundle is kept together. The included server is for local development.
 
+A definition written for dissect.cstruct or copied from a Windows SDK / Linux kernel header compiles as it is:
+`DWORD`/`BYTE`/`__u32` spellings, `typedef struct _X { ... } X, *PX;`, `flag` declarations (their values carry
+`Names` and `Remainder` next to `Enum`/`Name`/`Value`), `[EOF]` and `[]` arrays, `#define`/`#ifdef`/`#pragma pack`
+lines, and inline unions whose members appear directly on the parent object. See the
+[migration guide](https://vvollers.github.io/cstructsharp/docs/guides/migrating-from-dissect.html).
+
 Read the [browser API guide](https://vvollers.github.io/cstructsharp/docs/guides/browser/api.html) for options,
 large integers, union values, and the differences from C#. Read the
 [deployment guide](https://vvollers.github.io/cstructsharp/docs/guides/browser/deployment.html) if loading fails.
