@@ -90,12 +90,27 @@ internal readonly record struct PrimitiveCodec(PrimitiveCodecKind Kind, byte Siz
             return None with { LayoutLittleEndian = layoutLittleEndian };
         }
 
-        bool littleEndian = layoutLittleEndian;
+        // Compiled fields carry canonical names (the registry resolves alias spellings to canonical symbols), so
+        // the switch is tried on the spelling as given; only an unknown spelling - a caller resolving a declared
+        // name directly - pays for the alias lookup. The long family is resolved at its default width there; a
+        // layout's CLongWidth is applied by its registry, not by this lookup.
+        PrimitiveCodec resolved = ResolveCanonical(codecName, layoutLittleEndian);
+        if (resolved.Kind == PrimitiveCodecKind.None)
+        {
+            string canonical = PrimitiveSpellings.Canonicalize(codecName, 64);
+            if (!ReferenceEquals(canonical, codecName))
+            {
+                resolved = ResolveCanonical(canonical, layoutLittleEndian);
+            }
+        }
 
-        // Alias spellings never reach a compiled field (the registry resolves them to canonical symbols), but the
-        // few callers that resolve a declared name directly still get the canonical answer. The long family is
-        // resolved at its default width here; a layout's CLongWidth is applied by its registry, not by this lookup.
-        ReadOnlySpan<char> name = PrimitiveSpellings.Canonicalize(codecName, 64);
+        return resolved;
+    }
+
+    private static PrimitiveCodec ResolveCanonical(string codecName, bool layoutLittleEndian)
+    {
+        bool littleEndian = layoutLittleEndian;
+        ReadOnlySpan<char> name = codecName;
         if (name.Length > 0 && name[^1] == '<')
         {
             littleEndian = true;

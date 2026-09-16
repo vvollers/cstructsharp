@@ -183,13 +183,6 @@ public partial class CStruct
             namedTypes[custom.Key] = custom.Value;
         }
 
-        // `size_t` and its relatives are as wide as this layout's pointers, so they are seeded per layout rather
-        // than per registry; a layout declaration of the same name (below) takes precedence.
-        foreach ((string spelling, bool isUnsigned) in PrimitiveSpellings.PointerSizedIsUnsigned)
-        {
-            namedTypes[spelling] = namedTypes[PrimitiveSpellings.PointerSizedCanonical(isUnsigned, this.PointerSize)];
-        }
-
         // A layout declaration shadows a built-in alias spelling of the same name (SymbolValidation lets those
         // through); drop the built-in entry so the declaration is what the name resolves to.
         foreach (string declaredName in this.CStructElements.Keys)
@@ -440,6 +433,14 @@ public partial class CStruct
         if (!this.CStructElements.TryGetValue(name, out CStructElement? declaration) ||
             declaration is not Typedef alias)
         {
+            // `size_t` and its relatives are as wide as this layout's pointers: resolved here, on use, rather than
+            // seeded into every layout's type table (a dozen immutable-dictionary mutations per compile). A layout
+            // declaration of the same name was found above and wins.
+            if (declaration is null && PrimitiveSpellings.PointerSizedIsUnsigned.TryGetValue(name, out bool pointerUnsigned))
+            {
+                return namedTypes[PrimitiveSpellings.PointerSizedCanonical(pointerUnsigned, this.PointerSize)];
+            }
+
             throw new CStructLayoutException("Unknown field type: " + name);
         }
 

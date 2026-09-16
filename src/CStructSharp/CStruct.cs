@@ -29,7 +29,7 @@ public sealed partial class CStruct
     private readonly ConstructionDictionary<string, CStructElement> cStructElements =
         new(StringComparer.Ordinal);
 
-    private readonly ConstructionDictionary<string, byte> fieldAlignments = new(StringComparer.Ordinal);
+    private readonly ConstructionDictionary<string, byte> fieldAlignments;
     private readonly FrozenDictionary<string, Func<Stream, object>> fieldHandlers;
     private readonly PrimitiveRegistry primitiveRegistry;
 
@@ -104,7 +104,9 @@ public sealed partial class CStruct
 
         // Primitive readers and writers are built once because their byte order is part of the layout contract.
         this.primitiveRegistry = GetPrimitiveRegistry(this.IsLittleEndian, effectiveCompilationOptions.CLongWidth);
-        this.fieldAlignments.ReplaceWith(this.primitiveRegistry.Alignments);
+
+        // The registry's alignments are the shared baseline; only this layout's declarations are added on top.
+        this.fieldAlignments = new ConstructionDictionary<string, byte>(StringComparer.Ordinal, this.primitiveRegistry.Alignments);
         this.bitfieldCodecs = this.primitiveRegistry.Bitfields;
         if (effectiveCompilationOptions.Codecs is { Count: > 0, } customCodecs)
         {
