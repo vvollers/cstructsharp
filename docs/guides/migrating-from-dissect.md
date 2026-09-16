@@ -17,7 +17,7 @@ X, *PX;` lists - and the API calls its users make have direct equivalents. This 
 | `DWORD`, `BYTE`, `WCHAR`, `__u32`, `u8`, `wchar_t`, `unsigned __int64`, `uleb128`, ... | built in | See the [alias table](../language/primitive-types.md#alias-spellings). Aliases resolve to canonical codecs, so debug output says `uint32` for a `DWORD`. |
 | `long` = 32 bits | `long` = 64 bits (LP64) | Use `CStructCompilationOptions { CLongWidth = 32 }` for the dissect reading. Windows `LONG`/`ULONG` are always 32 bits in both. |
 | `int24` aligned to 4 | aligned to 1 | Only aligned placement is affected. |
-| `flag F : uint32 { A, B, C };` | same | Reads as `FlagValueResult` with `Names`; writes accept `"A|C"`. |
+| `flag F : uint32 { A, B, C };` | same | Reads as `FlagValueResult` with `Names`; writes accept `"A\|C"`. |
 | `enum { A, B };` (anonymous) | same | Members become constants. |
 | `E.A` in an expression | same | The bare name `A` stays local to the enum in CStructSharp. |
 | `char data[EOF];`, `uint16 v[];` | same | Read-to-end and zero-terminated arrays; both need a fixed element size. |
@@ -41,7 +41,7 @@ X, *PX;` lists - and the API calls its users make have direct equivalents. This 
 | `cs.copy().load(more)` (ELF 32/64) | the same prelude with two bodies |
 | `cs.endian = ">"` after reading a header | `layout.WithEndianness(false)` |
 | `cs.header(fh)` | `layout.ParseStream(stream, "header")` - the stream advances |
-| `cs.uint32(fh)`, `cs.uint64[n](fh)`, `cs.char[None](fh)` | `layout.ParseStream(stream, "uint32")`, `"uint64[N]"` with `variables`, `"char[]"` |
+| `cs.uint32(fh)`, `cs.uint64[n] (fh)`, `cs.char[None] (fh)` | `layout.ParseStream(stream, "uint32")`, `"uint64[N]"` with `variables`, `"char[]"` |
 | `obj.dumps()` | `layout.Serialize("header", obj)` |
 | `cs.header(a=1, b=2).dumps()` | `layout.Serialize("header", new Dictionary<string, object?> { ... })` |
 | `len(cs.header)` | `layout.GetStructSizeInBytes("header")` |
@@ -97,7 +97,7 @@ backing type. Keep one instance per codec: the list is compared by reference in 
 
 ## What stays different on purpose
 
-CStructSharp prefers C where dissect deviates from it, and keeps dissect's behaviour reachable through an option:
+CStructSharp prefers C where dissect deviates from it, and keeps dissect's behavior reachable through an option:
 the `long` width, bitfield bit order, and `uint8 *a, b;`. It does not substitute macro text, follow `#include`, or
 evaluate `#if` expressions. Dynamic unions (a union with a runtime-sized member) and a nested field in an expression
 (`hdr.count`) are not supported; both are rare in real definitions.

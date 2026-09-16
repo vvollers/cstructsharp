@@ -51,6 +51,8 @@ public sealed class FlagValueResult : EnumValueResult
     }
 
     /// <summary>Returns whether the named member's bits are all set in the value.</summary>
+    /// <param name="member">The declared member name to test.</param>
+    /// <returns><see langword="true"/> when every bit of the member is set; otherwise, <see langword="false"/>.</returns>
     public bool Has(string member)
     {
         ArgumentNullException.ThrowIfNull(member);

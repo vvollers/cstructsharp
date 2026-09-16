@@ -46,6 +46,7 @@ public sealed class LayoutConstant
     public object? Value => this.value is byte[] bytes ? bytes.Clone() : this.value;
 
     /// <summary>Renders the definition as the <c>#define</c> line that produces it.</summary>
+    /// <returns>A <c>#define</c> line, with text and byte values quoted and escaped.</returns>
     public override string ToString()
     {
         return this.Kind switch

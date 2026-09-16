@@ -64,8 +64,9 @@ does; a copied multi-line `#define` therefore keeps working.
 ## Preprocessor lines
 
 A line starting with `#` is one of a closed set of directives; any other directive is a syntax error. `#define` binds
-an integer expression, or - for a quoted text literal, a `b"..."` byte literal, a bare name, or a function-like macro
-- a constant that is published on `CStruct.Constants` and takes no part in expressions. `#undef` removes a constant
+an integer expression (the next declaration may follow it on the same line); any other value - a quoted text
+literal, a `b"..."` byte literal, a function-like macro, or a line that is not an expression - is a constant that
+is published on `CStruct.Constants` and takes no part in expressions. `#undef` removes a constant
 for the rest of the source. `#include <path>` and `#include "path"` are recorded on `CStruct.Includes` and never
 read. `#pragma pack(push[, N])`, `pack(pop)`, `pack(N)`, and `pack()` maintain the alignment clamp applied to the
 composites that follow, exactly like a composite `@align(N)`; every other `#pragma` is ignored.

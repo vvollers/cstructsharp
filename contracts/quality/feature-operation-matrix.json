@@ -2115,6 +2115,7 @@
           ]
         }
       ],
+      "limitations": [],
       "workItems": [
         "COR-06",
         "LANG-09"
@@ -2334,7 +2335,8 @@
             "read-value"
           ]
         }
-      ]
+      ],
+      "limitations": []
     },
     {
       "id": "multiple-declarators",
@@ -3159,7 +3161,8 @@
             "read-value"
           ]
         }
-      ]
+      ],
+      "limitations": []
     },
     {
       "id": "inline-structs",
@@ -3436,6 +3439,7 @@
           ]
         }
       ],
+      "limitations": [],
       "workItems": []
     },
     {
@@ -3893,6 +3897,7 @@
           ]
         }
       ],
+      "limitations": [],
       "workItems": [
         "SAF-03"
       ]
@@ -3985,6 +3990,7 @@
           ]
         }
       ],
+      "limitations": [],
       "workItems": [
         "SAF-06",
         "API-04"

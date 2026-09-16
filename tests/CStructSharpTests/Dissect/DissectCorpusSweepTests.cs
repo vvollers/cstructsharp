@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 /// <summary>
 ///     Opt-in progress meter for dissect.cstruct parity: compiles every definition string extracted from the dissect
-///     ecosystem (see <c>agentdocs/dissect-parity/extract-corpus.py</c>) and compares the outcome against a recorded
+///     ecosystem (see <c>tools/quality/extract-dissect-corpus.py</c>) and compares the outcome against a recorded
 ///     status file so a definition that compiled before can never silently stop compiling.
 /// </summary>
 /// <remarks>
@@ -37,7 +37,7 @@ public class DissectCorpusSweepTests
         string? corpusPath = Environment.GetEnvironmentVariable("CSTRUCTSHARP_DISSECT_CORPUS");
         if (string.IsNullOrEmpty(corpusPath) || !File.Exists(corpusPath))
         {
-            Assert.Inconclusive("Set CSTRUCTSHARP_DISSECT_CORPUS to the JSON file written by agentdocs/dissect-parity/extract-corpus.py.");
+            Assert.Inconclusive("Set CSTRUCTSHARP_DISSECT_CORPUS to the JSON file written by tools/quality/extract-dissect-corpus.py.");
             return;
         }
 

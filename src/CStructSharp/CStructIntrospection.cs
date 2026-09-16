@@ -27,6 +27,8 @@ public partial class CStruct
     ///     Returns a layout compiled from the same source and options with the requested byte order - for a format
     ///     whose header says which order the rest of the file uses. Repeated calls return the cached instance.
     /// </summary>
+    /// <param name="isLittleEndian"><see langword="true"/> for little-endian neutral values; <see langword="false"/> for big-endian.</param>
+    /// <returns>This layout when the byte order already matches; otherwise the sibling layout.</returns>
     public CStruct WithEndianness(bool isLittleEndian)
     {
         return isLittleEndian == this.IsLittleEndian
@@ -35,6 +37,8 @@ public partial class CStruct
     }
 
     /// <summary>Returns a layout compiled from the same source and options with the requested pointer width.</summary>
+    /// <param name="pointerSize">The pointer width in bytes: 1, 2, 4, or 8.</param>
+    /// <returns>This layout when the width already matches; otherwise the sibling layout.</returns>
     public CStruct WithPointerSize(byte pointerSize)
     {
         return pointerSize == this.PointerSize
@@ -43,6 +47,8 @@ public partial class CStruct
     }
 
     /// <summary>Returns a layout compiled from the same source and options with the requested placement rule.</summary>
+    /// <param name="aligned"><see langword="true"/> for the portable composite-alignment rules; <see langword="false"/> for packed placement.</param>
+    /// <returns>This layout when the rule already matches; otherwise the sibling layout.</returns>
     public CStruct WithAlignment(bool aligned)
     {
         return aligned == this.Aligned
@@ -55,6 +61,7 @@ public partial class CStruct
     ///     enum values, resolved typedef targets, and the recorded includes and defines. The result is semantically
     ///     equivalent to the source, not identical to it, and compiles with the same options.
     /// </summary>
+    /// <returns>The layout as Portable definition text.</returns>
     public string ToDefinition()
     {
         var builder = new StringBuilder();

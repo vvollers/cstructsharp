@@ -556,10 +556,10 @@ public class ParserDifferentialTests
         }
     }
 
-    /// <summary>True when a declaration keyword is glued to the identifier that follows it (<c>structroot</c>).</summary>
+    /// <summary>True when a declaration keyword or directive is glued to the identifier that follows it (<c>structroot</c>, <c>#defineX</c>).</summary>
     private static bool HasGluedKeyword(string source)
     {
-        foreach (string keyword in new[] { "struct", "union", "enum", "typedef", "flag", })
+        foreach (string keyword in new[] { "struct", "union", "enum", "typedef", "flag", "#define", "#undef", "#ifdef", "#ifndef", })
         {
             int index = 0;
             while ((index = source.IndexOf(keyword, index, StringComparison.Ordinal)) >= 0)

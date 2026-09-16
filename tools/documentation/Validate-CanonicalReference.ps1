@@ -196,7 +196,11 @@ foreach ($spelling in @($fixedSpellings + $terminatedSpellings)) {
 $aliasSpellings = @($contract.aliasSpellings | ForEach-Object { [string]$_.spelling })
 Assert-Condition ($aliasSpellings.Count -eq @($aliasSpellings | Select-Object -Unique).Count) `
     'The canonical alias table contains duplicate spellings.'
-$matrixAliases = @($matrix.primitiveSpellings.aliases | ForEach-Object { [string]$_ }) + @($matrix.primitiveSpellings.pointerSized | ForEach-Object { [string]$_ })
+# The matrix catalogues each spelling once: an alias that is also a terminated-string spelling (`string`, `cstring`)
+# sits in its terminated list rather than in aliases.
+$matrixAliases = @($matrix.primitiveSpellings.aliases | ForEach-Object { [string]$_ }) +
+    @($matrix.primitiveSpellings.pointerSized | ForEach-Object { [string]$_ }) +
+    @($matrix.primitiveSpellings.terminated | ForEach-Object { [string]$_ } | Where-Object { $_ -in $aliasSpellings })
 Assert-Condition (@(Compare-Object $matrixAliases $aliasSpellings).Count -eq 0) `
     'The canonical alias spellings differ from the feature-operation matrix.'
 foreach ($alias in @($contract.aliasSpellings)) {

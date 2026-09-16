@@ -1,8 +1,8 @@
 namespace CStructSharp.Tests.Dissect;
 
 /// <summary>
-///     The dissect-parity acceptance table: one row per language form the parity plan
-///     (<c>agentdocs/dissect-parity-implementation-plan.md</c>) accepts or deliberately keeps rejecting, tagged with
+///     The dissect-parity acceptance table: one row per language form the parity work
+///     (<c>docs/guides/migrating-from-dissect.md</c>) accepts or deliberately keeps rejecting, tagged with
 ///     the phase that delivers it. Rows up to <see cref="ImplementedThroughPhase"/> are asserted; later rows are
 ///     listed as pending so the table doubles as the plan's progress meter.
 /// </summary>

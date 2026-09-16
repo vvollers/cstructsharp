@@ -26,8 +26,12 @@ public interface ICustomCodec
     int Alignment { get; }
 
     /// <summary>Reads one value from the current position.</summary>
+    /// <param name="stream">The stream positioned at the value; the codec leaves it after the value.</param>
+    /// <returns>The decoded value, as the layout publishes it.</returns>
     object Read(Stream stream);
 
     /// <summary>Writes one value at the current position.</summary>
+    /// <param name="stream">The stream positioned where the value starts; the codec leaves it after the value.</param>
+    /// <param name="value">The caller-supplied value to encode.</param>
     void Write(Stream stream, object value);
 }
