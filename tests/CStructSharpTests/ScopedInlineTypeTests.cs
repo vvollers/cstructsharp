@@ -147,33 +147,42 @@ public class ScopedInlineTypeTests
     }
 
     /// <summary>
-    ///     Two typedef declarations reuse the private tag shared but export different aliases. small_payload holds one
-    ///     byte and large_payload holds a uint32.
+    ///     A typedef's tag is a global type, as in C: two typedefs cannot share the tag <c>shared</c>, and the tag
+    ///     names the same declaration as its alias.
     /// </summary>
     /// <remarks>
-    ///     The aliases must retain their own sizes and alignments, placing the second field at offset 4; the private
-    ///     shared tag must not become a global type.
+    ///     The alias keeps its own size and alignment; the second field starts at offset 4 because the tag and alias
+    ///     resolve to one four-byte-aligned declaration.
     /// </remarks>
     [TestMethod]
-    public void TypedefBackingNames_AreScopedToTheirAliases()
+    public void TypedefBackingNames_AreGlobalTags()
     {
+        Assert.Throws<CStructLayoutException>(
+            () => new CStruct(
+                """
+                typedef struct shared { uint8 small; } small_payload;
+                typedef struct shared { uint32 large; } large_payload;
+                struct root { small_payload first; large_payload second; };
+                """));
+
         const string layout = """
                               typedef struct shared { uint8 small; } small_payload;
-                              typedef struct shared { uint32 large; } large_payload;
-                              struct root { small_payload first; large_payload second; };
+                              typedef struct other { uint32 large; } large_payload;
+                              struct root { small_payload first; shared again; large_payload second; };
                               """;
         var cstruct = new CStruct(layout, aligned: true);
-        byte[] expected = [0x2A, 0x00, 0x00, 0x00, 0x78, 0x56, 0x34, 0x12,];
+        byte[] expected = [0x2A, 0x2B, 0x00, 0x00, 0x78, 0x56, 0x34, 0x12,];
         using var stream = new MemoryStream((byte[])expected.Clone());
 
         dynamic parsed = cstruct.ParseStream(stream, "root");
 
         Assert.AreEqual((byte)0x2A, (byte)parsed.first.small);
+        Assert.AreEqual((byte)0x2B, (byte)parsed.again.small);
         Assert.AreEqual(0x12345678U, (uint)parsed.second.large);
         Assert.AreEqual(8, cstruct.GetStructSizeInBytes("root"));
-        Assert.IsFalse(cstruct.CStructElements.ContainsKey("shared"));
-        Assert.IsFalse(cstruct.FieldAlignments.ContainsKey("shared"));
+        Assert.IsTrue(cstruct.CStructElements.ContainsKey("shared"));
         Assert.AreEqual((byte)1, cstruct.FieldAlignments["small_payload"]);
+        Assert.AreEqual((byte)1, cstruct.FieldAlignments["shared"]);
         Assert.AreEqual((byte)4, cstruct.FieldAlignments["large_payload"]);
 
         stream.Position = 0;
@@ -183,24 +192,6 @@ public class ScopedInlineTypeTests
                 item.DebugStackString == "root.second.large" &&
                 item.CurPos == 4 &&
                 item.EndPos == 8));
-        stream.Position = 0;
-        Assert.AreEqual(4L, cstruct.ResolveAddress(stream, "root.second.large"));
-        Assert.AreEqual(0L, stream.Position);
-        dynamic selected = cstruct.ParseStream(stream, "root.second");
-        Assert.AreEqual(0x12345678U, (uint)selected.large);
-
-        var data = new
-        {
-            first = new { small = (byte)0x2A, },
-            second = new { large = 0x12345678U, },
-        };
-        CollectionAssert.AreEqual(expected, cstruct.Serialize("root", data));
-
-        stream.Position = 0;
-        cstruct.UpdateStream(stream, "root.second.large", 0xAABBCCDDU);
-        CollectionAssert.AreEqual(
-            new byte[] { 0x2A, 0x00, 0x00, 0x00, 0xDD, 0xCC, 0xBB, 0xAA, },
-            stream.ToArray());
     }
 
     /// <summary>
@@ -233,26 +224,19 @@ public class ScopedInlineTypeTests
     }
 
     /// <summary>
-    ///     The sample layouts reuse names across typedef backing structs, anonymous children, global declarations, and
-    ///     built-in types.
+    ///     The sample layouts reuse names across anonymous children, field names, defines, and built-in types.
     /// </summary>
     /// <remarks>
-    ///     Each must compile because those private declarations have separate identities. This prevents a convenient
-    ///     local field name from accidentally creating or replacing a global type.
+    ///     Each must compile because an anonymous inline declaration and a field name have no global identity. This
+    ///     prevents a convenient local field name from accidentally creating or replacing a global type.
     /// </remarks>
     [TestMethod]
     public void PrivateStructIdentities_DoNotCollideWithUnrelatedNames()
     {
         string[] layouts =
         [
-            "typedef struct byte { uint8 value; } payload;",
             "struct root { struct { uint8 value; } byte; };",
-            "struct payload { byte value; }; typedef struct payload { uint16 other; } payload_t;",
-            "typedef struct shared { byte value; } first; typedef struct shared { uint16 value; } second;",
             "struct first { struct { byte value; } child; }; struct second { struct { uint16 value; } child; };",
-            "union payload { byte value; }; typedef struct payload { uint16 other; } payload_t;",
-            "enum state { Ready }; typedef struct state { uint16 value; } payload;",
-            "typedef uint16 backing; typedef struct backing { uint16 value; } payload;",
             "#define child 1\nstruct root { struct { uint16 value; } child; };",
             "struct first { struct { struct { byte value; } leaf; } branch; }; " +
             "struct second { struct { struct { uint16 value; } leaf; } other; };",
@@ -261,6 +245,29 @@ public class ScopedInlineTypeTests
         foreach (string layout in layouts)
         {
             _ = new CStruct(layout);
+        }
+    }
+
+    /// <summary>
+    ///     A typedef's tag is a global type name (dissect parity, Phase 1), so it collides with a built-in codec,
+    ///     another tag, and every other global declaration exactly as a plain struct name does.
+    /// </summary>
+    [TestMethod]
+    public void TypedefTags_ShareTheGlobalNamespace()
+    {
+        string[] layouts =
+        [
+            "typedef struct byte { uint8 value; } payload;",
+            "struct payload { byte value; }; typedef struct payload { uint16 other; } payload_t;",
+            "typedef struct shared { byte value; } first; typedef struct shared { uint16 value; } second;",
+            "union payload { byte value; }; typedef struct payload { uint16 other; } payload_t;",
+            "enum state { Ready }; typedef struct state { uint16 value; } payload;",
+            "typedef uint16 backing; typedef struct backing { uint16 value; } payload;",
+        ];
+
+        foreach (string layout in layouts)
+        {
+            Assert.Throws<CStructLayoutException>(() => new CStruct(layout), layout);
         }
     }
 
@@ -301,10 +308,10 @@ public class ScopedInlineTypeTests
     }
 
     /// <summary>
-    ///     Both typedef bodies contain an unsized uint32 array, directly or inside another anonymous struct.
+    ///     Both typedef bodies contain an unsized bounded-text array, directly or inside another anonymous struct.
     /// </summary>
     /// <remarks>
-    ///     Only character fields support this unsized form. Construction must reject the error even when the
+    ///     A bounded text codec needs an explicit capacity. Construction must reject the error even when the
     ///     declaration is private or never selected as a root; unused definitions are still validated.
     /// </remarks>
     [TestMethod]
@@ -312,14 +319,14 @@ public class ScopedInlineTypeTests
     {
         string[] layouts =
         [
-            "typedef struct backing { uint32 values[]; } payload;",
-            "typedef struct backing { struct { uint32 values[]; } child; } payload;",
+            "typedef struct backing { utf8 values[]; } payload;",
+            "typedef struct backing { struct { utf8 values[]; } child; } payload;",
         ];
 
         foreach (string layout in layouts)
         {
             CStructLayoutException exception = Assert.Throws<CStructLayoutException>(() => new CStruct(layout), layout);
-            StringAssert.Contains(exception.Message, "Only character fields can use an unsized array", layout);
+            StringAssert.Contains(exception.Message, "A data-sized array needs a fixed-size, non-text element type", layout);
         }
     }
 

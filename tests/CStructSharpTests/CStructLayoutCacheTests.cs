@@ -49,6 +49,32 @@ public class CStructLayoutCacheTests
         Assert.AreEqual(6u, (uint)parsed.length);
     }
 
+    /// <summary>
+    ///     Every <see cref="CStructCompilationOptions"/> property is a member of the cache key, so adding an option
+    ///     without extending the key (two layouts compiled with different options sharing one cached instance) fails
+    ///     here rather than in a caller.
+    /// </summary>
+    [TestMethod]
+    public void CacheKey_CoversEveryCompilationOption()
+    {
+        Type keyType = typeof(CStructLayoutCache).GetNestedType("Key", System.Reflection.BindingFlags.NonPublic) ??
+                       throw new AssertFailedException("CStructLayoutCache must declare its Key record.");
+        string[] keyMembers = keyType.GetProperties().Select(property => property.Name).ToArray();
+        foreach (System.Reflection.PropertyInfo option in typeof(CStructCompilationOptions).GetProperties())
+        {
+            CollectionAssert.Contains(keyMembers, option.Name, $"CStructCompilationOptions.{option.Name} is not part of CStructLayoutCache.Key.");
+        }
+
+        // The key members that mirror an option must also differ when the option does.
+        var cache = new CStructLayoutCache();
+        CStruct baseline = cache.GetOrCompile(Layout, 8, false, true, null);
+        Assert.AreNotSame(baseline, cache.GetOrCompile(Layout, 8, false, true, new CStructCompilationOptions { CLongWidth = 32, }), "CLongWidth");
+        Assert.AreNotSame(baseline, cache.GetOrCompile(Layout, 8, false, true, new CStructCompilationOptions { DefaultEnumStorage = "uint8", }), "DefaultEnumStorage");
+        Assert.AreNotSame(baseline, cache.GetOrCompile(Layout, 8, false, true, new CStructCompilationOptions { Defined = new HashSet<string> { "X", }, }), "Defined");
+        Assert.AreNotSame(baseline, cache.GetOrCompile(Layout, 8, false, true, new CStructCompilationOptions { Prelude = "#define P 1", }), "Prelude");
+        Assert.AreNotSame(baseline, cache.GetOrCompile(Layout, 8, false, true, new CStructCompilationOptions { BitfieldAllocation = BitfieldAllocation.HighBitFirst, }), "BitfieldAllocation");
+    }
+
     /// <summary>Invalid layouts and unsupported pointer sizes throw exactly as the constructor does and leave nothing behind in the cache.</summary>
     [TestMethod]
     public void GetOrCompile_DoesNotCacheFailures()

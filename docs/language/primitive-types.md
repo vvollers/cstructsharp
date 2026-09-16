@@ -17,7 +17,7 @@ suffix always means little-endian, and `>` always means big-endian.
 | --- | --- | ---: | --- | --- | --- |
 | `byte`, `uint8` | `uint8` | 1 / 1 | Unsigned, 0..255 | Not applicable | `Byte` |
 | `int8` | `int8` | 1 / 1 | Signed, -128..127 | Not applicable | `SByte` |
-| `bool`, `_Bool` | `bool` | 1 / 1 | Boolean, `true`/`false` (any nonzero byte reads as true) | Not applicable | `Boolean` |
+| `bool` | `bool` | 1 / 1 | Boolean, `true`/`false` (any nonzero byte reads as true) | Not applicable | `Boolean` |
 | `char` | `char` | 1 / 1 | Raw code unit, U+0000..U+00FF | Not applicable | `Char` |
 | `utf8` | `utf8` | 1 / 1 | Raw UTF-8 byte; counted arrays decode to strings | Not applicable | `Byte` |
 | `latin1` | `latin1` | 1 / 1 | Raw byte; counted arrays decode strict text | Explicit in name / independent | `Byte` |
@@ -35,41 +35,78 @@ suffix always means little-endian, and `>` always means big-endian.
 | `uint32`, `uint32<`, `uint32>` | Matching `uint32` codec | 4 / 4 | Unsigned, 0..4294967295 | Layout / little / big | `UInt32` |
 | `int64`, `int64<`, `int64>` | Matching `int64` codec | 8 / 8 | Signed, -9223372036854775808..9223372036854775807 | Layout / little / big | `Int64` |
 | `uint64`, `uint64<`, `uint64>` | Matching `uint64` codec | 8 / 8 | Unsigned, 0..18446744073709551615 | Layout / little / big | `UInt64` |
+| `int48`, `int48<`, `int48>` | Matching `int48` codec | 6 / 1 | Signed, -140737488355328..140737488355327 | Layout / little / big | `Int64` |
+| `uint48`, `uint48<`, `uint48>` | Matching `uint48` codec | 6 / 1 | Unsigned, 0..281474976710655 | Layout / little / big | `UInt64` |
+| `int128`, `int128<`, `int128>` | Matching `int128` codec | 16 / 16 | Signed 128-bit | Layout / little / big | `Int128` |
+| `uint128`, `uint128<`, `uint128>` | Matching `uint128` codec | 16 / 16 | Unsigned 128-bit | Layout / little / big | `UInt128` |
+| `float16`, `float16<`, `float16>` | Matching `float16` codec | 2 / 2 | Any IEEE-754 binary16 bit pattern | Layout / little / big | `Half` |
 | `float32`, `float32<`, `float32>` | Matching `float32` codec | 4 / 4 | Any IEEE-754 binary32 bit pattern (NaN, ±Infinity, subnormals, ±0.0 included) | Layout / little / big | `Single` |
 | `float64`, `float64<`, `float64>` | Matching `float64` codec | 8 / 8 | Any IEEE-754 binary64 bit pattern (NaN, ±Infinity, subnormals, ±0.0 included) | Layout / little / big | `Double` |
-| `float` | `float32` | 4 / 4 | Same as `float32` | Layout | `Single` |
-| `double` | `float64` | 8 / 8 | Same as `float64` | Layout | `Double` |
-| `short` | `int16` | 2 / 2 | Signed, -32768..32767 | Layout | `Int16` |
-| `ushort` | `uint16` | 2 / 2 | Unsigned, 0..65535 | Layout | `UInt16` |
-| `int` | `int32` | 4 / 4 | Signed, -2147483648..2147483647 | Layout | `Int32` |
-| `uint` | `uint32` | 4 / 4 | Unsigned, 0..4294967295 | Layout | `UInt32` |
-| `long` | `int64` | 8 / 8 | Signed, -9223372036854775808..9223372036854775807 | Layout | `Int64` |
-| `ulong` | `uint64` | 8 / 8 | Unsigned, 0..18446744073709551615 | Layout | `UInt64` |
-| `signed`, `signed int` | `int32` | 4 / 4 | Signed, -2147483648..2147483647 | Layout | `Int32` |
-| `unsigned`, `unsigned int` | `uint32` | 4 / 4 | Unsigned, 0..4294967295 | Layout | `UInt32` |
-| `signed short` | `int16` | 2 / 2 | Signed, -32768..32767 | Layout | `Int16` |
-| `unsigned short` | `uint16` | 2 / 2 | Unsigned, 0..65535 | Layout | `UInt16` |
-| `signed long` | `int64` | 8 / 8 | Signed, -9223372036854775808..9223372036854775807 | Layout | `Int64` |
-| `unsigned long` | `uint64` | 8 / 8 | Unsigned, 0..18446744073709551615 | Layout | `UInt64` |
-| `long long`, `signed long long` | `int64` | 8 / 8 | Signed, -9223372036854775808..9223372036854775807 | Layout | `Int64` |
-| `unsigned long long` | `uint64` | 8 / 8 | Unsigned, 0..18446744073709551615 | Layout | `UInt64` |
-| `signed char`, `int8_t` | `int8` | 1 / 1 | Signed, -128..127 | Not applicable | `SByte` |
-| `unsigned char`, `uint8_t` | `uint8` | 1 / 1 | Unsigned, 0..255 | Not applicable | `Byte` |
-| `int16_t` | `int16` | 2 / 2 | Signed, -32768..32767 | Layout | `Int16` |
-| `uint16_t` | `uint16` | 2 / 2 | Unsigned, 0..65535 | Layout | `UInt16` |
-| `int32_t` | `int32` | 4 / 4 | Signed, -2147483648..2147483647 | Layout | `Int32` |
-| `uint32_t` | `uint32` | 4 / 4 | Unsigned, 0..4294967295 | Layout | `UInt32` |
-| `int64_t` | `int64` | 8 / 8 | Signed, -9223372036854775808..9223372036854775807 | Layout | `Int64` |
-| `uint64_t` | `uint64` | 8 / 8 | Unsigned, 0..18446744073709551615 | Layout | `UInt64` |
 
-The table groups 62 accepted spellings, including the wider C integer spellings (`unsigned long long`, `uint32_t`,
-and similar) accepted as aliases of an existing fixed-width codec — none of these infer a native compiler's data
-model; `signed char`/`unsigned char`/`*_t` forms alias the numeric `int8`/`uint8` codecs, not the raw `char` code
-unit. The complete rows are also stored in
-[`portable-v1.json`](../../contracts/language/portable-v1.json) and checked against the runtime on .NET 8 and .NET 10.
+The table lists the canonical codec spellings. Every C, C99, Windows SDK, Linux kernel, IDA, and dissect alias
+spelling below resolves to one of them at construction time exactly like a `typedef` would - a compiled field
+never sees the alias - so a header can be pasted with its own vocabulary. None of these infer a native compiler's
+data model: the numeric spellings alias the numeric `int8`/`uint8` codecs, not the raw `char` code unit, and every
+width is fixed by the table. A layout may redeclare an alias spelling (`typedef uint16 DWORD;`, `enum BYTE : ...`)
+and its own declaration then wins; the canonical spellings stay reserved.
 
-Alignment equals byte width for every fixed primitive. Packed placement ignores alignment when choosing the next
+## Alias spellings
+
+<!-- sync-primitive-spellings:start -->
+
+| Canonical codec | Accepted alias spellings |
+| --- | --- |
+| `ascii_string_zero` | `cstring` |
+| `bool` | `_Bool` |
+| `char` | `CHAR` |
+| `float32` | `float`, `FLOAT` |
+| `float64` | `double`, `DOUBLE` |
+| `int128` | `__int128`, `__s128`, `INT128`, `int128_t`, `s128` |
+| `int16` | `__int16`, `__s16`, `INT16`, `int16_t`, `s16`, `short`, `SHORT`, `short int`, `signed short`, `signed short int` |
+| `int32` | `__int32`, `__s32`, `int`, `INT`, `INT32`, `int32_t`, `LONG`, `LONG32`, `s32`, `signed`, `signed int` |
+| `int64` | `__int64`, `__s64`, `INT64`, `int64_t`, `long long`, `long long int`, `LONG64`, `LONGLONG`, `s64`, `signed long long`, `signed long long int` |
+| `int8` | `__int8`, `__s8`, `INT8`, `int8_t`, `s8`, `signed char` |
+| `sleb128_64` | `ileb128`, `sleb128` |
+| `uint128` | `__u128`, `_OWORD`, `OWORD`, `u128`, `UINT128`, `uint128_t`, `unsigned __int128` |
+| `uint16` | `__u16`, `_WORD`, `u_int16_t`, `u_short`, `u16`, `UINT16`, `uint16_t`, `unsigned __int16`, `unsigned short`, `unsigned short int`, `ushort`, `USHORT`, `WORD` |
+| `uint32` | `__u32`, `_DWORD`, `DWORD`, `DWORD32`, `u_int`, `u_int32_t`, `u32`, `uint`, `UINT`, `UINT32`, `uint32_t`, `ULONG`, `ULONG32`, `unsigned`, `unsigned __int32`, `unsigned int` |
+| `uint64` | `__u64`, `_QWORD`, `DWORD64`, `DWORDLONG`, `QWORD`, `u_int64_t`, `u64`, `UINT64`, `uint64_t`, `ULONG64`, `ULONGLONG`, `unsigned __int64`, `unsigned long long`, `unsigned long long int` |
+| `uint8` | `__u8`, `_BYTE`, `BYTE`, `u_char`, `u_int8_t`, `u8`, `uchar`, `UCHAR`, `UINT8`, `uint8_t`, `unsigned __int8`, `unsigned char` |
+| `uleb128_64` | `uleb128` |
+| `unicode_string_zero` | `string` |
+| `unicode_string_zero<` | `string<` |
+| `unicode_string_zero>` | `string>` |
+| `void` | `VOID` |
+| `wchar` | `WCHAR`, `wchar_t` |
+| `int64` / `uint64` (`CLongWidth` 64, the default) or `int32` / `uint32` (`CLongWidth` 32) | `long`, `long int`, `signed long`, `signed long int`, `time_t`, `off_t`, `ulong`, `unsigned long`, `unsigned long int` |
+| `uintN` / `intN` where N is the layout's pointer width in bits | `size_t`, `uintptr_t`, `SIZE_T`, `ULONG_PTR`, `UINT_PTR`, `DWORD_PTR`, `ssize_t`, `intptr_t`, `ptrdiff_t`, `SSIZE_T`, `LONG_PTR`, `INT_PTR` |
+| `void*` (an opaque address of pointer width) | `PVOID`, `LPVOID`, `LPCVOID`, `HANDLE` |
+| `char*` (a pointer to a byte string) | `PSTR`, `LPSTR`, `PCSTR`, `LPCSTR` |
+| `wchar*` (a pointer to a UTF-16 string) | `PWSTR`, `LPWSTR`, `PCWSTR`, `LPCWSTR` |
+
+<!-- sync-primitive-spellings:end -->
+
+The `long` family is the one place C leaves the width to the target. Portable reads it as 64 bits (LP64, the
+reading of every Linux kernel header on a 64-bit target); `CStructCompilationOptions.CLongWidth = 32` selects the
+ILP32/LLP64 reading, which is also what dissect.cstruct assumes. Windows `LONG`/`ULONG` are always 32 bits and are
+not part of the family. The pointer-sized spellings (`size_t`, `ssize_t`, `intptr_t`, `uintptr_t`, `ptrdiff_t`,
+`SIZE_T`, `SSIZE_T`, `ULONG_PTR`, `LONG_PTR`, `UINT_PTR`, `INT_PTR`, `DWORD_PTR`) are as wide as the layout's
+configured pointer size. The complete alias rows are also stored in
+[`portable-v1.json`](../../contracts/language/portable-v1.json) (`aliasSpellings`) and checked against the runtime
+on .NET 8 and .NET 10; `tools/documentation/sync-primitive-spellings.mjs` regenerates every view from the source
+table.
+
+Alignment equals byte width for every fixed primitive except the three- and six-byte integers, which have no natural
+alignment in any ABI and align to one, and `uuid`/`guid`. Packed placement ignores alignment when choosing the next
 field position; aligned placement uses it. The alignment still appears in size/alignment queries in packed mode.
+`int48`/`uint48` sign-extend or zero-extend into 64-bit results; `int128`/`uint128` read into `System.Int128` and
+`System.UInt128` (a JavaScript consumer receives them as safe integers or decimal strings, like `uint64`);
+`float16` is bit-exact like the other floats. None of the three is bitfield storage or an enum backing type, and
+none takes the span fast paths - they are rare in real formats and read through their codec delegates.
+
+`void` has no storage of its own: only a pointer to it (`void *`, or the `PVOID`/`LPVOID`/`HANDLE` spellings) is a
+field, an opaque address of the layout's pointer width that is never dereferenced. A function pointer declarator
+(`uint8 (*callback)(uint8)`) is accepted and stored the same way; its signature is discarded.
 
 ## Floating-point primitives
 

@@ -34,56 +34,6 @@ internal static class PrimitiveCodecs
 
     public static readonly Encoding StrictUtf16LittleEndianEncoding = new UnicodeEncoding(false, false, true);
 
-    public static readonly IReadOnlyDictionary<string, string> FieldTypeAliasses = new Dictionary<string, string>
-    {
-        ["short"] = "int16",
-        ["ushort"] = "uint16",
-        ["int"] = "int32",
-        ["uint"] = "uint32",
-        ["long"] = "int64",
-        ["ulong"] = "uint64",
-        ["string"] = "unicode_string_zero",
-        ["string>"] = "unicode_string_zero>",
-        ["string<"] = "unicode_string_zero<",
-        ["cstring"] = "ascii_string_zero",
-
-        // Wider C integer spellings (LANG-03a). Portable's long/ulong are always 64-bit regardless of host data
-        // model (see differences-from-c.md), so every "long"-containing multi-word spelling below is consistently
-        // 64-bit rather than inferred from any native ABI.
-        ["signed"] = "int32",
-        ["unsigned"] = "uint32",
-        ["signed int"] = "int32",
-        ["unsigned int"] = "uint32",
-        ["signed short"] = "int16",
-        ["unsigned short"] = "uint16",
-        ["signed long"] = "int64",
-        ["unsigned long"] = "uint64",
-        ["long long"] = "int64",
-        ["signed long long"] = "int64",
-        ["unsigned long long"] = "uint64",
-        ["signed char"] = "int8",
-        ["unsigned char"] = "uint8",
-        ["int8_t"] = "int8",
-        ["uint8_t"] = "uint8",
-        ["int16_t"] = "int16",
-        ["uint16_t"] = "uint16",
-        ["int32_t"] = "int32",
-        ["uint32_t"] = "uint32",
-        ["int64_t"] = "int64",
-        ["uint64_t"] = "uint64",
-
-        // Boolean primitive (LANG-04 bool split-out). "_Bool" is the C99 keyword spelling; "bool" (the stdbool.h
-        // macro spelling) is the canonical codec name registered directly in CStructPrimitiveCodecs.cs.
-        ["_Bool"] = "bool",
-
-        // Floating-point primitives (LANG-04, ADR-015). "float"/"double" are the familiar C spellings, aliasing
-        // the width-explicit canonical names "float32"/"float64" registered directly in CStructPrimitiveCodecs.cs,
-        // the same direction every other C-name numeric alias already points (int -> int32, long -> int64).
-        // "long double" has no single portable width to standardize on and remains unsupported.
-        ["float"] = "float32",
-        ["double"] = "float64",
-    };
-
     /// <summary>Returns whether a primitive handler consumes bytes until a terminator instead of having a fixed footprint.</summary>
     public static bool IsVariableLengthType(string typeName)
     {

@@ -168,7 +168,7 @@ public class RobustnessTests
     [TestMethod]
     public void ParseStream_PreservesUnknownEnumValues()
     {
-        const string layout = "enum status { ready = 1 }; struct root { status value; };";
+        const string layout = "enum status : uint8 { ready = 1 }; struct root { status value; };";
         using var stream = new MemoryStream([0x7F,]);
         var cstruct = new CStruct(layout);
 

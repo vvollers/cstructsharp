@@ -19,6 +19,8 @@ internal static class SymbolValidation
             CstructEnum => "enum",
             Typedef => "typedef",
             Defines => "#define",
+            ConstantDefinition => "#define",
+            IncludeDirective => "#include",
             _ => declaration.GetType().Name,
         };
     }
@@ -48,7 +50,10 @@ internal static class SymbolValidation
         CStructElement declaration,
         IReadOnlyDictionary<string, Func<Stream, object>> fieldHandlers)
     {
-        if (fieldHandlers.ContainsKey(declaration.Name.Name))
+        // Alias spellings (`DWORD`, `u_char`, `short`, ...) may be redeclared by a layout - a header that carries its
+        // own `typedef uint32 DWORD;` must keep working - and the layout's declaration then shadows the built-in.
+        // Canonical codec names stay reserved because compiled fields are keyed by them.
+        if ((fieldHandlers.ContainsKey(declaration.Name.Name) || declaration.Name.Name == "void") && !PrimitiveSpellings.IsAlias(declaration.Name.Name))
         {
             throw new CStructLayoutException(
                 $"Global {GetDeclarationKind(declaration)} name '{declaration.Name.Name}' conflicts with a built-in codec.");

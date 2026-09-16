@@ -4,6 +4,80 @@ Notable changes to CStructSharp, newest first. Release versions and dates were r
 Git history preserved before the repository history reset. Entries focus on features, fixes, and migration steps.
 Related changes are consolidated; routine formatting and benchmark bookkeeping are omitted.
 
+## Unreleased
+
+- Language: the C, C99, Windows SDK, Linux kernel, IDA, and dissect primitive spellings (`DWORD`, `BYTE`, `WCHAR`,
+  `__u32`, `u8`, `wchar_t`, `unsigned __int64`, `uleb128`, ...) are built in and resolve to their canonical codecs
+  at construction time; a compiled field never sees the alias, so nothing changes at read or write time. Aliases of
+  one codec now share a bitfield storage unit (`DWORD a : 4; unsigned int b : 4;` is one unit, as in C), an enum's
+  backing type and a bitfield's storage may be any accepted integer spelling or a typedef of one, and `size_t`,
+  `ssize_t`, `intptr_t`, `uintptr_t`, `ptrdiff_t`, and their Windows spellings are as wide as the layout's pointer
+  size. A layout may redeclare an alias spelling (`typedef uint16 DWORD;`) and its declaration wins.
+  `tools/documentation/sync-primitive-spellings.mjs` regenerates the contract, matrix, and documentation views of
+  the one source table. Debug records and `EnumValueResult.StorageType` now report the canonical name for a field
+  declared with an alias (`short` reads as `int16`).
+- Language: `CStructCompilationOptions.CLongWidth` selects the width of the C `long` family (64 by default, the
+  LP64 reading; 32 for ILP32/LLP64 headers and dissect definitions). Windows `LONG`/`ULONG` are always 32 bits.
+- Language: typedef forms from real headers - `typedef struct _X { ... } X, *PX;` declarator lists, a typedef body
+  with no alias (`typedef struct NAME { ... };`), the tag of a tagged typedef usable as a type (a duplicate tag is
+  now an error, as in C), `typedef struct tag alias;`, `typedef T name[N];` array typedefs, multi-word plain typedefs
+  (`typedef unsigned long long ticks;`), and `typedef uint8 byte_t, *pbyte_t;`.
+- Language: top-level `struct { ... } name;` declares `name` as the type, `struct X { ... } variable;` declares `X`
+  and ignores the variable, and a forward declaration (`struct node;`) is accepted.
+- Language: preprocessor lines - `#define` with a text, byte (`b"..."`), bare, or function-like value (published on
+  the new `CStruct.Constants` as `LayoutConstant`), `#undef`, `#include` (recorded on `CStruct.Includes`, never
+  read), `#pragma pack(push|pop|N)` as a composite alignment clamp, other pragmas ignored, and
+  `#ifdef`/`#ifndef`/`#else`/`#endif` over defined names plus `CStructCompilationOptions.Defined`. A backslash
+  before a line end joins the lines anywhere.
+- Language: an enum member name may start with, or consist of, digits (`32BIT_MACHINE`, `0 = 0x30`), the comma
+  between members is optional (members separated by line breaks alone are unambiguous), and a body may end with a
+  trailing comma. `typedef enum|flag [Tag] [: type] { ... } Alias [, *Alias2];` and `typedef enum Tag Alias;`
+  mirror the struct typedef forms.
+- **Breaking (language):** an enum or flag declared without a backing type is 32 bits wide - `uint32`, or `int32`
+  when a member is written as a negative number (the rule C compilers apply; dissect.cstruct assumes `uint32`) -
+  instead of one unsigned byte. `CStructCompilationOptions.DefaultEnumStorage` pins any spelling (`"byte"` restores
+  the old default) and is part of the compiled-layout cache key.
+- **Breaking (language):** a field named `_` is unnamed padding, like an anonymous bitfield: read and skipped,
+  written as zeroes, absent from results, and free to repeat (`uint32 _; uint64 base; uint32 _;`). It must be a
+  fixed-size primitive or primitive array.
+- Language: a tagged inline body (`struct gen { ... } gen;`, `union version_information { ... };` inside another
+  body) declares its tag as a global type, as C and dissect do; without a member name the body is promoted.
+- Language: `#define` keeps a value that is not an integer expression as a text constant instead of failing, a
+  definition beyond the 32-bit domain (`(1 << 63)`) is published on `CStruct.Constants` with its exact value and
+  fails only where a count selects it, a definition naming an unknown identifier fails only when used, and a
+  quoted literal may span lines. Keywords are recognized only as whole tokens (`structX` is an identifier) and the
+  semicolon after `typedef struct NAME { ... }` is optional before the next declaration.
+- Language: `PSTR`/`LPSTR`/`PCSTR`/`LPCSTR` (`char *`), `PWSTR`/`LPWSTR`/`PCWSTR`/`LPCWSTR` (`wchar *`), and
+  `time_t`/`off_t` (the `long` family) are built in.
+- Language: inline unions inside structs (`union { ... } u;`), inline structs and unions inside unions, and
+  anonymous unions whose members (and the members of anonymous structs inside them) are promoted into the
+  containing struct - the NTFS/PE header shape. A promoted union reads as its decoded member values and writes back
+  through the widest member the data supplies, clearing the rest of the extent.
+- Language: `flag` declarations (bitmask enums: an omitted value is the next unused bit) read as
+  `FlagValueResult` - an `EnumValueResult` with `Names`, `Remainder`, and `Has(name)` - and write from a result,
+  a member name, `"A|B"`, a name sequence, or a number; typed reads map to `[Flags]` CLR enums. Enums and flags
+  may be bitfield storage (`kind type : 2;`), sharing the storage unit of their backing type. An anonymous
+  `enum { ... };` or `flag { ... };` declares constants, as in C.
+- Language: data-sized arrays - `T values[EOF]` reads every whole element to the end of the input and
+  `T values[]` on a non-character type reads until an all-zero element (consumed) - through parse, debug, address,
+  length, serialize, write, and update.
+- Language: expressions gain `%`, `^`, the conditional operator `c ? a : b` (only the selected arm is evaluated),
+  `sizeof(type)` and `offsetof(type, field)` in array dimensions (folded at construction), qualified enum
+  members (`kind.Max`) as constants, and dotted references to a nested struct's field (`uint8 v[hdr.n]`,
+  `a.b.n`) whose value is published under the path while the struct field is read, written, or measured.
+- Language: `int48`/`uint48`, `int128`/`uint128` (with `OWORD`, `__int128`, `u128` spellings; `Int128`/`UInt128`
+  results), `float16` (`Half`), `void *` (and `PVOID`/`LPVOID`/`HANDLE`) as an opaque pointer that is never
+  dereferenced, and function-pointer declarators (`uint8 (*callback)(uint8)`) stored the same way.
+- Browser/WASM: a flag value adds `Names` and `Remainder` to the enum envelope; wide integers render like
+  `uint64` (safe integers or decimal strings). Structs containing a flag or a wide primitive take the managed
+  parse path, never the JavaScript static plan.
+- Contract: `contracts/language/portable-v1.json` revision 2 - alias spellings move to `aliasSpellings`,
+  `include-directive`, `packing-pragma`, `forward-declaration`, `typedef-array`, `typedef-tag-alias`,
+  `inline-union`, `general-flexible-array`, and `function-pointer` are no longer rejected constructs, and new
+  rejected constructs document the remaining limits.
+- Tests: `ParserDifferentialTests` is a one-way oracle - everything the frozen Pidgin reference grammar accepts must
+  parse identically, while the extended language may accept what the reference rejects.
+
 ## 0.4.3 — 2026-09-15
 
 - Highlighted the core .NET library's zero runtime package dependencies in the README and website landing page.

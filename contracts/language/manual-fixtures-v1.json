@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "contractRevision": 1,
+  "contractRevision": 2,
   "profile": "Portable",
   "featurePairs": [
     {
@@ -164,7 +164,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "general-flexible-array",
+        "unsupportedId": "data-sized-array-of-dynamic-element",
         "errorCode": "InvalidLayout"
       }
     },
@@ -285,7 +285,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "general-flexible-array",
+        "unsupportedId": "data-sized-array-of-dynamic-element",
         "errorCode": "InvalidLayout"
       }
     },
@@ -314,7 +314,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "forward-declaration",
+        "unsupportedId": "duplicate-typedef-tag",
         "errorCode": "InvalidLayout"
       }
     },
@@ -343,7 +343,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "inline-union",
+        "unsupportedId": "dynamic-union-member",
         "errorCode": "InvalidLayout"
       }
     },
@@ -375,7 +375,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "inline-union",
+        "unsupportedId": "dynamic-union-member",
         "errorCode": "InvalidLayout"
       }
     },
@@ -571,7 +571,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "typedef-array",
+        "unsupportedId": "pointer-to-typedef-array",
         "errorCode": "InvalidLayout"
       }
     },
@@ -599,7 +599,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "inline-union",
+        "unsupportedId": "dynamic-union-member",
         "errorCode": "InvalidLayout"
       }
     },
@@ -656,7 +656,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "function-pointer",
+        "unsupportedId": "void-value-field",
         "errorCode": "InvalidLayout"
       }
     },
@@ -687,7 +687,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "forward-declaration",
+        "unsupportedId": "tag-alias-kind-mismatch",
         "errorCode": "InvalidLayout"
       }
     },
@@ -717,7 +717,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "packing-pragma",
+        "unsupportedId": "non-power-of-two-pack-pragma",
         "errorCode": "InvalidLayout"
       }
     },
@@ -774,7 +774,7 @@
       },
       "invalid": {
         "stage": "compile",
-        "unsupportedId": "include-directive",
+        "unsupportedId": "unknown-preprocessor-directive",
         "errorCode": "InvalidLayout"
       }
     },
@@ -830,7 +830,7 @@
           "root.tail": 2
         },
         "values": {
-          "root.label": "é",
+          "root.label": "\u00e9",
           "root.tail": "99"
         }
       },
@@ -978,6 +978,310 @@
         "bytes": "01",
         "errorCode": "ReadFailed",
         "maxStringBytes": 1024
+      }
+    },
+    {
+      "id": "alias-spellings",
+      "featureId": "alias-spellings",
+      "manual": "docs/language/primitive-types.md#alias-spellings",
+      "valid": {
+        "definition": "struct root { BYTE kind; WORD count; DWORD length; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 7,
+        "alignment": 4,
+        "bytes": "02030004000000",
+        "offsets": {
+          "root.kind": 0,
+          "root.count": 1,
+          "root.length": 3
+        },
+        "values": {
+          "root.kind": "2",
+          "root.count": "3",
+          "root.length": "4"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "unrecognized-integer-spelling",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "typedef-forms",
+      "featureId": "typedef-forms",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#typedefs",
+      "valid": {
+        "definition": "typedef struct _X { uint8 a; uint16 b; } X, *PX; typedef uint8 pair[2]; struct root { X x; _X y; pair p; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 8,
+        "alignment": 2,
+        "bytes": "0102000304000506",
+        "offsets": {
+          "root.x": 0,
+          "root.x.a": 0,
+          "root.x.b": 1,
+          "root.y": 3,
+          "root.p": 6
+        },
+        "values": {
+          "root.x.a": "1",
+          "root.x.b": "2",
+          "root.y.a": "3",
+          "root.y.b": "4",
+          "root.p[1]": "6"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "pointer-to-typedef-array",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "top-level-declarations",
+      "featureId": "top-level-declarations",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#top-level-declaration-forms",
+      "valid": {
+        "definition": "struct { uint16 sec; uint16 usec; } timeval; struct root { timeval stamp; uint8 tail; } header;",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 5,
+        "alignment": 2,
+        "bytes": "0100020003",
+        "offsets": {
+          "root.stamp": 0,
+          "root.stamp.sec": 0,
+          "root.stamp.usec": 2,
+          "root.tail": 4
+        },
+        "values": {
+          "root.stamp.sec": "1",
+          "root.stamp.usec": "2",
+          "root.tail": "3"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "duplicate-typedef-tag",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "preprocessor-lines",
+      "featureId": "preprocessor-lines",
+      "manual": "docs/language/lexical-rules.md#preprocessor-lines",
+      "valid": {
+        "definition": "#define N 2\n#pragma pack(1)\n#ifdef N\nstruct root { uint8 a; uint32 b; uint8 v[N]; };\n#else\nstruct root { uint8 a; };\n#endif",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": true,
+        "littleEndian": true,
+        "size": 7,
+        "alignment": 1,
+        "bytes": "01020000000304",
+        "offsets": {
+          "root.a": 0,
+          "root.b": 1,
+          "root.v": 5
+        },
+        "values": {
+          "root.a": "1",
+          "root.b": "2",
+          "root.v[0]": "3",
+          "root.v[1]": "4"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "unknown-preprocessor-directive",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "inline-unions",
+      "featureId": "inline-unions",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#anonymous-promoted-members",
+      "valid": {
+        "definition": "struct root { uint32 attributes; union { struct { uint16 ea_size; uint16 reserved; }; uint32 reparse_tag; }; uint8 name_length; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 9,
+        "alignment": 4,
+        "bytes": "200000003412785603",
+        "offsets": {
+          "root.attributes": 0,
+          "root.ea_size": 4,
+          "root.reserved": 6,
+          "root.reparse_tag": 4,
+          "root.name_length": 8
+        },
+        "values": {
+          "root.attributes": "32",
+          "root.ea_size": "4660",
+          "root.reserved": "22136",
+          "root.reparse_tag": "1450709556",
+          "root.name_length": "3"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "dynamic-union-member",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "data-sized-arrays",
+      "featureId": "data-sized-arrays",
+      "manual": "docs/language/arrays-and-strings.md#data-sized-arrays",
+      "valid": {
+        "definition": "struct entry { uint8 kind; uint8 size; }; struct root { entry entries[]; uint16 values[EOF]; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "alignment": 2,
+        "bytes": "010A02140000050006000700",
+        "offsets": {
+          "root.entries": 0,
+          "root.values": 6
+        },
+        "values": {
+          "root.entries[1].size": "20",
+          "root.values[2]": "7"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "data-sized-array-of-dynamic-element",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "flags",
+      "featureId": "flags",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#flags",
+      "valid": {
+        "definition": "flag access : uint16 { READ, WRITE, EXEC, HIDDEN = 0x100 }; struct root { access mode; uint8 tail; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 3,
+        "alignment": 2,
+        "bytes": "050107",
+        "offsets": {
+          "root.mode": 0,
+          "root.tail": 2
+        },
+        "values": {
+          "root.mode": "READ|EXEC|HIDDEN",
+          "root.tail": "7"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "anonymous-flag-expression-member",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "enum-bitfields",
+      "featureId": "enum-bitfields",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#enums",
+      "valid": {
+        "definition": "enum kind : uint16 { NONE, CODE, DATA, CONST }; struct root { kind type : 2; kind name_type : 3; uint16 rest : 11; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 2,
+        "bytes": "AE5A",
+        "offsets": {
+          "root.type": 0,
+          "root.name_type": 0,
+          "root.rest": 0
+        },
+        "values": {
+          "root.type.name": "DATA",
+          "root.type.value": "2",
+          "root.name_type.name": "CONST",
+          "root.name_type.value": "3",
+          "root.rest": "725"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "zero-width-bitfield",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "expression-extensions",
+      "featureId": "expression-extensions",
+      "manual": "docs/language/expressions-defines-and-variables.md#operators-and-precedence",
+      "valid": {
+        "definition": "enum kind : uint8 { A = 1, B = 6 ^ 3 }; struct head { uint32 a; uint16 b; }; struct root { uint8 x[kind.B % 4]; uint8 y[sizeof(head) ? offsetof(head, b) : 9]; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 5,
+        "alignment": 1,
+        "bytes": "0102030405",
+        "offsets": {
+          "root.x": 0,
+          "root.y": 1
+        },
+        "values": {
+          "root.x[0]": "1",
+          "root.y[3]": "5"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "sizeof-of-dynamic-type",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "wide-primitives",
+      "featureId": "wide-primitives",
+      "manual": "docs/language/primitive-types.md#fixed-primitives",
+      "valid": {
+        "definition": "struct root { uint48 a; float16 b; void *p; };",
+        "root": "root",
+        "pointerSize": 4,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 12,
+        "alignment": 4,
+        "bytes": "010203040506003C08000000",
+        "offsets": {
+          "root.a": 0,
+          "root.b": 6,
+          "root.p": 8
+        },
+        "values": {
+          "root.a": "6618611909121",
+          "root.b": "1"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "void-value-field",
+        "errorCode": "InvalidLayout"
       }
     }
   ]

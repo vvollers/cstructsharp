@@ -50,7 +50,8 @@ internal sealed class CompositeFieldPlacementCursor
                 this.activeBitUnitSize,
                 this.activeBitUnitAlignment,
                 this.activeBitUnitBitsUsed,
-                field,
+                compiledField.BitUnitType,
+                field.BitSize,
                 unitSize,
                 alignment);
             if (startsNewUnit)
@@ -60,7 +61,7 @@ internal sealed class CompositeFieldPlacementCursor
                 this.current = checked(this.current + unitSize);
                 this.activeBitUnitSize = unitSize;
                 this.activeBitUnitAlignment = alignment;
-                this.activeBitUnitType = field.Type.Name;
+                this.activeBitUnitType = compiledField.BitUnitType;
                 this.activeBitUnitBitsUsed = 0;
             }
 

@@ -48,6 +48,39 @@ public class CanonicalPortableReferenceTests
         }
     }
 
+    /// <summary>Every alias spelling in the contract behaves exactly like the canonical codec it names.</summary>
+    [TestMethod]
+    public void AliasSpellings_BehaveLikeTheirCanonicalCodec()
+    {
+        Assert.IsNotEmpty(Contract.Value.AliasSpellings);
+        foreach (AliasSpelling alias in Contract.Value.AliasSpellings)
+        {
+            foreach (byte pointerSize in new byte[] { 4, 8, })
+            {
+                string canonical = alias.Canonical.Replace("{pointer bits}", (pointerSize * 8).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                if (canonical == "void")
+                {
+                    continue;
+                }
+
+                var aliased = new CStruct($"struct root {{ {alias.Spelling} value; }}", pointerSize: pointerSize);
+                var reference = new CStruct($"struct root {{ {canonical} value; }}", pointerSize: pointerSize);
+                Assert.AreEqual(reference.GetStructAlignmentInBytes("root"), aliased.GetStructAlignmentInBytes("root"), alias.Spelling);
+                if (!PrimitiveCodecs.IsVariableLengthType(canonical) && !Leb128Codec.IsType(canonical))
+                {
+                    Assert.AreEqual(reference.GetStructSizeInBytes("root"), aliased.GetStructSizeInBytes("root"), alias.Spelling);
+                }
+
+                if (alias.CLongWidth32 is not null)
+                {
+                    var narrow = new CStruct($"struct root {{ {alias.Spelling} value; }}", compilationOptions: new CStructCompilationOptions { CLongWidth = 32, });
+                    var narrowReference = new CStruct($"struct root {{ {alias.CLongWidth32} value; }}");
+                    Assert.AreEqual(narrowReference.GetStructSizeInBytes("root"), narrow.GetStructSizeInBytes("root"), alias.Spelling);
+                }
+            }
+        }
+    }
+
     /// <summary>
     ///     Each reference example supplies layout text, options, exact bytes, offsets, and expected values.
     /// </summary>
@@ -235,11 +268,22 @@ public class CanonicalPortableReferenceTests
 
         public FixedPrimitive[] FixedPrimitives { get; init; } = [];
 
+        public AliasSpelling[] AliasSpellings { get; init; } = [];
+
         public TerminatedPrimitive[] TerminatedPrimitives { get; init; } = [];
 
         public LayoutExample[] LayoutExamples { get; init; } = [];
 
         public UnsupportedConstruct[] UnsupportedConstructs { get; init; } = [];
+    }
+
+    private sealed class AliasSpelling
+    {
+        public string Spelling { get; init; } = string.Empty;
+
+        public string Canonical { get; init; } = string.Empty;
+
+        public string? CLongWidth32 { get; init; }
     }
 
     private sealed class FixedPrimitive

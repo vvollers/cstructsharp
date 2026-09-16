@@ -47,19 +47,25 @@ Expressions support decimal, hexadecimal (`0x`), binary (`0b`), and octal (`0o`)
 
 | Precedence, high to low | Operators |
 | --- | --- |
-| Unary | `!`, `-`, `~` |
-| Multiply/divide | `*`, `/` |
+| Unary | `-`, `~`, `!` |
+| Multiply/divide/remainder | `*`, `/`, `%` |
 | Add/subtract | `+`, `-` |
 | Shift | `<<`, `>>` |
-| Relational comparison | `<`, `<=`, `>`, `>=` |
+| Relational | `<`, `<=`, `>`, `>=` |
 | Equality | `==`, `!=` |
 | Bitwise AND | `&` |
+| Bitwise XOR | `^` |
 | Bitwise OR | `\|` |
 | Logical AND | `&&` |
 | Logical OR | `\|\|` |
+| Conditional | `c ? a : b` (right-associative; only the selected arm is evaluated) |
 
-Operators on the same row are evaluated left to right. Function-call-looking syntax is recognized only so the
-constructor can report that it is unsupported; it never invokes user code.
+Operators on the same row are evaluated left to right; `%` truncates like `/` and fails on a zero divisor. The two
+calls `sizeof(type)` and `offsetof(type, field)` are accepted in array dimensions and fold to literals when the
+layout is constructed: the type may be a primitive, a typedef, an enum, a pointer (`sizeof(uint8*)` is the pointer
+width), or a complete fixed-size struct or union declared anywhere in the layout, and the field must be statically
+placed. No other call is accepted, and nothing ever invokes user code. A qualified `enum.Member` names one member of
+a named enum or flag as a constant.
 
 ## Counts and bit widths use signed 32-bit values
 
@@ -96,6 +102,16 @@ range-checked. `enum state : uint8 { Maximum = 255, Next }` fails because `Next`
 
 Bitwise enum operations use signed two's-complement `BigInteger` behavior, and shift counts must be less than the
 backing width. Arithmetic never wraps.
+
+## Non-integer defines and conditionals
+
+A header's other `#define` forms are accepted so it can be pasted unchanged, but they are constants, not expression
+inputs: `#define MAGIC "CD001"` (text), `#define RAW b"\x00\x01"` (bytes), `#define HAS_TAIL` (a bare name), and
+`#define SZ(x) ((x) + 1)` (a function-like macro kept as text, never expanded). `CStruct.Constants` publishes every
+define by name as a `LayoutConstant` whose `Kind` says which form it was; an integer define that could be evaluated
+without caller variables is published as `Integer`, one that depends on a variable as `Expression`. Using a
+non-integer constant in an expression is a layout error. `#ifdef`/`#ifndef` test whether a name has been defined by
+any form so far, or listed in `CStructCompilationOptions.Defined`.
 
 ## Evaluation limits and reuse
 

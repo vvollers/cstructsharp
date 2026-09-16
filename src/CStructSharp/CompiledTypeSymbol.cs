@@ -20,7 +20,8 @@ internal sealed class CompiledTypeSymbol
         int alignment,
         int? fixedSize,
         Func<Stream, object>? reader,
-        Action<Stream, object>? writer)
+        Action<Stream, object>? writer,
+        bool isCustomCodec = false)
     {
         this.Name = name;
         this.Kind = kind;
@@ -30,6 +31,7 @@ internal sealed class CompiledTypeSymbol
         this.layoutComplete = true;
         this.Reader = reader;
         this.Writer = writer;
+        this.IsCustomCodec = isCustomCodec;
     }
 
     private CompiledTypeSymbol(string name, CompiledTypeKind kind, Struct declaration)
@@ -45,6 +47,9 @@ internal sealed class CompiledTypeSymbol
             : throw new InvalidOperationException("Compiled type layout is incomplete: " + this.Name);
 
     public CStructElement? Declaration { get; }
+
+    /// <summary>Whether the symbol is a caller-supplied <see cref="ICustomCodec"/> rather than a built-in primitive.</summary>
+    public bool IsCustomCodec { get; }
 
     public CompiledType? Definition => this.definition;
 

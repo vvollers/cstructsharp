@@ -1,6 +1,8 @@
 namespace CStructSharp.Structure;
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>Represents a typedef alias for a primitive type or an inline struct definition.</summary>
 internal class Typedef : CStructElement
@@ -26,12 +28,19 @@ internal class Typedef : CStructElement
 
     public Identifier Type { get; }
 
+    /// <summary>Fixed dimensions of a <c>typedef T name[N];</c> alias (outermost first); <see cref="Field.NoArray"/> otherwise.</summary>
+    public IReadOnlyList<Expr> ArrayShape { get; init; } = Field.NoArray;
+
+    /// <summary>The <c>struct</c>/<c>union</c> keyword of a <c>typedef struct tag alias;</c>, checked against the tag's kind.</summary>
+    public string? TypeKeywordHint { get; init; }
+
     /// <summary>Checks whether another value represents the same layout data.</summary>
     public override bool Equals(CStructElement? other)
     {
         return other is Typedef t &&
                this.Name.Equals(t.Name) &&
                this.Type.Equals(t.Type) &&
+               this.ArrayShape.SequenceEqual(t.ArrayShape) &&
                (this.Struct is null ? t.Struct is null : this.Struct.Equals(t.Struct));
     }
 

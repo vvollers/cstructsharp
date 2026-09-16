@@ -136,10 +136,16 @@ internal sealed class StaticReadPlan
         {
             Field declaration = field.Declaration;
             if (field.FixedOffset is not int offset || declaration.Condition is not null || declaration.BranchConditions.Count > 0 ||
-                field.PointerDepth > 0 || declaration.BitSize != 0 || declaration.OffsetAssertionExpression is not null ||
-                (declaration.Name.Name.Length == 0 && !composite.PromotedFields.Contains(field)))
+                field.PointerDepth > 0 || declaration.BitSize != 0 || declaration.OffsetAssertionExpression is not null)
             {
                 return false;
+            }
+
+            if (declaration.Name.Name.Length == 0 && !composite.PromotedFields.Contains(field))
+            {
+                // An unnamed padding field has a fixed offset and size but no slot to fill; the plan reads by
+                // absolute offset, so it simply has no operation.
+                continue;
             }
 
             int absoluteOffset = baseOffset + offset;
@@ -194,7 +200,9 @@ internal sealed class StaticReadPlan
                 }
 
             case CompiledTypeKind.Enum:
-                if (field.Array.Kind != CompiledArrayKind.Scalar || !field.Codec.IsFixedWidthNumeric || field.Type.Symbol.Definition is not CompiledEnumType)
+                // A flag's decomposition lives in FlagValueResult, which the span plan and its JavaScript twin do
+                // not produce; a struct holding one takes the interpreter path.
+                if (field.Array.Kind != CompiledArrayKind.Scalar || !field.Codec.IsFixedWidthNumeric || field.Type.Symbol.Definition is not CompiledEnumType { IsFlag: false })
                 {
                     return false;
                 }

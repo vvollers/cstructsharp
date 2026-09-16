@@ -14,7 +14,9 @@ library silently ignores.
 
 ## Identifiers and case
 
-An identifier starts with `_` or a Unicode letter. Later characters may also contain Unicode decimal digits:
+An identifier starts with `_` or a Unicode letter. Later characters may also contain Unicode decimal digits. The one
+exception is an enum member, which may start with a digit as long as it contains a letter or `_` (`32BIT_MACHINE`,
+as Windows headers spell it):
 
 ```c
 struct header_2 {
@@ -33,7 +35,8 @@ struct child {
 };
 ```
 
-another field refers to the type as `child item;`, not `struct child item;`.
+another field refers to the type as `child item;`; `struct child item;` is also accepted and checked against the
+declaration's kind.
 
 Use ASCII identifiers when a layout is shared with tools that apply narrower naming rules, even though CStructSharp
 itself accepts Unicode letters.
@@ -54,6 +57,34 @@ identifier.
 
 Fields, enum declarations, and typedef declarations require semicolons. A top-level struct or union may omit its
 final semicolon, but writing it consistently makes copied layouts easier to read.
+
+A backslash immediately before a line end joins the two lines, anywhere in the source, exactly as C's preprocessor
+does; a copied multi-line `#define` therefore keeps working.
+
+## Preprocessor lines
+
+A line starting with `#` is one of a closed set of directives; any other directive is a syntax error. `#define` binds
+an integer expression, or - for a quoted text literal, a `b"..."` byte literal, a bare name, or a function-like macro
+- a constant that is published on `CStruct.Constants` and takes no part in expressions. `#undef` removes a constant
+for the rest of the source. `#include <path>` and `#include "path"` are recorded on `CStruct.Includes` and never
+read. `#pragma pack(push[, N])`, `pack(pop)`, `pack(N)`, and `pack()` maintain the alignment clamp applied to the
+composites that follow, exactly like a composite `@align(N)`; every other `#pragma` is ignored.
+`#ifdef NAME`/`#ifndef NAME`/`#else`/`#endif` select declarations by the names defined so far in the source plus
+`CStructCompilationOptions.Defined`; the text of a false branch is skipped without being parsed, and conditionals
+nest.
+
+```c
+#include <stdint.h>
+#define MAGIC "CD001"
+#define VERSION 2
+#pragma pack(push, 1)
+#ifdef WIDE
+struct header { uint32 length; };
+#else
+struct header { uint16 length; };
+#endif
+#pragma pack(pop)
+```
 
 ## Integer literals
 

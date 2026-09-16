@@ -712,7 +712,7 @@ public class LayoutSafetyTests
     [TestMethod]
     public void TagKeyword_EnumBeforeAnEnumReference_CompilesToTheIdenticalShape()
     {
-        var cstruct = new CStruct("enum color { red, green, blue }; struct root { enum color value; };");
+        var cstruct = new CStruct("enum color : uint8 { red, green, blue }; struct root { enum color value; };");
 
         Assert.AreEqual(1, cstruct.GetStructSizeInBytes("root"));
     }
@@ -755,13 +755,17 @@ public class LayoutSafetyTests
         StringAssert.Contains(exception.Message, "struct");
     }
 
-    /// <summary>The tag-alias-without-braces typedef form (<c>typedef struct tag alias;</c>) stays out of LANG-01's scope.</summary>
+    /// <summary>
+    ///     The tag-alias-without-braces typedef form (<c>typedef struct tag alias;</c>) names an existing composite
+    ///     (dissect parity, Phase 1); the keyword must still match the declaration's kind.
+    /// </summary>
     [TestMethod]
-    public void TagKeyword_TypedefTagAliasWithoutBraces_RemainsUnsupported()
+    public void TagKeyword_TypedefTagAliasWithoutBraces_AliasesTheDeclaration()
     {
+        var layout = new CStruct("struct child { uint8 value; }; typedef struct child alias; struct root { alias value; };");
+        Assert.AreEqual(1, layout.GetStructSizeInBytes("root"));
         Assert.Throws<CStructLayoutException>(
-            () => new CStruct(
-                "struct child { uint8 value; }; typedef struct child alias; struct root { alias value; };"));
+            () => new CStruct("struct child { uint8 value; }; typedef union child alias; struct root { alias value; };"));
     }
 
     /// <summary>A tag-keyword field compiles to the identical shape as the bare-name form for every operation.</summary>

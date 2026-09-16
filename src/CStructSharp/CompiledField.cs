@@ -48,7 +48,9 @@ internal sealed class CompiledField
         // Only the 8-byte descriptor is stored; the name stays a computed property so wide layouts do not grow.
         this.Codec = this.PointerDepth > 0 || this.Type.Symbol.Kind is CompiledTypeKind.Struct or CompiledTypeKind.Union
                          ? PrimitiveCodec.None with { LayoutLittleEndian = layoutLittleEndian }
-                         : PrimitiveCodec.Resolve(this.CodecName, layoutLittleEndian);
+                         : this.Type.Symbol.IsCustomCodec
+                             ? new PrimitiveCodec(PrimitiveCodecKind.Custom, (byte)Math.Min(this.Type.Symbol.FixedSize ?? 0, byte.MaxValue), layoutLittleEndian, '\0', layoutLittleEndian)
+                             : PrimitiveCodec.Resolve(this.CodecName, layoutLittleEndian);
         this.IsFixedPoint = this.Codec.IsFixedPoint;
     }
 
@@ -76,7 +78,9 @@ internal sealed class CompiledField
                          ? parent.Codec
                          : this.PointerDepth > 0
                              ? PrimitiveCodec.None with { LayoutLittleEndian = parent.LayoutLittleEndian }
-                             : PrimitiveCodec.Resolve(this.CodecName, parent.LayoutLittleEndian);
+                             : this.Type.Symbol.IsCustomCodec
+                                 ? new PrimitiveCodec(PrimitiveCodecKind.Custom, (byte)Math.Min(this.Type.Symbol.FixedSize ?? 0, byte.MaxValue), parent.LayoutLittleEndian, '\0', parent.LayoutLittleEndian)
+                                 : PrimitiveCodec.Resolve(this.CodecName, parent.LayoutLittleEndian);
         this.IsFixedPoint = this.Codec.IsFixedPoint;
     }
 
@@ -159,6 +163,12 @@ internal sealed class CompiledField
 
     /// <summary>Compile-time codec identity; <see cref="PrimitiveCodec.None"/> for pointers and composites.</summary>
     public PrimitiveCodec Codec { get; }
+
+    /// <summary>
+    ///     The name that decides whether consecutive bitfields share a storage unit: the storage codec's terminal
+    ///     name, so an enum or flag bitfield shares the unit of its backing type (and of other enums on that type).
+    /// </summary>
+    public string BitUnitType => this.CodecName;
 
     /// <summary>The layout's neutral byte order, needed to resolve suffix-less codec spellings of derived fields.</summary>
     public bool LayoutLittleEndian => this.Codec.LayoutLittleEndian;

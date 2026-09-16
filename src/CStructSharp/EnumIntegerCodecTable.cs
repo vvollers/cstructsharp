@@ -17,16 +17,25 @@ internal sealed class EnumIntegerCodecTable
     ///     The layout's global declarations, populated with at least every top-level typedef, used to follow a
     ///     scalar typedef chain down to its direct built-in storage spelling.
     /// </param>
+    /// <param name="cLongWidth">The width of the C <c>long</c> family for this layout (32 or 64).</param>
+    /// <param name="pointerSize">The layout's pointer width, for <c>size_t</c>-style backing spellings.</param>
     public EnumIntegerCodecTable(
         IEnumerable<CStructElement> declarations,
-        IReadOnlyDictionary<string, CStructElement> cStructElements)
+        IReadOnlyDictionary<string, CStructElement> cStructElements,
+        int cLongWidth = 64,
+        int pointerSize = 8)
     {
         foreach (CstructEnum enm in declarations.OfType<CstructEnum>())
         {
-            string storageName = ResolveEnumStorageName(
-                enm.Type,
-                cStructElements,
-                new HashSet<string>(StringComparer.Ordinal));
+            // The backing spelling may be an alias (`ULONG`, `unsigned int`) or a typedef chain ending in one; both
+            // resolve to the canonical codec the same way a field type does.
+            string storageName = PrimitiveSpellings.Canonicalize(
+                ResolveEnumStorageName(
+                    enm.Type,
+                    cStructElements,
+                    new HashSet<string>(StringComparer.Ordinal)),
+                cLongWidth,
+                pointerSize);
             if (!EnumIntegerCodec.TryCreate(storageName, out EnumIntegerCodec? codec))
             {
                 throw new CStructLayoutException(

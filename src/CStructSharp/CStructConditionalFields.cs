@@ -33,6 +33,7 @@ public partial class CStruct
                 {
                     BinaryOp binary => new BinaryOp(binary.Type, rewritten[binary.Left], rewritten[binary.Right]),
                     UnaryOp unary => new UnaryOp(unary.Type, rewritten[unary.Expr]),
+                    ConditionalExpr conditional => new ConditionalExpr(rewritten[conditional.Condition], rewritten[conditional.WhenTrue], rewritten[conditional.WhenFalse]),
                     _ => current,
                 };
                 continue;
@@ -47,6 +48,12 @@ public partial class CStruct
             else if (current is UnaryOp unary)
             {
                 pending.Push((unary.Expr, false));
+            }
+            else if (current is ConditionalExpr conditional)
+            {
+                pending.Push((conditional.WhenFalse, false));
+                pending.Push((conditional.WhenTrue, false));
+                pending.Push((conditional.Condition, false));
             }
         }
 

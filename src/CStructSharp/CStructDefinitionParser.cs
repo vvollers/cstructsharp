@@ -5,15 +5,20 @@ using CStructSharp.Structure;
 
 /// <summary>
 ///     Entry points for parsing the supported C-like layout language into the small model classes used by
-///     <see cref="CStruct"/>. <see cref="ParseLayout"/> parses a complete definition; the other members parse one
+///     <see cref="CStruct"/>. <see cref="ParseLayout(string, IReadOnlySet{string})"/> parses a complete definition; the other members parse one
 ///     production each for tests and tooling. All of them delegate to <see cref="LayoutParser"/>.
 /// </summary>
 internal static class CStructDefinitionParser
 {
     /// <summary>Parses a complete layout definition into its top-level declarations.</summary>
-    public static IReadOnlyList<CStructElement> ParseLayout(string source)
+    public static IReadOnlyList<CStructElement> ParseLayout(string source, IReadOnlySet<string>? definedNames = null)
     {
-        return LayoutParser.ParseLayout(source);
+        return LayoutParser.ParseLayout(source, definedNames);
+    }
+
+    public static IReadOnlyList<CStructElement> ParseLayout(string source, IReadOnlySet<string>? definedNames, string? defaultEnumStorage, out bool usesQualifiedIdentifiers)
+    {
+        return LayoutParser.ParseLayout(source, definedNames, defaultEnumStorage, out usesQualifiedIdentifiers);
     }
 
     /// <summary>Parses exactly one top-level declaration.</summary>

@@ -21,6 +21,16 @@ internal static class LayoutSourceValidator
             throw new ArgumentOutOfRangeException(nameof(options), "Layout compilation limits must be greater than zero.");
         }
 
+        if (options.CLongWidth is not (32 or 64))
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "CLongWidth must be 32 or 64.");
+        }
+
+        if (options.DefaultEnumStorage is not null && string.IsNullOrWhiteSpace(options.DefaultEnumStorage))
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "DefaultEnumStorage must name an integer type or be null.");
+        }
+
         if (layout.Length > options.MaxDefinitionLength)
         {
             throw new CStructLayoutException("Layout definition exceeds the configured length limit.");

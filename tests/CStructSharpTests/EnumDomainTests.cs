@@ -499,10 +499,13 @@ public class EnumDomainTests
                 "Layout should reject enum expression: " + layout);
         }
 
+        // A definition beyond the 32-bit domain is a constant with its exact value (headers are full of 64-bit
+        // masks); only a count that selects it is an error.
         Assert.Throws<CStructLayoutException>(
             () => new CStruct("#define WIDE 1 << 63\nstruct root { byte values[WIDE]; };"));
-        Assert.Throws<CStructLayoutException>(
-            () => new CStruct("#define UNUSED 1 << 63\nstruct root { byte value; };"));
+        var unused = new CStruct("#define UNUSED 1 << 63\nstruct root { byte value; };");
+        Assert.AreEqual(BigInteger.One << 63, unused.Constants["UNUSED"].Value);
+        Assert.AreEqual(LayoutConstantKind.Integer, unused.Constants["UNUSED"].Kind);
     }
 
     /// <summary>

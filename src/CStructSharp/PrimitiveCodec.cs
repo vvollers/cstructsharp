@@ -41,6 +41,16 @@ internal enum PrimitiveCodecKind : byte
     TerminatedAscii,
     TerminatedUtf8,
     TerminatedUtf16,
+
+    // Wide and narrow numerics past the bulk/static-plan range: read through their delegates, never span-decoded.
+    Int48,
+    UInt48,
+    Int128,
+    UInt128,
+    Float16,
+
+    /// <summary>A caller-supplied <see cref="ICustomCodec"/>: delegate path only, size from the codec.</summary>
+    Custom,
 }
 
 /// <summary>
@@ -70,6 +80,8 @@ internal readonly record struct PrimitiveCodec(PrimitiveCodecKind Kind, byte Siz
 
     public bool IsIdentifier => this.Kind is PrimitiveCodecKind.Uuid or PrimitiveCodecKind.Guid;
 
+    public bool IsCustom => this.Kind == PrimitiveCodecKind.Custom;
+
     /// <summary>Resolves a codec name from the primitive registry vocabulary; unknown names map to <see cref="None"/>.</summary>
     public static PrimitiveCodec Resolve(string? codecName, bool layoutLittleEndian)
     {
@@ -79,7 +91,11 @@ internal readonly record struct PrimitiveCodec(PrimitiveCodecKind Kind, byte Siz
         }
 
         bool littleEndian = layoutLittleEndian;
-        ReadOnlySpan<char> name = codecName;
+
+        // Alias spellings never reach a compiled field (the registry resolves them to canonical symbols), but the
+        // few callers that resolve a declared name directly still get the canonical answer. The long family is
+        // resolved at its default width here; a layout's CLongWidth is applied by its registry, not by this lookup.
+        ReadOnlySpan<char> name = PrimitiveSpellings.Canonicalize(codecName, 64);
         if (name.Length > 0 && name[^1] == '<')
         {
             littleEndian = true;
@@ -94,9 +110,9 @@ internal readonly record struct PrimitiveCodec(PrimitiveCodecKind Kind, byte Siz
         // Span patterns keep this allocation-free; it runs once per compiled field, including wide layouts.
         return name switch
         {
-            "byte" or "uint8" or "uint8_t" or "unsigned char" => new(PrimitiveCodecKind.UInt8, 1, littleEndian, '\0', layoutLittleEndian),
-            "int8" or "int8_t" or "signed char" => new(PrimitiveCodecKind.Int8, 1, littleEndian, '\0', layoutLittleEndian),
-            "bool" or "_Bool" => new(PrimitiveCodecKind.Bool, 1, littleEndian, '\0', layoutLittleEndian),
+            "byte" or "uint8" => new(PrimitiveCodecKind.UInt8, 1, littleEndian, '\0', layoutLittleEndian),
+            "int8" => new(PrimitiveCodecKind.Int8, 1, littleEndian, '\0', layoutLittleEndian),
+            "bool" => new(PrimitiveCodecKind.Bool, 1, littleEndian, '\0', layoutLittleEndian),
             "char" => new(PrimitiveCodecKind.Char, 1, littleEndian, '\0', layoutLittleEndian),
             "latin1" => new(PrimitiveCodecKind.Latin1, 1, littleEndian, '\0', layoutLittleEndian),
             "cp437" => new(PrimitiveCodecKind.Cp437, 1, littleEndian, '\0', layoutLittleEndian),
@@ -104,16 +120,21 @@ internal readonly record struct PrimitiveCodec(PrimitiveCodecKind Kind, byte Siz
             "utf16le" => new(PrimitiveCodecKind.Utf16LeUnit, 1, true, '\0', layoutLittleEndian),
             "utf16be" => new(PrimitiveCodecKind.Utf16BeUnit, 1, false, '\0', layoutLittleEndian),
             "wchar" => new(PrimitiveCodecKind.WChar, 2, littleEndian, '\0', layoutLittleEndian),
-            "int16" or "int16_t" or "short" or "signed short" => new(PrimitiveCodecKind.Int16, 2, littleEndian, '\0', layoutLittleEndian),
-            "uint16" or "uint16_t" or "ushort" or "unsigned short" => new(PrimitiveCodecKind.UInt16, 2, littleEndian, '\0', layoutLittleEndian),
+            "int16" => new(PrimitiveCodecKind.Int16, 2, littleEndian, '\0', layoutLittleEndian),
+            "uint16" => new(PrimitiveCodecKind.UInt16, 2, littleEndian, '\0', layoutLittleEndian),
             "int24" => new(PrimitiveCodecKind.Int24, 3, littleEndian, '\0', layoutLittleEndian),
             "uint24" => new(PrimitiveCodecKind.UInt24, 3, littleEndian, '\0', layoutLittleEndian),
-            "int32" or "int32_t" or "int" or "signed" or "signed int" => new(PrimitiveCodecKind.Int32, 4, littleEndian, '\0', layoutLittleEndian),
-            "uint32" or "uint32_t" or "uint" or "unsigned" or "unsigned int" => new(PrimitiveCodecKind.UInt32, 4, littleEndian, '\0', layoutLittleEndian),
-            "int64" or "int64_t" or "long" or "signed long" or "long long" or "signed long long" => new(PrimitiveCodecKind.Int64, 8, littleEndian, '\0', layoutLittleEndian),
-            "uint64" or "uint64_t" or "ulong" or "unsigned long" or "unsigned long long" => new(PrimitiveCodecKind.UInt64, 8, littleEndian, '\0', layoutLittleEndian),
-            "float32" or "float" => new(PrimitiveCodecKind.Float32, 4, littleEndian, '\0', layoutLittleEndian),
-            "float64" or "double" => new(PrimitiveCodecKind.Float64, 8, littleEndian, '\0', layoutLittleEndian),
+            "int32" => new(PrimitiveCodecKind.Int32, 4, littleEndian, '\0', layoutLittleEndian),
+            "uint32" => new(PrimitiveCodecKind.UInt32, 4, littleEndian, '\0', layoutLittleEndian),
+            "int64" => new(PrimitiveCodecKind.Int64, 8, littleEndian, '\0', layoutLittleEndian),
+            "uint64" => new(PrimitiveCodecKind.UInt64, 8, littleEndian, '\0', layoutLittleEndian),
+            "float32" => new(PrimitiveCodecKind.Float32, 4, littleEndian, '\0', layoutLittleEndian),
+            "float64" => new(PrimitiveCodecKind.Float64, 8, littleEndian, '\0', layoutLittleEndian),
+            "int48" => new(PrimitiveCodecKind.Int48, 6, littleEndian, '\0', layoutLittleEndian),
+            "uint48" => new(PrimitiveCodecKind.UInt48, 6, littleEndian, '\0', layoutLittleEndian),
+            "int128" => new(PrimitiveCodecKind.Int128, 16, littleEndian, '\0', layoutLittleEndian),
+            "uint128" => new(PrimitiveCodecKind.UInt128, 16, littleEndian, '\0', layoutLittleEndian),
+            "float16" => new(PrimitiveCodecKind.Float16, 2, littleEndian, '\0', layoutLittleEndian),
             "uleb128_32" => new(PrimitiveCodecKind.ULeb128_32, 0, littleEndian, '\0', layoutLittleEndian),
             "uleb128_64" => new(PrimitiveCodecKind.ULeb128_64, 0, littleEndian, '\0', layoutLittleEndian),
             "sleb128_32" => new(PrimitiveCodecKind.SLeb128_32, 0, littleEndian, '\0', layoutLittleEndian),
@@ -124,11 +145,11 @@ internal readonly record struct PrimitiveCodec(PrimitiveCodecKind Kind, byte Siz
             "ufixed8_8" => new(PrimitiveCodecKind.UFixed8_8, 2, littleEndian, '\0', layoutLittleEndian),
             "uuid" => new(PrimitiveCodecKind.Uuid, 16, littleEndian, '\0', layoutLittleEndian),
             "guid" => new(PrimitiveCodecKind.Guid, 16, littleEndian, '\0', layoutLittleEndian),
-            "ascii_string_zero" or "cstring" => new(PrimitiveCodecKind.TerminatedAscii, 0, littleEndian, '\0', layoutLittleEndian),
+            "ascii_string_zero" => new(PrimitiveCodecKind.TerminatedAscii, 0, littleEndian, '\0', layoutLittleEndian),
             "ascii_string_newline" => new(PrimitiveCodecKind.TerminatedAscii, 0, littleEndian, '\n', layoutLittleEndian),
             "utf8_string_zero" => new(PrimitiveCodecKind.TerminatedUtf8, 0, littleEndian, '\0', layoutLittleEndian),
             "utf8_string_newline" => new(PrimitiveCodecKind.TerminatedUtf8, 0, littleEndian, '\n', layoutLittleEndian),
-            "unicode_string_zero" or "string" => new(PrimitiveCodecKind.TerminatedUtf16, 0, littleEndian, '\0', layoutLittleEndian),
+            "unicode_string_zero" => new(PrimitiveCodecKind.TerminatedUtf16, 0, littleEndian, '\0', layoutLittleEndian),
             "unicode_string_newline" => new(PrimitiveCodecKind.TerminatedUtf16, 0, littleEndian, '\n', layoutLittleEndian),
             _ => None with { LayoutLittleEndian = layoutLittleEndian },
         };

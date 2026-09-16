@@ -26,7 +26,11 @@ public class FeatureOperationMatrixTests
             .. spellings.GetProperty("dynamicNumeric").EnumerateArray().Select(item => item.GetString()!),
             .. spellings.GetProperty("fixed").EnumerateArray().Select(item => item.GetString()!),
             .. spellings.GetProperty("terminated").EnumerateArray().Select(item => item.GetString()!),
+            .. spellings.GetProperty("aliases").EnumerateArray().Select(item => item.GetString()!),
         ];
+
+        // `void` and its aliases resolve to a symbol with no reader (only a pointer to it is storable).
+        catalog = catalog.Where(item => PrimitiveSpellings.Canonicalize(item, 64) != "void").ToArray();
 
         var cstruct = new CStruct("struct root { byte value; };");
         CollectionAssert.AreEquivalent(
@@ -427,6 +431,30 @@ public class FeatureOperationMatrixTests
         yield return ("uint32_t", 4);
         yield return ("int64_t", 8);
         yield return ("uint64_t", 8);
+
+        // Windows SDK, Linux kernel, IDA, and MSVC spellings (dissect parity) - the same canonical codecs.
+        yield return ("BYTE", 1);
+        yield return ("UCHAR", 1);
+        yield return ("INT8", 1);
+        yield return ("WORD", 2);
+        yield return ("USHORT", 2);
+        yield return ("SHORT", 2);
+        yield return ("DWORD", 4);
+        yield return ("ULONG", 4);
+        yield return ("LONG", 4);
+        yield return ("UINT32", 4);
+        yield return ("QWORD", 8);
+        yield return ("ULONGLONG", 8);
+        yield return ("LONGLONG", 8);
+        yield return ("UINT64", 8);
+        yield return ("u8", 1);
+        yield return ("__u16", 2);
+        yield return ("u32", 4);
+        yield return ("__u64", 8);
+        yield return ("__s32", 4);
+        yield return ("unsigned __int64", 8);
+        yield return ("__int32", 4);
+        yield return ("_DWORD", 4);
     }
 
     private static IEnumerable<MatrixCase> RepresentativeCases()

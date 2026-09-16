@@ -54,14 +54,15 @@ internal static class LayoutMath
         int activeUnitSize,
         int activeAlignment,
         int bitsUsed,
-        Field nextField,
+        string nextUnitType,
+        int nextBitSize,
         int nextUnitSize,
         int nextAlignment)
     {
         return activeUnitSize == 0 ||
                activeUnitSize != nextUnitSize ||
                activeAlignment != nextAlignment ||
-               !string.Equals(activeType, nextField.Type.Name, StringComparison.Ordinal) ||
-               bitsUsed + nextField.BitSize > nextUnitSize * 8;
+               !string.Equals(activeType, nextUnitType, StringComparison.Ordinal) ||
+               bitsUsed + nextBitSize > nextUnitSize * 8;
     }
 }

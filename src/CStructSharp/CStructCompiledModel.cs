@@ -136,6 +136,11 @@ public partial class CStruct
                 pending.Push(binary.Left);
                 pending.Push(binary.Right);
                 break;
+            case ConditionalExpr conditional:
+                pending.Push(conditional.Condition);
+                pending.Push(conditional.WhenTrue);
+                pending.Push(conditional.WhenFalse);
+                break;
             case Call call:
                 pending.Push(call.Expr);
                 foreach (Expr argument in call.Arguments)
@@ -172,6 +177,29 @@ public partial class CStruct
     private CompiledLayoutModel BuildCompiledLayout()
     {
         var namedTypes = this.primitiveRegistry.Symbols.ToBuilder();
+
+        foreach (KeyValuePair<string, CompiledTypeReference> custom in this.customSymbols)
+        {
+            namedTypes[custom.Key] = custom.Value;
+        }
+
+        // `size_t` and its relatives are as wide as this layout's pointers, so they are seeded per layout rather
+        // than per registry; a layout declaration of the same name (below) takes precedence.
+        foreach ((string spelling, bool isUnsigned) in PrimitiveSpellings.PointerSizedIsUnsigned)
+        {
+            namedTypes[spelling] = namedTypes[PrimitiveSpellings.PointerSizedCanonical(isUnsigned, this.PointerSize)];
+        }
+
+        // A layout declaration shadows a built-in alias spelling of the same name (SymbolValidation lets those
+        // through); drop the built-in entry so the declaration is what the name resolves to.
+        foreach (string declaredName in this.CStructElements.Keys)
+        {
+            if (PrimitiveSpellings.IsAlias(declaredName))
+            {
+                namedTypes.Remove(declaredName);
+            }
+        }
+
         var compositeSymbols = new Dictionary<Struct, CompiledTypeSymbol>(ReferenceEqualityComparer.Instance);
         var enumSymbols = new Dictionary<CstructEnum, CompiledTypeSymbol>(ReferenceEqualityComparer.Instance);
 
@@ -265,7 +293,8 @@ public partial class CStruct
                     enm.Value,
                     underlying,
                     this.enumIntegerCodecs.Get(enm.Key.Name.Name),
-                    members.ToImmutable()));
+                    members.ToImmutable(),
+                    enm.Key.IsFlag));
         }
 
         var compiledFields = ImmutableDictionary.CreateBuilder<Field, CompiledField>(
@@ -293,10 +322,15 @@ public partial class CStruct
             }
 
             CompiledTypeReference type = namedTypes[declaration.Name.Name];
+
+            // A `typedef T name[N];` root reads its whole fixed shape.
+            IReadOnlyList<Expr> rootShape = declaration is Typedef { ArrayShape.Count: > 0, } arrayAlias
+                                                ? arrayAlias.ArrayShape
+                                                : Field.NoArray;
             var field = new Field(
                 new Identifier(type.TerminalName),
                 declaration.Name,
-                Field.NoArray,
+                rootShape,
                 0,
                 type.PointerDepth);
             Func<Stream, object>? reader = this.GetCompiledReader(type.Symbol);
@@ -312,6 +346,10 @@ public partial class CStruct
 
             int alignment = type.PointerDepth > 0 ? this.PointerSize : type.Symbol.Alignment;
             int? elementSize = type.PointerDepth > 0 ? this.PointerSize : type.Symbol.FixedSize;
+            CompiledArrayShape rootArrayShape = this.CompileArrayShape(field);
+            int? rootStorageSize = elementSize.HasValue && rootArrayShape.TotalFixedElementCount.HasValue
+                                       ? checked(elementSize.Value * rootArrayShape.TotalFixedElementCount.Value)
+                                       : elementSize;
             var compiledRoot = new CompiledField(
                 field,
                 field,
@@ -322,8 +360,8 @@ public partial class CStruct
                 terminatedWriter,
                 alignment,
                 elementSize,
-                CompiledArrayShape.Scalar,
-                elementSize,
+                rootArrayShape,
+                rootStorageSize,
                 false,
                 null,
                 null,
@@ -427,6 +465,16 @@ public partial class CStruct
                     namedTypes,
                     compositeSymbols,
                     resolvingAliases);
+                if (alias.TypeKeywordHint is not null)
+                {
+                    string actualKind = target.Symbol.Kind.ToString().ToLowerInvariant();
+                    if (!string.Equals(alias.TypeKeywordHint, actualKind, StringComparison.Ordinal))
+                    {
+                        throw new CStructLayoutException(
+                            $"Typedef '{name}' declared as '{alias.TypeKeywordHint}' but '{alias.Type.Name}' is a {actualKind}.");
+                    }
+                }
+
                 resolved = new CompiledTypeReference(
                     target.Symbol,
                     checked(target.PointerDepth + alias.Type.PointerDepth),
@@ -439,6 +487,95 @@ public partial class CStruct
         finally
         {
             resolvingAliases.Remove(name);
+        }
+    }
+
+    /// <summary>
+    ///     Replaces every <c>sizeof(T)</c> and <c>offsetof(T, f)</c> in an expression with its literal value. T may be
+    ///     a primitive, typedef, enum, or composite (compiled on demand, so it must be complete and fixed-size); a
+    ///     pointer type has the pointer width.
+    /// </summary>
+    private Expr FoldCalls(
+        Expr expression,
+        string fieldName,
+        IReadOnlyDictionary<Struct, CompiledTypeSymbol> compositeSymbols,
+        ImmutableDictionary<string, CompiledTypeReference>.Builder namedTypes,
+        HashSet<string> resolvingAliases,
+        ImmutableDictionary<Field, CompiledField>.Builder compiledFields,
+        HashSet<Struct> compiling,
+        CompiledSizeQueries sizeQueries)
+    {
+        switch (expression)
+        {
+        case Call call:
+            {
+                if (call.Expr is not Identifier { Name: "sizeof" or "offsetof", } function)
+                {
+                    throw new CStructLayoutException(
+                        $"Only sizeof(type) and offsetof(type, field) are supported as expression calls: {fieldName}");
+                }
+
+                bool isSizeof = function.Name == "sizeof";
+                if (call.Arguments.Length != (isSizeof ? 1 : 2) || call.Arguments.Any(argument => argument is not Identifier))
+                {
+                    throw new CStructLayoutException(
+                        $"{function.Name} expects {(isSizeof ? "one type name" : "a type name and a field name")}: {fieldName}");
+                }
+
+                var typeName = (Identifier)call.Arguments[0];
+                CompiledTypeReference target = this.ResolveCompiledTypeReference(typeName.Name, namedTypes, compositeSymbols, resolvingAliases);
+                int totalPointerDepth = target.PointerDepth + typeName.PointerDepth;
+                if (isSizeof)
+                {
+                    if (totalPointerDepth > 0)
+                    {
+                        return new Literal(this.PointerSize);
+                    }
+
+                    if (target.Symbol.Declaration is Struct sized)
+                    {
+                        _ = this.CompileComposite(sized, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries);
+                        return new Literal(
+                            sizeQueries.GetCompiledStructSizeInBytes(sizeQueries.GetCompiledComposite(sized), this.staticLayoutVariables, true));
+                    }
+
+                    return new Literal(
+                        target.Symbol.FixedSize ??
+                        throw new CStructLayoutException($"sizeof({typeName.Name}) has no fixed size: {fieldName}"));
+                }
+
+                if (totalPointerDepth > 0 || target.Symbol.Declaration is not Struct composite)
+                {
+                    throw new CStructLayoutException($"offsetof needs a struct or union type: {fieldName}");
+                }
+
+                CompiledCompositeType compiled = this.CompileComposite(composite, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries);
+                string memberName = ((Identifier)call.Arguments[1]).Name;
+                CompiledField? member = compiled.Fields.FirstOrDefault(item => item.Declaration.Name.Name == memberName);
+                if (member is null)
+                {
+                    throw new CStructLayoutException($"offsetof: '{composite.Name.Name}' has no field named '{memberName}': {fieldName}");
+                }
+
+                return new Literal(
+                    member.FixedOffset ??
+                    throw new CStructLayoutException($"offsetof({composite.Name.Name}, {memberName}) is not statically placed: {fieldName}"));
+            }
+
+        case UnaryOp unary:
+            return new UnaryOp(unary.Type, this.FoldCalls(unary.Expr, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries));
+        case BinaryOp binary:
+            return new BinaryOp(
+                binary.Type,
+                this.FoldCalls(binary.Left, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries),
+                this.FoldCalls(binary.Right, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries));
+        case ConditionalExpr conditional:
+            return new ConditionalExpr(
+                this.FoldCalls(conditional.Condition, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries),
+                this.FoldCalls(conditional.WhenTrue, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries),
+                this.FoldCalls(conditional.WhenFalse, fieldName, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries));
+        default:
+            return expression;
         }
     }
 
@@ -500,6 +637,12 @@ public partial class CStruct
                 }
 
                 int pointerDepth = checked(field.PointerDepth + type.PointerDepth);
+                if (pointerDepth == 0 && type.TerminalName == "void")
+                {
+                    throw new CStructLayoutException(
+                        "void has no storage of its own; declare a pointer to it: " + field.Name.Name);
+                }
+
                 if (pointerDepth == 0 && type.Symbol.Declaration is Struct nested)
                 {
                     if (compiling.Contains(nested))
@@ -518,10 +661,29 @@ public partial class CStruct
                         sizeQueries);
                 }
 
+                IReadOnlyList<Expr> arrayCount = field.ArrayCount;
+                if (arrayCount.Count > 0 && arrayCount.Any(ExpressionEvaluator.ContainsCall))
+                {
+                    // sizeof(T) / offsetof(T, f) fold to literals now that T can be compiled on demand.
+                    var folded = new Expr[arrayCount.Count];
+                    for (int index = 0; index < folded.Length; index++)
+                    {
+                        folded[index] = ReferenceEquals(arrayCount[index], Field.UnknownArraysize)
+                                            ? arrayCount[index]
+                                            : this.FoldCalls(arrayCount[index], field.Name.Name, compositeSymbols, namedTypes, resolvingAliases, compiledFields, compiling, sizeQueries);
+                        if (!ReferenceEquals(folded[index], Field.UnknownArraysize))
+                        {
+                            this.expressionEvaluator.Compile(folded[index]);
+                        }
+                    }
+
+                    arrayCount = folded;
+                }
+
                 var effectiveField = new Field(
                     new Identifier(type.TerminalName),
                     field.Name,
-                    field.ArrayCount,
+                    arrayCount,
                     field.BitSize,
                     pointerDepth);
 
@@ -537,11 +699,6 @@ public partial class CStruct
                 }
 
                 bool isUnsizedCharacterArray = isUnsizedArray && CharacterFieldTypes.IsCharArrayField(effectiveField);
-                if (isUnsizedArray && !isUnsizedCharacterArray)
-                {
-                    throw new CStructLayoutException(
-                        "Only character fields can use an unsized array declarator: " + field.Name.Name);
-                }
 
                 Func<Stream, object>? reader = this.GetCompiledReader(type.Symbol);
                 Action<Stream, object>? writer = this.GetCompiledWriter(type.Symbol);
@@ -572,15 +729,38 @@ public partial class CStruct
 
                 int? elementSize = pointerDepth > 0 ? this.PointerSize : type.Symbol.FixedSize;
                 CompiledArrayShape arrayShape = this.CompileArrayShape(effectiveField);
+                if (arrayShape.Kind is CompiledArrayKind.Terminated or CompiledArrayKind.ToEnd &&
+                    (!elementSize.HasValue || (pointerDepth == 0 && BoundedTextCodec.IsType(type.Symbol.Name))))
+                {
+                    // The count comes from the data, so every element must have one fixed size to step by; a bounded
+                    // text codec sizes its buffer by characters, not elements, so it keeps needing an explicit capacity.
+                    throw new CStructLayoutException(
+                        "A data-sized array needs a fixed-size, non-text element type: " + field.Name.Name);
+                }
+
                 int? storageSize = elementSize.HasValue && arrayShape.TotalFixedElementCount.HasValue
                                        ? checked(elementSize.Value * arrayShape.TotalFixedElementCount.Value)
                                        : null;
+                if (field.Name.Name.Length == 0 && field.BitSize == 0 && field is not Struct &&
+                    (!storageSize.HasValue || type.Symbol.Kind is CompiledTypeKind.Struct or CompiledTypeKind.Union))
+                {
+                    // A `_` padding field is written as zeroes without a caller value, so it needs a fixed
+                    // primitive shape to know how many.
+                    throw new CStructLayoutException(
+                        "A padding field (`_`) needs a fixed-size primitive type in: " + strct.Name.Name);
+                }
+
                 BitfieldCodecTable.Entry? bitfieldStorage = null;
                 if (field.BitSize > 0)
                 {
                     try
                     {
-                        bitfieldStorage = this.bitfieldCodecs.ValidateBitField(field);
+                        // Validated against the resolved type so an alias or typedef of an integer codec is
+                        // acceptable storage, exactly as in C; an enum or flag stores its bits in its backing type.
+                        Field storageField = type.Symbol.Definition is CompiledEnumType enumStorage && pointerDepth == 0
+                                                 ? new Field(new Identifier(enumStorage.Underlying.TerminalName), field.Name, field.ArrayCount, field.BitSize, 0)
+                                                 : effectiveField;
+                        bitfieldStorage = this.bitfieldCodecs.ValidateBitField(storageField);
                     }
                     catch (InvalidOperationException exception)
                     {
@@ -719,7 +899,8 @@ public partial class CStruct
                     activeBitUnitSize,
                     activeBitUnitAlignment,
                     activeBitUnitBitsUsed,
-                    field.EffectiveField,
+                    field.BitUnitType,
+                    field.EffectiveField.BitSize,
                     unitSize,
                     field.Alignment);
                 if (startsNew)
@@ -733,7 +914,7 @@ public partial class CStruct
                     current = current.HasValue ? checked(current.Value + unitSize) : null;
                     activeBitUnitSize = unitSize;
                     activeBitUnitAlignment = field.Alignment;
-                    activeBitUnitType = field.EffectiveField.Type.Name;
+                    activeBitUnitType = field.BitUnitType;
                     activeBitUnitBitsUsed = 0;
                 }
 
@@ -859,8 +1040,22 @@ public partial class CStruct
     {
         if (ReferenceEquals(dimensionExpression, Field.UnknownArraysize))
         {
+            // `char name[]` is a terminated string; `T values[]` on any other type is an array terminated by an
+            // all-zero element (C's flexible member has no extent of its own, dissect's convention gives it one).
             return new CompiledArrayShape(
-                CompiledArrayKind.Flexible,
+                CharacterFieldTypes.IsCharArrayField(field) ? CompiledArrayKind.Flexible : CompiledArrayKind.Terminated,
+                dimensionExpression,
+                null,
+                ImmutableArray<string>.Empty,
+                ImmutableArray.Create(new CompiledArrayDimension(dimensionExpression, null)));
+        }
+
+        if (dimensionExpression is Identifier { Name: "EOF", } && !this.staticLayoutVariables.ContainsKey("EOF"))
+        {
+            // `T values[EOF]`: every whole element to the end of the input. A layout that defines EOF itself keeps
+            // the ordinary count meaning.
+            return new CompiledArrayShape(
+                CompiledArrayKind.ToEnd,
                 dimensionExpression,
                 null,
                 ImmutableArray<string>.Empty,

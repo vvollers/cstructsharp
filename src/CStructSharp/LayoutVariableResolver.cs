@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Numerics;
 using CStructSharp.Structure;
 
 /// <summary>Caches static definitions and recomputes only values affected by caller overrides.</summary>
@@ -140,6 +141,23 @@ internal sealed class LayoutVariableResolver
             throw new CStructLayoutException(
                 "Layout expression could not be resolved: " + exception.Message,
                 exception);
+        }
+    }
+
+    /// <summary>
+    ///     Evaluates a definition that overflowed the 32-bit domain as an exact integer, so the constant is still
+    ///     published with its value; a definition that fails exactly too (division by zero, ...) keeps its expression.
+    /// </summary>
+    private Expr ResolveExactOrKeep(Expr expression, IReadOnlyDictionary<string, Expr> expressions)
+    {
+        try
+        {
+            BigInteger exact = this.evaluator.EvaluateExact(expression, expressions, 128);
+            return new Literal(exact, exact);
+        }
+        catch (Exception exception) when (IsExpectedExpressionFailure(exception))
+        {
+            return expression;
         }
     }
 
@@ -289,12 +307,24 @@ internal sealed class LayoutVariableResolver
             {
                 resolvedValues.Add(name, session.Evaluate(new Identifier(name)));
             }
-            catch (Exception exception) when (this.exactEnumDefinitions.Contains(name) &&
+            catch (Exception exception) when (this.definitions.ContainsKey(name) &&
                                               exception is not CStructLayoutException &&
                                               exception is OverflowException or InvalidOperationException)
             {
-                // A definition can be valid only in a wider enum domain (for example, 1 << 63). Retain that immutable
-                // expression for the enum's exact evaluator; an Int32 consumer still fails when it actually selects it.
+                // A definition can be valid only beyond the 32-bit expression domain (`1 << 63`, a 64-bit mask): a
+                // C header is full of them and a layout rarely uses them for a count. The exact value is kept for
+                // enum members and the constants view; an Int32 consumer still fails when it actually selects it.
+                if (!this.exactEnumDefinitions.Contains(name))
+                {
+                    expressions[name] = this.ResolveExactOrKeep(expressions[name], expressions);
+                }
+            }
+            catch (KeyNotFoundException) when (this.definitions.ContainsKey(name))
+            {
+                // A definition naming something this operation did not supply (`#define MAGIC SOMENAME`, a header
+                // constant the caller never needs) stays an expression; only an expression that actually selects it
+                // fails, with the same message, as a C compiler ignores an unused macro. A supplied variable is
+                // still checked here, because nothing later would.
             }
         }
 

@@ -30,7 +30,8 @@ public partial class CStruct
             PathSegment segment = segments[segmentIndex];
             Struct strct = RequirePathStruct(current, "Cannot resolve path segment: " + segment.Name);
             CompiledField compiledField = this.FindCompiledField(strct, segment.Name);
-            bool declaredIsArray = compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime;
+            bool declaredIsArray = compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or
+                                   CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
 
             if (segment.Indexes.Count > 0 && !declaredIsArray)
             {
@@ -58,7 +59,8 @@ public partial class CStruct
                 writableField = writableField.SelectArrayElement();
             }
 
-            bool remainingIsArray = writableField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime;
+            bool remainingIsArray = writableField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or
+                                    CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
             if (remainingIsArray && segmentIndex + 1 < segments.Count)
             {
                 throw new CStructPathException("An array index is required before traversing: " + segment.Name);

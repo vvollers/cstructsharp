@@ -127,7 +127,7 @@ internal sealed class CompiledSizeQueries
             return 1;
         }
 
-        if (field.Array.Kind == CompiledArrayKind.Flexible)
+        if (field.Array.Kind is CompiledArrayKind.Flexible or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated)
         {
             throw new CStructLayoutException(
                 "Flexible array has no fixed storage size: " + field.EffectiveField.Name.Name);
@@ -156,7 +156,7 @@ internal sealed class CompiledSizeQueries
             return 1;
         }
 
-        if (field.Array.Kind == CompiledArrayKind.Flexible)
+        if (field.Array.Kind is CompiledArrayKind.Flexible or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated)
         {
             throw new CStructLayoutException(
                 "Flexible array has no fixed storage size: " + field.EffectiveField.Name.Name);

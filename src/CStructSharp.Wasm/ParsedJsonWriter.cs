@@ -36,6 +36,8 @@ internal sealed class ParsedJsonWriter
     private static readonly byte[] EnumHead = "{\"Enum\":"u8.ToArray();
     private static readonly byte[] EnumName = ",\"Name\":"u8.ToArray();
     private static readonly byte[] EnumValue = ",\"Value\":"u8.ToArray();
+    private static readonly byte[] FlagNames = ",\"Names\":"u8.ToArray();
+    private static readonly byte[] FlagRemainder = ",\"Remainder\":"u8.ToArray();
     private static readonly byte[] HexDigits = "0123456789abcdef"u8.ToArray();
     private static readonly SearchValues<byte> UnescapedUtf8 = SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !#$%()*,-./:;=?@[]^_`{|}~"u8);
 
@@ -118,6 +120,15 @@ internal sealed class ParsedJsonWriter
         case BigInteger number:
             this.WriteSafeInteger(number);
             return;
+        case Int128 wide:
+            this.WriteSafeInteger((BigInteger)wide);
+            return;
+        case UInt128 wide:
+            this.WriteSafeInteger((BigInteger)wide);
+            return;
+        case Half half:
+            this.WriteNumber((double)half);
+            return;
         case Guid identifier:
             this.WriteString(identifier.ToString("D"));
             return;
@@ -131,6 +142,26 @@ internal sealed class ParsedJsonWriter
             this.WriteValue(enumValue.Name);
             this.WriteRaw(EnumValue);
             this.WriteSafeInteger(enumValue.Value);
+            if (enumValue is FlagValueResult flagValue)
+            {
+                // A flag adds its decomposition; the three enum keys stay exactly as they are.
+                this.WriteRaw(FlagNames);
+                this.WriteByte((byte)'[');
+                for (int index = 0; index < flagValue.Names.Length; index++)
+                {
+                    if (index > 0)
+                    {
+                        this.WriteByte((byte)',');
+                    }
+
+                    this.WriteString(flagValue.Names[index]);
+                }
+
+                this.WriteByte((byte)']');
+                this.WriteRaw(FlagRemainder);
+                this.WriteSafeInteger(flagValue.Remainder);
+            }
+
             this.WriteByte((byte)'}');
             return;
         case UnionValue unionValue:

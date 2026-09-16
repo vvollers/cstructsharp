@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "contractRevision": 1,
+  "contractRevision": 2,
   "profile": "Portable",
   "shippedProfiles": [
     "Portable"
@@ -278,16 +278,6 @@
     },
     {
       "spelling": "bool",
-      "canonical": "bool",
-      "bytes": 1,
-      "alignment": 1,
-      "signedness": "boolean",
-      "endian": "independent",
-      "clr": "Boolean",
-      "writerDomain": "false, true"
-    },
-    {
-      "spelling": "_Bool",
       "canonical": "bool",
       "bytes": 1,
       "alignment": 1,
@@ -587,294 +577,154 @@
       "writerDomain": "Any IEEE-754 binary64 bit pattern, including NaN (any payload), +/-Infinity, subnormals, and negative zero"
     },
     {
-      "spelling": "float",
-      "canonical": "float32",
-      "bytes": 4,
-      "alignment": 4,
+      "spelling": "int48",
+      "canonical": "int48",
+      "bytes": 6,
+      "alignment": 1,
+      "signedness": "signed",
+      "endian": "layout",
+      "clr": "Int64",
+      "writerDomain": "-140737488355328..140737488355327"
+    },
+    {
+      "spelling": "int48<",
+      "canonical": "int48<",
+      "bytes": 6,
+      "alignment": 1,
+      "signedness": "signed",
+      "endian": "little",
+      "clr": "Int64",
+      "writerDomain": "-140737488355328..140737488355327"
+    },
+    {
+      "spelling": "int48>",
+      "canonical": "int48>",
+      "bytes": 6,
+      "alignment": 1,
+      "signedness": "signed",
+      "endian": "big",
+      "clr": "Int64",
+      "writerDomain": "-140737488355328..140737488355327"
+    },
+    {
+      "spelling": "uint48",
+      "canonical": "uint48",
+      "bytes": 6,
+      "alignment": 1,
+      "signedness": "unsigned",
+      "endian": "layout",
+      "clr": "UInt64",
+      "writerDomain": "0..281474976710655"
+    },
+    {
+      "spelling": "uint48<",
+      "canonical": "uint48<",
+      "bytes": 6,
+      "alignment": 1,
+      "signedness": "unsigned",
+      "endian": "little",
+      "clr": "UInt64",
+      "writerDomain": "0..281474976710655"
+    },
+    {
+      "spelling": "uint48>",
+      "canonical": "uint48>",
+      "bytes": 6,
+      "alignment": 1,
+      "signedness": "unsigned",
+      "endian": "big",
+      "clr": "UInt64",
+      "writerDomain": "0..281474976710655"
+    },
+    {
+      "spelling": "int128",
+      "canonical": "int128",
+      "bytes": 16,
+      "alignment": 16,
+      "signedness": "signed",
+      "endian": "layout",
+      "clr": "Int128",
+      "writerDomain": "-170141183460469231731687303715884105728..170141183460469231731687303715884105727"
+    },
+    {
+      "spelling": "int128<",
+      "canonical": "int128<",
+      "bytes": 16,
+      "alignment": 16,
+      "signedness": "signed",
+      "endian": "little",
+      "clr": "Int128",
+      "writerDomain": "-170141183460469231731687303715884105728..170141183460469231731687303715884105727"
+    },
+    {
+      "spelling": "int128>",
+      "canonical": "int128>",
+      "bytes": 16,
+      "alignment": 16,
+      "signedness": "signed",
+      "endian": "big",
+      "clr": "Int128",
+      "writerDomain": "-170141183460469231731687303715884105728..170141183460469231731687303715884105727"
+    },
+    {
+      "spelling": "uint128",
+      "canonical": "uint128",
+      "bytes": 16,
+      "alignment": 16,
+      "signedness": "unsigned",
+      "endian": "layout",
+      "clr": "UInt128",
+      "writerDomain": "0..340282366920938463463374607431768211455"
+    },
+    {
+      "spelling": "uint128<",
+      "canonical": "uint128<",
+      "bytes": 16,
+      "alignment": 16,
+      "signedness": "unsigned",
+      "endian": "little",
+      "clr": "UInt128",
+      "writerDomain": "0..340282366920938463463374607431768211455"
+    },
+    {
+      "spelling": "uint128>",
+      "canonical": "uint128>",
+      "bytes": 16,
+      "alignment": 16,
+      "signedness": "unsigned",
+      "endian": "big",
+      "clr": "UInt128",
+      "writerDomain": "0..340282366920938463463374607431768211455"
+    },
+    {
+      "spelling": "float16",
+      "canonical": "float16",
+      "bytes": 2,
+      "alignment": 2,
       "signedness": "floating",
       "endian": "layout",
-      "clr": "Single",
-      "writerDomain": "Any IEEE-754 binary32 bit pattern, including NaN (any payload), +/-Infinity, subnormals, and negative zero"
+      "clr": "Half",
+      "writerDomain": "Any IEEE-754 binary16 bit pattern"
     },
     {
-      "spelling": "double",
-      "canonical": "float64",
-      "bytes": 8,
-      "alignment": 8,
+      "spelling": "float16<",
+      "canonical": "float16<",
+      "bytes": 2,
+      "alignment": 2,
       "signedness": "floating",
-      "endian": "layout",
-      "clr": "Double",
-      "writerDomain": "Any IEEE-754 binary64 bit pattern, including NaN (any payload), +/-Infinity, subnormals, and negative zero"
+      "endian": "little",
+      "clr": "Half",
+      "writerDomain": "Any IEEE-754 binary16 bit pattern"
     },
     {
-      "spelling": "short",
-      "canonical": "int16",
+      "spelling": "float16>",
+      "canonical": "float16>",
       "bytes": 2,
       "alignment": 2,
-      "signedness": "signed",
-      "endian": "layout",
-      "clr": "Int16",
-      "writerDomain": "-32768..32767"
-    },
-    {
-      "spelling": "ushort",
-      "canonical": "uint16",
-      "bytes": 2,
-      "alignment": 2,
-      "signedness": "unsigned",
-      "endian": "layout",
-      "clr": "UInt16",
-      "writerDomain": "0..65535"
-    },
-    {
-      "spelling": "int",
-      "canonical": "int32",
-      "bytes": 4,
-      "alignment": 4,
-      "signedness": "signed",
-      "endian": "layout",
-      "clr": "Int32",
-      "writerDomain": "-2147483648..2147483647"
-    },
-    {
-      "spelling": "uint",
-      "canonical": "uint32",
-      "bytes": 4,
-      "alignment": 4,
-      "signedness": "unsigned",
-      "endian": "layout",
-      "clr": "UInt32",
-      "writerDomain": "0..4294967295"
-    },
-    {
-      "spelling": "long",
-      "canonical": "int64",
-      "bytes": 8,
-      "alignment": 8,
-      "signedness": "signed",
-      "endian": "layout",
-      "clr": "Int64",
-      "writerDomain": "-9223372036854775808..9223372036854775807"
-    },
-    {
-      "spelling": "ulong",
-      "canonical": "uint64",
-      "bytes": 8,
-      "alignment": 8,
-      "signedness": "unsigned",
-      "endian": "layout",
-      "clr": "UInt64",
-      "writerDomain": "0..18446744073709551615"
-    },
-    {
-      "spelling": "signed",
-      "canonical": "int32",
-      "bytes": 4,
-      "alignment": 4,
-      "signedness": "signed",
-      "endian": "layout",
-      "clr": "Int32",
-      "writerDomain": "-2147483648..2147483647"
-    },
-    {
-      "spelling": "unsigned",
-      "canonical": "uint32",
-      "bytes": 4,
-      "alignment": 4,
-      "signedness": "unsigned",
-      "endian": "layout",
-      "clr": "UInt32",
-      "writerDomain": "0..4294967295"
-    },
-    {
-      "spelling": "signed int",
-      "canonical": "int32",
-      "bytes": 4,
-      "alignment": 4,
-      "signedness": "signed",
-      "endian": "layout",
-      "clr": "Int32",
-      "writerDomain": "-2147483648..2147483647"
-    },
-    {
-      "spelling": "unsigned int",
-      "canonical": "uint32",
-      "bytes": 4,
-      "alignment": 4,
-      "signedness": "unsigned",
-      "endian": "layout",
-      "clr": "UInt32",
-      "writerDomain": "0..4294967295"
-    },
-    {
-      "spelling": "signed short",
-      "canonical": "int16",
-      "bytes": 2,
-      "alignment": 2,
-      "signedness": "signed",
-      "endian": "layout",
-      "clr": "Int16",
-      "writerDomain": "-32768..32767"
-    },
-    {
-      "spelling": "unsigned short",
-      "canonical": "uint16",
-      "bytes": 2,
-      "alignment": 2,
-      "signedness": "unsigned",
-      "endian": "layout",
-      "clr": "UInt16",
-      "writerDomain": "0..65535"
-    },
-    {
-      "spelling": "signed long",
-      "canonical": "int64",
-      "bytes": 8,
-      "alignment": 8,
-      "signedness": "signed",
-      "endian": "layout",
-      "clr": "Int64",
-      "writerDomain": "-9223372036854775808..9223372036854775807"
-    },
-    {
-      "spelling": "unsigned long",
-      "canonical": "uint64",
-      "bytes": 8,
-      "alignment": 8,
-      "signedness": "unsigned",
-      "endian": "layout",
-      "clr": "UInt64",
-      "writerDomain": "0..18446744073709551615"
-    },
-    {
-      "spelling": "long long",
-      "canonical": "int64",
-      "bytes": 8,
-      "alignment": 8,
-      "signedness": "signed",
-      "endian": "layout",
-      "clr": "Int64",
-      "writerDomain": "-9223372036854775808..9223372036854775807"
-    },
-    {
-      "spelling": "signed long long",
-      "canonical": "int64",
-      "bytes": 8,
-      "alignment": 8,
-      "signedness": "signed",
-      "endian": "layout",
-      "clr": "Int64",
-      "writerDomain": "-9223372036854775808..9223372036854775807"
-    },
-    {
-      "spelling": "unsigned long long",
-      "canonical": "uint64",
-      "bytes": 8,
-      "alignment": 8,
-      "signedness": "unsigned",
-      "endian": "layout",
-      "clr": "UInt64",
-      "writerDomain": "0..18446744073709551615"
-    },
-    {
-      "spelling": "signed char",
-      "canonical": "int8",
-      "bytes": 1,
-      "alignment": 1,
-      "signedness": "signed",
-      "endian": "independent",
-      "clr": "SByte",
-      "writerDomain": "-128..127"
-    },
-    {
-      "spelling": "unsigned char",
-      "canonical": "uint8",
-      "bytes": 1,
-      "alignment": 1,
-      "signedness": "unsigned",
-      "endian": "independent",
-      "clr": "Byte",
-      "writerDomain": "0..255"
-    },
-    {
-      "spelling": "int8_t",
-      "canonical": "int8",
-      "bytes": 1,
-      "alignment": 1,
-      "signedness": "signed",
-      "endian": "independent",
-      "clr": "SByte",
-      "writerDomain": "-128..127"
-    },
-    {
-      "spelling": "uint8_t",
-      "canonical": "uint8",
-      "bytes": 1,
-      "alignment": 1,
-      "signedness": "unsigned",
-      "endian": "independent",
-      "clr": "Byte",
-      "writerDomain": "0..255"
-    },
-    {
-      "spelling": "int16_t",
-      "canonical": "int16",
-      "bytes": 2,
-      "alignment": 2,
-      "signedness": "signed",
-      "endian": "layout",
-      "clr": "Int16",
-      "writerDomain": "-32768..32767"
-    },
-    {
-      "spelling": "uint16_t",
-      "canonical": "uint16",
-      "bytes": 2,
-      "alignment": 2,
-      "signedness": "unsigned",
-      "endian": "layout",
-      "clr": "UInt16",
-      "writerDomain": "0..65535"
-    },
-    {
-      "spelling": "int32_t",
-      "canonical": "int32",
-      "bytes": 4,
-      "alignment": 4,
-      "signedness": "signed",
-      "endian": "layout",
-      "clr": "Int32",
-      "writerDomain": "-2147483648..2147483647"
-    },
-    {
-      "spelling": "uint32_t",
-      "canonical": "uint32",
-      "bytes": 4,
-      "alignment": 4,
-      "signedness": "unsigned",
-      "endian": "layout",
-      "clr": "UInt32",
-      "writerDomain": "0..4294967295"
-    },
-    {
-      "spelling": "int64_t",
-      "canonical": "int64",
-      "bytes": 8,
-      "alignment": 8,
-      "signedness": "signed",
-      "endian": "layout",
-      "clr": "Int64",
-      "writerDomain": "-9223372036854775808..9223372036854775807"
-    },
-    {
-      "spelling": "uint64_t",
-      "canonical": "uint64",
-      "bytes": 8,
-      "alignment": 8,
-      "signedness": "unsigned",
-      "endian": "layout",
-      "clr": "UInt64",
-      "writerDomain": "0..18446744073709551615"
+      "signedness": "floating",
+      "endian": "big",
+      "clr": "Half",
+      "writerDomain": "Any IEEE-754 binary16 bit pattern"
     }
   ],
   "dynamicNumericPrimitives": [
@@ -1340,39 +1190,14 @@
   ],
   "unsupportedConstructs": [
     {
-      "id": "include-directive",
-      "definition": "#include <stdint.h>\nstruct root { uint8 value; };",
-      "category": "translation-unit preprocessing"
-    },
-    {
-      "id": "packing-pragma",
-      "definition": "#pragma pack(push, 1)\nstruct root { uint8 value; };",
-      "category": "compiler packing directive"
-    },
-    {
       "id": "tag-kind-mismatch",
       "definition": "struct child { uint8 value; }; struct root { union child value; };",
       "category": "C tag namespace"
     },
     {
-      "id": "forward-declaration",
-      "definition": "struct child; struct root { child *value; };",
-      "category": "incomplete type"
-    },
-    {
-      "id": "inline-union",
-      "definition": "struct root { union { uint8 small; uint16 large; } value; };",
-      "category": "inline union"
-    },
-    {
       "id": "runtime-sized-multidimensional-array",
       "definition": "struct root { uint8 count; uint8 values[count][3]; };",
       "category": "multidimensional array"
-    },
-    {
-      "id": "general-flexible-array",
-      "definition": "struct root { uint16 values[]; };",
-      "category": "general flexible-array member"
     },
     {
       "id": "qualifier-not-in-closed-set",
@@ -1415,24 +1240,711 @@
       "category": "floating-point codec"
     },
     {
-      "id": "function-pointer",
-      "definition": "struct root { uint8 (*callback)(uint8); };",
-      "category": "function pointer"
-    },
-    {
       "id": "zero-width-bitfield",
       "definition": "struct root { uint8 reserved : 0; };",
       "category": "zero-width bitfield"
     },
     {
-      "id": "typedef-array",
-      "definition": "typedef uint8 bytes[4]; struct root { bytes value; };",
-      "category": "typedef array"
+      "id": "pointer-to-typedef-array",
+      "definition": "typedef uint16 pair[2]; struct root { pair *value; };",
+      "category": "pointer-to-array storage"
     },
     {
-      "id": "typedef-tag-alias",
-      "definition": "struct child { uint8 value; }; typedef struct child alias; struct root { alias value; };",
-      "category": "C tag namespace"
+      "id": "unsized-typedef-array",
+      "definition": "typedef uint16 open[]; struct root { open value; };",
+      "category": "incomplete array type"
+    },
+    {
+      "id": "duplicate-typedef-tag",
+      "definition": "typedef struct shared { uint8 small; } first; typedef struct shared { uint32 large; } second;",
+      "category": "tag redefinition"
+    },
+    {
+      "id": "tag-alias-kind-mismatch",
+      "definition": "struct tag { uint8 value; }; typedef union tag alias; struct root { alias value; };",
+      "category": "tag kind mismatch"
+    },
+    {
+      "id": "include-without-delimiters",
+      "definition": "#include stdint.h\nstruct root { uint8 value; };",
+      "category": "translation-unit preprocessing"
+    },
+    {
+      "id": "unterminated-conditional",
+      "definition": "#ifdef X\nstruct root { uint8 value; };",
+      "category": "translation-unit preprocessing"
+    },
+    {
+      "id": "unknown-preprocessor-directive",
+      "definition": "#error stop\nstruct root { uint8 value; };",
+      "category": "translation-unit preprocessing"
+    },
+    {
+      "id": "text-constant-in-expression",
+      "definition": "#define MAGIC \"CD001\"\nstruct root { uint8 value[MAGIC]; };",
+      "category": "non-integer constant"
+    },
+    {
+      "id": "non-power-of-two-pack-pragma",
+      "definition": "#pragma pack(3)\nstruct root { uint8 value; uint32 wide; };",
+      "category": "alignment rule"
+    },
+    {
+      "id": "dynamic-union-member",
+      "definition": "union choice { uint8 count; uint8 values[count]; };",
+      "category": "union storage"
+    },
+    {
+      "id": "void-value-field",
+      "definition": "struct root { void value; };",
+      "category": "incomplete type"
+    },
+    {
+      "id": "data-sized-array-of-dynamic-element",
+      "definition": "struct entry { uint8 count; uint8 values[count]; }; struct root { entry entries[]; };",
+      "category": "array extent"
+    },
+    {
+      "id": "sizeof-of-dynamic-type",
+      "definition": "struct entry { uint8 count; uint8 values[count]; }; struct root { uint8 raw[sizeof(entry)]; };",
+      "category": "expression"
+    },
+    {
+      "id": "unsupported-expression-call",
+      "definition": "struct root { uint8 raw[strlen(root)]; };",
+      "category": "expression"
+    },
+    {
+      "id": "anonymous-flag-expression-member",
+      "definition": "#define N 2\nflag { A = N, B }; struct root { uint8 value; };",
+      "category": "member value"
+    }
+  ],
+  "aliasSpellings": [
+    {
+      "spelling": "cstring",
+      "canonical": "ascii_string_zero"
+    },
+    {
+      "spelling": "_Bool",
+      "canonical": "bool"
+    },
+    {
+      "spelling": "CHAR",
+      "canonical": "char"
+    },
+    {
+      "spelling": "float",
+      "canonical": "float32"
+    },
+    {
+      "spelling": "FLOAT",
+      "canonical": "float32"
+    },
+    {
+      "spelling": "double",
+      "canonical": "float64"
+    },
+    {
+      "spelling": "DOUBLE",
+      "canonical": "float64"
+    },
+    {
+      "spelling": "__int128",
+      "canonical": "int128"
+    },
+    {
+      "spelling": "__s128",
+      "canonical": "int128"
+    },
+    {
+      "spelling": "INT128",
+      "canonical": "int128"
+    },
+    {
+      "spelling": "int128_t",
+      "canonical": "int128"
+    },
+    {
+      "spelling": "s128",
+      "canonical": "int128"
+    },
+    {
+      "spelling": "__int16",
+      "canonical": "int16"
+    },
+    {
+      "spelling": "__s16",
+      "canonical": "int16"
+    },
+    {
+      "spelling": "INT16",
+      "canonical": "int16"
+    },
+    {
+      "spelling": "int16_t",
+      "canonical": "int16"
+    },
+    {
+      "spelling": "s16",
+      "canonical": "int16"
+    },
+    {
+      "spelling": "short",
+      "canonical": "int16"
+    },
+    {
+      "spelling": "SHORT",
+      "canonical": "int16"
+    },
+    {
+      "spelling": "short int",
+      "canonical": "int16"
+    },
+    {
+      "spelling": "signed short",
+      "canonical": "int16"
+    },
+    {
+      "spelling": "signed short int",
+      "canonical": "int16"
+    },
+    {
+      "spelling": "__int32",
+      "canonical": "int32"
+    },
+    {
+      "spelling": "__s32",
+      "canonical": "int32"
+    },
+    {
+      "spelling": "int",
+      "canonical": "int32"
+    },
+    {
+      "spelling": "INT",
+      "canonical": "int32"
+    },
+    {
+      "spelling": "INT32",
+      "canonical": "int32"
+    },
+    {
+      "spelling": "int32_t",
+      "canonical": "int32"
+    },
+    {
+      "spelling": "LONG",
+      "canonical": "int32"
+    },
+    {
+      "spelling": "LONG32",
+      "canonical": "int32"
+    },
+    {
+      "spelling": "s32",
+      "canonical": "int32"
+    },
+    {
+      "spelling": "signed",
+      "canonical": "int32"
+    },
+    {
+      "spelling": "signed int",
+      "canonical": "int32"
+    },
+    {
+      "spelling": "__int64",
+      "canonical": "int64"
+    },
+    {
+      "spelling": "__s64",
+      "canonical": "int64"
+    },
+    {
+      "spelling": "INT64",
+      "canonical": "int64"
+    },
+    {
+      "spelling": "int64_t",
+      "canonical": "int64"
+    },
+    {
+      "spelling": "long long",
+      "canonical": "int64"
+    },
+    {
+      "spelling": "long long int",
+      "canonical": "int64"
+    },
+    {
+      "spelling": "LONG64",
+      "canonical": "int64"
+    },
+    {
+      "spelling": "LONGLONG",
+      "canonical": "int64"
+    },
+    {
+      "spelling": "s64",
+      "canonical": "int64"
+    },
+    {
+      "spelling": "signed long long",
+      "canonical": "int64"
+    },
+    {
+      "spelling": "signed long long int",
+      "canonical": "int64"
+    },
+    {
+      "spelling": "__int8",
+      "canonical": "int8"
+    },
+    {
+      "spelling": "__s8",
+      "canonical": "int8"
+    },
+    {
+      "spelling": "INT8",
+      "canonical": "int8"
+    },
+    {
+      "spelling": "int8_t",
+      "canonical": "int8"
+    },
+    {
+      "spelling": "s8",
+      "canonical": "int8"
+    },
+    {
+      "spelling": "signed char",
+      "canonical": "int8"
+    },
+    {
+      "spelling": "ileb128",
+      "canonical": "sleb128_64"
+    },
+    {
+      "spelling": "sleb128",
+      "canonical": "sleb128_64"
+    },
+    {
+      "spelling": "__u128",
+      "canonical": "uint128"
+    },
+    {
+      "spelling": "_OWORD",
+      "canonical": "uint128"
+    },
+    {
+      "spelling": "OWORD",
+      "canonical": "uint128"
+    },
+    {
+      "spelling": "u128",
+      "canonical": "uint128"
+    },
+    {
+      "spelling": "UINT128",
+      "canonical": "uint128"
+    },
+    {
+      "spelling": "uint128_t",
+      "canonical": "uint128"
+    },
+    {
+      "spelling": "unsigned __int128",
+      "canonical": "uint128"
+    },
+    {
+      "spelling": "__u16",
+      "canonical": "uint16"
+    },
+    {
+      "spelling": "_WORD",
+      "canonical": "uint16"
+    },
+    {
+      "spelling": "u_int16_t",
+      "canonical": "uint16"
+    },
+    {
+      "spelling": "u_short",
+      "canonical": "uint16"
+    },
+    {
+      "spelling": "u16",
+      "canonical": "uint16"
+    },
+    {
+      "spelling": "UINT16",
+      "canonical": "uint16"
+    },
+    {
+      "spelling": "uint16_t",
+      "canonical": "uint16"
+    },
+    {
+      "spelling": "unsigned __int16",
+      "canonical": "uint16"
+    },
+    {
+      "spelling": "unsigned short",
+      "canonical": "uint16"
+    },
+    {
+      "spelling": "unsigned short int",
+      "canonical": "uint16"
+    },
+    {
+      "spelling": "ushort",
+      "canonical": "uint16"
+    },
+    {
+      "spelling": "USHORT",
+      "canonical": "uint16"
+    },
+    {
+      "spelling": "WORD",
+      "canonical": "uint16"
+    },
+    {
+      "spelling": "__u32",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "_DWORD",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "DWORD",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "DWORD32",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "u_int",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "u_int32_t",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "u32",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "uint",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "UINT",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "UINT32",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "uint32_t",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "ULONG",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "ULONG32",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "unsigned",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "unsigned __int32",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "unsigned int",
+      "canonical": "uint32"
+    },
+    {
+      "spelling": "__u64",
+      "canonical": "uint64"
+    },
+    {
+      "spelling": "_QWORD",
+      "canonical": "uint64"
+    },
+    {
+      "spelling": "DWORD64",
+      "canonical": "uint64"
+    },
+    {
+      "spelling": "DWORDLONG",
+      "canonical": "uint64"
+    },
+    {
+      "spelling": "QWORD",
+      "canonical": "uint64"
+    },
+    {
+      "spelling": "u_int64_t",
+      "canonical": "uint64"
+    },
+    {
+      "spelling": "u64",
+      "canonical": "uint64"
+    },
+    {
+      "spelling": "UINT64",
+      "canonical": "uint64"
+    },
+    {
+      "spelling": "uint64_t",
+      "canonical": "uint64"
+    },
+    {
+      "spelling": "ULONG64",
+      "canonical": "uint64"
+    },
+    {
+      "spelling": "ULONGLONG",
+      "canonical": "uint64"
+    },
+    {
+      "spelling": "unsigned __int64",
+      "canonical": "uint64"
+    },
+    {
+      "spelling": "unsigned long long",
+      "canonical": "uint64"
+    },
+    {
+      "spelling": "unsigned long long int",
+      "canonical": "uint64"
+    },
+    {
+      "spelling": "__u8",
+      "canonical": "uint8"
+    },
+    {
+      "spelling": "_BYTE",
+      "canonical": "uint8"
+    },
+    {
+      "spelling": "BYTE",
+      "canonical": "uint8"
+    },
+    {
+      "spelling": "u_char",
+      "canonical": "uint8"
+    },
+    {
+      "spelling": "u_int8_t",
+      "canonical": "uint8"
+    },
+    {
+      "spelling": "u8",
+      "canonical": "uint8"
+    },
+    {
+      "spelling": "uchar",
+      "canonical": "uint8"
+    },
+    {
+      "spelling": "UCHAR",
+      "canonical": "uint8"
+    },
+    {
+      "spelling": "UINT8",
+      "canonical": "uint8"
+    },
+    {
+      "spelling": "uint8_t",
+      "canonical": "uint8"
+    },
+    {
+      "spelling": "unsigned __int8",
+      "canonical": "uint8"
+    },
+    {
+      "spelling": "unsigned char",
+      "canonical": "uint8"
+    },
+    {
+      "spelling": "uleb128",
+      "canonical": "uleb128_64"
+    },
+    {
+      "spelling": "string",
+      "canonical": "unicode_string_zero"
+    },
+    {
+      "spelling": "string<",
+      "canonical": "unicode_string_zero<"
+    },
+    {
+      "spelling": "string>",
+      "canonical": "unicode_string_zero>"
+    },
+    {
+      "spelling": "VOID",
+      "canonical": "void"
+    },
+    {
+      "spelling": "WCHAR",
+      "canonical": "wchar"
+    },
+    {
+      "spelling": "wchar_t",
+      "canonical": "wchar"
+    },
+    {
+      "spelling": "long",
+      "canonical": "int64",
+      "cLongWidth32": "int32"
+    },
+    {
+      "spelling": "long int",
+      "canonical": "int64",
+      "cLongWidth32": "int32"
+    },
+    {
+      "spelling": "signed long",
+      "canonical": "int64",
+      "cLongWidth32": "int32"
+    },
+    {
+      "spelling": "signed long int",
+      "canonical": "int64",
+      "cLongWidth32": "int32"
+    },
+    {
+      "spelling": "time_t",
+      "canonical": "int64",
+      "cLongWidth32": "int32"
+    },
+    {
+      "spelling": "off_t",
+      "canonical": "int64",
+      "cLongWidth32": "int32"
+    },
+    {
+      "spelling": "ulong",
+      "canonical": "uint64",
+      "cLongWidth32": "uint32"
+    },
+    {
+      "spelling": "unsigned long",
+      "canonical": "uint64",
+      "cLongWidth32": "uint32"
+    },
+    {
+      "spelling": "unsigned long int",
+      "canonical": "uint64",
+      "cLongWidth32": "uint32"
+    },
+    {
+      "spelling": "size_t",
+      "canonical": "uint{pointer bits}"
+    },
+    {
+      "spelling": "uintptr_t",
+      "canonical": "uint{pointer bits}"
+    },
+    {
+      "spelling": "SIZE_T",
+      "canonical": "uint{pointer bits}"
+    },
+    {
+      "spelling": "ULONG_PTR",
+      "canonical": "uint{pointer bits}"
+    },
+    {
+      "spelling": "UINT_PTR",
+      "canonical": "uint{pointer bits}"
+    },
+    {
+      "spelling": "DWORD_PTR",
+      "canonical": "uint{pointer bits}"
+    },
+    {
+      "spelling": "ssize_t",
+      "canonical": "int{pointer bits}"
+    },
+    {
+      "spelling": "intptr_t",
+      "canonical": "int{pointer bits}"
+    },
+    {
+      "spelling": "ptrdiff_t",
+      "canonical": "int{pointer bits}"
+    },
+    {
+      "spelling": "SSIZE_T",
+      "canonical": "int{pointer bits}"
+    },
+    {
+      "spelling": "LONG_PTR",
+      "canonical": "int{pointer bits}"
+    },
+    {
+      "spelling": "INT_PTR",
+      "canonical": "int{pointer bits}"
+    },
+    {
+      "spelling": "PVOID",
+      "canonical": "void*"
+    },
+    {
+      "spelling": "LPVOID",
+      "canonical": "void*"
+    },
+    {
+      "spelling": "LPCVOID",
+      "canonical": "void*"
+    },
+    {
+      "spelling": "HANDLE",
+      "canonical": "void*"
+    },
+    {
+      "spelling": "PSTR",
+      "canonical": "char*"
+    },
+    {
+      "spelling": "LPSTR",
+      "canonical": "char*"
+    },
+    {
+      "spelling": "PCSTR",
+      "canonical": "char*"
+    },
+    {
+      "spelling": "LPCSTR",
+      "canonical": "char*"
+    },
+    {
+      "spelling": "PWSTR",
+      "canonical": "wchar*"
+    },
+    {
+      "spelling": "LPWSTR",
+      "canonical": "wchar*"
+    },
+    {
+      "spelling": "PCWSTR",
+      "canonical": "wchar*"
+    },
+    {
+      "spelling": "LPCWSTR",
+      "canonical": "wchar*"
     }
   ]
 }

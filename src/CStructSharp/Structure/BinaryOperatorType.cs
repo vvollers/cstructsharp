@@ -19,4 +19,6 @@ internal enum BinaryOperatorType
     Or,
     ShiftRight,
     ShiftLeft,
+    Mod,
+    Xor,
 }

@@ -22,32 +22,56 @@ that are syntactically recognizable but invalid, such as an array bitfield or un
 ## Source and expression EBNF
 
 ```ebnf
-definition       = trivia, { declaration }, end-of-input ;
+definition       = trivia, { declaration | preprocessor-line }, end-of-input ;
 declaration      = struct-declaration
                  | union-declaration
+                 | anonymous-composite-declaration
+                 | forward-declaration
                  | typedef-struct-declaration
                  | typedef-union-declaration
+                 | typedef-tag-alias
                  | typedef-declaration
-                 | enum-declaration
-                 | define-declaration ;
+                 | enum-declaration ;
 
 struct-declaration
-                 = "struct", identifier, [ alignment-override ], "{", { struct-field }, "}", [ ";" ] ;
+                 = "struct", identifier, [ alignment-override ], "{", { struct-field }, "}", [ identifier ], [ ";" ] ;
 union-declaration
-                 = "union", identifier, [ alignment-override ], "{", { union-field }, "}", [ ";" ] ;
+                 = "union", identifier, [ alignment-override ], "{", { union-field }, "}", [ identifier ], [ ";" ] ;
+anonymous-composite-declaration
+                 = ( "struct" | "union" ), [ alignment-override ], "{", { struct-field }, "}", identifier, ";" ;
+forward-declaration
+                 = ( "struct" | "union" ), identifier, ";" ;
 typedef-struct-declaration
-                 = "typedef", "struct", [ identifier ], [ alignment-override ], "{", { struct-field }, "}", identifier, ";" ;
+                 = "typedef", "struct", [ identifier ], [ alignment-override ], "{", { struct-field }, "}", typedef-aliases ;
 typedef-union-declaration
-                 = "typedef", "union", [ identifier ], [ alignment-override ], "{", { union-field }, "}", identifier, ";" ;
+                 = "typedef", "union", [ identifier ], [ alignment-override ], "{", { union-field }, "}", typedef-aliases ;
+typedef-aliases  = ";" | typedef-alias, { ",", typedef-alias }, ";" ;
+typedef-alias    = pointer-stars, identifier ;
+typedef-tag-alias
+                 = "typedef", ( "struct" | "union" ), identifier, identifier, ";" ;
 typedef-declaration
-                 = "typedef", type-name, pointer-stars, identifier, ";" ;
-enum-declaration = "enum", identifier, [ enum-storage ],
-                   "{", [ enum-values ], "}", ";" ;
+                 = "typedef", type-name, typedef-declarator, { ",", typedef-declarator }, ";" ;
+typedef-declarator
+                 = pointer-stars, identifier, { "[", expression, "]" } ;
+enum-declaration = ( "enum" | "flag" ), [ identifier ], [ enum-storage ],
+                   "{", [ enum-values ], [ "," ], "}", ";" ;
 enum-storage     = ":", identifier ;
 enum-values      = enum-value, { ",", enum-value } ;
-enum-value       = identifier, [ "=", expression ] ;
+enum-value       = enum-member-name, [ "=", expression ] ;
+enum-member-name = identifier | decimal-digit, { identifier-continue } ;
+preprocessor-line
+                 = define-declaration | constant-definition | undef-line | include-line | pragma-line
+                 | conditional-line ;
 define-declaration
                  = "#define", identifier, expression ;
+constant-definition
+                 = "#define", identifier, [ quoted-literal | "b", quoted-literal | macro-parameters, rest-of-line ] ;
+macro-parameters = "(", { non-line-end-character }, ")" ;
+undef-line       = "#undef", identifier ;
+include-line     = "#include", ( "<", { non-line-end-character }, ">" | '"', { non-line-end-character }, '"' ) ;
+pragma-line      = "#pragma", ( "pack", "(", [ "push", [ ",", expression ] | "pop" | expression ], ")" | rest-of-line ) ;
+conditional-line = ( "#ifdef" | "#ifndef" ), identifier | "#else" | "#endif" ;
+quoted-literal   = '"', { character | escape }, '"' | "'", { character | escape }, "'" ;
 
 struct-field     = field | inline-struct-field | conditional-field | switch-field ;
 field-block      = "{", { struct-field }, "}" ;
@@ -55,36 +79,42 @@ conditional-field = "if", "(", expression, ")", field-block, [ "else", field-blo
 switch-field     = "switch", "(", expression, ")", "{", { switch-case }, [ "default", ":", field-block ], "}" ;
 switch-case      = "case", expression, ":", field-block ;
 inline-struct-field
-                 = "struct", [ alignment-override ], "{", { struct-field }, "}", [ identifier ], ";" ;
-union-field      = field ;
+                 = "struct", [ alignment-override ], "{", { struct-field }, "}", [ identifier ], ";"
+                 | "union", [ alignment-override ], "{", { union-field }, "}", [ identifier ], ";" ;
+union-field      = field | inline-struct-field ;
 field            = { type-qualifier }, [ tag-keyword ], type-name, declarator, { ",", declarator }, ";" ;
 declarator       = named-declarator | anonymous-bitfield ;
 named-declarator = { type-qualifier }, pointer-stars, { type-qualifier }, identifier, [ array ], [ bit-width ],
-                   [ placement-suffix ] ;
+                   [ placement-suffix ]
+                 | "(", "*", identifier, ")", "(", { non-line-end-character }, ")" ;
 anonymous-bitfield
                  = bit-width, [ placement-suffix ] ;
 type-qualifier   = "const" | "volatile" | "restrict" ;
 tag-keyword      = "struct" | "union" | "enum" ;
 pointer-stars    = { "*" } ;
-array            = { "[", [ expression ], "]" } ;
+array            = { "[", [ expression | "EOF" ], "]" } ;
 bit-width        = ":", expression ;
 placement-suffix = alignment-override | offset-assertion ;
 alignment-override
                  = "@align", "(", expression, ")" ;
 offset-assertion = "@", expression ;
 
-expression       = logical-or ;
+expression       = logical-or, [ "?", expression, ":", expression ] ;
 logical-or       = logical-and, { "||", logical-and } ;
 logical-and      = bitwise-or, { "&&", bitwise-or } ;
-bitwise-or       = bitwise-and, { "|", bitwise-and } ;
+bitwise-or       = bitwise-xor, { "|", bitwise-xor } ;
+bitwise-xor      = bitwise-and, { "^", bitwise-and } ;
 bitwise-and      = equality, { "&", equality } ;
 equality         = relational, { ( "==" | "!=" ), relational } ;
 relational       = shift, { ( "<" | "<=" | ">" | ">=" ), shift } ;
 shift            = additive, { ( "<<" | ">>" ), additive } ;
 additive         = multiplicative, { ( "+" | "-" ), multiplicative } ;
-multiplicative   = unary, { ( "*" | "/" ), unary } ;
+multiplicative   = unary, { ( "*" | "/" | "%" ), unary } ;
 unary            = { "-" | "~" | "!" }, primary ;
-primary          = literal | identifier | "(", expression, ")" ;
+primary          = literal | qualified-name | size-call | "(", expression, ")" ;
+qualified-name   = identifier, [ ".", identifier ] ;
+size-call        = "sizeof", "(", type-spelling, ")" | "offsetof", "(", type-spelling, ",", identifier, ")" ;
+type-spelling    = identifier, { identifier }, pointer-stars ;
 literal          = sign, ( decimal | hexadecimal | binary | octal ), [ integer-suffix ] ;
 integer-suffix   = { "u" | "U" | "l" | "L" } ;
 sign             = [ "+" | "-" ] ;
@@ -107,7 +137,9 @@ identifier       = identifier-start, { identifier-continue } ;
 identifier-start = unicode-letter | "_" ;
 identifier-continue
                  = unicode-letter | decimal-digit | "_" ;
-trivia           = { whitespace | line-comment | block-comment } ;
+trivia           = { whitespace | line-comment | block-comment | line-continuation } ;
+line-continuation
+                 = "\\", line-end ;
 whitespace       = whitespace-character, { whitespace-character } ;
 line-comment     = "//", { non-line-end-character }, [ line-end ] ;
 block-comment    = "/*", { block-comment-character }, "*/" ;
@@ -208,22 +240,37 @@ The table explains each production and links to the page that defines its additi
 | --- | --- |
 | `definition` | Complete standalone input; [Portable rules](portable-v1-reference.md) |
 | `declaration` | One exported declaration kind |
-| `struct-declaration` | Named sequential composite; [declarations](structs-unions-enums-typedefs.md#named-structs) |
-| `union-declaration` | Named overlapping composite; [declarations](structs-unions-enums-typedefs.md#unions) |
-| `typedef-struct-declaration` | Named-tag or anonymous inline struct alias form; [typedefs](structs-unions-enums-typedefs.md#typedefs) |
-| `typedef-union-declaration` | Named-tag or anonymous inline union alias form; [typedefs](structs-unions-enums-typedefs.md#typedefs) |
-| `typedef-declaration` | Alias of one name plus optional pointer depth |
-| `enum-declaration` | Named integral enum |
-| `enum-storage` | Optional explicit integral backing |
+| `struct-declaration` | Named sequential composite, optionally followed by an ignored object name; [declarations](structs-unions-enums-typedefs.md#named-structs) |
+| `union-declaration` | Named overlapping composite, optionally followed by an ignored object name; [declarations](structs-unions-enums-typedefs.md#unions) |
+| `anonymous-composite-declaration` | A body whose trailing name is the declared type (`struct { ... } timeval;`); [declarations](structs-unions-enums-typedefs.md#top-level-declaration-forms) |
+| `forward-declaration` | `struct node;` - accepted and declares nothing; [declarations](structs-unions-enums-typedefs.md#top-level-declaration-forms) |
+| `typedef-struct-declaration` | Named-tag or anonymous struct body with one or more aliases; the tag is declared too; [typedefs](structs-unions-enums-typedefs.md#typedefs) |
+| `typedef-union-declaration` | Named-tag or anonymous union body with one or more aliases; [typedefs](structs-unions-enums-typedefs.md#typedefs) |
+| `typedef-aliases` | `;` alone (tag only) or a comma-separated alias list |
+| `typedef-alias` | One alias with its own pointer depth (`*PX`) |
+| `typedef-tag-alias` | `typedef struct tag alias;` - an alias of a declared tag, kind-checked |
+| `typedef-declaration` | One type spelling with one or more declarators |
+| `typedef-declarator` | Alias name with optional pointer depth and fixed array dimensions (`typedef T name[N];`) |
+| `enum-declaration` | Named integral enum or `flag` (bitmask enum); an unnamed one declares constants |
+| `enum-storage` | Optional explicit integral backing (any accepted integer spelling or a typedef of one) |
 | `enum-values` | Comma-separated member sequence |
 | `enum-value` | Member name plus optional bounded expression |
+| `enum-member-name` | An identifier, or a digit-led name containing a letter or `_` (`32BIT_MACHINE`) |
+| `preprocessor-line` | One `#` line; see [source text](lexical-rules.md#preprocessor-lines) |
 | `define-declaration` | Object-like integer expression binding |
+| `constant-definition` | A text, byte, bare, or function-like `#define` published as a constant |
+| `macro-parameters` | The parameter list glued to a function-like macro name |
+| `undef-line` | Removes a constant for the rest of the source |
+| `include-line` | Recorded path, never resolved |
+| `pragma-line` | `pack` maintains the alignment clamp stack; other pragmas are ignored |
+| `conditional-line` | `#ifdef`/`#ifndef`/`#else`/`#endif` over defined names |
+| `quoted-literal` | A `"`- or `'`-delimited literal with C escapes (`\n`, `\r`, `\t`, `\0`, `\xHH`, `\"`) |
 | `struct-field` | Ordinary, named-inline-struct, or anonymous-promoted-struct member |
-| `inline-struct-field` | Lexically scoped sequential composite; anonymous when the trailing `identifier` is omitted (LANG-14) |
-| `union-field` | Ordinary field; inline structs/unions are not accepted here |
+| `inline-struct-field` | Lexically scoped inline struct or union member; anonymous (promoted) when the trailing `identifier` is omitted (LANG-14) |
+| `union-field` | Ordinary field or an inline composite; conditionals are not accepted in a union |
 | `field` | One optionally qualified, optionally tagged type, one or more comma-separated declarators |
 | `declarator` | A named declarator or an anonymous nonzero-width bitfield |
-| `named-declarator` | One name with its own optional qualifiers, pointer stars, optional array, optional bit width, and optional placement suffix |
+| `named-declarator` | One name with its own optional qualifiers, pointer stars, optional array, optional bit width, and optional placement suffix; or a function-pointer declarator, stored as an opaque pointer |
 | `anonymous-bitfield` | A nameless bit-width-only declarator used as pure padding (LANG-17) |
 | `type-qualifier` | A recognized layout-neutral qualifier, discarded with no effect on the compiled field |
 | `tag-keyword` | An optional struct/union/enum keyword, checked against the referenced declaration's actual kind |
@@ -233,12 +280,16 @@ The table explains each production and links to the page that defines its additi
 | `placement-suffix` | At most one trailing alignment override or offset assertion per declarator |
 | `alignment-override` | An explicit per-declarator alignment override, effective only when `aligned: true` |
 | `offset-assertion` | An explicit per-declarator byte-offset assertion, checked when statically computable |
-| `expression` | Complete checked integer expression |
+| `expression` | Complete checked integer expression, optionally a conditional `c ? a : b` |
 | `bitwise-or` | Lowest-precedence bitwise OR |
+| `bitwise-xor` | Bitwise XOR, between `&` and `\|` as in C |
+| `qualified-name` | A variable, field, define, or `Enum.Member` constant |
+| `size-call` | `sizeof(type)` / `offsetof(type, field)`, folded to a literal at construction |
+| `type-spelling` | A primitive/typedef/enum/composite spelling with optional pointer stars |
 | `bitwise-and` | Bitwise AND |
 | `shift` | Checked left/right shift |
 | `additive` | Checked addition/subtraction |
-| `multiplicative` | Checked multiplication/division |
+| `multiplicative` | Checked multiplication, division, and remainder |
 | `unary` | Negation and bitwise complement |
 | `primary` | Literal, variable/name, or parenthesized expression |
 | `literal` | Optional sign plus one radix-specific integer, plus an optional discarded C-style suffix |
@@ -261,6 +312,7 @@ The table explains each production and links to the page that defines its additi
 | `identifier` | Case-sensitive Unicode identifier |
 | `identifier-start` | Unicode letter or underscore |
 | `identifier-continue` | Unicode letter, digit, or underscore |
+| `line-continuation` | A backslash immediately before a line end joins the lines |
 | `trivia` | Ignorable whitespace and comments between tokens |
 | `whitespace` | One or more .NET whitespace characters |
 | `line-comment` | `//` through a line ending or input end |
