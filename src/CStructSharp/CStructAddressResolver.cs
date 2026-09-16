@@ -895,11 +895,19 @@ public partial class CStruct
             // expose a scalar from inside one of these elements (by its bare field name) that a later field's
             // runtime array-count expression depends on. Skipping elements here could silently drop that capture.
             long current = fieldStart;
+            string? outerPrefix = state.QualifiedPrefix;
+            if (compiledField.QualifiedPrefix is not null && compiledField.Array.Kind == CompiledArrayKind.Scalar)
+            {
+                // A field named through a dotted path (`hdr.n`) republishes its nested values under the prefix.
+                state.QualifiedPrefix = outerPrefix is null ? compiledField.QualifiedPrefix : outerPrefix + compiledField.QualifiedPrefix;
+            }
+
             for (int i = 0; i < count; i++)
             {
                 current = this.MeasureStructEnd(nested, current, state);
             }
 
+            state.QualifiedPrefix = outerPrefix;
             return compiledField.Array.Kind == CompiledArrayKind.Terminated
                        ? checked(current + (compiledField.FixedElementSize ?? 0))
                        : current;
@@ -1128,6 +1136,7 @@ public partial class CStruct
             {
                 BigInteger exact = this.compiledModelQueries.GetCompiledEnum(enm).Integer.FromStorageValue(value);
                 this.UpdateExactLayoutVariable(state.Variables, field.Name.Name, exact);
+                state.PublishQualified(field.Name.Name);
             }
 
             return;
@@ -1164,6 +1173,8 @@ public partial class CStruct
         {
             state.Variables.Remove(field.Name.Name);
         }
+
+        state.PublishQualified(field.Name.Name);
     }
 
     /// <summary>Finds one exact compiled field name in a struct.</summary>

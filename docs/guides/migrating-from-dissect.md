@@ -19,18 +19,27 @@ X, *PX;` lists - and the API calls its users make have direct equivalents. This 
 | `int24` aligned to 4 | aligned to 1 | Only aligned placement is affected. |
 | `flag F : uint32 { A, B, C };` | same | Reads as `FlagValueResult` with `Names`; writes accept `"A\|C"`. |
 | `enum { A, B };` (anonymous) | same | Members become constants. |
+| `enum E { A = 0x80000000 };` (no backing type) | same | 32 bits, `uint32` unless a member is written negative (the GCC rule; dissect always uses `uint32`); `CStructCompilationOptions { DefaultEnumStorage = "uint32" }` pins dissect's reading. |
 | `E.A` in an expression | same | The bare name `A` stays local to the enum in CStructSharp. |
+| Members separated by line breaks, names like `0` | same | The comma is optional; a member name may be all digits. Duplicate member names are an error (dissect keeps the last). |
+| `typedef enum _E : DWORD { ... } E;` | same | Every struct typedef form has an enum/flag counterpart. |
+| `uint32 _;` repeated | same | `_` is padding: skipped on read, zeroed on write, never in the result (dissect shows the last one). |
+| `struct gen { ... } gen;`, `union tag { ... };` inside a struct | same | The tag becomes a global type; the unnamed form promotes the body. |
+| `#define X SOMENAME`, `#define M (1 << 63)` | same | A non-expression value is a text constant; a 64-bit value is published exactly; both fail only when a count uses them. |
 | `char data[EOF];`, `uint16 v[];` | same | Read-to-end and zero-terminated arrays; both need a fixed element size. |
 | `union { ... };` inside a struct | same | Anonymous members are promoted; a promoted union writes back through the widest member supplied. |
 | `struct { ... } timeval;` | same | The trailing name is the type. |
 | `#define MAGIC b"CD001"` | same | Published on `CStruct.Constants` as a `byte[]`; a `"text"` define is a `string`. |
 | `#include`, `#ifdef`, `#undef`, `#pragma pack` | same | `#include` is recorded on `CStruct.Includes`; `#pragma pack` clamps alignment (dissect ignores it); `#ifdef` names come from the source or `CStructCompilationOptions.Defined`. |
 | `sizeof(T)`, `offsetof(T, f)` | same | Folded at construction; `T` must be complete and fixed-size. |
-| `hdr.count` (a nested field) in an expression | not supported | Capture the value into a field of the enclosing struct, or supply it as a variable. |
+| `hdr.count` (a nested field) in an expression | same | The head must be a scalar struct field; `items[0].count` is not accepted (use the bare name after the element is read). |
 | `uint8 *a, b;` (both pointers in dissect) | C semantics | Only `a` is a pointer. |
 | Big-endian bitfields allocated from the high bit | low bit first | `CStructCompilationOptions { BitfieldAllocation = BitfieldAllocation.HighBitFirst }` selects the dissect/RFC reading. |
 | `char x[4]` → `bytes` | `string` of code units | Declare `uint8 x[4]` for a byte array. |
 | `int48`, `int128`, `float16`, `void *` | same | `Int128`/`UInt128`/`Half` results; `void *` is an opaque address. |
+| `PWSTR`, `LPSTR`, `HANDLE`, `time_t` | built in | `wchar *`/`char *` pointers, an opaque address, and the `long` family. |
+| `flag F : USHORT { X = 0x10000 }`, duplicate member names | rejected | dissect accepts a value that does not fit the backing type and a name declared twice; both are defects in a header, and CStructSharp reports them. |
+| A struct-typed field registered from Python (`cs.add_custom_type`) | `ICustomCodec` | See [a custom codec](#a-custom-codec). |
 
 ## API
 
@@ -98,6 +107,7 @@ backing type. Keep one instance per codec: the list is compared by reference in 
 ## What stays different on purpose
 
 CStructSharp prefers C where dissect deviates from it, and keeps dissect's behavior reachable through an option:
-the `long` width, bitfield bit order, and `uint8 *a, b;`. It does not substitute macro text, follow `#include`, or
-evaluate `#if` expressions. Dynamic unions (a union with a runtime-sized member) and a nested field in an expression
-(`hdr.count`) are not supported; both are rare in real definitions.
+the `long` width, the default enum storage, bitfield bit order, and `uint8 *a, b;`. It does not substitute macro
+text, follow `#include`, or evaluate `#if` expressions, and it reports the header defects dissect glosses over
+(duplicate names, values outside a declared backing type). Dynamic unions (a union with a runtime-sized member)
+are not supported; they are rare in real definitions.

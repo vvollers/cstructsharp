@@ -86,6 +86,13 @@ internal sealed class CompiledField
 
     public ImmutableArray<CompiledConditionalBranch> ConditionalBranches { get; internal set; } = [];
 
+    /// <summary>
+    ///     For a nested struct field that an expression names through a dotted path (<c>hdr.n</c>): the prefix
+    ///     (<c>hdr.</c>) under which its nested fields are published as well. <see langword="null"/> for every other
+    ///     field, so operations pay one null check.
+    /// </summary>
+    public string? QualifiedPrefix { get; internal set; }
+
     public ImmutableArray<string> VisibleNames { get; internal set; } = [];
 
     public ImmutableArray<int> CapturedLocalSlots { get; internal set; } = [];

@@ -67,6 +67,29 @@ width), or a complete fixed-size struct or union declared anywhere in the layout
 placed. No other call is accepted, and nothing ever invokes user code. A qualified `enum.Member` names one member of
 a named enum or flag as a constant.
 
+## A nested field's value
+
+A scalar read earlier in the same struct, or in any struct read before, is a variable under its bare name: after
+`h hdr;` with `struct h { uint8 n; }`, `uint8 v[n]` counts with the `n` just read. When two nested fields have the
+same member name, or a header is clearer when spelled as a path, name the field through the struct field that
+holds it:
+
+```c
+struct h { uint8 n; uint8 pad; };
+struct root {
+    h a;
+    h b;
+    uint8 first[a.n];
+    uint8 second[b.n];
+};
+```
+
+`a.n` and `b.n` are the values of `n` inside `a` and `b`; a path may reach through several levels (`a.b.n`). The
+head of a path is a scalar struct or union field of the layout (not an array element and not a pointer target),
+and the value is published while that field is read, written, or measured, so every operation counts with the same
+number. A path that names no such field is an undefined identifier when it is evaluated, like any other unknown
+name. The `nested-references` fixture checks `v[hdr.n]` through parsing, addressing, and serialization.
+
 ## Counts and bit widths use signed 32-bit values
 
 Ordinary layout expressions use checked `Int32` arithmetic:

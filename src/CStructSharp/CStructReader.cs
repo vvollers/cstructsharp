@@ -446,6 +446,8 @@ public partial class CStruct
                             {
                                 state.Variables.Remove(f.Name.Name);
                             }
+
+                            state.PublishQualified(f.Name.Name);
                         }
 
                         firstElement = numFieldValues;
@@ -547,6 +549,7 @@ public partial class CStruct
                                             state.Variables,
                                             f.Name.Name,
                                             newEnum.Value);
+                                        state.PublishQualified(f.Name.Name);
                                     }
 
                                     break;
@@ -557,6 +560,14 @@ public partial class CStruct
                                     if (useLegacyPlacement)
                                     {
                                         this.PrepareNestedStructStart(strct, state, unionPosition);
+                                    }
+
+                                    // A field named through a dotted path (`hdr.n`) republishes its nested values under
+                                    // the qualified prefix while its body is read.
+                                    string? outerPrefix = state.QualifiedPrefix;
+                                    if (compiledField.QualifiedPrefix is not null && !isArray)
+                                    {
+                                        state.QualifiedPrefix = outerPrefix is null ? compiledField.QualifiedPrefix : outerPrefix + compiledField.QualifiedPrefix;
                                     }
 
                                     object nestedValue;
@@ -574,6 +585,8 @@ public partial class CStruct
                                             elementDebugStack);
                                         nestedValue = newContainer;
                                     }
+
+                                    state.QualifiedPrefix = outerPrefix;
 
                                     if (isArray)
                                     {
@@ -777,6 +790,11 @@ public partial class CStruct
                                     {
                                         state.Variables.Remove(f.Name.Name);
                                     }
+                                }
+
+                                if (state.QualifiedPrefix is not null && (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
+                                {
+                                    state.PublishQualified(f.Name.Name);
                                 }
                             }
                         }

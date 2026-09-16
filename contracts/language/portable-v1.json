@@ -1318,6 +1318,16 @@
       "id": "anonymous-flag-expression-member",
       "definition": "#define N 2\nflag { A = N, B }; struct root { uint8 value; };",
       "category": "member value"
+    },
+    {
+      "id": "enum-value-outside-storage",
+      "definition": "enum kind : uint8 { BIG = 256 }; struct root { kind value; };",
+      "category": "enum storage"
+    },
+    {
+      "id": "indexed-nested-reference",
+      "definition": "struct h { uint8 n; }; struct root { h items[2]; uint8 v[items[0].n]; };",
+      "category": "expression"
     }
   ],
   "aliasSpellings": [

@@ -1983,13 +1983,19 @@ internal sealed class LayoutParser
         Identifier? identifier = this.TryParseIdentifier();
         if (identifier is not null)
         {
-            // `Enum.Member` names one member of a named enum or flag; the compiler publishes it as a constant.
+            // `Enum.Member` names one member of a named enum or flag (the compiler publishes it as a constant);
+            // `hdr.n` or `a.b.n` names a nested struct's field, published under the path while it is read.
             if (!this.AtEnd && this.source[this.position] == '.' && this.IsIdentifierStart(this.position + 1))
             {
-                this.position++;
-                Identifier member = this.ExpectIdentifier();
+                string qualified = identifier.Name;
+                while (!this.AtEnd && this.source[this.position] == '.' && this.IsIdentifierStart(this.position + 1))
+                {
+                    this.position++;
+                    qualified += "." + this.ExpectIdentifier().Name;
+                }
+
                 this.usesQualifiedIdentifiers = true;
-                return new Identifier(identifier.Name + "." + member.Name);
+                return new Identifier(qualified);
             }
 
             return identifier;

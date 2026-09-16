@@ -112,7 +112,7 @@ additive         = multiplicative, { ( "+" | "-" ), multiplicative } ;
 multiplicative   = unary, { ( "*" | "/" | "%" ), unary } ;
 unary            = { "-" | "~" | "!" }, primary ;
 primary          = literal | qualified-name | size-call | "(", expression, ")" ;
-qualified-name   = identifier, [ ".", identifier ] ;
+qualified-name   = identifier, { ".", identifier } ;
 size-call        = "sizeof", "(", type-spelling, ")" | "offsetof", "(", type-spelling, ",", identifier, ")" ;
 type-spelling    = identifier, { identifier }, pointer-stars ;
 literal          = sign, ( decimal | hexadecimal | binary | octal ), [ integer-suffix ] ;
@@ -283,7 +283,7 @@ The table explains each production and links to the page that defines its additi
 | `expression` | Complete checked integer expression, optionally a conditional `c ? a : b` |
 | `bitwise-or` | Lowest-precedence bitwise OR |
 | `bitwise-xor` | Bitwise XOR, between `&` and `\|` as in C |
-| `qualified-name` | A variable, field, define, or `Enum.Member` constant |
+| `qualified-name` | A variable, field, define, `Enum.Member` constant, or a nested field through its struct field (`hdr.n`, `a.b.n`) |
 | `size-call` | `sizeof(type)` / `offsetof(type, field)`, folded to a literal at construction |
 | `type-spelling` | A primitive/typedef/enum/composite spelling with optional pointer stars |
 | `bitwise-and` | Bitwise AND |

@@ -792,6 +792,8 @@ public partial class CStruct
             {
                 WriterVariableProjection.UpdateVariablesFromValue(state, effectiveField.Name.Name, value!);
             }
+
+            state.PublishQualified(effectiveField.Name.Name);
         }
     }
 
@@ -995,8 +997,19 @@ public partial class CStruct
                     compiledEnum.Integer.ToStorageValue(enumValue));
                 return enumValue;
             case Struct strct:
-                this.WriteCStructElement(strct, value, state);
-                return null;
+                {
+                    // A field named through a dotted path (`hdr.n`) republishes its nested values under the
+                    // qualified prefix while its body is written.
+                    string? outerPrefix = state.QualifiedPrefix;
+                    if (compiledField.QualifiedPrefix is not null && compiledField.Array.Kind == CompiledArrayKind.Scalar)
+                    {
+                        state.QualifiedPrefix = outerPrefix is null ? compiledField.QualifiedPrefix : outerPrefix + compiledField.QualifiedPrefix;
+                    }
+
+                    this.WriteCStructElement(strct, value, state);
+                    state.QualifiedPrefix = outerPrefix;
+                    return null;
+                }
             }
         }
 

@@ -1283,6 +1283,135 @@
         "unsupportedId": "void-value-field",
         "errorCode": "InvalidLayout"
       }
+    },
+    {
+      "id": "bitfield-allocation",
+      "featureId": "bitfield-allocation",
+      "manual": "docs/language/bitfields.md#allocating-from-the-high-bit",
+      "valid": {
+        "definition": "struct root { uint16 a : 4; uint16 b : 12; uint8 c : 3; uint8 d : 5; };",
+        "root": "root",
+        "pointerSize": 8,
+        "aligned": false,
+        "littleEndian": false,
+        "size": 3,
+        "alignment": 2,
+        "bytes": "123426",
+        "offsets": {
+          "root.a": 0,
+          "root.b": 0,
+          "root.c": 2,
+          "root.d": 2
+        },
+        "values": {
+          "root.a": "1",
+          "root.b": "564",
+          "root.c": "1",
+          "root.d": "6"
+        },
+        "compilation": {
+          "bitfieldAllocation": "HighBitFirst"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "zero-width-bitfield",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "c-long-width",
+      "featureId": "c-long-width",
+      "manual": "docs/language/primitive-types.md#alias-spellings",
+      "valid": {
+        "definition": "struct root { long a; unsigned long b; uint8 tail; };",
+        "root": "root",
+        "pointerSize": 8,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 9,
+        "alignment": 4,
+        "bytes": "ffffffff0200000007",
+        "offsets": {
+          "root.a": 0,
+          "root.b": 4,
+          "root.tail": 8
+        },
+        "values": {
+          "root.a": "-1",
+          "root.b": "2",
+          "root.tail": "7"
+        },
+        "compilation": {
+          "cLongWidth": 32
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "unrecognized-integer-spelling",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "default-enum-storage",
+      "featureId": "default-enum-storage",
+      "manual": "docs/language/structs-unions-enums-typedefs.md#enums",
+      "valid": {
+        "definition": "enum kind { NONE, DATA = 2 }; struct root { kind type; uint8 tail; };",
+        "root": "root",
+        "pointerSize": 8,
+        "aligned": false,
+        "littleEndian": true,
+        "size": 2,
+        "alignment": 1,
+        "bytes": "0207",
+        "offsets": {
+          "root.type": 0,
+          "root.tail": 1
+        },
+        "values": {
+          "root.type.name": "DATA",
+          "root.type.value": "2",
+          "root.tail": "7"
+        },
+        "compilation": {
+          "defaultEnumStorage": "uint8"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "enum-value-outside-storage",
+        "errorCode": "InvalidLayout"
+      }
+    },
+    {
+      "id": "nested-references",
+      "featureId": "nested-references",
+      "manual": "docs/language/expressions-defines-and-variables.md#a-nested-fields-value",
+      "valid": {
+        "definition": "struct h { uint8 n; uint8 pad; }; struct root { h hdr; uint8 v[hdr.n]; uint8 tail; };",
+        "root": "root",
+        "pointerSize": 8,
+        "aligned": false,
+        "littleEndian": true,
+        "size": null,
+        "alignment": 1,
+        "bytes": "0200070809",
+        "offsets": {
+          "root.hdr.n": 0,
+          "root.v": 2,
+          "root.tail": 4
+        },
+        "values": {
+          "root.hdr.n": "2",
+          "root.tail": "9"
+        }
+      },
+      "invalid": {
+        "stage": "compile",
+        "unsupportedId": "indexed-nested-reference",
+        "errorCode": "InvalidLayout"
+      }
     }
   ]
 }

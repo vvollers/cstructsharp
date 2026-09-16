@@ -10,7 +10,7 @@ namespace CStructSharp.Tests.Dissect;
 public class ParityAcceptanceTests
 {
     /// <summary>Raise this as each plan phase lands; rows tagged with a later phase are reported, not asserted.</summary>
-    private const int ImplementedThroughPhase = 4;
+    private const int ImplementedThroughPhase = 5;
 
     private static readonly IReadOnlyList<Row> Rows =
     [

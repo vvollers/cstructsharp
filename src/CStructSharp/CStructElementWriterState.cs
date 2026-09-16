@@ -77,6 +77,12 @@ internal sealed class CStructElementWriterState
     /// </summary>
     public bool CaptureAllLayoutVariables { get; }
 
+    /// <summary>
+    ///     The dotted prefix (<c>hdr.</c>, <c>a.b.</c>) of the nested struct fields being read, when an expression
+    ///     names one of them through its path (<see cref="CompiledField.QualifiedPrefix"/>); otherwise null.
+    /// </summary>
+    public string? QualifiedPrefix { get; set; }
+
     public int CurrentBitOffset { get; set; }
 
     public string? CurrentBitfieldType { get; set; }
@@ -153,5 +159,21 @@ internal sealed class CStructElementWriterState
     public void WriteZeroes(int count)
     {
         this.budgetStream.WriteZeroes(count);
+    }
+
+    /// <summary>Republishes a just-captured variable under its qualified name when a dotted reference needs it.</summary>
+    public void PublishQualified(string name)
+    {
+        if (this.QualifiedPrefix is not null)
+        {
+            if (this.Variables.TryGetValue(name, out Expr? value))
+            {
+                this.Variables[this.QualifiedPrefix + name] = value;
+            }
+            else
+            {
+                this.Variables.Remove(this.QualifiedPrefix + name);
+            }
+        }
     }
 }

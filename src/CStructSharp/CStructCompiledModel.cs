@@ -1109,6 +1109,8 @@ public partial class CStruct
             CollectExpressionReferences(element, ref referenced, ref pending);
         }
 
+        List<string>? qualifiedHeads = ExpandQualifiedReferences(referenced);
+
         bool captureAll = false;
         foreach (CompiledTypeSymbol symbol in symbols)
         {
@@ -1117,6 +1119,13 @@ public partial class CStruct
                 foreach (CompiledField field in composite.Fields)
                 {
                     captureAll |= MarkField(field, referenced);
+                    if (qualifiedHeads is not null && field.Type.Symbol.Kind is CompiledTypeKind.Struct or CompiledTypeKind.Union &&
+                        field.PointerDepth == 0 && field.Array.Kind == CompiledArrayKind.Scalar &&
+                        qualifiedHeads.Contains(field.Declaration.Name.Name))
+                    {
+                        // `hdr.n`: the nested fields of `hdr` are published under the qualified name as well.
+                        field.QualifiedPrefix = field.Declaration.Name.Name + ".";
+                    }
                 }
             }
         }
@@ -1146,6 +1155,45 @@ public partial class CStruct
         {
             field.CapturesLayoutVariable = true;
         }
+    }
+
+    /// <summary>
+    ///     A dotted reference (<c>hdr.n</c>, <c>a.b.n</c>) names a field of a nested struct. Each head becomes a
+    ///     qualified-publishing field and each remainder joins the referenced set, so <c>n</c> is captured and the
+    ///     struct field <c>hdr</c> republishes it as <c>hdr.n</c>; a name that never matches a struct field stays an
+    ///     undefined identifier at evaluation time. Enum members (<c>E.N</c>) were already folded to constants.
+    /// </summary>
+    private static List<string>? ExpandQualifiedReferences(HashSet<string>? referenced)
+    {
+        if (referenced is null)
+        {
+            return null;
+        }
+
+        List<string>? heads = null;
+        var pending = new Stack<string>();
+        foreach (string name in referenced)
+        {
+            if (name.Contains('.'))
+            {
+                pending.Push(name);
+            }
+        }
+
+        while (pending.Count > 0)
+        {
+            string name = pending.Pop();
+            int dot = name.IndexOf('.');
+            string head = name[..dot];
+            string rest = name[(dot + 1)..];
+            (heads ??= []).Add(head);
+            if (referenced.Add(rest) && rest.Contains('.'))
+            {
+                pending.Push(rest);
+            }
+        }
+
+        return heads;
     }
 
     /// <summary>The compiled enum of a declaration, for the browser bridge's static plan description (E3.9).</summary>
