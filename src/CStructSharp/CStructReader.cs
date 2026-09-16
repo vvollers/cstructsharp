@@ -78,6 +78,9 @@ public partial class CStruct
         CompositeFieldPlacementCursor? cursor = null)
     {
         // A typedef can resolve to another element, so loop until this call reaches a concrete struct, field, or define.
+        // A root requested through a typedef alias (`typedef struct _X { } X;` parsed as `X`) is stored and
+        // reported under the name the caller used, not the tag.
+        string? aliasName = null;
         while (true)
         {
             switch (el)
@@ -128,8 +131,9 @@ public partial class CStruct
                         }
                         else
                         {
-                            DebugPath? unionDebugStack = state.Debug ? new DebugPath(debugStack, s.Name.Name) : debugStack;
-                            currentContainerDict[s.Name.Name] = this.ReadUnionValue(s, state, unionDebugStack);
+                            string unionName = aliasName ?? s.Name.Name;
+                            DebugPath? unionDebugStack = state.Debug ? new DebugPath(debugStack, unionName) : debugStack;
+                            currentContainerDict[unionName] = this.ReadUnionValue(s, state, unionDebugStack);
                         }
 
                         if (usesCursor)
@@ -160,14 +164,14 @@ public partial class CStruct
                     // Give every struct its own value, then attach it before reading children so nested paths are preserved.
                     var newContainer = new StructValue(this.compiledSizeQueries.GetCompiledComposite(s).Shape);
                     IDictionary<string, object?> structContainer = currentContainer;
-                    string newName = s.Name.Name;
+                    string newName = aliasName ?? s.Name.Name;
 
                     structContainer[newName] = newContainer;
 
                     if (state.Debug)
                     {
                         // Extend the layout stack only for debug output; normal parsing does not need this allocation.
-                        debugStack = new DebugPath(debugStack, s.Name.Name);
+                        debugStack = new DebugPath(debugStack, newName);
                     }
 
                     this.ReadCompiledStructInto(s, newContainer, state, debugStack);
@@ -182,20 +186,20 @@ public partial class CStruct
 
             case Typedef t:
                 {
-                    if (state.Debug)
-                    {
-                        // Preserve the alias in debug metadata even though its underlying type does the actual reading.
-                        debugStack = new DebugPath(debugStack, t.Name.Name);
-                    }
-
                     if (t.Struct is not null)
                     {
-                        // Preserve the established root-inline-typedef shape: the object is named after its inline
-                        // struct declaration, while an alias to a separately named struct retains the alias name.
+                        // The alias names the value and its debug path; the inline body is read as the struct it is.
+                        aliasName = t.Name.Name;
                         fieldDescriptor = null;
                         el = t.Struct;
                         unionPosition = -1;
                         continue;
+                    }
+
+                    if (state.Debug)
+                    {
+                        // Preserve the alias in debug metadata even though its underlying type does the actual reading.
+                        debugStack = new DebugPath(debugStack, t.Name.Name);
                     }
 
                     // Root aliases use a precompiled field projection, including aliases of structs and pointers.
