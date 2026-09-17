@@ -4,7 +4,7 @@ Notable changes to CStructSharp, newest first. Release versions and dates were r
 Git history preserved before the repository history reset. Entries focus on features, fixes, and migration steps.
 Related changes are consolidated; routine formatting and benchmark bookkeeping are omitted.
 
-## Unreleased
+## 0.5.0 — 2026-09-17
 
 - Memory: new `CStructSharp.Memory` namespace for analyzing memory images with unsigned 64-bit addresses.
   `IMemorySource`/`IWritableMemorySource` define caller-owned address spaces, with `ByteArrayMemorySource`,
