@@ -6,13 +6,14 @@ param(
 
     [string[]]$WebOnlyProjects = @('src\CStructSharp.Wasm\CStructSharpWeb.Wasm.csproj'),
 
-    [string[]]$DeliberatelyExcludedProjects = @('tests/CStructSharp.PackageConsumer\CStructSharp.PackageConsumer.csproj')
+    [string[]]$DeliberatelyExcludedProjects = @('tests/CStructSharp.PackageConsumer\CStructSharp.PackageConsumer.csproj',
+        'tests/CStructSharp.Memory.PackageConsumer\CStructSharp.Memory.PackageConsumer.csproj')
 )
 
 <#
 .SYNOPSIS
 Guards that CStructSharp.sln and CStructSharp.NonWeb.sln reference the same projects except for the deliberate
-CStructSharpWeb.Wasm exclusion, and that CStructSharp.PackageConsumer stays excluded from both.
+CStructSharpWeb.Wasm exclusion, and that both package consumers stay excluded from both.
 
 .DESCRIPTION
 The two solution files are hand-maintained; a newly added project could silently land in only one of them

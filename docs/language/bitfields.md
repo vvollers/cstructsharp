@@ -5,8 +5,8 @@ description: Pack named unsigned values into explicit integer storage with predi
 
 # Portable bitfields
 
-A bitfield stores several small integer values inside one primitive storage unit. Portable bitfields use a fixed
-low-bit-first rule so their result does not depend on a native C compiler.
+A bitfield stores several small integer values inside one primitive storage unit. Portable bitfields use explicit storage-unit rules,
+with low-bit-first allocation by default and an optional high-bit-first setting.
 
 ```c
 struct flags {
@@ -39,7 +39,7 @@ offset 0 and the same one-byte debug range. In packed little-endian placement, `
 
 Adjacent bitfields share a storage unit only while:
 
-- their direct declared storage codec is the same;
+- their canonical storage codec is the same (aliases of one codec share storage);
 - the next field fits in the remaining bits; and
 - no ordinary field interrupts the group.
 
@@ -62,10 +62,9 @@ The `bitfield-allocation` fixture checks both readings of the same bytes.
 
 ## Storage types and byte order
 
-Storage must be one of the 31 direct fixed primitive spellings in the [primitive table](primitive-types.md), including
-the built-in signed/unsigned aliases, `char`, `wchar`, and explicit-endian variants. A user typedef, enum, pointer,
-array, struct, union, floating-point name, or terminated string is rejected even if it would eventually have an
-integer width.
+Storage must resolve to a supported fixed integer codec in the [primitive table](primitive-types.md).
+Built-in aliases, integer typedefs, enum/flag backing types, `char`, `wchar`, and explicit-endian variants are accepted.
+Pointer, array, struct, union, floating-point, and terminated-string storage are rejected.
 
 The storage unit is sliced as an unsigned number. A signed primitive does not make an individual bitfield
 signed. Results below 32 bits are non-negative `Int32`; widths from 32 through 64 use an unsigned value that keeps
@@ -136,13 +135,13 @@ The `anonymous-bitfield-padding` fixture checks `flag=1`, `other=5`, size 1, and
 | Form | Result |
 | --- | --- |
 | Zero-width separator (`uint8 reserved : 0`) | `InvalidLayout` |
-| Array, pointer, typedef, enum, or composite storage | `InvalidLayout` |
+| Array, pointer, floating-point, or composite storage | `InvalidLayout` |
 | Width larger than the storage type | `InvalidLayout` |
 | Native signed-field projection or compiler allocation rules | Not inferred |
-| `#pragma pack`, attributes, or compiler profiles | Unsupported |
+| Native compiler attributes or ABI profiles | Unsupported |
 
 Native C bitfield layout is implementation-defined. Portable may intentionally produce different bytes from GCC,
-Clang, or MSVC. Compiler-comparison fixtures record selected differences but do not change the low-bit-first rule.
+Clang, or MSVC. Compiler-comparison fixtures record selected differences but do not select a native allocation rule automatically.
 
 When bytes are wrong, check storage type identity, bit width, group breaks, byte order, and whether the source header
 relied on a native compiler convention. See [Differences from C](differences-from-c.md).

@@ -936,7 +936,7 @@ const readExplanations: Record<string, string> = {
   union:
     "Both union members interpret the same bytes. For 34 12, small reads the first byte as 52 and large reads both bytes as 4660. The result keeps both interpretations and the original raw storage so the bytes can be preserved when writing again.",
   pointer:
-    "The first byte stores pointer address 1, and the byte at that position contains 42. The result includes the address and the value read there. Turning off Follow pointers in Workbench settings keeps the address but leaves the target unread; this is a position in the input, not a process memory address.",
+    "The first byte stores pointer address 1, and the byte at that position contains 42. The result includes the address and the value read there. Turning off Follow pointers in Workbench settings keeps the address but leaves the target unread; this is a position in the input, not a process memory address. For unsigned virtual addresses and mapped images, the managed CStructSharp.Memory APIs use StoredPointer and explicit .value traversal; those sources are not exposed by this browser lesson.",
   limits:
     "This read fails because its total-byte limit is 3. The header contains six bytes, but the workbench reads them twice: once to parse the fields and once to collect their bytes for the debug view. Total bytes counts every read, including rereads, so 6 is still too small. Open Workbench settings and increase Total bytes to 12 under Safety limits, then run again to get kind 2 and length 6. A plain parse without debug data needs only 6 for this header.",
   "large-integer":

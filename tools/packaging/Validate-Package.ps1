@@ -1,3 +1,13 @@
+<#
+.SYNOPSIS
+Validates the single CStructSharp package, the library assembly, documentation, and portable symbols.
+.PARAMETER PackagePath
+Path to the NuGet package to inspect without loading its assemblies.
+.PARAMETER SymbolPackagePath
+Path to the matching portable symbol package.
+.OUTPUTS
+Writes a validation summary; throws when required metadata or assets are missing.
+#>
 param(
     [Parameter(Mandatory = $true)]
     [string] $PackagePath,
@@ -48,6 +58,16 @@ try {
     }
 
     function Require-MetadataText {
+        <#
+        .SYNOPSIS
+        Returns a required nonempty package metadata element or throws.
+        .PARAMETER XPath
+        Namespace-qualified path relative to the manifest metadata.
+        .PARAMETER Description
+        Human-readable name used in the failure message.
+        .OUTPUTS
+        The matching XML node.
+        #>
         param(
             [string] $XPath,
             [string] $Description
@@ -118,6 +138,16 @@ try {
         if ($symbolEntryNames -cnotcontains $requiredSymbolEntry) {
             throw "The symbol package is missing required entry '$requiredSymbolEntry'."
         }
+    }
+
+    if ($nuspec.SelectNodes('//*[local-name()="dependency"]').Count -ne 0) {
+        throw 'CStructSharp must have zero runtime NuGet dependencies, including for memory analysis.'
+    }
+
+    $assemblyEntries = @($entryNames | Where-Object { $_ -like 'lib/*.dll' })
+    $expectedAssemblies = @('lib/net8.0/CStructSharp.dll', 'lib/net10.0/CStructSharp.dll')
+    if (@(Compare-Object $expectedAssemblies $assemblyEntries).Count -ne 0) {
+        throw 'The package must contain exactly one CStructSharp assembly per supported framework.'
     }
 
     Write-Host (

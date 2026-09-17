@@ -165,3 +165,10 @@ The [repository map](https://vvollers.github.io/cstructsharp/docs/project/reposi
 
 CStructSharp uses the [MIT License](https://github.com/vvollers/CStructSharp/blob/main/LICENSE.txt).
 Report questions and bugs in the [issue tracker](https://github.com/vvollers/CStructSharp/issues).
+
+## Memory images
+
+`CStructSharp.Memory` provides unsigned address spaces, mapped regions,
+BTF/ISF type import, bounded traversal, and offline patches. See the
+[memory-analysis guide](docs/guides/memory-analysis.md) and
+[runnable synthetic consumer](docs/examples/memory-analysis/index.md). The runtime has no external package dependencies.

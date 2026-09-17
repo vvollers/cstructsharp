@@ -12,12 +12,18 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharp.Fuzz", "tests\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharp.FixtureTool", "benchmarks\CStructSharp.FixtureTool\CStructSharp.FixtureTool.csproj", "{8F642332-3984-42BA-964D-A78814504F80}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemoryAnalysis", "docs\examples\memory-analysis\MemoryAnalysis.csproj", "{4D4115F3-8A35-4C93-B4F5-C7B2A7854C01}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4D4115F3-8A35-4C93-B4F5-C7B2A7854C01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D4115F3-8A35-4C93-B4F5-C7B2A7854C01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D4115F3-8A35-4C93-B4F5-C7B2A7854C01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D4115F3-8A35-4C93-B4F5-C7B2A7854C01}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EF1FDDFF-5608-4063-BA6D-830ADEB16FD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EF1FDDFF-5608-4063-BA6D-830ADEB16FD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF1FDDFF-5608-4063-BA6D-830ADEB16FD1}.Release|Any CPU.ActiveCfg = Release|Any CPU

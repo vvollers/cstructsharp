@@ -272,6 +272,13 @@ Write-Host "==> dotnet run --project $ExampleProjectPath -c Release --no-restore
 & dotnet run --project $ExampleProjectPath -c Release --no-restore
 Assert-Condition ($LASTEXITCODE -eq 0) 'Documentation examples failed.'
 
+# The memory articles include regions from this runner; execute their assertions on both supported runtimes.
+foreach ($framework in @('net8.0', 'net10.0'))
+{
+    & dotnet run --project (Join-Path $DocumentationRoot 'examples/memory-analysis/MemoryAnalysis.csproj') -c Release -f $framework
+    Assert-Condition ($LASTEXITCODE -eq 0) "Memory documentation examples failed for $framework."
+}
+
 Push-Location $DocumentationRoot
 try
 {

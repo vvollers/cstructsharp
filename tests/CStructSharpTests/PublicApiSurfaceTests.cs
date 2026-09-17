@@ -3,7 +3,7 @@ namespace CStructSharp.Tests;
 using System.Buffers;
 using System.Reflection;
 
-/// <summary>Locks down the deliberate high-level surface selected before the release-candidate API freeze.</summary>
+/// <summary>Checks the public library surface and keeps compiler implementation details internal.</summary>
 [TestClass]
 public class PublicApiSurfaceTests
 {
@@ -32,6 +32,38 @@ public class PublicApiSurfaceTests
         "CStructSharp.LayoutEnumMemberInfo",
         "CStructSharp.LayoutFieldInfo",
         "CStructSharp.LayoutInfo",
+        "CStructSharp.Memory.ByteArrayMemorySource",
+        "CStructSharp.Memory.CachedMemorySource",
+        "CStructSharp.Memory.IMemorySource",
+        "CStructSharp.Memory.IWritableMemorySource",
+        "CStructSharp.Memory.MappedMemorySource",
+        "CStructSharp.Memory.MemoryAccessContext",
+        "CStructSharp.Memory.MemoryAccessException",
+        "CStructSharp.Memory.MemoryFailure",
+        "CStructSharp.Memory.MemoryField",
+        "CStructSharp.Memory.MemoryInspection",
+        "CStructSharp.Memory.MemoryMapping",
+        "CStructSharp.Memory.MemoryPatch",
+        "CStructSharp.Memory.MemoryPatchCommitException",
+        "CStructSharp.Memory.MemoryPatchFragment",
+        "CStructSharp.Memory.MemoryRegion",
+        "CStructSharp.Memory.MemorySchema",
+        "CStructSharp.Memory.MemorySelection",
+        "CStructSharp.Memory.MemorySession",
+        "CStructSharp.Memory.MemoryTypeDefinition",
+        "CStructSharp.Memory.MemoryTypeKind",
+        "CStructSharp.Memory.MemoryUnionSelection",
+        "CStructSharp.Memory.MemoryWalkResult",
+        "CStructSharp.Memory.MemoryWalkStop",
+        "CStructSharp.Memory.MemoryWalker",
+        "CStructSharp.Memory.Metadata.BtfMetadata",
+        "CStructSharp.Memory.Metadata.IsfMetadata",
+        "CStructSharp.Memory.Metadata.MetadataImportResult",
+        "CStructSharp.Memory.OverlayMemorySource",
+        "CStructSharp.Memory.PointerRequest",
+        "CStructSharp.Memory.PortableMemorySchema",
+        "CStructSharp.Memory.StoredPointer",
+        "CStructSharp.Memory.StreamMemorySource",
         "CStructSharp.Pointer",
         "CStructSharp.PointerAddressingMode",
         "CStructSharp.PrimitiveArray`1",

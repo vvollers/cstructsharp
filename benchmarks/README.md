@@ -45,6 +45,19 @@ pwsh -File tools/quality/Validate-NonWebReleaseBudgets.ps1 -BenchmarkSummaryPath
 
 `Convert-BenchmarkBaseline.ps1` remains equivalent to the Node converter for PowerShell users.
 
+## Memory analysis workloads
+
+`MemoryAnalysisBenchmarks` measures cross-page selected reads, cached reads, ISF import, bounded traversal,
+4,096 stored-pointer links, a selected field in a sparse one-million-byte record, and mapped offline updates.
+Run `--filter '*MemoryAnalysisBenchmarks*'` with the same Release job and runtime
+settings shown above. The synthetic consumer at `docs/examples/memory-analysis` also checks source-request
+budgets, physical fragments, and preservation of the original image. Its sources do not depend on real captures.
+
+For a before/after comparison, preserve a separate checkout and its Release binaries before editing code.
+Run both checkouts repeatedly on the same machine with identical filters, runtime, input data, and job settings.
+Keep separate artifact directories using `CSTRUCTSHARP_BENCHMARK_ARTIFACTS`. Compare allocations as well as timing;
+do not run builds, tests, or mutation analysis while benchmarks are measuring.
+
 ## Profiling
 
 ```sh

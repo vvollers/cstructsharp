@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "contractId": "managed-memory-v1",
+  "assembly": "CStructSharp",
+  "frameworks": ["net8.0", "net10.0"],
+  "compatibility": "Memory sources use unsigned address spaces; stream APIs use signed local positions.",
+  "coordinates": { "address": "unsigned 64-bit source coordinate", "length": "finite signed 64-bit byte count", "fieldOffset": "nonnegative byte count relative to containing record", "bitOffset": "low-bit index in selected integer storage", "identity": "source object and unsigned address" },
+  "defaults": { "maxBytes": 67108864, "maxRequests": 100000, "maxDepth": 128, "cacheBytes": 1048576, "overlayChangedBytes": 1048576, "importBytes": 16777216, "importTypes": 100000 },
+  "operations": ["read", "inspect", "resolve", "serialize", "plan-update", "commit"],
+  "matrix": [
+    { "kind": "Scalar", "read": true, "inspect": true, "resolve": true, "serialize": true, "plan-update": true, "commit": "requires writable backing" },
+    { "kind": "Pointer", "read": "StoredPointer; no implicit follow", "inspect": true, "resolve": "explicit .value or terminal .address", "serialize": "exact declared width", "plan-update": "stored bits", "commit": "requires writable backing" },
+    { "kind": "Struct", "read": "StructValue", "inspect": true, "resolve": true, "serialize": "named dictionary, zero gaps", "plan-update": "preserve gaps", "commit": "requires writable backing" },
+    { "kind": "Union", "read": "StructValue with all interpretations", "inspect": true, "resolve": true, "serialize": "raw bytes or explicit MemoryUnionSelection", "plan-update": "selected field preserves unrelated bytes; whole union clears unused storage", "commit": "requires writable backing" },
+    { "kind": "Array", "read": "bounded object array", "inspect": true, "resolve": "fixed indices", "serialize": "exact count IList", "plan-update": "fixed extent", "commit": "requires writable backing" },
+    { "kind": "Incomplete", "read": false, "inspect": false, "resolve": "storage-free descriptor only", "serialize": false, "plan-update": false, "commit": false }
+  ],
+  "failureRules": ["never zero-fill holes", "checked unsigned extent arithmetic", "cancellation propagates", "budgets shared across nested operations", "no ownership transfer", "source changes invalidate cached bytes", "patch expectations prevalidated", "commit failure identifies completed prefix and uncertain fragment", "no atomicity or rollback promise"],
+  "metadata": { "btf": "v1 reachable value types and split tables; no ELF extraction", "isf": "6.2.0 reachable type subset; no profile matching or relocations", "portable": "fixed compiled layouts only" },
+  "tests": ["MemoryAnalysisTests", "MemoryMetadataTests", "MemoryBtfCoverageTests", "MemoryBtfBoundaryTests", "MemoryIsfCoverageTests", "MemoryAdapterTests", "MemoryFailureTests", "MemoryExplicitLayoutTests", "MemoryValidationTests", "MemoryOperationMatrixTests", "MemorySourceContractTests", "MemoryPortableProjectionTests", "MemoryAcceptanceBoundaryTests", "MemoryFuzzTests"]
+}

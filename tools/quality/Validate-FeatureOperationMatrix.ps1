@@ -418,6 +418,22 @@ foreach ($exclusion in $matrix.exclusions) {
     Assert-WorkItems -WorkItems @($exclusion.workItems) -Context $context -Required:$true
 }
 
+if ($matrix.PSObject.Properties.Name -contains 'domainContracts') {
+    foreach ($relativePath in $matrix.domainContracts) {
+        $domain = Get-Content -Raw -LiteralPath (Join-Path $repositoryRoot $relativePath) | ConvertFrom-Json -Depth 100
+        Assert-Condition ($domain.contractId -eq 'managed-memory-v1') 'Unknown domain contract.'
+        Assert-Condition ($domain.matrix.Count -eq 6) 'Memory matrix must describe all six type kinds.'
+        foreach ($row in $domain.matrix) {
+            foreach ($operation in $domain.operations) {
+                Assert-Condition ($row.PSObject.Properties.Name -contains $operation) "Memory kind '$($row.kind)' omits operation '$operation'."
+            }
+        }
+        foreach ($test in $domain.tests) {
+            Assert-Condition (Test-Path -LiteralPath (Join-Path $repositoryRoot "tests/CStructSharpTests/$test.cs")) "Missing memory contract tests: $test."
+        }
+    }
+}
+
 Write-Output 'Feature-operation matrix validation passed.'
 Write-Output "Operations: $($operationIds.Count)"
 Write-Output "Features: $(@($matrix.features).Count)"

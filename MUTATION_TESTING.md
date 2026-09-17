@@ -21,6 +21,21 @@ whether the assertions notice a small logic error.
 Normal CI checks code coverage. Mutation testing is slower, so the complete mutation run is scheduled separately
 and is also used before a release.
 
+## Memory analysis
+
+The memory-analysis scope covers `src/CStructSharp/Memory/**/*.cs` in the library project:
+
+```powershell
+dotnet stryker --config-file stryker-memory-config.json --solution CStructSharp.NonWeb.sln `
+  --target-framework net10.0 --configuration Release --output artifacts/mutation/memory --skip-version-check
+```
+
+This scope selects the `CStructSharp.Tests.Memory*` test classes and uses per-test coverage to select relevant
+tests for each mutation. The mutation score threshold is 75%; compile errors do not count as detected behavior.
+Review timeouts separately from assertion kills. Stream-cursor corpus tests run in the normal suite and the
+parser mutation scope; they do not exercise the address-space APIs in this scope.
+Run mutation testing independently of normal builds, tests, and benchmarks because it replaces test output assemblies.
+
 ## Run the complete check
 
 Run these commands from the repository root:

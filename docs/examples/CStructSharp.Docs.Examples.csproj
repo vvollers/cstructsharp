@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Remove="starter/**" />
     <Compile Remove="recipes/**" />
+    <Compile Remove="memory-analysis/**" />
     <ProjectReference Include="..\..\src\CStructSharp\CStructSharp.csproj" />
   </ItemGroup>
 </Project>

@@ -5,8 +5,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageId>CStructSharp</PackageId>
     <Authors>Vincent Vollers</Authors>
-    <Description>Parse, inspect, serialize, and update binary streams from C-style struct definitions.</Description>
-    <PackageTags>binary;parser;cstruct;struct;serialization</PackageTags>
+    <Description>Parse, inspect, serialize, and update binary streams and mapped memory using C-style structures and metadata layouts.</Description>
+    <PackageTags>binary;parser;cstruct;struct;serialization;memory;btf;isf</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/vvollers/CStructSharp</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>

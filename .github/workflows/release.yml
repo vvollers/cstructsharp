@@ -164,6 +164,7 @@ jobs:
         run: |
           ./tools/packaging/Validate-Package.ps1 -PackagePath "artifacts/package/CStructSharp.$env:VERSION.nupkg" -SymbolPackagePath "artifacts/package/CStructSharp.$env:VERSION.snupkg"
           ./tools/packaging/Test-PackageConsumer.ps1 -PackageDirectory artifacts/package
+          ./tools/packaging/Test-MemoryPackageConsumer.ps1 -PackageDirectory artifacts/package
 
       - name: Verify onboarding against the NuGet artifact
         shell: pwsh

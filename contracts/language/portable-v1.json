@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "contractRevision": 2,
   "profile": "Portable",
+  "directiveWhitespace": ".NET whitespace except carriage return and line feed; directive names must remain on the same physical line.",
   "shippedProfiles": [
     "Portable"
   ],

@@ -19,62 +19,78 @@ Assert-Condition (Test-Path -LiteralPath $SiteApiDirectory -PathType Container) 
 Assert-Condition (Test-Path -LiteralPath $SearchIndexPath -PathType Leaf) 'Built search index is missing.'
 
 $baseline = Get-Content -LiteralPath $BaselinePath -Raw
-# Nested types (StructValue.Enumerator) are indented one level deeper than their declaring type in the baseline
-# text and are documented under the declaring type's UID, so they are qualified here.
+# Track namespaces and declaring types so every public type maps to its complete DocFX UID.
 $typeNames = [System.Collections.Generic.List[string]]::new()
+$namespaceNames = [System.Collections.Generic.List[string]]::new()
+$namespace = $null
 $declaringType = $null
-foreach ($match in [regex]::Matches(
-        $baseline,
-        '(?m)^(?<indent> *)public (?:abstract |sealed |static |readonly )*(?:class|enum|struct|interface) (?<name>[A-Za-z][A-Za-z0-9]*)'))
-{
-    $name = $match.Groups['name'].Value
-    if ($match.Groups['indent'].Value.Length -le 4)
-    {
-        $declaringType = $name
-        $typeNames.Add($name)
+foreach ($line in $baseline -split '\r?\n') {
+    if ($line -match '^namespace (.+)$') {
+        $namespace = $Matches[1]
+        $namespaceNames.Add($namespace)
     }
-    else
-    {
-        $typeNames.Add("$declaringType.$name")
+    elseif ($line -match '^(?<indent> *)public (?:abstract |sealed |static |readonly )*(?:class|enum|struct|interface) (?<name>[A-Za-z][A-Za-z0-9]*)') {
+        $name = $Matches['name']
+        if ($Matches['indent'].Length -le 4) {
+            $declaringType = "$namespace.$name"
+            $typeNames.Add($declaringType)
+        }
+        else {
+            $typeNames.Add("$declaringType.$name")
+        }
     }
 }
-
 $typeNames = @($typeNames | Sort-Object -Unique)
-Assert-Condition ($typeNames.Count -eq 34) "Expected 34 baseline types, found $($typeNames.Count)."
+Assert-Condition ($typeNames.Count -eq 66) "Expected 66 baseline types, found $($typeNames.Count)."
 
-# A generic type's metadata file carries its arity (PrimitiveArray-1.yml).
+# Generic metadata file names carry arity, for example PrimitiveArray-1.yml.
 $missingTypes = @(
     $typeNames |
         Where-Object {
-            -not (Test-Path -LiteralPath (Join-Path $ApiDirectory "CStructSharp.$_.yml")) -and
-            -not (Test-Path -LiteralPath (Join-Path $ApiDirectory "CStructSharp.$_-1.yml"))
+            -not (Test-Path -LiteralPath (Join-Path $ApiDirectory "$_.yml")) -and
+            -not (Test-Path -LiteralPath (Join-Path $ApiDirectory "$_-1.yml"))
         }
 )
 Assert-Condition ($missingTypes.Count -eq 0) (
     "Generated API metadata is missing baseline types: " + [string]::Join(', ', $missingTypes))
 
+# Positional record declarations generate Deconstruct members absent from the API snapshot.
+# Read declarations rather than loading the net10.0 assembly into PowerShell's own runtime.
+$positionalRecords = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$sourceDirectory = Join-Path $PSScriptRoot '../../src/CStructSharp'
+foreach ($sourceFile in Get-ChildItem -LiteralPath $sourceDirectory -Recurse -Filter '*.cs') {
+    if ($sourceFile.FullName -match '[/\\](?:obj|bin)[/\\]') { continue }
+    $source = Get-Content -LiteralPath $sourceFile.FullName -Raw
+    if ($source -match '(?m)^namespace ([A-Za-z0-9_.]+);') {
+        $sourceNamespace = $Matches[1]
+        foreach ($declaration in [regex]::Matches($source, '\bpublic\s+(?:sealed\s+)?record\s+(?<name>[A-Za-z0-9_]+)\s*\(')) {
+            [void]$positionalRecords.Add("$sourceNamespace.$($declaration.Groups['name'].Value)")
+        }
+    }
+}
+
 function Get-RecordSynthesizedUids {
     <#
     .SYNOPSIS
-    Returns the exact DocFX UIDs every C# record declaration synthesizes beyond its own hand-authored members,
-    since PublicApiGenerator.Tool's baseline text (unlike DocFX's own reflection) omits compiler-generated record
-    members entirely - both from its UID count and from its documentation-quality expectations.
-
+    Returns compiler-generated public and protected record member UIDs omitted from the API snapshot.
+    .PARAMETER Baseline
+    Public API text for one namespace.
+    .PARAMETER Namespace
+    Fully qualified namespace containing the declarations.
+    .OUTPUTS
+    A set of compiler-generated DocFX member UIDs.
     .DESCRIPTION
-    Every record synthesizes 7 always-present members visible to DocFX: ToString, PrintMembers, op_Equality,
-    op_Inequality, GetHashCode, Equals(object), and the protected EqualityContract property - plus its own
-    Equals(TSelf) (IEquatable<TSelf> is unconditional for a record). An unsealed record additionally synthesizes
-    a protected copy constructor (a sealed record's copy constructor is private, so DocFX never documents it). A
-    record deriving from another record additionally overrides the base record's virtual Equals(TBase), a second
-    UID distinct from its own Equals(TSelf). This is exact C# record codegen, not a heuristic: getting it wrong
-    for a future record conversion silently reintroduces the same drift this function exists to prevent (the
-    architecture improvement plan's post-AP-2.1 finding). None of these members can carry a hand-written
-    XML doc comment, so callers must also skip them entirely for summary/parameter/return/exception checks -
-    not just count them - exactly like the existing "src/CStructSharp" module-root exemption below.
+    Records synthesize equality, formatting, and comparison members. Sealed root records keep PrintMembers and
+    EqualityContract private; unsealed records expose those and a protected copy constructor. Derived records
+    also expose an Equals overload for their record base. These generated members cannot carry authored XML
+    comments, so they are counted separately and excluded from authored-comment checks.
     #>
     param(
         [Parameter(Mandatory)]
-        [string]$Baseline
+        [string]$Baseline,
+
+        [Parameter(Mandatory)]
+        [string]$Namespace
     )
 
     $declarations = @(
@@ -86,7 +102,7 @@ function Get-RecordSynthesizedUids {
     foreach ($declaration in $declarations) {
         if ($declaration.Groups['bases'].Success -and
             $declaration.Groups['bases'].Value -match
-                "System\.IEquatable<CStructSharp\.$($declaration.Groups['name'].Value)>") {
+                "System\.IEquatable<$([regex]::Escape($Namespace))\.$($declaration.Groups['name'].Value)>") {
             [void]$recordNames.Add($declaration.Groups['name'].Value)
         }
     }
@@ -98,27 +114,39 @@ function Get-RecordSynthesizedUids {
             continue
         }
 
-        $qualified = "CStructSharp.$name"
+        $qualified = "$Namespace.$name"
+        if ($positionalRecords.Contains($qualified)) {
+            $typeBody = [regex]::Match($Baseline, '(?ms)^    public [^\r\n]*\b' + [regex]::Escape($name) + '\b[^\r\n]*\r?\n    \{(?<members>.*?)^    \}').Groups['members'].Value
+            if ($typeBody -notmatch '\bDeconstruct\(') {
+                $metadata = Get-Content -LiteralPath (Join-Path $ApiDirectory "$qualified.yml") -Raw
+                $deconstructs = [regex]::Matches($metadata, '(?m)^- uid: (' + [regex]::Escape($qualified) + '\.Deconstruct\([^\r\n]+\))\r?$')
+                Assert-Condition ($deconstructs.Count -eq 1) "Expected one generated Deconstruct member for $qualified."
+                [void]$uids.Add($deconstructs[0].Groups[1].Value)
+            }
+        }
         foreach ($member in @(
             'ToString',
-            'PrintMembers(System.Text.StringBuilder)',
             "op_Inequality($qualified,$qualified)",
             "op_Equality($qualified,$qualified)",
             'GetHashCode',
             'Equals(System.Object)',
-            "Equals($qualified)",
-            'EqualityContract')) {
+            "Equals($qualified)")) {
             [void]$uids.Add("$qualified.$member")
         }
 
         if (-not $declaration.Groups['sealed'].Success) {
             [void]$uids.Add("$qualified.#ctor($qualified)")
+            [void]$uids.Add("$qualified.PrintMembers(System.Text.StringBuilder)")
+            [void]$uids.Add("$qualified.EqualityContract")
         }
 
         if ($declaration.Groups['bases'].Success) {
-            $baseTypeMatch = [regex]::Match($declaration.Groups['bases'].Value, '^\s*CStructSharp\.([A-Za-z][A-Za-z0-9]*)')
+            $baseTypeMatch = [regex]::Match($declaration.Groups['bases'].Value, ("^\s*" + [regex]::Escape($Namespace) + "\.([A-Za-z][A-Za-z0-9]*)"))
             if ($baseTypeMatch.Success -and $recordNames.Contains($baseTypeMatch.Groups[1].Value)) {
-                [void]$uids.Add("$qualified.Equals(CStructSharp.$($baseTypeMatch.Groups[1].Value))")
+                [void]$uids.Add("$qualified.Equals($Namespace.$($baseTypeMatch.Groups[1].Value))")
+                # Sealed derived records still override their base's protected record members.
+                [void]$uids.Add("$qualified.PrintMembers(System.Text.StringBuilder)")
+                [void]$uids.Add("$qualified.EqualityContract")
             }
         }
     }
@@ -126,9 +154,14 @@ function Get-RecordSynthesizedUids {
     return ,$uids
 }
 
-$recordSynthesizedUids = Get-RecordSynthesizedUids -Baseline $baseline
+$recordSynthesizedUids = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+foreach ($block in [regex]::Split($baseline, '(?m)(?=^namespace )')) {
+    if ($block -match '^namespace ([^\r\n]+)') {
+        $recordSynthesizedUids.UnionWith((Get-RecordSynthesizedUids -Baseline $block -Namespace $Matches[1]))
+    }
+}
 $expectedUidCount =
-    1 +
+    $namespaceNames.Count +
     @($baseline -split '\r?\n' | Where-Object { $_ -match '^\s*(?:public|protected) ' }).Count +
     @($baseline -split '\r?\n' |
         Where-Object { $_ -match '^\s{8}[A-Za-z][A-Za-z0-9]* = -?\d+,' }).Count +
@@ -296,7 +329,7 @@ foreach ($file in Get-ChildItem -LiteralPath $ApiDirectory -File -Filter '*.yml'
 Assert-Condition ($uids.Count -eq $expectedUidCount) (
     "The baseline implies $expectedUidCount public UIDs, but DocFX generated $($uids.Count).")
 Assert-Condition ($uids.Count -eq @($uids | Sort-Object -Unique).Count) 'Generated API UIDs are not unique.'
-$missingPublicSummaries = @($missingSummaries | Where-Object { $_ -ne 'CStructSharp' })
+$missingPublicSummaries = @($missingSummaries | Where-Object { $_ -notin $namespaceNames })
 Assert-Condition ($missingPublicSummaries.Count -eq 0) (
     "Generated public API items lack summaries:`n" + [string]::Join("`n", $missingPublicSummaries))
 Assert-Condition ($missingParameters.Count -eq 0) (
@@ -313,7 +346,7 @@ Assert-Condition ($placeholderContent.Count -eq 0) (
     [string]::Join("`n", $placeholderContent))
 
 $docfxConfig = Get-Content -LiteralPath $DocfxConfigPath -Raw | ConvertFrom-Json
-Assert-Condition ($docfxConfig.metadata.Count -eq 1) 'DocFX must use one explicit core-only metadata source.'
+Assert-Condition ($docfxConfig.metadata.Count -eq 1) 'DocFX must use one explicit library metadata source.'
 Assert-Condition ($docfxConfig.metadata[0].memberLayout -eq 'samePage') (
     "The reviewed overload layout must remain 'samePage'.")
 
@@ -351,9 +384,9 @@ $apiToc = Get-Content -LiteralPath $apiTocPath -Raw
 foreach ($typeName in $typeNames)
 {
     Assert-Condition (
-        $apiToc.Contains("CStructSharp.$typeName.html", [StringComparison]::Ordinal) -or
-        $apiToc.Contains("CStructSharp.$typeName-1.html", [StringComparison]::Ordinal)) (
-        "Built API TOC does not link the baseline type CStructSharp.$typeName.")
+        $apiToc.Contains("$typeName.html", [StringComparison]::Ordinal) -or
+        $apiToc.Contains("$typeName-1.html", [StringComparison]::Ordinal)) (
+        "Built API TOC does not link the baseline type $typeName.")
 }
 
 $searchIndex = Get-Content -LiteralPath $SearchIndexPath -Raw

@@ -44,7 +44,7 @@ equivalence with every native compiler.
 | `pointer-to-typedef-array` | `typedef uint16 pair[2]; pair *value;` | The language has no pointer-to-array storage | Point at a struct that wraps the array |
 | `unsized-typedef-array` | `typedef uint16 open[];` | An array typedef needs a count in every dimension | Give the alias a count, or declare the unsized array on a `char`/`wchar` field |
 | `dynamic-union-member` | `union choice { uint8 count; uint8 values[count]; };` | Every union member must have fixed storage, so the union's extent is known before any member is read | Read the count outside the union, or wrap the runtime-sized member in a struct that is parsed on its own |
-| `runtime-sized-multidimensional-array` | `uint8 values[count][3];` | Only the outermost dimension of a multidimensional array may be a runtime expression; a fixed `value[2][3]` is supported (see [Arrays and strings](arrays-and-strings.md#multidimensional-arrays)) | Make every dimension a compile-time-fixed count, or flatten the runtime-sized dimension into a single-dimension array |
+| `runtime-sized-multidimensional-array` | `uint8 values[count][3];` | Every dimension of a multidimensional array must be a compile-time-fixed count; a fixed `value[2][3]` is supported (see [Arrays and strings](arrays-and-strings.md#multidimensional-arrays)) | Make every dimension a compile-time-fixed count, or flatten the runtime-sized dimension into a single-dimension array |
 | `data-sized-array-of-dynamic-element` | `entry entries[]` where `entry` is runtime-sized | A data-sized array (`[]`, `[EOF]`) needs one fixed element size to step by | Give the element a fixed size, or count the elements with an earlier field |
 | `sizeof-of-dynamic-type` | `sizeof(entry)` where `entry` is runtime-sized | `sizeof` folds at construction, so the type must be complete and fixed-size | Name a fixed type, or compute the size from earlier fields |
 | `unsupported-expression-call` | `strlen(root)` | Only `sizeof(type)` and `offsetof(type, field)` are accepted calls; nothing ever invokes user code | Use an integer expression |
@@ -85,9 +85,9 @@ and related details. Portable uses explicit binary-format rules instead:
 | `_Bool`/C++ `bool` width and representation | `bool`/`_Bool` is always 1 byte, canonical `0x00`/`0x01` write output |
 | `wchar_t` width/locale | `wchar` is one 16-bit UTF-16 code unit |
 | Pointer width | Constructor value 1, 2, 4, or 8 |
-| Enum backing | Supported explicit integral type; omitted means unsigned byte |
+| Enum backing | Supported explicit integral type; omitted means the configured 32-bit default (or an explicit DefaultEnumStorage option) |
 | Struct/union padding | Constructor chooses packed or Portable aligned placement |
-| Bitfield allocation | Low-bit-first Portable storage-unit rule |
+| Bitfield allocation | Portable storage units; low-bit-first by default, high-bit-first by option |
 | Native byte order | Constructor order plus optional field suffix |
 
 The core does not inspect OS, CPU, process bitness, current culture, installed compiler, system headers, target

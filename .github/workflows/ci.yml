@@ -47,6 +47,11 @@ jobs:
       - name: Build
         run: dotnet build ./CStructSharp.NonWeb.sln -c Release --no-restore
 
+      - name: Run synthetic memory consumer on both frameworks
+        run: |
+          dotnet run --project docs/examples/memory-analysis -c Release -f net8.0 --no-build
+          dotnet run --project docs/examples/memory-analysis -c Release -f net10.0 --no-build
+
       - name: Test .NET 8
         run: >-
           dotnet test ./tests/CStructSharpTests/CStructSharpTests.csproj
@@ -71,6 +76,14 @@ jobs:
           -ResultsDirectory artifacts/test-results/net10
           -OutputDirectory artifacts/readme-badges
           -RunUrl "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Test memory coverage
+        shell: pwsh
+        run: |
+          dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release -f net10.0 --no-build --filter FullyQualifiedName~Memory --collect:"XPlat Code Coverage" --results-directory artifacts/test-results/memory -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Include="[CStructSharp]CStructSharp.Memory.*"
+          if ($LASTEXITCODE -ne 0) { throw 'Memory tests failed.' }
+          $coverage = Get-ChildItem artifacts/test-results/memory -Recurse -Filter coverage.cobertura.xml | Select-Object -First 1
+          ./tools/quality/Measure-CoverageRisk.ps1 -CoveragePath $coverage.FullName -OutputDirectory artifacts/test-results/memory-risk -MinimumLinePercent 78 -MinimumBranchPercent 80 -MaximumHighRiskFiles 0 -MaximumCriticalRiskFiles 0
 
       - name: Upload README quality badges
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -98,6 +111,7 @@ jobs:
           ./tools/packaging/Validate-Package.ps1 -PackagePath $package.FullName -SymbolPackagePath $symbols.FullName
           ./tools/packaging/Test-PackageConsumer.ps1 -PackageDirectory artifacts/package
           ./tools/packaging/Test-OnboardingPackage.ps1 -PackageDirectory artifacts/package
+          ./tools/packaging/Test-MemoryPackageConsumer.ps1 -PackageDirectory artifacts/package
 
       - name: Upload test results
         if: always()

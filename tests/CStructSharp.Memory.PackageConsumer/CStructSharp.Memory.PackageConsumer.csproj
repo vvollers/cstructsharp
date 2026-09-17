@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <MemoryPackageVersion Condition="'$(MemoryPackageVersion)' == ''">0.0.0-version-required</MemoryPackageVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CStructSharp" Version="$(MemoryPackageVersion)" />
+    <Compile Include="../../docs/examples/memory-analysis/Program.cs" Link="Program.cs" />
+    <Compile Include="../../docs/examples/memory-analysis/MemoryTutorialExamples.cs" Link="MemoryTutorialExamples.cs" />
+  </ItemGroup>
+</Project>

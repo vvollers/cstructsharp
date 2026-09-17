@@ -101,3 +101,7 @@ When following fails, inspect:
 
 Read [Pointers and addressing](../language/pointers-and-addressing.md) for multi-level, union, array, write, and
 failure rules.
+
+For unsigned virtual addresses and mapped images, use the memory APIs described in
+[Analyze mapped memory](memory-analysis.md). Their `StoredPointer` values preserve all 64 bits and their
+`.value` paths follow targets explicitly in a caller-selected address space.

@@ -18,7 +18,7 @@ The core supports:
 - replacing an existing value without moving the surrounding data.
 
 The library targets .NET 8 and .NET 10. The core project file records the development version; release assets identify published versions. The managed public
-surface contains 23 types and is checked against a reviewed `managed-rc1` baseline so accidental signature changes
+surface contains 66 types and is checked against a reviewed `managed-rc1` baseline so accidental signature changes
 are caught.
 
 ## The Portable layout language

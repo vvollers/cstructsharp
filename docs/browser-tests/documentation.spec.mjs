@@ -2,6 +2,8 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 const representativePages = [
+  { path: "guides/memory-sources.html", heading: "Address spaces, mappings, and selected reads" },
+  { path: "guides/memory-updates.html", heading: "Create records and patch offline memory" },
   { path: "guides/native-c-memory.html", heading: "How C structs occupy memory" },
   { path: "guides/memory-and-stored-data.html", heading: "Memory addresses and stored data" },
   { path: "guides/conditional-fields.html", heading: "Choose fields with if and switch" },
@@ -32,6 +34,27 @@ const representativePages = [
     heading: "Documentation page not found",
   },
 ];
+
+/** Checks that the memory guide series is reachable and publishes executable snippets rather than unresolved includes. */
+test("memory guides expose the worked source snippets and runnable consumer", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const item of [
+    { title: "Address spaces, mappings, and selected reads", code: "0x12345678U" },
+    { title: "Memory schemas and metadata import", code: "new BtfMetadata(blob)" },
+    { title: "Stored pointers and bounded traversal", code: "MemoryWalker.SentinelList" },
+    { title: "Create records and patch offline memory", code: "patch.Commit()" },
+    { title: "Memory budgets, caching, and source contracts", code: "warm.BytesRequested == 0" },
+  ]) {
+    await page.goto("guides/memory-analysis.html");
+    await page.locator("article").getByRole("link", { name: item.title, exact: true }).click();
+    await expect(page.getByRole("heading", { level: 1, name: item.title })).toBeVisible();
+    await expect(page.locator("article")).toContainText(item.code);
+    await expect(page.locator("article")).not.toContainText("[!code-csharp");
+  }
+  await page.goto("examples/memory-analysis/index.html");
+  await expect(page.locator("article")).toContainText("Nine memory guide examples passed.");
+  await expect(page.locator("article")).toContainText("-f net8.0");
+});
 
 function captureBrowserErrors(page) {
   const errors = [];

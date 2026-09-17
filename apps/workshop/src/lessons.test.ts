@@ -6,6 +6,13 @@ import { describe, expect, it } from "vitest";
 import { lessons } from "./lessons";
 
 describe("lesson catalog provenance", () => {
+  /** Keeps the stream-pointer exercise distinct from the managed address-space APIs. */
+  it("explains the managed memory boundary in the pointer lesson", () => {
+    const pointer = lessons.find((entry) => entry.id === "pointer");
+    expect(pointer?.explanation).toContain("StoredPointer");
+    expect(pointer?.explanation).toContain("not exposed by this browser lesson");
+  });
+
   it("keeps stable unique IDs, registered source scenarios, guides, and executable expectations", () => {
     const runner = readFileSync(resolve(process.cwd(), "../../docs/examples/Program.cs"), "utf8");
     expect(new Set(lessons.map((lesson) => lesson.id)).size).toBe(lessons.length);

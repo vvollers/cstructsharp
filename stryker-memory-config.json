@@ -1,0 +1,11 @@
+{
+  "stryker-config": {
+    "project": "src/CStructSharp/CStructSharp.csproj",
+    "test-projects": ["tests/CStructSharpTests/CStructSharpTests.csproj"],
+    "coverage-analysis": "perTest",
+    "test-case-filter": "FullyQualifiedName~CStructSharp.Tests.Memory",
+    "mutate": ["Memory/**/*.cs"],
+    "reporters": ["progress", "json", "html"],
+    "thresholds": { "high": 90, "low": 80, "break": 75 }
+  }
+}

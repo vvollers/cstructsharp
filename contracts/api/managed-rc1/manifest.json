@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 8,
+  "baselineRevision": 9,
   "status": "frozen",
   "workItem": "QA-07",
-  "packageVersion": "0.4.0",
+  "packageVersion": "0.4.3",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 34,
+  "exportedTypes": 66,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -14,21 +14,21 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 381,
-    "normalizedSha256": "A378BC3FB8D8F40FF2777870EFB42C6C17D22BE605C5C28B4BBBAC184D187660"
+    "lines": 641,
+    "normalizedSha256": "AA2DD873ADD459AF3D48164120E48FDE730DAAC448E366FE5FE7BE9C02105A77"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "B14974C66F45370F2071604402E2BBE0F49DF4FFF61F906AA26571DF6811F13E"
+      "normalizedSha256": "9344756C4EE2942D4DA350555B28DB25EB0176942383302127D08880FFF83125"
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "CD3D9C5595EA99EC0473A17FA2DDF24FC0D2EFFE9456D27AF442482F29E2175C"
+      "normalizedSha256": "F92F336FA59AE0B55FEC473C3436210B19EEE4A0D5FACBE26BDB899BCA121D8E"
     }
   ],
   "history": [
@@ -103,6 +103,15 @@
       "combinedSha256": "0804A9A4BE302F887D06B84CF7783C1B2283691BD74D2D066AB4C31698F6D77D",
       "rationale": "dissect.cstruct parity (docs/guides/migrating-from-dissect.md): adds the layout introspection surface (LayoutInfo, LayoutDeclarationInfo, LayoutFieldInfo, LayoutEnumMemberInfo, LayoutConstant and their kind enums; CStruct.Layout/Constants/Includes/CompilationOptions, WithEndianness/WithPointerSize/WithAlignment, ToDefinition), FlagValueResult (derived from EnumValueResult, which is therefore no longer sealed - unsealing adds no member and breaks no caller), ICustomCodec, BitfieldAllocation, and the CStructCompilationOptions members CLongWidth, DefaultEnumStorage, Defined, Codecs, Prelude, BitfieldAllocation. No existing member's signature, default, nullability, or attribute changed.",
       "releaseImpact": "Unreleased source addition on the 0.4.0 development version; the next publication must receive a new minor version through the release process. Language-level behaviour changes (alias spellings, enum default storage, `_` padding fields, data-sized arrays) are documented in the CHANGELOG and docs/language and are not API-surface changes."
+    },
+    {
+      "revision": 9,
+      "kind": "additive",
+      "date": "2026-09-17",
+      "packageVersion": "0.4.3",
+      "combinedSha256": "48DC5B3E46A542E95FF6C437C362DC6526EDDAF04E6E1C7A7C3F4BA49C5D6A14",
+      "rationale": "Reviewed managed API for binary structures, memory address spaces, metadata import, traversal, and offline updates.",
+      "releaseImpact": "Pre-publication API contract."
     }
   ]
 }

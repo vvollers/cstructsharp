@@ -1,5 +1,6 @@
 {
   "schemaVersion": 2,
+  "domainContracts": ["contracts/memory/v1.json"],
   "operations": [
     {
       "id": "parse",

@@ -24,6 +24,9 @@ For a deeper foundation, read [how C structs occupy memory](native-c-memory.md) 
 arrays and pointers, platform ABIs, byte order, and text encodings, with exercises and worked answers.
 They assume introductory programming knowledge, not operating-systems or compiler courses.
 
+For captured or mapped memory, follow the [memory-analysis guide series](memory-analysis.md). It covers sources,
+metadata layouts, pointers, bounded traversal, offline editing, and reliability through executable byte-level examples.
+
 Read [reading values](reading-values.md) for managed result types and the [JavaScript API](browser/api.md)
 for browser results, debug ranges, and compiled-layout reuse.
 

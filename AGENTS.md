@@ -3,6 +3,9 @@
 These instructions apply across the repository. Keep changes small, focused, and easy to explain.
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for the checks specific to the area you change.
 
+The project is pre-publication and has one maintainer. APIs and project boundaries may change freely;
+update the current contracts, tests, and documentation without retaining unused compatibility layers.
+
 ## Project boundaries
 
 - `src/CStructSharp` owns the layout language and binary operations; `src/CStructSharp.Wasm` exposes the browser bridge.

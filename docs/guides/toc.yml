@@ -7,6 +7,18 @@ items:
   href: native-c-memory.md
 - name: Memory addresses and stored data
   href: memory-and-stored-data.md
+- name: Analyze mapped memory
+  href: memory-analysis.md
+- name: Address spaces and selected reads
+  href: memory-sources.md
+- name: Memory schemas and metadata
+  href: memory-schemas.md
+- name: Stored pointers and traversal
+  href: memory-traversal.md
+- name: Create and patch offline memory
+  href: memory-updates.md
+- name: Memory budgets and source contracts
+  href: memory-reliability.md
 - name: Install and first parse
   href: install-and-first-parse.md
 - name: Continue with the header

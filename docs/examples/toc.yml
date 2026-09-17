@@ -1,4 +1,6 @@
 items:
+- name: Synthetic memory analysis
+  href: memory-analysis/index.md
 - name: Choose a recipe
   href: ../guides/recipes/index.md
 - name: Complete recipes

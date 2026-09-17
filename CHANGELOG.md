@@ -6,6 +6,25 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- Memory: new `CStructSharp.Memory` namespace for analyzing memory images with unsigned 64-bit addresses.
+  `IMemorySource`/`IWritableMemorySource` define caller-owned address spaces, with `ByteArrayMemorySource`,
+  `StreamMemorySource`, `MappedMemorySource` (logical-to-backing translation with reads split across mappings),
+  `CachedMemorySource` (generation-invalidated exact-range cache), and `OverlayMemorySource` (copy-on-write edits
+  over an unchanged image). `MemorySchema` takes explicit sizes, offsets, and bit slices from metadata rather than
+  inferring a host ABI; `PortableMemorySchema.Create` projects a fixed compiled layout, and
+  `CStructSharp.Memory.Metadata` imports BTF v1 (including split tables) and Volatility ISF 6.2.0 into schemas.
+  `MemorySession` resolves, reads, inspects (with backing-range provenance), serializes, and plans updates; pointers
+  are returned as `StoredPointer` bits and followed only through explicit `.value` paths via a caller resolver.
+  `MemoryWalker` walks sentinel lists and trees with node limits and identity tracking; `MemoryPatch` previews
+  physical fragments, validates generations and expected bytes before writing, and reports uncertain fragments
+  through `MemoryPatchCommitException`. `MemoryAccessContext` bounds bytes, requests, depth, and cancellation
+  across all layers, and `MemoryAccessException` carries stable `MemoryFailure` categories. The `contracts/memory`
+  contract, a package-consumer test, a mutation-testing configuration, and benchmarks accompany the namespace.
+- Documentation: add a worked memory-analysis guide series with executable examples for address translation,
+  metadata import, pointer traversal, offline patches, budgets, and caching. The overview introduces memory images,
+  address spaces, and the layered object model before the API; each guide explains its concepts before showing
+  syntax and ends with exercises and answers. The memory source files carry expanded XML documentation and
+  algorithm comments, including the BTF record layout and the compiled-view construction in `MemorySchema`.
 - Fix directive whitespace handling so non-breaking spaces after `#define` agree with ordinary layout whitespace;
   physical CR/LF line boundaries remain significant.
 - Language: the C, C99, Windows SDK, Linux kernel, IDA, and dissect primitive spellings (`DWORD`, `BYTE`, `WCHAR`,
