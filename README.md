@@ -23,6 +23,7 @@ simple and your application's dependency tree small.
 
 ## Choose your starting point
 
+- [Open the binary inspector](https://vvollers.github.io/cstructsharp/inspector/): apply a layout to one of your own files in the browser, no installation.
 - [Try the browser lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=header): no installation.
 - [Use C#](https://vvollers.github.io/cstructsharp/docs/guides/install-and-first-parse.html): create a console app.
 - [Use JavaScript and WASM](https://vvollers.github.io/cstructsharp/docs/guides/browser/index.html): install the npm package for Node.js or browsers.

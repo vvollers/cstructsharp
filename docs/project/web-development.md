@@ -52,8 +52,8 @@ own metadata is unchanged), roots nothing, and suppresses trim-analysis warnings
   depends on members that are reached only through reflection. One consequence stands: the `bindingMode` interop
   option (`WriteOptions.BindingMode`) has no observable effect through the JS API.
 - The project switches the library's `CStructSharp.CompiledAccessors` feature off (a
-  `RuntimeHostConfigurationOption` with `Trim="true"`). The compiled POCO accessors (`PocoCompiledAccessors`,
-  E2.10) are behind that switch, so the trimmer removes them - and `System.Linq.Expressions` with them - from the
+  `RuntimeHostConfigurationOption` with `Trim="true"`). The compiled POCO accessors (`PocoCompiledAccessors`)
+  are behind that switch, so the trimmer removes them - and `System.Linq.Expressions` with them - from the
   publication, where they would never run; the browser keeps reflection for the POCO fallback it never takes.
   (Declaring dynamic code unsupported would trim the same code but was measured to add ≈ 820 B of managed
   allocation to every export call through `System.Text.Json`, so the library-specific switch is used instead.)

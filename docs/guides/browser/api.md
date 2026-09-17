@@ -43,7 +43,7 @@ identical either way, so the choice is not observable except in timing.
 
 See [large files, buffers, and streams](large-data.md) for `File`/`Blob`, views, responses, streams, and iterable
 inputs, plus `signal` cancellation and the `maxSpoolBytes` staging limit. Larger, streamed, or cancellable reads page data
-through a worker; the legacy synchronous raw byte adapter and `update` retain their 4 MiB input ceiling.
+through a worker; the raw API from `loadCStructSharpWasm()` and `update` accept byte inputs up to 4 MiB.
 
 ## Reuse a compiled layout
 

@@ -6,7 +6,7 @@ description: Parse JavaScript binary sources with paged reads, worker execution,
 # Large files, buffers, and streams
 
 Pass a binary source directly to `parse` or `parseWithDebug`. You do not need to split a file into parser calls,
-raise the old 4 MiB transport limit, or call `file.arrayBuffer()` first. Both functions return the usual result
+work around the 4 MiB limit of the raw API, or call `file.arrayBuffer()` first. Both functions return the usual result
 envelope with the root-wrapped parsed value in `Data`. `parse` returns empty `DebugData` and avoids debug byte copies;
 prefer it when you only need values.
 

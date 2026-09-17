@@ -100,7 +100,7 @@ Performance work follows a recorded-baseline discipline. `benchmarks/fixtures/` 
 .NET, Node, and browser harnesses; `CStructSharp.FixtureTool fill` records the expected result of every fixture
 from the managed library and `verify` re-checks it, so a performance change that alters any parsed value fails
 before it is measured. `contracts/performance/non-web-rc1.json` is the enforced release gate (Gate job, medians
-and allocations with generous multipliers); `non-web-rc2.json` and `web-benchmark-rc1.json` are the wider Phase 0
+and allocations with generous multipliers); `non-web-rc2.json` and `web-benchmark-rc1.json` are the wider
 baselines used by the soft drift report (`tools/quality/compare-benchmark-baseline.mjs`,
 `benchmarks/js/bench/check.mjs`, and the non-failing `benchmark-drift` workflow). Re-record a baseline only for an
 accepted change, with the `--merge` mode of `tools/quality/record-benchmark-baseline.mjs` or

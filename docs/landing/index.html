@@ -465,14 +465,14 @@
               <span class="filename">example.mjs</span>
               <button class="copy-btn" type="button" data-copy-target="snippet-js">Copy</button>
             </div>
-            <pre id="snippet-js"><code><span class="tok-kw">import</span> { parseWithDebug } <span class="tok-kw">from</span> <span class="tok-str">"cstructsharp"</span>;
+            <pre id="snippet-js"><code><span class="tok-kw">import</span> { parse } <span class="tok-kw">from</span> <span class="tok-str">"cstructsharp"</span>;
 
 <span class="tok-kw">const</span> definition = <span class="tok-str">"struct header { uint16 kind; uint32 length; };"</span>;
 <span class="tok-kw">const</span> bytes = <span class="tok-kw">new</span> <span class="tok-type">Uint8Array</span>([<span class="tok-num">0x02</span>, <span class="tok-num">0x00</span>, <span class="tok-num">0x06</span>, <span class="tok-num">0x00</span>, <span class="tok-num">0x00</span>, <span class="tok-num">0x00</span>]);
 
-<span class="tok-kw">const</span> result = <span class="tok-kw">await</span> <span class="tok-fn">parseWithDebug</span>(definition, bytes, { rootTypeName: <span class="tok-str">"header"</span> });
+<span class="tok-kw">const</span> result = <span class="tok-kw">await</span> <span class="tok-fn">parse</span>(definition, bytes, { rootTypeName: <span class="tok-str">"header"</span> });
 <span class="tok-kw">if</span> (!result.Success) <span class="tok-kw">throw new</span> Error(result.Error.Message);
-<span class="tok-kw">const</span> header = <span class="tok-var">JSON</span>.<span class="tok-fn">parse</span>(result.Data).header;
+<span class="tok-kw">const</span> header = result.Data.header;
 
 <span class="tok-var">console</span>.<span class="tok-fn">log</span>(<span class="tok-str">`kind = ${header.kind}`</span>);
 <span class="tok-var">console</span>.<span class="tok-fn">log</span>(<span class="tok-str">`length = ${header.length}`</span>);</code></pre>
