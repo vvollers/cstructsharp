@@ -2,6 +2,7 @@ namespace CStructSharpTests;
 
 using System.Dynamic;
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Requires null pointer values to behave identically across supported caller data shapes.</summary>
 [TestClass]

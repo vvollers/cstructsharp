@@ -21,7 +21,7 @@ application's format rules.
 
 ## Preserve what was read
 
-Parsing a union returns `UnionValue`. It contains:
+Parsing a union returns `UnionValue` (from `CStructSharp.Values`). It contains:
 
 - a copy of the complete raw union storage;
 - every decoded member view; and

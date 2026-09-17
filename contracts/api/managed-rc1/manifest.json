@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 9,
+  "baselineRevision": 10,
   "status": "frozen",
   "workItem": "QA-07",
-  "packageVersion": "0.4.3",
+  "packageVersion": "0.5.0",
   "assembly": "CStructSharp.dll",
   "exportedTypes": 66,
   "generator": {
@@ -14,21 +14,21 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 641,
-    "normalizedSha256": "AA2DD873ADD459AF3D48164120E48FDE730DAAC448E366FE5FE7BE9C02105A77"
+    "lines": 653,
+    "normalizedSha256": "1618E2E75408B89375F26410371D7DE5D0D80C44E64C32A8FA7BA83B71B2D528"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "9344756C4EE2942D4DA350555B28DB25EB0176942383302127D08880FFF83125"
+      "normalizedSha256": "AA6CDDC7D75A6A08F5E3147A190613498D174BC4A7E5B702421B153536F43929"
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "F92F336FA59AE0B55FEC473C3436210B19EEE4A0D5FACBE26BDB899BCA121D8E"
+      "normalizedSha256": "C0B398F00441286FCC5BFB35305013D1C5D16C290568926C55DA141EB0463419"
     }
   ],
   "history": [
@@ -112,6 +112,15 @@
       "combinedSha256": "48DC5B3E46A542E95FF6C437C362DC6526EDDAF04E6E1C7A7C3F4BA49C5D6A14",
       "rationale": "Reviewed managed API for binary structures, memory address spaces, metadata import, traversal, and offline updates.",
       "releaseImpact": "Pre-publication API contract."
+    },
+    {
+      "revision": 10,
+      "kind": "breaking",
+      "date": "2026-09-17",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "B9EF5E27F9C98949A2CB5A5886E3C73939E37B582E1BFE8D4B8D014920155A4C",
+      "rationale": "Reorganize the library into folders whose names match their namespaces. Public types leave the root namespace for CStructSharp.Diagnostics (exceptions, error codes, DebugData), CStructSharp.Values (StructValue, UnionValue, EnumValueResult, FlagValueResult, Pointer, PrimitiveArray), CStructSharp.Introspection (LayoutInfo and the Layout* records), and CStructSharp.Codecs (ICustomCodec). CStruct, its options, and the memory namespaces are unchanged; no member signature changed.",
+      "releaseImpact": "Source-breaking namespace move on the 0.5.0 development version; the next publication must be a new version through the release process. Consumers add using directives for the new namespaces (or update fully qualified names); no binary member signature changed and no behavior changed."
     }
   ]
 }

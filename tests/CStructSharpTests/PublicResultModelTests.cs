@@ -1,5 +1,7 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Values;
+
 /// <summary>Defines the stable null and construction invariants of public semantic result values.</summary>
 [TestClass]
 public class PublicResultModelTests

@@ -3,8 +3,13 @@ namespace CStructSharp.Tests;
 using System.Dynamic;
 using System.Globalization;
 using System.Numerics;
-using CStructSharp.Structure;
-using CstructEnum = CStructSharp.Structure.Enum;
+using CStructSharp.Codecs;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Introspection;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
+using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>Verifies exact enum compilation, reading, writing, and traversal across every supported integer domain.</summary>
 [TestClass]

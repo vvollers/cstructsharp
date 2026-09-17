@@ -1,5 +1,7 @@
 namespace CStructSharp.Memory;
 
+using CStructSharp.Introspection;
+
 /// <summary>Converts a compiled fixed-size Portable layout into a <see cref="MemorySchema"/>, using the offsets the compiler already computed.</summary>
 /// <remarks>
 /// <para>

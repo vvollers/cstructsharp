@@ -2,6 +2,7 @@ namespace CStructSharp.Fuzzing;
 
 using System.Text;
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Owns the five bounded managed QA-04 target entry points.</summary>
 internal sealed class FuzzTargets

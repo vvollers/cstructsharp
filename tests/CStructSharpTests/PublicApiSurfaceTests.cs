@@ -12,26 +12,24 @@ public class PublicApiSurfaceTests
         "CStructSharp.BitfieldAllocation",
         "CStructSharp.CStruct",
         "CStructSharp.CStructCompilationOptions",
-        "CStructSharp.CStructErrorCode",
-        "CStructSharp.CStructException",
-        "CStructSharp.CStructLayoutException",
-        "CStructSharp.CStructPathException",
-        "CStructSharp.CStructReadException",
-        "CStructSharp.CStructReadLimitException",
-        "CStructSharp.CStructWriteException",
-        "CStructSharp.CStructWriteLimitException",
-        "CStructSharp.DebugData",
-        "CStructSharp.EnumValueResult",
-        "CStructSharp.FlagValueResult",
-        "CStructSharp.ICustomCodec",
-        "CStructSharp.LayoutArrayKind",
-        "CStructSharp.LayoutConstant",
-        "CStructSharp.LayoutConstantKind",
-        "CStructSharp.LayoutDeclarationInfo",
-        "CStructSharp.LayoutDeclarationKind",
-        "CStructSharp.LayoutEnumMemberInfo",
-        "CStructSharp.LayoutFieldInfo",
-        "CStructSharp.LayoutInfo",
+        "CStructSharp.Codecs.ICustomCodec",
+        "CStructSharp.Diagnostics.CStructErrorCode",
+        "CStructSharp.Diagnostics.CStructException",
+        "CStructSharp.Diagnostics.CStructLayoutException",
+        "CStructSharp.Diagnostics.CStructPathException",
+        "CStructSharp.Diagnostics.CStructReadException",
+        "CStructSharp.Diagnostics.CStructReadLimitException",
+        "CStructSharp.Diagnostics.CStructWriteException",
+        "CStructSharp.Diagnostics.CStructWriteLimitException",
+        "CStructSharp.Diagnostics.DebugData",
+        "CStructSharp.Introspection.LayoutArrayKind",
+        "CStructSharp.Introspection.LayoutConstant",
+        "CStructSharp.Introspection.LayoutConstantKind",
+        "CStructSharp.Introspection.LayoutDeclarationInfo",
+        "CStructSharp.Introspection.LayoutDeclarationKind",
+        "CStructSharp.Introspection.LayoutEnumMemberInfo",
+        "CStructSharp.Introspection.LayoutFieldInfo",
+        "CStructSharp.Introspection.LayoutInfo",
         "CStructSharp.Memory.ByteArrayMemorySource",
         "CStructSharp.Memory.CachedMemorySource",
         "CStructSharp.Memory.IMemorySource",
@@ -64,16 +62,18 @@ public class PublicApiSurfaceTests
         "CStructSharp.Memory.PortableMemorySchema",
         "CStructSharp.Memory.StoredPointer",
         "CStructSharp.Memory.StreamMemorySource",
-        "CStructSharp.Pointer",
-        "CStructSharp.PointerAddressingMode",
-        "CStructSharp.PrimitiveArray`1",
         "CStructSharp.PocoBindingMode",
+        "CStructSharp.PointerAddressingMode",
         "CStructSharp.ReadOptions",
         "CStructSharp.StaticHelpers",
-        "CStructSharp.StructValue",
-        "CStructSharp.StructValue+Enumerator",
-        "CStructSharp.UnionValue",
         "CStructSharp.UpdateOptions",
+        "CStructSharp.Values.EnumValueResult",
+        "CStructSharp.Values.FlagValueResult",
+        "CStructSharp.Values.Pointer",
+        "CStructSharp.Values.PrimitiveArray`1",
+        "CStructSharp.Values.StructValue",
+        "CStructSharp.Values.StructValue+Enumerator",
+        "CStructSharp.Values.UnionValue",
         "CStructSharp.WriteOptions",
     ];
 
@@ -97,7 +97,7 @@ public class PublicApiSurfaceTests
             exportedTypes.Select(type => type.FullName!).Order(StringComparer.Ordinal).ToArray(),
             "Actual exports: " + string.Join(", ", exportedTypes.Select(type => type.FullName)));
         Assert.IsTrue(typeof(CStruct).IsSealed);
-        Assert.IsTrue(typeof(Pointer).IsSealed);
+        Assert.IsTrue(typeof(Values.Pointer).IsSealed);
 
         foreach (Type type in exportedTypes)
         {
@@ -110,7 +110,7 @@ public class PublicApiSurfaceTests
                     signatureType.Namespace?.StartsWith("Pidgin", StringComparison.Ordinal) == true,
                     $"{type.FullName} exposes Pidgin type {signatureType}.");
                 Assert.AreNotEqual(
-                    "CStructSharp.Structure",
+                    "CStructSharp.Syntax",
                     signatureType.Namespace,
                     $"{type.FullName} exposes syntax-tree type {signatureType}.");
             }
@@ -259,6 +259,6 @@ public class PublicApiSurfaceTests
 
     private static bool IsSyntaxTreeType(Type type)
     {
-        return type.Namespace == "CStructSharp.Structure";
+        return type.Namespace == "CStructSharp.Syntax";
     }
 }

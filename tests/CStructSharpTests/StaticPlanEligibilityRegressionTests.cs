@@ -2,6 +2,7 @@ namespace CStructSharpTests;
 
 using System.Text.Json;
 using CStructSharp;
+using CStructSharp.Compilation;
 
 /// <summary>
 ///     Every benchmark fixture whose root had a static read plan when the dissect-parity work started (Phase 0,

@@ -58,7 +58,7 @@ Assert-Condition ($configuredFiles.Count -eq 46) `
     "The permanent mutation allowlist must contain exactly 46 semantic files; found $($configuredFiles.Count)."
 Assert-Condition ($configuredFiles.Count -eq @($configuredFiles | Select-Object -Unique).Count) `
     'The permanent mutation allowlist contains duplicate files.'
-Assert-Condition ($configuredFiles -contains 'LayoutParser.cs') `
+Assert-Condition ($configuredFiles -contains 'Parsing/LayoutParser.cs') `
     'The layout parser must remain in the permanent mutation allowlist.'
 
 Assert-Condition ([string]$report.schemaVersion -eq '2') `

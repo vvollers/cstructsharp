@@ -1,6 +1,9 @@
 namespace CStructSharp.Tests;
 
-using CStructSharp.Structure;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     Exercises <see cref="CompiledSizeQueries"/> directly against a real compiled layout. Only reachable

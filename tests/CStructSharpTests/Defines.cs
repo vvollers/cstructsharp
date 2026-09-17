@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
-using CStructSharp.Structure;
+using CStructSharp.Parsing;
+using CStructSharp.Syntax;
 
 /// <summary>Groups tests for defines so changes to this behavior are caught.</summary>
 [TestClass]
@@ -16,7 +17,7 @@ public class Defines
     [TestMethod]
     public void TestMoreComplexDefine()
     {
-        var test1 = (Structure.Defines)CStructDefinitionParser.ParseElement(
+        var test1 = (Syntax.Defines)CStructDefinitionParser.ParseElement(
          "#define SUPERCOMPLEX_VAR6 2+myvariable*4");
         Assert.AreEqual("SUPERCOMPLEX_VAR6", test1.Name.Name);
         Dictionary<string, Expr> variables = new();
@@ -33,7 +34,7 @@ public class Defines
     [TestMethod]
     public void TestSimpleDefine()
     {
-        var test1 = (Structure.Defines)CStructDefinitionParser.ParseElement("#define ABC 123");
+        var test1 = (Syntax.Defines)CStructDefinitionParser.ParseElement("#define ABC 123");
         Assert.AreEqual("ABC", test1.Name.Name);
         Assert.AreEqual(123, test1.Value.Calc());
     }

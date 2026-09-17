@@ -3,6 +3,8 @@ namespace CStructSharpTests;
 using System.Dynamic;
 using System.Numerics;
 using CStructSharp;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>
 ///     Verifies that fixed-array declarations retain their collection shape and byte layout for zero, one, and

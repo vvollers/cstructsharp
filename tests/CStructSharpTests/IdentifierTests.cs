@@ -1,6 +1,7 @@
 namespace CStructSharpTests;
 
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Verifies UUID network order and Windows GUID field order independently of layout endianness.</summary>
 [TestClass]

@@ -2,6 +2,7 @@ namespace CStructSharp.Benchmarks.Baseline0;
 
 using System.Buffers;
 using BenchmarkDotNet.Attributes;
+using CStructSharp.Values;
 
 /// <summary>S-WRITE: serialize from parsed dynamic data, plain dictionaries, and POCOs into every destination shape.</summary>
 [BenchmarkCategory("Baseline0", "Write")]

@@ -1,6 +1,6 @@
 namespace CStructSharp.Tests;
 
-using System.Dynamic;
+using CStructSharp.Diagnostics;
 
 /// <summary>Verifies that path-based operations consume one semantic target instead of rebuilding layout state.</summary>
 [TestClass]

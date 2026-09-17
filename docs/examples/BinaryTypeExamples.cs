@@ -1,6 +1,7 @@
 namespace CStructSharp.Docs.Examples;
 
 using global::CStructSharp;
+using global::CStructSharp.Diagnostics;
 
 internal static partial class Program
 {

@@ -1,5 +1,7 @@
 namespace CStructSharp.PackageConsumer;
 
+using CStructSharp.Values;
+
 /// <summary>Provides a typed value model for package-consumer round-trip checks.</summary>
 public sealed class PackageRoot
 {
@@ -10,5 +12,5 @@ public sealed class PackageRoot
     public ushort Value { get; set; }
 
     /// <summary>Gets or sets the Target field used by the consumer fixture.</summary>
-    public CStructSharp.Pointer Target { get; set; } = null!;
+    public CStructSharp.Values.Pointer Target { get; set; } = null!;
 }

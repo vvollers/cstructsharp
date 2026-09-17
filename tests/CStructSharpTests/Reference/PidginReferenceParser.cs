@@ -7,14 +7,16 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Parsing;
+using CStructSharp.Syntax;
 using Pidgin;
 using Pidgin.Comment;
 using Pidgin.Expression;
 using static Pidgin.Parser;
-using BinaryOperatorType = CStructSharp.Structure.BinaryOperatorType;
-using CStructSharpEnum = CStructSharp.Structure.Enum;
-using UnaryOperatorType = CStructSharp.Structure.UnaryOperatorType;
+using BinaryOperatorType = CStructSharp.Syntax.BinaryOperatorType;
+using CStructSharpEnum = CStructSharp.Syntax.Enum;
+using UnaryOperatorType = CStructSharp.Syntax.UnaryOperatorType;
 
 /// <summary>
 ///     The Pidgin parser-combinator grammar that recognized the layout language until E1.2 replaced it with the
@@ -319,7 +321,7 @@ internal static class PidginReferenceParser
                 Select<CStructElement>(o => CStructSharpEnum.CreateUnevaluated(
                     id,
                     [.. o,],
-                    type.HasValue ? type.Value : Structure.Identifier.UINT32))));
+                    type.HasValue ? type.Value : Syntax.Identifier.UINT32))));
 
     public static readonly Parser<char, Maybe<Expr>> Array = Map(
         (_, expr, _) => expr,
@@ -338,12 +340,12 @@ internal static class PidginReferenceParser
     {
         if (dimensions.Count == 0)
         {
-            return Structure.Field.NoArray;
+            return Syntax.Field.NoArray;
         }
 
         if (dimensions.Count == 1)
         {
-            return dimensions[0].HasValue ? [dimensions[0].Value,] : [Structure.Field.UnknownArraysize,];
+            return dimensions[0].HasValue ? [dimensions[0].Value,] : [Syntax.Field.UnknownArraysize,];
         }
 
         if (dimensions.Any(dimension => !dimension.HasValue))

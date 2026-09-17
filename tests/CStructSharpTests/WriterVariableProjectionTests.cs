@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
-using CStructSharp.Structure;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
+using CStructSharp.Writing;
 
 /// <summary>
 ///     Exercises <see cref="WriterVariableProjection"/> directly, independent of a real write operation. Only

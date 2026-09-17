@@ -1,8 +1,10 @@
 namespace CStructSharp.Tests;
 
 using System.Collections.Immutable;
-using CStructSharp.Structure;
-using CstructEnum = CStructSharp.Structure.Enum;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Syntax;
+using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>
 ///     Exercises <see cref="SymbolValidation"/> directly, independent of a full layout compilation. Only reachable
@@ -22,7 +24,7 @@ public class SymbolValidationTests
         Assert.AreEqual("typedef", SymbolValidation.GetDeclarationKind(new Typedef(new Identifier("t"), new Identifier("uint8"))));
         Assert.AreEqual(
             "#define",
-            SymbolValidation.GetDeclarationKind(new Structure.Defines(new Identifier("d"), new Literal(1))));
+            SymbolValidation.GetDeclarationKind(new Syntax.Defines(new Identifier("d"), new Literal(1))));
     }
 
     /// <summary>A struct with two distinct field names is a valid scope and must not raise anything.</summary>

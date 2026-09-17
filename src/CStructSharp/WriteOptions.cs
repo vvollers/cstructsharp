@@ -1,5 +1,7 @@
 namespace CStructSharp;
 
+using CStructSharp.Writing;
+
 /// <summary>Lists which public members are allowed when writing ordinary .NET objects.</summary>
 public enum PocoBindingMode
 {

@@ -1,6 +1,7 @@
 namespace CStructSharpTests;
 
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Checks fixed-point exactness, storage byte order and writer rejection.</summary>
 [TestClass]

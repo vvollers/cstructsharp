@@ -3,6 +3,7 @@ namespace CStructSharpTests;
 using System.Collections;
 using System.Reflection;
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Verifies that one operation owns immutable choices before it invokes caller-controlled code.</summary>
 [TestClass]

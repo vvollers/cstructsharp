@@ -1,5 +1,7 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+
 /// <summary><see cref="CStructCompilationOptions.BitfieldAllocation"/>: which end of a storage unit the first bitfield takes.</summary>
 [TestClass]
 public class BitfieldAllocationTests

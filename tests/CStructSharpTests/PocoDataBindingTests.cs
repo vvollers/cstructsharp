@@ -1,6 +1,9 @@
 namespace CStructSharp.Tests;
 
 using System.Dynamic;
+using CStructSharp.Addressing;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>
 ///     Exercises <see cref="PocoDataBinding"/> directly, independent of a compiled <see cref="CStruct"/> layout.

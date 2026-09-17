@@ -1,5 +1,7 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+
 /// <summary>
 ///     Dotted references to a nested struct's field in an expression (<c>uint8 v[hdr.n]</c>): the nested field is
 ///     captured and republished under its qualified name while the struct field is read, written, or measured.

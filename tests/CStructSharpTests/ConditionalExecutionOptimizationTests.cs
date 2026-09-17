@@ -1,7 +1,10 @@
 namespace CStructSharpTests;
 
 using CStructSharp;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Parsing;
+using CStructSharp.Syntax;
 
 /// <summary>Protects optimized decision reuse, scoped variables and the checked scalar expression path.</summary>
 [TestClass]

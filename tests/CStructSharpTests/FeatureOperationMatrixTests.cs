@@ -3,7 +3,9 @@ namespace CStructSharp.Tests;
 using System.Buffers;
 using System.Dynamic;
 using System.Text.Json;
-using CStructSharp.Structure;
+using CStructSharp.Codecs;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Executes the supported feature rows recorded in the repository's cross-operation matrix.</summary>
 [TestClass]

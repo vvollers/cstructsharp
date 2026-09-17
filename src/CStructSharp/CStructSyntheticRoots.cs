@@ -4,7 +4,13 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using CStructSharp.Structure;
+using CStructSharp.Addressing;
+using CStructSharp.Codecs;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Parsing;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     Roots named by a type spelling instead of a declaration: <c>uint32</c>, <c>DWORD</c>, <c>uint64[4]</c>,

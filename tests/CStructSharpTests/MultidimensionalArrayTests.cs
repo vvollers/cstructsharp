@@ -3,7 +3,9 @@ namespace CStructSharp.Tests;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using CStructSharp.Structure;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     Verifies multidimensional arrays (LANG-05, <c>value[rows][columns]</c>), following

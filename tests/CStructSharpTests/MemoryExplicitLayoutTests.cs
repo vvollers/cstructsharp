@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Memory;
+using CStructSharp.Values;
 
 /// <summary>Exercises explicit layout operations and normalized Portable aliases beyond contiguous scalar storage.</summary>
 [TestClass]

@@ -2,7 +2,10 @@ namespace CStructSharpTests;
 
 using System.Text.Json;
 using CStructSharp;
+using CStructSharp.Diagnostics;
+using CStructSharp.Reading;
 using CStructSharp.Tests;
+using CStructSharp.Values;
 
 /// <summary>
 ///     The memory-backed read cursor (E2.1) serves span, array, and MemoryStream sources; every other stream keeps

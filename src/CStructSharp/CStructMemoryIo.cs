@@ -4,6 +4,10 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Streams;
+using CStructSharp.Values;
 
 /// <summary>
 ///     Provides synchronous zero-copy memory input and caller-owned memory output entry points. Pointer coordinates

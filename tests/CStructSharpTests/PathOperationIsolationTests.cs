@@ -1,7 +1,7 @@
 namespace CStructSharpTests;
 
-using System.Dynamic;
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Verifies strict path interpretation and ensures targeted reads, writes, and address lookups inspect only the

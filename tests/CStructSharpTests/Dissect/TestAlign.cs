@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests.Dissect;
 
-using System.Dynamic;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Groups tests for test align so changes to this behavior are caught.</summary>
 [TestClass]

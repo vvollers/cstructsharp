@@ -76,9 +76,8 @@ at runtime. This is stricter than checking the percentage alone.
 
 ## The layout parser
 
-`LayoutParser.cs`, the hand-written layout parser, is an ordinary member of the mutation list: its mutants must be
-detected like any other semantic file's. (The earlier parser-combinator grammar could not be instrumented because
-Stryker's rewrites of its expressions did not compile; that limitation ended with the hand-written parser.)
+`Parsing/LayoutParser.cs`, the hand-written layout parser, is an ordinary member of the mutation list: its mutants must be
+detected like any other semantic file's.
 
 A compile error is not treated as proof that a test found a bug. If a future Stryker or source change produces valid
 mutations for this file, the result must be reviewed and the tests should run against those mutations.

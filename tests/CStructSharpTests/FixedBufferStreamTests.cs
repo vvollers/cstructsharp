@@ -1,5 +1,8 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+using CStructSharp.Streams;
+
 /// <summary>Checks the fixed caller-memory stream used by synchronous span and memory operations.</summary>
 [TestClass]
 public class FixedBufferStreamTests

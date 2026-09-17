@@ -1,7 +1,8 @@
 namespace CStructSharp.Tests;
 
 using System.Collections;
-using System.Dynamic;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Verifies that one shared write policy bounds strings, output, nesting, and collection materialization.</summary>
 [TestClass]

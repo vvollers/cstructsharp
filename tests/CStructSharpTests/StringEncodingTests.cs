@@ -1,7 +1,9 @@
 namespace CStructSharp.Tests;
 
 using System.Text;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
 
 /// <summary>Exercises the byte-order and validation contract for narrow and wide character data.</summary>
 [TestClass]

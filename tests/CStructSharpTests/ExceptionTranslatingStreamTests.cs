@@ -1,5 +1,8 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+using CStructSharp.Streams;
+
 /// <summary>Exercises every physical I/O translation performed by the read and write budget stream boundaries.</summary>
 [TestClass]
 public class ExceptionTranslatingStreamTests

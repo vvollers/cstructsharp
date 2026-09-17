@@ -7,7 +7,9 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
-using CStructSharp.Structure;
+using CStructSharp.Codecs;
+using CStructSharp.Compilation;
+using CStructSharp.Syntax;
 
 /// <summary>Builds the primitive binary codec maps used by the CStruct facade.</summary>
 public partial class CStruct

@@ -1,5 +1,7 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+
 /// <summary>
 ///     Arrays whose count comes from the data: <c>T values[EOF]</c> (every whole element to the end of the input)
 ///     and <c>T values[]</c> on a non-character type (elements until an all-zero element).

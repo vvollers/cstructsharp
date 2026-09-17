@@ -1,8 +1,8 @@
 namespace CStructSharp.Tests;
 
-using System.Dynamic;
 using System.Numerics;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Contains focused reproductions for correctness findings that were previously covered only indirectly.</summary>
 [TestClass]

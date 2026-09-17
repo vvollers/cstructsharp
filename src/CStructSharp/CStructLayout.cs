@@ -1,8 +1,10 @@
 namespace CStructSharp;
 
-using System;
 using System.Collections.Generic;
-using CStructSharp.Structure;
+using CStructSharp.Addressing;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Syntax;
 
 /// <summary>Contains the small lookup helpers that connect parsed layout declarations to public paths.</summary>
 public partial class CStruct

@@ -1,5 +1,8 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+using CStructSharp.Parsing;
+
 /// <summary>
 ///     Exercises <see cref="LayoutSourceValidator"/> directly, independent of the parser it protects. Only reachable
 ///     indirectly through <see cref="CStruct"/> construction before this type was extracted from the God-Object

@@ -11,7 +11,7 @@ The complete `DecodeHeader` method is compiled and executed by the documentation
 [!code-csharp[Compile once, parse dynamically, and handle expected failure](../examples/Program.cs#api-reference-cstruct)]
 
 ---
-uid: CStructSharp.DebugData
+uid: CStructSharp.Diagnostics.DebugData
 example:
 - *content
 ---
@@ -23,7 +23,7 @@ This `InspectRanges` check is compiled and executed with the other site examples
 [!code-csharp[Inspect byte ranges and resolve a field address](../examples/Program.cs#api-reference-debug-data)]
 
 ---
-uid: CStructSharp.EnumValueResult
+uid: CStructSharp.Values.EnumValueResult
 example:
 - *content
 ---
@@ -35,7 +35,7 @@ The unknown-value case in `PreserveEnum` is compiled and executed during documen
 [!code-csharp[Preserve an enum payload with no declared member](../examples/Program.cs#api-reference-enum)]
 
 ---
-uid: CStructSharp.Pointer
+uid: CStructSharp.Values.Pointer
 example:
 - *content
 ---
@@ -57,7 +57,7 @@ The same `FollowPointer` method is compiled and executed to check this default:
 [!code-csharp[Read through a pointer with the bounded default policy](../examples/Program.cs#api-reference-pointer-read-options)]
 
 ---
-uid: CStructSharp.UnionValue
+uid: CStructSharp.Values.UnionValue
 example:
 - *content
 ---

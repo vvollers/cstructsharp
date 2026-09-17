@@ -1,5 +1,8 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Codecs;
+using CStructSharp.Diagnostics;
+
 /// <summary>
 ///     Exercises <see cref="BinaryPrimitiveIO"/> directly, independent of a compiled <see cref="CStruct"/> layout.
 ///     Only reachable indirectly through the public API before this type was extracted from the God-Object

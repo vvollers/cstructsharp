@@ -1,7 +1,10 @@
 namespace CStructSharpTests;
 
 using CStructSharp;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Parsing;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
 
 /// <summary>
 ///     Verifies typedef syntax and resolution across primitive, structure, pointer, array, chained, and invalid aliases.

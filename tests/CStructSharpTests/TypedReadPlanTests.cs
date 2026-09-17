@@ -5,6 +5,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using CStructSharp.Diagnostics;
+using CStructSharp.Reading;
+using CStructSharp.Values;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 /// <summary>

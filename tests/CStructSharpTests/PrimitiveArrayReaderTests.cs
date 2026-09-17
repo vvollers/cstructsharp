@@ -2,6 +2,7 @@ namespace CStructSharpTests;
 
 using System.Collections.Generic;
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Arrays of fixed-width numeric primitives are read in blocks (E2.3); the values, the final position, the

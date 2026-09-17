@@ -1,4 +1,4 @@
-// Keeps every view of the primitive alias table in step with src/CStructSharp/PrimitiveSpellings.cs:
+// Keeps every view of the primitive alias table in step with src/CStructSharp/Codecs/PrimitiveSpellings.cs:
 //   - contracts/language/portable-v1.json      -> aliasSpellings
 //   - contracts/quality/feature-operation-matrix.json -> primitiveSpellings.aliases
 //   - docs/language/primitive-types.md         -> the generated table between the sync markers
@@ -12,7 +12,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const check = process.argv.includes("--check");
 
 function readAliasTable() {
-  const source = readFileSync(join(root, "src/CStructSharp/PrimitiveSpellings.cs"), "utf8");
+  const source = readFileSync(join(root, "src/CStructSharp/Codecs/PrimitiveSpellings.cs"), "utf8");
   const aliases = [];
   for (const match of source.matchAll(/Add\("([^"]+)"((?:,\s*"[^"]+")+)\);/g)) {
     const canonical = match[1];

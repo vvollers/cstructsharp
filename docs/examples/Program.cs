@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Numerics;
 using global::CStructSharp;
+using global::CStructSharp.Diagnostics;
+using global::CStructSharp.Values;
 
 internal static partial class Program
 {

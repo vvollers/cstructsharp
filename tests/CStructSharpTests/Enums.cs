@@ -1,7 +1,8 @@
 namespace CStructSharp.Tests;
 
-using CStructSharp.Structure;
-using Enum = CStructSharp.Structure.Enum;
+using CStructSharp.Parsing;
+using CStructSharp.Syntax;
+using Enum = CStructSharp.Syntax.Enum;
 
 /// <summary>Groups tests for enums so changes to this behavior are caught.</summary>
 [TestClass]

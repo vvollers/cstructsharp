@@ -2,7 +2,7 @@ namespace CStructSharp.Tests;
 
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using CStructSharp.Structure;
+using CStructSharp.Syntax;
 
 /// <summary>Defines the immutable public option contract.</summary>
 [TestClass]

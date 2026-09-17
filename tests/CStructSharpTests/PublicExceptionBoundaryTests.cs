@@ -2,7 +2,8 @@ namespace CStructSharp.Tests;
 
 using System.Buffers;
 using System.Dynamic;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Syntax;
 
 /// <summary>Defines the public CLR failure categories shared by metadata, read, path, write, and update operations.</summary>
 [TestClass]

@@ -1,5 +1,7 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+
 /// <summary>The expression forms added for header parity: <c>%</c>, <c>^</c>, the conditional operator, <c>sizeof</c>/<c>offsetof</c>, and qualified enum members.</summary>
 [TestClass]
 public class ExpressionExtensionTests

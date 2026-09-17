@@ -1,7 +1,9 @@
 namespace CStructSharpTests;
 
-using CStructSharp;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Parsing;
+using CStructSharp.Syntax;
 
 /// <summary>Checks branch predicates in the checked and exact integer evaluators.</summary>
 [TestClass]

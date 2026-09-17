@@ -1,7 +1,9 @@
 namespace CStructSharpWeb.Wasm;
+
 using System.IO;
 using System.Runtime.InteropServices.JavaScript;
 using CStructSharp;
+
 public partial class CStructExports
 {
     private static CStruct? benchmarkLayout;

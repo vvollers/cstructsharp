@@ -1,8 +1,7 @@
 namespace CStructSharp.Tests;
 
-using System.Dynamic;
 using System.Text;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
 
 /// <summary>Groups tests for parsing so changes to this behavior are caught.</summary>
 [TestClass]

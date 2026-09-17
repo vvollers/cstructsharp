@@ -1,5 +1,8 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+using CStructSharp.Streams;
+
 /// <summary>Exercises sparse copy-on-write behavior independently from compiled layout semantics.</summary>
 [TestClass]
 public class SparseUpdateStreamTests

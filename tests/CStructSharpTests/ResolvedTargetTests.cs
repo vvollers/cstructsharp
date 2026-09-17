@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
-using CStructSharp.Structure;
+using CStructSharp.Addressing;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     Exercises <see cref="ResolvedTarget"/> and <see cref="TargetResolutionContext"/> directly, independent of a

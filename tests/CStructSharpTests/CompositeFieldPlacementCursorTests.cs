@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
-using CStructSharp.Structure;
+using CStructSharp.Compilation;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     Exercises <see cref="CompositeFieldPlacementCursor"/> directly, independent of address resolution or extent

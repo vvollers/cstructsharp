@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
 using System.Dynamic;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Verifies semantic element selection and pointer-level updates across the COR-03 operation matrix.</summary>
 [TestClass]

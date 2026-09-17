@@ -3,6 +3,7 @@ namespace CStructSharp.Memory;
 using System.Collections;
 using System.Globalization;
 using System.Numerics;
+using CStructSharp.Values;
 
 /// <summary>Applies a <see cref="MemorySchema"/> to regions of caller-owned address spaces: resolve a path, read or inspect a value, serialize a record, or plan an update.</summary>
 /// <remarks>

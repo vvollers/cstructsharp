@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using System.Collections;
+using CStructSharp.Compilation;
 
 /// <summary>Verifies the one-way construction-to-publication state transition used by compiled layouts.</summary>
 [TestClass]

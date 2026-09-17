@@ -1,6 +1,7 @@
 namespace CStructSharp;
 
 using System.Collections.Generic;
+using CStructSharp.Codecs;
 
 /// <summary>Controls the resource limits applied before a C-like layout definition is parsed and compiled.</summary>
 /// <remarks>

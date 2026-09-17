@@ -2,7 +2,9 @@ namespace CStructSharpTests;
 
 using System.Collections.Immutable;
 using CStructSharp;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Streams;
+using CStructSharp.Syntax;
 
 /// <summary>Covers small public contracts that otherwise appear as misleading high-risk gaps in per-file reports.</summary>
 [TestClass]

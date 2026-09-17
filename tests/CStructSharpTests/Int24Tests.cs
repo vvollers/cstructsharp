@@ -1,6 +1,7 @@
 namespace CStructSharpTests;
 
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Verifies three-byte integer storage independently of alignment.</summary>
 [TestClass]

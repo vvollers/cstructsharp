@@ -3,7 +3,10 @@ namespace CStructSharp.Tests;
 using System.Collections;
 using System.Collections.Immutable;
 using System.Numerics;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Introspection;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
 
 /// <summary>Compatibility assertions for core value contracts reused when projecting and editing memory layouts.</summary>
 [TestClass]

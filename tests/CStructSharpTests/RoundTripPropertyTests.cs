@@ -5,7 +5,8 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using CStructSharp;
-using CStructSharp.Structure;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
 
 /// <summary>Checks the documented semantic and canonical-byte round-trip contracts over reproducible generated cases.</summary>
 [TestClass]

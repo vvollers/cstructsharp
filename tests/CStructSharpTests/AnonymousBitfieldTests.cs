@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System.Collections.Generic;
 using System.IO;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Verifies unnamed nonzero-width bitfields (LANG-17, e.g. <c>uint8 :3;</c>): a declarator that carries a bit

@@ -5,7 +5,13 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using CStructSharp.Structure;
+using CStructSharp.Addressing;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Reading;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
 
 /// <summary>Reads natural scalar or composite values and projects them to caller-selected CLR types.</summary>
 public sealed partial class CStruct

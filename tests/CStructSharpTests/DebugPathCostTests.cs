@@ -1,6 +1,7 @@
 namespace CStructSharpTests;
 
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Protects bounded path construction and allocation-free reuse of formatted debug paths.</summary>
 [TestClass]

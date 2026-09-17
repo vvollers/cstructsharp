@@ -1,6 +1,6 @@
 namespace CStructSharpTests;
 
-using CStructSharp;
+using CStructSharp.Codecs;
 
 /// <summary>Codec classification must not allocate for ordinary numeric values.</summary>
 [TestClass]

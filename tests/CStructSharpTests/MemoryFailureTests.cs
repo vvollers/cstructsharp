@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Codecs;
 using CStructSharp.Memory;
 
 /// <summary>Checks failure atomicity promises, custom codecs, and address boundary behavior.</summary>

@@ -1,8 +1,8 @@
 namespace CStructSharpTests;
 
 using System.Collections.ObjectModel;
-using System.Dynamic;
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Verifies that every variable-bearing operation accepts an immutable dictionary view.</summary>
 [TestClass]

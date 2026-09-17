@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
-using CStructSharp.Structure;
+using CStructSharp.Codecs;
+using CStructSharp.Diagnostics;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     Exercises <see cref="BitfieldCodecTable"/> directly, independent of a compiled <see cref="CStruct"/> layout.

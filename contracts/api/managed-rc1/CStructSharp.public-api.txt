@@ -14,10 +14,10 @@ namespace CStructSharp
         public CStruct(string layout, byte pointerSize = 8, bool aligned = false, bool isLittleEndian = true, CStructSharp.CStructCompilationOptions? compilationOptions = null) { }
         public bool Aligned { get; }
         public CStructSharp.CStructCompilationOptions CompilationOptions { get; }
-        public System.Collections.Generic.IReadOnlyDictionary<string, CStructSharp.LayoutConstant> Constants { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, CStructSharp.Introspection.LayoutConstant> Constants { get; }
         public System.Collections.Generic.IReadOnlyList<string> Includes { get; }
         public bool IsLittleEndian { get; }
-        public CStructSharp.LayoutInfo Layout { get; }
+        public CStructSharp.Introspection.LayoutInfo Layout { get; }
         public byte PointerSize { get; }
         public int GetDynamicArrayLength(System.IO.Stream stream, string elementNameOrPath, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public int GetStructAlignmentInBytes(string name) { }
@@ -31,19 +31,19 @@ namespace CStructSharp
         [return: System.Runtime.CompilerServices.TupleElementNames(new string[] {
                 "DebugData",
                 "Result"})]
-        public System.ValueTuple<System.Collections.Generic.List<CStructSharp.DebugData>, dynamic> ParseStreamWithDebug(System.IO.Stream stream) { }
+        public System.ValueTuple<System.Collections.Generic.List<CStructSharp.Diagnostics.DebugData>, dynamic> ParseStreamWithDebug(System.IO.Stream stream) { }
         [return: System.Runtime.CompilerServices.TupleElementNames(new string[] {
                 "DebugData",
                 "Result"})]
-        public System.ValueTuple<System.Collections.Generic.List<CStructSharp.DebugData>, dynamic> ParseStreamWithDebug(System.IO.Stream stream, string elementNameOrPath) { }
+        public System.ValueTuple<System.Collections.Generic.List<CStructSharp.Diagnostics.DebugData>, dynamic> ParseStreamWithDebug(System.IO.Stream stream, string elementNameOrPath) { }
         [return: System.Runtime.CompilerServices.TupleElementNames(new string[] {
                 "DebugData",
                 "Result"})]
-        public System.ValueTuple<System.Collections.Generic.List<CStructSharp.DebugData>, dynamic> ParseStreamWithDebug(System.IO.Stream stream, string elementNameOrPath, CStructSharp.ReadOptions options) { }
+        public System.ValueTuple<System.Collections.Generic.List<CStructSharp.Diagnostics.DebugData>, dynamic> ParseStreamWithDebug(System.IO.Stream stream, string elementNameOrPath, CStructSharp.ReadOptions options) { }
         [return: System.Runtime.CompilerServices.TupleElementNames(new string[] {
                 "DebugData",
                 "Result"})]
-        public System.ValueTuple<System.Collections.Generic.List<CStructSharp.DebugData>, dynamic> ParseStreamWithDebug(System.IO.Stream stream, string elementNameOrPath, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, CStructSharp.ReadOptions? options = null) { }
+        public System.ValueTuple<System.Collections.Generic.List<CStructSharp.Diagnostics.DebugData>, dynamic> ParseStreamWithDebug(System.IO.Stream stream, string elementNameOrPath, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, CStructSharp.ReadOptions? options = null) { }
         public object? ReadValue(System.IO.Stream stream) { }
         public object? ReadValue(System.IO.Stream stream, string elementNameOrPath, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public object? ReadValue(System.ReadOnlyMemory<byte> source, string? elementNameOrPath = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
@@ -77,7 +77,7 @@ namespace CStructSharp
         public CStructCompilationOptions() { }
         public CStructSharp.BitfieldAllocation BitfieldAllocation { get; init; }
         public int CLongWidth { get; init; }
-        public System.Collections.Generic.IReadOnlyList<CStructSharp.ICustomCodec>? Codecs { get; init; }
+        public System.Collections.Generic.IReadOnlyList<CStructSharp.Codecs.ICustomCodec>? Codecs { get; init; }
         public string? DefaultEnumStorage { get; init; }
         public System.Collections.Generic.IReadOnlySet<string>? Defined { get; init; }
         public int MaxDefinitionLength { get; init; }
@@ -86,207 +86,15 @@ namespace CStructSharp
         public int MaxLayoutNestingDepth { get; init; }
         public string? Prelude { get; init; }
     }
-    public enum CStructErrorCode
-    {
-        InvalidLayout = 1,
-        InvalidPath = 2,
-        ReadFailed = 3,
-        ReadLimitExceeded = 4,
-        WriteFailed = 5,
-        WriteLimitExceeded = 6,
-    }
-    public abstract class CStructException : System.Exception
-    {
-        protected CStructException(CStructSharp.CStructErrorCode code, string? message, System.Exception? innerException = null) { }
-        public CStructSharp.CStructErrorCode Code { get; }
-        public long? Offset { get; }
-        public string? Path { get; }
-    }
-    public sealed class CStructLayoutException : CStructSharp.CStructException
-    {
-        public CStructLayoutException() { }
-        public CStructLayoutException(string message) { }
-        public CStructLayoutException(string message, System.Exception innerException) { }
-    }
-    public sealed class CStructPathException : CStructSharp.CStructException
-    {
-        public CStructPathException() { }
-        public CStructPathException(string message) { }
-        public CStructPathException(string message, System.Exception innerException) { }
-    }
-    public class CStructReadException : CStructSharp.CStructException
-    {
-        public CStructReadException() { }
-        public CStructReadException(string message) { }
-        public CStructReadException(string message, System.Exception innerException) { }
-        protected CStructReadException(CStructSharp.CStructErrorCode code, string? message, System.Exception? innerException = null) { }
-    }
-    public sealed class CStructReadLimitException : CStructSharp.CStructReadException
-    {
-        public CStructReadLimitException(string message) { }
-        public CStructReadLimitException(string message, System.Exception innerException) { }
-    }
-    public class CStructWriteException : CStructSharp.CStructException
-    {
-        public CStructWriteException() { }
-        public CStructWriteException(string message) { }
-        public CStructWriteException(string message, System.Exception innerException) { }
-        protected CStructWriteException(CStructSharp.CStructErrorCode code, string? message, System.Exception? innerException = null) { }
-    }
-    public sealed class CStructWriteLimitException : CStructSharp.CStructWriteException
-    {
-        public CStructWriteLimitException(string message) { }
-        public CStructWriteLimitException(string message, System.Exception innerException) { }
-    }
-    public struct DebugData
-    {
-        public DebugData() { }
-        [System.Text.Json.Serialization.JsonPropertyName("buffer")]
-        public byte[] Buffer { get; set; }
-        [System.Text.Json.Serialization.JsonPropertyName("curPos")]
-        public long CurPos { get; set; }
-        [System.Text.Json.Serialization.JsonPropertyName("debugStackString")]
-        public string DebugStackString { get; }
-        [System.Text.Json.Serialization.JsonPropertyName("endPos")]
-        public long EndPos { get; set; }
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        public string? TypeName { get; set; }
-        [System.Text.Json.Serialization.JsonPropertyName("value")]
-        public object? Value { get; set; }
-    }
-    public class EnumValueResult
-    {
-        public int BitWidth { get; }
-        public string Enum { get; }
-        public bool IsSigned { get; }
-        public string? Name { get; }
-        public ulong RawBits { get; }
-        public string StorageType { get; }
-        public System.Numerics.BigInteger Value { get; }
-        public override string ToString() { }
-    }
-    public sealed class FlagValueResult : CStructSharp.EnumValueResult
-    {
-        public System.Collections.Immutable.ImmutableArray<string> Names { get; }
-        public ulong Remainder { get; }
-        public bool Has(string member) { }
-        public override string ToString() { }
-    }
-    public interface ICustomCodec
-    {
-        int Alignment { get; }
-        int? FixedSize { get; }
-        string Name { get; }
-        object Read(System.IO.Stream stream);
-        void Write(System.IO.Stream stream, object value);
-    }
-    public enum LayoutArrayKind
-    {
-        Scalar = 0,
-        Fixed = 1,
-        Runtime = 2,
-        String = 3,
-        ToEnd = 4,
-        Terminated = 5,
-    }
-    public sealed class LayoutConstant
-    {
-        public CStructSharp.LayoutConstantKind Kind { get; }
-        public string Name { get; }
-        public object? Value { get; }
-        public override string ToString() { }
-    }
-    public enum LayoutConstantKind
-    {
-        Integer = 0,
-        Expression = 1,
-        Text = 2,
-        Bytes = 3,
-        Empty = 4,
-        Macro = 5,
-    }
-    public sealed class LayoutDeclarationInfo
-    {
-        public int Alignment { get; }
-        public System.Collections.Generic.IReadOnlyList<int> ArrayShape { get; }
-        public System.Collections.Generic.IReadOnlyList<CStructSharp.LayoutFieldInfo> Fields { get; }
-        public CStructSharp.LayoutDeclarationKind Kind { get; }
-        public System.Collections.Generic.IReadOnlyList<CStructSharp.LayoutEnumMemberInfo> Members { get; }
-        public string Name { get; }
-        public int PointerDepth { get; }
-        public int? Size { get; }
-        public string? UnderlyingType { get; }
-    }
-    public enum LayoutDeclarationKind
-    {
-        Struct = 0,
-        Union = 1,
-        Enum = 2,
-        Flag = 3,
-        Typedef = 4,
-    }
-    public sealed class LayoutEnumMemberInfo
-    {
-        public string Name { get; }
-        public System.Numerics.BigInteger Value { get; }
-    }
-    public sealed class LayoutFieldInfo
-    {
-        public CStructSharp.LayoutArrayKind ArrayKind { get; }
-        public int? BitOffset { get; }
-        public int? BitWidth { get; }
-        public System.Collections.Generic.IReadOnlyList<int?> Dimensions { get; }
-        public bool IsAnonymous { get; }
-        public bool IsConditional { get; }
-        public string Name { get; }
-        public int? Offset { get; }
-        public int PointerDepth { get; }
-        public System.Collections.Generic.IReadOnlyList<CStructSharp.LayoutFieldInfo> PromotedFields { get; }
-        public int? Size { get; }
-        public string TypeName { get; }
-    }
-    public sealed class LayoutInfo
-    {
-        public System.Collections.Generic.IReadOnlyDictionary<string, CStructSharp.LayoutConstant> Constants { get; }
-        public System.Collections.Generic.IReadOnlyList<CStructSharp.LayoutDeclarationInfo> Declarations { get; }
-        public System.Collections.Generic.IReadOnlyList<string> Includes { get; }
-    }
     public enum PocoBindingMode
     {
         PublicReadable = 0,
         PublicReadWrite = 1,
     }
-    public sealed class Pointer
-    {
-        public Pointer(long address, object? value, int depth, bool isDereferenced = false) { }
-        public long Address { get; }
-        public int Depth { get; }
-        public bool IsDereferenced { get; }
-        public bool IsNull { get; }
-        public CStructSharp.Pointer? Next { get; }
-        public object? Value { get; }
-        public object? Dereference() { }
-        public override string ToString() { }
-    }
     public enum PointerAddressingMode
     {
         Absolute = 0,
         Relative = 1,
-    }
-    public sealed class PrimitiveArray<T> : System.Collections.Generic.ICollection<object?>, System.Collections.Generic.IEnumerable<object?>, System.Collections.Generic.IList<object?>, System.Collections.Generic.IReadOnlyCollection<object?>, System.Collections.Generic.IReadOnlyList<object?>, System.Collections.ICollection, System.Collections.IEnumerable, System.Collections.IList
-        where T :  unmanaged
-    {
-        public PrimitiveArray(T[] values) { }
-        public int Count { get; }
-        public object? this[int index] { get; set; }
-        public System.ReadOnlyMemory<T> Memory { get; }
-        public System.ReadOnlySpan<T> Span { get; }
-        public bool Contains(object? item) { }
-        public void CopyTo(object?[] array, int arrayIndex) { }
-        public System.Collections.Generic.IEnumerator<object?> GetEnumerator() { }
-        public int IndexOf(object? item) { }
-        public T[] ToArray() { }
-        public override string ToString() { }
     }
     public sealed class ReadOptions
     {
@@ -304,55 +112,6 @@ namespace CStructSharp
     public static class StaticHelpers
     {
         public static byte[] ParseHexDataContent(this string hexData) { }
-    }
-    public sealed class StructValue : System.Dynamic.DynamicObject, System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IDictionary<string, object?>, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyCollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyDictionary<string, object?>, System.Collections.IEnumerable
-    {
-        public StructValue() { }
-        public int Count { get; }
-        public object? this[string name] { get; set; }
-        public System.Collections.Generic.ICollection<string> Keys { get; }
-        public System.Collections.Generic.ICollection<object?> Values { get; }
-        public void Add(string name, object? value) { }
-        public void Clear() { }
-        public bool ContainsKey(string name) { }
-        public override System.Collections.Generic.IEnumerable<string> GetDynamicMemberNames() { }
-        public CStructSharp.StructValue.Enumerator GetEnumerator() { }
-        public override System.Dynamic.DynamicMetaObject GetMetaObject(System.Linq.Expressions.Expression parameter) { }
-        public bool Remove(string name) { }
-        public override string ToString() { }
-        public override bool TryDeleteMember(System.Dynamic.DeleteMemberBinder binder) { }
-        public override bool TryGetMember(System.Dynamic.GetMemberBinder binder, out object? result) { }
-        public bool TryGetValue(string name, out object? value) { }
-        public override bool TrySetMember(System.Dynamic.SetMemberBinder binder, object? value) { }
-        public struct Enumerator : System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.IEnumerator, System.IDisposable
-        {
-            public System.Collections.Generic.KeyValuePair<string, object?> Current { get; }
-            public void Dispose() { }
-            public bool MoveNext() { }
-            public void Reset() { }
-        }
-    }
-    public sealed class UnionValue : System.Dynamic.DynamicObject, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyCollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyDictionary<string, object?>, System.Collections.IEnumerable
-    {
-        public int Count { get; }
-        public bool HasRawStorage { get; }
-        public bool HasSelection { get; }
-        public object? this[string key] { get; }
-        public System.Collections.Generic.IEnumerable<string> Keys { get; }
-        public System.Collections.Generic.IReadOnlyDictionary<string, object?> Members { get; }
-        public System.ReadOnlyMemory<byte>? RawStorage { get; }
-        public string? SelectedMember { get; }
-        public object? SelectedValue { get; }
-        public string UnionName { get; }
-        public System.Collections.Generic.IEnumerable<object?> Values { get; }
-        public bool ContainsKey(string key) { }
-        public System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, object?>> GetEnumerator() { }
-        public override bool TryGetMember(System.Dynamic.GetMemberBinder binder, out object? result) { }
-        public bool TryGetValue(string key, out object? value) { }
-        public CStructSharp.UnionValue WithSelectedMember(string memberName, object? value) { }
-        public CStructSharp.UnionValue WithoutSelection() { }
-        public static CStructSharp.UnionValue FromMember(string unionName, string memberName, object? value) { }
-        public static CStructSharp.UnionValue FromRaw(string unionName, System.ReadOnlySpan<byte> rawStorage) { }
     }
     public sealed class UpdateOptions : CStructSharp.WriteOptions, System.IEquatable<CStructSharp.UpdateOptions>
     {
@@ -377,6 +136,162 @@ namespace CStructSharp
         public long MaxStringBytes { get; init; }
         public long MaxTotalBytesWritten { get; init; }
         public long Origin { get; init; }
+    }
+}
+namespace CStructSharp.Codecs
+{
+    public interface ICustomCodec
+    {
+        int Alignment { get; }
+        int? FixedSize { get; }
+        string Name { get; }
+        object Read(System.IO.Stream stream);
+        void Write(System.IO.Stream stream, object value);
+    }
+}
+namespace CStructSharp.Diagnostics
+{
+    public enum CStructErrorCode
+    {
+        InvalidLayout = 1,
+        InvalidPath = 2,
+        ReadFailed = 3,
+        ReadLimitExceeded = 4,
+        WriteFailed = 5,
+        WriteLimitExceeded = 6,
+    }
+    public abstract class CStructException : System.Exception
+    {
+        protected CStructException(CStructSharp.Diagnostics.CStructErrorCode code, string? message, System.Exception? innerException = null) { }
+        public CStructSharp.Diagnostics.CStructErrorCode Code { get; }
+        public long? Offset { get; }
+        public string? Path { get; }
+    }
+    public sealed class CStructLayoutException : CStructSharp.Diagnostics.CStructException
+    {
+        public CStructLayoutException() { }
+        public CStructLayoutException(string message) { }
+        public CStructLayoutException(string message, System.Exception innerException) { }
+    }
+    public sealed class CStructPathException : CStructSharp.Diagnostics.CStructException
+    {
+        public CStructPathException() { }
+        public CStructPathException(string message) { }
+        public CStructPathException(string message, System.Exception innerException) { }
+    }
+    public class CStructReadException : CStructSharp.Diagnostics.CStructException
+    {
+        public CStructReadException() { }
+        public CStructReadException(string message) { }
+        public CStructReadException(string message, System.Exception innerException) { }
+        protected CStructReadException(CStructSharp.Diagnostics.CStructErrorCode code, string? message, System.Exception? innerException = null) { }
+    }
+    public sealed class CStructReadLimitException : CStructSharp.Diagnostics.CStructReadException
+    {
+        public CStructReadLimitException(string message) { }
+        public CStructReadLimitException(string message, System.Exception innerException) { }
+    }
+    public class CStructWriteException : CStructSharp.Diagnostics.CStructException
+    {
+        public CStructWriteException() { }
+        public CStructWriteException(string message) { }
+        public CStructWriteException(string message, System.Exception innerException) { }
+        protected CStructWriteException(CStructSharp.Diagnostics.CStructErrorCode code, string? message, System.Exception? innerException = null) { }
+    }
+    public sealed class CStructWriteLimitException : CStructSharp.Diagnostics.CStructWriteException
+    {
+        public CStructWriteLimitException(string message) { }
+        public CStructWriteLimitException(string message, System.Exception innerException) { }
+    }
+    public struct DebugData
+    {
+        public DebugData() { }
+        [System.Text.Json.Serialization.JsonPropertyName("buffer")]
+        public byte[] Buffer { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("curPos")]
+        public long CurPos { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("debugStackString")]
+        public string DebugStackString { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("endPos")]
+        public long EndPos { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string? TypeName { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public object? Value { get; set; }
+    }
+}
+namespace CStructSharp.Introspection
+{
+    public enum LayoutArrayKind
+    {
+        Scalar = 0,
+        Fixed = 1,
+        Runtime = 2,
+        String = 3,
+        ToEnd = 4,
+        Terminated = 5,
+    }
+    public sealed class LayoutConstant
+    {
+        public CStructSharp.Introspection.LayoutConstantKind Kind { get; }
+        public string Name { get; }
+        public object? Value { get; }
+        public override string ToString() { }
+    }
+    public enum LayoutConstantKind
+    {
+        Integer = 0,
+        Expression = 1,
+        Text = 2,
+        Bytes = 3,
+        Empty = 4,
+        Macro = 5,
+    }
+    public sealed class LayoutDeclarationInfo
+    {
+        public int Alignment { get; }
+        public System.Collections.Generic.IReadOnlyList<int> ArrayShape { get; }
+        public System.Collections.Generic.IReadOnlyList<CStructSharp.Introspection.LayoutFieldInfo> Fields { get; }
+        public CStructSharp.Introspection.LayoutDeclarationKind Kind { get; }
+        public System.Collections.Generic.IReadOnlyList<CStructSharp.Introspection.LayoutEnumMemberInfo> Members { get; }
+        public string Name { get; }
+        public int PointerDepth { get; }
+        public int? Size { get; }
+        public string? UnderlyingType { get; }
+    }
+    public enum LayoutDeclarationKind
+    {
+        Struct = 0,
+        Union = 1,
+        Enum = 2,
+        Flag = 3,
+        Typedef = 4,
+    }
+    public sealed class LayoutEnumMemberInfo
+    {
+        public string Name { get; }
+        public System.Numerics.BigInteger Value { get; }
+    }
+    public sealed class LayoutFieldInfo
+    {
+        public CStructSharp.Introspection.LayoutArrayKind ArrayKind { get; }
+        public int? BitOffset { get; }
+        public int? BitWidth { get; }
+        public System.Collections.Generic.IReadOnlyList<int?> Dimensions { get; }
+        public bool IsAnonymous { get; }
+        public bool IsConditional { get; }
+        public string Name { get; }
+        public int? Offset { get; }
+        public int PointerDepth { get; }
+        public System.Collections.Generic.IReadOnlyList<CStructSharp.Introspection.LayoutFieldInfo> PromotedFields { get; }
+        public int? Size { get; }
+        public string TypeName { get; }
+    }
+    public sealed class LayoutInfo
+    {
+        public System.Collections.Generic.IReadOnlyDictionary<string, CStructSharp.Introspection.LayoutConstant> Constants { get; }
+        public System.Collections.Generic.IReadOnlyList<CStructSharp.Introspection.LayoutDeclarationInfo> Declarations { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Includes { get; }
     }
 }
 namespace CStructSharp.Memory
@@ -637,5 +552,102 @@ namespace CStructSharp.Memory.Metadata
         public System.Collections.Generic.IReadOnlyList<string> Diagnostics { get; init; }
         public string RootTypeId { get; init; }
         public CStructSharp.Memory.MemorySchema Schema { get; init; }
+    }
+}
+namespace CStructSharp.Values
+{
+    public class EnumValueResult
+    {
+        public int BitWidth { get; }
+        public string Enum { get; }
+        public bool IsSigned { get; }
+        public string? Name { get; }
+        public ulong RawBits { get; }
+        public string StorageType { get; }
+        public System.Numerics.BigInteger Value { get; }
+        public override string ToString() { }
+    }
+    public sealed class FlagValueResult : CStructSharp.Values.EnumValueResult
+    {
+        public System.Collections.Immutable.ImmutableArray<string> Names { get; }
+        public ulong Remainder { get; }
+        public bool Has(string member) { }
+        public override string ToString() { }
+    }
+    public sealed class Pointer
+    {
+        public Pointer(long address, object? value, int depth, bool isDereferenced = false) { }
+        public long Address { get; }
+        public int Depth { get; }
+        public bool IsDereferenced { get; }
+        public bool IsNull { get; }
+        public CStructSharp.Values.Pointer? Next { get; }
+        public object? Value { get; }
+        public object? Dereference() { }
+        public override string ToString() { }
+    }
+    public sealed class PrimitiveArray<T> : System.Collections.Generic.ICollection<object?>, System.Collections.Generic.IEnumerable<object?>, System.Collections.Generic.IList<object?>, System.Collections.Generic.IReadOnlyCollection<object?>, System.Collections.Generic.IReadOnlyList<object?>, System.Collections.ICollection, System.Collections.IEnumerable, System.Collections.IList
+        where T :  unmanaged
+    {
+        public PrimitiveArray(T[] values) { }
+        public int Count { get; }
+        public object? this[int index] { get; set; }
+        public System.ReadOnlyMemory<T> Memory { get; }
+        public System.ReadOnlySpan<T> Span { get; }
+        public bool Contains(object? item) { }
+        public void CopyTo(object?[] array, int arrayIndex) { }
+        public System.Collections.Generic.IEnumerator<object?> GetEnumerator() { }
+        public int IndexOf(object? item) { }
+        public T[] ToArray() { }
+        public override string ToString() { }
+    }
+    public sealed class StructValue : System.Dynamic.DynamicObject, System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IDictionary<string, object?>, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyCollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyDictionary<string, object?>, System.Collections.IEnumerable
+    {
+        public StructValue() { }
+        public int Count { get; }
+        public object? this[string name] { get; set; }
+        public System.Collections.Generic.ICollection<string> Keys { get; }
+        public System.Collections.Generic.ICollection<object?> Values { get; }
+        public void Add(string name, object? value) { }
+        public void Clear() { }
+        public bool ContainsKey(string name) { }
+        public override System.Collections.Generic.IEnumerable<string> GetDynamicMemberNames() { }
+        public CStructSharp.Values.StructValue.Enumerator GetEnumerator() { }
+        public override System.Dynamic.DynamicMetaObject GetMetaObject(System.Linq.Expressions.Expression parameter) { }
+        public bool Remove(string name) { }
+        public override string ToString() { }
+        public override bool TryDeleteMember(System.Dynamic.DeleteMemberBinder binder) { }
+        public override bool TryGetMember(System.Dynamic.GetMemberBinder binder, out object? result) { }
+        public bool TryGetValue(string name, out object? value) { }
+        public override bool TrySetMember(System.Dynamic.SetMemberBinder binder, object? value) { }
+        public struct Enumerator : System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.IEnumerator, System.IDisposable
+        {
+            public System.Collections.Generic.KeyValuePair<string, object?> Current { get; }
+            public void Dispose() { }
+            public bool MoveNext() { }
+            public void Reset() { }
+        }
+    }
+    public sealed class UnionValue : System.Dynamic.DynamicObject, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyCollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyDictionary<string, object?>, System.Collections.IEnumerable
+    {
+        public int Count { get; }
+        public bool HasRawStorage { get; }
+        public bool HasSelection { get; }
+        public object? this[string key] { get; }
+        public System.Collections.Generic.IEnumerable<string> Keys { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, object?> Members { get; }
+        public System.ReadOnlyMemory<byte>? RawStorage { get; }
+        public string? SelectedMember { get; }
+        public object? SelectedValue { get; }
+        public string UnionName { get; }
+        public System.Collections.Generic.IEnumerable<object?> Values { get; }
+        public bool ContainsKey(string key) { }
+        public System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, object?>> GetEnumerator() { }
+        public override bool TryGetMember(System.Dynamic.GetMemberBinder binder, out object? result) { }
+        public bool TryGetValue(string key, out object? value) { }
+        public CStructSharp.Values.UnionValue WithSelectedMember(string memberName, object? value) { }
+        public CStructSharp.Values.UnionValue WithoutSelection() { }
+        public static CStructSharp.Values.UnionValue FromMember(string unionName, string memberName, object? value) { }
+        public static CStructSharp.Values.UnionValue FromRaw(string unionName, System.ReadOnlySpan<byte> rawStorage) { }
     }
 }

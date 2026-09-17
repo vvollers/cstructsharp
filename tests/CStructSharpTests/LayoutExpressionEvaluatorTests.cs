@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     Exercises <see cref="LayoutExpressionEvaluator"/> directly, independent of a compiled <see cref="CStruct"/>

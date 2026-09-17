@@ -8,7 +8,8 @@ description: Handle known and unknown enum numbers without losing width, signedn
 An enum gives names to integer values, but data written by another version of a program may contain a number your
 current layout does not name. That number is still valid binary data.
 
-CStructSharp returns `EnumValueResult` rather than narrowing every enum to a C# `int`. The result retains:
+CStructSharp returns `EnumValueResult` (from `CStructSharp.Values`) rather than narrowing every enum to a C# `int`.
+The result retains:
 
 - the enum declaration and optional member name;
 - the exact mathematical value;

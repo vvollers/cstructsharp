@@ -3,7 +3,11 @@ namespace CStructSharp;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using CStructSharp.Structure;
+using CStructSharp.Compilation;
+using CStructSharp.Expressions;
+using CStructSharp.Reading;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
 
 /// <summary>Shares runtime field activation across compiled operations.</summary>
 public partial class CStruct

@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
 using System.Numerics;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>The primitives added for header parity: six- and sixteen-byte integers, binary16 floats, <c>void *</c>, and function pointers.</summary>
 [TestClass]

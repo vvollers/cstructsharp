@@ -1,6 +1,6 @@
 namespace CStructSharp.Tests;
 
-using System.Dynamic;
+using CStructSharp.Diagnostics;
 
 /// <summary>Groups tests for path access so changes to this behavior are caught.</summary>
 [TestClass]

@@ -1,6 +1,9 @@
 namespace CStructSharp.Tests;
 
 using System.Numerics;
+using CStructSharp.Codecs;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>
 ///     The built-in alias spellings (Windows SDK, Linux kernel, IDA, C99, dissect) resolve to their canonical codecs

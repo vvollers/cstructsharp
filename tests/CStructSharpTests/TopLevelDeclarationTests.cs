@@ -1,5 +1,7 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+
 /// <summary>Top-level composite spellings beyond <c>struct Name { };</c>: anonymous bodies with a trailing type name, object declarations, and forward declarations.</summary>
 [TestClass]
 public class TopLevelDeclarationTests
@@ -13,7 +15,7 @@ public class TopLevelDeclarationTests
         dynamic value = layout.Parse(new byte[] { 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, }.AsSpan(), "root");
         Assert.AreEqual(2U, (uint)value.t.tv_usec);
         Assert.AreEqual(8, layout.GetStructSizeInBytes("timeval"));
-        Assert.IsTrue(layout.CStructElements["choice"] is CStructSharp.Structure.Struct { IsUnion: true, });
+        Assert.IsTrue(layout.CStructElements["choice"] is CStructSharp.Syntax.Struct { IsUnion: true, });
     }
 
     /// <summary><c>struct X { ... } variable;</c> declares the type; the variable name is not a declaration.</summary>

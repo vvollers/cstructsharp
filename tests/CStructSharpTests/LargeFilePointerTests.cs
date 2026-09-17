@@ -2,6 +2,7 @@ namespace CStructSharpTests;
 
 using System.Buffers.Binary;
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Pointer distance must never be confused with bytes decoded or allocated.</summary>
 [TestClass]

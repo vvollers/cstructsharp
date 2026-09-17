@@ -1,6 +1,6 @@
 namespace CStructSharpTests;
 
-using CStructSharp.Structure;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     Verifies value equality and hash-code consistency for the immutable elements that make up a compiled layout.
@@ -41,10 +41,10 @@ public class LayoutModelEqualityTests
         Assert.IsFalse(primitiveAlias.Equals(structAlias));
         Assert.IsFalse(structAlias.Equals(primitiveAlias));
 
-        var enumA = new CStructSharp.Structure.Enum(
+        var enumA = new CStructSharp.Syntax.Enum(
             new Identifier("kind"),
             System.Collections.Immutable.ImmutableArray.Create(new EnumValue(new Identifier("one"), new Literal(1))));
-        var enumB = new CStructSharp.Structure.Enum(
+        var enumB = new CStructSharp.Syntax.Enum(
             new Identifier("kind"),
             System.Collections.Immutable.ImmutableArray.Create(new EnumValue(new Identifier("one"), new Literal(1))));
         Assert.AreEqual(enumA, enumB);

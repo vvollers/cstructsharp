@@ -352,11 +352,11 @@ Assert-Condition ($docfxConfig.metadata[0].memberLayout -eq 'samePage') (
 
 $testedComplexModels = [ordered]@{
     'CStructSharp.CStruct' = 'DecodeHeader'
-    'CStructSharp.DebugData' = 'InspectRanges'
-    'CStructSharp.EnumValueResult' = 'PreserveEnum'
-    'CStructSharp.Pointer' = 'FollowPointer'
+    'CStructSharp.Diagnostics.DebugData' = 'InspectRanges'
+    'CStructSharp.Values.EnumValueResult' = 'PreserveEnum'
+    'CStructSharp.Values.Pointer' = 'FollowPointer'
     'CStructSharp.ReadOptions' = 'FollowPointer'
-    'CStructSharp.UnionValue' = 'PreserveUnion'
+    'CStructSharp.Values.UnionValue' = 'PreserveUnion'
     'CStructSharp.WriteOptions' = 'RoundTrip'
     'CStructSharp.UpdateOptions' = 'PatchField'
 }

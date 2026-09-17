@@ -1,7 +1,7 @@
 namespace CStructSharp.Tests;
 
-using System.Dynamic;
 using System.Globalization;
+using CStructSharp.Diagnostics;
 
 /// <summary>Verifies the portable unsigned-value contract for bitfield slices and in-place updates.</summary>
 [TestClass]

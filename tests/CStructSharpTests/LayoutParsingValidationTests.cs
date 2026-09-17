@@ -1,6 +1,9 @@
 namespace CStructSharpTests;
 
 using CStructSharp;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Parsing;
 
 /// <summary>
 ///     Verifies that invalid or unsupported layout text is rejected during compilation with stable, located
@@ -95,8 +98,8 @@ public class LayoutParsingValidationTests
         CStructLayoutException exception = Assert.Throws<CStructLayoutException>(() => new CStruct(layout));
         StringAssert.Contains(exception.Message, "depth");
 
-        CStructSharp.Structure.Expr parsed = CStructDefinitionParser.ParseExpression("!~-" + new string('-', 50_000) + "7");
-        Assert.IsInstanceOfType<CStructSharp.Structure.UnaryOp>(parsed);
+        CStructSharp.Syntax.Expr parsed = CStructDefinitionParser.ParseExpression("!~-" + new string('-', 50_000) + "7");
+        Assert.IsInstanceOfType<CStructSharp.Syntax.UnaryOp>(parsed);
     }
 
     /// <summary>

@@ -1,5 +1,8 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
+
 /// <summary>
 ///     The typedef spellings real headers use: declarator lists with pointer aliases, a tag with no alias, a tag
 ///     reused as a type, an alias of an existing tag, and fixed-array typedefs.

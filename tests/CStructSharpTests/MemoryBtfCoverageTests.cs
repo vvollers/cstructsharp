@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System.Buffers.Binary;
 using System.Text;
+using CStructSharp.Diagnostics;
 using CStructSharp.Memory;
 using CStructSharp.Memory.Metadata;
 

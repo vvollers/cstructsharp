@@ -1,6 +1,7 @@
 namespace CStructSharpTests;
 
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Checks active storage and result members for runtime conditional groups.</summary>
 [TestClass]

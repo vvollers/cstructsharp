@@ -6,7 +6,8 @@ description: Distinguish layout, path, read, write, and configured-limit failure
 # Handle errors and recovery
 
 CStructSharp separates expected data/layout failures from invalid method arguments and unexpected application
-defects. Expected failures derive from `CStructException` and include a stable `Code`.
+defects. Expected failures derive from `CStructException` and include a stable `Code`. The exception types and
+`CStructErrorCode` live in the `CStructSharp.Diagnostics` namespace.
 
 Use the exception type or code to decide what the application can do. Keep the message and inner exception for
 diagnostics; do not parse message wording as a program protocol.

@@ -4,8 +4,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
-using CStructSharp.Structure;
-using CstructEnum = CStructSharp.Structure.Enum;
+using CStructSharp.Addressing;
+using CStructSharp.Codecs;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Reading;
+using CStructSharp.Syntax;
+using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>Resolves semantic path targets by walking only the selected compiled layout prefix.</summary>
 public partial class CStruct

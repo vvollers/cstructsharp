@@ -15,6 +15,9 @@ Before starting, you should have:
 - the case-sensitive root declaration name; and
 - any integer variables needed by runtime-sized arrays.
 
+The result types this guide returns (`StructValue`, `UnionValue`, `EnumValueResult`, `Pointer`, `PrimitiveArray<T>`)
+live in the `CStructSharp.Values` namespace; add `using CStructSharp.Values;` next to `using CStructSharp;`.
+
 The examples below build on [the first header parse](install-and-first-parse.md).
 
 ## Read a complete dynamic object

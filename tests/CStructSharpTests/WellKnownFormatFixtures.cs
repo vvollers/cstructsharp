@@ -1,6 +1,6 @@
 namespace CStructSharp.Tests;
 
-using System.Dynamic;
+using CStructSharp.Values;
 
 /// <summary>
 ///     Verifies the CStruct definitions and sample bytes used by the CStructSharpInspector example app's

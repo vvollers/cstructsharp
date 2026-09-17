@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
 using System.Numerics;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Enum member names that C compilers would reject but Windows headers and dissect definitions use.</summary>
 [TestClass]

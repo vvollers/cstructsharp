@@ -1,6 +1,8 @@
 namespace CStructSharpTests;
 
 using CStructSharp;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     <see cref="CStruct.GetOrCompile"/> must return the same compiled instance for identical inputs, miss on any

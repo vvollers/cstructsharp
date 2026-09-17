@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
 using System.Numerics;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>
 ///     <c>flag</c> declarations (bitmask enums), enum/flag-typed bitfields, and anonymous enums whose members become

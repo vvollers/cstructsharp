@@ -2,6 +2,7 @@ namespace CStructSharpTests;
 
 using System.Text;
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Checks byte-bounded UTF-8 across parsing, sizing, selection, serialization and updates.</summary>
 [TestClass]

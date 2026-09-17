@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
 using System.Buffers;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Defines the zero-copy synchronous memory-input and caller-owned output contract.</summary>
 [TestClass]

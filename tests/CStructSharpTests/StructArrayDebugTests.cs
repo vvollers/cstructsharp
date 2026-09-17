@@ -1,6 +1,7 @@
 namespace CStructSharpTests;
 
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Composite array debug paths identify the exact element behind each byte range.</summary>
 [TestClass]

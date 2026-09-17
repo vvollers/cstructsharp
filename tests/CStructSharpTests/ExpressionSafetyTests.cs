@@ -1,6 +1,10 @@
 namespace CStructSharp.Tests;
 
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Parsing;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
 
 /// <summary>Verifies one checked, depth-limited, work-limited expression policy across every core operation.</summary>
 [TestClass]
@@ -471,20 +475,20 @@ public class ExpressionSafetyTests
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(32, 100));
         var resolver = new LayoutVariableResolver(
             [
-                new CStructSharp.Structure.Defines(new Identifier("BASE"), new Literal(2)),
-                new CStructSharp.Structure.Defines(
+                new CStructSharp.Syntax.Defines(new Identifier("BASE"), new Literal(2)),
+                new CStructSharp.Syntax.Defines(
                     new Identifier("DOUBLE"),
                     new BinaryOp(
                         BinaryOperatorType.Mul,
                         new Identifier("BASE"),
                         new Literal(2))),
-                new CStructSharp.Structure.Defines(
+                new CStructSharp.Syntax.Defines(
                     new Identifier("SIZE"),
                     new BinaryOp(
                         BinaryOperatorType.Add,
                         new Identifier("DOUBLE"),
                         new Literal(1))),
-                new CStructSharp.Structure.Defines(new Identifier("OTHER"), new Literal(7)),
+                new CStructSharp.Syntax.Defines(new Identifier("OTHER"), new Literal(7)),
             ],
             evaluator);
 

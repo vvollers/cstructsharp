@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System.Text;
 using System.Text.Json;
+using CStructSharp.Diagnostics;
 using CStructSharp.Memory;
 using CStructSharp.Memory.Metadata;
 

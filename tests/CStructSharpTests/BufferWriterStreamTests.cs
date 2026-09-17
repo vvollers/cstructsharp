@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
 using System.Buffers;
+using CStructSharp.Diagnostics;
+using CStructSharp.Streams;
 
 /// <summary>Checks the seekable active-window contract used by direct IBufferWriter serialization.</summary>
 [TestClass]

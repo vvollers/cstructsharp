@@ -1,5 +1,8 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+using CStructSharp.Streams;
+
 /// <summary>Verifies the internal stream boundary that applies physical-output and extent budgets.</summary>
 [TestClass]
 public class WriteBudgetStreamTests

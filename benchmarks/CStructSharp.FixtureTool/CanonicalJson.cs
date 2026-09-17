@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Text;
 using System.Text.Json;
+using CStructSharp.Values;
 
 /// <summary>
 ///     Serializes a parse result with the same value conventions as the WASM bridge

@@ -4,6 +4,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 using Microsoft.CSharp.RuntimeBinder;
 
 /// <summary>Verifies the explicit, byte-exact value model shared by every union operation.</summary>
@@ -322,13 +324,13 @@ public class UnionValueTests
             () => cstruct.ParseStream(
                 new MemoryStream(new byte[] { 1, 2, }),
                 "root",
-                new Dictionary<string, CStructSharp.Structure.Expr>(),
+                new Dictionary<string, CStructSharp.Syntax.Expr>(),
                 new ReadOptions { MaxNestingDepth = 1, }));
 
         dynamic parsed = cstruct.ParseStream(
             new MemoryStream(new byte[] { 1, 2, }),
             "root",
-            new Dictionary<string, CStructSharp.Structure.Expr>(),
+            new Dictionary<string, CStructSharp.Syntax.Expr>(),
             new ReadOptions { MaxNestingDepth = 2, });
         Assert.AreEqual(2, ((IList<object?>)parsed.values).Count);
     }

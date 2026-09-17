@@ -1,5 +1,7 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Reading;
+
 /// <summary>
 ///     Exercises <see cref="ReadOperationSettings"/> directly, independent of a compiled <see cref="CStruct"/>
 ///     layout. Only reachable indirectly through the public API before this type was extracted from the God-Object

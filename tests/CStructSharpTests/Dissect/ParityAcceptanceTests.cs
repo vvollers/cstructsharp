@@ -1,5 +1,7 @@
 namespace CStructSharp.Tests.Dissect;
 
+using CStructSharp.Diagnostics;
+
 /// <summary>
 ///     The dissect-parity acceptance table: one row per language form the parity work
 ///     (<c>docs/guides/migrating-from-dissect.md</c>) accepts or deliberately keeps rejecting, tagged with

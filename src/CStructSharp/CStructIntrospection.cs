@@ -5,8 +5,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using CStructSharp.Structure;
-using CstructEnum = CStructSharp.Structure.Enum;
+using CStructSharp.Compilation;
+using CStructSharp.Introspection;
+using CStructSharp.Syntax;
+using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>
 ///     The read-only description of a compiled layout (<see cref="Layout"/>), its rendering back to Portable text

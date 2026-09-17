@@ -9,7 +9,7 @@ Normal parsing tells you what the data means. Diagnostic parsing also tells you 
 This is useful for hex viewers, format inspectors, and error reports.
 
 Use `ParseStreamWithDebug` when you need values and ranges together. Use `ResolveAddress` when you need only the
-absolute stream position of one path.
+absolute stream position of one path. `DebugData` lives in the `CStructSharp.Diagnostics` namespace.
 
 ## Capture value ranges
 
@@ -54,4 +54,4 @@ path, array indices, and whether a pointer accessor followed a target. All retur
 they include any nonzero root starting position.
 
 See [Paths and selection](../language/paths-and-selection.md) for coordinate rules and
-[`DebugData`](xref:CStructSharp.DebugData) for the generated member reference.
+[`DebugData`](xref:CStructSharp.Diagnostics.DebugData) for the generated member reference.

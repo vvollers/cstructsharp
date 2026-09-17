@@ -3,6 +3,7 @@ namespace CStructSharp.Tests;
 using System.Buffers.Binary;
 using CStructSharp.Memory;
 using CStructSharp.Memory.Metadata;
+using CStructSharp.Values;
 
 /// <summary>Checks bounded BTF section parsing and representative reachable native type families.</summary>
 [TestClass]

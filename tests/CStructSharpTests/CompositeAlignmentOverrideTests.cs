@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System;
 using System.IO;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Verifies the explicit per-struct/union alignment override (LANG-15, <c>struct/union @align(N)</c>): it

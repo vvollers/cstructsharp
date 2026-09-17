@@ -5,6 +5,8 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.ExceptionServices;
 using CStructSharp;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
 
 /// <summary>
 ///     Layout-variable capture must decide "becomes an Int32 variable" versus "is removed" exactly as

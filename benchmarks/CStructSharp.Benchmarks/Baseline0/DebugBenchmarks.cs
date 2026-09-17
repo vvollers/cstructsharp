@@ -1,6 +1,7 @@
 namespace CStructSharp.Benchmarks.Baseline0;
 
 using BenchmarkDotNet.Attributes;
+using CStructSharp.Diagnostics;
 
 /// <summary>S-DEBUG: byte-range capture on a 1k-record array and on a real format header.</summary>
 [BenchmarkCategory("Baseline0", "Debug")]

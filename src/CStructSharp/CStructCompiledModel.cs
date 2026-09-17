@@ -3,12 +3,14 @@ namespace CStructSharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Numerics;
-using CStructSharp.Structure;
-using CstructEnum = CStructSharp.Structure.Enum;
+using CStructSharp.Codecs;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Syntax;
+using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>Builds and queries the immutable compiled layout model from validated parsed declarations.</summary>
 public partial class CStruct
@@ -1197,7 +1199,7 @@ public partial class CStruct
     }
 
     /// <summary>The compiled enum of a declaration, for the browser bridge's static plan description (E3.9).</summary>
-    internal CompiledEnumType GetCompiledEnumForInterop(Structure.Enum declaration)
+    internal CompiledEnumType GetCompiledEnumForInterop(Syntax.Enum declaration)
     {
         return this.compiledModelQueries.GetCompiledEnum(declaration);
     }

@@ -2,7 +2,10 @@ namespace CStructSharp.Tests;
 
 using System.Collections.Generic;
 using System.IO;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Parsing;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
 
 /// <summary>Exercises layout-calculation and resource-limit cases that are easy to miss in ordinary format fixtures.</summary>
 [TestClass]

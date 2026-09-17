@@ -1,6 +1,7 @@
 namespace CStructSharpTests;
 
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Exercises strict byte-bounded encodings across the shared operation path.</summary>
 [TestClass]

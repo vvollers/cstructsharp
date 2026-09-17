@@ -2,7 +2,8 @@ namespace CStructSharpTests;
 
 using System.Dynamic;
 using CStructSharp;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     Verifies that array work limits and declared-count mismatches fail through the operation-specific exception types.

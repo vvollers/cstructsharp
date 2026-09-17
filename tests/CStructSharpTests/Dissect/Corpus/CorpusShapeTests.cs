@@ -1,5 +1,7 @@
 namespace CStructSharp.Tests.Dissect.Corpus;
 
+using CStructSharp.Introspection;
+
 /// <summary>
 ///     Reduced, hand-written shapes taken from the dissect ecosystem's definitions (NTFS, PE, utmp, lastlog,
 ///     ISO 9660, ETL, ...): each test pastes the header vocabulary as it appears there and checks bytes, offsets,

@@ -4,6 +4,23 @@ Notable changes to CStructSharp, newest first. Release versions and dates were r
 Git history preserved before the repository history reset. Entries focus on features, fixes, and migration steps.
 Related changes are consolidated; routine formatting and benchmark bookkeeping are omitted.
 
+## Unreleased
+
+- **Breaking (API):** the library source is organized into folders whose names match their namespaces, and the
+  public types outside the `CStruct` facade moved with their folders. `CStruct`, `CStructCompilationOptions`,
+  `ReadOptions`, `WriteOptions`, `UpdateOptions`, `BitfieldAllocation`, and `StaticHelpers` stay in `CStructSharp`;
+  the memory namespaces are unchanged. No member signature or behavior changed. Add the matching `using` directives:
+
+  | Types | New namespace |
+  | --- | --- |
+  | `StructValue`, `UnionValue`, `EnumValueResult`, `FlagValueResult`, `Pointer`, `PrimitiveArray<T>` | `CStructSharp.Values` |
+  | `CStructException` and its subclasses, `CStructErrorCode`, `DebugData` | `CStructSharp.Diagnostics` |
+  | `LayoutInfo`, `LayoutDeclarationInfo`, `LayoutFieldInfo`, `LayoutEnumMemberInfo`, `LayoutConstant`, and their kind enums | `CStructSharp.Introspection` |
+  | `ICustomCodec` | `CStructSharp.Codecs` |
+
+  Internal code moved into `Syntax` (formerly `Structure`), `Parsing`, `Expressions`, `Compilation`, `Codecs`,
+  `Streams`, `Addressing`, `Reading`, and `Writing`; `src/CStructSharp/README.md` maps every folder to its role.
+
 ## 0.5.0 — 2026-09-17
 
 - Memory: new `CStructSharp.Memory` namespace for analyzing memory images with unsigned 64-bit addresses.

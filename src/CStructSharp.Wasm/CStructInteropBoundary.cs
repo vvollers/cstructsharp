@@ -6,7 +6,8 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using CStructSharp;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Syntax;
 using Enum = System.Enum;
 
 /// <summary>Validates untrusted browser inputs and creates the stable transport envelope.</summary>

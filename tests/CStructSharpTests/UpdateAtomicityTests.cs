@@ -2,6 +2,8 @@ namespace CStructSharp.Tests;
 
 using System.Collections;
 using System.Dynamic;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Defines the validation-before-mutation boundary for public in-place updates.</summary>
 [TestClass]

@@ -1,5 +1,8 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+using CStructSharp.Parsing;
+
 /// <summary>Groups tests for literals so changes to this behavior are caught.</summary>
 [TestClass]
 public class Literals

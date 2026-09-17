@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System.Collections;
 using System.Numerics;
+using CStructSharp.Diagnostics;
 
 /// <summary>Defines the checked CLR projection boundary layered over natural selected reads.</summary>
 [TestClass]

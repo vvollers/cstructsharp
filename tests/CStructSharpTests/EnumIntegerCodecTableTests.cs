@@ -1,8 +1,10 @@
 namespace CStructSharp.Tests;
 
 using System.Collections.Immutable;
-using CStructSharp.Structure;
-using CstructEnum = CStructSharp.Structure.Enum;
+using CStructSharp.Codecs;
+using CStructSharp.Diagnostics;
+using CStructSharp.Syntax;
+using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>
 ///     Exercises <see cref="EnumIntegerCodecTable"/> directly, independent of a compiled <see cref="CStruct"/>

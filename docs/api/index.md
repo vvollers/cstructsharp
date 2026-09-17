@@ -26,9 +26,20 @@ The option classes are grouped by operation:
 - [`WriteOptions`](xref:CStructSharp.WriteOptions) controls serialization; and
 - [`UpdateOptions`](xref:CStructSharp.UpdateOptions) controls in-place updates.
 
-Types such as [`Pointer`](xref:CStructSharp.Pointer), [`UnionValue`](xref:CStructSharp.UnionValue), and
-[`EnumValueResult`](xref:CStructSharp.EnumValueResult) preserve details that a plain C# number or object would lose.
+Types such as [`Pointer`](xref:CStructSharp.Values.Pointer), [`UnionValue`](xref:CStructSharp.Values.UnionValue), and
+[`EnumValueResult`](xref:CStructSharp.Values.EnumValueResult) preserve details that a plain C# number or object would lose.
 The task guides explain when those result types appear and how to use them.
+
+The namespaces group the public surface by role:
+
+| Namespace | Contents |
+| --- | --- |
+| `CStructSharp` | `CStruct` and the option types on its methods |
+| `CStructSharp.Values` | What reads return and writes accept: `StructValue`, `UnionValue`, `EnumValueResult`, `FlagValueResult`, `Pointer`, `PrimitiveArray<T>` |
+| `CStructSharp.Introspection` | `LayoutInfo` and the records that describe a compiled layout's declarations, fields, and constants |
+| `CStructSharp.Diagnostics` | The exception family, `CStructErrorCode`, and `DebugData` |
+| `CStructSharp.Codecs` | `ICustomCodec`, the extension point for caller-defined primitive types |
+| `CStructSharp.Memory` and `.Memory.Metadata` | Address spaces, metadata import, sessions, traversal, and offline patches for memory images |
 
 ## Where this reference comes from
 

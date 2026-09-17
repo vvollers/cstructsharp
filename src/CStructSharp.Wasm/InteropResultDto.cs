@@ -2,6 +2,7 @@ namespace CStructSharpWeb.Wasm;
 
 using System.Collections.Generic;
 using System.Text.Json;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Describes the versioned result envelope returned by every browser operation. Since contract v7 a parse

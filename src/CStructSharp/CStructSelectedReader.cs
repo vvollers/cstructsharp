@@ -5,8 +5,14 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using CStructSharp.Structure;
-using CstructEnum = CStructSharp.Structure.Enum;
+using CStructSharp.Addressing;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Reading;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
+using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>Reads a selected nested object without materializing unrelated siblings.</summary>
 public partial class CStruct

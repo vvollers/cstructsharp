@@ -2,10 +2,11 @@ namespace CStructSharpTests;
 
 using System.Collections.Frozen;
 using System.Collections.Immutable;
-using System.Dynamic;
 using System.Reflection;
 using CStructSharp;
-using CStructSharp.Structure;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Syntax;
 
 /// <summary>Verifies that operation-time behavior is owned by immutable compiled descriptors.</summary>
 [TestClass]
@@ -319,8 +320,8 @@ public class CompiledIntermediateRepresentationTests
             Assert.AreEqual((ushort)0x1234, (ushort)parsed.count);
             Assert.AreEqual((ushort)0x5678, (ushort)parsed.values[0]);
             Assert.AreEqual((ushort)0x9ABC, (ushort)parsed.values[1]);
-            Assert.AreEqual(8L, ((CStructSharp.Pointer)parsed.link).Address);
-            Assert.AreEqual((ushort)0xDEF0, (ushort)((CStructSharp.Pointer)parsed.link).Value!);
+            Assert.AreEqual(8L, ((CStructSharp.Values.Pointer)parsed.link).Address);
+            Assert.AreEqual((ushort)0xDEF0, (ushort)((CStructSharp.Values.Pointer)parsed.link).Value!);
             Assert.AreEqual(8L, parseStream.Position);
         }
 

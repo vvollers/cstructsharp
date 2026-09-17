@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     fill   — parse every fixture with the managed library and record the canonical expected JSON (or its SHA-256

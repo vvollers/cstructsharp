@@ -1,7 +1,7 @@
 namespace CStructSharpTests;
 
-using System.Dynamic;
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Verifies that aligned composite fields use one consistent parent boundary across sizing, reading, writing,

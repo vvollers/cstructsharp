@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
 using System.Numerics;
+using CStructSharp.Diagnostics;
+using CStructSharp.Introspection;
 
 /// <summary>
 ///     The preprocessor lines a pasted header carries: non-integer <c>#define</c>s, conditionals, <c>#undef</c>,

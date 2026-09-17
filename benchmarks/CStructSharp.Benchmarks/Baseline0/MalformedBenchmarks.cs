@@ -1,6 +1,7 @@
 namespace CStructSharp.Benchmarks.Baseline0;
 
 using BenchmarkDotNet.Attributes;
+using CStructSharp.Diagnostics;
 
 /// <summary>S-MALFORMED: the cost of the failure path (exception construction, context attachment) per rejection.</summary>
 [BenchmarkCategory("Baseline0", "Malformed")]

@@ -1,5 +1,8 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Addressing;
+using CStructSharp.Diagnostics;
+
 /// <summary>
 ///     Exercises <see cref="ExceptionContext"/> directly, independent of a real read/write/path-resolution failure.
 ///     Only reachable indirectly through the public API before this type was extracted from the God-Object

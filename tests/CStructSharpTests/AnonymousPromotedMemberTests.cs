@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>
 ///     Verifies anonymous promoted struct members (LANG-14, <c>struct { ... };</c> with no trailing name): its own

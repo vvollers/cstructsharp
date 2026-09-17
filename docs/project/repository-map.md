@@ -10,7 +10,7 @@ and which direction their dependencies point.
 
 | Path | What belongs here | Direct project/package relationship |
 | --- | --- | --- |
-| `src/CStructSharp/` | Public library, layout parser/preparation, codecs, reads, writes, and updates | No runtime package dependencies |
+| `src/CStructSharp/` | Public library; one folder per pipeline stage with a matching namespace (`src/CStructSharp/README.md` maps folders to roles) | No runtime package dependencies |
 | `tests/CStructSharpTests/` | Unit, integration, regression, property, limit, concurrency, and compatibility tests; `Reference/` holds the frozen Pidgin grammar used only by the parser differential tests | References core and fuzz support, plus Pidgin (test-only) |
 | `tests/CStructSharp.Fuzz/` | Bounded fuzz targets and replay corpus | References core |
 | `benchmarks/CStructSharp.Benchmarks/` | BenchmarkDotNet timing and allocation scenarios | References core |

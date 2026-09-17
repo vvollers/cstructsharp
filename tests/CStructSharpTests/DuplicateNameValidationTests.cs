@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System.Collections.Generic;
 using System.IO;
+using CStructSharp.Diagnostics;
 
 /// <summary>Verifies that every user-visible declaration namespace is unambiguous before an operation reaches a stream.</summary>
 [TestClass]

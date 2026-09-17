@@ -2,7 +2,10 @@ namespace CStructSharp.Tests;
 
 using System;
 using System.IO;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Parsing;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
 
 /// <summary>Groups tests for robustness tests so changes to this behavior are caught.</summary>
 [TestClass]

@@ -2,6 +2,7 @@ namespace CStructSharp.Benchmarks;
 
 using System.Text;
 using BenchmarkDotNet.Attributes;
+using CStructSharp.Values;
 
 /// <summary>
 ///     Compares reading a large terminated string from a fully-buffered <see cref="MemoryStream"/> against reading

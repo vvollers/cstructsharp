@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System;
 using System.IO;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Verifies the explicit per-field alignment override (LANG-15 field-level slice, <c>@align(N)</c>): it

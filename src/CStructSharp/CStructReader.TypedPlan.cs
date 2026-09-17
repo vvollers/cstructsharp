@@ -2,12 +2,15 @@ namespace CStructSharp;
 
 using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using CStructSharp.Structure;
-using CstructEnum = CStructSharp.Structure.Enum;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Reading;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
+using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>
 ///     Typed read plan (E2.7): <c>ReadValue&lt;T&gt;</c> of a fully fixed composite binds the static read plan's

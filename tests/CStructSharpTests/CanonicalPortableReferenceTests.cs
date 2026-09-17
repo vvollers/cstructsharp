@@ -5,6 +5,8 @@ using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using CStructSharp.Codecs;
+using CStructSharp.Diagnostics;
 
 /// <summary>Executes the machine-readable tables and byte predictions published by the canonical Portable reference.</summary>
 [TestClass]

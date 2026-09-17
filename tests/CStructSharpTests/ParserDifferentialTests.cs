@@ -4,7 +4,9 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Parsing;
+using CStructSharp.Syntax;
 using CStructSharp.Tests.Reference;
 using Pidgin;
 
@@ -425,7 +427,7 @@ public class ParserDifferentialTests
         Assert.Throws<ArgumentOutOfRangeException>(() => CStructDefinitionParser.ParseLiteral("1", 3));
 
         Assert.AreEqual("root", CStructDefinitionParser.ParseElement(" /*c*/ struct root { uint8 a; }; ").Name.Name);
-        Assert.IsInstanceOfType<Structure.BinaryOp>(CStructDefinitionParser.ParseExpression(" /*c*/ (1) + x "));
+        Assert.IsInstanceOfType<Syntax.BinaryOp>(CStructDefinitionParser.ParseExpression(" /*c*/ (1) + x "));
         Assert.AreEqual("Blue", CStructDefinitionParser.ParseEnumValue("  Blue =4 ").Name.Name);
         Assert.HasCount(2, CStructDefinitionParser.ParseEnumValues(" A, B "));
         Assert.HasCount(0, CStructDefinitionParser.ParseEnumValuesInBrackets("{ }"));
@@ -1163,14 +1165,14 @@ public class ParserDifferentialTests
 
                 this.Builder.Append(')');
                 break;
-            case Structure.Defines defines:
+            case Syntax.Defines defines:
                 this.Builder.Append("define(");
                 this.Identifier(defines.Name);
                 this.Builder.Append('=');
                 this.Expr(defines.Value);
                 this.Builder.Append(')');
                 break;
-            case Structure.Enum enumeration:
+            case Syntax.Enum enumeration:
                 this.Builder.Append("enum(");
                 this.Identifier(enumeration.Name);
                 this.Builder.Append(",type=");

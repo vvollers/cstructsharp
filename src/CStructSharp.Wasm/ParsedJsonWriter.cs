@@ -8,6 +8,8 @@ using System.Globalization;
 using System.Numerics;
 using System.Text;
 using CStructSharp;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
 
 /// <summary>
 ///     Writes parsed values as UTF-8 JSON straight into a byte buffer (E3.3b). The value set is closed - the

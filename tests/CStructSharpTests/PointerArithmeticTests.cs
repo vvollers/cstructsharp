@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
 using System.Dynamic;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Verifies checked pointer-address conversion across every public read, path, and write operation.</summary>
 [TestClass]
@@ -193,7 +195,7 @@ public class PointerArithmeticTests
                 () => cstruct.ParseStreamWithDebug(
                     debugStream,
                     "root",
-                    new Dictionary<string, Structure.Expr>(),
+                    new Dictionary<string, Syntax.Expr>(),
                     options));
             Assert.IsInstanceOfType<OverflowException>(exception.InnerException);
         }
@@ -266,7 +268,7 @@ public class PointerArithmeticTests
                 () => cstruct.ParseStreamWithDebug(
                     debugStream,
                     "root",
-                    new Dictionary<string, Structure.Expr>(),
+                    new Dictionary<string, Syntax.Expr>(),
                     noDereference));
         }
 
@@ -301,9 +303,9 @@ public class PointerArithmeticTests
             isLittleEndian: isLittleEndian);
         byte[] dependentBytes = new byte[9];
         RegressionTestSupport.EncodeUnsigned((ulong)long.MaxValue, 8, isLittleEndian).CopyTo(dependentBytes, 0);
-        var staleOverride = new Dictionary<string, Structure.Expr>
+        var staleOverride = new Dictionary<string, Syntax.Expr>
         {
-            ["ptr"] = new Structure.Literal(1),
+            ["ptr"] = new Syntax.Literal(1),
         };
         using var dependentParse = new MemoryStream((byte[])dependentBytes.Clone());
         _ = Assert.Throws<CStructLayoutException>(

@@ -1,10 +1,11 @@
 namespace CStructSharp.Tests;
 
 using System.Collections.Generic;
-using System.Dynamic;
 using System.IO;
 using System.Linq;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
 
 /// <summary>Verifies that anonymous inline structure declarations are identified by lexical scope, not field spelling.</summary>
 [TestClass]

@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
-using CStructSharp.Structure;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     Exercises <see cref="CompiledModelQueries"/> directly against a real compiled layout. Only reachable
@@ -49,7 +51,7 @@ public class CompiledModelQueriesTests
     public void GetCompiledEnum_KnownEnum_ReturnsCompiledType()
     {
         (CompiledModelQueries queries, CStruct cstruct) = CreateQueries();
-        var enm = (CStructSharp.Structure.Enum)cstruct.CompiledModel.Declarations["mode"];
+        var enm = (CStructSharp.Syntax.Enum)cstruct.CompiledModel.Declarations["mode"];
 
         CompiledEnumType compiled = queries.GetCompiledEnum(enm);
 

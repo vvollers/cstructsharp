@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
-using System.Text;
+using CStructSharp.Codecs;
+using CStructSharp.Diagnostics;
+using CStructSharp.Streams;
 
 /// <summary>
 ///     Exercises <see cref="PrimitiveCodecs"/> directly, independent of a compiled <see cref="CStruct"/> layout.

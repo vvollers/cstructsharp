@@ -43,7 +43,7 @@ field       target       pointed-to uint8
 stored      address 1 ───────► value 0x2A
 ```
 
-The returned `Pointer` reports `Address = 1`, `IsDereferenced = true`, and `Value = 0x2A`. The stream contains no
+The returned `Pointer` (from `CStructSharp.Values`) reports `Address = 1`, `IsDereferenced = true`, and `Value = 0x2A`. The stream contains no
 object allocation or relocation information; it contains only the coordinate `1`.
 
 Pointer width is part of the data format. Set it to 1, 2, 4, or 8 when constructing `CStruct`; do not copy the

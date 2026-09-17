@@ -19,7 +19,7 @@ using (var stream = new MemoryStream(input))
     AssertEqual((byte)0xA5, parsed["marker"], "parsed marker");
     AssertEqual((ushort)0x1234, parsed["value"], "parsed value");
 
-    var pointer = parsed["target"] as CStructSharp.Pointer ??
+    var pointer = parsed["target"] as CStructSharp.Values.Pointer ??
                   throw new InvalidOperationException("Parsed target is not a package Pointer value.");
     AssertEqual(4L, pointer.Address, "parsed pointer address");
     AssertEqual(false, pointer.IsNull, "parsed pointer null state");
@@ -64,14 +64,14 @@ using (var stream = new MemoryStream(input))
     AssertEqual(0L, stream.Position, "failed typed-read stream position");
 }
 
-var addressOnlyPointer = new CStructSharp.Pointer(4, null, 1);
+var addressOnlyPointer = new CStructSharp.Values.Pointer(4, null, 1);
 AssertEqual(false, addressOnlyPointer.IsNull, "address-only pointer null state");
 AssertEqual(false, addressOnlyPointer.IsDereferenced, "address-only pointer follow state");
 AssertNull(addressOnlyPointer.Value, "address-only pointer target");
 
 var nullPointerLayout = new CStruct("struct null_root { uint8 *target; };", pointerSize: 1);
 IDictionary<string, object?> nullPointerResult = nullPointerLayout.Parse([0], "null_root");
-var nullPointer = nullPointerResult["target"] as CStructSharp.Pointer ??
+var nullPointer = nullPointerResult["target"] as CStructSharp.Values.Pointer ??
                   throw new InvalidOperationException("Null pointer parsing did not return a package Pointer value.");
 AssertEqual(true, nullPointer.IsNull, "null pointer state");
 AssertEqual(false, nullPointer.IsDereferenced, "null pointer follow state");

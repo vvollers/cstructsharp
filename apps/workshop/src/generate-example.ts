@@ -157,7 +157,7 @@ export function generateExample(
   const jsOptionsArgument = Object.keys(options).length ? ", options" : "";
   const root = o.rootTypeName
     ? csString(o.rootTypeName)
-    : "layout.CStructElements.First(entry => entry.Value is CStructSharp.Structure.Struct).Key";
+    : "layout.CStructElements.First(entry => entry.Value is CStructSharp.Syntax.Struct).Key";
   const csharp = `// Create a .NET 10 console project and install the CStructSharp package.
 // Replace Program.cs with this code. These are the inputs captured when you clicked Generate.
 using System;
@@ -166,6 +166,8 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Text.Json;
 using CStructSharp;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 try
 {

@@ -1,6 +1,8 @@
 namespace CStructSharp.Benchmarks;
 
 using BenchmarkDotNet.Attributes;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 [BenchmarkCategory("Read")]
 public class ReadBenchmarks

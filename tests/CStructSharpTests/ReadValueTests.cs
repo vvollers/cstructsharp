@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
 using System.Numerics;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Defines the natural and strongly typed read contract for root and selected layout values.</summary>
 [TestClass]

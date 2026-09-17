@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
-using CStructSharp.Structure;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Exercises <see cref="LayoutMath"/> directly, independent of a compiled <see cref="CStruct"/> layout. Only

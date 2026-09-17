@@ -1,8 +1,8 @@
 namespace CStructSharpTests;
 
-using System.Dynamic;
 using CStructSharp;
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Syntax;
 
 /// <summary>Verifies that every read-like path traversal consumes the same caller-configured safety budgets.</summary>
 [TestClass]

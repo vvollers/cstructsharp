@@ -1,6 +1,7 @@
 namespace CStructSharp.Benchmarks.Baseline0;
 
 using BenchmarkDotNet.Attributes;
+using CStructSharp.Codecs;
 
 /// <summary>
 ///     S-PARITY cases that have no fixture form: a caller-registered codec (<see cref="ICustomCodec"/>), a prelude

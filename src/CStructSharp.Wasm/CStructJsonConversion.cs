@@ -7,6 +7,7 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 using CStructSharp;
+using CStructSharp.Values;
 
 /// <summary>Contains the explicit JSON conversion rules used at the browser boundary.</summary>
 public partial class CStructExports

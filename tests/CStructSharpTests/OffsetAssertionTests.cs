@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System;
 using System.IO;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Verifies the explicit per-field byte-offset assertion (LANG-15 field-level slice, <c>@N</c>): it validates a

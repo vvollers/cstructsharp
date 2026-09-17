@@ -1,8 +1,10 @@
 namespace CStructSharp.Tests;
 
 using System.Collections.ObjectModel;
-using System.Dynamic;
 using System.Reflection;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Defines the lock-free concurrent-reuse contract.</summary>
 [TestClass]

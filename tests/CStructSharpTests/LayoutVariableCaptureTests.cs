@@ -1,10 +1,12 @@
 namespace CStructSharp.Tests;
 
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using CStructSharp.Structure;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Syntax;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 /// <summary>

@@ -3,6 +3,7 @@ namespace CStructSharp.Tests;
 using System.Text;
 using CStructSharp.Memory;
 using CStructSharp.Memory.Metadata;
+using CStructSharp.Values;
 
 /// <summary>Independent ISF fixtures cover supported descriptors and explicit rejection of unknown representations.</summary>
 [TestClass]

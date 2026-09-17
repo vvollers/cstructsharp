@@ -2,6 +2,7 @@ namespace CStructSharpTests;
 
 using System.Text;
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Terminated strings are scanned per chunk and decoded once per chunk (E2.9); the observable positions, values,

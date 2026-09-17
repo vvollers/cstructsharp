@@ -1,16 +1,22 @@
 namespace CStructSharp;
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Dynamic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-using CStructSharp.Structure;
-using CstructEnum = CStructSharp.Structure.Enum;
+using CStructSharp.Addressing;
+using CStructSharp.Codecs;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Reading;
+using CStructSharp.Streams;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
+using CStructSharp.Writing;
+using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>
 ///     Contains the stream-writing half of <see cref="CStruct"/>.

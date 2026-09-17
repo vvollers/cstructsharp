@@ -62,7 +62,8 @@ X, *PX;` lists - and the API calls its users make have direct equivalents. This 
 
 ## A custom codec
 
-The protobuf varint that `dissect.target` registers with `add_custom_type` is a fifteen-line class in CStructSharp:
+The protobuf varint that `dissect.target` registers with `add_custom_type` is a fifteen-line class in CStructSharp
+(`ICustomCodec` lives in `CStructSharp.Codecs`):
 
 ```csharp
 sealed class Varint : ICustomCodec

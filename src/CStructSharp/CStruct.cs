@@ -1,15 +1,22 @@
 namespace CStructSharp;
 
 using System;
-using System.Collections;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Reflection;
-using CStructSharp.Structure;
-using CstructEnum = CStructSharp.Structure.Enum;
+using CStructSharp.Addressing;
+using CStructSharp.Codecs;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Introspection;
+using CStructSharp.Parsing;
+using CStructSharp.Reading;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
+using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>
 ///     Compiles a C-like layout definition and uses it to read, inspect, write, or update binary data.

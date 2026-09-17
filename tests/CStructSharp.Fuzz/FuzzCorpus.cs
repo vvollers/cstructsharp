@@ -1,7 +1,6 @@
 namespace CStructSharp.Fuzzing;
 
 using System.Globalization;
-using System.Text;
 using System.Text.Json;
 
 /// <summary>Loads the bounded, versioned seed corpus used by the managed fuzz harness.</summary>

@@ -1,5 +1,8 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
+
 /// <summary>Locks one compiled composite extent across root, nested, array, pointer, and union entry points.</summary>
 [TestClass]
 public class CompiledExecutionParityTests

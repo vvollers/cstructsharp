@@ -2,6 +2,7 @@ namespace CStructSharpTests;
 
 using System.Collections.Generic;
 using CStructSharp;
+using CStructSharp.Codecs;
 
 /// <summary>Compile-time codec identity (E1.5) must agree with the primitive registry vocabulary and the layout byte order.</summary>
 [TestClass]

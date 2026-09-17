@@ -1,5 +1,8 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Diagnostics;
+using CStructSharp.Writing;
+
 /// <summary>
 ///     Exercises <see cref="WriteValueMaterialization"/> directly, independent of a real write operation. Only
 ///     reachable indirectly through the public API before this type was extracted from the God-Object <c>CStruct</c>

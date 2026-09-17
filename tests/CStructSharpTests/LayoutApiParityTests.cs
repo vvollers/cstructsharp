@@ -1,6 +1,10 @@
 namespace CStructSharp.Tests;
 
 using System.Numerics;
+using CStructSharp.Codecs;
+using CStructSharp.Diagnostics;
+using CStructSharp.Introspection;
+using CStructSharp.Values;
 
 /// <summary>
 ///     The API surface added for dissect parity: roots named by a type spelling, custom codecs, preludes, sibling

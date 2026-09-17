@@ -2,6 +2,8 @@ namespace CStructSharpTests;
 
 using System.Linq;
 using CStructSharp;
+using CStructSharp.Addressing;
+using CStructSharp.Diagnostics;
 
 /// <summary>Verifies the complete lexical grammar shared by every public path-based operation.</summary>
 [TestClass]

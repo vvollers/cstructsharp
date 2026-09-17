@@ -28,11 +28,15 @@ Constructing [`CStruct`](xref:CStructSharp.CStruct) has four stages:
    available.
 
 An expected failure during these stages becomes
-[`CStructLayoutException`](xref:CStructSharp.CStructLayoutException). No stream or payload has been accepted yet, so
+[`CStructLayoutException`](xref:CStructSharp.Diagnostics.CStructLayoutException). No stream or payload has been accepted yet, so
 an invalid layout cannot partially read or write binary data.
 
 Parsed syntax objects help with diagnostics, but operations use the prepared model. This prevents the size, address,
 debug, read, and write paths from each interpreting the source in a different way.
+
+The source tree mirrors these stages: each folder under `src/CStructSharp` is a namespace (`Parsing`, `Syntax`,
+`Expressions`, `Compilation`, `Codecs`, `Streams`, `Addressing`, `Reading`, `Writing`, `Values`, `Introspection`,
+`Diagnostics`, `Memory`), and `src/CStructSharp/README.md` maps each folder to its role.
 
 ## What happens during an operation
 

@@ -3,6 +3,9 @@ namespace CStructSharp.Docs.Examples;
 using System.Collections.Generic;
 using System.Numerics;
 using global::CStructSharp;
+using global::CStructSharp.Codecs;
+using global::CStructSharp.Introspection;
+using global::CStructSharp.Values;
 
 internal static partial class Program
 {

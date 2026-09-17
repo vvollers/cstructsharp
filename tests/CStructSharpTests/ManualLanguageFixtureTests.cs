@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using CStructSharp.Diagnostics;
 
 /// <summary>Executes every valid/invalid pair published by the Portable language manual.</summary>
 [TestClass]

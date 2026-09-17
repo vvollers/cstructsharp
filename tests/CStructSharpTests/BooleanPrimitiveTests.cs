@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System;
 using System.IO;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Verifies the boolean primitive codec (LANG-04 bool split-out): any nonzero byte reads as true, zero reads as

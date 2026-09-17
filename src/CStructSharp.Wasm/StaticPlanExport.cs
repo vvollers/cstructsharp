@@ -7,7 +7,11 @@ using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
 using System.Text;
 using CStructSharp;
-using CStructSharp.Structure;
+using CStructSharp.Codecs;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Reading;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     E3.9: describes a fully fixed root composite (its static read plan, E2.5) as JSON so the JavaScript side can
@@ -145,7 +149,7 @@ public partial class CStructExports
     /// <summary>The enum's name and its members as the values the projection writes (safe integers as numbers, larger ones as decimal strings), first member per raw bits.</summary>
     private static void AppendEnum(StringBuilder builder, CompiledField field, CStruct cstruct)
     {
-        var declaration = (CStructSharp.Structure.Enum)field.Type.Symbol.Declaration!;
+        var declaration = (CStructSharp.Syntax.Enum)field.Type.Symbol.Declaration!;
         CompiledEnumType compiled = cstruct.GetCompiledEnumForInterop(declaration);
         builder.Append(",\"enum\":");
         AppendString(builder, declaration.Name.Name);

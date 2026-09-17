@@ -4,10 +4,15 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Numerics;
-using CStructSharp.Structure;
-using CstructEnum = CStructSharp.Structure.Enum;
+using CStructSharp.Codecs;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Reading;
+using CStructSharp.Streams;
+using CStructSharp.Values;
+using CStructSharp.Writing;
+using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>
 ///     Static write plan (E2.10): a fully fixed composite is encoded into one block of its exact size - member

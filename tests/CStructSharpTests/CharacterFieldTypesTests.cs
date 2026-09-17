@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
-using CStructSharp.Structure;
+using CStructSharp.Codecs;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     Exercises <see cref="CharacterFieldTypes"/> directly, independent of a compiled <see cref="CStruct"/> layout.

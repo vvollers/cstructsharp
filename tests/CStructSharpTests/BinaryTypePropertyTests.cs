@@ -3,6 +3,7 @@ namespace CStructSharpTests;
 using System.Numerics;
 using System.Text;
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Uses bounded exhaustive and deterministic generated cases to check codec edge conditions.</summary>
 [TestClass]

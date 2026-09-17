@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Syntax;
+using CStructSharp.Values;
 
 /// <summary>
 ///     Inline unions inside structs (named and anonymous), inline structs inside unions, and the promotion of an

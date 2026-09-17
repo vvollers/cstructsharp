@@ -1,6 +1,8 @@
 namespace CStructSharp;
 
-using CStructSharp.Structure;
+using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
+using CStructSharp.Syntax;
 
 /// <summary>Keeps parser-expression fixtures behind the test assembly's internal-access boundary.</summary>
 internal static class CStructExpressionTestExtensions

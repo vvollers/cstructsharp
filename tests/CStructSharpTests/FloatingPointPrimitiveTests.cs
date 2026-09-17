@@ -2,6 +2,7 @@ namespace CStructSharp.Tests;
 
 using System;
 using System.IO;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Verifies the floating-point primitive codecs (LANG-04, ADR-015): <c>float32</c>/<c>float64</c> (with

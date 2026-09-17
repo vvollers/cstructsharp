@@ -3,6 +3,8 @@ namespace CStructSharp.Tests.Dissect;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using CStructSharp.Codecs;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Opt-in progress meter for dissect.cstruct parity: compiles every definition string extracted from the dissect

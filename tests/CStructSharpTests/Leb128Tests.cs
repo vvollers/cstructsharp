@@ -1,6 +1,7 @@
 namespace CStructSharpTests;
 
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>Checks dynamic integer values and exact encoded extents.</summary>
 [TestClass]

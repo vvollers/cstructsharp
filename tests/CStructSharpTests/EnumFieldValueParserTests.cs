@@ -2,6 +2,10 @@ namespace CStructSharp.Tests;
 
 using System.Dynamic;
 using System.Numerics;
+using CStructSharp.Codecs;
+using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>
 ///     Exercises <see cref="EnumFieldValueParser"/> directly against a real compiled enum descriptor. Only reachable
@@ -11,12 +15,12 @@ using System.Numerics;
 [TestClass]
 public class EnumFieldValueParserTests
 {
-    private static (CompiledEnumType Compiled, CStructSharp.Structure.Enum Declaration) CompileMode()
+    private static (CompiledEnumType Compiled, CStructSharp.Syntax.Enum Declaration) CompileMode()
     {
         var cstruct = new CStruct("enum mode : uint8 { One=1, Two=2 };", pointerSize: 1);
         CompiledLayoutModel model = cstruct.CompiledModel;
         var compiled = (CompiledEnumType)model.Symbols["mode"].Symbol.Definition!;
-        var declaration = (CStructSharp.Structure.Enum)model.Declarations["mode"];
+        var declaration = (CStructSharp.Syntax.Enum)model.Declarations["mode"];
         return (compiled, declaration);
     }
 
@@ -24,7 +28,7 @@ public class EnumFieldValueParserTests
     [TestMethod]
     public void GetEnumValue_MemberNameString_ResolvesToMemberValue()
     {
-        (CompiledEnumType compiled, CStructSharp.Structure.Enum enm) = CompileMode();
+        (CompiledEnumType compiled, CStructSharp.Syntax.Enum enm) = CompileMode();
 
         BigInteger result = EnumFieldValueParser.GetEnumValue(compiled, enm, "Two", PocoBindingMode.PublicReadable);
 
@@ -35,7 +39,7 @@ public class EnumFieldValueParserTests
     [TestMethod]
     public void GetEnumValue_InvariantDecimalString_ParsesAsInteger()
     {
-        (CompiledEnumType compiled, CStructSharp.Structure.Enum enm) = CompileMode();
+        (CompiledEnumType compiled, CStructSharp.Syntax.Enum enm) = CompileMode();
 
         BigInteger result = EnumFieldValueParser.GetEnumValue(compiled, enm, "5", PocoBindingMode.PublicReadable);
 
@@ -46,7 +50,7 @@ public class EnumFieldValueParserTests
     [TestMethod]
     public void GetEnumValue_UnparsableString_Throws()
     {
-        (CompiledEnumType compiled, CStructSharp.Structure.Enum enm) = CompileMode();
+        (CompiledEnumType compiled, CStructSharp.Syntax.Enum enm) = CompileMode();
 
         Assert.Throws<CStructWriteException>(
             () => EnumFieldValueParser.GetEnumValue(compiled, enm, "NotAMember", PocoBindingMode.PublicReadable));
@@ -56,7 +60,7 @@ public class EnumFieldValueParserTests
     [TestMethod]
     public void GetEnumValue_IntegralValue_ConvertsDirectly()
     {
-        (CompiledEnumType compiled, CStructSharp.Structure.Enum enm) = CompileMode();
+        (CompiledEnumType compiled, CStructSharp.Syntax.Enum enm) = CompileMode();
 
         BigInteger result = EnumFieldValueParser.GetEnumValue(compiled, enm, 1, PocoBindingMode.PublicReadable);
 
@@ -67,7 +71,7 @@ public class EnumFieldValueParserTests
     [TestMethod]
     public void GetEnumValue_OutOfRangeValue_Throws()
     {
-        (CompiledEnumType compiled, CStructSharp.Structure.Enum enm) = CompileMode();
+        (CompiledEnumType compiled, CStructSharp.Syntax.Enum enm) = CompileMode();
 
         Assert.Throws<CStructWriteException>(
             () => EnumFieldValueParser.GetEnumValue(compiled, enm, 1000, PocoBindingMode.PublicReadable));
@@ -90,7 +94,7 @@ public class EnumFieldValueParserTests
     [TestMethod]
     public void GetEnumValue_MatchingEnumValueResult_ReturnsItsValue()
     {
-        (CompiledEnumType compiled, CStructSharp.Structure.Enum enm) = CompileMode();
+        (CompiledEnumType compiled, CStructSharp.Syntax.Enum enm) = CompileMode();
         EnumValueResult parsed = CreateParsedValue(compiled, enm.Name.Name, "Two", 2);
 
         BigInteger result = EnumFieldValueParser.GetEnumValue(compiled, enm, parsed, PocoBindingMode.PublicReadable);
@@ -102,7 +106,7 @@ public class EnumFieldValueParserTests
     [TestMethod]
     public void GetEnumValue_EnumValueResultForDifferentEnum_Throws()
     {
-        (CompiledEnumType compiled, CStructSharp.Structure.Enum enm) = CompileMode();
+        (CompiledEnumType compiled, CStructSharp.Syntax.Enum enm) = CompileMode();
         EnumValueResult parsed = CreateParsedValue(compiled, "other_enum", "Two", 2);
 
         Assert.Throws<CStructWriteException>(
@@ -113,7 +117,7 @@ public class EnumFieldValueParserTests
     [TestMethod]
     public void GetEnumValue_ObjectShapeWithName_ResolvesToMemberValue()
     {
-        (CompiledEnumType compiled, CStructSharp.Structure.Enum enm) = CompileMode();
+        (CompiledEnumType compiled, CStructSharp.Syntax.Enum enm) = CompileMode();
         dynamic shape = new ExpandoObject();
         shape.Name = "One";
 
@@ -126,7 +130,7 @@ public class EnumFieldValueParserTests
     [TestMethod]
     public void GetEnumValue_ObjectShapeWithValue_ResolvesToNumericValue()
     {
-        (CompiledEnumType compiled, CStructSharp.Structure.Enum enm) = CompileMode();
+        (CompiledEnumType compiled, CStructSharp.Syntax.Enum enm) = CompileMode();
         dynamic shape = new ExpandoObject();
         shape.Value = 2;
 
@@ -139,7 +143,7 @@ public class EnumFieldValueParserTests
     [TestMethod]
     public void GetEnumValue_ObjectShapeWithContradictoryMetadata_Throws()
     {
-        (CompiledEnumType compiled, CStructSharp.Structure.Enum enm) = CompileMode();
+        (CompiledEnumType compiled, CStructSharp.Syntax.Enum enm) = CompileMode();
         dynamic shape = new ExpandoObject();
         shape.Name = "One";
         shape.Value = 2;
@@ -152,7 +156,7 @@ public class EnumFieldValueParserTests
     [TestMethod]
     public void GetEnumValue_ObjectShapeWithNeitherNameNorValue_Throws()
     {
-        (CompiledEnumType compiled, CStructSharp.Structure.Enum enm) = CompileMode();
+        (CompiledEnumType compiled, CStructSharp.Syntax.Enum enm) = CompileMode();
         dynamic shape = new ExpandoObject();
 
         Assert.Throws<CStructWriteException>(

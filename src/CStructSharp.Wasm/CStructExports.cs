@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
 using CStructSharp;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Exposes CStructSharp read, write, and debug operations to the browser.

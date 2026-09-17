@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
-using System.Dynamic;
+using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Verifies that only explicitly capable scalar integral codecs can back portable bitfields.</summary>
 [TestClass]
