@@ -218,6 +218,9 @@ A `#define` is one object-like integer expression; there are no parameters or te
 spelling is recognized only so construction can reject it explicitly. It is not a supported `primary`, and it never
 executes user code.
 
+Whitespace between a directive and its name includes .NET whitespace characters such as a non-breaking space.
+Carriage return and line feed end the directive: a name cannot start on the next physical line.
+
 ## Public path EBNF
 
 ```ebnf

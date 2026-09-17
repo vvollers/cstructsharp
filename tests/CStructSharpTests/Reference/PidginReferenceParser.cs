@@ -475,9 +475,12 @@ internal static class PidginReferenceParser
                     Expr? declaratorOffsetAssertion)
                 {
                     IReadOnlyList<Expr> arrayCount = BuildArrayCount(declaratorArray);
+
+                    // `_` names a reserved/padding field that is read and skipped, so the production parser treats it
+                    // as unnamed; the reference must agree or every mutation that renames a field to `_` mismatches.
                     return new Field(
                         typeIdentifier,
-                        name ?? new Identifier(string.Empty),
+                        name is null or { Name: "_", } ? new Identifier(string.Empty) : name,
                         arrayCount,
                         declaratorBitSize.HasValue ? declaratorBitSize.Value : NoneExpr.Instance,
                         pointerDepth,

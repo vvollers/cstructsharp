@@ -9,6 +9,16 @@ using System.Numerics;
 [TestClass]
 public class PreprocessorTests
 {
+    /// <summary>Directive trivia matches ordinary Unicode whitespace without consuming a significant physical line ending.</summary>
+    [TestMethod]
+    public void Directives_AcceptNonBreakingSpaceWithoutCrossingLines()
+    {
+        var layout = new CStruct("#define\u00a0COUNT\u00a02\nstruct root { uint8 data[COUNT]; };");
+        Assert.AreEqual(2, layout.GetStructSizeInBytes("root"));
+        Assert.Throws<CStructLayoutException>(() => new CStruct("#define\nCOUNT 2\nstruct root { uint8 data; };"));
+        Assert.Throws<CStructLayoutException>(() => new CStruct("#define\rCOUNT 2\nstruct root { uint8 data; };"));
+    }
+
     /// <summary>Text, byte, bare, and macro defines are published as constants and never enter layout expressions.</summary>
     [TestMethod]
     public void Defines_PublishEveryConstantKind()

@@ -1123,13 +1123,13 @@ internal sealed class LayoutParser
         return new Identifier(this.source[nameStart..this.position]);
     }
 
-    /// <summary>Skips spaces, tabs, block comments, and continuations, but not a line end - used where a line end is significant.</summary>
+    /// <summary>Skips non-line-ending whitespace, block comments, and continuations where a line end is significant.</summary>
     private void SkipInlineTrivia()
     {
         while (!this.AtEnd)
         {
             char current = this.source[this.position];
-            if (current is ' ' or '\t')
+            if (current is not ('\r' or '\n') && char.IsWhiteSpace(current))
             {
                 this.position++;
             }
@@ -1898,7 +1898,7 @@ internal sealed class LayoutParser
             this.SkipTrivia();
         }
 
-        operand:
+operand:
         Expr expression = this.ParsePostfix();
         if (operators is not null)
         {

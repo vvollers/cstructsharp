@@ -612,9 +612,12 @@ public class ParserDifferentialTests
 
     /// <summary>
     ///     True when the candidate's syntax diagnostic points at the line after a <c>#define</c> directive: the
-    ///     reference read that line as the macro's value (<c>#define COUNT\n 2</c>, <c>#define AB// c\nC == 1</c>),
+    ///     reference read that line as the macro's name or value (<c>#define\n COUNT 2</c>, <c>#define COUNT\n 2</c>),
     ///     the line-scoped parser did not.
     /// </summary>
+    /// <param name="source">The exact mutated source being compared.</param>
+    /// <param name="candidateError">The candidate's syntax diagnostic, or null when accepted.</param>
+    /// <returns>Whether the mismatch is specifically the documented physical directive-line boundary.</returns>
     private static bool RejectsLineAfterDefine(string source, string? candidateError)
     {
         if (candidateError is null)
@@ -622,7 +625,7 @@ public class ParserDifferentialTests
             return false;
         }
 
-        Match position = Regex.Match(candidateError, @" at line (?<line>\d+), column \d+");
+        Match position = Regex.Match(candidateError, @" at line (?<line>\d+), column (?<column>\d+)");
         if (!position.Success)
         {
             return false;
@@ -630,6 +633,25 @@ public class ParserDifferentialTests
 
         string[] lines = source.Split('\n');
         int errorLine = int.Parse(position.Groups["line"].Value, CultureInfo.InvariantCulture) - 1;
+        if (errorLine >= 0 && errorLine < lines.Length)
+        {
+            // Diagnostics count LF lines, but a standalone CR also ends a physical directive.
+            int column = int.Parse(position.Groups["column"].Value, CultureInfo.InvariantCulture) - 1;
+            string prefix = lines[errorLine][..Math.Min(column, lines[errorLine].Length)];
+            int carriageReturn = prefix.LastIndexOf('\r');
+            if (carriageReturn >= 0 && Regex.IsMatch(prefix[..carriageReturn], @"(?:^|\r)[^\S\r\n]*#\s*define\b[^\r\n]*(?:\r[^\S\r\n]*)*$"))
+            {
+                return true;
+            }
+        }
+
+        if (candidateError.EndsWith("expected an identifier on the #define line.", StringComparison.Ordinal) &&
+            errorLine >= 0 && errorLine < lines.Length &&
+            Regex.IsMatch(lines[errorLine], @"^\s*#define[^\S\r\n]*(?:\r|$)"))
+        {
+            return true;
+        }
+
         for (int line = Math.Min(errorLine, lines.Length) - 1; line >= 0; line--)
         {
             if (lines[line].Trim().Length == 0)

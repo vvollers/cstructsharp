@@ -6,6 +6,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- Fix directive whitespace handling so non-breaking spaces after `#define` agree with ordinary layout whitespace;
+  physical CR/LF line boundaries remain significant.
 - Language: the C, C99, Windows SDK, Linux kernel, IDA, and dissect primitive spellings (`DWORD`, `BYTE`, `WCHAR`,
   `__u32`, `u8`, `wchar_t`, `unsigned __int64`, `uleb128`, ...) are built in and resolve to their canonical codecs
   at construction time; a compiled field never sees the alias, so nothing changes at read or write time. Aliases of
