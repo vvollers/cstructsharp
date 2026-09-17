@@ -6,7 +6,9 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using CStructSharp;
+using CStructSharp.Diagnostics;
 using CStructSharp.PackageConsumer;
+using CStructSharp.Values;
 
 const string Definition = "struct root { uint8 marker; uint16 value; uint8 *target; };";
 byte[] input = [0xA5, 0x34, 0x12, 0x04, 0x7E,];
