@@ -89,22 +89,20 @@ test("settings popup updates the summary, applies options, and resets with the l
   await expect(settings).toBeFocused();
 });
 
-test("the byte-limit lesson explains rereads and recovers at the documented budget", async ({
-  page,
-}) => {
+test("the byte-limit lesson recovers at the documented budget", async ({ page }) => {
   await page.goto("/#lesson=limits");
   await expect(page.locator(".status-badge")).toContainText("Ready", { timeout: 60_000 });
-  await expect(page.locator(".example-explanation")).toContainText("increase Total bytes to 12");
+  await expect(page.locator(".example-explanation")).toContainText("increase Total bytes to 6");
   const run = page.getByRole("button", { name: "Run parse", exact: true });
   await run.click();
   await expect(page.locator(".result-panel")).toContainText("read-budget");
-  for (const budget of [6, 11, 12]) {
+  for (const budget of [4, 5, 6]) {
     await page.getByRole("button", { name: "Workbench settings", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Workbench settings" });
     await dialog.locator("#max-total").fill(String(budget));
     await dialog.getByRole("button", { name: "Done", exact: true }).click();
     await run.click();
-    if (budget < 12) {
+    if (budget < 6) {
       await expect(page.locator(".result-panel")).toContainText("read-budget");
     } else {
       await expect(page.getByTestId("parsed-json").locator(".view-lines")).toContainText(
@@ -154,7 +152,7 @@ test("conditional lesson exercises produce the documented changes", async ({ pag
   expect(tagItems.slice(1)).toEqual(parameterItems.slice(1));
   expect(results[2].Data.root.items).toEqual([{ tag: 1, count: 1, payload: [42] }, { tag: 0 }]);
   expect(results[3].Success).toBe(false);
-  expect(results[3].Error.Code).toBe("invalid-layout");
+  expect(results[3].Error.Code).toBe("read-failed");
 });
 
 test("each lesson fixes its operation and runs its starting inputs", async ({ page }) => {

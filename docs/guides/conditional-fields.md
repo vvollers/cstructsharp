@@ -116,8 +116,9 @@ struct root { entry items[2]; };
 Try the [unavailable-local lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=conditional-scope).
 With bytes `01 01 2a 00`, the first item has `count = 1` and payload 42.
 The second item has `tag = 0`, so it never reads `count`. Its second condition
-raises a layout error. It cannot borrow the first item's count, even if the caller
-also supplied a variable named `count`.
+fails the read (`read-failed` in the browser, `CStructReadException` in C#): the
+layout is valid, but this item's data leaves `count` undefined. It cannot borrow
+the first item's count, even if the caller also supplied a variable named `count`.
 The browser lesson also defines `count` as 99 before the struct; that definition
 cannot replace the unavailable local either. The C# example checks a caller override too.
 

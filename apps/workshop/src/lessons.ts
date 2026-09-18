@@ -377,9 +377,9 @@ const lessonTopics: Lesson[] = [
       summary:
         "This lesson intentionally allows only three bytes of reading, although the input contains six.",
       prerequisite: "Understand field widths and the missing-bytes lesson.",
-      exercise: "Open Workbench settings and increase Total bytes to 12 under Safety limits.",
+      exercise: "Open Workbench settings and increase Total bytes to 6 under Safety limits.",
       answer:
-        "The workbench reads six bytes to parse the header and rereads those six bytes for its debug view. A budget of 12 lets it finish with kind 2 and length 6.",
+        "The header occupies six bytes, and a debug read spends exactly the same budget as a plain read: its records carry byte ranges, not copies. A budget of 6 lets it finish with kind 2 and length 6; 5 still fails.",
       guide: "guides/variables-options-and-limits.html",
       options: { maxTotalBytesRead: 3 },
       operations: { parse: { expected: { error: "read-budget" } } },
@@ -673,7 +673,7 @@ const lessonTopics: Lesson[] = [
       answer:
         "The second item has tag 0. Short-circuit evaluation skips count, so parsing succeeds. The first item contains count 1 and payload [42]; the second contains only tag 0.",
       guide: "guides/conditional-fields.html",
-      operations: { parse: { expected: { error: "invalid-layout" } } },
+      operations: { parse: { expected: { error: "read-failed" } } },
     },
   ),
   lesson(
@@ -691,7 +691,7 @@ const lessonTopics: Lesson[] = [
       prerequisite: "Understand if/else and unavailable local values.",
       exercise: "Change the first byte from 00 to 01, then run again.",
       answer:
-        "The outer branch becomes active. The inner condition now evaluates missing and reports a layout error. Reset restores the successful parse with tail 9.",
+        "The outer branch becomes active. The inner condition now evaluates missing and the read fails because that name has no value. Reset restores the successful parse with tail 9.",
       guide: "guides/conditional-fields.html",
       operations: { parse: { expected: { data: { root: { tag: 0, tail: 9 } } } } },
     },
@@ -938,7 +938,7 @@ const readExplanations: Record<string, string> = {
   pointer:
     "The first byte stores pointer address 1, and the byte at that position contains 42. The result includes the address and the value read there. Turning off Follow pointers in Workbench settings keeps the address but leaves the target unread; this is a position in the input, not a process memory address. For unsigned virtual addresses and mapped images, the managed CStructSharp.Memory APIs use StoredPointer and explicit .value traversal; those sources are not exposed by this browser lesson.",
   limits:
-    "This read fails because its total-byte limit is 3. The header contains six bytes, but the workbench reads them twice: once to parse the fields and once to collect their bytes for the debug view. Total bytes counts every read, including rereads, so 6 is still too small. Open Workbench settings and increase Total bytes to 12 under Safety limits, then run again to get kind 2 and length 6. A plain parse without debug data needs only 6 for this header.",
+    "This read fails because its total-byte limit is 3. The header contains six bytes, and Total bytes counts every byte the parser reads, so the budget must be at least 6. Open Workbench settings and increase Total bytes to 6 under Safety limits, then run again to get kind 2 and length 6. Layouts with unions, pointers, or selected fields can read some bytes more than once, so the input size is a lower bound, not always the exact cost.",
   "large-integer":
     "Eight FF bytes represent the largest uint64 value, 18446744073709551615. The browser returns it as a decimal string because JavaScript Number cannot represent it exactly. Keep it as a string or convert it to BigInt to preserve all digits.",
 };
