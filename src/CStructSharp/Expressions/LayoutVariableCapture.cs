@@ -8,7 +8,7 @@ using CStructSharp.Syntax;
 /// <summary>
 ///     The one rule for turning a decoded or supplied scalar into a layout variable: a value inside the Int32
 ///     expression domain becomes an ordinary literal, an integer outside it becomes an exact literal that fails with
-///     a precise message the moment an expression uses it, and anything else (NaN, text, objects) removes the stale
+///     a precise message the moment an expression uses it (<see cref="WideValueVariable"/>), and anything else (NaN, text, objects) removes the stale
 ///     entry so a caller or definition value cannot masquerade as the field's data.
 /// </summary>
 internal static class LayoutVariableCapture
@@ -39,16 +39,8 @@ internal static class LayoutVariableCapture
             return new Literal(captured);
         }
 
-        BigInteger? exact = value switch
-        {
-            uint u => u,
-            long l => l,
-            ulong ul => ul,
-            Int128 i => (BigInteger)i,
-            UInt128 u => (BigInteger)u,
-            BigInteger big => big,
-            _ => null,
-        };
-        return exact is { } wide ? new Literal(wide) : null;
+        return value is uint or long or ulong or Int128 or UInt128 or BigInteger
+                   ? new WideValueVariable(value)
+                   : null;
     }
 }

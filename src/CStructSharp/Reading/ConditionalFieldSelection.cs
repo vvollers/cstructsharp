@@ -13,6 +13,7 @@ internal sealed class ConditionalFieldSelection
     private readonly ExpressionFailureDomain domain;
     private readonly int[] selectedArms;
 
+    /// <summary>Creates the per-operation selection state for one composite.</summary>
     /// <param name="evaluator">The layout's expression evaluator.</param>
     /// <param name="groupCount">The number of conditional groups directly inside the composite.</param>
     /// <param name="domain">Which operation evaluates the selectors, so a selector that cannot be evaluated fails as that operation.</param>
