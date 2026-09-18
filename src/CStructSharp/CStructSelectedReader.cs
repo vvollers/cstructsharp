@@ -116,7 +116,7 @@ public partial class CStruct
             }
         }
 
-        var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned);
+        var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned, this.BitfieldPacking, this.highBitFirst);
         var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
         var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) : null;
 

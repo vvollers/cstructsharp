@@ -28,13 +28,14 @@ internal class Field : CStructElement
         int pointerDepth = -1,
         string? typeKeywordHint = null,
         Expr? alignmentOverrideExpression = null,
-        Expr? offsetAssertionExpression = null)
+        Expr? offsetAssertionExpression = null,
+        bool hasBitfieldDeclarator = false)
     {
         this.Type = type;
         this.Name = name;
         this.ArrayCount = arraycount;
         this.bitSize = bitSize;
-        this.BitSizeExpression = bitSize == 0 ? NoneExpr.Instance : new Literal(bitSize);
+        this.BitSizeExpression = bitSize == 0 && !hasBitfieldDeclarator ? NoneExpr.Instance : new Literal(bitSize);
         int derivedPointerDepth = type.PointerDepth + name.PointerDepth;
         this.PointerDepth = pointerDepth >= 0 ? pointerDepth : derivedPointerDepth;
         this.IsPointer = this.PointerDepth > 0;
@@ -88,14 +89,17 @@ internal class Field : CStructElement
             }
 
             int value = global::CStructSharp.Expressions.ExpressionEvaluator.Default.Evaluate(this.BitSizeExpression);
-            if (value <= 0)
+            if (value < 0)
             {
-                throw new InvalidOperationException("Bitfield width must be greater than zero.");
+                throw new InvalidOperationException("Bitfield width cannot be negative.");
             }
 
             return value;
         }
     }
+
+    /// <summary>Whether the declarator carried a <c>: width</c>; a zero width with no name is a storage-unit separator.</summary>
+    internal bool HasBitfieldDeclarator => !ReferenceEquals(this.BitSizeExpression, NoneExpr.Instance);
 
     internal Expr BitSizeExpression { get; }
 

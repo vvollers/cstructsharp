@@ -84,6 +84,7 @@ public sealed partial class CStruct
         this.layoutInfo = new Lazy<LayoutInfo>(this.BuildLayoutInfo);
         this.constants = new Lazy<IReadOnlyDictionary<string, LayoutConstant>>(this.BuildConstants);
         this.highBitFirst = effectiveCompilationOptions.BitfieldAllocation == BitfieldAllocation.HighBitFirst;
+        this.BitfieldPacking = effectiveCompilationOptions.BitfieldPacking;
         if (!string.IsNullOrEmpty(effectiveCompilationOptions.Prelude))
         {
             ArgumentNullException.ThrowIfNull(layout);
@@ -251,6 +252,8 @@ public sealed partial class CStruct
             this.compiledSizeQueries = new CompiledSizeQueries(
                 this.compiledLayout.Composites,
                 this.Aligned,
+                this.BitfieldPacking,
+                this.highBitFirst,
                 this.layoutExpressionEvaluator);
             foreach (KeyValuePair<string, CStructElement> declaration in this.CStructElements)
             {
@@ -306,6 +309,9 @@ public sealed partial class CStruct
     /// </summary>
     /// <exception cref="CStructLayoutException">The layout declares no struct or union.</exception>
     public string DefaultRoot => this.compiledModelQueries.GetFirstCompiledStructName();
+
+    /// <summary>Which compiler family's rule places adjacent bitfields (<see cref="CStructCompilationOptions.BitfieldPacking"/>).</summary>
+    internal BitfieldPacking BitfieldPacking { get; }
 
     /// <summary>Gets primitive-codec and exported-type alignments without exposing anonymous or backing-tag identities.</summary>
     internal IReadOnlyDictionary<string, byte> FieldAlignments => this.fieldAlignments;
@@ -704,10 +710,12 @@ public sealed partial class CStruct
                     field.BitSizeExpression,
                     this.staticLayoutVariables,
                     "bitfield width for " + field.Name.Name);
-                if (bitSize <= 0)
+                if (bitSize < 0 || (bitSize == 0 && field.Name.Name.Length > 0))
                 {
                     throw new CStructLayoutException(
-                        "Bitfield width must be greater than zero: " + field.Name.Name);
+                        bitSize < 0
+                            ? "Bitfield width cannot be negative: " + field.Name.Name
+                            : "Bitfield width must be greater than zero (only an unnamed ': 0' separator may be zero): " + field.Name.Name);
                 }
             }
 
@@ -736,7 +744,8 @@ public sealed partial class CStruct
                     field.PointerDepth,
                     field.TypeKeywordHint,
                     field.AlignmentOverrideExpression,
-                    field.OffsetAssertionExpression)
+                    field.OffsetAssertionExpression,
+                    field.HasBitfieldDeclarator)
                 {
                     Condition = NormalizeCaseConstants(field.Condition, caseConstants),
                     BranchConditions = field.BranchConditions.Count == 0 ? Array.Empty<ConditionalBranch>() : field.BranchConditions.Select(item =>

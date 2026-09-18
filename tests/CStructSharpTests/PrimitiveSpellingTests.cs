@@ -92,14 +92,19 @@ public class PrimitiveSpellingTests
     {
         const string source = "enum mode : unsigned long { A = 1 }; struct root { long low : 4; long high : 4; mode m; };";
         var narrow = new CStruct(source, compilationOptions: new CStructCompilationOptions { CLongWidth = 32, });
-        Assert.AreEqual(8, narrow.GetStructSizeInBytes("root"));
-        Assert.AreEqual(16, new CStruct(source).GetStructSizeInBytes("root"));
+
+        // Packed SysV placement keeps only the byte the eight bits need before the enum: 1 + 4 with a 32-bit long,
+        // 1 + 8 with a 64-bit one; aligned placement pads the enum to its own width.
+        Assert.AreEqual(5, narrow.GetStructSizeInBytes("root"));
+        Assert.AreEqual(9, new CStruct(source).GetStructSizeInBytes("root"));
+        Assert.AreEqual(8, new CStruct(source, aligned: true, compilationOptions: new CStructCompilationOptions { CLongWidth = 32, }).GetStructSizeInBytes("root"));
+        Assert.AreEqual(16, new CStruct(source, aligned: true).GetStructSizeInBytes("root"));
 
         CStruct cachedWide = CStruct.GetOrCompile(source);
         CStruct cachedNarrow = CStruct.GetOrCompile(source, compilationOptions: new CStructCompilationOptions { CLongWidth = 32, });
         Assert.AreNotSame(cachedWide, cachedNarrow);
-        Assert.AreEqual(16, cachedWide.GetStructSizeInBytes("root"));
-        Assert.AreEqual(8, cachedNarrow.GetStructSizeInBytes("root"));
+        Assert.AreEqual(9, cachedWide.GetStructSizeInBytes("root"));
+        Assert.AreEqual(5, cachedNarrow.GetStructSizeInBytes("root"));
     }
 
     /// <summary>A 32-bit <c>long</c> layout goes through every operation with 4-byte storage.</summary>
@@ -163,14 +168,23 @@ public class PrimitiveSpellingTests
     [TestMethod]
     public void BitfieldStorage_AcceptsAliasesAndTypedefs()
     {
+        // Packed SysV placement: eleven contiguous bits in two bytes (GCC -fpack-struct gives 21 05).
         var layout = new CStruct("typedef uint16 my_u16; struct root { DWORD a : 4; unsigned int b : 4; my_u16 c : 3; };");
 
-        // `DWORD` and `unsigned int` are the same codec, so they share one 4-byte unit; the typedef starts a 2-byte one.
-        Assert.AreEqual(6, layout.GetStructSizeInBytes("root"));
-        dynamic value = layout.Parse(new byte[] { 0x21, 0, 0, 0, 0x05, 0, }.AsSpan(), "root");
+        Assert.AreEqual(2, layout.GetStructSizeInBytes("root"));
+        dynamic value = layout.Parse(new byte[] { 0x21, 0x05, }.AsSpan(), "root");
         Assert.AreEqual(1, (int)value.a);
         Assert.AreEqual(2, (int)value.b);
         Assert.AreEqual(5, (int)value.c);
+
+        // MSVC packing: `DWORD` and `unsigned int` are the same size, so they share one 4-byte unit; the 2-byte typedef
+        // starts another.
+        var msvc = new CStruct("typedef uint16 my_u16; struct root { DWORD a : 4; unsigned int b : 4; my_u16 c : 3; };", compilationOptions: new CStructCompilationOptions { BitfieldPacking = BitfieldPacking.Msvc, });
+        Assert.AreEqual(6, msvc.GetStructSizeInBytes("root"));
+        dynamic msvcValue = msvc.Parse(new byte[] { 0x21, 0, 0, 0, 0x05, 0, }.AsSpan(), "root");
+        Assert.AreEqual(1, (int)msvcValue.a);
+        Assert.AreEqual(2, (int)msvcValue.b);
+        Assert.AreEqual(5, (int)msvcValue.c);
     }
 
     /// <summary><c>size_t</c> and its relatives are as wide as the layout's pointer size, and a layout may redeclare them.</summary>

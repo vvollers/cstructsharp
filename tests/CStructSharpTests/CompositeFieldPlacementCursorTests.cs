@@ -31,10 +31,10 @@ public class CompositeFieldPlacementCursorTests
     {
         CompiledCompositeType composite = CompileRoot("struct root { uint8 a; uint32 b; uint8 c; };", aligned: true);
 
-        var cursor = new CompositeFieldPlacementCursor(0, aligned: true);
+        var cursor = new CompositeFieldPlacementCursor(0, aligned: true, BitfieldPacking.SysV);
         foreach (CompiledField field in composite.Fields)
         {
-            (long fieldStart, int bitOffset) = cursor.AdvanceToField(field);
+            (long fieldStart, int bitOffset, _) = cursor.AdvanceToField(field);
 
             Assert.AreEqual((long)field.FixedOffset!.Value, fieldStart);
             Assert.AreEqual(field.BitOffset, bitOffset);
@@ -49,10 +49,10 @@ public class CompositeFieldPlacementCursorTests
     {
         CompiledCompositeType composite = CompileRoot("struct root { uint8 a; uint32 b; uint8 c; };", aligned: false);
 
-        var cursor = new CompositeFieldPlacementCursor(0, aligned: false);
+        var cursor = new CompositeFieldPlacementCursor(0, aligned: false, BitfieldPacking.SysV);
         foreach (CompiledField field in composite.Fields)
         {
-            (long fieldStart, int bitOffset) = cursor.AdvanceToField(field);
+            (long fieldStart, int bitOffset, _) = cursor.AdvanceToField(field);
 
             Assert.AreEqual((long)field.FixedOffset!.Value, fieldStart);
             Assert.AreEqual(0, bitOffset);
@@ -72,10 +72,10 @@ public class CompositeFieldPlacementCursorTests
             "struct root { uint8 low:3; uint8 mid:3; uint8 high:3; uint8 tail; };",
             aligned: true);
 
-        var cursor = new CompositeFieldPlacementCursor(0, aligned: true);
+        var cursor = new CompositeFieldPlacementCursor(0, aligned: true, BitfieldPacking.SysV);
         foreach (CompiledField field in composite.Fields)
         {
-            (long fieldStart, int bitOffset) = cursor.AdvanceToField(field);
+            (long fieldStart, int bitOffset, _) = cursor.AdvanceToField(field);
 
             Assert.AreEqual((long)field.FixedOffset!.Value, fieldStart, field.Declaration.Name.Name);
             Assert.AreEqual(field.BitOffset, bitOffset, field.Declaration.Name.Name);
@@ -102,10 +102,10 @@ public class CompositeFieldPlacementCursorTests
     {
         CompiledCompositeType composite = CompileRoot("struct root { uint8 a; uint32 b; };", aligned: true);
 
-        var cursor = new CompositeFieldPlacementCursor(0, aligned: true);
+        var cursor = new CompositeFieldPlacementCursor(0, aligned: true, BitfieldPacking.SysV);
         foreach (CompiledField field in composite.Fields)
         {
-            (long fieldStart, _) = cursor.AdvanceToField(field);
+            (long fieldStart, _, _) = cursor.AdvanceToField(field);
             cursor.CompleteField(fieldStart + (field.FixedStorageSize ?? 0));
         }
 
@@ -124,12 +124,12 @@ public class CompositeFieldPlacementCursorTests
 
         // 8 is itself a multiple of every field's alignment (max 4), so the offset is translation-invariant here -
         // unlike an arbitrary start, which could shift where padding falls relative to the fields.
-        var cursorFromZero = new CompositeFieldPlacementCursor(0, aligned: true);
-        var cursorFromEight = new CompositeFieldPlacementCursor(8, aligned: true);
+        var cursorFromZero = new CompositeFieldPlacementCursor(0, aligned: true, BitfieldPacking.SysV);
+        var cursorFromEight = new CompositeFieldPlacementCursor(8, aligned: true, BitfieldPacking.SysV);
         foreach (CompiledField field in composite.Fields)
         {
-            (long fieldStartFromZero, _) = cursorFromZero.AdvanceToField(field);
-            (long fieldStartFromEight, _) = cursorFromEight.AdvanceToField(field);
+            (long fieldStartFromZero, _, _) = cursorFromZero.AdvanceToField(field);
+            (long fieldStartFromEight, _, _) = cursorFromEight.AdvanceToField(field);
 
             Assert.AreEqual(fieldStartFromZero + 8, fieldStartFromEight);
 

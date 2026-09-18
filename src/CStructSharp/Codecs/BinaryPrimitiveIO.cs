@@ -4,6 +4,7 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using CStructSharp.Diagnostics;
+using CStructSharp.Streams;
 
 /// <summary>Reads and writes fixed-width unsigned integers in a caller-chosen byte order.</summary>
 internal static class BinaryPrimitiveIO
@@ -297,17 +298,49 @@ internal static class BinaryPrimitiveIO
         };
     }
 
-    /// <summary>Converts one, two, four, or eight bytes into an unsigned number in the layout's byte order.</summary>
-    public static ulong ReadUnsigned(byte[] buffer, bool littleEndian)
+    /// <summary>Converts one to eight bytes into an unsigned number in the layout's byte order.</summary>
+    public static ulong ReadUnsigned(ReadOnlySpan<byte> buffer, bool littleEndian)
     {
-        return buffer.Length switch
+        switch (buffer.Length)
         {
-            1 => buffer[0],
-            2 => littleEndian ? BinaryPrimitives.ReadUInt16LittleEndian(buffer) : BinaryPrimitives.ReadUInt16BigEndian(buffer),
-            4 => littleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(buffer) : BinaryPrimitives.ReadUInt32BigEndian(buffer),
-            8 => littleEndian ? BinaryPrimitives.ReadUInt64LittleEndian(buffer) : BinaryPrimitives.ReadUInt64BigEndian(buffer),
-            _ => throw new InvalidOperationException("Unsupported integer size: " + buffer.Length),
-        };
+            case 1:
+                return buffer[0];
+            case 2:
+                return littleEndian ? BinaryPrimitives.ReadUInt16LittleEndian(buffer) : BinaryPrimitives.ReadUInt16BigEndian(buffer);
+            case 4:
+                return littleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(buffer) : BinaryPrimitives.ReadUInt32BigEndian(buffer);
+            case 8:
+                return littleEndian ? BinaryPrimitives.ReadUInt64LittleEndian(buffer) : BinaryPrimitives.ReadUInt64BigEndian(buffer);
+            case > 0 and <= 8:
+                {
+                    // A packed SysV bitfield window can be any width up to eight bytes.
+                    ulong value = 0;
+                    for (int index = 0; index < buffer.Length; index++)
+                    {
+                        int shift = littleEndian ? index * 8 : (buffer.Length - 1 - index) * 8;
+                        value |= (ulong)buffer[index] << shift;
+                    }
+
+                    return value;
+                }
+
+            default:
+                throw new InvalidOperationException("Unsupported integer size: " + buffer.Length);
+        }
+    }
+
+    /// <summary>Reads a one-to-eight-byte unsigned bitfield storage unit at the stream position, memory-backed when possible.</summary>
+    public static ulong ReadBitfieldUnit(Stream stream, int byteSize, bool littleEndian)
+    {
+        if (stream is ReadBudgetStream budget && budget.TryReadSpan(byteSize, out ReadOnlySpan<byte> direct))
+        {
+            return ReadUnsigned(direct, littleEndian);
+        }
+
+        Span<byte> buffer = stackalloc byte[8];
+        Span<byte> slice = buffer[..byteSize];
+        ReadExactlyOrThrow(stream, slice);
+        return ReadUnsigned(slice, littleEndian);
     }
 
     /// <summary>Writes a two-byte UTF-16 code unit in the requested byte order.</summary>
@@ -493,6 +526,14 @@ internal static class BinaryPrimitiveIO
             else
             {
                 BinaryPrimitives.WriteUInt64BigEndian(bytes, value);
+            }
+
+            break;
+        case > 0 and <= 8:
+            for (int index = 0; index < byteSize; index++)
+            {
+                int shift = littleEndian ? index * 8 : (byteSize - 1 - index) * 8;
+                bytes[index] = (byte)(value >> shift);
             }
 
             break;

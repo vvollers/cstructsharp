@@ -11,6 +11,11 @@ namespace CStructSharp
         LowBitFirst = 0,
         HighBitFirst = 1,
     }
+    public enum BitfieldPacking
+    {
+        SysV = 0,
+        Msvc = 1,
+    }
     public sealed class CStruct
     {
         public CStruct(string layout, byte pointerSize = 8, bool aligned = false, bool isLittleEndian = true, CStructSharp.CStructCompilationOptions? compilationOptions = null) { }
@@ -73,6 +78,7 @@ namespace CStructSharp
     {
         public CStructCompilationOptions() { }
         public CStructSharp.BitfieldAllocation BitfieldAllocation { get; init; }
+        public CStructSharp.BitfieldPacking BitfieldPacking { get; init; }
         public int CLongWidth { get; init; }
         public System.Collections.Generic.IReadOnlyList<CStructSharp.Codecs.ICustomCodec>? Codecs { get; init; }
         public string? DefaultEnumStorage { get; init; }

@@ -45,6 +45,7 @@ public static class PortableMemorySchema
             CLongWidth = layout.CompilationOptions.CLongWidth,
             DefaultEnumStorage = layout.CompilationOptions.DefaultEnumStorage,
             BitfieldAllocation = layout.CompilationOptions.BitfieldAllocation,
+            BitfieldPacking = layout.CompilationOptions.BitfieldPacking,
             MaxDefinitionLength = layout.CompilationOptions.MaxDefinitionLength,
         };
         return new MemorySchema(builder.Types.Values, layout.IsLittleEndian, options, pointerSize: layout.PointerSize);

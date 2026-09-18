@@ -74,4 +74,15 @@ public sealed class CStructCompilationOptions
     ///     or RFC diagrams. Storage-unit grouping and byte order are unaffected.
     /// </summary>
     public BitfieldAllocation BitfieldAllocation { get; init; } = BitfieldAllocation.LowBitFirst;
+
+    /// <summary>
+    ///     Gets how adjacent bitfields of different declared types share storage: <see cref="BitfieldPacking.SysV"/>
+    ///     (the default; GCC and Clang on every System V platform, and the Itanium C++ ABI) allocates bits
+    ///     contiguously and lets a field join the previous one as long as it does not cross a boundary of its own
+    ///     type's size, so <c>uint8 a:4; uint16 b:4;</c> is two bytes; <see cref="BitfieldPacking.Msvc"/> starts a
+    ///     new unit of the declared size whenever the size changes, so the same fields take four. Both are part of
+    ///     the compiled-layout cache key; <see cref="BitfieldAllocation"/> chooses bit numbering inside a unit
+    ///     independently.
+    /// </summary>
+    public BitfieldPacking BitfieldPacking { get; init; } = BitfieldPacking.SysV;
 }

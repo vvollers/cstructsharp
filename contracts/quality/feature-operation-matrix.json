@@ -2270,6 +2270,17 @@
           ]
         },
         {
+          "test": "tests/CStructSharpTests/BitfieldPackingTests.cs#SysV_MatchesGcc",
+          "operations": [
+            "parse",
+            "debug",
+            "address",
+            "serialize",
+            "update",
+            "read-value"
+          ]
+        },
+        {
           "test": "tests/CStructSharpTests/FeatureOperationMatrixTests.cs#RepresentativeFeatureCases_AgreeAcrossCoreOperations",
           "operations": [
             "read-value"

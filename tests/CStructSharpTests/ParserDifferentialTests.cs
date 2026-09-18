@@ -651,11 +651,12 @@ public class ParserDifferentialTests
             errorLine >= 0 && errorLine < lines.Length)
         {
             // The directive whose name is missing may be the line's first token or a later one on the same
-            // physical line (`#define A 1 #define\r\n B 2`); either way the reference took the name from the
-            // next line and the line-scoped parser did not.
+            // physical line (`#define A 1 #define\r\n B 2`), and a line comment may sit between the directive and
+            // the line end (`#define // c\n COUNT`); either way the reference took the name from the next line and
+            // the line-scoped parser did not.
             int column = int.Parse(position.Groups["column"].Value, CultureInfo.InvariantCulture) - 1;
             string prefix = lines[errorLine][..Math.Min(column, lines[errorLine].Length)];
-            if (Regex.IsMatch(prefix, @"#\s*define[^\S\r\n]*$"))
+            if (Regex.IsMatch(prefix, @"#\s*define[^\S\r\n]*(?://[^\r\n]*)?$"))
             {
                 return true;
             }

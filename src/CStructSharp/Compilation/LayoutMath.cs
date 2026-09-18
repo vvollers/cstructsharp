@@ -18,6 +18,18 @@ internal static class LayoutMath
         return remainder == 0 ? value : checked(value + alignment - remainder);
     }
 
+    /// <summary>Rounds a bit position up to a positive multiple (bit granularity, for bitfield cells).</summary>
+    public static long AlignUp(long value, long alignment)
+    {
+        if (alignment <= 0)
+        {
+            throw new CStructLayoutException("Alignment must be greater than zero.");
+        }
+
+        long remainder = value % alignment;
+        return remainder == 0 ? value : checked(value + alignment - remainder);
+    }
+
     /// <summary>Rounds a stream position up to a positive field boundary without losing 64-bit address range.</summary>
     public static long AlignUp(long value, int alignment)
     {
@@ -43,26 +55,5 @@ internal static class LayoutMath
         }
 
         return alignment;
-    }
-
-    /// <summary>
-    ///     Decides whether the next bitfield requires a fresh primitive storage unit. Compilation, read, write, and path
-    ///     operations share this rule so type changes, capacity, and alignment cannot drift independently.
-    /// </summary>
-    public static bool StartsNewBitfieldUnit(
-        string? activeType,
-        int activeUnitSize,
-        int activeAlignment,
-        int bitsUsed,
-        string nextUnitType,
-        int nextBitSize,
-        int nextUnitSize,
-        int nextAlignment)
-    {
-        return activeUnitSize == 0 ||
-               activeUnitSize != nextUnitSize ||
-               activeAlignment != nextAlignment ||
-               !string.Equals(activeType, nextUnitType, StringComparison.Ordinal) ||
-               bitsUsed + nextBitSize > nextUnitSize * 8;
     }
 }

@@ -140,9 +140,14 @@ public class BinaryPrimitiveIOTests
 
     /// <summary>An unsupported buffer length cannot be decoded as one of the four known integer widths.</summary>
     [TestMethod]
-    public void ReadUnsigned_UnsupportedLength_Throws()
+    public void ReadUnsigned_OddLengths_AreBitfieldWindows_AndZeroOrNineThrow()
     {
-        Assert.Throws<InvalidOperationException>(() => BinaryPrimitiveIO.ReadUnsigned([0x01, 0x02, 0x03,], true));
+        // A packed SysV bitfield window can be any width up to eight bytes, in either byte order.
+        Assert.AreEqual(0x030201UL, BinaryPrimitiveIO.ReadUnsigned([0x01, 0x02, 0x03,], true));
+        Assert.AreEqual(0x010203UL, BinaryPrimitiveIO.ReadUnsigned([0x01, 0x02, 0x03,], false));
+        Assert.AreEqual(0x0706050403020100UL >> 8, BinaryPrimitiveIO.ReadUnsigned([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,], true));
+        Assert.Throws<InvalidOperationException>(() => BinaryPrimitiveIO.ReadUnsigned([], true));
+        Assert.Throws<InvalidOperationException>(() => BinaryPrimitiveIO.ReadUnsigned(new byte[9], true));
     }
 
     /// <summary>Writing a typed value in little-endian order produces the expected least-significant-byte-first bytes.</summary>
@@ -184,8 +189,11 @@ public class BinaryPrimitiveIOTests
 
     /// <summary>An unsupported byte size cannot be encoded as one of the four known integer widths.</summary>
     [TestMethod]
-    public void WriteUnsigned_UnsupportedSize_Throws()
+    public void WriteUnsigned_OddSizes_AreBitfieldWindows_AndZeroOrNineThrow()
     {
-        Assert.Throws<InvalidOperationException>(() => BinaryPrimitiveIO.WriteUnsigned(1, 3, true));
+        CollectionAssert.AreEqual(new byte[] { 0x01, 0x02, 0x03 }, BinaryPrimitiveIO.WriteUnsigned(0x030201, 3, true));
+        CollectionAssert.AreEqual(new byte[] { 0x03, 0x02, 0x01 }, BinaryPrimitiveIO.WriteUnsigned(0x030201, 3, false));
+        Assert.Throws<InvalidOperationException>(() => BinaryPrimitiveIO.WriteUnsigned(1, 0, true));
+        Assert.Throws<InvalidOperationException>(() => BinaryPrimitiveIO.WriteUnsigned(1, 9, true));
     }
 }

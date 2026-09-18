@@ -10,6 +10,8 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class CompositeAlignmentTests
 {
+    private static readonly CStructCompilationOptions Msvc = new() { BitfieldPacking = BitfieldPacking.Msvc, };
+
     /// <summary>
     ///     inner begins with a byte but also contains a uint64, giving the whole child eight-byte alignment.
     /// </summary>
@@ -135,30 +137,37 @@ public class CompositeAlignmentTests
     }
 
     /// <summary>
-    ///     uint16 a:4 and int16 b:4 have equally wide but different base types, so they occupy separate two-byte units.
+    ///     uint16 a:4 and int16 b:4 differ only in signedness, so they share one storage unit under both packing
+    ///     rules - GCC, Clang, and MSVC all pack same-size integer bitfields together. The rules differ in how much
+    ///     of the declared unit the packed struct keeps: SysV keeps the bytes the bits need, MSVC the whole unit.
     /// </summary>
-    /// <remarks>
-    ///     They must read 10 and 11, with tail = 0xA5 at offset 4. Treating them as one shared unit would corrupt both
-    ///     b and the tail location.
-    /// </remarks>
     [TestMethod]
-    public void MixedBaseTypeBitfields_UseSeparateStorageUnits()
+    public void MixedBaseTypeBitfields_ShareAUnitOfTheSameSize()
     {
         const string layout = "struct root { uint16 a:4; int16 b:4; byte tail; };";
-        byte[] bytes = [0x0A, 0x00, 0x0B, 0x00, 0xA5,];
-        var cstruct = new CStruct(layout);
-        using var stream = new MemoryStream(bytes);
 
-        dynamic parsed = cstruct.Parse(stream, "root");
+        // GCC -fpack-struct: BA A5, two bytes.
+        var sysv = new CStruct(layout);
+        byte[] sysvBytes = [0xBA, 0xA5,];
+        dynamic sysvParsed = sysv.Parse(sysvBytes, "root");
+        Assert.AreEqual(0xA, (int)sysvParsed.a);
+        Assert.AreEqual(0xB, (int)sysvParsed.b);
+        Assert.AreEqual((byte)0xA5, (byte)sysvParsed.tail);
+        Assert.AreEqual(2, sysv.GetStructSizeInBytes("root"));
+        Assert.AreEqual(0L, sysv.ResolveAddress(new MemoryStream(sysvBytes), "root.b"));
+        Assert.AreEqual(1L, sysv.ResolveAddress(new MemoryStream(sysvBytes), "root.tail"));
+        CollectionAssert.AreEqual(sysvBytes, sysv.Serialize("root", sysvParsed));
 
-        Assert.AreEqual(0xA, (int)parsed.a);
-        Assert.AreEqual(0xB, (int)parsed.b);
-        Assert.AreEqual((byte)0xA5, (byte)parsed.tail);
-        Assert.AreEqual(5, cstruct.GetStructSizeInBytes("root"));
-        stream.Position = 0;
-        Assert.AreEqual(2L, cstruct.ResolveAddress(stream, "root.b"));
-        stream.Position = 0;
-        Assert.AreEqual(4L, cstruct.ResolveAddress(stream, "root.tail"));
-        CollectionAssert.AreEqual(bytes, cstruct.Serialize("root", parsed));
+        // MSVC #pragma pack(1): the two-byte unit stays whole, tail follows at offset 2.
+        var msvc = new CStruct(layout, compilationOptions: Msvc);
+        byte[] msvcBytes = [0xBA, 0x00, 0xA5,];
+        dynamic msvcParsed = msvc.Parse(msvcBytes, "root");
+        Assert.AreEqual(0xA, (int)msvcParsed.a);
+        Assert.AreEqual(0xB, (int)msvcParsed.b);
+        Assert.AreEqual((byte)0xA5, (byte)msvcParsed.tail);
+        Assert.AreEqual(3, msvc.GetStructSizeInBytes("root"));
+        Assert.AreEqual(0L, msvc.ResolveAddress(new MemoryStream(msvcBytes), "root.b"));
+        Assert.AreEqual(2L, msvc.ResolveAddress(new MemoryStream(msvcBytes), "root.tail"));
+        CollectionAssert.AreEqual(msvcBytes, msvc.Serialize("root", msvcParsed));
     }
 }

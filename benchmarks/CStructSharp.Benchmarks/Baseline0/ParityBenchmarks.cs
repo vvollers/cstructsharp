@@ -1,5 +1,7 @@
 namespace CStructSharp.Benchmarks.Baseline0;
 
+using System.Buffers;
+using System.Globalization;
 using BenchmarkDotNet.Attributes;
 using CStructSharp.Codecs;
 
@@ -76,37 +78,43 @@ public class ParityBenchmarks
 
         public int Alignment => 1;
 
-        public object Read(Stream stream)
+        public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
         {
-            ulong value = 0;
-            for (int shift = 0; shift < 64; shift += 7)
+            ulong result = 0;
+            for (int index = 0; index < source.Length && index < 10; index++)
             {
-                int next = stream.ReadByte();
-                if (next < 0)
+                result |= (ulong)(source[index] & 0x7F) << (7 * index);
+                if ((source[index] & 0x80) == 0)
                 {
-                    throw new EndOfStreamException();
-                }
-
-                value |= (ulong)(next & 0x7F) << shift;
-                if ((next & 0x80) == 0)
-                {
-                    return value;
+                    value = result;
+                    bytesConsumed = index + 1;
+                    return OperationStatus.Done;
                 }
             }
 
-            throw new InvalidDataException("varint longer than 64 bits");
+            value = null;
+            bytesConsumed = 0;
+            return source.Length >= 10 ? OperationStatus.InvalidData : OperationStatus.NeedMoreData;
         }
 
-        public void Write(Stream stream, object value)
+        public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
         {
-            ulong remaining = Convert.ToUInt64(value);
+            ulong remaining = Convert.ToUInt64(value, CultureInfo.InvariantCulture);
+            bytesWritten = 0;
             do
             {
+                if (bytesWritten == destination.Length)
+                {
+                    return OperationStatus.DestinationTooSmall;
+                }
+
                 byte next = (byte)(remaining & 0x7F);
                 remaining >>= 7;
-                stream.WriteByte(remaining == 0 ? next : (byte)(next | 0x80));
+                destination[bytesWritten++] = remaining == 0 ? next : (byte)(next | 0x80);
             }
             while (remaining != 0);
+
+            return OperationStatus.Done;
         }
     }
 }

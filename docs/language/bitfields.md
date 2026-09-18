@@ -37,18 +37,31 @@ fields  low/high─────────  next────────
 offset 0 and the same one-byte debug range. In packed little-endian placement, `next` starts at offset 1 and reads
 `34 12` as 4660.
 
-Adjacent bitfields share a storage unit only while:
+Adjacent bitfields of the *same* declared size share one storage unit while the next field fits and no ordinary
+field interrupts the run; an ordinary field begins after the storage the run used. What happens when the declared
+size changes is where C compilers disagree, and `CStructCompilationOptions.BitfieldPacking` picks the rule:
 
-- their canonical storage codec is the same (aliases of one codec share storage);
-- the next field fits in the remaining bits; and
-- no ordinary field interrupts the group.
+| `BitfieldPacking` | Rule | `uint8 a:4; uint16 b:4;` | Matches |
+| --- | --- | --- | --- |
+| `SysV` (default) | Bits are allocated contiguously from the struct start. With aligned placement a field joins the run while it stays inside one type-aligned cell of its own declared size (it moves to the next cell otherwise); packed placement never moves it. The storage unit is the cell that holds the bits, trimmed to the bytes the run actually uses. | `AF 00` aligned, `AF` packed | GCC and Clang on every System V target (x86-64, ARM64, RISC-V, ...), the Itanium C++ ABI |
+| `Msvc` | A new unit of the declared size starts whenever the declared size changes or the field no longer fits; whole units are kept. | `0F 00 0A 00` aligned, `0F 0A 00` packed | Microsoft Visual C++, and dissect.cstruct |
 
-A type change, full unit, overflow into another unit, or ordinary field starts new storage. In aligned mode, a new
-unit begins at the alignment required by its codec. An ordinary field begins after the complete unit, including any
-unused high bits.
+Both rules are part of the compiled-layout cache key. A field that would need a packed SysV window wider than eight
+bytes (a 64-bit field starting mid-byte) is rejected at compile time with the remedies; aligned placement never
+produces one.
+
+An unnamed zero-width declarator, `uint16 : 0;`, is a separator: it stores nothing and appears in no result, and
+the next bitfield starts on the next boundary of the separator's type (a whole new unit under `Msvc`). Under `SysV`
+its type does not raise the struct's alignment, as on x86-64; under `Msvc` it does.
+
+Bit numbering is independent of placement: `BitfieldAllocation` counts from the low or the high bit of the storage
+unit. Real compilers pair little-endian units with low-bit-first numbering and big-endian units with high-bit-first;
+in the other two pairings the bits fill a unit from its last byte, so SysV placement keeps whole declared cells
+(a field that would cross its cell moves to the next one) and never trims a unit.
 
 The `portable-bitfields` fixture checks `low=5`, `high=17`, `next=4660`, offsets, size 3, alignment 2, and bytes
-`8D 34 12` on both frameworks.
+`8D 34 12` on both frameworks. `BitfieldPackingTests` checks twenty-three mixed-size shapes against bytes recorded
+from GCC in both placements, and the MSVC rule for the shapes where the two differ.
 
 ### Allocating from the high bit
 

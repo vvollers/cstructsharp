@@ -97,8 +97,10 @@ public class TestAlign
     ///     The two uint16 bitfields share storage at offset 0 and read 2 then 1 from 0x12.
     /// </summary>
     /// <remarks>
-    ///     Changing to uint64 starts another group at offset 8 with the same values. Ordinary fields and later groups
-    ///     must resume at their own aligned offsets; a four-bit field still uses its base type's storage unit.
+    ///     Under MSVC packing - the rule dissect.cstruct implements - changing to uint64 starts another group at
+    ///     offset 8 with the same values. Ordinary fields and later groups must resume at their own aligned offsets;
+    ///     a four-bit field still uses its base type's storage unit. <see cref="TestAlignBitField_SysV"/> shows the
+    ///     GCC/Clang placement of the same declaration.
     /// </remarks>
     [TestMethod]
     public void TestAlignBitField()
@@ -120,7 +122,7 @@ public class TestAlign
                            10 00 00 00 02 00 00 00  18 00 00 00 00 00 00 00
                            """;
 
-        var c = new CStruct(d, aligned: true);
+        var c = new CStruct(d, aligned: true, compilationOptions: new CStructCompilationOptions { BitfieldPacking = BitfieldPacking.Msvc, });
         byte[]? bufBytes = buf.ParseHexDataContent();
         var str = new MemoryStream(bufBytes);
         (dynamic obj, IReadOnlyList<DebugData> debug) = c.ParseWithDebug(str, "test");
@@ -134,6 +136,42 @@ public class TestAlign
         Assert.AreEqual((ushort)0x10, (ushort)result.e);
         Assert.AreEqual(0b10U, (uint)result.f);
         Assert.AreEqual(0x18UL, (ulong)result.g);
+    }
+
+    /// <summary>
+    ///     The same declaration under SysV packing (the default): GCC places c and d in bits 8-15 of the 64-bit cell
+    ///     that starts at offset 0, e at 2, f at 4, and g at 8, for a 16-byte struct
+    ///     (<c>12 12 10 00 02 00 00 00 18 00 00 00 00 00 00 00</c>, recorded from gcc on x86-64).
+    /// </summary>
+    [TestMethod]
+    public void TestAlignBitField_SysV()
+    {
+        const string d = """
+                         struct test {
+                             uint16  a:4;
+                             uint16  b:4;
+                             uint64  c:4;
+                             uint64  d:4;
+                             uint16  e;
+                             uint32  f:4;
+                             uint64  g;
+                         };
+                         """;
+        byte[] bytes = "12 12 10 00 02 00 00 00 18 00 00 00 00 00 00 00".ParseHexDataContent();
+        var c = new CStruct(d, aligned: true);
+        Assert.AreEqual(16, c.GetStructSizeInBytes("test"));
+        dynamic result = c.Parse(bytes, "test");
+        Assert.AreEqual((ushort)0b10, (ushort)result.a);
+        Assert.AreEqual((ushort)0b01, (ushort)result.b);
+        Assert.AreEqual(0b10UL, (ulong)result.c);
+        Assert.AreEqual(0b01UL, (ulong)result.d);
+        Assert.AreEqual((ushort)0x10, (ushort)result.e);
+        Assert.AreEqual(0b10U, (uint)result.f);
+        Assert.AreEqual(0x18UL, (ulong)result.g);
+        CollectionAssert.AreEqual(bytes, c.Serialize("test", result));
+        Assert.AreEqual(2L, c.ResolveAddress(new MemoryStream(bytes), "test.e"));
+        Assert.AreEqual(4L, c.ResolveAddress(new MemoryStream(bytes), "test.f"));
+        Assert.AreEqual(8L, c.ResolveAddress(new MemoryStream(bytes), "test.g"));
     }
 
     /// <summary>

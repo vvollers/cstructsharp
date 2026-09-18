@@ -13,75 +13,46 @@ using CStructSharp.Syntax;
 internal sealed class CompositeFieldPlacementCursor
 {
     private readonly bool aligned;
-    private long activeBitUnitStart = -1;
-    private int activeBitUnitSize;
-    private int activeBitUnitBitsUsed;
-    private int activeBitUnitAlignment;
-    private string? activeBitUnitType;
+    private BitfieldPlacement bitfields;
     private long current;
 
-    public CompositeFieldPlacementCursor(long start, bool aligned)
+    public CompositeFieldPlacementCursor(long start, bool aligned, BitfieldPacking packing, bool highBitFirst = false)
     {
         this.current = start;
         this.aligned = aligned;
+        this.bitfields = new BitfieldPlacement(packing, aligned, highBitFirst);
     }
 
     /// <summary>Gets the cursor's current position, including a struct's final tail after every field has been placed.</summary>
     public long Current => this.current;
 
     /// <summary>
-    ///     Advances to one field's start, opening a new bitfield storage unit when required or aligning normally
-    ///     otherwise.
+    ///     Advances to one field's start, placing a bitfield in its storage unit (opening a new one when the packing
+    ///     rule requires) or aligning an ordinary field normally.
     /// </summary>
-    public (long FieldStart, int BitOffset) AdvanceToField(CompiledField compiledField)
+    /// <returns>The field's start (a bitfield's unit start), the bit offset inside the unit, and the unit size in bytes (0 for an ordinary field).</returns>
+    public (long FieldStart, int BitOffset, int UnitSize) AdvanceToField(CompiledField compiledField)
     {
-        long fieldStart;
-        int bitOffset = 0;
+        if (compiledField.IsZeroWidthBitfield)
+        {
+            this.bitfields.PlaceSeparator(this.current, compiledField.BitStorageSize ?? 1, compiledField.Alignment, compiledField.BitRunBits);
+            this.current = this.bitfields.RunEnd;
+            return (this.current, 0, 0);
+        }
 
         if (compiledField.BitSize > 0)
         {
-            int unitSize = compiledField.BitStorageSize ??
-                           throw new InvalidOperationException(
-                               "Compiled bitfield has no storage size: " + compiledField.Name);
-            int alignment = compiledField.Alignment;
-            bool startsNewUnit = LayoutMath.StartsNewBitfieldUnit(
-                this.activeBitUnitType,
-                this.activeBitUnitSize,
-                this.activeBitUnitAlignment,
-                this.activeBitUnitBitsUsed,
-                compiledField.BitUnitType,
-                compiledField.BitSize,
-                unitSize,
-                alignment);
-            if (startsNewUnit)
-            {
-                this.current = this.aligned ? LayoutMath.AlignUp(this.current, alignment) : this.current;
-                this.activeBitUnitStart = this.current;
-                this.current = checked(this.current + unitSize);
-                this.activeBitUnitSize = unitSize;
-                this.activeBitUnitAlignment = alignment;
-                this.activeBitUnitType = compiledField.BitUnitType;
-                this.activeBitUnitBitsUsed = 0;
-            }
-
-            fieldStart = this.activeBitUnitStart;
-            bitOffset = this.activeBitUnitBitsUsed;
-            this.activeBitUnitBitsUsed += compiledField.BitSize;
-        }
-        else
-        {
-            this.activeBitUnitStart = -1;
-            this.activeBitUnitSize = 0;
-            this.activeBitUnitBitsUsed = 0;
-            this.activeBitUnitAlignment = 0;
-            this.activeBitUnitType = null;
-
-            int alignment = compiledField.Alignment;
-            this.current = this.aligned ? LayoutMath.AlignUp(this.current, alignment) : this.current;
-            fieldStart = this.current;
+            int declaredSize = compiledField.BitStorageSize ??
+                               throw new InvalidOperationException(
+                                   "Compiled bitfield has no storage size: " + compiledField.Name);
+            (long unitStart, int unitSize, int bitOffset) = this.bitfields.Place(this.current, declaredSize, compiledField.Alignment, compiledField.BitSize, compiledField.BitRunBits, compiledField.BitStorageIsLittleEndian ?? true, compiledField.Name);
+            this.current = this.bitfields.RunEnd;
+            return (unitStart, bitOffset, unitSize);
         }
 
-        return (fieldStart, bitOffset);
+        this.bitfields.Close();
+        this.current = this.aligned ? LayoutMath.AlignUp(this.current, compiledField.Alignment) : this.current;
+        return (this.current, 0, 0);
     }
 
     /// <summary>Records where a just-placed non-bitfield field actually ends, so the next field starts after it.</summary>

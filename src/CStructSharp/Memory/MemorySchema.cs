@@ -228,6 +228,9 @@ public sealed class MemorySchema
 
                 // An explicit-endian codec spelling ("uint16>" or "uint16<") overrides the definition and schema order.
                 bool littleEndian = member.ScalarType?.EndsWith('>') == true ? false : member.ScalarType?.EndsWith('<') == true || (member.IsLittleEndian ?? this.IsLittleEndian);
+
+                // The slice is numbered inside the whole storage integer (the memory schema's own BitOffset), so the
+                // codec keeps declared-size units: MSVC packing never clamps or widens a unit.
                 var bitOptions = new CStructCompilationOptions
                 {
                     Codecs = this.Options.Codecs,
@@ -235,6 +238,7 @@ public sealed class MemorySchema
                     DefaultEnumStorage = this.Options.DefaultEnumStorage,
                     Prelude = this.Options.Prelude,
                     MaxDefinitionLength = this.Options.MaxDefinitionLength,
+                    BitfieldPacking = BitfieldPacking.Msvc,
                 };
                 this.bitLayouts.Add((type.Id, field.Name), new CStruct((member.Declaration ?? string.Empty) + $"\nstruct __bits {{ {padding} {storage} value:{width}; }};", pointerSize: (byte)this.PointerSize, isLittleEndian: littleEndian, compilationOptions: bitOptions));
 

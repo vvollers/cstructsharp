@@ -343,8 +343,13 @@ public class ExpressionSafetyTests
         Assert.Throws<CStructLayoutException>(
             () => new CStruct("#define COUNT 2147483647 + 1\nstruct root { byte values[COUNT]; };"));
 
+        // A zero width parses (an unnamed `: 0` is a storage-unit separator); a named one is rejected at compile time.
         Field zeroWidth = CStructDefinitionParser.ParseFieldGroup("uint8 value: 0;").Single();
-        Assert.Throws<InvalidOperationException>(() => _ = zeroWidth.BitSize);
+        Assert.AreEqual(0, zeroWidth.BitSize);
+        Assert.IsTrue(zeroWidth.HasBitfieldDeclarator);
+        Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { uint8 value: 0; };"));
+        Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { uint8 value: -1; };"));
+        Assert.AreEqual(2, new CStruct("struct root { uint8 a: 3; uint8 : 0; uint8 b: 3; };").GetStructSizeInBytes("root"));
     }
 
     /// <summary>

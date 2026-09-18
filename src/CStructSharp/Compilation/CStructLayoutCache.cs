@@ -66,7 +66,8 @@ internal sealed class CStructLayoutCache
             options.Defined is null or { Count: 0 } ? string.Empty : string.Join('\0', options.Defined.Order(StringComparer.Ordinal)),
             options.Codecs is null or { Count: 0 } ? null : options.Codecs,
             options.Prelude,
-            options.BitfieldAllocation);
+            options.BitfieldAllocation,
+            options.BitfieldPacking);
 
         lock (this.gate)
         {
@@ -135,7 +136,8 @@ internal sealed class CStructLayoutCache
         string Defined,
         object? Codecs,
         string? Prelude,
-        BitfieldAllocation BitfieldAllocation);
+        BitfieldAllocation BitfieldAllocation,
+        BitfieldPacking BitfieldPacking);
 
     private sealed record Entry(Key Key, CStruct Layout);
 }

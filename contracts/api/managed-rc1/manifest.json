@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 18,
+  "baselineRevision": 19,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.5.0",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 68,
+  "exportedTypes": 69,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 673,
-    "normalizedSha256": "67B9CAF58B090877521D34C7BE685C903F3FE62EE91BB5688411EF15E210637A"
+    "lines": 679,
+    "normalizedSha256": "A3499864A62E9AD05FDFD31D49F8E207A1B46E5EADB709D5C3B8E6655BCDAE4F"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "C5B7D15F5D989F93921CFC2B777E8783D5B492A63D0C1F1F1C90559A2E9DDA30",
+      "normalizedSha256": "FE50C98E1793E8777B51F9714C54EA29AA9875C6213C5A9AEF6BEF2053F4AA48",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "7604C2145BF0F58A2EA6A652598AE84AACB1ED096F39E7F38011C8845AEF6157",
+      "normalizedSha256": "61A4A24B9C55BEF6C2D2091D04D3CF495C2A4D12B8B71CE66A24BDF27DBEB055",
       "aotCompatible": true
     }
   ],
@@ -195,6 +195,15 @@
       "combinedSha256": "3B24040DB399A1ADD64BC04CE9CCF15E50D13736E3654E5A1E1DD1C8862E6E1F",
       "rationale": "5.4: ICustomCodec reads and writes spans - OperationStatus Read(ReadOnlySpan<byte>, out object?, out int bytesConsumed) and OperationStatus Write(Span<byte>, object, out int bytesWritten) - instead of Stream methods; the library supplies the remaining input or a growing window and charges the budgets.",
       "releaseImpact": "Custom codec implementations change their two methods; layouts, options, and registration are unchanged."
+    },
+    {
+      "revision": 19,
+      "kind": "additive",
+      "date": "2026-09-18",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "BAF55AF79A6B923DA6B35CD291D29A5C4977043FDF40CEC1F35736894E636BD5",
+      "rationale": "6.1: CStructCompilationOptions.BitfieldPacking (BitfieldPacking.SysV default, Msvc) selects the compiler family's bitfield placement rule; unnamed zero-width declarators are accepted as separators.",
+      "releaseImpact": "Additive API; default placement of mixed-size bitfield runs now follows GCC/Clang (behaviour change documented in the changelog)."
     }
   ]
 }

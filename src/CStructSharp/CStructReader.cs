@@ -101,7 +101,7 @@ public partial class CStruct
             // named struct field.
             if (usesCursor && fieldDescriptor is not null)
             {
-                (long inlineFieldStart, _) = cursor!.AdvanceToField(fieldDescriptor);
+                (long inlineFieldStart, _, _) = cursor!.AdvanceToField(fieldDescriptor);
                 this.ValidateOffsetAssertionAtRuntime(fieldDescriptor, inlineFieldStart, state.Variables);
                 state.Stream.Position = inlineFieldStart;
                 state.CurrentBitOffset = 0;
@@ -263,6 +263,21 @@ public partial class CStruct
                                                   throw new InvalidOperationException(
                                                       "Field execution requires a compiled descriptor: " +
                                                       f.Name.Name);
+                    if (compiledField.IsZeroWidthBitfield)
+                    {
+                        // A `: 0` separator has no bytes and no value; the cursor applies its placement effect.
+                        if (cursor is not null && unionPosition == -1)
+                        {
+                            (long separatorEnd, _, _) = cursor.AdvanceToField(compiledField);
+                            state.Stream.Position = separatorEnd;
+                            state.NextPosition = separatorEnd;
+                        }
+
+                        state.CurrentBitOffset = 0;
+                        state.CurrentBitfieldType = null;
+                        break;
+                    }
+
                     Func<Stream, object>? fieldReader = compiledField.Reader;
                     CompiledCompositeType? nestedComposite = compiledField.Composite;
                     CompiledEnumType? fieldEnum = compiledField.Enum;
@@ -360,16 +375,14 @@ public partial class CStruct
                         // The cursor already knows this field's start (and, for a bitfield, whether it continues the
                         // active storage unit or opens a new one) - apply its decision once, for every array element,
                         // instead of re-deriving it per element or per type branch below.
-                        (long fieldStart, int bitOffset) = cursor!.AdvanceToField(compiledField);
+                        (long fieldStart, int bitOffset, int unitSize) = cursor!.AdvanceToField(compiledField);
                         this.ValidateOffsetAssertionAtRuntime(compiledField, fieldStart, state.Variables);
                         state.Stream.Position = fieldStart;
                         if (compiledField.BitSize > 0)
                         {
                             state.CurrentBitOffset = bitOffset;
                             state.CurrentBitfieldType = compiledField.BitUnitType;
-                            state.CurrentBitfieldSize = compiledField.BitStorageSize ??
-                                                        throw new InvalidOperationException(
-                                                            "Compiled bitfield has no storage size: " + compiledField.Name);
+                            state.CurrentBitfieldSize = unitSize;
                         }
                         else
                         {
@@ -611,7 +624,12 @@ public partial class CStruct
                         }
                         else
                         {
-                            if (useLegacyPlacement && compiledField.BitSize > 0)
+                            if (useLegacyPlacement && compiledField.BitSize > 0 && state.BitfieldUnitSeeded)
+                            {
+                                // A resolved target arrives with its placed unit; nothing to derive.
+                                state.BitfieldUnitSeeded = false;
+                            }
+                            else if (useLegacyPlacement && compiledField.BitSize > 0)
                             {
                                 int bitCapacity = checked(
                                     (compiledField.BitStorageSize ??
@@ -620,16 +638,12 @@ public partial class CStruct
                                 int activeUnitSize = state.CurrentBitfieldType is null
                                                          ? 0
                                                          : state.CurrentBitfieldSize;
+
+                                // Legacy placement only sees a union member or a root bitfield, which always opens
+                                // its own unit; the rule below is the MSVC size rule for completeness.
                                 bool startsNewStorageUnit = state.CurrentBitOffset > 0 &&
-                                                           LayoutMath.StartsNewBitfieldUnit(
-                                                               state.CurrentBitfieldType,
-                                                               activeUnitSize,
-                                                               activeUnitSize,
-                                                               state.CurrentBitOffset,
-                                                               compiledField.BitUnitType,
-                                                               compiledField.BitSize,
-                                                               bitCapacity / 8,
-                                                               bitCapacity / 8);
+                                                           (activeUnitSize != bitCapacity / 8 ||
+                                                            state.CurrentBitOffset + compiledField.BitSize > bitCapacity);
                                 if (startsNewStorageUnit)
                                 {
                                     state.Stream.Position = state.NextPosition;
@@ -670,18 +684,23 @@ public partial class CStruct
 
                             // Fixed-width numerics are decoded straight from a memory-backed cursor (E2.1); every
                             // other codec, and every stream source, keeps the delegate path.
+                            // A bitfield whose placed unit differs from its declared type (a packed SysV window) is
+                            // read as a raw unsigned unit of that size; every other field takes its codec.
+                            bool windowedUnit = compiledField.BitSize > 0 && state.CurrentBitfieldSize != compiledField.Codec.Size;
                             object content = compiledField.PointerDepth > 0
                                                  ? this.ReadPointerValue(
                                                                          compiledField.PointerDepth,
                                                                          compiledField,
                                                                          state,
                                                                          elementDebugStack)
-                                                 : compiledField.Codec.IsFixedWidthNumeric &&
-                                                   state.Stream.TryReadSpan(compiledField.Codec.Size, out ReadOnlySpan<byte> numericBytes)
-                                                     ? compiledField.Codec.ReadNumeric(numericBytes)
-                                                     : fieldReader?.Invoke(state.Stream) ??
-                                                       throw new InvalidOperationException(
-                                                           "Compiled field has no reader: " + fieldTypeName);
+                                                 : windowedUnit
+                                                     ? BinaryPrimitiveIO.ReadBitfieldUnit(state.Stream, state.CurrentBitfieldSize, compiledField.BitStorageIsLittleEndian ?? true)
+                                                     : compiledField.Codec.IsFixedWidthNumeric &&
+                                                       state.Stream.TryReadSpan(compiledField.Codec.Size, out ReadOnlySpan<byte> numericBytes)
+                                                         ? compiledField.Codec.ReadNumeric(numericBytes)
+                                                         : fieldReader?.Invoke(state.Stream) ??
+                                                           throw new InvalidOperationException(
+                                                               "Compiled field has no reader: " + fieldTypeName);
 
                             // Remember the full primitive range before bitfield handling possibly rewinds for another slice.
                             long endPos = state.Stream.Position;
@@ -690,10 +709,7 @@ public partial class CStruct
                             if (compiledField.BitSize > 0)
                             {
                                 // Read the storage value once, then expose only this field's slice of its bits.
-                                int elementBitSize = checked(
-                                    (compiledField.BitStorageSize ??
-                                     throw new InvalidOperationException(
-                                         "Compiled bitfield has no storage size: " + compiledField.Name)) * 8);
+                                int elementBitSize = checked(state.CurrentBitfieldSize * 8);
                                 if (state.CurrentBitOffset + compiledField.BitSize > elementBitSize)
                                 {
                                     throw new CStructReadException("Bitfield exceeds its storage unit: " + compiledField.Name);

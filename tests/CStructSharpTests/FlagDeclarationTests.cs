@@ -158,13 +158,23 @@ public class FlagDeclarationTests
     [TestMethod]
     public void EnumBitfield_IsAddressable()
     {
-        var layout = new CStruct("enum kind : uint16 { NONE, CODE }; struct root { uint8 head; kind type : 2; kind other : 3; uint8 tail; };");
-        using var stream = new MemoryStream(new byte[] { 9, 0x0D, 0x00, 7, });
+        const string source = "enum kind : uint16 { NONE, CODE }; struct root { uint8 head; kind type : 2; kind other : 3; uint8 tail; };";
+
+        // SysV packing (GCC -fpack-struct): the five bits take one byte, so tail follows at offset 2.
+        var layout = new CStruct(source);
+        using var stream = new MemoryStream(new byte[] { 9, 0x0D, 7, });
         Assert.AreEqual(1, layout.ResolveAddress(stream, "root.type"));
         Assert.AreEqual(1, layout.ResolveAddress(stream, "root.other"));
-        Assert.AreEqual(3, layout.ResolveAddress(stream, "root.tail"));
+        Assert.AreEqual(2, layout.ResolveAddress(stream, "root.tail"));
         Assert.AreEqual("CODE", layout.ReadValue<EnumValueResult>(stream.ToArray().AsSpan(), "root.type").Name);
         Assert.AreEqual(3, layout.ReadValue<EnumValueResult>(stream.ToArray().AsSpan(), "root.other").Value);
+
+        // MSVC packing keeps the whole uint16 unit, so tail follows at offset 3.
+        var msvc = new CStruct(source, compilationOptions: new CStructCompilationOptions { BitfieldPacking = BitfieldPacking.Msvc, });
+        using var msvcStream = new MemoryStream(new byte[] { 9, 0x0D, 0x00, 7, });
+        Assert.AreEqual(1, msvc.ResolveAddress(msvcStream, "root.other"));
+        Assert.AreEqual(3, msvc.ResolveAddress(msvcStream, "root.tail"));
+        Assert.AreEqual("CODE", msvc.ReadValue<EnumValueResult>(msvcStream.ToArray().AsSpan(), "root.type").Name);
     }
 
     /// <summary>An anonymous enum declares constants, not a type; a plain one counts up and a flag one uses the next bit.</summary>

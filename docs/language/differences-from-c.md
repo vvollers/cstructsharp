@@ -56,7 +56,7 @@ equivalence with every native compiler.
 | `floating-point-field` | `long double value;` | No single portable width exists to standardize on (80-bit extended, 128-bit quad, or 64-bit, depending on compiler/target) | Use `float32`/`float64` (or the `float`/`double` aliases) when 64 bits of precision is enough |
 | `enum-value-outside-storage` | `enum kind : uint8 { BIG = 256 };` | A member must fit the declared (or defaulted) backing type; a compiler would widen the enum or reject it, dissect keeps the value and fails on write | Declare a wider backing type, or omit it for the 32-bit compiler default |
 | `indexed-nested-reference` | `uint8 v[items[0].n];` | The head of a dotted reference is a scalar struct field; an array element's field is reached through its bare name after the element is read | Count with `n` after `items`, or copy the value into a field of the enclosing struct |
-| `zero-width-bitfield` | `uint8 reserved : 0;` | Native separator/allocation rules vary | Start an explicit new field/storage unit |
+| `named-zero-width-bitfield` | `uint8 reserved : 0;` | A zero width has no storage, so it cannot carry a name; C rejects it too | Write the separator unnamed: `uint8 : 0;` |
 | `non-power-of-two-alignment` | `uint8 value @align(3);` | An explicit alignment override must be a positive power of two, matching every native ABI's own alignment rule | Use a power-of-two value, e.g. `@align(4)` |
 | `non-power-of-two-composite-alignment` | `struct root @align(3) { uint8 value; };` | A composite's own explicit alignment override must also be a positive power of two | Use a power-of-two value, e.g. `@align(4)` |
 | `non-power-of-two-pack-pragma` | `#pragma pack(3)` | A pack value is a composite alignment override and follows the same power-of-two rule | Use `#pragma pack(1)`, `(2)`, `(4)`, ... |
@@ -87,7 +87,7 @@ and related details. Portable uses explicit binary-format rules instead:
 | Pointer width | Constructor value 1, 2, 4, or 8 |
 | Enum backing | Supported explicit integral type; omitted means the configured 32-bit default (or an explicit DefaultEnumStorage option) |
 | Struct/union padding | Constructor chooses packed or Portable aligned placement |
-| Bitfield allocation | Portable storage units; low-bit-first by default, high-bit-first by option |
+| Bitfield placement | `BitfieldPacking.SysV` (GCC/Clang rule, the default) or `Msvc`; low-bit-first numbering by default, high-bit-first by option |
 | Native byte order | Constructor order plus optional field suffix |
 
 The core does not inspect OS, CPU, process bitness, current culture, installed compiler, system headers, target

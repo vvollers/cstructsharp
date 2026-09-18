@@ -29,7 +29,7 @@ public class CompiledSizeQueriesTests
     {
         var cstruct = new CStruct(Layout, aligned: aligned);
         var evaluator = new LayoutExpressionEvaluator(new ExpressionEvaluator(new ExpressionEvaluationLimits(64, 10_000)));
-        return (new CompiledSizeQueries(cstruct.CompiledModel.Composites, aligned, evaluator), cstruct);
+        return (new CompiledSizeQueries(cstruct.CompiledModel.Composites, aligned, BitfieldPacking.SysV, false, evaluator), cstruct);
     }
 
     /// <summary>Variables-only sizing includes exactly the selected conditional storage.</summary>
@@ -38,7 +38,7 @@ public class CompiledSizeQueriesTests
     {
         var layout = new CStruct("struct root { uint8 tag; if (tag) { uint8 small; } else { uint16 wide; } };", aligned: false);
         var evaluator = new LayoutExpressionEvaluator(new ExpressionEvaluator(new ExpressionEvaluationLimits(64, 10_000)));
-        var queries = new CompiledSizeQueries(layout.CompiledModel.Composites, false, evaluator);
+        var queries = new CompiledSizeQueries(layout.CompiledModel.Composites, false, BitfieldPacking.SysV, false, evaluator);
         CompiledCompositeType root = queries.GetCompiledComposite(layout.GetStruct("root"));
         Assert.AreEqual(2, queries.GetCompiledStructSizeInBytes(root, new Dictionary<string, Expr> { ["tag"] = new Literal(1) }, false));
         Assert.AreEqual(3, queries.GetCompiledStructSizeInBytes(root, new Dictionary<string, Expr> { ["tag"] = new Literal(0) }, false));
@@ -102,7 +102,7 @@ public class CompiledSizeQueriesTests
     {
         var cstruct = new CStruct("struct empty { };");
         var evaluator = new LayoutExpressionEvaluator(new ExpressionEvaluator(new ExpressionEvaluationLimits(64, 10_000)));
-        var queries = new CompiledSizeQueries(cstruct.CompiledModel.Composites, false, evaluator);
+        var queries = new CompiledSizeQueries(cstruct.CompiledModel.Composites, false, BitfieldPacking.SysV, false, evaluator);
         Struct empty = cstruct.GetStruct("empty");
 
         int size = queries.GetCompiledStructSizeInBytes(queries.GetCompiledComposite(empty), new Dictionary<string, Expr>(), true);
@@ -153,7 +153,7 @@ public class CompiledSizeQueriesTests
     {
         var cstruct = new CStruct("struct root { char name[]; };");
         var evaluator = new LayoutExpressionEvaluator(new ExpressionEvaluator(new ExpressionEvaluationLimits(64, 10_000)));
-        var queries = new CompiledSizeQueries(cstruct.CompiledModel.Composites, false, evaluator);
+        var queries = new CompiledSizeQueries(cstruct.CompiledModel.Composites, false, BitfieldPacking.SysV, false, evaluator);
         Struct root = cstruct.GetStruct("root");
         CompiledField name = queries.GetCompiledComposite(root).FieldsByName["name"];
 

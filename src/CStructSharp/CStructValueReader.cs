@@ -212,13 +212,14 @@ public sealed partial class CStruct
             throw new InvalidOperationException("Resolved field has no compiled decoder.");
         state.Stream.Position = target.Address;
         state.StructureDepth = target.ContainingStructureDepth;
-        if (target.BitOffset > 0)
+        if (target.BitStorageSize > 0)
         {
             state.CurrentBitOffset = target.BitOffset;
             state.CurrentBitfieldType = selectedField.BitUnitType;
             state.CurrentBitfieldSize = target.BitStorageSize;
             state.CurrentFieldAlignment = selectedField.Alignment;
             state.NextPosition = checked(target.Address + target.BitStorageSize);
+            state.BitfieldUnitSeeded = true;
         }
 
         var container = new StructValue(this.compiledModelQueries.GetRootShape(selectedField.Name));

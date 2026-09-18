@@ -49,6 +49,7 @@ internal sealed class CompiledField
         this.Name = effectiveField.Name.Name;
         this.TypeSpelling = effectiveField.Type.Name;
         this.BitSize = effectiveField.BitSize;
+        this.IsZeroWidthBitfield = effectiveField.HasBitfieldDeclarator && this.BitSize == 0;
         this.PointerDepth = effectiveField.PointerDepth;
         this.SetCharacterFacts();
 
@@ -84,6 +85,9 @@ internal sealed class CompiledField
         this.Name = effectiveField.Name.Name;
         this.TypeSpelling = effectiveField.Type.Name;
         this.BitSize = effectiveField.BitSize;
+        this.IsZeroWidthBitfield = effectiveField.HasBitfieldDeclarator && this.BitSize == 0;
+        this.BitUnitSize = parent.BitUnitSize;
+        this.BitRunBits = parent.BitRunBits;
         this.PointerDepth = effectiveField.PointerDepth;
         this.SetCharacterFacts();
         this.CapturesLayoutVariable = parent.CapturesLayoutVariable;
@@ -164,6 +168,25 @@ internal sealed class CompiledField
 
     /// <summary>The bitfield width in bits, or 0 for a field that is not a bitfield.</summary>
     public int BitSize { get; private set; }
+
+    /// <summary>
+    ///     Whether this is an unnamed <c>: 0</c> declarator: no storage and no value, but the placement rule moves the
+    ///     next bitfield to a boundary of the declared type (<see cref="BitStorageSize"/> is that type's size).
+    /// </summary>
+    public bool IsZeroWidthBitfield { get; private set; }
+
+    /// <summary>
+    ///     The size in bytes of the storage unit the compiled placement gave this bitfield, when its offset is
+    ///     static; it equals <see cref="BitStorageSize"/> except for a packed SysV field that spans declared units.
+    /// </summary>
+    public int? BitUnitSize { get; private set; }
+
+    /// <summary>
+    ///     The bit length of the run of adjacent bitfields this field belongs to, measured from the run's first bit
+    ///     with the packed SysV rule (contiguous bits; a separator rounds up). It depends only on the run's own
+    ///     declarations, so the runtime cursor can clamp packed storage units to the run's bytes.
+    /// </summary>
+    public int BitRunBits { get; internal set; }
 
     /// <summary>How many pointer levels this view still has to follow before reaching its value.</summary>
     public int PointerDepth { get; private set; }
@@ -333,9 +356,9 @@ internal sealed class CompiledField
     }
 
     /// <summary>Returns the same descriptor with its compiled placement facts attached.</summary>
-    public CompiledField WithPlacement(int? fixedOffset, int bitOffset)
+    public CompiledField WithPlacement(int? fixedOffset, int bitOffset, int? bitUnitSize = null)
     {
-        return new CompiledField(
+        var placed = new CompiledField(
             this,
             this.EffectiveField,
             this.Alignment,
@@ -349,6 +372,8 @@ internal sealed class CompiledField
             bitOffset,
             this.Reader,
             this.Writer);
+        placed.BitUnitSize = bitUnitSize ?? this.BitUnitSize;
+        return placed;
     }
 
     private void SetCharacterFacts()

@@ -200,7 +200,7 @@ public partial class CStruct
 
         var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
         var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) : null;
-        var cursor = new CompositeFieldPlacementCursor(structStart, this.Aligned);
+        var cursor = new CompositeFieldPlacementCursor(structStart, this.Aligned, this.BitfieldPacking, this.highBitFirst);
 
         foreach (CompiledField compiledField in composite.Fields)
         {
@@ -209,16 +209,16 @@ public partial class CStruct
                 continue;
             }
 
-            (long fieldStart, int bitOffset) = cursor.AdvanceToField(compiledField);
+            (long fieldStart, int bitOffset, int unitSize) = cursor.AdvanceToField(compiledField);
             this.ValidateOffsetAssertionAtRuntime(compiledField, fieldStart, state.Variables);
+            if (compiledField.IsZeroWidthBitfield)
+            {
+                continue;
+            }
 
             if (string.Equals(compiledField.Name, requested.Name, StringComparison.Ordinal))
             {
-                int selectedBitStorageSize = compiledField.BitSize > 0
-                                                 ? compiledField.BitStorageSize ??
-                                                   throw new InvalidOperationException(
-                                                       "Compiled bitfield has no storage size: " + compiledField.Name)
-                                                 : 0;
+                int selectedBitStorageSize = compiledField.BitSize > 0 ? unitSize : 0;
                 return this.ResolveTargetInField(
                     compiledField,
                     fieldStart,
@@ -242,7 +242,7 @@ public partial class CStruct
                 return this.ResolveTargetInStruct(promotedStruct, fieldStart, segments, pathIndex, state, context);
             }
 
-            this.CaptureLayoutVariable(compiledField, fieldStart, bitOffset, state);
+            this.CaptureLayoutVariable(compiledField, fieldStart, bitOffset, unitSize, state);
             if (compiledField.BitSize == 0)
             {
                 cursor.CompleteField(this.MeasureFieldEnd(compiledField, fieldStart, state));
@@ -961,7 +961,7 @@ public partial class CStruct
                 this.compiledSizeQueries.GetCompiledStructSizeInBytes(composite, state.Variables, false));
         }
 
-        var cursor = new CompositeFieldPlacementCursor(structStart, this.Aligned);
+        var cursor = new CompositeFieldPlacementCursor(structStart, this.Aligned, this.BitfieldPacking, this.highBitFirst);
 
         var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
         var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) : null;
@@ -972,10 +972,14 @@ public partial class CStruct
                 continue;
             }
 
-            (long fieldStart, int bitOffset) = cursor.AdvanceToField(compiledField);
+            (long fieldStart, int bitOffset, int unitSize) = cursor.AdvanceToField(compiledField);
             this.ValidateOffsetAssertionAtRuntime(compiledField, fieldStart, state.Variables);
+            if (compiledField.IsZeroWidthBitfield)
+            {
+                continue;
+            }
 
-            this.CaptureLayoutVariable(compiledField, fieldStart, bitOffset, state);
+            this.CaptureLayoutVariable(compiledField, fieldStart, bitOffset, unitSize, state);
             if (compiledField.BitSize == 0)
             {
                 cursor.CompleteField(this.MeasureFieldEnd(compiledField, fieldStart, state));
@@ -1063,6 +1067,7 @@ public partial class CStruct
         CompiledField compiledField,
         long fieldStart,
         int bitOffset,
+        int unitSize,
         CStructOperationContext state)
     {
         if (compiledField.Array.Kind != CompiledArrayKind.Scalar)
@@ -1105,6 +1110,11 @@ public partial class CStruct
         {
             return;
         }
+        else if (compiledField.BitSize > 0 && unitSize != compiledField.Codec.Size)
+        {
+            // A packed SysV window: read the placed unit rather than the declared type.
+            value = BinaryPrimitiveIO.ReadBitfieldUnit(state.Stream, unitSize, compiledField.BitStorageIsLittleEndian ?? true);
+        }
         else
         {
             value = reader(state.Stream);
@@ -1117,7 +1127,7 @@ public partial class CStruct
 
         if (compiledField.BitSize > 0)
         {
-            int unitBits = checked((compiledField.BitStorageSize ?? 0) * 8);
+            int unitBits = checked(unitSize * 8);
             value = BitfieldCodecTable.ExtractBitfieldValue(value, BitfieldCodecTable.EffectiveShift(bitOffset, compiledField.BitSize, unitBits, this.highBitFirst), compiledField.BitSize);
         }
 

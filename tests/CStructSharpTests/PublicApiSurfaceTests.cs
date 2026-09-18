@@ -10,6 +10,7 @@ public class PublicApiSurfaceTests
     private static readonly string[] AllowedExportedTypes =
     [
         "CStructSharp.BitfieldAllocation",
+        "CStructSharp.BitfieldPacking",
         "CStructSharp.CStruct",
         "CStructSharp.CStructCompilationOptions",
         "CStructSharp.Codecs.ICustomCodec",

@@ -44,10 +44,13 @@ public partial class CStruct
                 EnumFieldValueParser.GetEnumValue(compiledBitfieldEnum, value, state.BindingMode));
         }
 
-        // Work out the size of the whole storage value first, not just the small field being changed.
-        int byteSize = compiledField.BitStorageSize ??
-                       throw new InvalidOperationException(
-                           "Compiled bitfield has no storage size: " + compiledField.Name);
+        // Work out the size of the whole storage unit first, not just the small field being changed: the placed
+        // unit (a packed SysV window may differ from the declared type), or the declared type when nothing placed it.
+        int byteSize = state.CurrentBitfieldSize > 0
+                           ? state.CurrentBitfieldSize
+                           : compiledField.BitStorageSize ??
+                             throw new InvalidOperationException(
+                                 "Compiled bitfield has no storage size: " + compiledField.Name);
         bool storageIsLittleEndian = compiledField.BitStorageIsLittleEndian ??
                                      throw new InvalidOperationException(
                                          "Compiled bitfield has no byte order: " + compiledField.Name);
@@ -200,7 +203,7 @@ public partial class CStruct
 
             var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
             var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount, ExpressionFailureDomain.Write) : null;
-            var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned);
+            var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned, this.BitfieldPacking, this.highBitFirst);
 
             foreach (CompiledField field in composite.Fields)
             {
@@ -231,6 +234,18 @@ public partial class CStruct
                     // Struct dispatch recurses WriteStruct with this same `data`, so the promoted member's own
                     // fields are looked up directly on it, with no nested member of its own.
                     this.WriteFieldValue(field, data, state, -1, cursor);
+                    variableScope?.CompleteField(field, state.Variables);
+                    continue;
+                }
+
+                if (field.IsZeroWidthBitfield)
+                {
+                    // A `: 0` separator writes nothing; the cursor applies its placement effect.
+                    (long separatorEnd, _, _) = cursor.AdvanceToField(field);
+                    state.Stream.Position = separatorEnd;
+                    state.NextPosition = separatorEnd;
+                    state.CurrentBitOffset = 0;
+                    state.CurrentBitfieldType = null;
                     variableScope?.CompleteField(field, state.Variables);
                     continue;
                 }
@@ -279,7 +294,7 @@ public partial class CStruct
     /// </summary>
     private void WritePromotedUnion(CompiledCompositeType composite, CompiledField field, object data, CStructElementWriterState state, CompositeFieldPlacementCursor cursor)
     {
-        (long unionPosition, _) = cursor.AdvanceToField(field);
+        (long unionPosition, _, _) = cursor.AdvanceToField(field);
         this.ValidateOffsetAssertionAtRuntime(field, unionPosition, state.Variables);
         state.Stream.Position = unionPosition;
         int unionSize = this.compiledSizeQueries.GetCompiledStructSizeInBytes(composite, state.Variables, false);
@@ -694,7 +709,12 @@ public partial class CStruct
                 state.Stream.Position = state.NextPosition;
             }
 
-            if (compiledField.BitSize > 0)
+            if (compiledField.BitSize > 0 && state.BitfieldUnitSeeded)
+            {
+                // A resolved target arrives with its placed unit; nothing to derive.
+                state.BitfieldUnitSeeded = false;
+            }
+            else if (compiledField.BitSize > 0)
             {
                 int bitCapacity = checked(
                     (compiledField.BitStorageSize ??
@@ -703,16 +723,12 @@ public partial class CStruct
                 int activeUnitSize = state.CurrentBitfieldType is null
                                          ? 0
                                          : state.CurrentBitfieldSize;
+
+                // Legacy placement only sees a union member or a root bitfield, which always opens its own unit;
+                // the rule below is the MSVC size rule for completeness.
                 bool startsNewStorageUnit = state.CurrentBitOffset > 0 &&
-                                            LayoutMath.StartsNewBitfieldUnit(
-                                                state.CurrentBitfieldType,
-                                                activeUnitSize,
-                                                activeUnitSize,
-                                                state.CurrentBitOffset,
-                                                compiledField.BitUnitType,
-                                                compiledField.BitSize,
-                                                bitCapacity / 8,
-                                                bitCapacity / 8);
+                                            (activeUnitSize != bitCapacity / 8 ||
+                                             state.CurrentBitOffset + compiledField.BitSize > bitCapacity);
                 if (startsNewStorageUnit)
                 {
                     state.Stream.Position = state.NextPosition;
@@ -755,16 +771,14 @@ public partial class CStruct
             // The cursor already knows this field's start (and, for a bitfield, whether it continues the active
             // storage unit or opens a new one) - apply its decision once, for every array element, instead of
             // re-deriving it per element the way the legacy path above does.
-            (long fieldStart, int bitOffset) = cursor!.AdvanceToField(valueField);
+            (long fieldStart, int bitOffset, int unitSize) = cursor!.AdvanceToField(valueField);
             this.ValidateOffsetAssertionAtRuntime(valueField, fieldStart, state.Variables);
             state.Stream.Position = fieldStart;
             if (compiledField.BitSize > 0)
             {
                 state.CurrentBitOffset = bitOffset;
                 state.CurrentBitfieldType = compiledField.BitUnitType;
-                state.CurrentBitfieldSize = compiledField.BitStorageSize ??
-                                            throw new InvalidOperationException(
-                                                "Compiled bitfield has no storage size: " + compiledField.Name);
+                state.CurrentBitfieldSize = unitSize;
             }
             else
             {
@@ -1307,6 +1321,7 @@ public partial class CStruct
                     state.CurrentBitfieldSize = target.BitStorageSize;
                     state.CurrentFieldAlignment = target.Alignment;
                     state.NextPosition = checked(target.Address + target.BitStorageSize);
+                    state.BitfieldUnitSeeded = true;
                 }
 
                 this.WriteFieldValue(writableCompiledField, value, state, -1);

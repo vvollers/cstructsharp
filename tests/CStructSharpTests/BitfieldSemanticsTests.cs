@@ -7,6 +7,8 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class BitfieldSemanticsTests
 {
+    private static readonly CStructCompilationOptions Msvc = new() { BitfieldPacking = BitfieldPacking.Msvc, };
+
     /// <summary>
     ///     A uint16 storage unit holds three fields of 3, 5, and 8 bits.
     /// </summary>
@@ -33,7 +35,10 @@ public class BitfieldSemanticsTests
                                   uint8 tail;
                               };
                               """;
-        var cstruct = new CStruct(layout, pointerSize: 1, aligned: aligned, isLittleEndian: isLittleEndian);
+
+        // MSVC packing keeps whole declared units, which is what the offsets below describe (a uint16 unit after the
+        // prefix byte, aligned to 2 when placement is aligned); SysV placement is covered by BitfieldPackingTests.
+        var cstruct = new CStruct(layout, pointerSize: 1, aligned: aligned, isLittleEndian: isLittleEndian, compilationOptions: Msvc);
         int unitStart = aligned ? 2 : 1;
         int tailOffset = unitStart + 2;
         byte[] bytes = new byte[aligned ? 6 : 4];
@@ -92,7 +97,7 @@ public class BitfieldSemanticsTests
     ///     a and b share the byte 0xBA and read 10 and 11.
     /// </summary>
     /// <remarks>
-    ///     Changing the base type to uint16 starts a new unit, where c and d read 12 and 13. Updating d to 5 must make
+    ///     Changing the declared size to uint16 starts a new unit under MSVC packing, where c and d read 12 and 13. Updating d to 5 must make
     ///     that unit 0x005C. Every operation must agree about the new unit's position and any alignment padding.
     /// </remarks>
     /// <param name="aligned">Whether the wider second unit is aligned to two bytes.</param>
@@ -113,7 +118,7 @@ public class BitfieldSemanticsTests
                                   uint8 tail;
                               };
                               """;
-        var cstruct = new CStruct(layout, pointerSize: 1, aligned: aligned, isLittleEndian: isLittleEndian);
+        var cstruct = new CStruct(layout, pointerSize: 1, aligned: aligned, isLittleEndian: isLittleEndian, compilationOptions: Msvc);
         int wideUnitStart = aligned ? 2 : 1;
         int tailOffset = wideUnitStart + 2;
         byte[] bytes = new byte[aligned ? 6 : 4];

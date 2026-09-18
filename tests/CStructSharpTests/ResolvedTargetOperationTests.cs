@@ -365,7 +365,8 @@ public class ResolvedTargetOperationTests
     [TestMethod]
     public void UpdateStream_TruncatedLaterBitfield_LeavesStreamUntouched()
     {
-        const string layout = "struct root { uint16 low:4; uint16 high:4; };";
+        // Twelve bits need the whole two-byte unit; one byte of input cannot hold the unit being patched.
+        const string layout = "struct root { uint16 low:4; uint16 high:8; };";
         var cstruct = new CStruct(layout, pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0xA5, });
 

@@ -154,13 +154,13 @@ public partial class CStruct
                 builder.Append("if (").Append(ExpressionPrinter.Print(field.Condition)).Append(") { ");
             }
 
-            builder.Append(field.Type.Name).Append(' ').Append(new string('*', field.PointerDepth)).Append(field.Name.Name.Length == 0 && field.BitSize == 0 ? "_" : field.Name.Name);
+            builder.Append(field.Type.Name).Append(' ').Append(new string('*', field.PointerDepth)).Append(field.Name.Name.Length == 0 && field.BitSize == 0 && !field.HasBitfieldDeclarator ? "_" : field.Name.Name);
             foreach (Expr dimension in field.ArrayCount)
             {
                 builder.Append('[').Append(ReferenceEquals(dimension, Field.UnknownArraysize) ? string.Empty : ExpressionPrinter.Print(dimension)).Append(']');
             }
 
-            if (field.BitSize > 0)
+            if (field.BitSize > 0 || field.HasBitfieldDeclarator)
             {
                 builder.Append(" : ").Append(field.BitSize.ToString(CultureInfo.InvariantCulture));
             }
@@ -299,8 +299,8 @@ public partial class CStruct
                     kind,
                     field.Array.Dimensions.Select(dimension => dimension.FixedCount).ToArray(),
                     field.FixedOffset,
-                    field.EffectiveField.BitSize > 0 ? field.BitStorageSize : field.FixedStorageSize,
-                    field.EffectiveField.BitSize > 0 ? field.EffectiveField.BitSize : null,
+                    field.EffectiveField.BitSize > 0 ? field.BitUnitSize ?? field.BitStorageSize : field.IsZeroWidthBitfield ? 0 : field.FixedStorageSize,
+                    field.EffectiveField.BitSize > 0 || field.IsZeroWidthBitfield ? field.EffectiveField.BitSize : null,
                     field.EffectiveField.BitSize > 0 ? field.BitOffset : null,
                     composite.PromotedFields.Contains(field),
                     declaration.Condition is not null,

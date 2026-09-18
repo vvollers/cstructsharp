@@ -139,7 +139,7 @@ internal sealed class StaticReadPlan
         {
             Field declaration = field.Declaration;
             if (field.FixedOffset is not int offset || declaration.Condition is not null || declaration.BranchConditions.Count > 0 ||
-                field.PointerDepth > 0 || declaration.BitSize != 0 || declaration.OffsetAssertionExpression is not null)
+                field.PointerDepth > 0 || declaration.BitSize != 0 || field.IsZeroWidthBitfield || declaration.OffsetAssertionExpression is not null)
             {
                 return false;
             }

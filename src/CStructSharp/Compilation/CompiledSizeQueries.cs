@@ -17,16 +17,22 @@ using CStructSharp.Syntax;
 internal sealed class CompiledSizeQueries
 {
     private readonly bool aligned;
+    private readonly BitfieldPacking bitfieldPacking;
+    private readonly bool highBitFirst;
     private readonly IReadOnlyDictionary<Struct, CompiledTypeSymbol> compositeSymbols;
     private readonly LayoutExpressionEvaluator expressionEvaluator;
 
     public CompiledSizeQueries(
         IReadOnlyDictionary<Struct, CompiledTypeSymbol> compositeSymbols,
         bool aligned,
+        BitfieldPacking bitfieldPacking,
+        bool highBitFirst,
         LayoutExpressionEvaluator expressionEvaluator)
     {
         this.compositeSymbols = compositeSymbols;
         this.aligned = aligned;
+        this.bitfieldPacking = bitfieldPacking;
+        this.highBitFirst = highBitFirst;
         this.expressionEvaluator = expressionEvaluator;
     }
 
@@ -65,7 +71,7 @@ internal sealed class CompiledSizeQueries
         // Drives the same cursor CStructAddressResolver/CStructReader/CStructWriter use, but sources each field's
         // extent from pure arithmetic (GetCompiledFieldStorageSize) rather than a stream - this method must stay
         // callable with no Stream/operation context, both mid-compilation and from variables-only callers.
-        var cursor = new CompositeFieldPlacementCursor(0, this.aligned);
+        var cursor = new CompositeFieldPlacementCursor(0, this.aligned, this.bitfieldPacking, this.highBitFirst);
         var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.expressionEvaluator, composite.ConditionalGroupCount, requireFixedSize ? ExpressionFailureDomain.Layout : ExpressionFailureDomain.Read) : null;
         foreach (CompiledField field in composite.Fields)
         {
@@ -74,7 +80,7 @@ internal sealed class CompiledSizeQueries
                 continue;
             }
 
-            (long fieldStart, _) = cursor.AdvanceToField(field);
+            (long fieldStart, _, _) = cursor.AdvanceToField(field);
             if (!field.BitStorageSize.HasValue)
             {
                 cursor.CompleteField(

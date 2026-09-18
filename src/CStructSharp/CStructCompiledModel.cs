@@ -226,7 +226,7 @@ public partial class CStruct
         // Every composite symbol is discovered by this point and compositeSymbols never gains further entries, so a
         // size-query view built now stays valid for the rest of construction - including the union-storage check
         // below, before the final immutable CompiledLayoutModel exists.
-        var sizeQueries = new CompiledSizeQueries(compositeSymbols, this.Aligned, this.layoutExpressionEvaluator);
+        var sizeQueries = new CompiledSizeQueries(compositeSymbols, this.Aligned, this.BitfieldPacking, this.highBitFirst, this.layoutExpressionEvaluator);
 
         foreach (KeyValuePair<string, CStructElement> declaration in this.CStructElements)
         {
@@ -735,7 +735,8 @@ public partial class CStruct
                     field.Name,
                     arrayCount,
                     field.BitSize,
-                    pointerDepth);
+                    pointerDepth,
+                    hasBitfieldDeclarator: field.HasBitfieldDeclarator);
 
                 // An unsized dimension (LANG-05 decision 6) can only ever be the sole entry of a one-dimensional
                 // ArrayCount list - the grammar already rejects it as an inner dimension of a multidimensional
@@ -801,15 +802,19 @@ public partial class CStruct
                 }
 
                 BitfieldCodecTable.Entry? bitfieldStorage = null;
-                if (field.BitSize > 0)
+                bool zeroWidthBitfield = effectiveField.HasBitfieldDeclarator && field.BitSize == 0;
+                if (field.BitSize > 0 || zeroWidthBitfield)
                 {
                     try
                     {
                         // Validated against the resolved type so an alias or typedef of an integer codec is
                         // acceptable storage, exactly as in C; an enum or flag stores its bits in its backing type.
+                        // A zero-width separator is validated as a one-bit field of its type: only the unit size matters.
                         Field storageField = type.Symbol.Definition is CompiledEnumType enumStorage && pointerDepth == 0
-                                                 ? new Field(new Identifier(enumStorage.Underlying.TerminalName), field.Name, field.ArrayCount, field.BitSize, 0)
-                                                 : effectiveField;
+                                                 ? new Field(new Identifier(enumStorage.Underlying.TerminalName), field.Name, field.ArrayCount, Math.Max(field.BitSize, 1), 0)
+                                                 : zeroWidthBitfield
+                                                     ? new Field(effectiveField.Type, field.Name, field.ArrayCount, 1, 0)
+                                                     : effectiveField;
                         bitfieldStorage = this.bitfieldCodecs.ValidateBitField(storageField);
                     }
                     catch (InvalidOperationException exception)
@@ -847,7 +852,11 @@ public partial class CStruct
                 fields.Add(compiledField);
             }
 
-            int compositeAlignment = fields.Count == 0 ? 1 : fields.Max(field => field.Alignment);
+            // A SysV zero-width separator moves bits without joining the alignment computation (x86-64 psABI);
+            // MSVC lets its type's unit boundary count.
+            int compositeAlignment = fields.Count == 0
+                                         ? 1
+                                         : fields.Max(field => field.IsZeroWidthBitfield && this.BitfieldPacking == BitfieldPacking.SysV ? 1 : field.Alignment);
             ImmutableArray<CompiledField> placedFields =
                 this.PlaceCompiledFields(strct, fields.ToImmutable(), compositeAlignment, sizeQueries, out int? fixedSize);
             symbol.CompleteLayout(compositeAlignment, fixedSize);
@@ -924,12 +933,9 @@ public partial class CStruct
             return result.ToImmutable();
         }
 
+        MeasureBitfieldRuns(fields);
         int? current = 0;
-        int? activeBitUnitStart = null;
-        int activeBitUnitSize = 0;
-        int activeBitUnitBitsUsed = 0;
-        int activeBitUnitAlignment = 0;
-        string? activeBitUnitType = null;
+        var bitfields = new BitfieldPlacement(this.BitfieldPacking, this.Aligned, this.highBitFirst);
         foreach (CompiledField field in fields)
         {
             if (field.Declaration.Condition is not null)
@@ -941,43 +947,36 @@ public partial class CStruct
                 }
             }
 
-            if (field.BitStorageSize.HasValue)
+            if (field.IsZeroWidthBitfield)
             {
-                int unitSize = field.BitStorageSize.Value;
-                bool startsNew = LayoutMath.StartsNewBitfieldUnit(
-                    activeBitUnitType,
-                    activeBitUnitSize,
-                    activeBitUnitAlignment,
-                    activeBitUnitBitsUsed,
-                    field.BitUnitType,
-                    field.EffectiveField.BitSize,
-                    unitSize,
-                    field.Alignment);
-                if (startsNew)
+                // A separator has no storage; it only moves the bit position for the next bitfield.
+                if (current.HasValue)
                 {
-                    if (current.HasValue && this.Aligned)
-                    {
-                        current = LayoutMath.AlignUp(current.Value, field.Alignment);
-                    }
-
-                    activeBitUnitStart = current;
-                    current = current.HasValue ? checked(current.Value + unitSize) : null;
-                    activeBitUnitSize = unitSize;
-                    activeBitUnitAlignment = field.Alignment;
-                    activeBitUnitType = field.BitUnitType;
-                    activeBitUnitBitsUsed = 0;
+                    bitfields.PlaceSeparator(current.Value, field.BitStorageSize ?? 1, field.Alignment, field.BitRunBits);
+                    current = checked((int)bitfields.RunEnd);
                 }
 
-                result.Add(field.WithPlacement(activeBitUnitStart, activeBitUnitBitsUsed));
-                activeBitUnitBitsUsed += field.EffectiveField.BitSize;
+                result.Add(field.WithPlacement(current, 0));
                 continue;
             }
 
-            activeBitUnitStart = null;
-            activeBitUnitSize = 0;
-            activeBitUnitBitsUsed = 0;
-            activeBitUnitAlignment = 0;
-            activeBitUnitType = null;
+            if (field.BitStorageSize.HasValue)
+            {
+                if (!current.HasValue)
+                {
+                    // Bit runs never span a variable-length field, so an unknown position means the run is
+                    // unreachable statically; the runtime cursor places it.
+                    result.Add(field.WithPlacement(null, 0));
+                    continue;
+                }
+
+                (long unitStart, int unitSize, int bitOffset) = bitfields.Place(current.Value, field.BitStorageSize.Value, field.Alignment, field.EffectiveField.BitSize, field.BitRunBits, field.BitStorageIsLittleEndian ?? true, field.Declaration.Name.Name);
+                current = checked((int)bitfields.RunEnd);
+                result.Add(field.WithPlacement(checked((int)unitStart), bitOffset, unitSize));
+                continue;
+            }
+
+            bitfields.Close();
             if (current.HasValue && this.Aligned)
             {
                 current = LayoutMath.AlignUp(current.Value, field.Alignment);
@@ -1016,6 +1015,41 @@ public partial class CStruct
 
         fixedSize = current;
         return result.ToImmutable();
+    }
+
+    /// <summary>
+    ///     Records on every bitfield the bit length of its run of adjacent bitfields, measured with the packed SysV
+    ///     rule from the run's first bit: contiguous widths, a zero-width separator rounding up to its type's size.
+    ///     The value depends only on the run's declarations, so the runtime cursor can clamp packed units without
+    ///     looking ahead.
+    /// </summary>
+    private static void MeasureBitfieldRuns(ImmutableArray<CompiledField> fields)
+    {
+        int index = 0;
+        while (index < fields.Length)
+        {
+            if (!fields[index].BitStorageSize.HasValue || fields[index].Declaration.Condition is not null)
+            {
+                index++;
+                continue;
+            }
+
+            int start = index;
+            long bits = 0;
+            while (index < fields.Length && fields[index].BitStorageSize.HasValue && fields[index].Declaration.Condition is null)
+            {
+                CompiledField field = fields[index];
+                bits = field.IsZeroWidthBitfield
+                           ? LayoutMath.AlignUp(bits, field.BitStorageSize!.Value * 8L)
+                           : bits + field.EffectiveField.BitSize;
+                index++;
+            }
+
+            for (int member = start; member < index; member++)
+            {
+                fields[member].BitRunBits = checked((int)bits);
+            }
+        }
     }
 
     /// <summary>Returns a primitive reader directly or the compiled underlying reader for an enum.</summary>

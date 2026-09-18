@@ -6,6 +6,17 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- **Breaking (behaviour):** `CStructCompilationOptions.BitfieldPacking` chooses how adjacent bitfields of
+  different declared sizes share storage, and the default is now the GCC/Clang rule. `BitfieldPacking.SysV` (the
+  default) allocates bits contiguously from the struct start - with aligned placement a field joins the run while
+  it stays inside one type-aligned cell of its own size, packed placement never splits - so `uint8 a:4; uint16
+  b:4;` is two bytes aligned and one byte packed, exactly as `gcc` lays it out. `BitfieldPacking.Msvc` starts a
+  new unit of the declared size on every size change and keeps whole units (Visual C++ and dissect.cstruct).
+  Previously the library always kept whole units and additionally split on a *type* change, which matched neither
+  compiler (`uint16 a:4; int16 b:4;` took two units). An unnamed zero-width declarator, `uint16 : 0;`, is now
+  accepted as a storage-unit separator. The bitfields reference documents both rules; `BitfieldPackingTests`
+  checks twenty-three shapes against bytes recorded from GCC in both placements. The option is part of the
+  compiled-layout cache key; the JavaScript API keeps the default until contract v8 exposes the option.
 - **Breaking (API):** `ICustomCodec` is span-based. `OperationStatus Read(ReadOnlySpan<byte> source, out object?
   value, out int bytesConsumed)` sees the bytes from the value's start (the whole remaining input for memory
   sources; a window that grows on `NeedMoreData` for other streams, bounded by `MaxStringBytes`) and reports the
