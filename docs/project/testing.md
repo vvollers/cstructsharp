@@ -38,7 +38,7 @@ related to your change:
 ```powershell
 .\tools\quality\Validate-FeatureOperationMatrix.ps1
 .\tools\documentation\Validate-CanonicalReference.ps1
-.\tools\quality\Validate-CompilerFixture.ps1
+node tools/quality/compiler-fixture.mjs validate
 .\tools\quality\Validate-FuzzCorpus.ps1
 node tools/quality/managed-api-baseline.mjs compare
 ```

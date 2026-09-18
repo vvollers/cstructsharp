@@ -135,17 +135,22 @@ are explained in [MUTATION_TESTING.md](MUTATION_TESTING.md).
 
 ### Compiler comparison fixture
 
-`tools/compiler-fixtures/portable-host-facts.c` records a small set of observations from Clang and GCC. It is a
-comparison aid, not a promise that CStructSharp follows a host compiler's ABI.
+`tools/compiler-fixtures/portable-host-facts.c` records what real C compilers do with a set of layout shapes
+(`contracts/quality/compiler-fixtures/shapes.json` describes each shape and the `BitfieldPacking` mode in which the
+library reproduces it). The observations are evidence, not a promise that CStructSharp follows a host compiler's
+ABI; `CompilerDifferentialFixtureTests` verifies every claim against every checked-in baseline.
 
-If you change that C file, regenerate and review results from both compilers, run the managed comparison tests on
-both .NET versions, and then run:
+If you change the C file or the shapes, re-record the baselines you can (`node tools/quality/compiler-fixture.mjs
+record --compiler gcc --output contracts/quality/compiler-fixtures/baselines/<platform>-<compiler>.json`), let the
+`compiler-fixtures` workflow record the other platforms, run the managed tests on both .NET versions, and then run:
 
-```powershell
-.\tools\quality\Validate-CompilerFixture.ps1
+```sh
+node tools/quality/compiler-fixture.mjs validate
+node tools/quality/compiler-fixture.mjs table
 ```
 
-Keep the compiler name, version, platform, command, and source hash with regenerated results.
+The second command regenerates the comparison table in `docs/language/differences-from-c.md`; CI checks that it is
+current. A record made from an older fixture source is stale and fails validation.
 
 ## Test-quality requirements
 

@@ -43,6 +43,9 @@
     <None Include="..\..\contracts\quality\compiler-fixtures\baselines\*.json"
           Link="compiler-fixtures\baselines\%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest"/>
+    <None Include="..\..\contracts\quality\compiler-fixtures\shapes.json"
+          Link="compiler-fixtures\shapes.json"
+          CopyToOutputDirectory="PreserveNewest"/>
     <None Include="..\CStructSharp.Fuzz\corpus\fuzz-corpus.json"
           Link="fuzz-corpus.json"
           CopyToOutputDirectory="PreserveNewest"/>

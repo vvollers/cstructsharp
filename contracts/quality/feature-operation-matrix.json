@@ -497,18 +497,20 @@
     "schemaVersion": 1,
     "claim": "observation-only",
     "source": "tools/compiler-fixtures/portable-host-facts.c",
-    "runner": "tools/quality/Invoke-CompilerDifferentialFixture.ps1",
-    "validator": "tools/quality/Validate-CompilerFixture.ps1",
+    "runner": "tools/quality/compiler-fixture.mjs",
+    "validator": "tools/quality/compiler-fixture.mjs",
+    "shapes": "contracts/quality/compiler-fixtures/shapes.json",
+    "workflow": ".github/workflows/compiler-fixtures.yml",
     "guide": "docs/project/testing.md",
     "baselines": [
-      "contracts/quality/compiler-fixtures/baselines/windows-x64-clang-21.1.7.json",
-      "contracts/quality/compiler-fixtures/baselines/windows-x64-gcc-14.2.0.json"
+      "contracts/quality/compiler-fixtures/baselines/linux-x64-gcc.json"
     ],
     "tests": [
       "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#Baselines_AreObservationOnlyAndHaveCompleteProvenance",
       "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#FixedWidthAggregates_MatchExactPortableExamples",
       "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#NativeScalarDifferences_DoNotBecomePortableClaims",
-      "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#Bitfields_RetainNativeByteImagesWithoutPortableParityClaim"
+      "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#Bitfields_PackedExampleVersusAlignedNativeImage",
+      "tests/CStructSharpTests/CompilerDifferentialFixtureTests.cs#Shapes_MatchEveryBaselineOfTheClaimedAbiFamily"
     ],
     "workItem": "QA-03"
   },

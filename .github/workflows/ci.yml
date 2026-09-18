@@ -100,7 +100,8 @@ jobs:
         run: |
           ./tools/quality/Validate-BrowserContract.ps1
           ./tools/quality/Validate-FuzzCorpus.ps1
-          ./tools/quality/Validate-CompilerFixture.ps1
+          node tools/quality/compiler-fixture.mjs validate
+          node tools/quality/compiler-fixture.mjs table --check
           ./tools/quality/Validate-NonWebReleaseBudgets.ps1 -SelfTest
       - name: Pack and verify actual NuGet consumers
         shell: pwsh

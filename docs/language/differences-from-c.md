@@ -91,8 +91,47 @@ and related details. Portable uses explicit binary-format rules instead:
 | Native byte order | Constructor order plus optional field suffix |
 
 The core does not inspect OS, CPU, process bitness, current culture, installed compiler, system headers, target
-triple, or native data model. Compiler-comparison files show selected observations only; they do not add MSVC, SysV,
-GCC, Clang, LLP64, or LP64 modes.
+triple, or native data model. Compiler-comparison files show selected observations only; they do not add LLP64 or
+LP64 modes or infer a compiler from the host.
+
+### Portable versus real compilers
+
+The table below is generated (`node tools/quality/compiler-fixture.mjs table`) from the observations recorded by
+`tools/compiler-fixtures/portable-host-facts.c`. Each row is one C declaration compiled with the values in
+`contracts/quality/compiler-fixtures/shapes.json`; each compiler column shows the object it produced; the *Portable*
+column names the `BitfieldPacking` mode(s) in which the library, given the equivalent Portable declaration
+(natural placement, or packed placement for the `#pragma pack(1)` rows), produces the same bytes. `long` rows use
+`CLongWidth` matching the compiler's `long`. Signed bitfields match in bytes; the Portable value is the unsigned
+slice.
+
+<!-- compiler-fixture-table:start -->
+| Shape | C declaration | Portable | GCC 15.2.0 (Linux x64, sysv) |
+| --- | --- | --- | --- |
+| `bits-u8-u16` | `struct { uint8_t a:4; uint16_t b:4; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 2, align 2: `AF00` |
+| `bits-u8-u8-u16` | `struct { uint8_t a:3; uint8_t b:5; uint16_t c; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 4, align 2: `FF00CDAB` |
+| `bits-u32-3-29-1` | `struct { uint32_t a:3; uint32_t b:29; uint32_t c:1; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 8, align 4: `FFFFFFFF01000000` |
+| `bits-u16-15-u8-2` | `struct { uint16_t a:15; uint8_t b:2; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 4, align 2: `FF7F0300` |
+| `bits-zero-width` | `struct { uint8_t a:3; uint8_t :0; uint8_t b:3; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 2, align 1: `0707` |
+| `bits-zero-width-u32` | `struct { uint8_t a:3; uint32_t :0; uint8_t b:3; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 5, align 1: `0700000007` |
+| `bits-signed` | `struct { int8_t a:3; uint8_t b:5; }  /* a = -1 */` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 1, align 1: `FF` |
+| `bits-u8-6-6` | `struct { uint8_t a:6; uint8_t b:6; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 2, align 1: `3F3F` |
+| `bits-u64-u8` | `struct { uint64_t a:4; uint8_t b:4; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 8, align 8: `FF00000000000000` |
+| `bits-after-byte` | `struct { uint8_t x; uint32_t a:4; uint8_t b:4; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 4, align 4: `AAFF0000` |
+| `u64-after-u8` | `struct { uint8_t a; uint64_t b; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 16, align 8: `11000000000000001122334455667788` |
+| `double-after-u8` | `struct { uint8_t a; double b; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 16, align 8: `1100000000000000000000000000F83F` |
+| `long` | `struct { uint8_t a; long b; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 16, align 8: `11000000000000007856341200000000` |
+| `enum-large` | `struct { uint8_t a; enum { BIG = 0x7FFFFFFF } b; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 8, align 4: `11000000FFFFFF7F` |
+| `bool` | `struct { uint8_t a; _Bool b; uint16_t c; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 4, align 2: `11013322` |
+| `pack2-array` | `#pragma pack(2) struct { uint8_t a; uint32_t b[2]; uint8_t c; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 12, align 2: `11005544332299887766AA00` |
+| `nested-align` | `struct inner { uint8_t a; uint32_t b; }; struct { uint8_t x; struct inner in; uint8_t y; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 16, align 4: `11000000220000006655443377000000` |
+| `union-size` | `union { uint8_t a; uint32_t b; uint16_t c[3]; }  /* c set */` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 8, align 4: `2211443366550000` |
+| `packed-bits-u8-u16` | `#pragma pack(1) struct { uint8_t a:4; uint16_t b:4; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 1, align 1: `AF` |
+| `packed-bits-u8-6-6` | `#pragma pack(1) struct { uint8_t a:6; uint8_t b:6; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 2, align 1: `FF0F` |
+| `packed-bits-u16-15-u8-2` | `#pragma pack(1) struct { uint16_t a:15; uint8_t b:2; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 3, align 1: `FFFF01` |
+| `packed-bits-after-byte` | `#pragma pack(1) struct { uint8_t x; uint32_t a:4; uint8_t b:4; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 2, align 1: `AAFF` |
+
+Baselines: GCC 15.2.0 on Linux x64 (x86_64-linux-gnu). The *Portable* column names the `BitfieldPacking` mode(s) in which the library reproduces the compiler of the same ABI family byte for byte; `CompilerDifferentialFixtureTests` verifies every claim against every baseline. Compilers not recorded here (MSVC, clang-cl, macOS clang, 32-bit targets) are recorded by the `compiler-fixtures` workflow when it runs.
+<!-- compiler-fixture-table:end -->
 
 ## The limited preprocessor
 

@@ -1,0 +1,59 @@
+name: Compiler fixtures
+
+# Records what real C compilers do with the shapes in tools/compiler-fixtures/portable-host-facts.c on every
+# platform GitHub hosts, and uploads the observation records. A maintainer reviews the artifacts and commits the
+# ones that should become baselines under contracts/quality/compiler-fixtures/baselines; the managed tests then
+# verify the library's placement claims against them.
+
+on:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, label: linux-x64-gcc, compiler: gcc, flags: "" }
+          - { os: ubuntu-latest, label: linux-x64-clang, compiler: clang, flags: "" }
+          - { os: ubuntu-latest, label: linux-x86-gcc, compiler: gcc, flags: "-m32", multilib: true }
+          - { os: macos-latest, label: macos-arm64-clang, compiler: clang, flags: "" }
+          - { os: windows-latest, label: windows-x64-msvc, compiler: cl, flags: "" }
+          - { os: windows-latest, label: windows-x64-clang-cl, compiler: clang-cl, flags: "" }
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.5.0
+
+      - name: Install the 32-bit toolchain
+        if: matrix.multilib
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+
+      - name: Enable the MSVC toolchain
+        if: matrix.compiler == 'cl' || matrix.compiler == 'clang-cl'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+
+      - name: Record the observation
+        shell: bash
+        run: node tools/quality/compiler-fixture.mjs record --compiler "${{ matrix.compiler }}" --flags "${{ matrix.flags }}" --output "artifacts/compiler-fixtures/${{ matrix.label }}.json"
+
+      - name: Validate the observation
+        shell: bash
+        run: node tools/quality/compiler-fixture.mjs validate "artifacts/compiler-fixtures/${{ matrix.label }}.json"
+
+      - name: Upload the observation
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: compiler-fixture-${{ matrix.label }}
+          path: artifacts/compiler-fixtures/${{ matrix.label }}.json

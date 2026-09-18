@@ -6,6 +6,15 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- Compiler comparison fixture: `tools/compiler-fixtures/portable-host-facts.c` now records twenty-two layout shapes
+  (the bitfield shapes where compiler families diverge, zero-width separators, a signed bitfield, `uint64`/`double`
+  after a byte, native `long`, a large enum, `_Bool`, `#pragma pack(2)` with an array, nested-struct alignment, union
+  size, and `#pragma pack(1)` bitfields). `node tools/quality/compiler-fixture.mjs record|validate|table` replaces
+  the two PowerShell scripts and also drives `cl`/`clang-cl`; the new `compiler-fixtures` workflow (weekly, manual)
+  records GCC and Clang on Linux (x64 and 32-bit), Clang on macOS, and MSVC and clang-cl on Windows. The checked-in
+  baseline is GCC 15.2 on Linux x64; `CompilerDifferentialFixtureTests` verifies, for every baseline, that the
+  library in the `BitfieldPacking` mode of the baseline's ABI family reproduces every shape byte for byte, and
+  `differences-from-c.md` carries a generated "Portable versus real compilers" table.
 - **Breaking (behaviour):** `CStructCompilationOptions.BitfieldPacking` chooses how adjacent bitfields of
   different declared sizes share storage, and the default is now the GCC/Clang rule. `BitfieldPacking.SysV` (the
   default) allocates bits contiguously from the struct start - with aligned placement a field joins the run while
