@@ -11,7 +11,7 @@ using CStructSharp.Values;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 /// <summary>
-///     Pins the typed read plan (E2.7): <c>ReadValue&lt;T&gt;</c> of a fully fixed composite must produce exactly
+///     Pins the typed read plan: <c>ReadValue&lt;T&gt;</c> of a fully fixed composite must produce exactly
 ///     the object, and exactly the failure, that parsing to a <see cref="StructValue"/> and converting it produces -
 ///     for every member shape a POCO can declare, every limit, and both root and nested path targets.
 /// </summary>

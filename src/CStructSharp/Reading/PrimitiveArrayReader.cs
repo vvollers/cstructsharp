@@ -12,7 +12,7 @@ using CStructSharp.Streams;
 using CStructSharp.Values;
 
 /// <summary>
-///     Bulk reader for arrays of fixed-width numeric primitives (E2.3): the whole extent is read in blocks of at most
+///     Bulk reader for arrays of fixed-width numeric primitives: the whole extent is read in blocks of at most
 ///     64 KiB and decoded span-wise into a typed <see cref="PrimitiveArray{T}"/> - a copy for host byte order, the
 ///     vectorized <see cref="BinaryPrimitives.ReverseEndianness(ReadOnlySpan{ushort}, Span{ushort})"/> family for
 ///     the other, tight loops for <c>bool</c> and 24-bit integers. Memory-backed sources decode straight from their
@@ -79,7 +79,7 @@ internal static class PrimitiveArrayReader
         };
     }
 
-    /// <summary>Decodes <paramref name="count"/> elements that are already in memory (static read plan, E2.5).</summary>
+    /// <summary>Decodes <paramref name="count"/> elements that are already in memory (static read plan).</summary>
     public static IList<object?> Decode(ReadOnlySpan<byte> bytes, PrimitiveCodec codec, int count)
     {
         bool le = codec.LittleEndian;

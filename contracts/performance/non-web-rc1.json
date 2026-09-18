@@ -31,7 +31,7 @@
       "environment": "Linux Ubuntu 26.04.1 LTS (Resolute Raccoon); AMD EPYC 9645; X64; .NET 10.0.10 (10.0.10, 10.0.1026.32716); SDK 10.0.302",
       "worktreeDirty": false,
       "revision": "f782a8e5a08ddce5f31a6e2aa2bbcee28e75023c",
-      "note": "Re-baselined after performance plan Phase 1 (E2.6a, E3.2/E1.1, E2.8, E2.12, E1.3a, E2.9, E2.3) on the Phase 0 devbox. The previous baseline (2026-07-26, Ryzen 9 9950X) had case keys broken by a [Params] on ReadBenchmarks and an allocation budget CompileMaximumSource had already exceeded on main (978,904 B measured in Phase 0 against 884,360 B); that pre-existing allocation growth is carried into this baseline and tracked in the (local, untracked) performance log."
+      "note": "Re-baselined after performance plan Phase 1 (E2.6a, E3.2/E1.1, E2.8, E2.12, E1.3a, E2.9, E2.3) on the Phase 0 devbox. The previous baseline (2026-07-26, Ryzen 9 9950X) had case keys broken by a [Params] on ReadBenchmarks and an allocation budget CompileMaximumSource had already exceeded on main (978,904 B measured in Phase 0 against 884,360 B); that pre-existing allocation growth is carried into this baseline."
     },
     "cases": [
       {
@@ -136,30 +136,30 @@
   },
   "package": {
     "baselineEvidence": {
-      "path": "artifacts/baseline/qa-07-managed-final-package-artifacts.json",
-      "sha256": "0B03E9D3C2F127EA74127B192ED2AD6A96CD5F541A07DCDA95134230059A5C8D"
+      "tool": "tools/quality/artifact-baseline.mjs --package-directory artifacts/package",
+      "note": "Re-baselined 2026-09-18 from dotnet pack of the 0.5.0 source (the library grew from 286 KB to 690 KB between the frozen QA-07 baseline and this revision); the gzip-equivalent totals are zlib level 9 sums."
     },
     "baseline": {
       "files": 2,
-      "bytes": 374078,
-      "gzipBytes": 373032
+      "bytes": 874856,
+      "gzipBytes": 872554
     },
-    "maximumBytes": 393216,
-    "maximumGzipBytes": 393216,
+    "maximumBytes": 921600,
+    "maximumGzipBytes": 921600,
     "extensions": [
       {
         "extension": ".nupkg",
-        "baselineBytes": 286491,
-        "baselineGzipBytes": 285700,
-        "maximumBytes": 307200,
-        "maximumGzipBytes": 307200
+        "baselineBytes": 690353,
+        "baselineGzipBytes": 688849,
+        "maximumBytes": 727040,
+        "maximumGzipBytes": 727040
       },
       {
         "extension": ".snupkg",
-        "baselineBytes": 87587,
-        "baselineGzipBytes": 87332,
-        "maximumBytes": 92160,
-        "maximumGzipBytes": 92160
+        "baselineBytes": 184503,
+        "baselineGzipBytes": 183705,
+        "maximumBytes": 194560,
+        "maximumGzipBytes": 194560
       }
     ]
   },

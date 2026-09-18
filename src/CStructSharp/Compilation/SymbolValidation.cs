@@ -67,7 +67,7 @@ internal static class SymbolValidation
 
     /// <summary>
     ///     Rejects a duplicate name anywhere in a composite's flattened, transitively-promoted namespace (its own
-    ///     fields plus every anonymous promoted member's own fields, recursively - LANG-14), then validates every
+    ///     Fields plus every anonymous promoted member's own fields, recursively), then validates every
     ///     *named* nested scope independently, since a named nested struct keeps its own separate namespace.
     /// </summary>
     private static void ValidateCompositeMemberNames(Struct strct, string scopeName)
@@ -101,7 +101,7 @@ internal static class SymbolValidation
                 continue;
             }
 
-            // An anonymous nonzero-width bitfield (LANG-17) has no name at all, so multiple of them are not
+            // An anonymous nonzero-width bitfield has no name at all, so multiple of them are not
             // duplicates of each other.
             if (field.Name.Name.Length == 0)
             {

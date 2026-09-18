@@ -6,7 +6,7 @@ using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     <see cref="CStruct.GetOrCompile"/> must return the same compiled instance for identical inputs, miss on any
-///     differing constructor input, never cache failures, and stay bounded (E3.2 / E1.1).
+///     differing constructor input, never cache failures, and stay bounded.
 /// </summary>
 [TestClass]
 public class CStructLayoutCacheTests

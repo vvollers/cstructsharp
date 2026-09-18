@@ -11,7 +11,7 @@ using CStructSharp.Values;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 /// <summary>
-///     Pins the static read plan (E2.5): a fully fixed composite read from one span must be indistinguishable from
+///     Pins the static read plan: a fully fixed composite read from one span must be indistinguishable from
 ///     the general reader - values, captured variables, limits, truncation failures and final positions - and the
 ///     plan must exist exactly for the composites the plan's conditions describe.
 /// </summary>
@@ -110,7 +110,7 @@ public class StaticReadPlanTests
         }
     }
 
-    /// <summary>A dynamic array of a fully fixed struct (E2.4 prototype: the element plan looped over one span) matches the general reader on values, captured counts, truncation, budgets and limits.</summary>
+    /// <summary>A dynamic array of a fully fixed struct (the element plan looped over one span) matches the general reader on values, captured counts, truncation, budgets and limits.</summary>
     [TestMethod]
     public void DynamicArray_OfStaticStructs_MatchesGeneralReader()
     {

@@ -5,7 +5,7 @@ using System.IO;
 using CStructSharp.Diagnostics;
 
 /// <summary>
-///     Verifies the explicit per-field alignment override (LANG-15 field-level slice, <c>@align(N)</c>): it
+///     Verifies the explicit per-field alignment override (<c>@align(N)</c>): it
 ///     replaces a field's natural alignment wherever that value is consulted, has no effect in packed mode (natural
 ///     alignment already has none there), and is validated as a positive power of two.
 /// </summary>

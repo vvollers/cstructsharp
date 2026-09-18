@@ -14,10 +14,10 @@ using CStructSharp.Values;
 using CStructSharp.Writing;
 
 /// <summary>
-///     Static write plan (E2.10): a fully fixed composite is encoded into one block of its exact size - member
+///     Static write plan: a fully fixed composite is encoded into one block of its exact size - member
 ///     values looked up once, numbers written with <see cref="PrimitiveCodec.WriteNumeric"/> at their compile-time
 ///     offsets - and the block is written to the destination in one call. The plan is the same operation list the
-///     static read plan (E2.5) uses; only its execution differs.
+///     static read plan uses; only its execution differs.
 /// </summary>
 [SuppressMessage("StyleCop.CSharp.OrderingRules", "SA1204:StaticElementsMustAppearBeforeInstanceElements", Justification = "helpers follow the executor they serve")]
 public partial class CStruct

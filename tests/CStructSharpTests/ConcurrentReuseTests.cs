@@ -261,7 +261,7 @@ public class ConcurrentReuseTests
 
     /// <summary>
     ///     Compiled metadata must be sealed for concurrent readers: read-only through every interface it exposes and
-    ///     never a plain mutable <see cref="Dictionary{TKey, TValue}"/>. Until the performance plan's E1.3a the check
+    ///     Never a plain mutable <see cref="Dictionary{TKey, TValue}"/>. Until the immutable-snapshot change the check
     ///     demanded a <c>System.Collections.Frozen</c> type; building those cost a quarter of a small layout's
     ///     compilation, so the layout's own tables are now sealed <see cref="ConstructionDictionary{TKey, TValue}"/>
     ///     instances (whose builder handle is withdrawn on <c>Freeze</c>) while the shared primitive registries stay

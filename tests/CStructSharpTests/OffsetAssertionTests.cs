@@ -5,7 +5,7 @@ using System.IO;
 using CStructSharp.Diagnostics;
 
 /// <summary>
-///     Verifies the explicit per-field byte-offset assertion (LANG-15 field-level slice, <c>@N</c>): it validates a
+///     Verifies the explicit per-field byte-offset assertion (<c>@N</c>): it validates a
 ///     field's already-computed placement rather than ever repositioning it, is checked eagerly at construction
 ///     when the offset is statically knowable, and is scoped away from bitfields and runtime-dependent placement.
 /// </summary>

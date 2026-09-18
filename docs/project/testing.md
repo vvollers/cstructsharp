@@ -84,6 +84,15 @@ The managed fuzz harness feeds bounded generated/corpus inputs to five targets. 
 failures so they can be replayed. Add a minimized failure as a named regression; a random failure that cannot be
 reproduced is not enough.
 
+The dissect corpus sweep (`DissectCorpusSweepTests.Corpus_NeverRegresses`) compiles every definition extracted
+from the dissect ecosystem and is in the `OptIn` test category, which `tests/CStructSharpTests/default.runsettings`
+excludes from ordinary runs. To run it, extract a corpus with `node tools/quality/extract-dissect-corpus.mjs
+<ecosystem-dir> corpus.json`, then:
+
+```sh
+CSTRUCTSHARP_DISSECT_CORPUS=corpus.json dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release -f net10.0 --settings tests/CStructSharpTests/opt-in.runsettings
+```
+
 ## Compiler-differential fixtures
 
 Small Clang and GCC fixtures record how selected C11 objects were laid out under specific recorded environments.

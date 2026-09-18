@@ -50,13 +50,13 @@ internal sealed class CompiledCompositeType : CompiledType
             this.ConditionalGroupCount = groups.Count;
         }
 
-        // An anonymous nonzero-width bitfield (LANG-17) has no name to key by, and several may coexist in one
+        // An anonymous nonzero-width bitfield has no name to key by, and several may coexist in one
         // composite without colliding with each other - exclude them rather than deduplicate on an empty key.
         this.FieldsByName = fields.
             Where(field => field.Declaration.Name.Name.Length > 0).
             ToImmutableDictionary(field => field.Declaration.Name.Name, StringComparer.Ordinal);
 
-        // An anonymous promoted struct member (LANG-14) has no name of its own; its own fields are spliced into
+        // An anonymous promoted struct member has no name of its own; its own fields are spliced into
         // this composite's namespace instead. Computed once here so every splicing call site (reader, writer,
         // address resolver, layout) shares one definition instead of re-deriving the predicate independently.
         // One level only - a consumer that needs to see through transitive promotion reads a promoted field's own
@@ -85,13 +85,13 @@ internal sealed class CompiledCompositeType : CompiledType
     public ImmutableHashSet<CompiledField> PromotedFields { get; }
 
     /// <summary>
-    ///     The <see cref="StructValue"/> member layout every parse of this composite shares (E2.2): declared names in
-    ///     order, with anonymous promoted members (LANG-14) spliced in and anonymous bitfields left out. Conditional
+    ///     The <see cref="StructValue"/> member layout every parse of this composite shares: declared names in
+    ///     order, with anonymous promoted members spliced in and anonymous bitfields left out. Conditional
     ///     arms all get a slot; an arm that is not selected simply leaves its slot unset.
     /// </summary>
     public StructShape Shape => this.shape ??= this.BuildShape();
 
-    /// <summary>The span read plan (E2.5) when every member is statically placed; null otherwise. Built on first use.</summary>
+    /// <summary>The span read plan when every member is statically placed; null otherwise. Built on first use.</summary>
     public StaticReadPlan? StaticPlan
     {
         get
@@ -206,7 +206,7 @@ internal sealed class CompiledCompositeType : CompiledType
     }
 
     /// <summary>
-    ///     Typed read plans (E2.7) bound to this composite's static plan, one per target type, created on the first
+    ///     Typed read plans bound to this composite's static plan, one per target type, created on the first
     ///     typed read so a layout never read into a POCO does not pay for the table.
     /// </summary>
     public TypedReadPlan? GetOrAddTypedReadPlan([DynamicallyAccessedMembers(TypedValueConverter.MappedMembers)] Type targetType)

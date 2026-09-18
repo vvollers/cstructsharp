@@ -395,7 +395,7 @@ public class ScopedInlineTypeTests
 
     /// <summary>
     ///     <c>typedef struct { ... } Name;</c>, the anonymous inline form with no tag between "struct" and "{", is
-    ///     accepted (LANG-02) and is directly usable at the root path, unlike the pre-existing named form.
+    ///     accepted and is directly usable at the root path, unlike the pre-existing named form.
     /// </summary>
     [TestMethod]
     public void AnonymousTypedefStruct_IsAcceptedAndUsableAtTheRootPath()
@@ -409,7 +409,7 @@ public class ScopedInlineTypeTests
 
     /// <summary>
     ///     <c>typedef union { ... } Name;</c>, the anonymous inline form with no tag between "union" and "{", is
-    ///     accepted (LANG-02) and reads/writes exactly like a named union.
+    ///     accepted and reads/writes exactly like a named union.
     /// </summary>
     [TestMethod]
     public void AnonymousTypedefUnion_IsAcceptedAndReadsWritesLikeANamedUnion()
@@ -434,7 +434,7 @@ public class ScopedInlineTypeTests
     }
 
     /// <summary>
-    ///     <c>typedef union tag { ... } alias;</c>, the named-tag form (LANG-02, mirroring the pre-existing named
+    ///     <c>typedef union tag { ... } alias;</c>, the named-tag form (mirroring the pre-existing named
     ///     struct form), is accepted and reads/writes exactly like a named union.
     /// </summary>
     [TestMethod]

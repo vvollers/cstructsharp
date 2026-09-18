@@ -90,13 +90,13 @@ internal sealed class CStructOperationContext
     /// </summary>
     public bool SuppressPointerDereference { get; set; }
 
-    /// <summary>Allocated on first use: ordinary reads never touch it (E2.12).</summary>
+    /// <summary>Allocated on first use: ordinary reads never touch it.</summary>
     public List<DebugData> DebugMapping => this.debugMapping ??= new List<DebugData>();
 
     /// <summary>Optional active-branch trace used only for staged update validation.</summary>
     internal List<(string Path, long Start, long End)>? ConditionalLayoutTrace { get; set; }
 
-    /// <summary>Allocated on first pointer dereference: layouts without pointers never touch it (E2.12).</summary>
+    /// <summary>Allocated on first pointer dereference: layouts without pointers never touch it.</summary>
     public HashSet<(long Address, string TypeName, int PointerDepth)> ActivePointerTargets => this.activePointerTargets ??= new HashSet<(long, string, int)>();
 
     public long PointerOrigin { get; }
@@ -116,14 +116,14 @@ internal sealed class CStructOperationContext
 
     public int StructureDepth { get; set; }
 
-    /// <summary>The operation's read cursor: budget accounting plus, for memory sources, position and span reads (E2.1).</summary>
+    /// <summary>The operation's read cursor: budget accounting plus, for memory sources, position and span reads.</summary>
     public ReadBudgetStream Stream { get; }
 
     public Dictionary<string, Expr> Variables { get; }
 
     /// <summary>
     ///     True when every field must publish its layout variable, because the supplied variables contain an
-    ///     unevaluated expression that may name any field (E2.6); otherwise only fields the compiled layout's own
+    ///     unevaluated expression that may name any field; otherwise only fields the compiled layout's own
     ///     expressions reference (<see cref="CompiledField.CapturesLayoutVariable"/>) are captured.
     /// </summary>
     public bool CaptureAllLayoutVariables { get; }

@@ -170,7 +170,7 @@ public partial class CStruct
         {
             if (!composite.FieldsByName.ContainsKey(requested.Name))
             {
-                // An anonymous struct member of the union (LANG-14) contributes its own names to the union's
+                // An anonymous struct member of the union contributes its own names to the union's
                 // namespace; every member starts at the union's address.
                 foreach (CompiledField promoted in composite.PromotedFields)
                 {
@@ -230,7 +230,7 @@ public partial class CStruct
                     selectedBitStorageSize);
             }
 
-            // An anonymous promoted member (LANG-14) consumes no path segment of its own - retry the same
+            // An anonymous promoted member consumes no path segment of its own - retry the same
             // segment/pathIndex against its own (recursively promoted) fields before giving up. The pre-check
             // below is a pure, side-effect-free tree walk, so a miss costs nothing and a hit is guaranteed to
             // succeed (construction already rejected any flattened-namespace collision), meaning a genuine
@@ -256,10 +256,10 @@ public partial class CStruct
 
     /// <summary>
     ///     Resolves array selection, nested structures, and contextual pointer accessors for one field. An
-    ///     N-dimensional array (LANG-05) peels one dimension per supplied index, exactly mirroring a single
-    ///     dimension's own bounds-check-then-advance step (ADR-016 decision 5); supplying fewer indices than the
+    ///     N-dimensional array peels one dimension per supplied index, exactly mirroring a single
+    ///     dimension's own bounds-check-then-advance step; supplying fewer indices than the
     ///     field has dimensions leaves the target array-shaped, selecting the corresponding lower-dimensional
-    ///     sub-array (ADR-016 decision 4) rather than one scalar/struct element.
+    ///     sub-array rather than one scalar/struct element.
     /// </summary>
     private ResolvedTarget ResolveTargetInField(
         CompiledField compiledField,
@@ -508,7 +508,7 @@ public partial class CStruct
 
     /// <summary>
     ///     Creates a semantic target for an ordinary field, one fully selected array element (every dimension
-    ///     indexed), or a partially indexed multidimensional sub-array (LANG-05). <paramref name="resolvedField"/>
+    ///     indexed), or a partially indexed multidimensional sub-array. <paramref name="resolvedField"/>
     ///     is already peeled exactly once per supplied index by the caller, so it directly describes what this
     ///     target reads or writes - no further peeling happens here.
     /// </summary>
@@ -724,10 +724,10 @@ public partial class CStruct
 
     /// <summary>
     ///     Returns one selected array element's start at the current dimension, measuring prior dynamic struct
-    ///     elements when necessary. A caller addressing an N-dimensional array (LANG-05) calls this once per
+    ///     elements when necessary. A caller addressing an N-dimensional array calls this once per
     ///     supplied index, against the shape remaining after each prior call's own <see cref="CompiledField.SelectArrayElement"/>
     ///     peel - the same "repeat the existing single-dimension operation once per dimension" mechanism every
-    ///     other N-D consumer uses (ADR-016 decision 5).
+    ///     other N-D consumer uses.
     /// </summary>
     private long GetArrayElementStart(
         CompiledField compiledField,
@@ -807,8 +807,8 @@ public partial class CStruct
     }
 
     /// <summary>
-    ///     Evaluates the total leaf element count across every dimension of a (possibly multidimensional,
-    ///     LANG-05) array and rejects it before a per-leaf walk can loop over excessive elements. Unlike
+    ///     Evaluates the total leaf element count across every dimension of a (possibly multidimensional)
+    ///     Array and rejects it before a per-leaf walk can loop over excessive elements. Unlike
     ///     <see cref="GetBoundedArrayCount"/> (the current/outermost dimension's own count, used for per-dimension
     ///     bounds checks), this is the flat row-major leaf count a full measurement walk must actually visit -
     ///     the two coincide for every 1-D field, since a 1-D shape's only dimension is both.
@@ -1024,7 +1024,7 @@ public partial class CStruct
     }
 
     /// <summary>
-    ///     Validates a field's runtime-resolved placement against its own <c>@N</c> offset assertion (LANG-15),
+    ///     Validates a field's runtime-resolved placement against its own <c>@N</c> offset assertion,
     ///     when present. Skips fields already validated eagerly at construction time by
     ///     <c>CStructCompiledModel.PlaceCompiledFields</c> - <see cref="CompiledField.FixedOffset"/> is exactly the
     ///     signal for "already checked," since it is set only when that pass could compute the offset statically.
@@ -1075,7 +1075,7 @@ public partial class CStruct
             return;
         }
 
-        // An unreferenced field (E2.6) still moves the stream exactly as before - reported failure offsets depend on
+        // An unreferenced field still moves the stream exactly as before - reported failure offsets depend on
         // it - but publishes nothing.
         bool captures = compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables;
 
@@ -1148,7 +1148,7 @@ public partial class CStruct
 
     /// <summary>
     ///     Finds one exact compiled field name in a struct, recursing into every anonymous promoted member's own
-    ///     fields (LANG-14) when the name isn't one of this level's own - never throws. Purely an in-memory,
+    ///     fields when the name isn't one of this level's own - never throws. Purely an in-memory,
     ///     side-effect-free tree walk, so it is safe to call speculatively before attempting a real, I/O-touching
     ///     resolution.
     /// </summary>

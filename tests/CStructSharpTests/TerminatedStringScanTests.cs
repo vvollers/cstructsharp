@@ -5,7 +5,7 @@ using CStructSharp;
 using CStructSharp.Diagnostics;
 
 /// <summary>
-///     Terminated strings are scanned per chunk and decoded once per chunk (E2.9); the observable positions, values,
+///     Terminated strings are scanned per chunk and decoded once per chunk; the observable positions, values,
 ///     and failures must match the former byte-by-byte reader for terminators, budgets, chunk boundaries, and
 ///     invalid or incomplete sequences.
 /// </summary>

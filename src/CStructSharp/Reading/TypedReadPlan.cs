@@ -8,7 +8,7 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
 /// <summary>
-///     A static read plan (E2.5) bound to one POCO type (E2.7): the type's member map plus, per member, the plan
+///     A static read plan bound to one POCO type: the type's member map plus, per member, the plan
 ///     operation it reads from and how (see <see cref="TypedMemberMode"/>). Built once per composite and type.
 /// </summary>
 internal sealed class TypedReadPlan

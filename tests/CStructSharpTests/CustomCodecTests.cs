@@ -183,13 +183,13 @@ public class CustomCodecTests
             bytesWritten = 1;
             switch (value)
             {
-                case "bad":
-                    return OperationStatus.InvalidData;
-                case "throw":
-                    throw new InvalidOperationException("boom");
-                default:
-                    destination[0] = Convert.ToByte(value, System.Globalization.CultureInfo.InvariantCulture);
-                    return OperationStatus.Done;
+            case "bad":
+                return OperationStatus.InvalidData;
+            case "throw":
+                throw new InvalidOperationException("boom");
+            default:
+                destination[0] = Convert.ToByte(value, System.Globalization.CultureInfo.InvariantCulture);
+                return OperationStatus.Done;
             }
         }
     }

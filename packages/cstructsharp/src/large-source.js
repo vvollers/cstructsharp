@@ -122,7 +122,7 @@ export async function prepareSource(
   ) {
     const bytes = byteView(input);
     // Snapshot exactly the selected range. Never detach or transfer the caller's buffer: the snapshot is what
-    // the worker receives, and only the snapshot's own buffer is transferred (E3.6). Browsers use the same
+    // the worker receives, and only the snapshot's own buffer is transferred. Browsers use the same
     // descriptor up to a bounded size instead of wrapping the bytes in a Blob the worker re-reads page by page;
     // beyond it a Blob keeps the memory footprint to one copy.
     if (isNode || bytes.byteLength <= transferableByteLimit) {
@@ -469,7 +469,7 @@ export const COMPILE_OPTION_KEYS = new Set([
 ]);
 const layoutKeys = COMPILE_OPTION_KEYS;
 
-/** Byte inputs up to this size, without a cancellation signal, are parsed on the calling thread (E3.6). */
+/** Byte inputs up to this size, without a cancellation signal, are parsed on the calling thread. */
 export const SYNCHRONOUS_PARSE_LIMIT = 64 * 1024;
 
 export function isSmallByteInput(source, options) {

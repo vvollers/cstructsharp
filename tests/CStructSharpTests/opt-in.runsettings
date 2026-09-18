@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Runs only the OptIn category (excluded by default.runsettings): dotnet test with the settings option pointing at
+  this file, with the environment the tests need (the dissect corpus sweep reads CSTRUCTSHARP_DISSECT_CORPUS).
+-->
+<RunSettings>
+  <RunConfiguration>
+    <TestCaseFilter>TestCategory=OptIn</TestCaseFilter>
+  </RunConfiguration>
+</RunSettings>

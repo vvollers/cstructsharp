@@ -33,11 +33,11 @@ internal sealed class CompiledArrayShape
 
     /// <summary>
     ///     Every dimension this array actually has, outermost first - empty for <see cref="Scalar"/>, one entry
-    ///     for every array shape this codebase supported before LANG-05 (mirroring <see cref="Kind"/>/
+    ///     For every array shape this codebase supported before multidimensional arrays (mirroring <see cref="Kind"/>/
     ///     <see cref="CountExpression"/>/<see cref="FixedCount"/> exactly), N entries for a multidimensional
-    ///     (LANG-05) field. Only the first entry may describe a Runtime/Flexible dimension; every entry after the
+    /// field. Only the first entry may describe a Runtime/Flexible dimension; every entry after the
     ///     first is always Fixed, since only the outermost dimension of a multidimensional array may ever be
-    ///     non-fixed (ADR-016 decision 2) - true today, and still true once a future runtime-sized-outermost-
+    ///     non-fixed - true today, and still true once a future runtime-sized-outermost-
     ///     dimension follow-on lands, since <see cref="PeelOuterDimension"/> always removes the *current*
     ///     outermost entry, and only the *original* outermost entry can ever be non-fixed.
     /// </summary>

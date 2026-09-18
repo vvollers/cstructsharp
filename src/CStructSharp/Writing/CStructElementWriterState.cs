@@ -85,7 +85,7 @@ internal sealed class CStructElementWriterState
 
     /// <summary>
     ///     True when every field must publish its layout variable, because the supplied variables contain an
-    ///     unevaluated expression that may name any field (E2.6); otherwise only fields the compiled layout's own
+    ///     unevaluated expression that may name any field; otherwise only fields the compiled layout's own
     ///     expressions reference (<see cref="CompiledField.CapturesLayoutVariable"/>) are captured.
     /// </summary>
     public bool CaptureAllLayoutVariables { get; }

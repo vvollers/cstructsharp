@@ -552,7 +552,7 @@ internal static class TypedValueConverter
                 $"Type '{targetType.FullName}' has ambiguous writable members named '{duplicate.Key}'.");
         }
 
-        // A compiled factory replaces reflection's per-object invoke (E2.7); a constructor that throws surfaces its
+        // A compiled factory replaces reflection's per-object invoke; a constructor that throws surfaces its
         // own exception instead of a TargetInvocationException wrapper.
         Func<object> create = Expression.Lambda<Func<object>>(Expression.New(constructor)).Compile();
         return new ObjectMap(create, members.ToArray());

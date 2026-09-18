@@ -24,19 +24,19 @@ internal static class CustomCodecAdapter
             OperationStatus status = Decode(codec, remaining, out object? value, out int consumed);
             switch (status)
             {
-                case OperationStatus.Done:
-                    if (consumed < 0 || consumed > remaining.Length)
-                    {
-                        throw new CStructReadException($"Custom codec '{codec.Name}' reported {consumed} bytes consumed, but {remaining.Length} were available.");
-                    }
+            case OperationStatus.Done:
+                if (consumed < 0 || consumed > remaining.Length)
+                {
+                    throw new CStructReadException($"Custom codec '{codec.Name}' reported {consumed} bytes consumed, but {remaining.Length} were available.");
+                }
 
-                    budget.Advance(consumed);
-                    return value!;
-                case OperationStatus.NeedMoreData:
-                    budget.Advance(remaining.Length);
-                    throw new CStructReadException($"Not enough bytes: custom codec '{codec.Name}' needs more than the {remaining.Length} available.");
-                default:
-                    throw new CStructReadException($"Custom codec '{codec.Name}' rejected the input bytes.");
+                budget.Advance(consumed);
+                return value!;
+            case OperationStatus.NeedMoreData:
+                budget.Advance(remaining.Length);
+                throw new CStructReadException($"Not enough bytes: custom codec '{codec.Name}' needs more than the {remaining.Length} available.");
+            default:
+                throw new CStructReadException($"Custom codec '{codec.Name}' rejected the input bytes.");
             }
         }
 
@@ -55,25 +55,25 @@ internal static class CustomCodecAdapter
                 OperationStatus status = Decode(codec, rented.AsSpan(0, read), out object? value, out int consumed);
                 switch (status)
                 {
-                    case OperationStatus.Done:
-                        if (consumed < 0 || consumed > read)
-                        {
-                            throw new CStructReadException($"Custom codec '{codec.Name}' reported {consumed} bytes consumed, but {read} were available.");
-                        }
+                case OperationStatus.Done:
+                    if (consumed < 0 || consumed > read)
+                    {
+                        throw new CStructReadException($"Custom codec '{codec.Name}' reported {consumed} bytes consumed, but {read} were available.");
+                    }
 
-                        stream.Position = start + consumed;
-                        return value!;
-                    case OperationStatus.NeedMoreData when read < window:
-                        throw new CStructReadException($"Not enough bytes: custom codec '{codec.Name}' needs more than the {read} available.");
-                    case OperationStatus.NeedMoreData when window >= limit:
-                        throw new CStructReadLimitException($"Custom codec '{codec.Name}' needs more than MaxStringBytes ({limit}) for one value.");
-                    case OperationStatus.NeedMoreData:
-                        window = (int)Math.Min((long)window * 2, limit);
-                        ArrayPool<byte>.Shared.Return(rented);
-                        rented = ArrayPool<byte>.Shared.Rent(window);
-                        continue;
-                    default:
-                        throw new CStructReadException($"Custom codec '{codec.Name}' rejected the input bytes.");
+                    stream.Position = start + consumed;
+                    return value!;
+                case OperationStatus.NeedMoreData when read < window:
+                    throw new CStructReadException($"Not enough bytes: custom codec '{codec.Name}' needs more than the {read} available.");
+                case OperationStatus.NeedMoreData when window >= limit:
+                    throw new CStructReadLimitException($"Custom codec '{codec.Name}' needs more than MaxStringBytes ({limit}) for one value.");
+                case OperationStatus.NeedMoreData:
+                    window = (int)Math.Min((long)window * 2, limit);
+                    ArrayPool<byte>.Shared.Return(rented);
+                    rented = ArrayPool<byte>.Shared.Rent(window);
+                    continue;
+                default:
+                    throw new CStructReadException($"Custom codec '{codec.Name}' rejected the input bytes.");
                 }
             }
         }
@@ -96,23 +96,23 @@ internal static class CustomCodecAdapter
                 OperationStatus status = Encode(codec, rented.AsSpan(0, window), value, out int written);
                 switch (status)
                 {
-                    case OperationStatus.Done:
-                        if (written < 0 || written > window)
-                        {
-                            throw new CStructWriteException($"Custom codec '{codec.Name}' reported {written} bytes written into a {window}-byte window.");
-                        }
+                case OperationStatus.Done:
+                    if (written < 0 || written > window)
+                    {
+                        throw new CStructWriteException($"Custom codec '{codec.Name}' reported {written} bytes written into a {window}-byte window.");
+                    }
 
-                        stream.Write(rented, 0, written);
-                        return;
-                    case OperationStatus.DestinationTooSmall when window >= limit:
-                        throw new CStructWriteLimitException($"Custom codec '{codec.Name}' needs more than MaxStringBytes ({limit}) for one value.");
-                    case OperationStatus.DestinationTooSmall:
-                        window = (int)Math.Min((long)window * 2, limit);
-                        ArrayPool<byte>.Shared.Return(rented);
-                        rented = ArrayPool<byte>.Shared.Rent(window);
-                        continue;
-                    default:
-                        throw new CStructWriteException($"Custom codec '{codec.Name}' cannot encode the value {value ?? "null"}.");
+                    stream.Write(rented, 0, written);
+                    return;
+                case OperationStatus.DestinationTooSmall when window >= limit:
+                    throw new CStructWriteLimitException($"Custom codec '{codec.Name}' needs more than MaxStringBytes ({limit}) for one value.");
+                case OperationStatus.DestinationTooSmall:
+                    window = (int)Math.Min((long)window * 2, limit);
+                    ArrayPool<byte>.Shared.Return(rented);
+                    rented = ArrayPool<byte>.Shared.Rent(window);
+                    continue;
+                default:
+                    throw new CStructWriteException($"Custom codec '{codec.Name}' cannot encode the value {value ?? "null"}.");
                 }
             }
         }

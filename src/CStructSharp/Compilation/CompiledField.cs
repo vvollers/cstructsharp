@@ -53,7 +53,7 @@ internal sealed class CompiledField
         this.PointerDepth = effectiveField.PointerDepth;
         this.SetCharacterFacts();
 
-        // Resolve the codec identity once (E1.5): every hot path used to re-derive the name and compare strings.
+        // Resolve the codec identity once so no hot path re-derives the name and compares strings.
         // Only the 8-byte descriptor is stored; the name stays a computed property so wide layouts do not grow.
         this.Codec = this.PointerDepth > 0 || this.Type.Symbol.Kind is CompiledTypeKind.Struct or CompiledTypeKind.Union
                          ? PrimitiveCodec.None with { LayoutLittleEndian = layoutLittleEndian }
@@ -122,7 +122,7 @@ internal sealed class CompiledField
 
     /// <summary>
     ///     Whether reading or writing this field must publish its value as a layout variable. False when no
-    ///     expression in the layout can name it (E2.6), so the capture allocation and dictionary write are skipped;
+    ///     expression in the layout can name it, so the capture allocation and dictionary write are skipped;
     ///     an operation whose supplied variables can still name it (<see cref="LayoutVariables.CaptureAll"/>)
     ///     overrides this.
     /// </summary>
@@ -278,7 +278,7 @@ internal sealed class CompiledField
     public bool LayoutLittleEndian => this.Codec.LayoutLittleEndian;
 
     /// <summary>
-    ///     Creates an immutable view for one selected array element, peeling exactly one dimension (LANG-05): a
+    ///     Creates an immutable view for one selected array element, peeling exactly one dimension: a
     ///     scalar view if this was the last remaining dimension (matching this method's original one-shot
     ///     behavior exactly for every 1-D array), or a still-array view of the remaining inner dimensions
     ///     otherwise. A caller addressing an N-dimensional array calls this once per supplied index.

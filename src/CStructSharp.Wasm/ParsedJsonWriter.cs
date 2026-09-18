@@ -12,7 +12,7 @@ using CStructSharp.Syntax;
 using CStructSharp.Values;
 
 /// <summary>
-///     Writes parsed values as UTF-8 JSON straight into a byte buffer (E3.3b). The value set is closed - the
+///     Writes parsed values as UTF-8 JSON straight into a byte buffer. The value set is closed - the
 ///     core parser produces only <see cref="StructValue"/>, <see cref="PrimitiveArray{T}"/>, lists, boxed
 ///     numbers, strings, enums, unions and pointers - so this writer needs no state machine, no name validation
 ///     and no per-write escaping decisions, which is what made <see cref="System.Text.Json.Utf8JsonWriter"/> cost

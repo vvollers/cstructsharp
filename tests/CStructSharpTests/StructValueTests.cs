@@ -7,7 +7,7 @@ using System.Linq.Expressions;
 using CStructSharp.Values;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-/// <summary>Pins the parsed-struct value contract that replaced <see cref="ExpandoObject"/> (E2.2).</summary>
+/// <summary>Pins the parsed-struct value contract that replaced <see cref="ExpandoObject"/>.</summary>
 [TestClass]
 public class StructValueTests
 {

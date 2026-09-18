@@ -45,7 +45,7 @@ public partial class CStructExports
 
     /// <summary>
     ///     Parses a complete managed copy of the caller's bytes on the calling thread. The JavaScript adapter uses it
-    ///     for small inputs (E3.6): one byte[] marshal is far cheaper than staging the input and round-tripping the
+    ///     for small inputs: one byte[] marshal is far cheaper than staging the input and round-tripping the
     ///     worker that <see cref="ParseSource"/> is designed for.
     /// </summary>
     [JSExport]

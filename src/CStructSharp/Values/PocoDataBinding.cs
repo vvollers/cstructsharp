@@ -34,9 +34,9 @@ internal static class PocoDataBinding
 
     /// <summary>
     ///     Follows a public path through caller-provided write data, including array indexes. An N-dimensional
-    ///     array (LANG-05) index selects one item per supplied index in turn, walking into the caller's own
+    ///     array index selects one item per supplied index in turn, walking into the caller's own
     ///     nested collection one dimension at a time - the same repeated single-dimension operation every other
-    ///     N-D consumer uses (ADR-016 decision 5).
+    ///     N-D consumer uses.
     /// </summary>
     public static object ResolveDataPath(object data, IReadOnlyList<PathSegment> segments, PocoBindingMode bindingMode)
     {
@@ -146,7 +146,7 @@ internal static class PocoDataBinding
         FieldInfo? field = type.GetField(name, BindingFlags.Public | BindingFlags.Instance) ??
                            FirstIgnoringCase(type.GetFields(BindingFlags.Public | BindingFlags.Instance), name);
 
-        // A compiled accessor replaces reflection's per-call invoke (E2.10); it is built once per (type, name).
+        // A compiled accessor replaces reflection's per-call invoke; it is built once per (type, name).
         // A publication that switches compiled accessors off (the trimmed browser bundle, which never binds POCOs)
         // keeps reflection and does not link the expression-tree assembly.
         Func<object, object?>? getter = null;

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Default run settings for the managed test project. Tests in the OptIn category need an environment the default
+  run does not have (the dissect corpus sweep needs CSTRUCTSHARP_DISSECT_CORPUS) and are excluded unless a run
+  names them with the TestCategory=OptIn filter on the dotnet test command line.
+-->
+<RunSettings>
+  <RunConfiguration>
+    <TestCaseFilter>TestCategory!=OptIn</TestCaseFilter>
+  </RunConfiguration>
+</RunSettings>

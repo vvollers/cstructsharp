@@ -1,7 +1,7 @@
 /** Shared operation conversions for the ZIP, Node, and browser adapters (contract v8). */
 const INTEROP_CONTRACT_VERSION = 8;
 /**
- * Byte inputs up to this size, without a cancellation signal, are parsed on the calling thread (E3.6). Kept in
+ * Byte inputs up to this size, without a cancellation signal, are parsed on the calling thread. Kept in
  * step with SYNCHRONOUS_PARSE_LIMIT in large-source.js; this module is staged at the npm package root while the
  * source adapter lives beside the runtime, so it cannot import it.
  */
@@ -33,7 +33,7 @@ export function createPublicApi(loadCStructSharpWasm) {
     const api = await loadCStructSharpWasm();
     if (isSmallByteInput(source, options) && typeof api.parseBytes === "function") {
       const bytes = toUint8Array(source);
-      // E3.9: a fully fixed layout is read by the static plan in JavaScript; everything else crosses into WASM.
+      // a fully fixed layout is read by the static plan in JavaScript; everything else crosses into WASM.
       const native = tryParseNative(api, definition, bytes, options);
       if (native !== null) return native;
       return parseEnvelope(api.parseBytes(definition, bytes, options, false), "parse");
@@ -183,7 +183,7 @@ function stringifyInteropValue(value) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// E3.9 — JavaScript execution of the static read plan.
+// JavaScript execution of the static read plan.
 //
 // The managed side describes a fully fixed root (the compiler's static read plan: member offsets, codecs, counts,
 // nested plans, enum tables) once per definition and options; parsing such a layout is then a DataView walk that

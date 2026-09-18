@@ -13,7 +13,7 @@ npm run build:wasm          # dotnet publish with wasm/Benchmark.targets → art
 ```
 
 `build:wasm` needs the `wasm-tools` workload. Extra MSBuild properties pass through, e.g.
-`node build-wasm.mjs -p:RunAOTCompilation=true` for the AOT experiment (E3.1). For profiling build a second bundle with
+`node build-wasm.mjs -p:RunAOTCompilation=true` for the AOT experiment. For profiling build a second bundle with
 `node build-wasm.mjs --bundle bundle-symbols -p:WasmEmitSymbolMap=true` (the symbol map is loaded by the runtime at
 startup, so it must never be inside the timed bundle). The bundle manifest
 (`artifacts/js-bench/bundle-manifest.json`) records every framework file's SHA-256 and the properties used.
@@ -35,7 +35,7 @@ runs (never for baselines), `BENCH_COLD_LAUNCHES`, `BENCH_COLD_FIXTURES`, and `B
 alternative staged bundle under `artifacts/js-bench/` (for example `bundle-aot` from
 `node build-wasm.mjs --bundle bundle-aot -p:RunAOTCompilation=true`).
 
-Profile-guided AOT (E3.1b): `node build-wasm.mjs --bundle bundle-aotprof "-p:WasmProfilers=aot;"`, then
+Profile-guided AOT: `node build-wasm.mjs --bundle bundle-aotprof "-p:WasmProfilers=aot;"`, then
 `BENCH_BUNDLE=bundle-aotprof node bench/record-aot-profile.mjs [out.aotprofile]` (add `BENCH_AOT_PROFILE_SCOPE=core`
 for a compile + core-parse profile), then
 `node build-wasm.mjs --bundle bundle-pgaot -p:RunAOTCompilation=true -p:WasmDedup=false -p:WasmAotProfilePath=<abs path>`
@@ -53,7 +53,7 @@ off once any assembly is interpreted.
 - Every run first verifies that the public JS `parse` reproduces the C# expected JSON (or its SHA-256) for every
   fixture with an expectation that the bridge can parse (44 of 56; the digest comparison re-serializes the JS value
   with the C# canonical escaping), so timing never runs on a build that disagrees with the managed library.
-  Since E3.9 the public `parse` of a fully fixed layout (prim-le-record, nested-x256, real-png among the timed
+  The public `parse` of a fully fixed layout (prim-le-record, nested-x256, real-png among the timed
   fixtures) runs the static plan in JavaScript, so `public.parse.*` measures that path for those fixtures and
   the managed parse + envelope for the others; `direct.parseSource.*` always measures the managed path.
 - `BenchOptionsParse`, `BenchEnvelope` and `BenchLayoutLookup` (benchmark-only exports) split the public path's

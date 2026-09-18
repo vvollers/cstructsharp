@@ -19,7 +19,7 @@ using CStructSharpEnum = CStructSharp.Syntax.Enum;
 using UnaryOperatorType = CStructSharp.Syntax.UnaryOperatorType;
 
 /// <summary>
-///     The Pidgin parser-combinator grammar that recognized the layout language until E1.2 replaced it with the
+///     The Pidgin parser-combinator grammar that recognized the layout language until the hand-written parser replaced it with the
 ///     hand-written <see cref="LayoutParser"/>. Kept verbatim as a frozen oracle: <see cref="ParserDifferentialTests"/>
 ///     parses every layout in the corpus through both and requires identical accept/reject decisions and identical
 ///     syntax trees. Do not extend the language here; extend <see cref="LayoutParser"/> and its own tests.
@@ -330,10 +330,10 @@ internal static class PidginReferenceParser
         Tok(']').IgnoreResult());
 
     /// <summary>
-    ///     Builds one declarator's <see cref="Field.ArrayCount"/> from zero or more parsed bracket pairs
-    ///     (LANG-05), outermost dimension first. An empty bracket pair (<c>char name[];</c>) is accepted only as
+    ///     Builds one declarator's <see cref="Field.ArrayCount"/> from zero or more parsed bracket pairs,
+    ///     Outermost dimension first. An empty bracket pair (<c>char name[];</c>) is accepted only as
     ///     the sole dimension of a one-dimensional array - the same restriction this language already enforced
-    ///     before LANG-05, now stated explicitly for the N-dimensional case rather than being structurally
+    ///     Before multidimensional arrays, now stated explicitly for the N-dimensional case rather than being structurally
     ///     impossible to violate.
     /// </summary>
     private static IReadOnlyList<Expr> BuildArrayCount(IReadOnlyList<Maybe<Expr>> dimensions)
@@ -360,7 +360,7 @@ internal static class PidginReferenceParser
     public static readonly Parser<char, Expr> BitSize = Tok(':').Then(Expr);
 
     /// <summary>
-    ///     An explicit per-declarator alignment override (LANG-15 field-level slice), e.g. <c>value @align(8);</c>.
+    ///     An explicit per-declarator alignment override (field-level), e.g. <c>value @align(8);</c>.
     ///     <c>@</c> is not used anywhere else in this grammar, so this token collides with nothing. The argument is a
     ///     full expression, matching how <see cref="BitSize"/> already accepts a <c>#define</c>d constant, not only
     ///     a literal.
@@ -368,7 +368,7 @@ internal static class PidginReferenceParser
     public static readonly Parser<char, Expr> AlignmentOverride = Tok("@align").Then(Parenthesised(Expr));
 
     /// <summary>
-    ///     An explicit per-declarator byte-offset assertion (LANG-15 field-level slice), e.g. <c>value @4;</c>.
+    ///     An explicit per-declarator byte-offset assertion (field-level), e.g. <c>value @4;</c>.
     ///     Checked against the field's computed placement at compile time rather than ever repositioning it.
     /// </summary>
     public static readonly Parser<char, Expr> OffsetAssertion = Tok('@').Then(Expr);
@@ -389,7 +389,7 @@ internal static class PidginReferenceParser
     public static readonly Parser<char, string> VolatileKeyword = Tok("volatile");
     public static readonly Parser<char, string> RestrictKeyword = Tok("restrict");
 
-    /// <summary>One layout-neutral qualifier from the closed accepted set (LANG-13); recognized and discarded.</summary>
+    /// <summary>One layout-neutral qualifier from the closed accepted set; recognized and discarded.</summary>
     private static readonly Parser<char, Unit> TypeQualifier =
         OneOf(ConstKeyword, VolatileKeyword, RestrictKeyword).IgnoreResult();
 
@@ -404,8 +404,8 @@ internal static class PidginReferenceParser
         TypeQualifier.SkipMany().Then(ExtendedIdentifier);
 
     /// <summary>
-    ///     An optional <c>struct</c>/<c>union</c>/<c>enum</c> keyword written before a field's type reference
-    ///     (LANG-01), e.g. <c>struct child value;</c>. Recorded as a hint on the produced <see cref="Field"/> and
+    ///     An optional <c>struct</c>/<c>union</c>/<c>enum</c> keyword written before a field's type reference,
+    ///     e.g. <c>struct child value;</c>. Recorded as a hint on the produced <see cref="Field"/> and
     ///     checked against the referenced declaration's actual kind at compile time; it does not become part of the
     ///     type name itself.
     /// </summary>
@@ -414,7 +414,7 @@ internal static class PidginReferenceParser
     /// <summary>
     ///     Parses one comma-separated declarator after the first (its own pointer stars, optional array, optional
     ///     bit width, and optional trailing placement suffix), sharing the enclosing <see cref="FieldGroup"/>'s type.
-    ///     A declarator with no name tokens at all is an anonymous nonzero-width bitfield (LANG-17), e.g. the
+    ///     A declarator with no name tokens at all is an anonymous nonzero-width bitfield, e.g. the
     ///     <c>:3</c> in <c>uint8 flag:1, :3, other:4;</c> - allowed only when a bit width is present, since a
     ///     declarator with neither a name nor a bit width carries no information.
     /// </summary>
@@ -442,7 +442,7 @@ internal static class PidginReferenceParser
             PlacementSuffix);
 
     /// <summary>
-    ///     Parses one field declaration with one or more comma-separated declarators sharing one type (LANG-12),
+    ///     Parses one field declaration with one or more comma-separated declarators sharing one type,
     ///     e.g. <c>uint8 *a, b[4];</c>. Each declarator carries its own pointer stars, array, and bit width -
     ///     matching C's declarator-list semantics, where a leading star belongs to the declarator it precedes, not
     ///     every name in the list. <see cref="Field"/> itself stays a single-declarator parser used only by its one
@@ -455,7 +455,7 @@ internal static class PidginReferenceParser
                 List<Identifier> fieldList = fields.ToList();
 
                 // A one-token word run with a bit width has no name token to spare - that one word is the whole
-                // type and the declarator is an anonymous nonzero-width bitfield (LANG-17), e.g. `uint8 :3;`. A
+                // type and the declarator is an anonymous nonzero-width bitfield, e.g. `uint8 :3;`. A
                 // run of two or more tokens keeps today's "last word is the name" rule unchanged, even when a bit
                 // width follows (`uint8 flag:1;`), since that case is never ambiguous.
                 bool firstDeclaratorIsAnonymous = fieldList.Count == 1 && bitSize.HasValue;
@@ -595,10 +595,10 @@ internal static class PidginReferenceParser
         Rec(() => Try(ConditionalFields).Or(Try(SwitchFields)).Or(Try(InnerStruct!).Select(f => (IEnumerable<Field>)new[] { f, }).Or(FieldGroup)));
 
     /// <summary>
-    ///     A trailing name is optional (LANG-14): when omitted, this inline struct is an anonymous promoted
+    ///     A trailing name is optional: when omitted, this inline struct is an anonymous promoted
     ///     member - its own fields are spliced directly into the containing struct's addressable namespace
     ///     (<c>root.x</c>, not <c>root.&lt;anonymous&gt;.x</c>) rather than nested under a name of its own. The
-    ///     empty-<see cref="Identifier"/> sentinel reuses the same "no name" representation LANG-17's anonymous
+    ///     empty-<see cref="Identifier"/> sentinel reuses the same "no name" representation the anonymous
     ///     bitfields already established.
     /// </summary>
     public static readonly Parser<char, Field> InnerStruct = Map(

@@ -16,7 +16,7 @@ using CStructSharpEnum = CStructSharp.Syntax.Enum;
 ///     same small model classes (<see cref="CStructElement"/>, <see cref="Expr"/>) the compiler consumes.
 /// </summary>
 /// <remarks>
-///     The productions mirror the parser-combinator grammar this class replaced (E1.2) one for one, including its
+///     The productions mirror the parser-combinator grammar this class replaced one for one, including its
 ///     token conventions: every token skips the whitespace and comments <em>after</em> it, literals additionally skip
 ///     them before, keywords match as text prefixes, and an enum member skips whitespace only after its <c>=</c>.
 ///     Keeping those conventions is what makes the accepted language, the produced tree, and the frozen fuzz-replay
@@ -1424,7 +1424,7 @@ internal sealed class LayoutParser
     /// <summary>
     ///     <c>[struct|union|enum] words... [dims] [: bits] [@align(N) | @offset] (, declarator)* ;</c>. The last
     ///     word is the first declarator's name and the words before it form the type, except that a single word
-    ///     with a bit width is an anonymous bitfield whose one word is the type (LANG-17).
+    ///     with a bit width is an anonymous bitfield whose one word is the type.
     /// </summary>
     private List<Field> ParseFieldDeclaration(Identifier? leadingType = null, string? typeKeywordHint = null)
     {
@@ -1618,7 +1618,7 @@ internal sealed class LayoutParser
     }
 
     /// <summary>
-    ///     Builds one declarator's <see cref="Field.ArrayCount"/> from zero or more parsed bracket pairs (LANG-05),
+    ///     Builds one declarator's <see cref="Field.ArrayCount"/> from zero or more parsed bracket pairs,
     ///     outermost dimension first. An empty bracket pair (<c>char name[];</c>) is accepted only as the sole
     ///     dimension of a one-dimensional array.
     /// </summary>
@@ -1648,7 +1648,7 @@ internal sealed class LayoutParser
 
     /// <summary>
     ///     Zero or more words, each optionally preceded by layout-neutral qualifiers (<c>const</c>, <c>volatile</c>,
-    ///     <c>restrict</c>, LANG-13) that are consumed and discarded. A word is an extended identifier: letters,
+    ///     <c>restrict</c>) that are consumed and discarded. A word is an extended identifier: letters,
     ///     digits, <c>_</c>, pointer stars, and the endian markers <c>&lt;</c>/<c>&gt;</c>.
     /// </summary>
     private List<Identifier> ParseQualifiedWords()
@@ -1725,7 +1725,7 @@ internal sealed class LayoutParser
     }
 
     /// <summary>
-    ///     A declarator carries at most one trailing placement suffix: <c>@align(N)</c> (LANG-15 alignment override)
+    ///     A declarator carries at most one trailing placement suffix: <c>@align(N)</c> (alignment override)
     ///     or <c>@N</c> (offset assertion), tried in that order since <c>@align(</c> is the more specific prefix.
     /// </summary>
     private (Expr? AlignmentOverride, Expr? OffsetAssertion) ParsePlacementSuffix()

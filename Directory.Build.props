@@ -8,13 +8,11 @@
   <PropertyGroup>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Compiler and analyzer warnings fail the build in every project; CI cannot pass a new warning silently. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
-  <!--
-    Every project is held to the same analyzer gate by default, including the previously-unanalyzed
-    CStructSharp.Fuzz, CStructSharp.Benchmarks, CStructSharp.PackageConsumer, and CStructSharpWeb.Wasm projects
-    (the architecture improvement plan, AP-4.6).
-  -->
+  <!-- Every project is held to the same analyzer gate by default. -->
   <ItemGroup>
     <PackageReference Include="Roslynator.Analyzers" Version="5.0.0">
       <PrivateAssets>all</PrivateAssets>

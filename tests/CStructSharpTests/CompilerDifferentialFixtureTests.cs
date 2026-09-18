@@ -190,37 +190,37 @@ public class CompilerDifferentialFixtureTests
     {
         switch (element.ValueKind)
         {
-            case JsonValueKind.Object:
+        case JsonValueKind.Object:
+            {
+                var members = new Dictionary<string, object?>(StringComparer.Ordinal);
+                foreach (JsonProperty property in element.EnumerateObject())
                 {
-                    var members = new Dictionary<string, object?>(StringComparer.Ordinal);
-                    foreach (JsonProperty property in element.EnumerateObject())
-                    {
-                        members[property.Name] = ToValue(property.Value);
-                    }
-
-                    return members;
+                    members[property.Name] = ToValue(property.Value);
                 }
 
-            case JsonValueKind.Array:
-                return element.EnumerateArray().Select(ToValue).ToList();
-            case JsonValueKind.True:
-                return true;
-            case JsonValueKind.False:
-                return false;
-            case JsonValueKind.Number:
-                if (element.TryGetInt64(out long integer))
-                {
-                    return integer;
-                }
+                return members;
+            }
 
-                if (element.TryGetUInt64(out ulong wide))
-                {
-                    return wide;
-                }
+        case JsonValueKind.Array:
+            return element.EnumerateArray().Select(ToValue).ToList();
+        case JsonValueKind.True:
+            return true;
+        case JsonValueKind.False:
+            return false;
+        case JsonValueKind.Number:
+            if (element.TryGetInt64(out long integer))
+            {
+                return integer;
+            }
 
-                return element.GetDouble();
-            default:
-                return element.GetString();
+            if (element.TryGetUInt64(out ulong wide))
+            {
+                return wide;
+            }
+
+            return element.GetDouble();
+        default:
+            return element.GetString();
         }
     }
 
@@ -228,45 +228,45 @@ public class CompilerDifferentialFixtureTests
     {
         switch (expected.ValueKind)
         {
-            case JsonValueKind.Object:
+        case JsonValueKind.Object:
+            {
+                var members = (IReadOnlyDictionary<string, object?>)actual!;
+                foreach (JsonProperty property in expected.EnumerateObject())
                 {
-                    var members = (IReadOnlyDictionary<string, object?>)actual!;
-                    foreach (JsonProperty property in expected.EnumerateObject())
-                    {
-                        AssertValues(property.Value, members[property.Name], context + "." + property.Name);
-                    }
-
-                    break;
+                    AssertValues(property.Value, members[property.Name], context + "." + property.Name);
                 }
 
-            case JsonValueKind.Array:
-                {
-                    var items = ((System.Collections.IEnumerable)actual!).Cast<object?>().ToList();
-                    JsonElement[] expectedItems = expected.EnumerateArray().ToArray();
-                    Assert.AreEqual(expectedItems.Length, items.Count, context);
-                    for (int index = 0; index < items.Count; index++)
-                    {
-                        AssertValues(expectedItems[index], items[index], $"{context}[{index}]");
-                    }
+                break;
+            }
 
-                    break;
+        case JsonValueKind.Array:
+            {
+                var items = ((System.Collections.IEnumerable)actual!).Cast<object?>().ToList();
+                JsonElement[] expectedItems = expected.EnumerateArray().ToArray();
+                Assert.AreEqual(expectedItems.Length, items.Count, context);
+                for (int index = 0; index < items.Count; index++)
+                {
+                    AssertValues(expectedItems[index], items[index], $"{context}[{index}]");
                 }
 
-            case JsonValueKind.True or JsonValueKind.False:
-                Assert.AreEqual(expected.GetBoolean(), (bool)actual!, context);
                 break;
-            case JsonValueKind.Number when expected.TryGetInt64(out long integer):
-                Assert.AreEqual(integer, Convert.ToInt64(actual is EnumValueResult enumValue ? (object)(long)enumValue.Value : actual), context);
-                break;
-            case JsonValueKind.Number when expected.TryGetUInt64(out ulong wide):
-                Assert.AreEqual(wide, Convert.ToUInt64(actual), context);
-                break;
-            case JsonValueKind.Number:
-                Assert.AreEqual(expected.GetDouble(), Convert.ToDouble(actual), 0.0, context);
-                break;
-            default:
-                Assert.AreEqual(expected.GetString(), actual?.ToString(), context);
-                break;
+            }
+
+        case JsonValueKind.True or JsonValueKind.False:
+            Assert.AreEqual(expected.GetBoolean(), (bool)actual!, context);
+            break;
+        case JsonValueKind.Number when expected.TryGetInt64(out long integer):
+            Assert.AreEqual(integer, Convert.ToInt64(actual is EnumValueResult enumValue ? (object)(long)enumValue.Value : actual), context);
+            break;
+        case JsonValueKind.Number when expected.TryGetUInt64(out ulong wide):
+            Assert.AreEqual(wide, Convert.ToUInt64(actual), context);
+            break;
+        case JsonValueKind.Number:
+            Assert.AreEqual(expected.GetDouble(), Convert.ToDouble(actual), 0.0, context);
+            break;
+        default:
+            Assert.AreEqual(expected.GetString(), actual?.ToString(), context);
+            break;
         }
     }
 

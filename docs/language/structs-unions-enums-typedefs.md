@@ -84,7 +84,7 @@ or runtime-sized `_` is rejected.
 ### Anonymous promoted members
 
 The *member declarator* itself - not the inline struct's own type, which is already always unnamed - may also be
-omitted (LANG-14). When it is, the inline struct's own fields are promoted directly into the containing struct's
+omitted. When it is, the inline struct's own fields are promoted directly into the containing struct's
 own namespace instead of nesting under a name of their own:
 
 ```c

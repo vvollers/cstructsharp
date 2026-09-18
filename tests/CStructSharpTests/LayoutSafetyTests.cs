@@ -551,7 +551,7 @@ public class LayoutSafetyTests
     }
 
     /// <summary>
-    ///     Comma-separated declarators sharing one type (LANG-12) compile to the same fields as writing two separate
+    ///     Comma-separated declarators sharing one type compile to the same fields as writing two separate
     ///     declarations - this is the exact promoted shape of the retired multiple-declarators unsupported-corpus
     ///     fixture.
     /// </summary>
@@ -640,7 +640,7 @@ public class LayoutSafetyTests
     }
 
     /// <summary>
-    ///     <c>const</c>, <c>volatile</c>, and <c>restrict</c> (LANG-13) are recognized and discarded before the
+    ///     <c>const</c>, <c>volatile</c>, and <c>restrict</c> are recognized and discarded before the
     ///     type, with no effect on the compiled field - the exact promoted shape of the retired qualified-field
     ///     unsupported-corpus fixture.
     /// </summary>
@@ -664,7 +664,7 @@ public class LayoutSafetyTests
         Assert.AreEqual(1, cstruct.GetStructSizeInBytes("root"));
     }
 
-    /// <summary>A qualifier inside a later comma-separated declarator (LANG-12 + LANG-13 together) is also discarded.</summary>
+    /// <summary>A qualifier inside a later comma-separated declarator (qualifier discarding and comma-separated declarators together) is also discarded.</summary>
     [TestMethod]
     public void Qualifiers_InsideALaterDeclarator_AreDiscardedWithNoEffect()
     {
@@ -690,7 +690,7 @@ public class LayoutSafetyTests
         Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { uint8 value const; };"));
     }
 
-    /// <summary>An optional <c>struct</c> keyword (LANG-01) before a type reference compiles to the identical shape.</summary>
+    /// <summary>An optional <c>struct</c> keyword before a type reference compiles to the identical shape.</summary>
     [TestMethod]
     public void TagKeyword_StructBeforeAStructReference_CompilesToTheIdenticalShape()
     {
@@ -702,7 +702,7 @@ public class LayoutSafetyTests
         Assert.AreEqual(1, cstruct.GetStructSizeInBytes("root"));
     }
 
-    /// <summary>An optional <c>union</c> keyword (LANG-01) before a type reference compiles to the identical shape.</summary>
+    /// <summary>An optional <c>union</c> keyword before a type reference compiles to the identical shape.</summary>
     [TestMethod]
     public void TagKeyword_UnionBeforeAUnionReference_CompilesToTheIdenticalShape()
     {
@@ -711,7 +711,7 @@ public class LayoutSafetyTests
         Assert.AreEqual(2, cstruct.GetStructSizeInBytes("root"));
     }
 
-    /// <summary>An optional <c>enum</c> keyword (LANG-01) before a type reference compiles to the identical shape.</summary>
+    /// <summary>An optional <c>enum</c> keyword before a type reference compiles to the identical shape.</summary>
     [TestMethod]
     public void TagKeyword_EnumBeforeAnEnumReference_CompilesToTheIdenticalShape()
     {
@@ -732,7 +732,7 @@ public class LayoutSafetyTests
         Assert.AreEqual((byte)9, (byte)parsed.value.value);
     }
 
-    /// <summary>Omitting the tag keyword continues to work exactly as before LANG-01.</summary>
+    /// <summary>Omitting the tag keyword continues to work exactly as before the tag keyword became optional.</summary>
     [TestMethod]
     public void TagKeyword_OmittedEntirely_StillWorksUnchanged()
     {

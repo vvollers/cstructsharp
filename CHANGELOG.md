@@ -6,6 +6,14 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- Hygiene: `TreatWarningsAsErrors` in every project and a `dotnet format --verify-no-changes --severity warn` CI
+  step (the `.editorconfig` now mirrors the library's documentation-rule exclusions so build and format agree);
+  the dissect corpus sweep is an `OptIn` test category excluded by `tests/CStructSharpTests/default.runsettings`
+  (run it with `opt-in.runsettings`), so the default run has no skipped tests; the stale performance contracts
+  are re-baselined (`web-rc1.json` without its old package version and with the explorer's real dist size,
+  `non-web-rc1.json` with the 0.5 package sizes); work-item codes are gone from source comments and guides
+  (the contracts keep them, explained on the new "Traceability codes" project page) and project-history
+  narrative in the library comments is trimmed to the invariant.
 - **Tooling is Node only.** The 29 PowerShell scripts, the shared module, and the Python corpus extractor are
   replaced by Node scripts under `tools/` with the same checks, messages, and exit codes (`node tools/<area>/<name>.mjs
   --option value`; `--self-test` where a tool has fail-first fixtures): the quality validators (solution parity,

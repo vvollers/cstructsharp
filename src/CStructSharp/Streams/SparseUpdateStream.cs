@@ -18,7 +18,7 @@ internal sealed class SparseUpdateStream : Stream
     private bool disposed;
     private long position;
 
-    // Single-range staging (E2.13): almost every update writes one contiguous run of bytes (a scalar, an array
+    // Single-range staging: almost every update writes one contiguous run of bytes (a scalar, an array
     // element, a nested struct). Those bytes are kept in one pooled buffer; the chunk map is created only when a
     // second, non-adjacent run appears (a pointer target far from the pointer itself).
     private byte[]? rangeBytes;

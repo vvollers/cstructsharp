@@ -5,7 +5,7 @@ using System.IO;
 using CStructSharp.Diagnostics;
 
 /// <summary>
-///     Verifies the floating-point primitive codecs (LANG-04, ADR-015): <c>float32</c>/<c>float64</c> (with
+///     Verifies the floating-point primitive codecs: <c>float32</c>/<c>float64</c> (with
 ///     <c>float</c>/<c>double</c> as aliases) bit-reinterpret rather than numerically or textually convert, so
 ///     every representable IEEE-754 bit pattern - including NaN payloads, subnormals, and negative zero - round
 ///     trips exactly with no special-case behavior.

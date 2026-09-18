@@ -149,10 +149,10 @@ internal sealed class CompiledSizeQueries
     }
 
     /// <summary>
-    ///     Evaluates the total element count across every dimension of a (possibly multidimensional, LANG-05)
+    ///     Evaluates the total element count across every dimension of a (possibly multidimensional)
     ///     array strategy - the product of each dimension's own independently re-evaluated count, mirroring
     ///     <see cref="GetCompiledArrayCount"/>'s existing single-dimension evaluation exactly for every field this
-    ///     codebase supported before LANG-05, since a 1-D field's <see cref="CompiledArrayShape.Dimensions"/> has
+    ///     Codebase supported before multidimensional arrays, since a 1-D field's <see cref="CompiledArrayShape.Dimensions"/> has
     ///     exactly the one entry <see cref="GetCompiledArrayCount"/> already evaluates.
     /// </summary>
     public int GetCompiledFieldTotalElementCount(

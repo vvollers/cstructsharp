@@ -47,7 +47,7 @@ The public path is `root.item.code`. The anonymous inner declaration has no reus
 this declarator has its own name (`item`) - its member is not promoted to `root.code`.
 
 Dropping `item`'s own name instead (`struct { uint8 code; };`, no trailing identifier) makes this an *anonymous
-promoted member* (LANG-14): `code` becomes directly addressable as `root.code`, and the "one container cannot define
+promoted member*: `code` becomes directly addressable as `root.code`, and the "one container cannot define
 the same spelling twice" rule above extends to include every promoted member's own names in that same flat
 namespace. See [inline structs](structs-unions-enums-typedefs.md#inline-structs) for the full rules.
 

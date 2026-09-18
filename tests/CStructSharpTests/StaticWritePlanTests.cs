@@ -13,7 +13,7 @@ using CStructSharp.Values;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 /// <summary>
-///     Pins the static write plan (E2.10): serializing a fully fixed composite through the plan must be
+///     Pins the static write plan: serializing a fully fixed composite through the plan must be
 ///     byte-for-byte what the field-by-field writer produces, for every destination shape, every input shape
 ///     (parsed value, dictionary, POCO, typed arrays), every failure, every limit, and existing destination bytes.
 /// </summary>

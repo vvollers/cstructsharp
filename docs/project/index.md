@@ -26,6 +26,7 @@ Keep these reference pages nearby:
 - [Release process](release-process.md) separates candidate validation from publishing.
 - [Documentation deployment](documentation-deployment.md) and
   [documentation maintenance](maintenance.md) cover the site.
+- [Traceability codes](work-items.md) explains the `LANG-nn`/`QA-nn` tags the contracts carry.
 
 Routine development uses `CStructSharp.NonWeb.sln`. The WebAssembly adapter and browser apps are optional and
 are tested together only during final integration, because rebuilding them for every core or documentation change

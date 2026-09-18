@@ -7,8 +7,7 @@ using CStructSharp.Syntax;
 ///     Walks a composite's fields in declaration order, computing each field's start address and bit offset while
 ///     tracking bitfield storage-unit continuation and struct alignment. Used identically by target resolution
 ///     (which stops as soon as the requested field is found) and by extent measurement (which walks every field to
-///     compute the composite's total size) - the two previously carried byte-identical copies of this state
-///     machine.
+///     Compute the composite's total size).
 /// </summary>
 internal sealed class CompositeFieldPlacementCursor
 {

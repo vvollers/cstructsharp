@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using CStructSharp;
 using CStructSharp.Codecs;
 
-/// <summary>Compile-time codec identity (E1.5) must agree with the primitive registry vocabulary and the layout byte order.</summary>
+/// <summary>Compile-time codec identity must agree with the primitive registry vocabulary and the layout byte order.</summary>
 [TestClass]
 public class PrimitiveCodecTests
 {

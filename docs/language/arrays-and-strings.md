@@ -141,7 +141,7 @@ NUL-terminated text, or an array of structs containing bounded UTF-8 fields for 
 
 ## Multidimensional arrays
 
-`T field[a][b]...;` declares an array with more than one dimension, outermost first (LANG-05):
+`T field[a][b]...;` declares an array with more than one dimension, outermost first:
 
 ```c
 struct root {

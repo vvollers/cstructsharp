@@ -292,7 +292,7 @@ for (const [suffix, tag] of [["<", "le"], [">", "be"]]) {
     });
   }
 }
-// Neutral spelling (no endianness suffix): the common way to declare an integer array; E1.5 made it take the same
+// Neutral spelling (no endianness suffix): the common way to declare an integer array; it takes the same
 // bulk path as the suffixed spellings.
 add({
   id: "array-u32-neutral-262144",

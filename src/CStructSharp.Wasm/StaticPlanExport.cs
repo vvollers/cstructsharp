@@ -14,7 +14,7 @@ using CStructSharp.Reading;
 using CStructSharp.Syntax;
 
 /// <summary>
-///     E3.9: describes a fully fixed root composite (its static read plan, E2.5) as JSON so the JavaScript side can
+///     Describes a fully fixed root composite (its static read plan) as JSON so the JavaScript side can
 ///     read such layouts with <c>DataView</c> alone. The description is the compiler's own operation list — offsets,
 ///     codecs, counts, nested plans, enum member tables — not a second grammar; the JavaScript executor reproduces
 ///     the JSON projection's value shapes and falls back to WebAssembly for anything the plan does not cover.

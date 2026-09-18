@@ -149,11 +149,13 @@ internal static class MemoryTutorialExamples
         // Serialize creates each record's bytes; placing them at 8 and 24 is the application's decision.
         byte[] first = session.Serialize("Node", new Dictionary<string, object?>
         {
-            ["value"] = 10U, ["next"] = new StoredPointer(16),
+            ["value"] = 10U,
+            ["next"] = new StoredPointer(16),
         });
         byte[] second = session.Serialize("Node", new Dictionary<string, object?>
         {
-            ["value"] = 20U, ["next"] = new StoredPointer(0),
+            ["value"] = 20U,
+            ["next"] = new StoredPointer(0),
         });
         source.Write(8, first, new MemoryAccessContext());
         source.Write(24, second, new MemoryAccessContext());

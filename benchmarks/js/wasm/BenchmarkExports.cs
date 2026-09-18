@@ -66,7 +66,7 @@ public partial class CStructExports
         return total;
     }
 
-    /// <summary>Compiles through the bridge's own path (a cache hit after the first call since E3.2).</summary>
+    /// <summary>Compiles through the bridge's own path (a cache hit after the first call).</summary>
     [JSExport]
     public static void BenchCompile(string definition, string optionsJson)
     {
@@ -119,7 +119,7 @@ public partial class CStructExports
     [JSExport]
     public static double BenchAllocatedBytes() => GC.GetTotalAllocatedBytes(precise: false);
 
-    /// <summary>Options JSON deserialization alone (public-path fixed cost breakdown, E3.5/E3.8 scoping).</summary>
+    /// <summary>Options JSON deserialization alone (public-path fixed cost breakdown).</summary>
     [JSExport]
     public static int BenchOptionsParse(string optionsJson) => ParseOptions(optionsJson).PointerSize ?? 0;
 
@@ -132,7 +132,7 @@ public partial class CStructExports
     public static int BenchLayoutLookup(string definition, string optionsJson) => CreateCStruct(definition, ParseOptions(optionsJson)).PointerSize;
 
     /// <summary>
-    ///     Marker for the AOT profiler (E3.1b): a profiler-enabled bundle is started with
+    ///     Marker for the AOT profiler: a profiler-enabled bundle is started with
     ///     <c>aotProfilerOptions.writeAt</c> naming this method, so the profile is written when the recorder calls it
     ///     after the workload. Empty on purpose.
     /// </summary>

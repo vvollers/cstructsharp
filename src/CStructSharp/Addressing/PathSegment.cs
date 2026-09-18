@@ -6,7 +6,7 @@ using System.Collections.Generic;
 internal readonly struct PathSegment
 {
     /// <summary>
-    ///     Creates a path segment from a field name and zero or more zero-based array indexes (LANG-05) - empty
+    ///     Creates a path segment from a field name and zero or more zero-based array indexes - empty
     ///     for "no index," one entry for a 1-D array index exactly as before, N entries for one bracket per
     ///     dimension of a multidimensional array (<c>matrix[2][3]</c>).
     /// </summary>

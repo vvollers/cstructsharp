@@ -4,7 +4,7 @@ using System;
 using System.Buffers.Binary;
 using CStructSharp.Diagnostics;
 
-/// <summary>Identity of a primitive codec, resolved once per compiled field (E1.5).</summary>
+/// <summary>Identity of a primitive codec, resolved once per compiled field.</summary>
 internal enum PrimitiveCodecKind : byte
 {
     /// <summary>Not a primitive (composite, pointer, unknown).</summary>
@@ -57,7 +57,7 @@ internal enum PrimitiveCodecKind : byte
 /// <summary>
 ///     Everything the hot paths need to know about a field's primitive codec without touching its name again:
 ///     the kind, the fixed element size (0 when variable), the byte order (neutral spellings resolved against the
-///     layout's order at compile time), and the category flags that used to be string comparisons.
+///     layout's order at compile time), and the category flags, so no hot path compares the spelling again.
 /// </summary>
 internal readonly record struct PrimitiveCodec(PrimitiveCodecKind Kind, byte Size, bool LittleEndian, char Terminator, bool LayoutLittleEndian)
 {
@@ -174,7 +174,7 @@ internal readonly record struct PrimitiveCodec(PrimitiveCodecKind Kind, byte Siz
     /// <summary>
     ///     Encodes one caller-supplied value into exactly this codec's bytes, applying the same <see cref="Convert"/>
     ///     conversion (and the same range failures) as the stream write handler for the same primitive name, so a
-    ///     static write plan (E2.10) produces the bytes and the errors the general writer produces.
+    ///     static write plan produces the bytes and the errors the general writer produces.
     /// </summary>
     public void WriteNumeric(Span<byte> bytes, object value)
     {

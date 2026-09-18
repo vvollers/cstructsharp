@@ -118,7 +118,7 @@ public partial class CStruct
             IDictionary<string, object?> currentContainerDict = currentContainer;
             if (name.Length == 0)
             {
-                // An anonymous promoted union (LANG-14 extended to unions): its members are spliced
+                // An anonymous promoted union (the promoted-member rule extended to unions): its members are spliced
                 // into the parent's container exactly like an anonymous struct's, read from the
                 // union's own decoded views so every member sees the same overlapping bytes.
                 UnionValue promoted = this.ReadUnionValue(composite, state, debugStack);
@@ -144,7 +144,7 @@ public partial class CStruct
 
         if (name.Length == 0)
         {
-            // An anonymous promoted member (LANG-14) has no name of its own - its children are read
+            // An anonymous promoted member has no name of its own - its children are read
             // directly into the parent's own container, with no nested StructValue, and its own
             // element is excluded from the debug stack so a descendant's path reads `root.x`, not
             // `root..x`. Transitive promotion works for free: a promoted member's own promoted child
@@ -301,7 +301,7 @@ public partial class CStruct
                         }
                         else if (compiledField.Array.Dimensions.Length > 1)
                         {
-                            // Every dimension of a multidimensional array is compile-time-fixed (LANG-05's
+                            // Every dimension of a multidimensional array is compile-time-fixed (the multidimensional array's
                             // fixed-dimensions-only slice), so the total leaf count is already known without
                             // re-evaluating any expression against the current stream's variables. Elements are
                             // still read in the same flat, sequential, row-major order a 1-D array would use; only
@@ -403,7 +403,7 @@ public partial class CStruct
 
                     bool isArray = hasFixedArrayDeclarator;
 
-                    // Bulk path for arrays of fixed-width numeric primitives (E2.3): one block read and span decoding
+                    // Bulk path for arrays of fixed-width numeric primitives: one block read and span decoding
                     // instead of the per-element loop below. Restricted to the shapes whose per-element side effects
                     // are exactly reproducible there: cursor placement (the field start is already set), no debug
                     // records, no union rewinds, no bitfields, pointers, enums, structs, or character types.
@@ -478,7 +478,7 @@ public partial class CStruct
                         firstElement = numFieldValues;
                     }
 
-                    // E2.4 prototype: a one-dimensional array of a fully fixed struct whose whole extent is in memory
+                    // A one-dimensional array of a fully fixed struct whose whole extent is in memory
                     // is read by looping the element's static plan over one span instead of dispatching per element.
                     if (isArray && firstElement == 0 && numFieldValues > 0 && !state.Debug && !useLegacyPlacement && !StaticReadPlan.DisabledForTesting &&
                         compiledField.PointerDepth == 0 && nestedComposite is { IsUnion: false } composite && compiledField.Array.Dimensions.Length == 1)
@@ -682,7 +682,7 @@ public partial class CStruct
                                 state.CurrentFieldAlignment = structAlignment;
                             }
 
-                            // Fixed-width numerics are decoded straight from a memory-backed cursor (E2.1); every
+                            // Fixed-width numerics are decoded straight from a memory-backed cursor; every
                             // other codec, and every stream source, keeps the delegate path.
                             // A bitfield whose placed unit differs from its declared type (a packed SysV window) is
                             // read as a raw unsigned unit of that size; every other field takes its codec.
@@ -752,7 +752,7 @@ public partial class CStruct
                                 state.Stream.Position = finalEndPos;
                             }
 
-                            // An anonymous nonzero-width bitfield (LANG-17) is pure padding: its bits are read and
+                            // An anonymous nonzero-width bitfield is pure padding: its bits are read and
                             // consumed above (and still appear in debug output, registered before this point), but
                             // it has no name to store into the result container or capture as an expression variable.
                             if (compiledField.Name.Length > 0)
@@ -768,7 +768,7 @@ public partial class CStruct
 
                                 if (!compiledField.CapturesLayoutVariable && !state.CaptureAllLayoutVariables)
                                 {
-                                    // No expression in this layout can name the field (E2.6): skip the capture.
+                                    // No expression in this layout can name the field: skip the capture.
                                 }
                                 else if (content is Pointer p)
                                 {

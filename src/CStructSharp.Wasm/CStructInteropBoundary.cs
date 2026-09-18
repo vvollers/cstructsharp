@@ -76,7 +76,7 @@ public partial class CStructExports
         }
 
         // Every public export used to recompile the definition on each call, which was 70-85 % of a small public
-        // parse (E3.2). The bounded process-wide cache keys on the definition text and every option above, so a
+        // parse. The bounded process-wide cache keys on the definition text and every option above, so a
         // changed pointer size, byte order, or limit still compiles afresh; a compiled layout is immutable.
         return CStruct.GetOrCompile(
             definition,
@@ -277,7 +277,7 @@ public partial class CStructExports
     ///     <see cref="Struct"/>; a <see cref="Typedef"/> wrapping a <see cref="Struct"/> is not itself a usable root
     ///     path when the underlying struct is also reachable by its own tag (confirmed by
     ///     <c>CStructPathException: The selected path does not resolve to a composite object.</c>), so it is only
-    ///     used as a fallback for an anonymous <c>typedef struct { ... } Name;</c> alias (LANG-02), which has no
+    ///     used as a fallback for an anonymous <c>typedef struct { ... } Name;</c> alias, which has no
     ///     separate tagged entry to prefer.
     /// </summary>
     private static string ResolveRoot(CStruct cstruct, InteropOptionsDto options)

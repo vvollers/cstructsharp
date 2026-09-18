@@ -9,7 +9,7 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-/// <summary>Pins the typed parsed-array contract (E2.3 stage 2): a <see cref="PrimitiveArray{T}"/> is the documented <c>IList&lt;object?&gt;</c> plus a typed span.</summary>
+/// <summary>Pins the typed parsed-array contract: a <see cref="PrimitiveArray{T}"/> is the documented <c>IList&lt;object?&gt;</c> plus a typed span.</summary>
 [TestClass]
 public class PrimitiveArrayTests
 {

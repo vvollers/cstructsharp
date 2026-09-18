@@ -491,3 +491,29 @@ dotnet_diagnostic.SA1649.severity = warning
 dotnet_diagnostic.SA1650.severity = none
 # Do not use placeholder elements
 dotnet_diagnostic.SA1651.severity = warning
+
+# Documentation rules are enforced only where XML documentation is generated (the library), and there the same
+# rules are excluded from the build through the project's NoWarn; keeping the two lists identical lets
+# `dotnet format --verify-no-changes --severity warn` agree with `dotnet build`.
+[src/CStructSharp/**.cs]
+dotnet_diagnostic.CS1591.severity = none
+dotnet_diagnostic.SA1600.severity = none
+dotnet_diagnostic.SA1602.severity = none
+dotnet_diagnostic.SA1611.severity = none
+dotnet_diagnostic.SA1615.severity = none
+dotnet_diagnostic.SA1618.severity = none
+dotnet_diagnostic.SA1623.severity = none
+dotnet_diagnostic.SA1642.severity = none
+
+# Tests, benchmarks, tools, and examples do not generate XML documentation, so StyleCop's documentation rules do
+# not run in their builds (SA0001); `dotnet format` runs them regardless, so they are excluded here too.
+[{tests,benchmarks,docs/examples,src/CStructSharp.Wasm}/**.cs]
+dotnet_diagnostic.SA1600.severity = none
+dotnet_diagnostic.SA1601.severity = none
+dotnet_diagnostic.SA1602.severity = none
+dotnet_diagnostic.SA1611.severity = none
+dotnet_diagnostic.SA1615.severity = none
+dotnet_diagnostic.SA1618.severity = none
+dotnet_diagnostic.SA1623.severity = none
+dotnet_diagnostic.SA1629.severity = none
+dotnet_diagnostic.SA1642.severity = none

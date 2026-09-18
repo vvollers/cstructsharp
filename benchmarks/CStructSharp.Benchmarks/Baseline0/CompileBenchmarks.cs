@@ -42,7 +42,7 @@ public class CompileBenchmarks
         return last;
     }
 
-    /// <summary>A repeat request through the shared cache: the cost of a hit (E3.2/E1.1).</summary>
+    /// <summary>A repeat request through the shared cache: the cost of a hit.</summary>
     [Benchmark]
     public CStruct GetOrCompile_Hit()
     {

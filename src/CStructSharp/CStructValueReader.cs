@@ -49,7 +49,7 @@ public sealed partial class CStruct
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
         try
         {
-            // A fully fixed struct read into a POCO takes the typed plan (E2.7) inside ReadValueCore and comes back
+            // A fully fixed struct read into a POCO takes the typed plan inside ReadValueCore and comes back
             // already as a T; Convert then returns it unchanged.
             object? naturalValue = this.ReadValueCore(
                 stream,
@@ -108,7 +108,7 @@ public sealed partial class CStruct
 
     /// <summary>Chooses the exact compiled decoder appropriate for one semantic target.</summary>
     /// <summary>
-    ///     The typed read plan's entry (E2.7): a root or nested struct target read into <paramref name="targetType"/>
+    ///     The typed read plan's entry: a root or nested struct target read into <paramref name="targetType"/>
     ///     directly when the plan is equivalent to the general read-then-convert path.
     /// </summary>
     private bool TryReadResolvedTyped(

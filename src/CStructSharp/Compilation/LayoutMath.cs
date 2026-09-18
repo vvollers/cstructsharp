@@ -43,7 +43,7 @@ internal static class LayoutMath
     }
 
     /// <summary>
-    ///     Validates an explicit alignment override (LANG-15's <c>@align(N)</c>) - it must be a positive power of two,
+    ///     Validates an explicit alignment override (<c>@align(N)</c>) - it must be a positive power of two,
     ///     matching every native ABI's own alignment rule.
     /// </summary>
     public static int ValidateExplicitAlignment(int alignment, string fieldName)

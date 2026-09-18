@@ -1,4 +1,4 @@
-// Records an AOT profile (E3.1b) from a profiler-enabled bundle: run the representative workload, trigger the
+// Records an AOT profile from a profiler-enabled bundle: run the representative workload, trigger the
 // profiler's write-at method (which sends the data to BenchReceiveAotProfile), and save it for `-p:AOTProfilePath=`.
 //   node build-wasm.mjs --bundle bundle-aotprof "-p:WasmProfilers=aot;"
 //   BENCH_BUNDLE=bundle-aotprof node bench/record-aot-profile.mjs [output.aotprofile]

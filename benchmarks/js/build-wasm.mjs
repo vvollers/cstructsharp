@@ -20,7 +20,7 @@ const argv = process.argv.slice(2);
 const bundleIndex = argv.indexOf("--bundle");
 const bundleName = bundleIndex >= 0 ? argv.splice(bundleIndex, 2)[1] : "bundle";
 const bundle = path.join(output, bundleName);
-const extra = argv; // e.g. -p:RunAOTCompilation=true for the E3.1 experiment
+const extra = argv; // e.g. -p:RunAOTCompilation=true for the AOT experiment
 const result = spawnSync(
   "dotnet",
   [

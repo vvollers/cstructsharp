@@ -8,7 +8,7 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
 /// <summary>
-///     Verifies anonymous promoted struct members (LANG-14, <c>struct { ... };</c> with no trailing name): its own
+///     Verifies anonymous promoted struct members (<c>struct { ... };</c> with no trailing name): its own
 ///     fields are spliced directly into the containing struct's addressable path/POCO/JSON namespace instead of
 ///     nesting under a name of their own, following <c>docs/adr/0014-anonymous-promoted-struct-union-members.md</c>.
 /// </summary>
@@ -209,8 +209,8 @@ public class AnonymousPromotedMemberTests
     }
 
     /// <summary>
-    ///     A struct with both an anonymous bitfield (LANG-17) and a promoted member (LANG-14) as siblings writes
-    ///     each correctly - the promoted-member check must run before the LANG-17 empty-name check, since both
+    ///     A struct with both an anonymous bitfield and a promoted member as siblings writes
+    ///     Each correctly - the promoted-member check must run before the anonymous-bitfield empty-name check, since both
     ///     test the same empty declared name.
     /// </summary>
     [TestMethod]

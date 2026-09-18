@@ -45,7 +45,7 @@ The exact syntax appears in [Public path EBNF](grammar.md#public-path-ebnf).
 
 ## Multidimensional arrays
 
-A field declared with more than one dimension (`uint8 matrix[3][4]`, LANG-05) accepts up to that many indices in one
+A field declared with more than one dimension (`uint8 matrix[3][4]`) accepts up to that many indices in one
 segment, outermost first, matching the declaration's own bracket order:
 
 ```text

@@ -35,6 +35,7 @@ public class DissectCorpusSweepTests
     ///     definitions are reported so the status can be ratcheted forward.
     /// </summary>
     [TestMethod]
+    [TestCategory("OptIn")]
     public void Corpus_NeverRegresses()
     {
         string? corpusPath = Environment.GetEnvironmentVariable("CSTRUCTSHARP_DISSECT_CORPUS");

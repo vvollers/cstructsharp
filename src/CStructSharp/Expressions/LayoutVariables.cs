@@ -8,7 +8,7 @@ using CStructSharp.Syntax;
 ///     The operation-owned layout-variable dictionary. <see cref="CaptureAll"/> is set when a caller-supplied
 ///     expression survived resolution unevaluated (an exact-enum-domain definition override, internal test inputs);
 ///     such an expression can name any field, so the reader must then capture every field rather than only the
-///     ones the compiled layout's own expressions reference (E2.6).
+///     ones the compiled layout's own expressions reference.
 /// </summary>
 internal sealed class LayoutVariables : Dictionary<string, Expr>
 {

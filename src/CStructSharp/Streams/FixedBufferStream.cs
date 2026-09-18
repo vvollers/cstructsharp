@@ -59,7 +59,7 @@ internal sealed unsafe class FixedBufferStream : Stream
     {
     }
 
-    /// <summary>Exposes the pinned region so a read-budget cursor can serve reads without virtual calls (E2.1).</summary>
+    /// <summary>Exposes the pinned region so a read-budget cursor can serve reads without virtual calls.</summary>
     internal bool TryGetReadOnlyRegion(out byte* region, out long length)
     {
         region = this.buffer;

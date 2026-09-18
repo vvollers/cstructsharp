@@ -5,7 +5,7 @@ using System.IO;
 using CStructSharp.Diagnostics;
 
 /// <summary>
-///     Verifies the explicit per-struct/union alignment override (LANG-15, <c>struct/union @align(N)</c>): it
+///     Verifies the explicit per-struct/union alignment override (<c>struct/union @align(N)</c>): it
 ///     clamps every one of that composite's own fields' alignment to at most N (matching <c>#pragma pack(N)</c>
 ///     semantics, not <c>alignas</c>, which can also increase alignment), a field's own explicit override always
 ///     wins outright, and it has no effect in packed mode - the same scope decision the field-level override

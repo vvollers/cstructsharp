@@ -3,7 +3,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { repositoryRoot } from "./fixtures.mjs";
 
-// BENCH_BUNDLE selects an alternative staged bundle (e.g. "bundle-aot" for the E3.1 experiment).
+// BENCH_BUNDLE selects an alternative staged bundle (e.g. "bundle-aot" for the AOT experiment).
 export const bundleDirectory = path.join(repositoryRoot, "artifacts/js-bench", process.env.BENCH_BUNDLE ?? "bundle");
 
 export async function loadBundle(options = {}) {

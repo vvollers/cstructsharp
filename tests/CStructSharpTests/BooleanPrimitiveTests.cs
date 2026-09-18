@@ -5,7 +5,7 @@ using System.IO;
 using CStructSharp.Diagnostics;
 
 /// <summary>
-///     Verifies the boolean primitive codec (LANG-04 bool split-out): any nonzero byte reads as true, zero reads as
+///     Verifies the boolean primitive codec (bool as its own codec): any nonzero byte reads as true, zero reads as
 ///     false, and every write/serialize/update always produces the canonical 0x00/0x01 byte regardless of what was
 ///     previously stored.
 /// </summary>

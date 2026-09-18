@@ -4,7 +4,7 @@ using System.Text;
 using CStructSharp;
 using CStructSharp.Diagnostics;
 
-/// <summary>Owns the five bounded managed QA-04 target entry points.</summary>
+/// <summary>Owns the five bounded managed fuzz target entry points.</summary>
 internal sealed class FuzzTargets
 {
     private const string BinaryDefinition = "struct root { byte count; uint16 values[count]; char name[]; };";

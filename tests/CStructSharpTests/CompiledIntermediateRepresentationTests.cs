@@ -160,7 +160,7 @@ public class CompiledIntermediateRepresentationTests
     }
 
     /// <summary>
-    ///     An anonymous promoted member's own compiled field (LANG-14) is reachable through
+    ///     An anonymous promoted member's own compiled field is reachable through
     ///     <see cref="CompiledCompositeType.PromotedFields"/>, a named inline struct's composite has none, and the
     ///     accessor only ever reports one level - the outer composite's grandchild is not included.
     /// </summary>
@@ -388,7 +388,7 @@ public class CompiledIntermediateRepresentationTests
     }
 
     /// <summary>
-    ///     A hand-built two-dimensional shape (LANG-05) peels one dimension per call, exactly mirroring a 1-D
+    ///     A hand-built two-dimensional shape peels one dimension per call, exactly mirroring a 1-D
     ///     array's existing single-call collapse to <see cref="CompiledArrayShape.Scalar"/> once every dimension
     ///     has been consumed - no parser/compiled-model integration is exercised here, only the shape peeling
     ///     mechanism itself.
@@ -419,7 +419,7 @@ public class CompiledIntermediateRepresentationTests
         Assert.AreEqual(1, scalar.TotalFixedElementCount);
     }
 
-    /// <summary>Every array shape compiled today (1-D or scalar) has exactly the Dimensions length LANG-05 expects.</summary>
+    /// <summary>Every array shape compiled today (1-D or scalar) has exactly the Dimensions length the multidimensional-array model expects.</summary>
     [TestMethod]
     public void CompiledArrayShape_ExistingOneDimensionalShapesHaveASingleDimensionEntry()
     {
@@ -438,11 +438,11 @@ public class CompiledIntermediateRepresentationTests
 
     /// <summary>
     ///     <see cref="CompiledSizeQueries.GetCompiledFieldStorageSize"/> now sources its element count from the
-    ///     new <see cref="CompiledSizeQueries.GetCompiledFieldTotalElementCount"/> (LANG-05) instead of
+    ///     new <see cref="CompiledSizeQueries.GetCompiledFieldTotalElementCount"/> instead of
     ///     <see cref="CompiledSizeQueries.GetCompiledArrayCount"/> directly - for an existing 1-D field this must
     ///     produce the exact same result, since a 1-D field's Dimensions list has exactly the one entry
     ///     <see cref="CompiledSizeQueries.GetCompiledArrayCount"/> already evaluates. A genuine multidimensional
-    ///     field is exercised once the grammar supports declaring one (see the LANG-05 grammar/compiled-model
+    ///     Field is exercised once the grammar supports declaring one (see the multidimensional-array grammar/compiled-model
     ///     seam).
     /// </summary>
     [TestMethod]

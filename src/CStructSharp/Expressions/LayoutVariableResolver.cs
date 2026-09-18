@@ -12,7 +12,7 @@ using CStructSharp.Syntax;
 internal sealed class LayoutVariableResolver
 {
     // Plain collections used read-only after construction: FrozenDictionary/FrozenSet construction dominated small
-    // layout compilation (E1.3a) for key sets of a handful of names.
+    // layout compilation for key sets of a handful of names.
     private readonly Dictionary<string, ImmutableArray<string>> definitionDependencies;
     private readonly Dictionary<string, Defines> definitions;
     private readonly ExpressionEvaluator evaluator;
@@ -118,7 +118,7 @@ internal sealed class LayoutVariableResolver
             {
                 // A supplied expression that survived resolution unevaluated can name a field at evaluation time,
                 // so that operation must capture every field, not only the ones the layout's own expressions
-                // reference (E2.6). Public integer inputs are literals and never take this path.
+                // reference. Public integer inputs are literals and never take this path.
                 foreach (string name in suppliedVariables!.Keys)
                 {
                     if (resolved.TryGetValue(name, out Expr? expression) &&

@@ -12,7 +12,7 @@ using CStructSharp.Diagnostics;
 internal static class CStructPathResolver
 {
     // Paths are almost always string literals repeated per operation; a small per-process cache keyed by the exact
-    // string skips re-parsing them (E2.12). Bounded so unbounded generated paths cannot grow it without limit.
+    // string skips re-parsing them. Bounded so unbounded generated paths cannot grow it without limit.
     private const int CacheCapacity = 256;
     private static readonly ConcurrentDictionary<string, PathSegment[]> Cache = new(StringComparer.Ordinal);
 

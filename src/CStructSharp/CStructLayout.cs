@@ -17,8 +17,8 @@ public partial class CStruct
 
     /// <summary>
     ///     Finds the exact writable layout shape selected by a direct, non-pointer path. An N-dimensional array
-    ///     (LANG-05) peels one dimension per supplied index, the same "repeat the existing single-dimension
-    ///     operation once per dimension" mechanism <see cref="ResolveTargetInField"/> uses (ADR-016 decision 5);
+    /// peels one dimension per supplied index, the same "repeat the existing single-dimension
+    ///     operation once per dimension" mechanism <see cref="ResolveTargetInField"/> uses;
     ///     fewer indices than dimensions selects the corresponding lower-dimensional sub-array (decision 4).
     /// </summary>
     private CompiledField ResolveElementPath(

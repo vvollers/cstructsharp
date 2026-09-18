@@ -10,7 +10,7 @@ using CStructSharp.Syntax;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 /// <summary>
-///     Pins E2.6: a field's value is published as a layout variable exactly when an expression can name it, so
+///     Pins that a field's value is published as a layout variable exactly when an expression can name it, so
 ///     skipping the capture for every other field can never change an observable result.
 /// </summary>
 [TestClass]

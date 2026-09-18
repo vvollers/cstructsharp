@@ -2,7 +2,7 @@ namespace CStructSharpTests;
 
 using CStructSharp;
 
-/// <summary>Pins the per-parse allocation of the shared-shape struct result model (E2.2).</summary>
+/// <summary>Pins the per-parse allocation of the shared-shape struct result model.</summary>
 [TestClass]
 public class StructValueAllocationTests
 {
@@ -34,7 +34,7 @@ public class StructValueAllocationTests
         GC.KeepAlive(parsed);
 
         // The ExpandoObject model cost ≈ 770 KB for this input; the slot model measured ≈ 511 KB, and skipping the
-        // layout-variable capture of unreferenced scalars (E2.6) ≈ 425 KB on both TFMs. The remainder is the
+        // layout-variable capture of unreferenced scalars ≈ 425 KB on both TFMs. The remainder is the
         // per-struct placement cursor and the boxed scalars. The budget leaves room for runtime differences while
         // rejecting a return to either earlier state.
         long budget = 480_000;

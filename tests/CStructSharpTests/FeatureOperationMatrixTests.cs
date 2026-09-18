@@ -651,7 +651,8 @@ public class FeatureOperationMatrixTests
             "root.values",
             2,
             Variables: new Dictionary<string,
-            int> { ["N"] = 2, });
+            int>
+            { ["N"] = 2, });
         yield return new MatrixCase(
             "nested-struct",
             "struct child { uint8 value; }; struct root { child item; byte tail; };",

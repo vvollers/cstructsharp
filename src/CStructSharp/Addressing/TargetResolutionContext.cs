@@ -39,7 +39,7 @@ internal sealed class TargetResolutionContext
     public int? UnionStorageSize { get; }
 
     /// <summary>
-    ///     Returns a context with one declared field and every index supplied for it (LANG-05: zero or more, one
+    ///     Returns a context with one declared field and every index supplied for it (zero or more, one
     ///     per dimension actually indexed) appended.
     /// </summary>
     public TargetResolutionContext EnterField(string fieldName, IReadOnlyList<int> selectedIndexes)

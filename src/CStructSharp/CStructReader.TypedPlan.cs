@@ -13,7 +13,7 @@ using CStructSharp.Values;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>
-///     Typed read plan (E2.7): <c>ReadValue&lt;T&gt;</c> of a fully fixed composite binds the static read plan's
+///     Typed read plan: <c>ReadValue&lt;T&gt;</c> of a fully fixed composite binds the static read plan's
 ///     operations to the target type's members once and then reads each member straight from the bytes into a new
 ///     instance, skipping the intermediate <see cref="StructValue"/> and its
 ///     name-based conversion. Values, conversions, member order and every failure message are those of parsing

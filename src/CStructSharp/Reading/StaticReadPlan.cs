@@ -7,7 +7,7 @@ using CStructSharp.Syntax;
 using CStructSharp.Values;
 
 /// <summary>
-///     The flat operation list that reads one fully fixed composite from a span (E2.5): every offset, size and
+///     The flat operation list that reads one fully fixed composite from a span: every offset, size and
 ///     value kind is decided when the layout is compiled, so a parse of such a composite is a loop over
 ///     <see cref="Operations"/> writing straight into <see cref="StructValue"/> slots instead of an interpretation
 ///     of the declaration tree per field. Built lazily on the first parse of a composite; <see langword="null"/>
@@ -86,7 +86,7 @@ internal sealed class StaticReadPlan
         this.ChargedAlignedBytes = checked((int)(chargedAligned + (size - lastFieldEnd)));
     }
 
-    /// <summary>Whether every operation has a span writer (E2.10); character buffers stay on the general writer for now.</summary>
+    /// <summary>Whether every operation has a span writer; character buffers stay on the general writer for now.</summary>
     public bool SupportsWrite { get; }
 
     /// <summary>The end of the last member; an aligned layout's writer zero-fills from here to <see cref="Size"/>.</summary>
@@ -154,7 +154,7 @@ internal sealed class StaticReadPlan
             int absoluteOffset = baseOffset + offset;
             if (composite.PromotedFields.Contains(field))
             {
-                // An anonymous promoted member (LANG-14) reads its fields into the parent's own slots.
+                // An anonymous promoted member reads its fields into the parent's own slots.
                 if (field.Type.Symbol.Definition is not CompiledCompositeType promoted || promoted.Symbol.Declaration is Struct { IsUnion: true } ||
                     !TryAppend(promoted, shape, absoluteOffset, operations, depth + 1))
                 {

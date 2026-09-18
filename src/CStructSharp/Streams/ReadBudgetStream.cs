@@ -9,7 +9,7 @@ using CStructSharp.Diagnostics;
 ///     Counts bytes read through a caller-owned stream and enforces one read-like operation's byte budget. When the
 ///     source is memory (a pinned region or an exposable <see cref="MemoryStream"/>) it also acts as the operation's
 ///     read cursor: the position lives here, fixed-width values are served straight from memory, and the inner
-///     stream's position is written back once by <see cref="FlushPosition"/> (E2.1).
+///     stream's position is written back once by <see cref="FlushPosition"/>.
 /// </summary>
 internal sealed unsafe class ReadBudgetStream : Stream
 {

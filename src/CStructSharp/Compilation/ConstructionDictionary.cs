@@ -32,9 +32,9 @@ internal sealed class ConstructionDictionary<TKey, TValue> : IReadOnlyDictionary
     public IEnumerable<TKey> Keys => this.Select(pair => pair.Key);
 
     /// <summary>
-    ///     The frozen, read-only view. Freezing no longer copies into a <c>FrozenDictionary</c>: that construction
-    ///     was a quarter of a small layout's compile time (E1.3a), while the same dictionary used read-only after
-    ///     the builder handle is withdrawn gives identical immutability for the caller.
+    ///     The frozen, read-only view: the same dictionary, read-only once the builder handle is withdrawn, which
+    ///     Gives the caller immutability without copying into a <c>FrozenDictionary</c> (a copy costs about a
+    ///     Quarter of a small layout's compile time).
     /// </summary>
     public IReadOnlyDictionary<TKey, TValue> Snapshot =>
         this.frozen ? this : throw new InvalidOperationException("The construction dictionary has not been frozen.");

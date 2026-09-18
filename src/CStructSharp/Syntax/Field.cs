@@ -14,7 +14,7 @@ internal class Field : CStructElement
 
     /// <summary>
     ///     The sentinel unsized-character-array count expression (<c>char name[];</c>) - valid only as the sole
-    ///     entry of a one-dimensional <see cref="ArrayCount"/> list (LANG-05 decision 6: an unsized dimension can
+    ///     Entry of a one-dimensional <see cref="ArrayCount"/> list (an unsized dimension can
     ///     never appear as one of several dimensions of a multidimensional array).
     /// </summary>
     public static readonly Expr UnknownArraysize = new Literal(int.MinValue);
@@ -69,8 +69,8 @@ internal class Field : CStructElement
 
     /// <summary>
     ///     Every array dimension's own count expression, outermost first - empty for a scalar field
-    ///     (<see cref="NoArray"/>), one entry for every array this codebase supported before LANG-05, N entries
-    ///     for a multidimensional (LANG-05) field.
+    ///     (<see cref="NoArray"/>), one entry for every array this codebase supported before multidimensional arrays, N entries
+    ///     for a multidimensional field.
     /// </summary>
     public IReadOnlyList<Expr> ArrayCount { get; }
 

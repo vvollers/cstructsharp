@@ -8,7 +8,7 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
 /// <summary>
-///     Verifies multidimensional arrays (LANG-05, <c>value[rows][columns]</c>), following
+///     Verifies multidimensional arrays (<c>value[rows][columns]</c>), following
 ///     <c>docs/adr/0016-multidimensional-arrays.md</c>'s fixed-dimensions-only first slice.
 /// </summary>
 [TestClass]
@@ -109,8 +109,8 @@ public class MultidimensionalArrayTests
     }
 
     /// <summary>
-    ///     Only the outermost dimension of a multidimensional array may ever be runtime-expression-sized
-    ///     (ADR-016 decision 2), and this fixed-dimensions-only slice does not implement even that yet - a
+    ///     Only the outermost dimension of a multidimensional array may ever be runtime-expression-sized,
+    ///     And this fixed-dimensions-only slice does not implement even that yet - a
     ///     runtime-sized dimension anywhere in a two-or-more-dimension declaration is rejected with a distinct,
     ///     clear message, not silently mishandled.
     /// </summary>
@@ -125,7 +125,7 @@ public class MultidimensionalArrayTests
 
     /// <summary>
     ///     An unsized dimension (<c>char names[10][];</c>) is permanently restricted to being the sole dimension
-    ///     of a one-dimensional array (ADR-016 decision 6) - rejected as an inner dimension of a multidimensional
+    ///     of a one-dimensional array - rejected as an inner dimension of a multidimensional
     ///     declaration, not silently treated as some other shape.
     /// </summary>
     [TestMethod]

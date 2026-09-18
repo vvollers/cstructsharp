@@ -52,7 +52,7 @@ public class PathGrammarTests
     }
 
     /// <summary>
-    ///     Repeated brackets (LANG-05) parse into one index per bracket pair, in declaration order, mirroring
+    ///     Repeated brackets parse into one index per bracket pair, in declaration order, mirroring
     ///     declaration syntax (<c>matrix[2][3]</c>).
     /// </summary>
     [TestMethod]

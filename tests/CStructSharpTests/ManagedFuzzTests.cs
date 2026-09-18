@@ -2,7 +2,7 @@ namespace CStructSharp.Tests;
 
 using CStructSharp.Fuzzing;
 
-/// <summary>Executes the retained QA-04 corpus and stable mutation engine on every supported framework.</summary>
+/// <summary>Executes the retained fuzz corpus and stable mutation engine on every supported framework.</summary>
 [TestClass]
 public class ManagedFuzzTests
 {

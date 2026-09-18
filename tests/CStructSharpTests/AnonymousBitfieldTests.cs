@@ -5,7 +5,7 @@ using System.IO;
 using CStructSharp.Diagnostics;
 
 /// <summary>
-///     Verifies unnamed nonzero-width bitfields (LANG-17, e.g. <c>uint8 :3;</c>): a declarator that carries a bit
+///     Verifies unnamed nonzero-width bitfields (e.g. <c>uint8 :3;</c>): a declarator that carries a bit
 ///     width but no name reserves storage as pure padding, never becomes an addressable path, POCO member, or JSON
 ///     field, and always round-trips as canonical zero bits.
 /// </summary>

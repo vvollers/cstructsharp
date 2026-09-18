@@ -71,7 +71,7 @@ public partial class CStruct
         CStructOperationContext state,
         DebugPath? debugStack)
     {
-        // Static read plan (E2.5): a fully fixed composite is read from one span of its exact size. The span is
+        // Static read plan: a fully fixed composite is read from one span of its exact size. The span is
         // taken only when the whole extent is present and within the read budget, so every truncation and limit
         // failure still comes from the general path below, at the field it always reported.
         // The destination must be this composite's own value: a promoted anonymous member reads into its parent's

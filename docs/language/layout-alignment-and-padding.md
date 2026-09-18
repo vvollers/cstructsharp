@@ -76,7 +76,7 @@ array or variable-size union member does not have a fixed amount of storage, so 
 
 ## Explicit field alignment override
 
-A declarator may carry a trailing `@align(N)` (LANG-15), overriding that one declarator's own natural alignment -
+A declarator may carry a trailing `@align(N)`, overriding that one declarator's own natural alignment -
 for example, forcing a single-byte field onto a 4-byte boundary regardless of its own type:
 
 ```c
@@ -134,7 +134,7 @@ propagates to any containing composite automatically - no separate propagation r
 
 ## Explicit byte-offset assertion
 
-A declarator may instead carry a trailing bare `@N` (LANG-15), asserting the declarator's expected byte offset
+A declarator may instead carry a trailing bare `@N`, asserting the declarator's expected byte offset
 without ever changing it - a correctness check for hand-transcribed formats, not a placement control:
 
 ```c

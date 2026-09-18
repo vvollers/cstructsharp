@@ -303,29 +303,29 @@ internal static class BinaryPrimitiveIO
     {
         switch (buffer.Length)
         {
-            case 1:
-                return buffer[0];
-            case 2:
-                return littleEndian ? BinaryPrimitives.ReadUInt16LittleEndian(buffer) : BinaryPrimitives.ReadUInt16BigEndian(buffer);
-            case 4:
-                return littleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(buffer) : BinaryPrimitives.ReadUInt32BigEndian(buffer);
-            case 8:
-                return littleEndian ? BinaryPrimitives.ReadUInt64LittleEndian(buffer) : BinaryPrimitives.ReadUInt64BigEndian(buffer);
-            case > 0 and <= 8:
+        case 1:
+            return buffer[0];
+        case 2:
+            return littleEndian ? BinaryPrimitives.ReadUInt16LittleEndian(buffer) : BinaryPrimitives.ReadUInt16BigEndian(buffer);
+        case 4:
+            return littleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(buffer) : BinaryPrimitives.ReadUInt32BigEndian(buffer);
+        case 8:
+            return littleEndian ? BinaryPrimitives.ReadUInt64LittleEndian(buffer) : BinaryPrimitives.ReadUInt64BigEndian(buffer);
+        case > 0 and <= 8:
+            {
+                // A packed SysV bitfield window can be any width up to eight bytes.
+                ulong value = 0;
+                for (int index = 0; index < buffer.Length; index++)
                 {
-                    // A packed SysV bitfield window can be any width up to eight bytes.
-                    ulong value = 0;
-                    for (int index = 0; index < buffer.Length; index++)
-                    {
-                        int shift = littleEndian ? index * 8 : (buffer.Length - 1 - index) * 8;
-                        value |= (ulong)buffer[index] << shift;
-                    }
-
-                    return value;
+                    int shift = littleEndian ? index * 8 : (buffer.Length - 1 - index) * 8;
+                    value |= (ulong)buffer[index] << shift;
                 }
 
-            default:
-                throw new InvalidOperationException("Unsupported integer size: " + buffer.Length);
+                return value;
+            }
+
+        default:
+            throw new InvalidOperationException("Unsupported integer size: " + buffer.Length);
         }
     }
 

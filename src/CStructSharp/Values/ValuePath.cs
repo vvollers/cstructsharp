@@ -89,56 +89,56 @@ internal static class ValuePath
     {
         switch (container)
         {
-            case StructValue structValue:
-                if (structValue.TryGetValue(name, out value))
+        case StructValue structValue:
+            if (structValue.TryGetValue(name, out value))
+            {
+                reason = null;
+                return true;
+            }
+
+            reason = "the struct has no such member (members: " + Describe(structValue.Keys) + ").";
+            return false;
+        case UnionValue union:
+            if (union.TryGetValue(name, out value))
+            {
+                reason = null;
+                return true;
+            }
+
+            reason = $"union '{union.UnionName}' has no such member (members: " + Describe(union.Keys) + ").";
+            return false;
+        case Pointer pointer:
+            switch (name)
+            {
+            case "value":
+                if (!pointer.IsDereferenced)
                 {
-                    reason = null;
-                    return true;
+                    value = null;
+                    reason = "the pointer was not dereferenced (read with DereferencePointers enabled).";
+                    return false;
                 }
 
-                reason = "the struct has no such member (members: " + Describe(structValue.Keys) + ").";
-                return false;
-            case UnionValue union:
-                if (union.TryGetValue(name, out value))
-                {
-                    reason = null;
-                    return true;
-                }
-
-                reason = $"union '{union.UnionName}' has no such member (members: " + Describe(union.Keys) + ").";
-                return false;
-            case Pointer pointer:
-                switch (name)
-                {
-                    case "value":
-                        if (!pointer.IsDereferenced)
-                        {
-                            value = null;
-                            reason = "the pointer was not dereferenced (read with DereferencePointers enabled).";
-                            return false;
-                        }
-
-                        value = pointer.Value;
-                        reason = null;
-                        return true;
-                    case "address":
-                        value = pointer.Address;
-                        reason = null;
-                        return true;
-                    default:
-                        value = null;
-                        reason = "a pointer has only 'value' and 'address'.";
-                        return false;
-                }
-
-            case null:
-                value = null;
-                reason = "the value is null.";
-                return false;
+                value = pointer.Value;
+                reason = null;
+                return true;
+            case "address":
+                value = pointer.Address;
+                reason = null;
+                return true;
             default:
                 value = null;
-                reason = $"a {Describe(container.GetType())} has no members.";
+                reason = "a pointer has only 'value' and 'address'.";
                 return false;
+            }
+
+        case null:
+            value = null;
+            reason = "the value is null.";
+            return false;
+        default:
+            value = null;
+            reason = $"a {Describe(container.GetType())} has no members.";
+            return false;
         }
     }
 
@@ -146,36 +146,36 @@ internal static class ValuePath
     {
         switch (container)
         {
-            case IList list:
-                if (index < list.Count)
-                {
-                    value = list[index];
-                    reason = null;
-                    return true;
-                }
+        case IList list:
+            if (index < list.Count)
+            {
+                value = list[index];
+                reason = null;
+                return true;
+            }
 
-                value = null;
-                reason = $"index {index} is outside the {list.Count} element(s).";
-                return false;
-            case string text:
-                if (index < text.Length)
-                {
-                    value = text[index];
-                    reason = null;
-                    return true;
-                }
+            value = null;
+            reason = $"index {index} is outside the {list.Count} element(s).";
+            return false;
+        case string text:
+            if (index < text.Length)
+            {
+                value = text[index];
+                reason = null;
+                return true;
+            }
 
-                value = null;
-                reason = $"index {index} is outside the {text.Length} character(s).";
-                return false;
-            case null:
-                value = null;
-                reason = "the value is null.";
-                return false;
-            default:
-                value = null;
-                reason = $"a {Describe(container.GetType())} is not an array.";
-                return false;
+            value = null;
+            reason = $"index {index} is outside the {text.Length} character(s).";
+            return false;
+        case null:
+            value = null;
+            reason = "the value is null.";
+            return false;
+        default:
+            value = null;
+            reason = $"a {Describe(container.GetType())} is not an array.";
+            return false;
         }
     }
 

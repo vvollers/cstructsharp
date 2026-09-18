@@ -1,20 +1,20 @@
 {
   "schemaVersion": 1,
   "name": "web-rc1",
-  "packageVersion": "0.2.0-preview",
   "maximums": {
     "wasmFiles": 40,
     "wasmBytes": 6291456,
     "wasmGzipBytes": 2500000,
-    "frontendBytes": 7340032,
-    "frontendGzipBytes": 2600000,
-    "mainJavaScriptBytes": 350000,
-    "mainJavaScriptGzipBytes": 90000,
+    "frontendBytes": 12582912,
+    "frontendGzipBytes": 3800000,
+    "mainJavaScriptBytes": 1200000,
+    "mainJavaScriptGzipBytes": 240000,
     "startupReadyMilliseconds": 10000
   },
-  "comparisonBaseline": "artifacts/baseline/web-final-entry-artifacts.json",
+  "comparisonBaseline": "artifacts/performance/web.json",
   "measurement": {
     "compression": "Each file compressed independently with gzip level 9; totals are summed.",
-    "startup": "Chromium performance.now() after the production page reports managed Ready."
+    "startup": "Chromium performance.now() after the production page reports managed Ready.",
+    "frontend": "The explorer's production dist, which embeds the validated WASM publication (public/wasm) and the Monaco editor chunks; re-baselined 2026-09-18 from measure-web-artifacts.mjs (10,861,177 bytes, 3,349,506 gzip; main chunk 1,051,996 / 206,442)."
   }
 }

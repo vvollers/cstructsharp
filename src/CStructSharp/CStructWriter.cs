@@ -185,7 +185,7 @@ public partial class CStruct
             RejectUnknownMembers(composite, data, state.BindingMode);
         }
 
-        // Static write plan (E2.10): a fully fixed composite is encoded into one block and written once when that
+        // Static write plan: a fully fixed composite is encoded into one block and written once when that
         // is exactly equivalent to the field-by-field path below (see TryWriteStaticPlan for the conditions).
         if (!composite.IsUnion && this.TryWriteStaticPlan(composite, data, state))
         {
@@ -229,7 +229,7 @@ public partial class CStruct
                         continue;
                     }
 
-                    // An anonymous promoted member (LANG-14) has no name to look up - splice its own children
+                    // An anonymous promoted member has no name to look up - splice its own children
                     // into the same `data` object the parent struct already uses. WriteFieldValue's existing
                     // Struct dispatch recurses WriteStruct with this same `data`, so the promoted member's own
                     // fields are looked up directly on it, with no nested member of its own.
@@ -252,7 +252,7 @@ public partial class CStruct
 
                 if (field.IsUnnamed)
                 {
-                    // An anonymous nonzero-width bitfield (LANG-17) or a `_` padding field is pure padding with no
+                    // An anonymous nonzero-width bitfield or a `_` padding field is pure padding with no
                     // caller-supplied value - there is no member to look up, so write its canonical zero bits directly.
                     this.WriteFieldValue(field, CreatePaddingValue(field), state, -1, cursor);
                     variableScope?.CompleteField(field, state.Variables);
@@ -489,29 +489,29 @@ public partial class CStruct
         StructShape shape = composite.Shape;
         switch (data)
         {
-            case UnionValue:
-                return;
-            case IDictionary<string, object?> members:
-                foreach (string key in members.Keys)
+        case UnionValue:
+            return;
+        case IDictionary<string, object?> members:
+            foreach (string key in members.Keys)
+            {
+                if (!shape.TryGetIndex(key, out _))
                 {
-                    if (!shape.TryGetIndex(key, out _))
-                    {
-                        throw UnknownMember(composite, key);
-                    }
+                    throw UnknownMember(composite, key);
                 }
+            }
 
-                break;
-            default:
-                foreach (string member in PocoDataBinding.EnumerateMemberNames(TypedValueConverter.DeclaredMappedType(data.GetType()), bindingMode))
+            break;
+        default:
+            foreach (string member in PocoDataBinding.EnumerateMemberNames(TypedValueConverter.DeclaredMappedType(data.GetType()), bindingMode))
+            {
+                if (!shape.TryGetIndex(member, out _) &&
+                    !shape.Names.Any(name => string.Equals(name, member, StringComparison.OrdinalIgnoreCase)))
                 {
-                    if (!shape.TryGetIndex(member, out _) &&
-                        !shape.Names.Any(name => string.Equals(name, member, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        throw UnknownMember(composite, member);
-                    }
+                    throw UnknownMember(composite, member);
                 }
+            }
 
-                break;
+            break;
         }
 
         RejectUnknownNestedMembers(composite, data, bindingMode);
@@ -643,7 +643,7 @@ public partial class CStruct
             }
             else if (compiledField.Array.Dimensions.Length > 1)
             {
-                // Every dimension of a multidimensional array is compile-time-fixed (LANG-05's
+                // Every dimension of a multidimensional array is compile-time-fixed (the multidimensional array's
                 // fixed-dimensions-only slice), so the total leaf count is already known without evaluating any
                 // expression against the current write state.
                 numFieldValues = compiledField.Array.TotalFixedElementCount ??
@@ -887,7 +887,7 @@ public partial class CStruct
         // Later fields may use this field in an expression, so keep the writer's variable map in step with the bytes.
         if (!compiledField.CapturesLayoutVariable && !state.CaptureAllLayoutVariables)
         {
-            // No expression in this layout can name the field (E2.6): nothing to publish.
+            // No expression in this layout can name the field: nothing to publish.
         }
         else if (writtenEnumValue is BigInteger exactEnumValue)
         {

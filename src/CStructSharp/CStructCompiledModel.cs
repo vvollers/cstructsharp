@@ -738,7 +738,7 @@ public partial class CStruct
                     pointerDepth,
                     hasBitfieldDeclarator: field.HasBitfieldDeclarator);
 
-                // An unsized dimension (LANG-05 decision 6) can only ever be the sole entry of a one-dimensional
+                // An unsized dimension can only ever be the sole entry of a one-dimensional
                 // ArrayCount list - the grammar already rejects it as an inner dimension of a multidimensional
                 // field, so a still-empty check here is simply never true for N >= 2.
                 bool isUnsizedArray = effectiveField.ArrayCount.Count == 1 &&
@@ -879,7 +879,7 @@ public partial class CStruct
     ///     Calculates immutable fixed offsets and bit offsets without making runtime-sized offsets look static.
     /// </summary>
     /// <remarks>
-    ///     Deliberately not consolidated onto <see cref="CompositeFieldPlacementCursor"/> (see ADR-013 and the
+    ///     Deliberately not consolidated onto <see cref="CompositeFieldPlacementCursor"/> (see the
     ///     placement-arithmetic consolidation this session): this method runs once at compile time, before any
     ///     runtime <c>variables</c> exist, and needs a nullable, one-way "permanently unknown from here on" position
     ///     the moment any field's size is statically undeterminable - the cursor's non-nullable <c>long</c> position
@@ -887,7 +887,7 @@ public partial class CStruct
     ///     computable (a live stream, or pure-math storage sizes). Its output, <see cref="CompiledField.FixedOffset"/>,
     ///     is the "already checked statically at construction time" signal
     ///     <see cref="CStruct.ValidateOffsetAssertionAtRuntime"/> reads to skip re-validating a
-    ///     field's LANG-15 <c>@N</c> offset assertion whose placement was already known here - a field left with
+    ///     field's <c>@N</c> offset assertion whose placement was already known here - a field left with
     ///     no <see cref="CompiledField.FixedOffset"/> (because its own or a preceding sibling's size is
     ///     runtime-dependent) is instead checked the first time any operation actually reaches it.
     /// </remarks>
@@ -1087,10 +1087,10 @@ public partial class CStruct
             return this.CompileSingleArrayDimension(field, field.ArrayCount[0]);
         }
 
-        // A multidimensional array (LANG-05, fixed-dimensions-only first slice, ADR-016 decision 9): every
+        // A multidimensional array (fixed dimensions only): every
         // dimension must be a compile-time-fixed count - a runtime-sized outermost dimension is a deliberately
         // separate, smaller follow-on this slice does not implement, and an inner dimension can never be
-        // runtime-sized even once that follow-on lands (ADR-016 decision 2).
+        // runtime-sized even once that follow-on lands.
         var dimensions = ImmutableArray.CreateBuilder<CompiledArrayDimension>(field.ArrayCount.Count);
         foreach (Expr dimensionExpression in field.ArrayCount)
         {
@@ -1119,7 +1119,7 @@ public partial class CStruct
             dimensionList);
     }
 
-    /// <summary>Compiles the sole dimension of a one-dimensional array field - unchanged from before LANG-05.</summary>
+    /// <summary>Compiles the sole dimension of a one-dimensional array field - unchanged from the single-dimension days.</summary>
     private CompiledArrayShape CompileSingleArrayDimension(Field field, Expr dimensionExpression)
     {
         if (ReferenceEquals(dimensionExpression, Field.UnknownArraysize))
@@ -1172,7 +1172,7 @@ public partial class CStruct
     }
 
     /// <summary>
-    ///     Marks the fields whose values an expression can read back (E2.6). The evaluator resolves identifiers only
+    ///     Marks the fields whose values an expression can read back. The evaluator resolves identifiers only
     ///     through the layout's own expressions - array dimensions, conditions, switch selectors and cases, bit sizes,
     ///     alignment/offset assertions, <c>#define</c>s, enum values - so their identifier dependencies are the complete
     ///     set of capturable names. One exception makes the set unbounded: a text field is captured as
@@ -1279,7 +1279,7 @@ public partial class CStruct
         return heads;
     }
 
-    /// <summary>The compiled enum of a declaration, for the browser bridge's static plan description (E3.9).</summary>
+    /// <summary>The compiled enum of a declaration, for the browser bridge's static plan description.</summary>
     internal CompiledEnumType GetCompiledEnumForInterop(Syntax.Enum declaration)
     {
         return this.compiledModelQueries.GetCompiledEnum(declaration);

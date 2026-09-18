@@ -8,7 +8,7 @@ using CStructSharp.Tests;
 using CStructSharp.Values;
 
 /// <summary>
-///     The memory-backed read cursor (E2.1) serves span, array, and MemoryStream sources; every other stream keeps
+///     The memory-backed read cursor serves span, array, and MemoryStream sources; every other stream keeps
 ///     the delegating path. Both must produce identical values, identical final positions, and identical failures
 ///     over the whole benchmark fixture corpus.
 /// </summary>
@@ -47,7 +47,7 @@ public class MemoryCursorParityTests
             using var chunked = new ChunkedMemoryStream(bytes, 7, writable: false);
             (object? chunkedResult, string? chunkedError) = Try(() => layout.Parse(chunked, rootName, options: readOptions));
 
-            // The same memory-backed source through the general reader only (static read plans disabled, E2.5).
+            // The same memory-backed source through the general reader only (static read plans disabled).
             using var unplanned = new MemoryStream(bytes, writable: false);
             StaticReadPlan.DisabledForTesting = true;
             (object? unplannedResult, string? unplannedError) = Try(() => layout.Parse(unplanned, rootName, options: readOptions));

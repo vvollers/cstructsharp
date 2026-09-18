@@ -32,16 +32,16 @@ public partial class CStructExports
                 {
                     switch (kind.GetString())
                     {
-                        case "union":
-                            return ConvertJsonUnion(element);
-                        case "enum" when element.TryGetProperty("value", out JsonElement enumValue):
-                            // A parsed enum comes back as its tagged shape; the value is what the writer encodes.
-                            return ConvertJsonElement(enumValue);
-                        case "pointer" when element.TryGetProperty("address", out JsonElement address):
-                            // A parsed pointer writes its stored address; the target is written through `.value` paths.
-                            return ConvertJsonElement(address);
-                        default:
-                            throw new JsonException("Unknown tagged value kind '" + kind.GetString() + "'.");
+                    case "union":
+                        return ConvertJsonUnion(element);
+                    case "enum" when element.TryGetProperty("value", out JsonElement enumValue):
+                        // A parsed enum comes back as its tagged shape; the value is what the writer encodes.
+                        return ConvertJsonElement(enumValue);
+                    case "pointer" when element.TryGetProperty("address", out JsonElement address):
+                        // A parsed pointer writes its stored address; the target is written through `.value` paths.
+                        return ConvertJsonElement(address);
+                    default:
+                        throw new JsonException("Unknown tagged value kind '" + kind.GetString() + "'.");
                     }
                 }
 
@@ -180,7 +180,7 @@ public partial class CStructExports
     }
 
     /// <summary>
-    ///     Writes the whole successful parse envelope in one pass (E3.3(b), contract v7): the parsed value is
+    ///     Writes the whole successful parse envelope in one pass: the parsed value is
     ///     projected straight into the envelope as a JSON value - no intermediate Data string, no escaping pass, one
     ///     JSON.parse on the JavaScript side.
     /// </summary>

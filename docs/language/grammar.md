@@ -159,7 +159,7 @@ Each numeric digit sequence must contain at least one real digit; underscores al
 do not nest. The parser accepts pointer stars adjacent to either token (`uint8* p`, `uint8 *p`, and `uint8 * p`) and
 normalizes the total star count.
 
-An `inline-struct-field`'s trailing `identifier` is optional (LANG-14): when omitted, this is an *anonymous promoted
+An `inline-struct-field`'s trailing `identifier` is optional: when omitted, this is an *anonymous promoted
 member* - its own fields splice directly into the containing struct's addressable path/POCO/JSON namespace
 (`root.x`, not `root.<name>.x`) instead of nesting under a name of their own. The empty declarator name reuses the
 same sentinel `anonymous-bitfield` already established for a nameless field. Promotion is transitive (an anonymous
@@ -169,7 +169,7 @@ path/POCO/JSON name resolves to a field. Promotion is supported for inline struc
 A field referencing a separately declared named union is supported. See
 [Structs, unions, enums, and typedefs](structs-unions-enums-typedefs.md#anonymous-promoted-members).
 
-A declarator accepts zero or more bracketed dimensions, written outermost first (`value[rows][columns]`, LANG-05).
+A declarator accepts zero or more bracketed dimensions, written outermost first (`value[rows][columns]`).
 Every dimension of a multidimensional declaration must currently be compile-time fixed, with no named
 expression dependencies. Literal arithmetic such as `[2 + 1][4]` is allowed; a named `#define` count is not. A one-dimensional
 array may use a runtime expression referencing an earlier field, caller variable, or definition. This is a
@@ -188,7 +188,7 @@ qualifier in any other position, are still rejected. A field's type reference ma
 leading `struct`, `union`, or `enum` keyword (`struct child value;`), matching how C itself refers to a tagged type;
 the keyword is checked against the referenced declaration's actual kind at construction time and rejected on a
 mismatch, but otherwise has no effect - `struct child value;` and `child value;` compile to the identical field. A
-declarator with a bit width and no name at all (`anonymous-bitfield`, LANG-17) reserves storage as pure padding -
+declarator with a bit width and no name at all (`anonymous-bitfield`) reserves storage as pure padding -
 its bits are consumed from the shared storage unit but it never becomes an addressable path, POCO member, or JSON
 field (`uint8 flag:1, :3, other:4;`). This applies to any declarator after the first without ambiguity, since its
 type is already fixed by the field's shared `type-name`. The first declarator is a special case: when exactly one
@@ -198,7 +198,7 @@ itself is the anonymous one (`uint8 :3;`); a run of two or more words before a b
 single-word run has no name token to spare. This means a multi-word anonymous type is not supported directly - it
 falls back to naming the field after its last word instead (`unsigned int :3;` declares a field named `int` of type
 `unsigned`, not an anonymous `unsigned int`). See [bitfields](bitfields.md#unnamed-padding-fields). A declarator may
-carry at most one trailing placement suffix (LANG-15) - either `@align(N)`, overriding that one
+carry at most one trailing placement suffix - either `@align(N)`, overriding that one
 declarator's own natural alignment, or bare `@N`, asserting the declarator's expected byte offset without ever
 changing it. Both accept a full expression, evaluated the same way `bit-width` is, so a `#define`d constant works
 for either. `@align(N)`'s `N` must be a positive power of two; it only has an observable effect when the enclosing
@@ -236,7 +236,7 @@ pointer-accessor = ".address" | ".value" ;
 pointer storage and `.value` consumes one pointer level. It is not a separate lexical token. A non-pointer field may
 therefore still be named `address` or `value`. Indices have no sign, whitespace, leading zero, base prefix, or
 underscore, and must fit a non-negative 32-bit integer. A segment mirrors its field's own declaration syntax: an
-N-dimensional array (LANG-05) accepts up to N repeated `indexer`s in one segment (`root.matrix[2][3]`, not
+N-dimensional array accepts up to N repeated `indexer`s in one segment (`root.matrix[2][3]`, not
 comma-separated), one per dimension, outermost first. Supplying fewer than N selects the corresponding
 lower-dimensional sub-array rather than one scalar/struct element; supplying more than N is rejected. See
 [paths and selection](paths-and-selection.md#multidimensional-arrays).
@@ -276,17 +276,17 @@ The table explains each production and links to the page that defines its additi
 | `conditional-line` | `#ifdef`/`#ifndef`/`#else`/`#endif` over defined names |
 | `quoted-literal` | A `"`- or `'`-delimited literal with C escapes (`\n`, `\r`, `\t`, `\0`, `\xHH`, `\"`) |
 | `struct-field` | Ordinary, named-inline-struct, or anonymous-promoted-struct member |
-| `inline-struct-field` | Inline struct or union member; anonymous (promoted) without a declarator (LANG-14); a tag makes the body a global type as well; [declarations](structs-unions-enums-typedefs.md#inline-structs) |
+| `inline-struct-field` | Inline struct or union member; anonymous (promoted) without a declarator; a tag makes the body a global type as well; [declarations](structs-unions-enums-typedefs.md#inline-structs) |
 | `declarator-list` | The member declarators of a tagged inline body (`} gen, *pgen;`) |
 | `union-field` | Ordinary field or an inline composite; conditionals are not accepted in a union |
 | `field` | One optionally qualified, optionally tagged type, one or more comma-separated declarators |
 | `declarator` | A named declarator, a `_` padding field, or an anonymous nonzero-width bitfield; [padding fields](structs-unions-enums-typedefs.md#padding-fields) |
 | `named-declarator` | One name with its own optional qualifiers, pointer stars, optional array, optional bit width, and optional placement suffix; or a function-pointer declarator, stored as an opaque pointer |
-| `anonymous-bitfield` | A nameless bit-width-only declarator used as pure padding (LANG-17) |
+| `anonymous-bitfield` | A nameless bit-width-only declarator used as pure padding |
 | `type-qualifier` | A recognized layout-neutral qualifier, discarded with no effect on the compiled field |
 | `tag-keyword` | An optional struct/union/enum keyword, checked against the referenced declaration's actual kind |
 | `pointer-stars` | Zero or more data-pointer levels |
-| `array` | Zero or more fixed/runtime dimension counts or character-string markers, outermost first (LANG-05) |
+| `array` | Zero or more fixed/runtime dimension counts or character-string markers, outermost first |
 | `bit-width` | One named nonzero portable bit slice, or unnamed reserved padding for `anonymous-bitfield` |
 | `placement-suffix` | At most one trailing alignment override or offset assertion per declarator |
 | `alignment-override` | An explicit per-declarator alignment override, effective only when `aligned: true` |
@@ -339,7 +339,7 @@ The table explains each production and links to the page that defines its additi
 | `logical-and` | Short-circuit logical AND |
 | `equality` | Integer equality and inequality comparisons |
 | `relational` | Ordered integer comparisons |
-| `segment` | Named path component with zero or more indices, one per dimension actually indexed (LANG-05) |
+| `segment` | Named path component with zero or more indices, one per dimension actually indexed |
 | `indexer` | Normalized decimal array index |
 | `canonical-decimal-index` | Formal production name for `0` or an unpadded positive decimal integer |
 | `pointer-accessor` | `.address`/`.value` selection after a pointer |

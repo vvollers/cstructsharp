@@ -676,7 +676,7 @@ public sealed partial class CStruct
                 continue;
             }
 
-            // Every dimension (LANG-05) gets the same early compile/evaluate pass a single-dimension array's one
+            // Every dimension gets the same early compile/evaluate pass a single-dimension array's one
             // count expression already got - the unsized-character-array sentinel is the only dimension value
             // that is never itself an expression to compile.
             foreach (Expr dimension in field.ArrayCount)

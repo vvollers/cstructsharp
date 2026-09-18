@@ -10,7 +10,7 @@ using CStructSharp.Expressions;
 
 /// <summary>
 ///     Layout-variable capture must decide "becomes an Int32 variable" versus "is removed" exactly as
-///     <see cref="Convert.ToInt32(object)"/> did, but without raising first-chance exceptions on the hot path (E2.6a).
+///     <see cref="Convert.ToInt32(object)"/> did, but without raising first-chance exceptions on the hot path.
 /// </summary>
 [TestClass]
 public class Int32CaptureTests

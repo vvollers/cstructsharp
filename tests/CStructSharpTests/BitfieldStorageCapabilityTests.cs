@@ -71,7 +71,7 @@ public class BitfieldStorageCapabilityTests
 
     /// <summary>
     ///     A zero-width named field is a C compiler control declaration ("start a new storage unit here") that this
-    ///     library does not support - unlike an unnamed nonzero-width bitfield (LANG-17), which is supported as pure
+    ///     library does not support - unlike an unnamed nonzero-width bitfield, which is supported as pure
     ///     padding (see <c>AnonymousBitfieldTests</c>).
     /// </summary>
     [TestMethod]
