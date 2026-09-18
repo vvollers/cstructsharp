@@ -129,7 +129,7 @@ canonical = normalize(canonical);
 fs.writeFileSync(canonicalPath, canonical);
 const project = fs.readFileSync(projectPath, "utf8");
 const versionPrefix = project.match(/<VersionPrefix>([^<]+)<\/VersionPrefix>/)?.[1] ?? manifest.packageVersion;
-const exportedTypes = (canonical.match(/^    public (?:sealed |static |abstract |readonly |partial )*(?:class|struct|interface|enum|record) /gm) ?? []).length;
+const exportedTypes = (canonical.match(/^ {4}public (?:sealed |static |abstract |readonly |partial )*(?:class|struct|interface|enum|record) /gm) ?? []).length;
 manifest.canonical.lines = canonical.replace(/\n$/, "").split("\n").length;
 manifest.canonical.normalizedSha256 = hashOf(canonical);
 manifest.exportedTypes = exportedTypes;
