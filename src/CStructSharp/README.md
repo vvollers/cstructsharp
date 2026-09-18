@@ -8,7 +8,7 @@ When you look for the code behind a behavior, start from the stage of the pipeli
 
 | Folder | Namespace | What lives there | Public? |
 | --- | --- | --- | --- |
-| `/` | `CStructSharp` | `CStruct` (one `partial class` across the `CStruct*.cs` files, one file per concern: reading, writing, address resolution, introspection, memory I/O, synthetic roots) plus `CStructCompilationOptions`, `ReadOptions`, `WriteOptions`, `UpdateOptions`, `BitfieldAllocation`, and `StaticHelpers` | Yes |
+| `/` | `CStructSharp` | `CStruct` (one `partial class` across the `CStruct*.cs` files, one file per concern: reading, writing, address resolution, introspection, memory I/O, synthetic roots) plus `CStructCompilationOptions`, `ReadOptions`, `WriteOptions`, `UpdateOptions`, `BitfieldAllocation`, and `StaticHelpers`. The operation files execute over the compiled model only: after construction, `Syntax` nodes are consulted solely to resolve a root name. | Yes |
 | `Syntax/` | `CStructSharp.Syntax` | The syntax tree the parser produces: `Struct`, `Field`, `Enum`, `Typedef`, `Defines`, and the expression nodes (`Expr`, `Literal`, `BinaryOp`, ...) | No |
 | `Parsing/` | `CStructSharp.Parsing` | `LayoutParser`, the hand-written parser for the layout language; `CStructDefinitionParser`, its entry point; `LayoutSourceValidator`, the size and nesting guard that runs before parsing | No |
 | `Expressions/` | `CStructSharp.Expressions` | `ExpressionEvaluator` and the layout-variable machinery that turns `count`-style expressions into bounded `Int32` values at construction and operation time | No |
@@ -29,7 +29,9 @@ When you look for the code behind a behavior, start from the stage of the pipeli
    type, offset, and size (evaluating constant `Expressions`) into an immutable compiled model, which
    `CStructLayoutCache` may already hold for identical inputs.
 2. `layout.Parse(bytes, "root")` or `ReadValue(stream, "root.field")`: `Addressing` turns the path into a resolved
-   target; `Reading` walks the compiled model over a `Streams` adapter, asking `Codecs` to decode each primitive.
+   target; `Reading` walks the compiled model (`CompiledCompositeType.Fields`, each `CompiledField` carrying its
+   name, width, pointer depth, codec, and direct references to its nested composite or enum) over a `Streams`
+   adapter, asking `Codecs` to decode each primitive.
 3. The result is assembled from `Values` types; a failure is raised from `Diagnostics` with the path and position.
 
 Writes mirror this with `Writing` in place of `Reading`, and updates stage their bytes through
