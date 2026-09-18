@@ -57,6 +57,20 @@ public class LayoutMathTests
         Assert.AreEqual(8L, LayoutMath.AlignUp(8L, 4));
     }
 
+    /// <summary>The bit-granular overload (both arguments 64-bit) rounds exactly like the others and rejects a non-positive alignment.</summary>
+    [TestMethod]
+    public void AlignUpInt64Alignment_RoundsAndRejectsLikeTheOthers()
+    {
+        Assert.AreEqual(8L, LayoutMath.AlignUp(8L, 4L));
+        Assert.AreEqual(0L, LayoutMath.AlignUp(0L, 4L));
+        Assert.AreEqual(8L, LayoutMath.AlignUp(5L, 4L));
+        Assert.AreEqual(16L, LayoutMath.AlignUp(9L, 8L));
+        Assert.AreEqual(7L, LayoutMath.AlignUp(7L, 1L));
+        Assert.Throws<CStructLayoutException>(() => LayoutMath.AlignUp(4L, 0L));
+        Assert.Throws<CStructLayoutException>(() => LayoutMath.AlignUp(4L, -8L));
+        Assert.Throws<OverflowException>(() => LayoutMath.AlignUp(long.MaxValue - 1, 8L));
+    }
+
     /// <summary>The 64-bit overload must reject a non-positive alignment identically to the 32-bit overload.</summary>
     [TestMethod]
     public void AlignUpInt64_NonPositiveAlignment_Throws()

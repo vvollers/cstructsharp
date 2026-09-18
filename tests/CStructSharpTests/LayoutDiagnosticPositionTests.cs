@@ -24,6 +24,45 @@ public class LayoutDiagnosticPositionTests
         StringAssert.EndsWith(exception.Message, "(line 2, column 3)");
     }
 
+    /// <summary>The hint also fires when the first word is a struct the layout declares, not only a built-in type.</summary>
+    [TestMethod]
+    public void MissingSemicolon_AfterDeclaredStructType_ReportsHint()
+    {
+        CStructLayoutException exception = Assert.Throws<CStructLayoutException>(
+            () => new CStruct("struct header { uint8 kind; };\nstruct file {\n  header first\n  uint32 length;\n};"));
+
+        StringAssert.Contains(exception.Message, "Unknown type 'header first uint32' for field 'length' in struct 'file'");
+        StringAssert.Contains(exception.Message, "a ';' may be missing after 'first'");
+    }
+
+    /// <summary>A two-word spelling whose first word is not a type gets no semicolon hint.</summary>
+    [TestMethod]
+    public void UnknownTwoWordType_HasNoSemicolonHint()
+    {
+        CStructLayoutException exception = Assert.Throws<CStructLayoutException>(
+            () => new CStruct("struct file { foo bar baz; };"));
+
+        StringAssert.Contains(exception.Message, "Unknown type 'foo bar' for field 'baz' in struct 'file'");
+        Assert.IsFalse(exception.Message.Contains("may be missing", StringComparison.Ordinal), exception.Message);
+    }
+
+    /// <summary>An anonymous composite is named as such, with its kind.</summary>
+    [TestMethod]
+    public void UnknownType_InAnonymousUnion_NamesTheKind()
+    {
+        CStructLayoutException inUnion = Assert.Throws<CStructLayoutException>(
+            () => new CStruct("struct file { union { foo z; uint8 b; }; };"));
+        StringAssert.Contains(inUnion.Message, "Unknown type 'foo' for field 'z' in an anonymous union");
+
+        CStructLayoutException inStruct = Assert.Throws<CStructLayoutException>(
+            () => new CStruct("struct file { struct { foo z; }; };"));
+        StringAssert.Contains(inStruct.Message, "Unknown type 'foo' for field 'z' in an anonymous struct");
+
+        CStructLayoutException inNamedUnion = Assert.Throws<CStructLayoutException>(
+            () => new CStruct("union choice { foo z; uint8 b; };"));
+        StringAssert.Contains(inNamedUnion.Message, "Unknown type 'foo' for field 'z' in union 'choice'");
+    }
+
     /// <summary>An unknown type names the field and the struct and points at the type spelling.</summary>
     [TestMethod]
     public void UnknownType_ReportsFieldStructAndPosition()

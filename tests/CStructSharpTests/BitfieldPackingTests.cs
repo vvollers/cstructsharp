@@ -92,6 +92,40 @@ public class BitfieldPackingTests
         Assert.AreEqual(0xCC, high.Get<int>("c"));
     }
 
+    /// <summary>A named field may not be zero bits wide; only the unnamed separator may.</summary>
+    [TestMethod]
+    public void ZeroWidth_NamedField_IsRejected()
+    {
+        CStructLayoutException exception = Assert.Throws<CStructLayoutException>(() => new CStruct("struct s { uint8 a:3; uint8 gap:0; uint8 b:3; };"));
+        StringAssert.Contains(exception.Message, "Bitfield width must be greater than zero (only an unnamed ': 0' separator may be zero): gap");
+    }
+
+    /// <summary>
+    ///     A packed SysV run whose second field straddles two bytes is read through its two-byte window - also when
+    ///     that field is captured as a later count during address resolution, not only during a parse.
+    /// </summary>
+    [TestMethod]
+    public void SysV_PackedStraddlingBitfield_CountCapturedDuringAddressResolution()
+    {
+        // a = bits 0-5 of byte 0; n = bits 6-11 (the top two bits of byte 0 and the low nibble of byte 1): the
+        // window for n is two bytes although uint8 is one. n = 3 → items[3] follows at offset 2.
+        var layout = new CStruct("struct s { uint8 a:6; uint8 n:6; uint8 items[n]; uint8 tail; };", aligned: false);
+        byte[] bytes = [0b1100_0000 | 0x2A, 0x00, 0x11, 0x22, 0x33, 0x44];
+        StructValue value = layout.Parse(bytes, "s");
+        Assert.AreEqual(0x2A, value.Get<int>("a"));
+        Assert.AreEqual(3, value.Get<int>("n"));
+        Assert.AreEqual(0x44, value.Get<int>("tail"));
+        Assert.AreEqual(3, layout.GetArrayLength(bytes, "s.items"));
+        Assert.AreEqual(4L, layout.ResolveAddress(new MemoryStream(bytes), "s.items[2]"));
+        Assert.AreEqual(5L, layout.ResolveAddress(new MemoryStream(bytes), "s.tail"));
+        Assert.AreEqual(0x33, layout.ReadValue<int>(bytes, "s.items[2]"));
+
+        // With the high nibble of byte 1 set, a one-byte window would read n as 3 + 16·k; the placed window keeps 3.
+        byte[] noisy = [0b1100_0000 | 0x2A, 0xF0, 0x11, 0x22, 0x33, 0x44];
+        Assert.AreEqual(3, layout.ReadValue<int>(noisy, "s.n"));
+        Assert.AreEqual(5L, layout.ResolveAddress(new MemoryStream(noisy), "s.tail"));
+    }
+
     /// <summary>The separator is not a member, has no value, and its own type does not add alignment under SysV.</summary>
     [TestMethod]
     public void ZeroWidth_IsASeparatorOnly()
