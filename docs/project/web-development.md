@@ -93,10 +93,10 @@ other engines for any Playwright config, and the release workflow smokes the pac
 inspector flow in Firefox and WebKit that way. PR CI stays Chromium-only.
 For the exact released bundle, create and test an archive:
 
-```powershell
-node ./tools/packaging/create-wasm-package.mjs
-Compress-Archive -Path ./artifacts/wasm-package/* -DestinationPath ./artifacts/onboarding-browser.zip -Force
-./tools/packaging/Test-OnboardingBrowser.ps1 -ArchivePath ./artifacts/onboarding-browser.zip
+```sh
+npm run pack:zip
+(cd artifacts/wasm-package && zip -qr ../onboarding-browser.zip .)
+node tools/packaging/test-onboarding-browser.mjs --archive-path artifacts/onboarding-browser.zip
 ```
 
 The last check extracts the ZIP into a nested static path and tests the starter and inspector using the public

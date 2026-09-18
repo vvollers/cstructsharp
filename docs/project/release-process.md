@@ -126,9 +126,9 @@ Package size is recorded; the existing 6 MiB runtime budget remains enforced.
 
 From the repository root:
 
-```powershell
-./tools/packaging/Test-OnboardingPackage.ps1 -PackageDirectory ./artifacts/package
-./tools/packaging/Test-OnboardingBrowser.ps1 -ArchivePath ./artifacts/cstructsharp-wasm-vVERSION.zip
+```sh
+node tools/packaging/test-onboarding-package.mjs --package-directory artifacts/package
+node tools/packaging/test-onboarding-browser.mjs --archive-path artifacts/cstructsharp-wasm-vVERSION.zip
 ```
 
 Replace VERSION with the archive version. These checks use isolated package consumers and an extracted browser

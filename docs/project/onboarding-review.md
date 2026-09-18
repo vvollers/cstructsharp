@@ -43,10 +43,10 @@ with an automated readability score.
 
 Run the full documentation check, then validate actual artifacts:
 
-```powershell
+```sh
 ./tools/documentation/Validate-Documentation.ps1
-./tools/packaging/Test-OnboardingPackage.ps1 -PackageDirectory ./artifacts/package
-./tools/packaging/Test-OnboardingBrowser.ps1 -ArchivePath ./artifacts/cstructsharp-wasm-vVERSION.zip
+node tools/packaging/test-onboarding-package.mjs --package-directory artifacts/package
+node tools/packaging/test-onboarding-browser.mjs --archive-path artifacts/cstructsharp-wasm-vVERSION.zip
 ```
 
 Replace VERSION with the packaged version. The package check copies the exact README program and all exported

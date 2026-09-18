@@ -57,11 +57,10 @@ jobs:
           npx playwright install --with-deps chromium
           npm run test:e2e
       - name: Verify standalone WASM onboarding
-        shell: pwsh
         run: |
           node tools/packaging/create-wasm-package.mjs
-          Compress-Archive -Path artifacts/wasm-package/* -DestinationPath artifacts/wasm-onboarding.zip
-          ./tools/packaging/Test-OnboardingBrowser.ps1 -ArchivePath artifacts/wasm-onboarding.zip
+          (cd artifacts/wasm-package && zip -qr ../wasm-onboarding.zip .)
+          node tools/packaging/test-onboarding-browser.mjs --archive-path artifacts/wasm-onboarding.zip
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: npm-package

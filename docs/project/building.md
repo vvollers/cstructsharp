@@ -61,9 +61,9 @@ source. `-Serve` starts the generated site at `http://localhost:8080`; press `Ct
 
 ## Package candidate
 
-```powershell
-dotnet pack .\src\CStructSharp\CStructSharp.csproj -c Release -o .\artifacts\package
-.\tools\packaging\Test-PackageConsumer.ps1 -PackageDirectory .\artifacts\package
+```sh
+dotnet pack src/CStructSharp/CStructSharp.csproj -c Release -o artifacts/package
+node tools/packaging/test-package-consumer.mjs --package-directory artifacts/package
 ```
 
 `dotnet pack` creates a `.nupkg` library package and `.snupkg` symbol package under `artifacts/package`. It does not

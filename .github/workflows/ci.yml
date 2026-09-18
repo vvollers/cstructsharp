@@ -101,15 +101,12 @@ jobs:
           node tools/quality/compiler-fixture.mjs table --check
           node tools/quality/non-web-release-budgets.mjs --self-test
       - name: Pack and verify actual NuGet consumers
-        shell: pwsh
         run: |
           dotnet pack src/CStructSharp/CStructSharp.csproj -c Release -o artifacts/package
-          $package = Get-ChildItem artifacts/package/*.nupkg | Select-Object -First 1
-          $symbols = Get-ChildItem artifacts/package/*.snupkg | Select-Object -First 1
-          ./tools/packaging/Validate-Package.ps1 -PackagePath $package.FullName -SymbolPackagePath $symbols.FullName
-          ./tools/packaging/Test-PackageConsumer.ps1 -PackageDirectory artifacts/package
-          ./tools/packaging/Test-OnboardingPackage.ps1 -PackageDirectory artifacts/package
-          ./tools/packaging/Test-MemoryPackageConsumer.ps1 -PackageDirectory artifacts/package
+          node tools/packaging/validate-package.mjs --package-path artifacts/package/*.nupkg --symbol-package-path artifacts/package/*.snupkg
+          node tools/packaging/test-package-consumer.mjs --package-directory artifacts/package
+          node tools/packaging/test-onboarding-package.mjs --package-directory artifacts/package
+          node tools/packaging/test-memory-package-consumer.mjs --package-directory artifacts/package
 
       - name: Publish and run the Native AOT consumer
         run: |

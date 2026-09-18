@@ -158,17 +158,15 @@ jobs:
         run: dotnet pack ./src/CStructSharp/CStructSharp.csproj -c Release -o ./artifacts/package -p:Version=${VERSION}
 
       - name: Verify NuGet metadata, symbols, and framework selection
-        shell: pwsh
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          ./tools/packaging/Validate-Package.ps1 -PackagePath "artifacts/package/CStructSharp.$env:VERSION.nupkg" -SymbolPackagePath "artifacts/package/CStructSharp.$env:VERSION.snupkg"
-          ./tools/packaging/Test-PackageConsumer.ps1 -PackageDirectory artifacts/package
-          ./tools/packaging/Test-MemoryPackageConsumer.ps1 -PackageDirectory artifacts/package
+          node tools/packaging/validate-package.mjs --package-path "artifacts/package/CStructSharp.${VERSION}.nupkg" --symbol-package-path "artifacts/package/CStructSharp.${VERSION}.snupkg"
+          node tools/packaging/test-package-consumer.mjs --package-directory artifacts/package
+          node tools/packaging/test-memory-package-consumer.mjs --package-directory artifacts/package
 
       - name: Verify onboarding against the NuGet artifact
-        shell: pwsh
-        run: ./tools/packaging/Test-OnboardingPackage.ps1 -PackageDirectory ./artifacts/package
+        run: node tools/packaging/test-onboarding-package.mjs --package-directory ./artifacts/package
 
       - name: Build WebAssembly explorer
         working-directory: apps/explorer
@@ -225,10 +223,9 @@ jobs:
           npm run test:e2e
 
       - name: Verify onboarding against the WASM archive
-        shell: pwsh
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: ./tools/packaging/Test-OnboardingBrowser.ps1 -ArchivePath "./artifacts/cstructsharp-wasm-v$env:VERSION.zip"
+        run: node tools/packaging/test-onboarding-browser.mjs --archive-path "./artifacts/cstructsharp-wasm-v${VERSION}.zip"
 
       # Release-only cross-engine smoke: the packaged starter page and one inspector flow in Firefox and WebKit.
       # PR CI stays Chromium-only; the full suites above already ran there. The starter host staged by the

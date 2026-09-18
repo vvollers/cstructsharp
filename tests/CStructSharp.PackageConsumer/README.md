@@ -5,9 +5,9 @@ to `src/CStructSharp` and is not part of `CStructSharp.sln`, because that soluti
 
 Run it through the repository script after packing:
 
-```powershell
-dotnet pack .\CStructSharp\CStructSharp.csproj -c Release -o .\artifacts\package
-.\tools\packaging\Test-PackageConsumer.ps1 -PackageDirectory .\artifacts\package
+```sh
+dotnet pack src/CStructSharp/CStructSharp.csproj -c Release -o artifacts/package
+node tools/packaging/test-package-consumer.mjs --package-directory artifacts/package
 ```
 
 The runner reads the package version from its `.nuspec`, restores into a fresh isolated package cache, verifies that
