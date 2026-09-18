@@ -120,10 +120,10 @@ internal static partial class Program
         Equal((byte)31, (byte)selected.items[2].other);
         SequenceEqual(items, decisionLayout.Serialize("root", selected));
         items[0] = 2;
-        Equal((byte)11, (byte)((dynamic)decisionLayout.Parse(items, "root")).items[0].second);
+        Equal((byte)11, decisionLayout.Parse(items, "root").Get<byte>("items[0].second"));
         items[0] = 1;
         items[1] = 1;
-        Equal((byte)10, (byte)((dynamic)decisionLayout.Parse(items, "root")).items[0].high);
+        Equal((byte)10, decisionLayout.Parse(items, "root").Get<byte>("items[0].high"));
 
         // A caller's count cannot replace an unread local; a short-circuit guard repairs the example.
         const string scope = "#define count 99\nstruct entry { uint8 tag; if (tag) { uint8 count; } if (count > 0) { uint8 payload[count]; } }; struct root { entry items[2]; };";
@@ -138,7 +138,7 @@ internal static partial class Program
 
         // Inactive nested expressions are skipped, but become errors when reached.
         var nested = new CStruct("struct root { uint8 tag; if (tag) { if (missing > 0) { uint8 value; } } uint8 tail; };", aligned: false);
-        Equal((byte)9, (byte)((dynamic)nested.Parse(new byte[] { 0, 9 }, "root")).tail);
+        Equal((byte)9, nested.Parse(new byte[] { 0, 9 }, "root").Get<byte>("tail"));
         Throws<CStructReadException>(() => nested.Parse(new byte[] { 1, 9 }, "root"));
     }
     #endregion

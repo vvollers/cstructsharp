@@ -15,7 +15,8 @@ using CStructSharp.Diagnostics;
 /// <summary>Maps natural reader results to caller-selected CLR types with cached POCO metadata.</summary>
 internal static class TypedValueConverter
 {
-    private const DynamicallyAccessedMemberTypes MappedMembers =
+    /// <summary>The members a mapped POCO type must keep under trimming: a public parameterless constructor plus public properties and fields.</summary>
+    internal const DynamicallyAccessedMemberTypes MappedMembers =
         DynamicallyAccessedMemberTypes.PublicParameterlessConstructor |
         DynamicallyAccessedMemberTypes.PublicProperties |
         DynamicallyAccessedMemberTypes.PublicFields;

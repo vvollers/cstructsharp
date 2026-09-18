@@ -47,9 +47,10 @@ length = 6
 ```
 
 `new CStruct(...)` prepares the layout. Reuse that object when reading more data with the same format.
-`bytes` is the input; `header` is the resulting C# object. The string `"header"` selects the declaration to read.
-`AsSpan()` passes a view over the array without copying it and selects the same overload on both supported runtimes.
-Names are case-sensitive, so `"Header"` is a different name.
+`bytes` is the input; `header` is the resulting `StructValue`. The string `"header"` selects the declaration to
+read; names are case-sensitive, so `"Header"` is a different name. `header.Get<ushort>("kind")` reads one member
+with a checked conversion to the C# type you name. If you prefer field syntax, declare the result `dynamic` and
+write `header.kind`; the same object supports both.
 
 | Field | Offset | Width | Bytes | Value |
 | --- | --- | --- | --- | --- |

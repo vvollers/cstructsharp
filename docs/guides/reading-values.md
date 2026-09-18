@@ -20,19 +20,25 @@ live in the `CStructSharp.Values` namespace; add `using CStructSharp.Values;` ne
 
 The examples below build on [the first header parse](install-and-first-parse.md).
 
-## Read a complete dynamic object
+## Read a complete struct
 
-This call reads all fields in `header`:
+This call reads all fields in `header` into a `StructValue`:
 
 ```csharp
-dynamic header = layout.Parse(bytes, "header");
-ushort kind = header.kind;
-uint length = header.length;
+StructValue header = layout.Parse(bytes, "header");
+ushort kind = header.Get<ushort>("kind");
+uint length = header.Get<uint>("length");
 ```
 
-The field names come from the layout. Because the result is `dynamic`, the C# compiler cannot catch a misspelling
-such as `header.lenght`; that error appears at runtime. Dynamic results are useful for exploratory tools and layouts
-that are not known when the application is compiled.
+`Get<T>` converts one member with the same checked rules as `ReadValue<T>`: widening is fine, a value that does not
+fit throws `CStructReadException`, and a name that does not exist throws `CStructPathException` listing the members
+that do. The path form reaches nested values - `packet.Get<byte>("items[2].tag")`, `node.Get<uint>("next.value.id")`
+through a dereferenced pointer - and `TryGet<T>` returns `false` instead of throwing.
+
+The same object also works as `dynamic` (`header.kind`), as an `IDictionary<string, object?>` (`header["kind"]`),
+and by enumeration in declaration order. With `dynamic`, the C# compiler cannot catch a misspelling such as
+`header.lenght`; that error appears at runtime. Dynamic results are useful for exploratory tools and layouts that are
+not known when the application is compiled.
 
 A stream works the same way. Reading starts at the stream's current position and a successful read advances past
 the selected data:

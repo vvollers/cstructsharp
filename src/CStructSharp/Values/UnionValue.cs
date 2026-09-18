@@ -4,8 +4,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Linq;
+using System.Text;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Represents the complete storage and overlapping decoded views of a C union without inventing an active member.
@@ -188,6 +191,77 @@ public sealed class UnionValue : DynamicObject, IReadOnlyDictionary<string, obje
     IEnumerator IEnumerable.GetEnumerator()
     {
         return this.GetEnumerator();
+    }
+
+    /// <summary>
+    ///     Reads a member, or a nested value below it, as <typeparamref name="T"/> with the same checked conversion
+    ///     <c>ReadValue&lt;T&gt;</c> applies - <c>choice.Get&lt;ushort&gt;("wide")</c>.
+    /// </summary>
+    /// <typeparam name="T">The destination type; a POCO needs a public parameterless constructor and public bindable members.</typeparam>
+    /// <param name="path">A member name, or a dotted and indexed path relative to this union.</param>
+    /// <returns>The converted value.</returns>
+    /// <exception cref="CStructPathException">The path is malformed or selects nothing; the message names the failing segment and the members that exist.</exception>
+    /// <exception cref="CStructReadException">The value cannot be converted to <typeparamref name="T"/> without loss.</exception>
+    public T Get<[DynamicallyAccessedMembers(TypedValueConverter.MappedMembers)] T>(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        if (!ValuePath.TryResolve(this, path, out object? value, out string? failure))
+        {
+            throw new CStructPathException(failure);
+        }
+
+        return (T)TypedValueConverter.Convert(value, typeof(T), path)!;
+    }
+
+    /// <summary>
+    ///     Reads a member, or a nested value below it, as <typeparamref name="T"/>; returns <see langword="false"/>
+    ///     instead of throwing when the path selects nothing or the value does not convert.
+    /// </summary>
+    /// <typeparam name="T">The destination type; a POCO needs a public parameterless constructor and public bindable members.</typeparam>
+    /// <param name="path">A member name, or a dotted and indexed path relative to this union.</param>
+    /// <param name="value">The converted value, or <see langword="default"/> when the method returns <see langword="false"/>.</param>
+    /// <returns><see langword="true"/> when the path resolved and the value converted.</returns>
+    public bool TryGet<[DynamicallyAccessedMembers(TypedValueConverter.MappedMembers)] T>(string path, [MaybeNullWhen(false)] out T value)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        if (!ValuePath.TryResolve(this, path, out object? natural, out _))
+        {
+            value = default;
+            return false;
+        }
+
+        try
+        {
+            value = (T)TypedValueConverter.Convert(natural, typeof(T), path)!;
+            return true;
+        }
+        catch (CStructReadException)
+        {
+            value = default;
+            return false;
+        }
+    }
+
+    /// <summary>
+    ///     Describes the union for debugging: its name, the selected member when one is set, every decoded member,
+    ///     and the raw storage length when the value carries the bytes as read.
+    /// </summary>
+    /// <returns>A <c>choice { selected: small; small = 52, large = 4660; 2 raw bytes }</c> style rendering.</returns>
+    public override string ToString()
+    {
+        var text = new StringBuilder(this.UnionName.Length == 0 ? "union" : this.UnionName).Append(" { ");
+        if (this.SelectedMember is not null)
+        {
+            text.Append("selected: ").Append(this.SelectedMember).Append("; ");
+        }
+
+        text.Append(string.Join(", ", this.members.Select(pair => pair.Key + " = " + (pair.Value ?? "null"))));
+        if (this.rawStorage is not null)
+        {
+            text.Append(this.members.Count == 0 ? string.Empty : "; ").Append(this.rawStorage.Length).Append(" raw bytes");
+        }
+
+        return text.Append(" }").ToString();
     }
 
     /// <summary>Attempts dynamic lookup using an exact declared member name.</summary>

@@ -3,15 +3,18 @@ namespace CStructSharp.Values;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Linq.Expressions;
 using System.Reflection;
 using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     A parsed struct: the members of one composite in declaration order, readable through <see langword="dynamic"/>
-///     member access (<c>parsed.length</c>), through <see cref="IDictionary{TKey, TValue}"/> /
-///     <see cref="IReadOnlyDictionary{TKey, TValue}"/> (<c>values["length"]</c>), or by enumerating key/value pairs.
+///     member access (<c>parsed.length</c>), typed through <see cref="Get{T}"/> (<c>parsed.Get&lt;uint&gt;("length")</c>),
+///     through <see cref="IDictionary{TKey, TValue}"/> / <see cref="IReadOnlyDictionary{TKey, TValue}"/>
+///     (<c>values["length"]</c>), or by enumerating key/value pairs.
 ///     Members that a conditional arm did not select are absent rather than null. Values are the same objects the
 ///     documented value table describes (boxed primitives, <see cref="string"/>, nested <see cref="StructValue"/>,
 ///     <see cref="IList{T}"/> of <see cref="object"/> for arrays, <see cref="UnionValue"/>, <see cref="Pointer"/>,
@@ -94,6 +97,57 @@ public sealed class StructValue : DynamicObject, IDictionary<string, object?>, I
 
         value = null;
         return false;
+    }
+
+    /// <summary>
+    ///     Reads a member, or a nested value below it, as <typeparamref name="T"/> with the same checked conversion
+    ///     <c>ReadValue&lt;T&gt;</c> applies: <c>header.Get&lt;ushort&gt;("kind")</c>,
+    ///     <c>packet.Get&lt;byte&gt;("items[2].tag")</c>, <c>record.Get&lt;Point&gt;("origin")</c> for a nested struct
+    ///     mapped to a class or record, <c>node.Get&lt;uint&gt;("next.value.id")</c> through a dereferenced pointer.
+    /// </summary>
+    /// <typeparam name="T">The destination type; a POCO needs a public parameterless constructor and public bindable members.</typeparam>
+    /// <param name="path">A member name, or a dotted and indexed path relative to this struct.</param>
+    /// <returns>The converted value.</returns>
+    /// <exception cref="CStructPathException">The path is malformed or selects nothing; the message names the failing segment and the members that exist.</exception>
+    /// <exception cref="CStructReadException">The value cannot be converted to <typeparamref name="T"/> without loss.</exception>
+    public T Get<[DynamicallyAccessedMembers(TypedValueConverter.MappedMembers)] T>(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        if (!ValuePath.TryResolve(this, path, out object? value, out string? failure))
+        {
+            throw new CStructPathException(failure);
+        }
+
+        return (T)TypedValueConverter.Convert(value, typeof(T), path)!;
+    }
+
+    /// <summary>
+    ///     Reads a member, or a nested value below it, as <typeparamref name="T"/>; returns <see langword="false"/>
+    ///     instead of throwing when the path selects nothing or the value does not convert.
+    /// </summary>
+    /// <typeparam name="T">The destination type; a POCO needs a public parameterless constructor and public bindable members.</typeparam>
+    /// <param name="path">A member name, or a dotted and indexed path relative to this struct.</param>
+    /// <param name="value">The converted value, or <see langword="default"/> when the method returns <see langword="false"/>.</param>
+    /// <returns><see langword="true"/> when the path resolved and the value converted.</returns>
+    public bool TryGet<[DynamicallyAccessedMembers(TypedValueConverter.MappedMembers)] T>(string path, [MaybeNullWhen(false)] out T value)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        if (!ValuePath.TryResolve(this, path, out object? natural, out _))
+        {
+            value = default;
+            return false;
+        }
+
+        try
+        {
+            value = (T)TypedValueConverter.Convert(natural, typeof(T), path)!;
+            return true;
+        }
+        catch (CStructReadException)
+        {
+            value = default;
+            return false;
+        }
     }
 
     /// <summary>Returns whether a member is present.</summary>

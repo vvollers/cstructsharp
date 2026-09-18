@@ -42,13 +42,14 @@ Replace `Program.cs` with this complete program, then run `dotnet run`:
 
 ```csharp
 using CStructSharp;
+using CStructSharp.Values;
 
 var layout = new CStruct("struct header { uint16 kind; uint32 length; };");
 byte[] bytes = { 0x02, 0x00, 0x06, 0x00, 0x00, 0x00 };
-dynamic header = layout.Parse(bytes.AsSpan(), "header");
+StructValue header = layout.Parse(bytes, "header");
 
-Console.WriteLine($"kind = {header.kind}");
-Console.WriteLine($"length = {header.length}");
+Console.WriteLine($"kind = {header.Get<ushort>("kind")}");
+Console.WriteLine($"length = {header.Get<uint>("length")}");
 ```
 
 Output:
@@ -58,7 +59,8 @@ kind = 2
 length = 6
 ```
 
-The layout names the fields. The byte array supplies the data. The result contains the values:
+The layout names the fields. The byte array supplies the data. The result is a `StructValue`: read a member typed
+with `header.Get<ushort>("kind")`, or declare it `dynamic` and write `header.kind`. The values:
 
 | Field | Byte offsets | Input bytes | Value |
 | --- | --- | --- | --- |

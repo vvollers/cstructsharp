@@ -6,6 +6,12 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- `StructValue.Get<T>(path)` / `TryGet<T>(path, out value)` (and the same on `UnionValue`) read one member - or a
+  nested value through a dotted, indexed, or pointer path such as `"items[2].tag"` or `"next.value.id"` - with the
+  checked conversion `ReadValue<T>` uses, so a parsed struct can stay typed without `dynamic`:
+  `header.Get<ushort>("kind")`. A path that selects nothing throws `CStructPathException` naming the failing segment
+  and the members that exist. `UnionValue.ToString()` now prints the union name, the selected member, every decoded
+  member, and the raw storage length. The README and starters use `StructValue` with `Get<T>`.
 - **Breaking (API):** one operation vocabulary for every input kind. Each operation takes the input first
   (`Stream`, `ReadOnlySpan<byte>`, `ReadOnlyMemory<byte>`, or `byte[]`), then the path, then optional `variables`
   and options, and has the same name for every input:
