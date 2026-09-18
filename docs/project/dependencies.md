@@ -98,3 +98,8 @@ For any dependency change:
 
 Do not change a version only to silence an audit. Confirm whether the vulnerable code is present and reachable, then
 record how the chosen update or accepted limitation addresses it.
+
+The weekly `dependency-check` workflow runs `dotnet list package --vulnerable --include-transitive` for both
+solutions and `npm audit --audit-level=high` for every lockfile (the two apps, the documentation, and the
+JavaScript benchmarks); it fails on a known high-severity advisory in a locked graph, and it can be started on
+demand from the Actions page.

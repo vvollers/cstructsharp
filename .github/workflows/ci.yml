@@ -123,3 +123,41 @@ jobs:
             artifacts/test-results/**/*.trx
             artifacts/test-results/**/coverage.cobertura.xml
           if-no-files-found: warn
+
+  # Windows and macOS run the managed suite only (no coverage, packaging, or AOT); the Linux job above stays the
+  # full gate. Path separators, CR/LF layout text, culture, and Stream behaviors differ per platform.
+  cross-platform-tests:
+    name: Managed tests on ${{ matrix.os }}
+    needs: build-and-test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore dependencies
+        run: dotnet restore ./CStructSharp.NonWeb.sln
+
+      - name: Build
+        run: dotnet build ./CStructSharp.NonWeb.sln -c Release --no-restore
+
+      - name: Test .NET 8 and .NET 10
+        run: dotnet test ./tests/CStructSharpTests/CStructSharpTests.csproj -c Release --no-build --logger trx --results-directory ./artifacts/test-results/${{ matrix.os }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: test-results-${{ matrix.os }}
+          path: artifacts/test-results/**/*.trx
+          if-no-files-found: warn
+

@@ -55,7 +55,9 @@ After the focused tests pass:
 4. Compare package or site artifacts when output contents can change.
 5. Run the consolidated Web/WASM checks only at the designated final integration stage.
 
-The [testing guide](testing.md) explains each layer and command.
+The [testing guide](testing.md) explains each layer and command. CI runs the full gate on Linux and repeats the
+managed test suite (build and `dotnet test` only) on Windows and macOS, so a path-separator, CR/LF, culture, or
+`Stream` difference surfaces on the pull request rather than from a user.
 
 ## Update all affected reader material
 

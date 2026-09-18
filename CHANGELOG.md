@@ -6,6 +6,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- CI runs the managed test suite on Windows and macOS as well as Linux (build and `dotnet test` only; Linux stays
+  the full gate), and a weekly `dependency-check` workflow reports known vulnerabilities in the locked managed
+  and Node dependency graphs (`dotnet list package --vulnerable`, `npm audit --audit-level=high`).
 - Hygiene: `TreatWarningsAsErrors` in every project and a `dotnet format --verify-no-changes --severity warn` CI
   step (the `.editorconfig` now mirrors the library's documentation-rule exclusions so build and format agree);
   the dissect corpus sweep is an `OptIn` test category excluded by `tests/CStructSharpTests/default.runsettings`

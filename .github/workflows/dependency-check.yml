@@ -1,0 +1,52 @@
+name: Dependency check
+
+# Weekly vulnerability report for the managed and Node dependency graphs: `dotnet list package --vulnerable` for
+# both solutions and `npm audit --audit-level=high` for every lockfile. Also runs on demand. Dependabot keeps the
+# pins current; this job fails when a known high-severity advisory reaches the locked graphs.
+
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vulnerabilities:
+    name: Known vulnerabilities in locked dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.5.0
+
+      - name: Managed packages with known vulnerabilities
+        run: |
+          dotnet restore ./CStructSharp.sln
+          for solution in CStructSharp.sln CStructSharp.NonWeb.sln; do
+            report=$(dotnet list "./$solution" package --vulnerable --include-transitive)
+            echo "$report"
+            if echo "$report" | grep -q "has the following vulnerable packages"; then
+              echo "::error::$solution references packages with known vulnerabilities."
+              exit 1
+            fi
+          done
+
+      - name: Node packages with known high-severity vulnerabilities
+        run: |
+          for directory in apps/explorer apps/inspector docs benchmarks/js; do
+            echo "==> $directory"
+            (cd "$directory" && npm ci --ignore-scripts --no-audit --no-fund && npm audit --audit-level=high)
+          done
