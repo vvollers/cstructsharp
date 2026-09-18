@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using CStructSharp.Codecs;
+using CStructSharp.Diagnostics;
 using CStructSharp.Streams;
 using CStructSharp.Values;
 
@@ -27,6 +28,14 @@ internal static class PrimitiveArrayReader
     /// <summary>Reads <paramref name="count"/> elements into a typed array and returns it as the array value.</summary>
     public static IList<object?> Read(ReadBudgetStream stream, PrimitiveCodec codec, int count)
     {
+        // A count the data provably cannot back (a hostile or corrupt length prefix) fails here, before the element
+        // array is allocated, with the same failure and final position a full short read would produce.
+        if (stream.IsShortBy((long)count * codec.Size))
+        {
+            stream.Position = stream.Length;
+            throw new CStructReadException("Not enough bytes in stream.");
+        }
+
         bool le = codec.LittleEndian;
         return codec.Kind switch
         {

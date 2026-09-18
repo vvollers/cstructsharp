@@ -132,6 +132,29 @@ internal sealed unsafe class ReadBudgetStream : Stream
 
     /// <summary>Flushes the wrapped stream without closing or otherwise taking ownership of it.</summary>
     /// <summary>
+    ///     Reports whether the source provably cannot supply <paramref name="count"/> more bytes: the region or seekable
+    ///     stream ends before them. Only a definite shortfall returns <see langword="true"/>; a non-seekable stream, or
+    ///     one whose length cannot be read, returns <see langword="false"/> so the caller reads and lets the ordinary
+    ///     short-read failure decide. Lets a bulk reader fail before it allocates for a count the data cannot back.
+    /// </summary>
+    public bool IsShortBy(long count)
+    {
+        if (this.memoryBacked)
+        {
+            return this.position + count > this.memoryLength;
+        }
+
+        try
+        {
+            return this.inner.CanSeek && this.inner.Length - this.inner.Position < count;
+        }
+        catch (Exception exception) when (StreamFailureClassification.IsPhysicalStreamFailure(exception))
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
     ///     Serves <paramref name="count"/> bytes straight from memory at the current position, advancing and charging
     ///     the budget exactly like a read would. False when the source is a stream or the bytes are not all available,
     ///     in which case the caller takes the ordinary stream path (which then produces the usual short-read error).
