@@ -12,6 +12,16 @@ public enum PocoBindingMode
     PublicReadWrite,
 }
 
+/// <summary>Says what a write does with a supplied member that the layout does not declare.</summary>
+public enum UnknownMemberPolicy
+{
+    /// <summary>Extra members are skipped; only declared fields are encoded.</summary>
+    Ignore,
+
+    /// <summary>An extra member fails the write with <see cref="Diagnostics.CStructWriteException"/> before any byte is written.</summary>
+    Reject,
+}
+
 /// <summary>Controls serialization and stream-writing operations performed by <see cref="CStruct"/>.</summary>
 /// <remarks>
 ///     Every operation snapshots these values before writing (see <see cref="CStructElementWriterState.SnapshotWriteOptions"/>)
@@ -33,6 +43,14 @@ public record WriteOptions
 
     /// <summary>Gets which readable .NET properties can supply layout field values.</summary>
     public PocoBindingMode BindingMode { get; init; } = PocoBindingMode.PublicReadable;
+
+    /// <summary>
+    ///     Gets what happens when the supplied value carries a member the struct or union does not declare - a
+    ///     misspelled key, a stale property, or an extra dictionary entry. The default ignores it; <see cref="UnknownMemberPolicy.Reject"/>
+    ///     fails the write with the unknown name and the declared members, checked per composite before its
+    ///     bytes are written. Parsed <see cref="Values.UnionValue"/> instances are never checked.
+    /// </summary>
+    public UnknownMemberPolicy UnknownMembers { get; init; } = UnknownMemberPolicy.Ignore;
 
     /// <summary>Gets the greatest number of elements one array field may write.</summary>
     public int MaxArrayElements { get; init; } = 1_000_000;

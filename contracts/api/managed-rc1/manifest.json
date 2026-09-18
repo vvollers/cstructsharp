@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 15,
+  "baselineRevision": 16,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.5.0",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 67,
+  "exportedTypes": 68,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -14,21 +14,21 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 670,
-    "normalizedSha256": "8357F716F2B87BF0FBEFBF0F8C4738C7637BBB390DC2C6DD0F6E473D90F9223E"
+    "lines": 677,
+    "normalizedSha256": "E90F7FBA60F3DB29645CD8675B969E421E9E61248BEF998F0EA0D4E704F0E85B"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "75BE75629A66BDABA0D8AC25FC131F8C4298E00C7F30540426D18076D2471E93"
+      "normalizedSha256": "79549689EF6FE6B9993A97F69D48F4AD79FF45CA8871AA4B346FCDAB4A01C9BB"
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "34F85B406D03FCA4D6DAF9622289FE4202A57EEB9920AF20DD17648F80A6440D"
+      "normalizedSha256": "08B5C7E1E2C01726E36B5788D8D6DBBB72694848D8963727B45E2F5E972E5065"
     }
   ],
   "history": [
@@ -166,6 +166,15 @@
       "combinedSha256": "42E4F9971F694ECFDD79327DD76CF79132C5C22C4FEA5563CC4A9A7533340FE1",
       "rationale": "4.2: StructValue.Get<T>/TryGet<T> and UnionValue.Get<T>/TryGet<T> read a member or a nested path with the ReadValue<T> conversion; UnionValue.ToString() renders name, selection, members, and raw length.",
       "releaseImpact": "Additive; no existing signature changed."
+    },
+    {
+      "revision": 16,
+      "kind": "additive",
+      "date": "2026-09-18",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "16D21A4BA0465710F7C1B872D6C491A23DC63232898F6A609DA8146AD7D94E8B",
+      "rationale": "4.3: ReadOptions.TrimFixedText (default false) drops trailing NUL padding from fixed-capacity text; WriteOptions.UnknownMembers (UnknownMemberPolicy.Ignore | Reject, default Ignore) rejects members the composite does not declare.",
+      "releaseImpact": "Additive options with the historical behaviour as default."
     }
   ]
 }

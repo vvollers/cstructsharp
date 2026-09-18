@@ -66,6 +66,7 @@ public class PublicApiSurfaceTests
         "CStructSharp.PointerAddressingMode",
         "CStructSharp.ReadOptions",
         "CStructSharp.StaticHelpers",
+        "CStructSharp.UnknownMemberPolicy",
         "CStructSharp.UpdateOptions",
         "CStructSharp.Values.EnumValueResult",
         "CStructSharp.Values.FlagValueResult",

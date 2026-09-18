@@ -6,6 +6,14 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- `ReadOptions.TrimFixedText` (default `false`) drops the trailing NUL padding from fixed-capacity text - `char[N]`,
+  `wchar[N]`, bounded `utf8 name[N]` buffers, and string tables - so `61 62 00 00` reads as `"ab"`; embedded NULs
+  stay and writing still zero-pads. `WriteOptions.UnknownMembers` (`UnknownMemberPolicy.Ignore`, the default, or
+  `Reject`) makes a supplied member the struct does not declare fail the write before any byte is written, naming
+  the member and the declared ones; it checks dictionaries, `StructValue`s, and .NET objects, nested structs
+  included, and applies to `UpdateOptions`. The errors guide gained a "What is not an error" table listing the
+  quiet behaviours (trailing bytes, unknown members, NUL padding, unnamed enum values, undereferenced pointers)
+  and how to opt into strictness for each.
 - `StructValue.Get<T>(path)` / `TryGet<T>(path, out value)` (and the same on `UnionValue`) read one member - or a
   nested value through a dotted, indexed, or pointer path such as `"items[2].tag"` or `"next.value.id"` - with the
   checked conversion `ReadValue<T>` uses, so a parsed struct can stay typed without `dynamic`:

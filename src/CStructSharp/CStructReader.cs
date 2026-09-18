@@ -415,7 +415,7 @@ public partial class CStruct
                     if (isArray && !compiledField.IsPointer && BoundedTextCodec.IsType(compiledField.TypeSpelling))
                     {
                         long start = state.Stream.Position;
-                        string text = PrimitiveCodecs.ReadBoundedText(state.Stream, numFieldValues, compiledField.TypeSpelling);
+                        string text = state.FixedText(PrimitiveCodecs.ReadBoundedText(state.Stream, numFieldValues, compiledField.TypeSpelling));
                         long end = state.Stream.Position;
                         containerDict[compiledField.Name] = text;
                         if (state.Debug)
@@ -836,7 +836,7 @@ public partial class CStruct
                                 var rows = new List<object?>(flatValues.Count / rowSize);
                                 for (int start = 0; start < flatValues.Count; start += rowSize)
                                 {
-                                    string row = new(flatValues.GetRange(start, rowSize).Cast<char>().ToArray());
+                                    string row = state.FixedText(new string(flatValues.GetRange(start, rowSize).Cast<char>().ToArray()));
                                     if (compiledField.IsWideCharElement)
                                     {
                                         try
@@ -865,7 +865,7 @@ public partial class CStruct
                         {
                             // Expose fixed character arrays as the string callers expect, after every character has been read.
                             var list = (List<object?>)containerDict[compiledField.Name]!;
-                            string parsedString = new(list.Cast<char>().ToArray());
+                            string parsedString = state.FixedText(new string(list.Cast<char>().ToArray()));
                             if (compiledField.IsWideCharElement)
                             {
                                 try

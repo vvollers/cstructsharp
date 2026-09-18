@@ -45,6 +45,7 @@ internal sealed class CStructElementWriterState
         this.PointerOrigin = this.Options.Origin;
         this.AddressingMode = this.Options.AddressingMode;
         this.BindingMode = this.Options.BindingMode;
+        this.RejectUnknownMembers = this.Options.UnknownMembers == UnknownMemberPolicy.Reject;
         this.MaxNestingDepth = this.Options.MaxNestingDepth;
         this.StructureDepth = initialStructureDepth;
         if (initialStructureDepth < 0 || initialStructureDepth > this.MaxNestingDepth)
@@ -60,6 +61,9 @@ internal sealed class CStructElementWriterState
     public bool Aligned { get; }
 
     public PocoBindingMode BindingMode { get; }
+
+    /// <summary>Whether a member the composite does not declare fails the write (<see cref="WriteOptions.UnknownMembers"/>).</summary>
+    public bool RejectUnknownMembers { get; }
 
     public WriteOptions Options { get; }
 

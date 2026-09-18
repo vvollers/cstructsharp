@@ -29,7 +29,8 @@ struct label {
 [!code-csharp[Read and write a fixed four-byte text field](../examples/Program.cs#language-tutorial-fixed-text)]
 
 Input `41 42 43 00` becomes the four-character C# string `"ABC\0"`. The trailing zero remains part of the fixed
-buffer; CStructSharp does not stop scanning early.
+buffer; CStructSharp does not stop scanning early. When the padding is noise for your application, read with
+`new ReadOptions { TrimFixedText = true }` and the same input becomes `"ABC"`; embedded NULs still stay.
 
 Writing `"XY"` produces:
 

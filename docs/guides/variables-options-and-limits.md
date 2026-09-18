@@ -81,6 +81,21 @@ found, its inherited write limits apply to the replacement.
 These are safety ceilings, not a promise that every value below them is appropriate for your application. For a
 network message expected to contain at most 100 items, set a limit near 100 rather than relying on one million.
 
+## Choose a policy for the quiet cases
+
+Two options change behaviour rather than a limit. Both default to the permissive choice:
+
+- `ReadOptions.TrimFixedText` (default `false`): fixed-capacity text such as `char name[8]`, `wchar[N]`, or a
+  bounded `utf8 name[N]` buffer keeps its NUL padding when read, so `61 62 00 00` is `"ab\0\0"`. Set the option to
+  read `"ab"`; only trailing NULs are removed and writing still zero-pads to the declared capacity.
+- `WriteOptions.UnknownMembers` (default `Ignore`): a supplied value may carry members the struct does not declare
+  and they are skipped. `UnknownMemberPolicy.Reject` fails the write before any byte is written -
+  `'bogus' is not a member of 'root' (WriteOptions.UnknownMembers is Reject). The layout declares: kind, tail.` -
+  for dictionaries, `StructValue`s, and .NET objects alike, nested structs included. It also applies to
+  `UpdateOptions`.
+
+The [what is not an error](errors-and-recovery.md#what-is-not-an-error) list explains the other quiet cases.
+
 ## Handle limit failures
 
 Exceeding a read limit throws `CStructReadLimitException` with code `ReadLimitExceeded`. Exceeding a write limit

@@ -105,7 +105,9 @@ For a new format integration:
 
 Most write failures come from a missing member, the wrong collection length, a number outside its declared range, an
 incorrect enum or union shape, insufficient output capacity, or a configured safety limit. Inspect
-`CStructWriteException.Path` when available before changing the layout.
+`CStructWriteException.Path` when available before changing the layout. A member the layout does not declare is
+*not* a failure by default - it is skipped - so a misspelled key such as `lenght` silently leaves the field to
+another (missing) value; set `WriteOptions.UnknownMembers = UnknownMemberPolicy.Reject` to have it named instead.
 
 Use [Spans and buffer writers](spans-and-memory.md) for more ownership detail, or
 [Enums](enums.md) and [Unions](unions.md) for their lossless write models.

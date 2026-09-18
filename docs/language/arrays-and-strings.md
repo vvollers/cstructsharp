@@ -130,7 +130,8 @@ The decoder never borrows bytes from the next field to complete a sequence.
 Writing uses strict UTF-8, rejects encoded text larger than the declared capacity, and zero-pads
 shorter text to fill that capacity. Invalid UTF-16 input (such as an unpaired surrogate) fails.
 Read and write string-byte limits apply to the full declared capacity, alongside ordinary array
-and total-byte limits. Reads preserve padding as NUL characters; they do not trim it.
+and total-byte limits. Reads preserve padding as NUL characters unless `ReadOptions.TrimFixedText` is set,
+which removes trailing NULs only.
 
 `GetArrayLength` reports the byte capacity. An indexed read such as `root.name[1]` returns
 the raw byte at that position; individual indexed updates can make the full string invalid.

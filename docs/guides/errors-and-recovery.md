@@ -53,6 +53,19 @@ bug in application code into `false`.
 
 This distinction is why the choice between owned output, direct output, and an update matters.
 
+## What is not an error
+
+Some situations look like problems but are deliberate, documented behaviour. The library stays quiet about them,
+and each has an opt-in where strictness makes sense:
+
+| Situation | What happens | Opt in to strictness |
+| --- | --- | --- |
+| Trailing bytes after the selected struct | They are left unread; a stream stays positioned right after the struct so a following record can be read. | Compare the position or `GetStructSizeInBytes` against the input length yourself. |
+| A supplied value has members the layout does not declare | `Serialize`, `Write`, and `Update` skip them. | `WriteOptions.UnknownMembers = UnknownMemberPolicy.Reject`. |
+| NUL padding in fixed text (`char name[8]`, bounded `utf8[N]`) | The padding stays in the string: `"ab\0\0"`. | `ReadOptions.TrimFixedText = true`, or `.TrimEnd('\0')`. |
+| An enum field holds a value with no declared name | `EnumValueResult.Name` is `null` and `Value` keeps the number; flags decompose into the named bits plus the remainder. | Check `Name is null` (or `FlagValueResult.Remainder != 0`) in application code; the layout cannot declare "closed" enums. |
+| A pointer that was not dereferenced | `Pointer.Value` is `null` and `IsDereferenced` is `false`; nothing was read at the target. | Leave `ReadOptions.DereferencePointers` at its default of `true`. |
+
 ## Read a message
 
 Every message names what failed first and then, in parentheses, every fact the library knows: the field being

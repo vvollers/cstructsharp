@@ -65,6 +65,15 @@ public sealed class ReadOptions
     public int MaxNestingDepth { get; init; } = 256;
 
     /// <summary>
+    ///     Gets whether fixed-capacity text - <c>char[N]</c>, <c>wchar[N]</c>, and bounded encoded buffers such as
+    ///     <c>utf8 name[N]</c> - drops its trailing NUL padding when read. The default keeps every character, so a
+    ///     <c>char[4]</c> holding <c>61 62 00 00</c> reads as <c>"ab\0\0"</c>; with this option it reads as
+    ///     <c>"ab"</c>. Only trailing NULs are removed; embedded NULs stay. Writing is unaffected: shorter text is
+    ///     always zero-padded to the declared capacity.
+    /// </summary>
+    public bool TrimFixedText { get; init; }
+
+    /// <summary>
     ///     Gets the signed base position added with checked arithmetic to non-null relative pointer offsets
     ///     before their target stream range is validated.
     /// </summary>

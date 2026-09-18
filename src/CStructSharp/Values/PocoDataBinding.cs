@@ -109,6 +109,24 @@ internal static class PocoDataBinding
         return false;
     }
 
+    /// <summary>The names of the public members a value of <paramref name="type"/> can supply under <paramref name="bindingMode"/>.</summary>
+    public static IEnumerable<string> EnumerateMemberNames(Type type, PocoBindingMode bindingMode)
+    {
+        foreach (PropertyInfo property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (property.CanRead && property.GetIndexParameters().Length == 0 &&
+                (bindingMode != PocoBindingMode.PublicReadWrite || property.CanWrite))
+            {
+                yield return property.Name;
+            }
+        }
+
+        foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+        {
+            yield return field.Name;
+        }
+    }
+
     /// <summary>
     ///     Resolves the public property and field a name maps to, case-sensitively first, then case-insensitively.
     ///     Both are resolved unconditionally (not just the property, falling back to the field only when the

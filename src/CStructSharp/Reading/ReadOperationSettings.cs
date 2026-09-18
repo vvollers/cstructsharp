@@ -10,7 +10,8 @@ internal readonly record struct ReadOperationSettings(
     long MaxStringBytes,
     long MaxTotalBytesRead,
     int MaxNestingDepth,
-    long Origin)
+    long Origin,
+    bool TrimFixedText = false)
 {
     /// <summary>Copies every read choice before variable enumeration, stream access, or another caller callback.</summary>
     public static ReadOperationSettings SnapshotReadOptions(ReadOptions? options)
@@ -26,7 +27,8 @@ internal readonly record struct ReadOperationSettings(
                 16 * 1024 * 1024,
                 64 * 1024 * 1024,
                 256,
-                0);
+                0,
+                false);
         }
 
         return new ReadOperationSettings(
@@ -38,7 +40,8 @@ internal readonly record struct ReadOperationSettings(
             options.MaxStringBytes,
             options.MaxTotalBytesRead,
             options.MaxNestingDepth,
-            options.Origin);
+            options.Origin,
+            options.TrimFixedText);
     }
 
     /// <summary>Maps already-snapshotted update traversal choices into the same read operation settings.</summary>

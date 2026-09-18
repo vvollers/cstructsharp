@@ -176,6 +176,12 @@ public partial class CStruct
             throw new CStructWriteException("Null is not valid for struct or union value: " + composite.Name);
         }
 
+        if (state.RejectUnknownMembers)
+        {
+            // Checked before the static plan, which writes nested composites without re-entering this method.
+            RejectUnknownMembers(composite, data, state.BindingMode);
+        }
+
         // Static write plan (E2.10): a fully fixed composite is encoded into one block and written once when that
         // is exactly equivalent to the field-by-field path below (see TryWriteStaticPlan for the conditions).
         if (!composite.IsUnion && this.TryWriteStaticPlan(composite, data, state))
@@ -458,7 +464,97 @@ public partial class CStruct
         state.NextPosition = unionEnd;
     }
 
-    /// <summary>Writes one already compiled field without resolving aliases or codec names again.</summary>
+    /// <summary>
+    ///     <see cref="UnknownMemberPolicy.Reject"/>: every member the supplied value carries must be one the composite
+    ///     declares. Dictionaries are matched by exact key (the lookup the writer performs); .NET objects by the
+    ///     case-insensitive member resolution POCO binding uses. A parsed <see cref="UnionValue"/> is trusted.
+    /// </summary>
+    private static void RejectUnknownMembers(CompiledCompositeType composite, object data, PocoBindingMode bindingMode)
+    {
+        StructShape shape = composite.Shape;
+        switch (data)
+        {
+            case UnionValue:
+                return;
+            case IDictionary<string, object?> members:
+                foreach (string key in members.Keys)
+                {
+                    if (!shape.TryGetIndex(key, out _))
+                    {
+                        throw UnknownMember(composite, key);
+                    }
+                }
+
+                break;
+            default:
+                foreach (string member in PocoDataBinding.EnumerateMemberNames(data.GetType(), bindingMode))
+                {
+                    if (!shape.TryGetIndex(member, out _) &&
+                        !shape.Names.Any(name => string.Equals(name, member, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        throw UnknownMember(composite, member);
+                    }
+                }
+
+                break;
+        }
+
+        RejectUnknownNestedMembers(composite, data, bindingMode);
+    }
+
+    /// <summary>Applies the same check to every by-value nested struct the composite declares, arrays included.</summary>
+    private static void RejectUnknownNestedMembers(CompiledCompositeType composite, object data, PocoBindingMode bindingMode)
+    {
+        foreach (CompiledField field in composite.Fields)
+        {
+            if (field.Composite is not { } nested)
+            {
+                continue;
+            }
+
+            if (composite.PromotedFields.Contains(field))
+            {
+                // A promoted member's children live on the same data object; only its own nested composites need checking.
+                RejectUnknownNestedMembers(nested, data, bindingMode);
+                continue;
+            }
+
+            if (field.IsUnnamed || !PocoDataBinding.TryGetMemberValue(data, field.Name, bindingMode, out object? value) || value is null)
+            {
+                continue;
+            }
+
+            try
+            {
+                if (field.Array.Kind == CompiledArrayKind.Scalar)
+                {
+                    RejectUnknownMembers(nested, value, bindingMode);
+                }
+                else if (value is System.Collections.IEnumerable elements and not string)
+                {
+                    foreach (object? element in elements)
+                    {
+                        if (element is not null)
+                        {
+                            RejectUnknownMembers(nested, element, bindingMode);
+                        }
+                    }
+                }
+            }
+            catch (CStructException exception) when (exception.NoteMember(field.Name, field.DisplayTypeSpelling))
+            {
+                throw;
+            }
+        }
+    }
+
+    private static CStructWriteException UnknownMember(CompiledCompositeType composite, string member)
+    {
+        string declared = composite.Shape.Names.Length == 0 ? "no members" : string.Join(", ", composite.Shape.Names);
+        return new CStructWriteException(
+            $"'{member}' is not a member of '{composite.Name}' (WriteOptions.UnknownMembers is Reject). The layout declares: {declared}.");
+    }
+
     /// <summary>The all-zero value an unnamed padding field is written with: a zero scalar, or one zero per fixed element.</summary>
     private static object CreatePaddingValue(CompiledField field)
     {

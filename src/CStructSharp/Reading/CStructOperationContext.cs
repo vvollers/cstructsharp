@@ -49,6 +49,7 @@ internal sealed class CStructOperationContext
         this.MaxPointerTargetBytes = options.MaxPointerTargetBytes;
         this.MaxArrayElements = options.MaxArrayElements;
         this.MaxNestingDepth = options.MaxNestingDepth;
+        this.TrimFixedText = options.TrimFixedText;
         if (this.MaxPointerDepth < 0)
         {
             // A negative limit has no meaningful safety interpretation and would make the comparison misleading.
@@ -105,6 +106,9 @@ internal sealed class CStructOperationContext
     public long? MaxPointerTargetBytes { get; }
 
     public int MaxArrayElements { get; }
+
+    /// <summary>Whether fixed-capacity text drops its trailing NUL padding (<see cref="ReadOptions.TrimFixedText"/>).</summary>
+    public bool TrimFixedText { get; }
 
     public int MaxNestingDepth { get; }
 
@@ -227,5 +231,11 @@ internal sealed class CStructOperationContext
                 this.Variables.Remove(prefix + name);
             }
         }
+    }
+
+    /// <summary>Applies <see cref="TrimFixedText"/> to one decoded fixed-capacity string.</summary>
+    public string FixedText(string text)
+    {
+        return this.TrimFixedText ? text.TrimEnd('\0') : text;
     }
 }

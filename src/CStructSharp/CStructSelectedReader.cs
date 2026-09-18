@@ -217,7 +217,7 @@ public partial class CStruct
                             throw new CStructReadLimitException($"Array length {operation.Count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
                         }
 
-                        string text = ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count));
+                        string text = state.FixedText(ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count)));
                         destination.SetFreshSlot(operation.Slot, text);
                         if (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
                         {

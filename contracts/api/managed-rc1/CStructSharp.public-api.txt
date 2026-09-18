@@ -103,10 +103,16 @@ namespace CStructSharp
         public long MaxStringBytes { get; init; }
         public long MaxTotalBytesRead { get; init; }
         public long Origin { get; init; }
+        public bool TrimFixedText { get; init; }
     }
     public static class StaticHelpers
     {
         public static byte[] ParseHexDataContent(this string hexData) { }
+    }
+    public enum UnknownMemberPolicy
+    {
+        Ignore = 0,
+        Reject = 1,
     }
     public sealed class UpdateOptions : CStructSharp.WriteOptions, System.IEquatable<CStructSharp.UpdateOptions>
     {
@@ -131,6 +137,7 @@ namespace CStructSharp
         public long MaxStringBytes { get; init; }
         public long MaxTotalBytesWritten { get; init; }
         public long Origin { get; init; }
+        public CStructSharp.UnknownMemberPolicy UnknownMembers { get; init; }
     }
 }
 namespace CStructSharp.Codecs
