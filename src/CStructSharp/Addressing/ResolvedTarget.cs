@@ -3,7 +3,6 @@ namespace CStructSharp.Addressing;
 using System;
 using System.Collections.Generic;
 using CStructSharp.Compilation;
-using CStructSharp.Syntax;
 
 /// <summary>
 ///     Carries path semantics that cannot be reconstructed from a byte address, pending the complete compiled IR.
@@ -14,11 +13,8 @@ internal sealed class ResolvedTarget
     public ResolvedTarget(
         long address,
         ResolvedTargetKind kind,
-        Field? declaredField,
-        Field? effectiveField,
-        Field? writableField,
-        CStructElement? targetElement,
-        IReadOnlyList<CStructElement> debugPrefix,
+        CompiledCompositeType? targetComposite,
+        IReadOnlyList<string> debugPrefix,
         string? codecName,
         bool isArray,
         int? arrayLength,
@@ -40,10 +36,7 @@ internal sealed class ResolvedTarget
     {
         this.Address = address;
         this.Kind = kind;
-        this.DeclaredField = declaredField;
-        this.EffectiveField = effectiveField;
-        this.WritableField = writableField;
-        this.TargetElement = targetElement;
+        this.TargetComposite = targetComposite;
         this.DebugPrefix = Array.AsReadOnly(Copy(debugPrefix));
         this.CodecName = codecName;
         this.IsArray = isArray;
@@ -80,11 +73,7 @@ internal sealed class ResolvedTarget
     /// <summary>Gets the active structure depth above a selected target object.</summary>
     public int ContainingStructureDepth { get; }
 
-    public Field? DeclaredField { get; }
-
-    public IReadOnlyList<CStructElement> DebugPrefix { get; }
-
-    public Field? EffectiveField { get; }
+    public IReadOnlyList<string> DebugPrefix { get; }
 
     public CompiledField? EffectiveCompiledField { get; }
 
@@ -106,13 +95,12 @@ internal sealed class ResolvedTarget
 
     public IReadOnlyList<int> SelectedIndexes { get; }
 
-    public CStructElement? TargetElement { get; }
+    /// <summary>The struct or union the target's type resolves to (through any pointer levels), or <see langword="null"/> for a primitive or enum.</summary>
+    public CompiledCompositeType? TargetComposite { get; }
 
     public long? UnionStorageAddress { get; }
 
     public int? UnionStorageSize { get; }
-
-    public Field? WritableField { get; }
 
     public CompiledField? WritableCompiledField { get; }
 

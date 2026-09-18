@@ -10,9 +10,9 @@ using CStructSharp.Syntax;
 public partial class CStruct
 {
     /// <summary>Returns a struct selected during path traversal or raises the caller's focused path error.</summary>
-    private static Struct RequirePathStruct(CStructElement? element, string error)
+    private static CompiledCompositeType RequirePathStruct(CompiledCompositeType? composite, string error)
     {
-        return element as Struct ?? throw new CStructPathException(error);
+        return composite ?? throw new CStructPathException(error);
     }
 
     /// <summary>
@@ -26,12 +26,13 @@ public partial class CStruct
         IReadOnlyList<PathSegment> segments,
         IReadOnlyDictionary<string, Expr> variables)
     {
-        CStructElement current = this.compiledModelQueries.ResolveCompiledNamedElement(root) ?? root;
+        CStructElement resolvedRoot = this.compiledModelQueries.ResolveCompiledNamedElement(root) ?? root;
+        CompiledCompositeType? current = resolvedRoot is Struct rootStruct ? this.compiledSizeQueries.GetCompiledComposite(rootStruct) : null;
         for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++)
         {
             PathSegment segment = segments[segmentIndex];
-            Struct strct = RequirePathStruct(current, "Cannot resolve path segment: " + segment.Name);
-            CompiledField compiledField = this.FindCompiledField(strct, segment.Name);
+            CompiledCompositeType strct = RequirePathStruct(current, "Cannot resolve path segment: " + segment.Name);
+            CompiledField compiledField = FindCompiledField(strct, segment.Name);
             bool declaredIsArray = compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or
                                    CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
 
@@ -73,16 +74,14 @@ public partial class CStruct
                 return writableField;
             }
 
-            Field effectiveField = writableField.EffectiveField;
-            CStructElement? namedElement = writableField.NamedElement;
-            if (effectiveField.PointerDepth > 0)
+            if (writableField.PointerDepth > 0)
             {
                 throw new CStructPathException(
                     "WriteStream cannot dereference pointer targets; use UpdateStream with an existing stream.");
             }
 
             current = RequirePathStruct(
-                namedElement,
+                writableField.Composite,
                 "Cannot traverse through scalar field: " + segment.Name);
         }
 

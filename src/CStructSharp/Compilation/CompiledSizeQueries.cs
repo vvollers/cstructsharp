@@ -116,7 +116,7 @@ internal sealed class CompiledSizeQueries
         }
 
         throw new CStructLayoutException(
-            "Variable-length type has no fixed storage size: " + field.EffectiveField.Type.Name);
+            "Variable-length type has no fixed storage size: " + field.TypeSpelling);
     }
 
     /// <summary>Evaluates one compiled array strategy while preserving fixed/flexible error semantics.</summary>
@@ -133,13 +133,13 @@ internal sealed class CompiledSizeQueries
         if (field.Array.Kind is CompiledArrayKind.Flexible or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated)
         {
             throw new CStructLayoutException(
-                "Flexible array has no fixed storage size: " + field.EffectiveField.Name.Name);
+                "Flexible array has no fixed storage size: " + field.Name);
         }
 
         Expr expression = field.Array.CountExpression ??
                           throw new InvalidOperationException(
-                              "Compiled array strategy has no count expression: " + field.EffectiveField.Name.Name);
-        return this.EvaluateDimensionCount(expression, field.EffectiveField.Name.Name, variables, requireFixedSize);
+                              "Compiled array strategy has no count expression: " + field.Name);
+        return this.EvaluateDimensionCount(expression, field.Name, variables, requireFixedSize);
     }
 
     /// <summary>
@@ -162,7 +162,7 @@ internal sealed class CompiledSizeQueries
         if (field.Array.Kind is CompiledArrayKind.Flexible or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated)
         {
             throw new CStructLayoutException(
-                "Flexible array has no fixed storage size: " + field.EffectiveField.Name.Name);
+                "Flexible array has no fixed storage size: " + field.Name);
         }
 
         int total = 1;
@@ -170,8 +170,8 @@ internal sealed class CompiledSizeQueries
         {
             Expr expression = dimension.CountExpression ??
                               throw new InvalidOperationException(
-                                  "Compiled array dimension has no count expression: " + field.EffectiveField.Name.Name);
-            int count = this.EvaluateDimensionCount(expression, field.EffectiveField.Name.Name, variables, requireFixedSize);
+                                  "Compiled array dimension has no count expression: " + field.Name);
+            int count = this.EvaluateDimensionCount(expression, field.Name, variables, requireFixedSize);
             total = checked(total * count);
         }
 

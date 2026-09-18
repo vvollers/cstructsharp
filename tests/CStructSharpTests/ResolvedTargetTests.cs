@@ -35,16 +35,13 @@ public class ResolvedTargetTests
     [TestMethod]
     public void Constructor_CopiesListsInsteadOfRetainingTheCallersMutableCollection()
     {
-        var debugPrefix = new List<CStructElement> { ScalarField("a"), };
+        var debugPrefix = new List<string> { "a", };
         var selectedIndexes = new List<int> { 1, };
 
         ResolvedTarget target = new(
             address: 0,
             kind: ResolvedTargetKind.Field,
-            declaredField: null,
-            effectiveField: null,
-            writableField: null,
-            targetElement: null,
+            targetComposite: null,
             debugPrefix: debugPrefix,
             codecName: null,
             isArray: false,
@@ -63,7 +60,7 @@ public class ResolvedTargetTests
             fixedSize: null,
             containingStructureDepth: 0);
 
-        debugPrefix.Add(ScalarField("b"));
+        debugPrefix.Add("b");
         selectedIndexes.Add(2);
 
         Assert.HasCount(1, target.DebugPrefix);
@@ -75,15 +72,15 @@ public class ResolvedTargetTests
     public void EnterField_AppendsFieldAndIndex_PreservesUnrelatedState()
     {
         var context = new TargetResolutionContext(
-            debugPrefix: [ScalarField("root"),],
+            debugPrefix: ["root",],
             selectedIndexes: [],
             unionStorageAddress: 100,
             unionStorageSize: 8);
 
-        TargetResolutionContext next = context.EnterField(ScalarField("child"), selectedIndexes: [5,]);
+        TargetResolutionContext next = context.EnterField("child", selectedIndexes: [5,]);
 
         Assert.HasCount(2, next.DebugPrefix);
-        Assert.AreEqual("child", next.DebugPrefix[1].Name.Name);
+        Assert.AreEqual("child", next.DebugPrefix[1]);
         CollectionAssert.AreEqual(new[] { 5, }, next.SelectedIndexes.ToArray());
         Assert.AreEqual(100L, next.UnionStorageAddress);
         Assert.AreEqual(8, next.UnionStorageSize);
@@ -95,7 +92,7 @@ public class ResolvedTargetTests
     {
         var context = new TargetResolutionContext(debugPrefix: [], selectedIndexes: [7,]);
 
-        TargetResolutionContext next = context.EnterField(ScalarField("child"), selectedIndexes: []);
+        TargetResolutionContext next = context.EnterField("child", selectedIndexes: []);
 
         CollectionAssert.AreEqual(new[] { 7, }, next.SelectedIndexes.ToArray());
     }
@@ -104,7 +101,7 @@ public class ResolvedTargetTests
     [TestMethod]
     public void EnterUnion_RecordsStorageAddressAndSize()
     {
-        var context = new TargetResolutionContext(debugPrefix: [ScalarField("root"),], selectedIndexes: []);
+        var context = new TargetResolutionContext(debugPrefix: ["root",], selectedIndexes: []);
 
         TargetResolutionContext next = context.EnterUnion(address: 64, size: 16);
 
@@ -141,20 +138,12 @@ public class ResolvedTargetTests
         Assert.Throws<OverflowException>(() => context.FollowPointer(storageAddress: 0, targetAddress: 0));
     }
 
-    private static Field ScalarField(string name)
-    {
-        return new Field(new Identifier("uint8"), new Identifier(name), Field.NoArray, 0);
-    }
-
     private static ResolvedTarget MakeTarget(int? selectedArrayIndex = null, int pointerAccessorsConsumed = 0)
     {
         return new ResolvedTarget(
             address: 0,
             kind: ResolvedTargetKind.Field,
-            declaredField: null,
-            effectiveField: null,
-            writableField: null,
-            targetElement: null,
+            targetComposite: null,
             debugPrefix: [],
             codecName: null,
             isArray: selectedArrayIndex.HasValue,

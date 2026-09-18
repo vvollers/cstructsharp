@@ -6,7 +6,6 @@ using System.Numerics;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
-using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>Converts a caller-supplied write value into the exact integer domain of one compiled enum.</summary>
 internal static class EnumFieldValueParser
@@ -14,7 +13,6 @@ internal static class EnumFieldValueParser
     /// <summary>Accepts one exact enum input shape and validates all supplied metadata against the compiled declaration.</summary>
     public static BigInteger GetEnumValue(
         CompiledEnumType compiled,
-        CstructEnum enm,
         object value,
         PocoBindingMode bindingMode)
     {
@@ -23,7 +21,7 @@ internal static class EnumFieldValueParser
             BigInteger result;
             if (value is EnumValueResult parsed)
             {
-                ValidateEnumName(enm, parsed.Enum);
+                ValidateEnumName(compiled, parsed.Enum);
                 ValidateEnumDomainMetadata(compiled, parsed);
                 result = parsed.Value;
                 ValidateEnumMemberMetadata(compiled, parsed.Name, result);
@@ -37,7 +35,7 @@ internal static class EnumFieldValueParser
                 else if (compiled.IsFlag && text.Contains('|'))
                 {
                     // `A|C` names the union of flag members.
-                    result = CombineFlagMembers(compiled, enm, text.Split('|', StringSplitOptions.TrimEntries));
+                    result = CombineFlagMembers(compiled, text.Split('|', StringSplitOptions.TrimEntries));
                 }
                 else if (!BigInteger.TryParse(
                              text,
@@ -46,7 +44,7 @@ internal static class EnumFieldValueParser
                              out result))
                 {
                     throw new FormatException(
-                        $"'{text}' is neither a member of enum '{enm.Name.Name}' nor an invariant decimal integer.");
+                        $"'{text}' is neither a member of enum '{compiled.Name}' nor an invariant decimal integer.");
                 }
             }
             else if (EnumIntegerCodec.TryConvertIntegral(value, out result))
@@ -55,11 +53,11 @@ internal static class EnumFieldValueParser
             }
             else if (compiled.IsFlag && value is System.Collections.Generic.IEnumerable<string> members)
             {
-                result = CombineFlagMembers(compiled, enm, members);
+                result = CombineFlagMembers(compiled, members);
             }
             else
             {
-                result = GetEnumObjectValue(compiled, enm, value, bindingMode);
+                result = GetEnumObjectValue(compiled, value, bindingMode);
             }
 
             compiled.Integer.EnsureInRange(result);
@@ -73,13 +71,13 @@ internal static class EnumFieldValueParser
                                           FormatException or InvalidCastException or InvalidOperationException)
         {
             throw new CStructWriteException(
-                $"Cannot convert the supplied value for enum '{enm.Name.Name}'.",
+                $"Cannot convert the supplied value for enum '{compiled.Name}'.",
                 exception);
         }
     }
 
     /// <summary>Reads the browser/POCO enum object shape and rejects absent or contradictory metadata.</summary>
-    private static BigInteger CombineFlagMembers(CompiledEnumType compiled, CstructEnum enm, System.Collections.Generic.IEnumerable<string> names)
+    private static BigInteger CombineFlagMembers(CompiledEnumType compiled, System.Collections.Generic.IEnumerable<string> names)
     {
         ulong rawBits = 0;
         foreach (string name in names)
@@ -91,7 +89,7 @@ internal static class EnumFieldValueParser
 
             if (!compiled.MembersByName.TryGetValue(name, out CompiledEnumMember member))
             {
-                throw new InvalidOperationException($"Flag '{enm.Name.Name}' has no member named '{name}'.");
+                throw new InvalidOperationException($"Flag '{compiled.Name}' has no member named '{name}'.");
             }
 
             rawBits |= member.RawBits;
@@ -102,14 +100,13 @@ internal static class EnumFieldValueParser
 
     private static BigInteger GetEnumObjectValue(
         CompiledEnumType compiled,
-        CstructEnum enm,
         object value,
         PocoBindingMode bindingMode)
     {
         bool hasEnum = PocoDataBinding.TryGetMemberValue(value, "Enum", bindingMode, out object enumName);
         if (hasEnum && enumName is not null)
         {
-            ValidateEnumName(enm, enumName.ToString());
+            ValidateEnumName(compiled, enumName.ToString());
         }
 
         bool hasName = PocoDataBinding.TryGetMemberValue(value, "Name", bindingMode, out object memberName);
@@ -120,7 +117,7 @@ internal static class EnumFieldValueParser
             if (!compiled.MembersByName.TryGetValue(selectedName, out CompiledEnumMember member))
             {
                 throw new InvalidOperationException(
-                    $"Enum '{enm.Name.Name}' has no member named '{selectedName}'.");
+                    $"Enum '{compiled.Name}' has no member named '{selectedName}'.");
             }
 
             namedValue = compiled.Integer.FromRawBits(member.RawBits);
@@ -136,13 +133,13 @@ internal static class EnumFieldValueParser
         if (namedValue is null && numericValue is null)
         {
             throw new InvalidOperationException(
-                $"Enum '{enm.Name.Name}' input must supply Name or Value.");
+                $"Enum '{compiled.Name}' input must supply Name or Value.");
         }
 
         if (namedValue is not null && numericValue is not null && namedValue.Value != numericValue.Value)
         {
             throw new InvalidOperationException(
-                $"Enum '{enm.Name.Name}' Name and Value identify different members.");
+                $"Enum '{compiled.Name}' Name and Value identify different members.");
         }
 
         return numericValue ?? namedValue!.Value;
@@ -166,12 +163,12 @@ internal static class EnumFieldValueParser
             "Enum Value must be an integral CLR value, BigInteger, or invariant decimal integer string.");
     }
 
-    private static void ValidateEnumName(CstructEnum enm, string? suppliedName)
+    private static void ValidateEnumName(CompiledEnumType compiled, string? suppliedName)
     {
-        if (!string.Equals(enm.Name.Name, suppliedName, StringComparison.Ordinal))
+        if (!string.Equals(compiled.Name, suppliedName, StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"Enum value '{suppliedName}' cannot be written as '{enm.Name.Name}'.");
+                $"Enum value '{suppliedName}' cannot be written as '{compiled.Name}'.");
         }
     }
 

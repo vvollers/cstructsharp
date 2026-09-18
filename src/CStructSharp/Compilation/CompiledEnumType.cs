@@ -25,6 +25,9 @@ internal sealed class CompiledEnumType : CompiledType
     /// <summary>Whether the declaration is a <c>flag</c> (bitmask) rather than a plain enum.</summary>
     public bool IsFlag { get; }
 
+    /// <summary>The declared enum or flag name.</summary>
+    public string Name => this.Symbol.Name;
+
     public EnumIntegerCodec Integer { get; }
 
     public ImmutableArray<CompiledEnumMember> Members { get; }

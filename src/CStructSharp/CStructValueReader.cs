@@ -247,7 +247,7 @@ public sealed partial class CStruct
         out object? value)
     {
         value = null;
-        Struct? declaration = null;
+        CompiledCompositeType? declaration = null;
         if (target.Kind == ResolvedTargetKind.Root)
         {
             if (!this.compiledModelQueries.TryGetCompiledDeclaration(segments[0].Name, out CStructElement? element))
@@ -255,10 +255,11 @@ public sealed partial class CStruct
                 return false;
             }
 
-            declaration = element as Struct ?? (element as Typedef)?.Struct;
+            Struct? rootStruct = element as Struct ?? (element as Typedef)?.Struct;
+            declaration = rootStruct is null ? null : this.compiledSizeQueries.GetCompiledComposite(rootStruct);
         }
         else if ((!target.IsArray || target.SelectsArrayElement) && target.RemainingPointerDepth == 0 &&
-                 target.TargetElement is Struct composite && target.EffectiveField?.PointerDepth == 0)
+                 target.TargetComposite is { } composite && target.EffectiveCompiledField?.PointerDepth == 0)
         {
             declaration = composite;
             state.Stream.Position = target.Address;
@@ -318,14 +319,14 @@ public sealed partial class CStruct
 
         bool isComposite = (!target.IsArray || target.SelectsArrayElement) &&
                            target.RemainingPointerDepth == 0 &&
-                           target.TargetElement is Struct &&
-                           target.EffectiveField?.PointerDepth == 0;
+                           target.TargetComposite is not null &&
+                           target.EffectiveCompiledField?.PointerDepth == 0;
         if (isComposite)
         {
             return this.ParseCompiledStructAt(
                 state,
                 target.Address,
-                (Struct)target.TargetElement!,
+                target.TargetComposite!,
                 null,
                 target.ContainingStructureDepth,
                 target.PointerAccessorsConsumed,
@@ -348,7 +349,7 @@ public sealed partial class CStruct
             state.NextPosition = checked(target.Address + target.BitStorageSize);
         }
 
-        var container = new StructValue(this.compiledModelQueries.GetRootShape(selectedField.EffectiveField.Name.Name));
+        var container = new StructValue(this.compiledModelQueries.GetRootShape(selectedField.Name));
         this.HandleCStructElement(
             selectedField.EffectiveField,
             container,
@@ -357,7 +358,7 @@ public sealed partial class CStruct
             -1,
             false,
             selectedField);
-        return ExtractOnlyValue(container, selectedField.EffectiveField.Name.Name);
+        return ExtractOnlyValue(container, selectedField.Name);
     }
 
     /// <summary>Reads any supported root declaration and unwraps its single natural value.</summary>

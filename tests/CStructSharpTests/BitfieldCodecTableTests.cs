@@ -199,7 +199,7 @@ public class BitfieldCodecTableTests
     {
         Field field = BitfieldField("uint8", bitSize: 4);
 
-        Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue(field, null));
+        Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue(field.Name.Name, field.BitSize, null));
     }
 
     /// <summary>A boolean, and a fractional decimal/double/float, are outside the bitfield's unsigned integer domain.</summary>
@@ -208,10 +208,10 @@ public class BitfieldCodecTableTests
     {
         Field field = BitfieldField("uint8", bitSize: 4);
 
-        Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue(field, true));
-        Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue(field, 1.5));
-        Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue(field, 1.5f));
-        Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue(field, 1.5m));
+        Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue(field.Name.Name, field.BitSize, true));
+        Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue(field.Name.Name, field.BitSize, 1.5));
+        Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue(field.Name.Name, field.BitSize, 1.5f));
+        Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue(field.Name.Name, field.BitSize, 1.5m));
     }
 
     /// <summary>A value that fits the declared bit width converts cleanly; one that does not is rejected.</summary>
@@ -220,8 +220,8 @@ public class BitfieldCodecTableTests
     {
         Field field = BitfieldField("uint8", bitSize: 4);
 
-        Assert.AreEqual(15UL, BitfieldCodecTable.ValidateBitfieldWriteValue(field, 15));
-        Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue(field, 16));
+        Assert.AreEqual(15UL, BitfieldCodecTable.ValidateBitfieldWriteValue(field.Name.Name, field.BitSize, 15));
+        Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue(field.Name.Name, field.BitSize, 16));
     }
 
     private static Field BitfieldField(string typeName, int bitSize)

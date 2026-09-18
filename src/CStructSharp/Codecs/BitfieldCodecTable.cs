@@ -86,11 +86,11 @@ internal sealed class BitfieldCodecTable
     }
 
     /// <summary>Converts and validates a caller value against one bitfield's unsigned numeric domain.</summary>
-    public static ulong ValidateBitfieldWriteValue(Field field, object? value)
+    public static ulong ValidateBitfieldWriteValue(string name, int bitSize, object? value)
     {
         if (value is null)
         {
-            throw new CStructWriteException("Bitfield value cannot be null: " + field.Name.Name);
+            throw new CStructWriteException("Bitfield value cannot be null: " + name);
         }
 
         bool isOutsideIntegerDomain = value is bool ||
@@ -103,7 +103,7 @@ internal sealed class BitfieldCodecTable
         if (isOutsideIntegerDomain)
         {
             throw new CStructWriteException(
-                $"Bitfield value for '{field.Name.Name}' must be an unsigned integer that fits {field.BitSize} bits.");
+                $"Bitfield value for '{name}' must be an unsigned integer that fits {bitSize} bits.");
         }
 
         ulong converted = 0;
@@ -114,15 +114,15 @@ internal sealed class BitfieldCodecTable
         catch (Exception exception) when (exception is InvalidCastException or FormatException or OverflowException)
         {
             throw new CStructWriteException(
-                $"Bitfield value for '{field.Name.Name}' must be an unsigned integer that fits {field.BitSize} bits.",
+                $"Bitfield value for '{name}' must be an unsigned integer that fits {bitSize} bits.",
                 exception);
         }
 
-        ulong maximum = GetBitfieldMask(field.BitSize);
+        ulong maximum = GetBitfieldMask(bitSize);
         if (converted > maximum)
         {
             throw new CStructWriteException(
-                $"Bitfield value for '{field.Name.Name}' exceeds the unsigned {field.BitSize}-bit range.");
+                $"Bitfield value for '{name}' exceeds the unsigned {bitSize}-bit range.");
         }
 
         return converted;

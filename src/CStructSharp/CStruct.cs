@@ -797,12 +797,9 @@ public sealed partial class CStruct
             ResolvedTarget target = this.ResolveTargetFromLayout(
                 state,
                 segments);
-            Field field = target.EffectiveField ??
-                          throw new CStructPathException(
-                              "Path does not resolve to an array or string field: " + elementNameOrPath);
             CompiledField compiledField = target.EffectiveCompiledField ??
                                           throw new CStructPathException(
-                                              "Path does not resolve to a compiled field: " + elementNameOrPath);
+                                              "Path does not resolve to an array or string field: " + elementNameOrPath);
 
             if (compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or
                 CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated)
@@ -811,7 +808,7 @@ public sealed partial class CStruct
                        throw new CStructPathException("Resolved array target has no compiled length.");
             }
 
-            if (compiledField.Array.Kind == CompiledArrayKind.Flexible && CharacterFieldTypes.IsCharArrayField(field))
+            if (compiledField.Array.Kind == CompiledArrayKind.Flexible && compiledField.IsCharacterArray)
             {
                 state.Stream.Position = target.Address;
                 Func<Stream, object> reader = target.EffectiveCompiledField?.TerminatedReader ??
@@ -1115,12 +1112,12 @@ public sealed partial class CStruct
             ResolvedTarget resolvedTarget = this.ResolveTargetFromLayout(
                 state,
                 segments);
-            Struct target = ResolveStructTarget(resolvedTarget);
+            CompiledCompositeType target = ResolveStructTarget(resolvedTarget);
             (object result, List<DebugData> debugData) = this.ParseCompiledStructAt(
                 state,
                 resolvedTarget.Address,
                 target,
-                debug ? DebugPath.FromElements(resolvedTarget.DebugPrefix) : null,
+                debug ? DebugPath.FromNames(resolvedTarget.DebugPrefix) : null,
                 resolvedTarget.ContainingStructureDepth,
                 resolvedTarget.PointerAccessorsConsumed,
                 debug);

@@ -12,7 +12,6 @@ using CStructSharp.Reading;
 using CStructSharp.Streams;
 using CStructSharp.Values;
 using CStructSharp.Writing;
-using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>
 ///     Static write plan (E2.10): a fully fixed composite is encoded into one block of its exact size - member
@@ -136,9 +135,8 @@ public partial class CStruct
 
             case StaticReadKind.Enum:
                 {
-                    var enm = (CstructEnum)field.Type.Symbol.Declaration!;
-                    CompiledEnumType compiledEnum = this.compiledModelQueries.GetCompiledEnum(enm);
-                    BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, enm, value, state.BindingMode);
+                    CompiledEnumType compiledEnum = field.Enum!;
+                    BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, value, state.BindingMode);
                     field.Codec.WriteNumeric(bytes.Slice(operation.Offset, field.Codec.Size), compiledEnum.Integer.ToStorageValue(enumValue));
                     if (capture)
                     {

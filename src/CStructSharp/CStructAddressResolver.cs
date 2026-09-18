@@ -62,7 +62,9 @@ public partial class CStruct
         if (segments.Count == 1)
         {
             CStructElement targetElement = resolvedRoot ?? declaredRoot;
-            Struct? rootTargetStruct = targetElement as Struct;
+            CompiledCompositeType? rootTargetStruct = targetElement is Struct rootStructDeclaration
+                                                          ? this.compiledSizeQueries.GetCompiledComposite(rootStructDeclaration)
+                                                          : null;
             if (rootTargetStruct is not null)
             {
                 state.EnsureStructureDepth(1);
@@ -80,15 +82,12 @@ public partial class CStruct
                                  : this.TryGetStructFixedSize(rootTargetStruct, state.Variables);
             int alignment = rootTargetStruct is null
                                 ? rootField?.Alignment ?? 1
-                                : this.compiledSizeQueries.GetCompiledComposite(rootTargetStruct).Symbol.Alignment;
+                                : rootTargetStruct.Symbol.Alignment;
             return new ResolvedTarget(
                 rootStart,
                 ResolvedTargetKind.Root,
-                rootField?.Declaration,
-                rootField?.EffectiveField,
-                rootField?.EffectiveField,
-                targetElement,
-                new CStructElement[] { targetElement, },
+                rootTargetStruct ?? rootField?.TargetComposite,
+                new[] { targetElement.Name.Name, },
                 rootField?.CodecName ?? targetElement.Name.Name,
                 rootIsArray,
                 rootArrayLength,
@@ -96,8 +95,8 @@ public partial class CStruct
                 Array.Empty<int>(),
                 0,
                 0,
-                rootTargetStruct?.IsUnion == true ? rootStart : null,
-                rootTargetStruct?.IsUnion == true ? fixedSize : null,
+                rootTargetStruct is { IsUnion: true, } ? rootStart : null,
+                rootTargetStruct is { IsUnion: true, } ? fixedSize : null,
                 null,
                 null,
                 0,
@@ -114,14 +113,14 @@ public partial class CStruct
             throw new CStructPathException("Root path cannot contain child segments: " + segments[0].Name);
         }
 
-        var context = new TargetResolutionContext(new CStructElement[] { rootStruct, }, Array.Empty<int>());
+        var context = new TargetResolutionContext(new[] { rootStruct.Name.Name, }, Array.Empty<int>());
 
-        return this.ResolveTargetInStruct(rootStruct, rootStart, segments, 1, state, context);
+        return this.ResolveTargetInStruct(this.compiledSizeQueries.GetCompiledComposite(rootStruct), rootStart, segments, 1, state, context);
     }
 
     /// <summary>Finds a requested child while measuring only fields that precede it.</summary>
     private ResolvedTarget ResolveTargetInStruct(
-        Struct strct,
+        CompiledCompositeType strct,
         long structStart,
         IReadOnlyList<PathSegment> segments,
         int pathIndex,
@@ -147,7 +146,7 @@ public partial class CStruct
 
     /// <summary>Resolves one already-budgeted structure level.</summary>
     private ResolvedTarget ResolveTargetInStructCore(
-        Struct strct,
+        CompiledCompositeType composite,
         long structStart,
         IReadOnlyList<PathSegment> segments,
         int pathIndex,
@@ -159,39 +158,34 @@ public partial class CStruct
             throw new CStructPathException("Path ended before selecting a field.");
         }
 
-        if (strct.IsUnion)
+        if (composite.IsUnion)
         {
             context = context.EnterUnion(
                 structStart,
-                this.compiledSizeQueries.GetCompiledStructSizeInBytes(
-                    this.compiledSizeQueries.GetCompiledComposite(strct),
-                    state.Variables,
-                    false));
+                this.compiledSizeQueries.GetCompiledStructSizeInBytes(composite, state.Variables, false));
         }
 
         PathSegment requested = segments[pathIndex];
-        if (strct.IsUnion)
+        if (composite.IsUnion)
         {
-            CompiledCompositeType unionComposite = this.compiledSizeQueries.GetCompiledComposite(strct);
-            if (!unionComposite.FieldsByName.ContainsKey(requested.Name))
+            if (!composite.FieldsByName.ContainsKey(requested.Name))
             {
                 // An anonymous struct member of the union (LANG-14) contributes its own names to the union's
                 // namespace; every member starts at the union's address.
-                foreach (CompiledField promoted in unionComposite.PromotedFields)
+                foreach (CompiledField promoted in composite.PromotedFields)
                 {
-                    if (promoted.Declaration is Struct promotedMember && this.TryFindCompiledField(promotedMember, requested.Name, out _))
+                    if (promoted.Composite is { } promotedMember && TryFindCompiledField(promotedMember, requested.Name, out _))
                     {
                         return this.ResolveTargetInStruct(promotedMember, structStart, segments, pathIndex, state, context);
                     }
                 }
             }
 
-            CompiledField compiledUnionField = this.FindCompiledField(strct, requested.Name);
-            Field effectiveUnionField = compiledUnionField.EffectiveField;
-            int bitStorageSize = effectiveUnionField.BitSize > 0
+            CompiledField compiledUnionField = FindCompiledField(composite, requested.Name);
+            int bitStorageSize = compiledUnionField.BitSize > 0
                                      ? compiledUnionField.BitStorageSize ??
                                        throw new InvalidOperationException(
-                                           "Compiled bitfield has no storage size: " + effectiveUnionField.Name.Name)
+                                           "Compiled bitfield has no storage size: " + compiledUnionField.Name)
                                      : 0;
             return this.ResolveTargetInField(
                 compiledUnionField,
@@ -204,7 +198,6 @@ public partial class CStruct
                 bitStorageSize);
         }
 
-        CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
         var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
         var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) : null;
         var cursor = new CompositeFieldPlacementCursor(structStart, this.Aligned);
@@ -216,17 +209,15 @@ public partial class CStruct
                 continue;
             }
 
-            Field declaredField = compiledField.Declaration;
-            Field field = compiledField.EffectiveField;
             (long fieldStart, int bitOffset) = cursor.AdvanceToField(compiledField);
             this.ValidateOffsetAssertionAtRuntime(compiledField, fieldStart, state.Variables);
 
-            if (string.Equals(declaredField.Name.Name, requested.Name, StringComparison.Ordinal))
+            if (string.Equals(compiledField.Name, requested.Name, StringComparison.Ordinal))
             {
-                int selectedBitStorageSize = field.BitSize > 0
+                int selectedBitStorageSize = compiledField.BitSize > 0
                                                  ? compiledField.BitStorageSize ??
                                                    throw new InvalidOperationException(
-                                                       "Compiled bitfield has no storage size: " + field.Name.Name)
+                                                       "Compiled bitfield has no storage size: " + compiledField.Name)
                                                  : 0;
                 return this.ResolveTargetInField(
                     compiledField,
@@ -245,14 +236,14 @@ public partial class CStruct
             // succeed (construction already rejected any flattened-namespace collision), meaning a genuine
             // downstream error inside the matched field can never be misreported as "unknown field" here.
             if (composite.PromotedFields.Contains(compiledField) &&
-                declaredField is Struct promotedStruct &&
-                this.TryFindCompiledField(promotedStruct, requested.Name, out _))
+                compiledField.Composite is { } promotedStruct &&
+                TryFindCompiledField(promotedStruct, requested.Name, out _))
             {
                 return this.ResolveTargetInStruct(promotedStruct, fieldStart, segments, pathIndex, state, context);
             }
 
             this.CaptureLayoutVariable(compiledField, fieldStart, bitOffset, state);
-            if (field.BitSize == 0)
+            if (compiledField.BitSize == 0)
             {
                 cursor.CompleteField(this.MeasureFieldEnd(compiledField, fieldStart, state));
             }
@@ -260,7 +251,7 @@ public partial class CStruct
             variableScope?.CompleteField(compiledField, state.Variables);
         }
 
-        throw new CStructPathException($"Unknown field '{requested.Name}' in '{strct.Name.Name}'.");
+        throw new CStructPathException($"Unknown field '{requested.Name}' in '{composite.Name}'.");
     }
 
     /// <summary>
@@ -280,7 +271,6 @@ public partial class CStruct
         int bitOffset,
         int bitStorageSize)
     {
-        Field declaredField = compiledField.Declaration;
         PathSegment segment = segments[pathIndex];
         bool declaredIsArray = compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or
                                CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
@@ -318,7 +308,7 @@ public partial class CStruct
         int? arrayLength = remainingIsArray ? this.GetBoundedArrayCount(resolvedField, state, elementStart) : null;
         int? selectedArrayIndex = segment.Indexes.Count > 0 && !remainingIsArray ? segment.Indexes[^1] : null;
 
-        context = context.EnterField(declaredField, segment.Indexes);
+        context = context.EnterField(compiledField.Name, segment.Indexes);
 
         if (remainingIsArray && pathIndex + 1 < segments.Count)
         {
@@ -339,10 +329,8 @@ public partial class CStruct
                 context);
         }
 
-        Field field = resolvedField.EffectiveField;
-        CStructElement? namedElement = resolvedField.NamedElement;
         PathSegment next = segments[pathIndex + 1];
-        if (field.PointerDepth > 0)
+        if (resolvedField.PointerDepth > 0)
         {
             if (string.Equals(next.Name, "address", StringComparison.Ordinal))
             {
@@ -378,7 +366,7 @@ public partial class CStruct
                 selectedArrayIndex);
         }
 
-        if (namedElement is Struct nestedStruct)
+        if (resolvedField.Composite is { } nestedStruct)
         {
             return this.ResolveTargetInStruct(
                 nestedStruct,
@@ -404,8 +392,6 @@ public partial class CStruct
         int? arrayLength,
         int? selectedArrayIndex)
     {
-        Field field = compiledField.EffectiveField;
-        CStructElement? namedElement = compiledField.NamedElement;
         if (!state.DereferencePointers)
         {
             throw new CStructPathException("Pointer dereference is disabled for the selected path.");
@@ -417,14 +403,14 @@ public partial class CStruct
         }
 
         this.EnsurePointerTargetSize(
-            field.PointerDepth,
+            compiledField.PointerDepth,
             compiledField,
             state);
 
         long target = this.ReadPointerTargetAddress(pointerStorage, state);
         context = context.FollowPointer(pointerStorage, target);
         (long Address, string TypeName, int PointerDepth) targetKey =
-            (target, field.Type.Name, field.PointerDepth);
+            (target, compiledField.TypeSpelling, compiledField.PointerDepth);
         if (target != 0 && !state.ActivePointerTargets.Add(targetKey))
         {
             throw new CStructReadException("Cyclic pointer target detected at stream address " + target + ".");
@@ -438,7 +424,7 @@ public partial class CStruct
                 return this.CreatePointerValueTarget(
                     compiledField,
                     target,
-                    field.PointerDepth - 1,
+                    compiledField.PointerDepth - 1,
                     isArray,
                     arrayLength,
                     selectedArrayIndex,
@@ -451,7 +437,7 @@ public partial class CStruct
                 throw new CStructPathException("Cannot traverse through a null pointer target.");
             }
 
-            if (field.PointerDepth > 1)
+            if (compiledField.PointerDepth > 1)
             {
                 PathSegment next = segments[valueSegmentIndex + 1];
                 if (next.Indexes.Count > 0)
@@ -467,7 +453,7 @@ public partial class CStruct
                     }
 
                     CompiledField remainingAddressField =
-                        this.CreatePointerTargetCompiledField(compiledField, field.PointerDepth - 1);
+                        this.CreatePointerTargetCompiledField(compiledField, compiledField.PointerDepth - 1);
                     return this.CreatePointerAddressTarget(
                         remainingAddressField,
                         target,
@@ -484,7 +470,7 @@ public partial class CStruct
                 }
 
                 CompiledField remainingField =
-                    this.CreatePointerTargetCompiledField(compiledField, field.PointerDepth - 1);
+                    this.CreatePointerTargetCompiledField(compiledField, compiledField.PointerDepth - 1);
                 return this.ResolvePointerTarget(
                     remainingField,
                     target,
@@ -497,7 +483,7 @@ public partial class CStruct
                     selectedArrayIndex);
             }
 
-            if (namedElement is Struct targetStruct)
+            if (compiledField.TargetComposite is { } targetStruct)
             {
                 return this.ResolveTargetInStruct(
                     targetStruct,
@@ -537,8 +523,6 @@ public partial class CStruct
         CStructOperationContext state,
         TargetResolutionContext context)
     {
-        Field field = resolvedField.EffectiveField;
-        CStructElement? namedElement = resolvedField.NamedElement;
         int alignment = resolvedField.Alignment;
 
         // The peeled shape's own precomputed storage size is already correct for every case (unindexed, a
@@ -552,13 +536,13 @@ public partial class CStruct
                               : null);
         long? unionStorageAddress = context.UnionStorageAddress;
         int? unionStorageSize = context.UnionStorageSize;
-        if (namedElement is Struct { IsUnion: true, } union)
+        if (resolvedField.TargetComposite is { IsUnion: true, } union)
         {
             unionStorageAddress = address;
-            unionStorageSize = this.compiledSizeQueries.GetCompiledComposite(union).Symbol.FixedSize;
+            unionStorageSize = union.Symbol.FixedSize;
         }
 
-        if (field.PointerDepth == 0 && namedElement is Struct)
+        if (resolvedField.Composite is not null)
         {
             state.EnsureStructureDepth(state.StructureDepth + 1);
         }
@@ -566,10 +550,7 @@ public partial class CStruct
         return new ResolvedTarget(
             address,
             selectedArrayIndex.HasValue ? ResolvedTargetKind.ArrayElement : ResolvedTargetKind.Field,
-            resolvedField.Declaration,
-            field,
-            field,
-            namedElement,
+            resolvedField.TargetComposite,
             context.DebugPrefix,
             resolvedField.CodecName,
             isArray,
@@ -580,10 +561,10 @@ public partial class CStruct
             bitStorageSize,
             unionStorageAddress,
             unionStorageSize,
-            field.PointerDepth > 0 ? address : context.PointerStorageAddress,
+            resolvedField.PointerDepth > 0 ? address : context.PointerStorageAddress,
             context.PointerTargetAddress,
             context.PointerAccessorsConsumed,
-            field.PointerDepth,
+            resolvedField.PointerDepth,
             alignment,
             fixedSize,
             state.StructureDepth,
@@ -601,15 +582,10 @@ public partial class CStruct
         CStructOperationContext state,
         TargetResolutionContext context)
     {
-        Field field = compiledField.EffectiveField;
-        CStructElement? namedElement = compiledField.NamedElement;
         return new ResolvedTarget(
             address,
             ResolvedTargetKind.PointerAddress,
-            compiledField.Declaration,
-            field,
-            null,
-            namedElement,
+            compiledField.TargetComposite,
             context.DebugPrefix,
             "pointer",
             isArray,
@@ -623,7 +599,7 @@ public partial class CStruct
             address,
             context.PointerTargetAddress,
             context.PointerAccessorsConsumed,
-            field.PointerDepth,
+            compiledField.PointerDepth,
             this.PointerSize,
             this.PointerSize,
             state.StructureDepth,
@@ -642,22 +618,19 @@ public partial class CStruct
         CStructOperationContext state,
         TargetResolutionContext context)
     {
-        Field field = compiledField.EffectiveField;
-        CStructElement? namedElement = compiledField.NamedElement;
         CompiledField writableCompiledField =
             this.CreatePointerTargetCompiledField(compiledField, remainingPointerDepth);
-        Field writableField = writableCompiledField.EffectiveField;
         int alignment = writableCompiledField.Alignment;
         int? fixedSize = writableCompiledField.FixedElementSize;
         long? unionStorageAddress = context.UnionStorageAddress;
         int? unionStorageSize = context.UnionStorageSize;
-        if (remainingPointerDepth == 0 && namedElement is Struct { IsUnion: true, } union)
+        if (remainingPointerDepth == 0 && compiledField.TargetComposite is { IsUnion: true, } union)
         {
             unionStorageAddress = address;
-            unionStorageSize = this.compiledSizeQueries.GetCompiledComposite(union).Symbol.FixedSize;
+            unionStorageSize = union.Symbol.FixedSize;
         }
 
-        if (remainingPointerDepth == 0 && namedElement is Struct)
+        if (remainingPointerDepth == 0 && compiledField.TargetComposite is not null)
         {
             state.EnsureStructureDepth(state.StructureDepth + 1);
         }
@@ -665,10 +638,7 @@ public partial class CStruct
         return new ResolvedTarget(
             address,
             ResolvedTargetKind.PointerValue,
-            compiledField.Declaration,
-            field,
-            writableField,
-            namedElement,
+            compiledField.TargetComposite,
             context.DebugPrefix,
             writableCompiledField.CodecName,
             isArray,
@@ -706,12 +676,12 @@ public partial class CStruct
     }
 
     /// <summary>Returns a struct's fixed extent, or null when a runtime-sized member prevents compilation of one.</summary>
-    private int? TryGetStructFixedSize(Struct strct, IReadOnlyDictionary<string, Expr> variables)
+    private int? TryGetStructFixedSize(CompiledCompositeType strct, IReadOnlyDictionary<string, Expr> variables)
     {
         try
         {
             return this.compiledSizeQueries.GetCompiledStructSizeInBytes(
-                this.compiledSizeQueries.GetCompiledComposite(strct),
+                strct,
                 variables,
                 true);
         }
@@ -786,9 +756,7 @@ public partial class CStruct
             return checked(fieldStart + ((long)fixedElementStride * index));
         }
 
-        Field field = compiledField.EffectiveField;
-        CStructElement? namedElement = compiledField.NamedElement;
-        if (namedElement is Struct nested)
+        if (compiledField.Composite is { } nested)
         {
             // Advancing one index at this dimension skips exactly the number of leaf structs one sub-array
             // element contains - 1 for every 1-D case (unchanged, since a peeled 1-D shape is Scalar, whose own
@@ -832,7 +800,7 @@ public partial class CStruct
         if (count > state.MaxArrayElements)
         {
             throw new CStructReadLimitException(
-                "Array length exceeds the configured limit: " + field.EffectiveField.Name.Name);
+                "Array length exceeds the configured limit: " + field.Name);
         }
 
         return count;
@@ -856,7 +824,7 @@ public partial class CStruct
         if (count > state.MaxArrayElements)
         {
             throw new CStructReadLimitException(
-                "Array length exceeds the configured limit: " + field.EffectiveField.Name.Name);
+                "Array length exceeds the configured limit: " + field.Name);
         }
 
         return count;
@@ -866,13 +834,13 @@ public partial class CStruct
     private int CountDataSizedElements(CompiledField field, CStructOperationContext state, long fieldStart)
     {
         int elementSize = field.FixedElementSize ??
-                          throw new InvalidOperationException("Data-sized array has no fixed element size: " + field.EffectiveField.Name.Name);
+                          throw new InvalidOperationException("Data-sized array has no fixed element size: " + field.Name);
         long position = state.Stream.Position;
         try
         {
             return field.Array.Kind == CompiledArrayKind.ToEnd
-                       ? DynamicArrayExtent.CountToEnd(state.Stream, fieldStart, elementSize, state.MaxArrayElements, field.EffectiveField.Name.Name)
-                       : DynamicArrayExtent.CountTerminated(state.Stream, fieldStart, elementSize, state.MaxArrayElements, field.EffectiveField.Name.Name);
+                       ? DynamicArrayExtent.CountToEnd(state.Stream, fieldStart, elementSize, state.MaxArrayElements, field.Name)
+                       : DynamicArrayExtent.CountTerminated(state.Stream, fieldStart, elementSize, state.MaxArrayElements, field.Name);
         }
         finally
         {
@@ -883,13 +851,10 @@ public partial class CStruct
     /// <summary>Measures one complete field without decoding unrelated pointer targets.</summary>
     private long MeasureFieldEnd(CompiledField compiledField, long fieldStart, CStructOperationContext state)
     {
-        Field field = compiledField.EffectiveField;
-        CStructElement? namedElement = compiledField.NamedElement;
-
         // A pointer to a struct occupies the pointer width, never the pointee's extent: measuring the pointee here
         // placed every sibling after `item *p` at the wrong offset and recursed until the nesting limit for a
         // self-referential `node *next`. Pointer fields fall through to the fixed-size arithmetic below.
-        if (namedElement is Struct nested && field.PointerDepth == 0)
+        if (compiledField.Composite is { } nested)
         {
             int count = compiledField.Array.Kind == CompiledArrayKind.Scalar
                             ? 1
@@ -924,22 +889,22 @@ public partial class CStruct
             state.Stream.Position = fieldStart;
             _ = compiledField.Reader?.Invoke(state.Stream) ??
                 throw new InvalidOperationException(
-                    "Compiled named string has no reader: " + field.Name.Name);
+                    "Compiled named string has no reader: " + compiledField.Name);
             return state.Stream.Position;
         }
 
         if (compiledField.Array.Kind == CompiledArrayKind.Flexible)
         {
-            if (!CharacterFieldTypes.IsCharArrayField(field))
+            if (!compiledField.IsCharacterArray)
             {
                 throw new CStructLayoutException(
-                    "Only character fields can use an unsized array declarator: " + field.Name.Name);
+                    "Only character fields can use an unsized array declarator: " + compiledField.Name);
             }
 
             state.Stream.Position = fieldStart;
             _ = compiledField.TerminatedReader?.Invoke(state.Stream) ??
                 throw new InvalidOperationException(
-                    "Compiled unsized character array has no reader: " + field.Name.Name);
+                    "Compiled unsized character array has no reader: " + compiledField.Name);
             return state.Stream.Position;
         }
 
@@ -972,7 +937,7 @@ public partial class CStruct
     }
 
     /// <summary>Measures a potentially runtime-sized nested struct and captures scalar variables in declaration order.</summary>
-    private long MeasureStructEnd(Struct strct, long structStart, CStructOperationContext state)
+    private long MeasureStructEnd(CompiledCompositeType strct, long structStart, CStructOperationContext state)
     {
         state.EnterStructure();
         try
@@ -986,37 +951,32 @@ public partial class CStruct
     }
 
     /// <summary>Measures one structure whose nesting budget has already been claimed.</summary>
-    private long MeasureStructEndCore(Struct strct, long structStart, CStructOperationContext state)
+    private long MeasureStructEndCore(CompiledCompositeType composite, long structStart, CStructOperationContext state)
     {
-        if (strct.IsUnion)
+        if (composite.IsUnion)
         {
-            this.ValidateCompositeTraversalLimits(strct, state);
+            this.ValidateCompositeTraversalLimits(composite, state);
             return checked(
                 structStart +
-                this.compiledSizeQueries.GetCompiledStructSizeInBytes(
-                    this.compiledSizeQueries.GetCompiledComposite(strct),
-                    state.Variables,
-                    false));
+                this.compiledSizeQueries.GetCompiledStructSizeInBytes(composite, state.Variables, false));
         }
 
         var cursor = new CompositeFieldPlacementCursor(structStart, this.Aligned);
 
-        CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
         var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
         var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) : null;
-        foreach (CompiledField compiledField in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
+        foreach (CompiledField compiledField in composite.Fields)
         {
             if (selection?.IsActive(compiledField, state.Variables) == false)
             {
                 continue;
             }
 
-            Field field = compiledField.EffectiveField;
             (long fieldStart, int bitOffset) = cursor.AdvanceToField(compiledField);
             this.ValidateOffsetAssertionAtRuntime(compiledField, fieldStart, state.Variables);
 
             this.CaptureLayoutVariable(compiledField, fieldStart, bitOffset, state);
-            if (field.BitSize == 0)
+            if (compiledField.BitSize == 0)
             {
                 cursor.CompleteField(this.MeasureFieldEnd(compiledField, fieldStart, state));
             }
@@ -1024,21 +984,17 @@ public partial class CStruct
             variableScope?.CompleteField(compiledField, state.Variables);
         }
 
-        int structAlignment = this.compiledSizeQueries.GetCompiledComposite(strct).Symbol.Alignment;
-        return cursor.FinishComposite(structAlignment);
+        return cursor.FinishComposite(composite.Symbol.Alignment);
     }
 
     /// <summary>
     ///     Validates array and nesting work hidden inside a fixed-size composite without reading bytes solely to
     ///     calculate an already compiled extent.
     /// </summary>
-    private void ValidateCompositeTraversalLimits(Struct strct, CStructOperationContext state)
+    private void ValidateCompositeTraversalLimits(CompiledCompositeType composite, CStructOperationContext state)
     {
-        foreach (CompiledField compiledField in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
+        foreach (CompiledField compiledField in composite.Fields)
         {
-            Field field = compiledField.EffectiveField;
-            CStructElement? namedElement = compiledField.NamedElement;
-
             // A data-sized array's count is not known without a position; its element type's own limits are still
             // checked once through the element walk that follows a real resolution.
             int count = compiledField.Array.Kind == CompiledArrayKind.Scalar
@@ -1046,7 +1002,7 @@ public partial class CStruct
                             : compiledField.Array.Kind is CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated
                                 ? 1
                                 : this.GetBoundedArrayCount(compiledField, state, 0);
-            if (count == 0 || field.PointerDepth > 0 || namedElement is not Struct nested)
+            if (count == 0 || compiledField.Composite is not { } nested)
             {
                 continue;
             }
@@ -1085,12 +1041,12 @@ public partial class CStruct
         int asserted = this.layoutExpressionEvaluator.Evaluate(
             assertion,
             variables,
-            "offset assertion for " + compiledField.Declaration.Name.Name);
+            "offset assertion for " + compiledField.Name);
         if (asserted < 0)
         {
             throw new CStructLayoutException(
                 "Explicit offset assertion must be non-negative: " +
-                compiledField.Declaration.Name.Name +
+                compiledField.Name +
                 " = " +
                 asserted);
         }
@@ -1098,7 +1054,7 @@ public partial class CStruct
         if (asserted != fieldStart)
         {
             throw new CStructLayoutException(
-                $"Field '{compiledField.Declaration.Name.Name}' asserts offset {asserted} but computed offset is {fieldStart}.");
+                $"Field '{compiledField.Name}' asserts offset {asserted} but computed offset is {fieldStart}.");
         }
     }
 
@@ -1109,7 +1065,6 @@ public partial class CStruct
         int bitOffset,
         CStructOperationContext state)
     {
-        Field field = compiledField.EffectiveField;
         if (compiledField.Array.Kind != CompiledArrayKind.Scalar)
         {
             return;
@@ -1119,35 +1074,34 @@ public partial class CStruct
         // it - but publishes nothing.
         bool captures = compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables;
 
-        if (field.PointerDepth == 0 && compiledField.IsFixedPoint)
+        if (compiledField.PointerDepth == 0 && compiledField.IsFixedPoint)
         {
-            state.Variables.Remove(field.Name.Name);
+            state.Variables.Remove(compiledField.Name);
             return;
         }
 
-        CStructElement? namedElement = compiledField.NamedElement;
         object value;
         state.Stream.Position = fieldStart;
 
-        if (field.PointerDepth > 0)
+        if (compiledField.PointerDepth > 0)
         {
             value = this.ReadPointerAddress(state);
         }
-        else if (namedElement is CstructEnum enm)
+        else if (compiledField.Enum is { } enm)
         {
             value = compiledField.Reader?.Invoke(state.Stream) ??
                     throw new InvalidOperationException(
-                        "Compiled enum has no storage reader: " + enm.Name.Name);
+                        "Compiled enum has no storage reader: " + enm.Name);
             if (captures)
             {
-                BigInteger exact = this.compiledModelQueries.GetCompiledEnum(enm).Integer.FromStorageValue(value);
-                this.UpdateExactLayoutVariable(state.Variables, field.Name.Name, exact);
-                state.PublishQualified(field.Name.Name);
+                BigInteger exact = enm.Integer.FromStorageValue(value);
+                this.UpdateExactLayoutVariable(state.Variables, compiledField.Name, exact);
+                state.PublishQualified(compiledField.Name);
             }
 
             return;
         }
-        else if (namedElement is not null || compiledField.Reader is not Func<Stream, object> reader)
+        else if (compiledField.Composite is not null || compiledField.Reader is not Func<Stream, object> reader)
         {
             return;
         }
@@ -1161,25 +1115,25 @@ public partial class CStruct
             return;
         }
 
-        if (field.BitSize > 0)
+        if (compiledField.BitSize > 0)
         {
             int unitBits = checked((compiledField.BitStorageSize ?? 0) * 8);
-            value = BitfieldCodecTable.ExtractBitfieldValue(value, BitfieldCodecTable.EffectiveShift(bitOffset, field.BitSize, unitBits, this.highBitFirst), field.BitSize);
+            value = BitfieldCodecTable.ExtractBitfieldValue(value, BitfieldCodecTable.EffectiveShift(bitOffset, compiledField.BitSize, unitBits, this.highBitFirst), compiledField.BitSize);
         }
 
         // A parsed scalar shadows any caller/define value with the same spelling. Keeping the older value would
         // resolve a path against data contradicted by the stream. See LayoutVariableCapture for the exact rule.
-        LayoutVariableCapture.Capture(state.Variables, field.Name.Name, value);
+        LayoutVariableCapture.Capture(state.Variables, compiledField.Name, value);
 
-        state.PublishQualified(field.Name.Name);
+        state.PublishQualified(compiledField.Name);
     }
 
     /// <summary>Finds one exact compiled field name in a struct.</summary>
-    private CompiledField FindCompiledField(Struct strct, string name)
+    private static CompiledField FindCompiledField(CompiledCompositeType strct, string name)
     {
-        return this.TryFindCompiledField(strct, name, out CompiledField? field)
+        return TryFindCompiledField(strct, name, out CompiledField? field)
             ? field!
-            : throw new CStructPathException($"Unknown field '{name}' in '{strct.Name.Name}'.");
+            : throw new CStructPathException($"Unknown field '{name}' in '{strct.Name}'.");
     }
 
     /// <summary>
@@ -1188,9 +1142,8 @@ public partial class CStruct
     ///     side-effect-free tree walk, so it is safe to call speculatively before attempting a real, I/O-touching
     ///     resolution.
     /// </summary>
-    private bool TryFindCompiledField(Struct strct, string name, out CompiledField? field)
+    private static bool TryFindCompiledField(CompiledCompositeType composite, string name, out CompiledField? field)
     {
-        CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
         if (composite.FieldsByName.TryGetValue(name, out field))
         {
             return true;
@@ -1198,8 +1151,8 @@ public partial class CStruct
 
         foreach (CompiledField promoted in composite.PromotedFields)
         {
-            if (promoted.Declaration is Struct promotedStruct &&
-                this.TryFindCompiledField(promotedStruct, name, out field))
+            if (promoted.Composite is { } promotedStruct &&
+                TryFindCompiledField(promotedStruct, name, out field))
             {
                 return true;
             }

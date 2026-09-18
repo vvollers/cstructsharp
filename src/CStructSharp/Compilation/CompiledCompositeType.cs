@@ -67,6 +67,12 @@ internal sealed class CompiledCompositeType : CompiledType
 
     public ImmutableArray<CompiledField> Fields { get; }
 
+    /// <summary>The declared name; empty for an anonymous inline composite.</summary>
+    public string Name => this.Symbol.Name;
+
+    /// <summary>Whether every member starts at the composite's own address.</summary>
+    public bool IsUnion => this.Symbol.Kind == CompiledTypeKind.Union;
+
     public bool HasDirectConditionalFields { get; }
 
     public int ConditionalGroupCount { get; }

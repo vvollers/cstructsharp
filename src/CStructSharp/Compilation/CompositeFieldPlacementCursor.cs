@@ -35,15 +35,14 @@ internal sealed class CompositeFieldPlacementCursor
     /// </summary>
     public (long FieldStart, int BitOffset) AdvanceToField(CompiledField compiledField)
     {
-        Field field = compiledField.EffectiveField;
         long fieldStart;
         int bitOffset = 0;
 
-        if (field.BitSize > 0)
+        if (compiledField.BitSize > 0)
         {
             int unitSize = compiledField.BitStorageSize ??
                            throw new InvalidOperationException(
-                               "Compiled bitfield has no storage size: " + field.Name.Name);
+                               "Compiled bitfield has no storage size: " + compiledField.Name);
             int alignment = compiledField.Alignment;
             bool startsNewUnit = LayoutMath.StartsNewBitfieldUnit(
                 this.activeBitUnitType,
@@ -51,7 +50,7 @@ internal sealed class CompositeFieldPlacementCursor
                 this.activeBitUnitAlignment,
                 this.activeBitUnitBitsUsed,
                 compiledField.BitUnitType,
-                field.BitSize,
+                compiledField.BitSize,
                 unitSize,
                 alignment);
             if (startsNewUnit)
@@ -67,7 +66,7 @@ internal sealed class CompositeFieldPlacementCursor
 
             fieldStart = this.activeBitUnitStart;
             bitOffset = this.activeBitUnitBitsUsed;
-            this.activeBitUnitBitsUsed += field.BitSize;
+            this.activeBitUnitBitsUsed += compiledField.BitSize;
         }
         else
         {

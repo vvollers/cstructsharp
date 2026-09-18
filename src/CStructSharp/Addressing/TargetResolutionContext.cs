@@ -1,14 +1,13 @@
 namespace CStructSharp.Addressing;
 
 using System.Collections.Generic;
-using CStructSharp.Syntax;
 
 /// <summary>Tracks semantic context while traversal descends through fields, unions, arrays, and pointers.</summary>
 internal sealed class TargetResolutionContext
 {
     /// <summary>Creates a traversal context from already snapshotted path metadata.</summary>
     public TargetResolutionContext(
-        IReadOnlyList<CStructElement> debugPrefix,
+        IReadOnlyList<string> debugPrefix,
         IReadOnlyList<int> selectedIndexes,
         long? unionStorageAddress = null,
         int? unionStorageSize = null,
@@ -25,7 +24,7 @@ internal sealed class TargetResolutionContext
         this.PointerAccessorsConsumed = pointerAccessorsConsumed;
     }
 
-    public IReadOnlyList<CStructElement> DebugPrefix { get; }
+    public IReadOnlyList<string> DebugPrefix { get; }
 
     public int PointerAccessorsConsumed { get; }
 
@@ -43,9 +42,9 @@ internal sealed class TargetResolutionContext
     ///     Returns a context with one declared field and every index supplied for it (LANG-05: zero or more, one
     ///     per dimension actually indexed) appended.
     /// </summary>
-    public TargetResolutionContext EnterField(Field field, IReadOnlyList<int> selectedIndexes)
+    public TargetResolutionContext EnterField(string fieldName, IReadOnlyList<int> selectedIndexes)
     {
-        CStructElement[] debugPrefix = Append(this.DebugPrefix, field);
+        string[] debugPrefix = Append(this.DebugPrefix, fieldName);
         IReadOnlyList<int> combinedIndexes = selectedIndexes.Count == 0
                                                  ? this.SelectedIndexes
                                                  : AppendRange(this.SelectedIndexes, selectedIndexes);

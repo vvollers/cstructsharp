@@ -3,6 +3,7 @@ namespace CStructSharp.Compilation;
 using System;
 using System.Collections.Immutable;
 using System.IO;
+using System.Text;
 using CStructSharp.Codecs;
 using CStructSharp.Expressions;
 using CStructSharp.Syntax;
@@ -45,6 +46,11 @@ internal sealed class CompiledField
         this.BitStorageIsLittleEndian = bitStorageIsLittleEndian;
         this.FixedOffset = fixedOffset;
         this.BitOffset = bitOffset;
+        this.Name = effectiveField.Name.Name;
+        this.TypeSpelling = effectiveField.Type.Name;
+        this.BitSize = effectiveField.BitSize;
+        this.PointerDepth = effectiveField.PointerDepth;
+        this.SetCharacterFacts();
 
         // Resolve the codec identity once (E1.5): every hot path used to re-derive the name and compare strings.
         // Only the 8-byte descriptor is stored; the name stays a computed property so wide layouts do not grow.
@@ -75,6 +81,11 @@ internal sealed class CompiledField
         this.BitStorageIsLittleEndian = bitStorageIsLittleEndian;
         this.FixedOffset = fixedOffset;
         this.BitOffset = bitOffset;
+        this.Name = effectiveField.Name.Name;
+        this.TypeSpelling = effectiveField.Type.Name;
+        this.BitSize = effectiveField.BitSize;
+        this.PointerDepth = effectiveField.PointerDepth;
+        this.SetCharacterFacts();
         this.CapturesLayoutVariable = parent.CapturesLayoutVariable;
         this.Codec = this.PointerDepth == parent.PointerDepth
                          ? parent.Codec
@@ -142,7 +153,64 @@ internal sealed class CompiledField
 
     public CStructElement? NamedElement => this.Type.Symbol.Declaration;
 
-    public int PointerDepth => this.EffectiveField.PointerDepth;
+    /// <summary>The field's name; empty for unnamed padding (an anonymous bitfield or a <c>_</c> field).</summary>
+    public string Name { get; private set; } = string.Empty;
+
+    /// <summary>Whether the field has no name and therefore no value in the result.</summary>
+    public bool IsUnnamed => this.Name.Length == 0;
+
+    /// <summary>The type as this view spells it: the declared spelling, or the terminated codec of a peeled string.</summary>
+    public string TypeSpelling { get; private set; } = string.Empty;
+
+    /// <summary>The bitfield width in bits, or 0 for a field that is not a bitfield.</summary>
+    public int BitSize { get; private set; }
+
+    /// <summary>How many pointer levels this view still has to follow before reaching its value.</summary>
+    public int PointerDepth { get; private set; }
+
+    /// <summary>Whether this view is still a stored pointer rather than the pointed-to value.</summary>
+    public bool IsPointer => this.PointerDepth > 0;
+
+    /// <summary>Whether each element is a one-byte <c>char</c>, so a fixed array becomes a string.</summary>
+    public bool IsCharElement { get; private set; }
+
+    /// <summary>Whether each element is a two-byte <c>wchar</c> (any byte order), so a fixed array becomes a string.</summary>
+    public bool IsWideCharElement { get; private set; }
+
+    /// <summary>
+    ///     The type name shown for this field in debug records: the terminated codec for an unsized character array
+    ///     (<c>cstring</c>, <c>string</c>, <c>string&lt;</c>, ...), otherwise the declared spelling.
+    /// </summary>
+    public string DisplayTypeSpelling =>
+        this.Array.Kind == CompiledArrayKind.Flexible && this.IsCharacterArray
+            ? CharacterFieldTypes.GetStringPointerHandlerKey(this.EffectiveField.Type)
+            : this.TypeSpelling;
+
+    /// <summary>Whether this view is an array of characters that reads as a string rather than a list.</summary>
+    public bool IsCharacterArray => !this.IsPointer && (this.IsCharElement || this.IsWideCharElement);
+
+    /// <summary>The strict UTF-16 encoding of a wide-character element with an explicit byte-order suffix, or <see langword="null"/> when it follows the layout's byte order.</summary>
+    public Encoding? ExplicitWideCharacterEncoding =>
+        this.TypeSpelling == CharacterFieldTypes.WcharBigEndianType.Name
+            ? PrimitiveCodecs.StrictUtf16BigEndianEncoding
+            : this.TypeSpelling == CharacterFieldTypes.WcharLittleEndianType.Name
+                ? PrimitiveCodecs.StrictUtf16LittleEndianEncoding
+                : null;
+
+    /// <summary>The nested struct or union read by value through this field, or <see langword="null"/> for a primitive, enum, or pointer view.</summary>
+    public CompiledCompositeType? Composite => this.PointerDepth == 0 ? this.Type.Symbol.Definition as CompiledCompositeType : null;
+
+    /// <summary>The struct or union a pointer view ultimately targets, or <see langword="null"/> when the target is not a composite.</summary>
+    public CompiledCompositeType? TargetComposite => this.Type.Symbol.Definition as CompiledCompositeType;
+
+    /// <summary>The enum or flag type read through this field (also when it is a bitfield), or <see langword="null"/>.</summary>
+    public CompiledEnumType? Enum => this.PointerDepth == 0 ? this.Type.Symbol.Definition as CompiledEnumType : null;
+
+    /// <summary>Whether the field is an inline struct or union member (<c>struct { ... } name;</c>), named or anonymous.</summary>
+    public bool IsInlineComposite => this.Declaration is Struct;
+
+    /// <summary>Whether the field is an anonymous inline composite whose members are promoted into the parent.</summary>
+    public bool IsPromotedComposite => this.Declaration is Struct { Name.Name.Length: 0, };
 
     public Func<Stream, object>? Reader { get; }
 
@@ -281,5 +349,13 @@ internal sealed class CompiledField
             bitOffset,
             this.Reader,
             this.Writer);
+    }
+
+    private void SetCharacterFacts()
+    {
+        this.IsCharElement = this.TypeSpelling == CharacterFieldTypes.CharType.Name;
+        this.IsWideCharElement = this.TypeSpelling == CharacterFieldTypes.WcharType.Name ||
+                                 this.TypeSpelling == CharacterFieldTypes.WcharBigEndianType.Name ||
+                                 this.TypeSpelling == CharacterFieldTypes.WcharLittleEndianType.Name;
     }
 }

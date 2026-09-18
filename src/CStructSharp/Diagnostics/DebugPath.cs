@@ -14,12 +14,12 @@ internal sealed class DebugPath(DebugPath? parent, string name)
     public DebugPath? Parent { get; } = parent;
 
     /// <summary>Adapts selected-path metadata only when a caller requested debug output.</summary>
-    public static DebugPath? FromElements(IEnumerable<CStructElement> elements)
+    public static DebugPath? FromNames(IEnumerable<string> names)
     {
         DebugPath? result = null;
-        foreach (CStructElement element in elements)
+        foreach (string name in names)
         {
-            result = new DebugPath(result, element.Name.Name);
+            result = new DebugPath(result, name);
         }
 
         return result;

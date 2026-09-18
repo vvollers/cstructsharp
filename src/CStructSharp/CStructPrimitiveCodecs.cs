@@ -344,20 +344,11 @@ public partial class CStruct
             aliases.ToFrozenDictionary(StringComparer.Ordinal));
     }
 
-    /// <summary>Selects strict UTF-16 in the explicit field order, or in the layout order for neutral <c>wchar</c>.</summary>
-    private Encoding GetWideCharacterEncoding(Identifier type)
+    /// <summary>Selects strict UTF-16 in the field's explicit order, or in the layout order for neutral <c>wchar</c>.</summary>
+    private Encoding GetWideCharacterEncoding(CompiledField field)
     {
-        if (type.Equals(CharacterFieldTypes.WcharBigEndianType))
-        {
-            return PrimitiveCodecs.StrictUtf16BigEndianEncoding;
-        }
-
-        if (type.Equals(CharacterFieldTypes.WcharLittleEndianType))
-        {
-            return PrimitiveCodecs.StrictUtf16LittleEndianEncoding;
-        }
-
-        return this.IsLittleEndian ? PrimitiveCodecs.StrictUtf16LittleEndianEncoding : PrimitiveCodecs.StrictUtf16BigEndianEncoding;
+        return field.ExplicitWideCharacterEncoding ??
+               (this.IsLittleEndian ? PrimitiveCodecs.StrictUtf16LittleEndianEncoding : PrimitiveCodecs.StrictUtf16BigEndianEncoding);
     }
 
     /// <summary>All members are constructed once and used read-only by layouts of the same byte order.</summary>

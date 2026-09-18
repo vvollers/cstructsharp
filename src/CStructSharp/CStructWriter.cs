@@ -28,41 +28,36 @@ public partial class CStruct
     private void WriteBitFieldValue(
         CompiledField compiledField,
         object value,
-        CStructElementWriterState state,
-        bool isKnownStruct,
-        CStructElement? structElement)
+        CStructElementWriterState state)
     {
-        Field field = compiledField.EffectiveField;
-
         // A bitfield always lives inside a primitive number. A nested struct has no single number to edit; an enum
         // or flag value is first resolved to its raw bits and then merged like any other slice.
-        if (isKnownStruct)
+        if (compiledField.Composite is not null)
         {
-            if (structElement is not CstructEnum bitfieldEnum)
-            {
-                throw new InvalidOperationException("Bitfields cannot be structs.");
-            }
+            throw new InvalidOperationException("Bitfields cannot be structs.");
+        }
 
-            CompiledEnumType compiledBitfieldEnum = this.compiledModelQueries.GetCompiledEnum(bitfieldEnum);
+        if (compiledField.Enum is { } compiledBitfieldEnum)
+        {
             value = compiledBitfieldEnum.Integer.ToRawBits(
-                EnumFieldValueParser.GetEnumValue(compiledBitfieldEnum, bitfieldEnum, value, state.BindingMode));
+                EnumFieldValueParser.GetEnumValue(compiledBitfieldEnum, value, state.BindingMode));
         }
 
         // Work out the size of the whole storage value first, not just the small field being changed.
         int byteSize = compiledField.BitStorageSize ??
                        throw new InvalidOperationException(
-                           "Compiled bitfield has no storage size: " + field.Name.Name);
+                           "Compiled bitfield has no storage size: " + compiledField.Name);
         bool storageIsLittleEndian = compiledField.BitStorageIsLittleEndian ??
                                      throw new InvalidOperationException(
-                                         "Compiled bitfield has no byte order: " + field.Name.Name);
+                                         "Compiled bitfield has no byte order: " + compiledField.Name);
         int elementBitSize = checked(byteSize * 8);
-        if (state.CurrentBitOffset + field.BitSize > elementBitSize)
+        if (state.CurrentBitOffset + compiledField.BitSize > elementBitSize)
         {
-            throw new InvalidOperationException("Bitfield exceeds its storage unit: " + field.Name.Name);
+            throw new InvalidOperationException("Bitfield exceeds its storage unit: " + compiledField.Name);
         }
 
         // Validate the selected slice before reading or changing its shared storage unit.
-        ulong fieldValue = BitfieldCodecTable.ValidateBitfieldWriteValue(field, value);
+        ulong fieldValue = BitfieldCodecTable.ValidateBitfieldWriteValue(compiledField.Name, compiledField.BitSize, value);
 
         // Bitfields share bytes. Read the existing bytes so neighboring fields survive this update.
         long curPos = state.Stream.Position;
@@ -96,8 +91,8 @@ public partial class CStruct
         ulong newValue = BitfieldCodecTable.MergeBitfieldValue(
             existing,
             fieldValue,
-            BitfieldCodecTable.EffectiveShift(state.CurrentBitOffset, field.BitSize, elementBitSize, this.highBitFirst),
-            field.BitSize);
+            BitfieldCodecTable.EffectiveShift(state.CurrentBitOffset, compiledField.BitSize, elementBitSize, this.highBitFirst),
+            compiledField.BitSize);
 
         // Convert the merged number back to bytes, then overwrite exactly this storage unit.
         byte[] output = BinaryPrimitiveIO.WriteUnsigned(newValue, byteSize, storageIsLittleEndian);
@@ -105,7 +100,7 @@ public partial class CStruct
         state.Stream.Write(output, 0, output.Length);
 
         // Keep the stream at the start while later bitfields share this same unit.
-        state.CurrentBitOffset += field.BitSize;
+        state.CurrentBitOffset += compiledField.BitSize;
         int bitOffsetInBytes = 1 + (state.CurrentBitOffset / 8);
         if (bitOffsetInBytes > byteSize)
         {
@@ -133,7 +128,7 @@ public partial class CStruct
             switch (element)
             {
             case Struct s:
-                this.WriteStruct(s, data, state);
+                this.WriteStruct(this.compiledSizeQueries.GetCompiledComposite(s), data, state);
                 return;
 
             case Typedef t:
@@ -141,7 +136,7 @@ public partial class CStruct
                     if (t.Struct is not null)
                     {
                         // Match the reader's established root-inline-typedef projection.
-                        this.WriteStruct(t.Struct, data, state);
+                        this.WriteStruct(this.compiledSizeQueries.GetCompiledComposite(t.Struct), data, state);
                         return;
                     }
 
@@ -173,16 +168,16 @@ public partial class CStruct
     }
 
     /// <summary>Writes one struct or union while charging exactly one active composite-depth level.</summary>
-    private void WriteStruct(Struct strct, object data, CStructElementWriterState state)
+    private void WriteStruct(CompiledCompositeType composite, object data, CStructElementWriterState state)
     {
         if (data is null)
         {
-            throw new CStructWriteException("Null is not valid for struct or union value: " + strct.Name.Name);
+            throw new CStructWriteException("Null is not valid for struct or union value: " + composite.Name);
         }
 
         // Static write plan (E2.10): a fully fixed composite is encoded into one block and written once when that
         // is exactly equivalent to the field-by-field path below (see TryWriteStaticPlan for the conditions).
-        if (!strct.IsUnion && this.TryWriteStaticPlan(this.compiledSizeQueries.GetCompiledComposite(strct), data, state))
+        if (!composite.IsUnion && this.TryWriteStaticPlan(composite, data, state))
         {
             return;
         }
@@ -190,13 +185,12 @@ public partial class CStruct
         state.EnterStructure();
         try
         {
-            if (strct.IsUnion)
+            if (composite.IsUnion)
             {
-                this.WriteUnion(strct, data, state);
+                this.WriteUnion(composite, data, state);
                 return;
             }
 
-            CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
             var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
             var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount, ExpressionFailureDomain.Write) : null;
             var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned);
@@ -218,7 +212,7 @@ public partial class CStruct
 
                 if (composite.PromotedFields.Contains(field))
                 {
-                    if (field.Declaration is Struct { IsUnion: true, } promotedUnion)
+                    if (field.Composite is { IsUnion: true, } promotedUnion)
                     {
                         this.WritePromotedUnion(promotedUnion, field, data, state, cursor);
                         variableScope?.CompleteField(field, state.Variables);
@@ -234,7 +228,7 @@ public partial class CStruct
                     continue;
                 }
 
-                if (field.EffectiveField.Name.Name.Length == 0)
+                if (field.IsUnnamed)
                 {
                     // An anonymous nonzero-width bitfield (LANG-17) or a `_` padding field is pure padding with no
                     // caller-supplied value - there is no member to look up, so write its canonical zero bits directly.
@@ -246,7 +240,7 @@ public partial class CStruct
                 // Require every ordinary struct field. Missing values would make the byte layout ambiguous.
                 object fieldValue = PocoDataBinding.GetMemberValueOrThrow(
                     data,
-                    field.EffectiveField.Name.Name,
+                    field.Name,
                     state.BindingMode);
                 this.WriteFieldValue(field, fieldValue, state, -1, cursor);
                 variableScope?.CompleteField(field, state.Variables);
@@ -254,7 +248,7 @@ public partial class CStruct
 
             // A final aligned tail is part of the struct's storage size, not merely a cursor adjustment. Materialize
             // it for a newly serialized stream so Serialize().Length exactly matches GetStructSizeInBytes(...).
-            this.CompleteStructTailPadding(strct, state, cursor);
+            this.CompleteStructTailPadding(composite, state, cursor);
         }
         finally
         {
@@ -268,12 +262,11 @@ public partial class CStruct
     ///     came from a parse (where every view is present) reproduces the complete storage - and the rest of the
     ///     union extent is cleared, exactly as <see cref="UnionValue.FromMember"/> would do.
     /// </summary>
-    private void WritePromotedUnion(Struct union, CompiledField field, object data, CStructElementWriterState state, CompositeFieldPlacementCursor cursor)
+    private void WritePromotedUnion(CompiledCompositeType composite, CompiledField field, object data, CStructElementWriterState state, CompositeFieldPlacementCursor cursor)
     {
         (long unionPosition, _) = cursor.AdvanceToField(field);
         this.ValidateOffsetAssertionAtRuntime(field, unionPosition, state.Variables);
         state.Stream.Position = unionPosition;
-        CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(union);
         int unionSize = this.compiledSizeQueries.GetCompiledStructSizeInBytes(composite, state.Variables, false);
 
         CompiledField? selected = null;
@@ -292,7 +285,7 @@ public partial class CStruct
                 continue;
             }
 
-            string name = member.EffectiveField.Name.Name;
+            string name = member.Name;
             if (name.Length > 0 && PocoDataBinding.TryGetMemberValue(data, name, state.BindingMode, out object? value))
             {
                 selected = member;
@@ -347,7 +340,7 @@ public partial class CStruct
                 continue;
             }
 
-            string name = member.EffectiveField.Name.Name;
+            string name = member.Name;
             if (name.Length > 0 && PocoDataBinding.TryGetMemberValue(data, name, state.BindingMode, out _))
             {
                 return true;
@@ -358,30 +351,30 @@ public partial class CStruct
     }
 
     /// <summary>Validates and stages a complete explicit union value before submitting its fixed extent once.</summary>
-    private void WriteUnion(Struct union, object data, CStructElementWriterState state)
+    private void WriteUnion(CompiledCompositeType union, object data, CStructElementWriterState state)
     {
         UnionValue? unionValue = data as UnionValue;
         if (unionValue is null)
         {
             throw new CStructWriteException(
-                "A whole union write requires UnionValue.FromRaw or UnionValue.FromMember: " + union.Name.Name);
+                "A whole union write requires UnionValue.FromRaw or UnionValue.FromMember: " + union.Name);
         }
 
-        if (!string.Equals(unionValue.UnionName, union.Name.Name, StringComparison.Ordinal))
+        if (!string.Equals(unionValue.UnionName, union.Name, StringComparison.Ordinal))
         {
             throw new CStructWriteException(
-                $"Union value '{unionValue.UnionName}' cannot be written as '{union.Name.Name}'.");
+                $"Union value '{unionValue.UnionName}' cannot be written as '{union.Name}'.");
         }
 
         int unionSize = this.compiledSizeQueries.GetCompiledStructSizeInBytes(
-            this.compiledSizeQueries.GetCompiledComposite(union),
+            union,
             state.Variables,
             false);
         byte[]? rawStorage = unionValue.HasRawStorage ? unionValue.GetRawStorageArray() : null;
         if (rawStorage is not null && rawStorage.Length != unionSize)
         {
             throw new CStructWriteException(
-                $"Raw storage length mismatch for {union.Name.Name}: expected {unionSize}, got {rawStorage.Length}.");
+                $"Raw storage length mismatch for {union.Name}: expected {unionSize}, got {rawStorage.Length}.");
         }
 
         long unionPosition = state.Stream.Position;
@@ -395,15 +388,12 @@ public partial class CStruct
         }
 
         string selectedMember = unionValue.SelectedMember!;
-        CompiledField? selected = this.compiledSizeQueries.GetCompiledComposite(union).Fields.FirstOrDefault(
-            field => string.Equals(
-                field.EffectiveField.Name.Name,
-                selectedMember,
-                StringComparison.Ordinal));
+        CompiledField? selected = union.Fields.FirstOrDefault(
+            field => string.Equals(field.Name, selectedMember, StringComparison.Ordinal));
         if (selected is null)
         {
             throw new CStructWriteException(
-                $"Union '{union.Name.Name}' has no member named '{selectedMember}'.");
+                $"Union '{union.Name}' has no member named '{selectedMember}'.");
         }
 
         // Build the complete union extent away from the destination. New writes and clearing updates start at zero;
@@ -449,7 +439,7 @@ public partial class CStruct
                                               NotSupportedException)
             {
                 throw new CStructWriteException(
-                    $"Cannot write selected union member '{union.Name.Name}.{selectedMember}'.",
+                    $"Cannot write selected union member '{union.Name}.{selectedMember}'.",
                     exception);
             }
         }
@@ -468,7 +458,7 @@ public partial class CStruct
             return 0;
         }
 
-        if (CharacterFieldTypes.IsCharArrayField(field.EffectiveField))
+        if (field.IsCharacterArray)
         {
             return string.Empty;
         }
@@ -486,12 +476,11 @@ public partial class CStruct
         CompositeFieldPlacementCursor? cursor = null)
     {
         // Keep a local field because an unsized character array is treated as a terminated string for writing.
-        Field effectiveField = compiledField.EffectiveField;
         if (value is null &&
-            (effectiveField.PointerDepth == 0 || compiledField.Array.Kind != CompiledArrayKind.Scalar))
+            (compiledField.PointerDepth == 0 || compiledField.Array.Kind != CompiledArrayKind.Scalar))
         {
             throw new CStructWriteException(
-                "Null is valid only for a scalar pointer field: " + effectiveField.Name.Name);
+                "Null is valid only for a scalar pointer field: " + compiledField.Name);
         }
 
         CompiledField valueField = compiledField;
@@ -512,9 +501,8 @@ public partial class CStruct
             {
                 // C-style char[] has no fixed count here. Select a string handler that writes its terminator.
                 unknownArray = true;
-                if (effectiveField.Type.Equals(CharacterFieldTypes.CharType))
+                if (compiledField.IsCharElement)
                 {
-                    effectiveField = new Field(CharacterFieldTypes.CstringType, effectiveField.Name, Field.NoArray, 0);
                     valueField = compiledField.SelectPointerTarget(
                         0,
                         CharacterFieldTypes.CstringType.Name,
@@ -522,14 +510,9 @@ public partial class CStruct
                         compiledField.TerminatedWriter,
                         this.PointerSize);
                 }
-                else if (CharacterFieldTypes.IsWideCharacterType(effectiveField.Type))
+                else if (compiledField.IsWideCharElement)
                 {
-                    string handler = CharacterFieldTypes.GetStringPointerHandlerKey(effectiveField.Type);
-                    effectiveField = new Field(
-                        new Identifier(handler),
-                        effectiveField.Name,
-                        Field.NoArray,
-                        0);
+                    string handler = CharacterFieldTypes.GetStringPointerHandlerKey(compiledField.EffectiveField.Type);
                     valueField = compiledField.SelectPointerTarget(
                         0,
                         handler,
@@ -546,11 +529,11 @@ public partial class CStruct
                 numFieldValues = compiledField.Array.TotalFixedElementCount ??
                                  throw new InvalidOperationException(
                                      "Multidimensional array has no fixed total element count: " +
-                                     effectiveField.Name.Name);
+                                     compiledField.Name);
                 if (numFieldValues > state.Options.MaxArrayElements)
                 {
                     throw new CStructWriteLimitException(
-                        "Array length exceeds the configured write limit: " + effectiveField.Name.Name);
+                        "Array length exceeds the configured write limit: " + compiledField.Name);
                 }
             }
             else
@@ -559,27 +542,28 @@ public partial class CStruct
                 numFieldValues = this.layoutExpressionEvaluator.Evaluate(
                     compiledField.Array.CountExpression ??
                     throw new InvalidOperationException(
-                        "Compiled array has no count expression: " + effectiveField.Name.Name),
+                        "Compiled array has no count expression: " + compiledField.Name),
                     state.Variables,
-                    "array length for " + effectiveField.Name.Name,
+                    "array length for " + compiledField.Name,
                     ExpressionFailureDomain.Write);
                 if (numFieldValues < 0)
                 {
-                    throw new CStructWriteException("Array length cannot be negative: " + effectiveField.Name.Name);
+                    throw new CStructWriteException("Array length cannot be negative: " + compiledField.Name);
                 }
 
                 if (numFieldValues > state.Options.MaxArrayElements)
                 {
                     throw new CStructWriteLimitException(
-                        "Array length exceeds the configured write limit: " + effectiveField.Name.Name);
+                        "Array length exceeds the configured write limit: " + compiledField.Name);
                 }
             }
         }
 
         bool isArray = hasFixedArrayDeclarator || unknownArray;
         BigInteger? writtenEnumValue = null;
-        if (unknownArray && PrimitiveCodecs.IsVariableLengthType(effectiveField.Type.Name))
+        if (unknownArray && PrimitiveCodecs.IsVariableLengthType(valueField.TypeSpelling))
         {
+            // A terminated string view writes one value through its string codec, not element by element.
             isArray = false;
         }
 
@@ -597,7 +581,7 @@ public partial class CStruct
 
         if (useLegacyPlacement)
         {
-            if (state.CurrentBitOffset > 0 && effectiveField.BitSize == 0)
+            if (state.CurrentBitOffset > 0 && compiledField.BitSize == 0)
             {
                 // A normal field cannot share a partly used bitfield storage unit. Move past that unit first.
                 state.CurrentBitOffset = 0;
@@ -605,12 +589,12 @@ public partial class CStruct
                 state.Stream.Position = state.NextPosition;
             }
 
-            if (effectiveField.BitSize > 0)
+            if (compiledField.BitSize > 0)
             {
                 int bitCapacity = checked(
                     (compiledField.BitStorageSize ??
                      throw new InvalidOperationException(
-                         "Compiled bitfield has no storage size: " + effectiveField.Name.Name)) * 8);
+                         "Compiled bitfield has no storage size: " + compiledField.Name)) * 8);
                 int activeUnitSize = state.CurrentBitfieldType is null
                                          ? 0
                                          : state.CurrentBitfieldSize;
@@ -621,7 +605,7 @@ public partial class CStruct
                                                 activeUnitSize,
                                                 state.CurrentBitOffset,
                                                 compiledField.BitUnitType,
-                                                effectiveField.BitSize,
+                                                compiledField.BitSize,
                                                 bitCapacity / 8,
                                                 bitCapacity / 8);
                 if (startsNewStorageUnit)
@@ -637,7 +621,7 @@ public partial class CStruct
                     state.CurrentBitfieldSize = compiledField.BitStorageSize ??
                                                 throw new InvalidOperationException(
                                                     "Compiled bitfield has no storage size: " +
-                                                    effectiveField.Name.Name);
+                                                    compiledField.Name);
                 }
             }
 
@@ -669,13 +653,13 @@ public partial class CStruct
             (long fieldStart, int bitOffset) = cursor!.AdvanceToField(valueField);
             this.ValidateOffsetAssertionAtRuntime(valueField, fieldStart, state.Variables);
             state.Stream.Position = fieldStart;
-            if (effectiveField.BitSize > 0)
+            if (compiledField.BitSize > 0)
             {
                 state.CurrentBitOffset = bitOffset;
                 state.CurrentBitfieldType = compiledField.BitUnitType;
                 state.CurrentBitfieldSize = compiledField.BitStorageSize ??
                                             throw new InvalidOperationException(
-                                                "Compiled bitfield has no storage size: " + effectiveField.Name.Name);
+                                                "Compiled bitfield has no storage size: " + compiledField.Name);
             }
             else
             {
@@ -695,25 +679,25 @@ public partial class CStruct
                     dimension => dimension.FixedCount ??
                                  throw new InvalidOperationException(
                                      "Multidimensional array dimension has no fixed count: " +
-                                     effectiveField.Name.Name))
+                                     compiledField.Name))
                 .ToArray();
 
-            if (CharacterFieldTypes.IsCharArrayField(effectiveField))
+            if (valueField.IsCharacterArray)
             {
                 // The innermost dimension of a fixed string table collapses one caller-supplied string per row,
                 // exactly like today's single-dimension char[32] buffer; only the outer dimensions flatten.
                 int rowSize = dimensionSizes[^1];
-                List<object> rows = this.FlattenNestedArrayValues(value!, dimensionSizes[..^1], effectiveField.Name.Name);
+                List<object> rows = this.FlattenNestedArrayValues(value!, dimensionSizes[..^1], compiledField.Name);
                 foreach (object row in rows)
                 {
                     string rowString = row as string ??
-                                        WriteValueMaterialization.ConvertToBoundedCharString(row, rowSize, effectiveField.Name.Name);
+                                        WriteValueMaterialization.ConvertToBoundedCharString(row, rowSize, compiledField.Name);
                     this.WriteFixedCharArray(compiledField, rowString, rowSize, state);
                 }
             }
             else
             {
-                List<object> leaves = this.FlattenNestedArrayValues(value!, dimensionSizes, effectiveField.Name.Name);
+                List<object> leaves = this.FlattenNestedArrayValues(value!, dimensionSizes, compiledField.Name);
                 for (int i = 0; i < leaves.Count; i++)
                 {
                     _ = this.WriteSingleFieldValue(compiledField, leaves[i], state);
@@ -722,12 +706,12 @@ public partial class CStruct
         }
         else if (isArray)
         {
-            if (CharacterFieldTypes.IsCharArrayField(effectiveField) ||
-                (!effectiveField.IsPointer && BoundedTextCodec.IsType(effectiveField.Type.Name)))
+            if (valueField.IsCharacterArray ||
+                (!compiledField.IsPointer && BoundedTextCodec.IsType(compiledField.TypeSpelling)))
             {
                 // Character arrays accept either one string or a collection of characters and always fill the declared size.
                 string str = value as string ??
-                             WriteValueMaterialization.ConvertToBoundedCharString(value!, numFieldValues, effectiveField.Name.Name);
+                             WriteValueMaterialization.ConvertToBoundedCharString(value!, numFieldValues, compiledField.Name);
                 this.WriteFixedCharArray(compiledField, str, numFieldValues, state);
             }
             else
@@ -737,18 +721,18 @@ public partial class CStruct
                 IList<object> items = WriteValueMaterialization.ConvertToObjectList(
                     value!,
                     materializationLimit,
-                    effectiveField.Name.Name);
+                    compiledField.Name);
                 int count = unknownArray ? items.Count : numFieldValues;
                 if (count > state.Options.MaxArrayElements)
                 {
                     throw new CStructWriteLimitException(
-                        "Array length exceeds the configured write limit: " + effectiveField.Name.Name);
+                        "Array length exceeds the configured write limit: " + compiledField.Name);
                 }
 
                 if (!unknownArray && items.Count != count)
                 {
                     throw new CStructWriteException(
-                        $"Array length mismatch for {effectiveField.Name.Name}: expected {count}, got {items.Count}.");
+                        $"Array length mismatch for {compiledField.Name}: expected {count}, got {items.Count}.");
                 }
 
                 for (int i = 0; i < count; i++)
@@ -760,7 +744,7 @@ public partial class CStruct
                 {
                     // One all-zero element closes the array.
                     int elementSize = compiledField.FixedElementSize ??
-                                      throw new InvalidOperationException("Data-sized array has no fixed element size: " + effectiveField.Name.Name);
+                                      throw new InvalidOperationException("Data-sized array has no fixed element size: " + compiledField.Name);
                     state.WriteZeroes(elementSize);
                 }
             }
@@ -774,7 +758,7 @@ public partial class CStruct
         // recorded end in that case so the next ordinary field, a union reservation, or struct tail starts after it.
         state.NextPosition = Math.Max(state.NextPosition, state.Stream.Position);
 
-        if (!useLegacyPlacement && effectiveField.BitSize == 0)
+        if (!useLegacyPlacement && compiledField.BitSize == 0)
         {
             // Bitfields skip this: the cursor already reserved their whole storage unit's span when it opened,
             // mirroring how CStructAddressResolver's own cursor usage never completes a bitfield.
@@ -788,20 +772,20 @@ public partial class CStruct
         }
         else if (writtenEnumValue is BigInteger exactEnumValue)
         {
-            this.UpdateExactLayoutVariable(state.Variables, effectiveField.Name.Name, exactEnumValue);
+            this.UpdateExactLayoutVariable(state.Variables, compiledField.Name, exactEnumValue);
         }
         else
         {
             if (compiledField.Codec.IsFixedPoint || compiledField.Codec.IsIdentifier)
             {
-                state.Variables.Remove(effectiveField.Name.Name);
+                state.Variables.Remove(compiledField.Name);
             }
             else
             {
-                WriterVariableProjection.UpdateVariablesFromValue(state, effectiveField.Name.Name, value!);
+                WriterVariableProjection.UpdateVariablesFromValue(state, compiledField.Name, value!);
             }
 
-            state.PublishQualified(effectiveField.Name.Name);
+            state.PublishQualified(compiledField.Name);
         }
     }
 
@@ -842,12 +826,10 @@ public partial class CStruct
         int count,
         CStructElementWriterState state)
     {
-        Field field = compiledField.EffectiveField;
-
-        if (BoundedTextCodec.IsType(field.Type.Name))
+        if (BoundedTextCodec.IsType(compiledField.TypeSpelling))
         {
             state.EnsureStringBytes(count);
-            if (BoundedTextCodec.IsUtf16(field.Type.Name) && (count & 1) != 0)
+            if (BoundedTextCodec.IsUtf16(compiledField.TypeSpelling) && (count & 1) != 0)
             {
                 throw new CStructWriteException("UTF-16 byte capacity must be even.");
             }
@@ -855,13 +837,13 @@ public partial class CStruct
             byte[] encoded;
             try
             {
-                int length = BoundedTextCodec.GetByteCount(field.Type.Name, value);
+                int length = BoundedTextCodec.GetByteCount(compiledField.TypeSpelling, value);
                 if (length > count)
                 {
-                    throw new CStructWriteException($"Encoded string is too long for {field.Name.Name}: {length} encoded bytes > {count}.");
+                    throw new CStructWriteException($"Encoded string is too long for {compiledField.Name}: {length} encoded bytes > {count}.");
                 }
 
-                encoded = BoundedTextCodec.Encode(field.Type.Name, value);
+                encoded = BoundedTextCodec.Encode(compiledField.TypeSpelling, value);
             }
             catch (EncoderFallbackException exception)
             {
@@ -876,20 +858,20 @@ public partial class CStruct
         // Fixed arrays must consume their declared byte count. Reject too much input instead of silently truncating it.
         if (value.Length > count)
         {
-            throw new CStructWriteException($"String is too long for {field.Name.Name}: {value.Length} > {count}.");
+            throw new CStructWriteException($"String is too long for {compiledField.Name}: {value.Length} > {count}.");
         }
 
-        long encodedByteCount = checked((long)count * (CharacterFieldTypes.IsWideCharacterType(field.Type) ? 2 : 1));
+        long encodedByteCount = checked((long)count * (compiledField.IsWideCharElement ? 2 : 1));
         state.EnsureStringBytes(encodedByteCount);
 
         // Padding with NUL matches the usual C character-buffer convention.
         string padded = value.PadRight(count, '\0');
-        if (CharacterFieldTypes.IsWideCharacterType(field.Type))
+        if (compiledField.IsWideCharElement)
         {
             byte[] encoded;
             try
             {
-                encoded = this.GetWideCharacterEncoding(field.Type).GetBytes(padded);
+                encoded = this.GetWideCharacterEncoding(compiledField).GetBytes(padded);
             }
             catch (EncoderFallbackException exception)
             {
@@ -904,7 +886,7 @@ public partial class CStruct
 
         foreach (char c in padded)
         {
-            this.WritePrimitiveValue(compiledField, state.Stream, c, field.Name.Name);
+            this.WritePrimitiveValue(compiledField, state.Stream, c, compiledField.Name);
         }
     }
 
@@ -913,7 +895,7 @@ public partial class CStruct
     ///     seeking past the end of a <see cref="MemoryStream"/> does not extend its length; updates preserve bytes that
     ///     already occupy padding because callers asked to change a field, not to normalize surrounding storage.
     /// </summary>
-    private void CompleteStructTailPadding(Struct strct, CStructElementWriterState state, CompositeFieldPlacementCursor cursor)
+    private void CompleteStructTailPadding(CompiledCompositeType composite, CStructElementWriterState state, CompositeFieldPlacementCursor cursor)
     {
         // The cursor already tracks the position past any dangling bitfield unit's full reserved span - trust it
         // rather than state.Stream.Position/NextPosition, which a shared bitfield write may have rewound mid-unit.
@@ -924,8 +906,7 @@ public partial class CStruct
             return;
         }
 
-        int alignment = this.compiledSizeQueries.GetCompiledComposite(strct).Symbol.Alignment;
-        long alignedEnd = cursor.FinishComposite(alignment);
+        long alignedEnd = cursor.FinishComposite(composite.Symbol.Alignment);
         if (alignedEnd == state.Stream.Position)
         {
             return;
@@ -966,16 +947,11 @@ public partial class CStruct
         object value,
         CStructElementWriterState state)
     {
-        Field field = compiledField.EffectiveField;
-        CStructElement? resolvedNamedElement = compiledField.NamedElement;
-
         // Resolve these once so each case below can choose the smallest correct writing path.
-        string fieldTypeName = field.Type.Name;
-        bool isKnownStruct = resolvedNamedElement is not null;
-        CStructElement? structElement = resolvedNamedElement;
+        string fieldTypeName = compiledField.TypeSpelling;
         bool isKnownFieldType = compiledField.Writer is not null;
 
-        if (field.PointerDepth > 0)
+        if (compiledField.PointerDepth > 0)
         {
             // At the field itself, a pointer writes only its address. UpdateStream handles writing through .value separately.
             long address = CStructPointerArithmetic.ConvertTargetAddress(value);
@@ -983,42 +959,38 @@ public partial class CStruct
             return null;
         }
 
-        if (field.BitSize > 0)
+        if (compiledField.BitSize > 0)
         {
             // Bitfields must merge into a shared storage value rather than write a standalone primitive.
-            this.WriteBitFieldValue(compiledField, value, state, isKnownStruct, structElement);
+            this.WriteBitFieldValue(compiledField, value, state);
             return null;
         }
 
-        if (isKnownStruct)
+        // Named layout types are enums or nested composites; both need more than a primitive handler call.
+        if (compiledField.Enum is { } compiledEnum)
         {
-            // Named layout types can be either enums or nested structs; both need more than a primitive handler call.
-            switch (structElement)
-            {
-            case CstructEnum enm:
-                CompiledEnumType compiledEnum = this.compiledModelQueries.GetCompiledEnum(enm);
-                BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, enm, value, state.BindingMode);
-                (compiledField.Writer ??
-                 throw new InvalidOperationException(
-                     "Compiled enum has no storage writer: " + enm.Name.Name))(
-                    state.Stream,
-                    compiledEnum.Integer.ToStorageValue(enumValue));
-                return enumValue;
-            case Struct strct:
-                {
-                    // A field named through a dotted path (`hdr.n`) republishes its nested values under the
-                    // qualified prefix while its body is written.
-                    string? outerPrefix = state.QualifiedPrefix;
-                    if (compiledField.HasQualifiedPrefix && compiledField.Array.Kind == CompiledArrayKind.Scalar)
-                    {
-                        state.QualifiedPrefix = outerPrefix is null ? compiledField.QualifiedPrefix : outerPrefix + compiledField.QualifiedPrefix;
-                    }
+            BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, value, state.BindingMode);
+            (compiledField.Writer ??
+             throw new InvalidOperationException(
+                 "Compiled enum has no storage writer: " + compiledEnum.Name))(
+                state.Stream,
+                compiledEnum.Integer.ToStorageValue(enumValue));
+            return enumValue;
+        }
 
-                    this.WriteCStructElement(strct, value, state);
-                    state.QualifiedPrefix = outerPrefix;
-                    return null;
-                }
+        if (compiledField.Composite is { } strct)
+        {
+            // A field named through a dotted path (`hdr.n`) republishes its nested values under the
+            // qualified prefix while its body is written.
+            string? outerPrefix = state.QualifiedPrefix;
+            if (compiledField.HasQualifiedPrefix && compiledField.Array.Kind == CompiledArrayKind.Scalar)
+            {
+                state.QualifiedPrefix = outerPrefix is null ? compiledField.QualifiedPrefix : outerPrefix + compiledField.QualifiedPrefix;
             }
+
+            this.WriteStruct(strct, value, state);
+            state.QualifiedPrefix = outerPrefix;
+            return null;
         }
 
         if (!isKnownFieldType)
@@ -1027,7 +999,7 @@ public partial class CStruct
         }
 
         // The remaining case is a normal primitive type registered when this layout was created.
-        this.WritePrimitiveValue(compiledField, state.Stream, value, field.Name.Name);
+        this.WritePrimitiveValue(compiledField, state.Stream, value, compiledField.Name);
         return null;
     }
 
@@ -1237,8 +1209,6 @@ public partial class CStruct
             }
             else
             {
-                Field writableField = target.WritableField ??
-                                      throw new CStructPathException("The selected path has no writable field target.");
                 CompiledField writableCompiledField = target.WritableCompiledField ??
                                                       throw new CStructPathException(
                                                           "The selected path has no compiled writable field target.");

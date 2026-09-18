@@ -31,14 +31,13 @@ public partial class CStruct
     ///     plan when the plan is exactly equivalent to parse-then-convert; returns null (having consumed nothing)
     ///     when it is not.
     /// </summary>
-    private object? TryReadTypedPlan(Struct declaration, [DynamicallyAccessedMembers(TypedPlanMembers)] Type targetType, CStructOperationContext state, string path)
+    private object? TryReadTypedPlan(CompiledCompositeType composite, [DynamicallyAccessedMembers(TypedPlanMembers)] Type targetType, CStructOperationContext state, string path)
     {
-        if (state.Debug || StaticReadPlan.DisabledForTesting || declaration.IsUnion)
+        if (state.Debug || StaticReadPlan.DisabledForTesting || composite.IsUnion)
         {
             return null;
         }
 
-        CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(declaration);
         if (composite.StaticPlan is not StaticReadPlan plan ||
             state.StructureDepth + plan.NestingDepth > state.MaxNestingDepth || plan.MaximumArrayCount > state.MaxArrayElements ||
             (this.Aligned && state.Stream.Position % composite.Symbol.Alignment != 0))
@@ -188,7 +187,7 @@ public partial class CStruct
         case StaticReadKind.Numeric:
             return field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
         case StaticReadKind.Enum:
-            return this.CreateEnumValue((CstructEnum)field.Type.Symbol.Declaration!, field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size)));
+            return CreateEnumValue(field.Enum!, field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size)));
         default:
             if (operation.Count > state.MaxArrayElements)
             {

@@ -48,30 +48,28 @@ public partial class CStruct
     }
 
     /// <summary>Requires a semantic target that has reached a concrete struct rather than pointer storage.</summary>
-    private static Struct ResolveStructTarget(ResolvedTarget target)
+    private static CompiledCompositeType ResolveStructTarget(ResolvedTarget target)
     {
         bool stopsAtPointerStorage = target.Kind == ResolvedTargetKind.PointerAddress ||
                                      ((target.Kind is ResolvedTargetKind.Field or ResolvedTargetKind.ArrayElement) &&
-                                      target.EffectiveField?.PointerDepth > 0);
+                                      target.EffectiveCompiledField?.PointerDepth > 0);
         if (stopsAtPointerStorage ||
             target.RemainingPointerDepth > 0 ||
-            target.TargetElement is not Struct strct)
+            target.TargetComposite is not { } composite)
         {
             throw new CStructPathException("The selected path does not resolve to a struct object.");
         }
 
-        return strct;
+        return composite;
     }
 
     /// <summary>Reads one non-union struct through the shared compiled traversal and completes its storage extent.</summary>
     private void ReadCompiledStructInto(
-        Struct strct,
+        CompiledCompositeType composite,
         StructValue destination,
         CStructOperationContext state,
         DebugPath? debugStack)
     {
-        CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
-
         // Static read plan (E2.5): a fully fixed composite is read from one span of its exact size. The span is
         // taken only when the whole extent is present and within the read budget, so every truncation and limit
         // failure still comes from the general path below, at the field it always reported.
@@ -124,7 +122,7 @@ public partial class CStruct
         state.EnterStructure();
         try
         {
-            foreach (CompiledField field in this.compiledSizeQueries.GetCompiledComposite(strct).Fields)
+            foreach (CompiledField field in composite.Fields)
             {
                 bool active = selection?.IsActive(field, state.Variables) ?? true;
                 if (field.Declaration.Condition is not null)
@@ -156,8 +154,7 @@ public partial class CStruct
 
         // The cursor already tracks the position past any dangling bitfield unit's full reserved span - trust it
         // rather than state.Stream.Position, which a shared bitfield read may have rewound mid-unit for extraction.
-        int alignment = this.compiledSizeQueries.GetCompiledComposite(strct).Symbol.Alignment;
-        state.Stream.Position = cursor.FinishComposite(alignment);
+        state.Stream.Position = cursor.FinishComposite(composite.Symbol.Alignment);
         state.CurrentBitOffset = 0;
         state.CurrentBitfieldType = null;
         state.NextPosition = state.Stream.Position;
@@ -192,8 +189,7 @@ public partial class CStruct
                 case StaticReadKind.Enum:
                     {
                         object storage = field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
-                        var enm = (CstructEnum)field.Type.Symbol.Declaration!;
-                        EnumValueResult value = this.CreateEnumValue(enm, storage);
+                        EnumValueResult value = CreateEnumValue(field.Enum!, storage);
                         destination.SetFreshSlot(operation.Slot, value);
                         if (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
                         {
@@ -295,7 +291,7 @@ public partial class CStruct
     private (object Result, List<DebugData> DebugData) ParseCompiledStructAt(
         CStructOperationContext state,
         long address,
-        Struct target,
+        CompiledCompositeType target,
         DebugPath? debugPrefix,
         int containingStructureDepth,
         int pointerDereferenceDepth,
@@ -311,7 +307,7 @@ public partial class CStruct
             return (this.ReadUnionValue(target, state, debugPrefix), state.DebugMapping);
         }
 
-        var result = new StructValue(this.compiledSizeQueries.GetCompiledComposite(target).Shape);
+        var result = new StructValue(target.Shape);
         this.ReadCompiledStructInto(target, result, state, debugPrefix);
 
         return (result, state.DebugMapping);
@@ -321,15 +317,12 @@ public partial class CStruct
     ///     Reads every bounded interpretation of one union from the same address and retains its complete raw storage.
     /// </summary>
     private UnionValue ReadUnionValue(
-        Struct union,
+        CompiledCompositeType union,
         CStructOperationContext state,
         DebugPath? debugStack)
     {
         long unionPosition = state.Stream.Position;
-        int unionSize = this.compiledSizeQueries.GetCompiledStructSizeInBytes(
-            this.compiledSizeQueries.GetCompiledComposite(union),
-            state.Variables,
-            false);
+        int unionSize = this.compiledSizeQueries.GetCompiledStructSizeInBytes(union, state.Variables, false);
         long unionEnd = checked(unionPosition + unionSize);
         byte[] rawStorage = new byte[unionSize];
 
@@ -343,7 +336,7 @@ public partial class CStruct
         }
 
         state.Stream.Position = unionPosition;
-        var decodedMembers = new StructValue(this.compiledSizeQueries.GetCompiledComposite(union).Shape);
+        var decodedMembers = new StructValue(union.Shape);
         bool previousPointerSuppression = state.SuppressPointerDereference;
         var unionInputVariables = new Dictionary<string, Expr>(state.Variables, StringComparer.Ordinal);
 
@@ -353,7 +346,7 @@ public partial class CStruct
             // An untagged union does not identify an active member. Decode local views, but never follow an external
             // pointer merely because its address bytes overlap this storage.
             state.SuppressPointerDereference = true;
-            foreach (CompiledField field in this.compiledSizeQueries.GetCompiledComposite(union).Fields)
+            foreach (CompiledField field in union.Fields)
             {
                 RestoreVariables(state.Variables, unionInputVariables);
                 this.HandleCStructElement(
@@ -378,7 +371,7 @@ public partial class CStruct
         }
 
         IDictionary<string, object?> memberViews = decodedMembers;
-        UnionValue result = UnionValue.FromParsed(union.Name.Name, rawStorage, memberViews);
+        UnionValue result = UnionValue.FromParsed(union.Name, rawStorage, memberViews);
         if (state.Debug)
         {
             // This record makes the overlapping extent explicit without rereading and recharging the same bytes.
@@ -389,8 +382,8 @@ public partial class CStruct
                     End = unionEnd,
                     DebugStack = debugStack,
                     Value = result,
-                    Bytes = rawStorage.ToArray(),
-                    TypeName = union.Name.Name,
+                    Bytes = rawStorage,
+                    TypeName = union.Name,
                 });
         }
 
