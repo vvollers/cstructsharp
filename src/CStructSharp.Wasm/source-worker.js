@@ -18,7 +18,7 @@ function loadManaged() {
   })();
 }
 
-async function run({ command, descriptor, definition, options, debug }) {
+async function run({ command, descriptor, definition, options, debug, path }) {
   let close = () => {};
   try {
     const managed = await loadManaged();
@@ -63,9 +63,21 @@ async function run({ command, descriptor, definition, options, debug }) {
       throw new TypeError("Unsupported worker source descriptor.");
     }
     const source = { size: descriptor.size, read };
-    const json = command === "parseCompiled"
-      ? managed.ParseCompiledSource(source, optionsJson, debug)
-      : managed.ParseSource(definition, source, optionsJson, debug);
+    let json;
+    switch (command) {
+      case "parseCompiled":
+        json = managed.ParseCompiledSource(source, optionsJson, debug);
+        break;
+      case "resolveAddress":
+        json = managed.ResolveAddress(definition, source, path, optionsJson);
+        break;
+      case "resolveAddressCompiled":
+        json = managed.ResolveAddressCompiled(source, path, optionsJson);
+        break;
+      default:
+        json = managed.ParseSource(definition, source, optionsJson, debug);
+        break;
+    }
     return { result: JSON.parse(json) };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };

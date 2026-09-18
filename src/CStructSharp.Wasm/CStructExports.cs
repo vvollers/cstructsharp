@@ -8,6 +8,7 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
+using System.Text.Json;
 using CStructSharp;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
@@ -39,10 +40,9 @@ public partial class CStructExports
     [JSExport]
     public static string ParseWithDebug(string cstructDefinition, byte[] binaryData, string optionsJson)
     {
-        return ParseWithDebugInternal(cstructDefinition, binaryData, optionsJson);
+        return ParseBytes(cstructDefinition, binaryData, optionsJson, true);
     }
 
-    /// <summary>Reads a seekable JavaScript source without copying the complete source into WASM memory.</summary>
     /// <summary>
     ///     Parses a complete managed copy of the caller's bytes on the calling thread. The JavaScript adapter uses it
     ///     for small inputs (E3.6): one byte[] marshal is far cheaper than staging the input and round-tripping the
@@ -51,31 +51,34 @@ public partial class CStructExports
     [JSExport]
     public static string ParseBytes(string definition, byte[] binaryData, string optionsJson, bool debug)
     {
+        InteropOptionsDto? options = null;
         try
         {
-            InteropOptionsDto options = ParseOptions(optionsJson);
+            options = ParseOptions(optionsJson);
             byte[] ownedBinaryData = ValidateBinaryData(binaryData);
             using var stream = new MemoryStream(ownedBinaryData, writable: false);
             return ParseStreamResult(definition, stream, options, debug);
         }
         catch (Exception exception)
         {
-            return SerializeInteropResult(CreateFailure("parse", exception));
+            return SerializeInteropResult(CreateFailure("parse", exception, options));
         }
     }
 
+    /// <summary>Reads a seekable JavaScript source without copying the complete source into WASM memory.</summary>
     [JSExport]
     public static string ParseSource(string definition, JSObject source, string optionsJson, bool debug)
     {
+        InteropOptionsDto? options = null;
         try
         {
-            InteropOptionsDto options = ParseOptions(optionsJson);
+            options = ParseOptions(optionsJson);
             using var stream = new JavaScriptSourceStream(source);
             return ParseStreamResult(definition, stream, options, debug);
         }
         catch (Exception exception)
         {
-            return SerializeInteropResult(CreateFailure("parse", exception));
+            return SerializeInteropResult(CreateFailure("parse", exception, options));
         }
     }
 
@@ -83,14 +86,16 @@ public partial class CStructExports
     [JSExport]
     public static string InitializeCompiledLayout(string definition, string optionsJson)
     {
+        InteropOptionsDto? options = null;
         try
         {
-            workerLayout = CreateCStruct(definition, ParseOptions(optionsJson));
-            return SerializeInteropResult(CreateSuccess("parse", EmptyObject()));
+            options = ParseOptions(optionsJson);
+            workerLayout = CreateCStruct(definition, options);
+            return SerializeInteropResult(CreateSuccess("compile", EmptyObject(), ResolveRoot(workerLayout, options)));
         }
         catch (Exception exception)
         {
-            return SerializeInteropResult(CreateFailure("parse", exception));
+            return SerializeInteropResult(CreateFailure("compile", exception, options));
         }
     }
 
@@ -98,22 +103,72 @@ public partial class CStructExports
     [JSExport]
     public static string ParseCompiledSource(JSObject source, string optionsJson, bool debug)
     {
+        InteropOptionsDto? options = null;
         try
         {
-            InteropOptionsDto options = ParseOptions(optionsJson);
+            options = ParseOptions(optionsJson);
             using var stream = new JavaScriptSourceStream(source);
-            return ParseStreamResult(workerLayout ?? throw new InvalidOperationException("No compiled layout."), stream, options, debug);
+            return ParseStreamResult(RequireWorkerLayout(), stream, options, debug);
         }
         catch (Exception exception)
         {
-            return SerializeInteropResult(CreateFailure("parse", exception));
+            return SerializeInteropResult(CreateFailure("parse", exception, options));
+        }
+    }
+
+    /// <summary>Serializes with the layout retained by this worker runtime; see <see cref="Serialize"/>.</summary>
+    [JSExport]
+    public static byte[] SerializeCompiled(string dataJson, string optionsJson)
+    {
+        InteropOptionsDto? options = null;
+        try
+        {
+            options = ParseOptions(optionsJson);
+            return SerializeCore(RequireWorkerLayout(), dataJson, options);
+        }
+        catch (Exception exception)
+        {
+            throw CreateBridgeException(exception, options);
+        }
+    }
+
+    /// <summary>Updates with the layout retained by this worker runtime; see <see cref="UpdateStream"/>.</summary>
+    [JSExport]
+    public static byte[] UpdateCompiled(byte[] binaryData, string elementNameOrPath, string valueJson, string optionsJson)
+    {
+        InteropOptionsDto? options = null;
+        try
+        {
+            options = ParseOptions(optionsJson);
+            return UpdateCore(RequireWorkerLayout(), binaryData, elementNameOrPath, valueJson, options);
+        }
+        catch (Exception exception)
+        {
+            throw CreateBridgeException(exception, options);
+        }
+    }
+
+    /// <summary>Resolves an address with the layout retained by this worker runtime; see <see cref="ResolveAddress"/>.</summary>
+    [JSExport]
+    public static string ResolveAddressCompiled(JSObject source, string path, string optionsJson)
+    {
+        InteropOptionsDto? options = null;
+        try
+        {
+            options = ParseOptions(optionsJson);
+            using var stream = new JavaScriptSourceStream(source);
+            return ResolveAddressResult(RequireWorkerLayout(), stream, path, options);
+        }
+        catch (Exception exception)
+        {
+            return SerializeInteropResult(CreateFailure("resolveAddress", exception, options));
         }
     }
 
     /// <summary>
     ///     Serializes browser JSON with a CStruct definition and returns the encoded bytes directly - a native
     ///     Uint8Array on the JS side, not Base64 text. Failure is reported by throwing rather than through the
-    ///     JSON envelope other exports use, since there is no envelope object to carry an Error field alongside a
+    ///     JSON envelope other exports use, since there is no envelope object to carry an error field alongside a
     ///     native byte-array success payload; the thrown exception's message is the same JSON-serialized
     ///     <see cref="ErrorDetailsDto"/> shape, ready for the JS wrapper to reconstruct the familiar error object.
     /// </summary>
@@ -123,21 +178,15 @@ public partial class CStructExports
         string dataJson,
         string optionsJson)
     {
+        InteropOptionsDto? options = null;
         try
         {
-            ValidateJson(dataJson);
-            InteropOptionsDto options = ParseOptions(optionsJson);
-            object? data = ParseJsonValue(dataJson);
-            CStruct cstruct = CreateCStruct(cstructDefinition, options);
-
-            string root = string.IsNullOrWhiteSpace(options.RootTypeName)
-                              ? ResolveDefaultRootTypeName(cstruct)
-                              : options.RootTypeName;
-            return cstruct.Serialize(root, data!, options: CreateWriteOptions(options));
+            options = ParseOptions(optionsJson);
+            return SerializeCore(CreateCStruct(cstructDefinition, options), dataJson, options);
         }
         catch (Exception exception)
         {
-            throw CreateBridgeException(exception);
+            throw CreateBridgeException(exception, options);
         }
     }
 
@@ -153,39 +202,78 @@ public partial class CStructExports
         string valueJson,
         string optionsJson)
     {
+        InteropOptionsDto? options = null;
         try
         {
-            ValidatePath(elementNameOrPath);
-            ValidateJson(valueJson);
-            InteropOptionsDto options = ParseOptions(optionsJson);
-            byte[] ownedBinaryData = ValidateBinaryData(binaryData);
-            object? value = ParseJsonValue(valueJson);
-            CStruct cstruct = CreateCStruct(cstructDefinition, options);
-            using var stream = new MemoryStream(ownedBinaryData);
-
-            cstruct.Update(stream, elementNameOrPath, value!, options: CreateUpdateOptions(options));
-            return stream.ToArray();
+            options = ParseOptions(optionsJson);
+            return UpdateCore(CreateCStruct(cstructDefinition, options), binaryData, elementNameOrPath, valueJson, options);
         }
         catch (Exception exception)
         {
-            throw CreateBridgeException(exception);
+            throw CreateBridgeException(exception, options);
         }
     }
 
-    /// <summary>Performs the shared parse operation and projects internal debug records into transport DTOs.</summary>
-    private static string ParseWithDebugInternal(string cstructDefinition, byte[] binaryData, string optionsJson)
+    /// <summary>
+    ///     Resolves the absolute position of a path in a seekable JavaScript source and returns it in the envelope's
+    ///     <c>data</c> as a number (a decimal string beyond Number's exact range).
+    /// </summary>
+    [JSExport]
+    public static string ResolveAddress(string definition, JSObject source, string path, string optionsJson)
     {
+        InteropOptionsDto? options = null;
         try
         {
-            InteropOptionsDto options = ParseOptions(optionsJson);
-            byte[] ownedBinaryData = ValidateBinaryData(binaryData);
-            using var stream = new MemoryStream(ownedBinaryData);
-            return ParseStreamResult(cstructDefinition, stream, options, true);
+            options = ParseOptions(optionsJson);
+            using var stream = new JavaScriptSourceStream(source);
+            return ResolveAddressResult(CreateCStruct(definition, options), stream, path, options);
         }
         catch (Exception exception)
         {
-            return SerializeInteropResult(CreateFailure("parse", exception));
+            return SerializeInteropResult(CreateFailure("resolveAddress", exception, options));
         }
+    }
+
+    private static CStruct RequireWorkerLayout()
+    {
+        return workerLayout ?? throw new InvalidOperationException("No compiled layout.");
+    }
+
+    private static byte[] SerializeCore(CStruct cstruct, string dataJson, InteropOptionsDto options)
+    {
+        ValidateJson(dataJson);
+        object? data = ParseJsonValue(dataJson);
+        string root = ResolveRoot(cstruct, options);
+
+        // A value that came from a parse of a whole struct may still be wrapped under the root's name
+        // (`{ header: { ... } }`); a wrapper is an object whose only member is the root and is itself an object.
+        if (data is IDictionary<string, object?> wrapper && wrapper.Count == 1 && wrapper.TryGetValue(root, out object? inner) && inner is IDictionary<string, object?> or UnionValue)
+        {
+            data = inner;
+        }
+
+        return cstruct.Serialize(root, data!, options: CreateWriteOptions(options));
+    }
+
+    private static byte[] UpdateCore(CStruct cstruct, byte[] binaryData, string elementNameOrPath, string valueJson, InteropOptionsDto options)
+    {
+        ValidatePath(elementNameOrPath);
+        ValidateJson(valueJson);
+        byte[] ownedBinaryData = ValidateBinaryData(binaryData);
+        object? value = ParseJsonValue(valueJson);
+        using var stream = new MemoryStream(ownedBinaryData);
+        cstruct.Update(stream, elementNameOrPath, value!, options: CreateUpdateOptions(options));
+        return stream.ToArray();
+    }
+
+    private static string ResolveAddressResult(CStruct cstruct, Stream stream, string path, InteropOptionsDto options)
+    {
+        ValidatePath(path);
+        long address = cstruct.ResolveAddress(stream, path, options: CreateReadOptions(options));
+        using JsonDocument document = JsonDocument.Parse(address is >= -9_007_199_254_740_991 and <= 9_007_199_254_740_991
+                                                              ? address.ToString(CultureInfo.InvariantCulture)
+                                                              : "\"" + address.ToString(CultureInfo.InvariantCulture) + "\"");
+        return SerializeInteropResult(CreateSuccess("resolveAddress", document.RootElement.Clone(), path));
     }
 
     /// <summary>Projects either a values-only or debug stream read into the common result envelope.</summary>
@@ -196,9 +284,7 @@ public partial class CStructExports
 
     private static string ParseStreamResult(CStruct cstruct, Stream stream, InteropOptionsDto options, bool debug)
     {
-        string root = string.IsNullOrWhiteSpace(options.RootTypeName)
-                          ? ResolveDefaultRootTypeName(cstruct)
-                          : options.RootTypeName;
+        string root = ResolveRoot(cstruct, options);
         ReadOptions readOptions = CreateReadOptions(options);
         IReadOnlyList<DebugData> debugData = [];
         object? selected;
@@ -211,18 +297,15 @@ public partial class CStructExports
             selected = cstruct.ReadValue(stream, root, options: readOptions);
         }
 
-        // Contract v7 keeps the declaration-name wrapper around struct roots and returns other selections bare.
-        object result = selected is StructValue ? new Dictionary<string, object?> { [root] = selected, } : selected ?? new Dictionary<string, object?>();
-
         var debugDataDtos = new List<DebugDataDto>(debugData.Count);
         foreach (DebugData item in debugData)
         {
             debugDataDtos.Add(
                 new DebugDataDto
                 {
-                    CurPos = item.Start,
-                    EndPos = item.End,
-                    DebugStackString = item.Path,
+                    Start = item.Start,
+                    End = item.End,
+                    Path = item.Path,
                     Type = item.TypeName ?? "unknown",
                     Value = item.Value is IFormattable formattable
                                 ? formattable.ToString(null, CultureInfo.InvariantCulture)
@@ -230,6 +313,6 @@ public partial class CStructExports
                 });
         }
 
-        return SerializeParseEnvelope(result, debugDataDtos);
+        return SerializeParseEnvelope(root, selected, debugDataDtos);
     }
 }

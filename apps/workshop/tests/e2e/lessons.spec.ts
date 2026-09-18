@@ -131,7 +131,7 @@ test("conditional lesson exercises produce the documented changes", async ({ pag
         definition = definition.replace("if (count > 0)", "if (tag != 0 && count > 0)");
       return JSON.parse(
         window.CStructSharpWasm!.parseWithDebug(definition, bytes, {
-          rootTypeName: lesson.rootType,
+          root: lesson.rootType,
           ...lesson.parserOptions,
           ...lesson.options,
         }),
@@ -144,15 +144,15 @@ test("conditional lesson exercises produce the documented changes", async ({ pag
       run("conditional-nesting", "nested"),
     ];
   }, lessons);
-  for (const result of results.slice(0, 3)) expect(result.Success).toBe(true);
-  const tagItems = results[0].Data.root.items;
+  for (const result of results.slice(0, 3)) expect(result.success).toBe(true);
+  const tagItems = results[0].data.items;
   expect(tagItems[0]).toEqual({ tag: 2, some_parameter: 0, low: 10, second: 11 });
-  const parameterItems = results[1].Data.root.items;
+  const parameterItems = results[1].data.items;
   expect(parameterItems[0]).toEqual({ tag: 1, some_parameter: 1, high: 10, first: 11 });
   expect(tagItems.slice(1)).toEqual(parameterItems.slice(1));
-  expect(results[2].Data.root.items).toEqual([{ tag: 1, count: 1, payload: [42] }, { tag: 0 }]);
-  expect(results[3].Success).toBe(false);
-  expect(results[3].Error.Code).toBe("read-failed");
+  expect(results[2].data.items).toEqual([{ tag: 1, count: 1, payload: [42] }, { tag: 0 }]);
+  expect(results[3].success).toBe(false);
+  expect(results[3].error.code).toBe("read-failed");
 });
 
 test("each lesson fixes its operation and runs its starting inputs", async ({ page }) => {
@@ -183,7 +183,7 @@ test("all curated operation presets match real managed results", async ({ page }
           const api = window.CStructSharpWasm!;
           if (!api.ready) throw new Error("Runtime unavailable");
           const options = {
-            rootTypeName: lesson.rootType,
+            root: lesson.rootType,
             ...lesson.parserOptions,
             ...lesson.options,
           };
@@ -193,14 +193,16 @@ test("all curated operation presets match real managed results", async ({ page }
           // parse still returns a JSON envelope; serialize/update return bytes directly on success and throw
           // (their message is the same JSON-serialized ErrorDetails shape) on failure - reconstruct one shape.
           let result:
-            { Success: true; Data: unknown } | { Success: false; Error: { Code: string } };
+            | { success: true; root: string | null; data: unknown }
+            | { success: false; error: { code: string } };
           try {
             result =
               operation === "parse"
                 ? JSON.parse(api.parseWithDebug(lesson.definition!, bytes, options))
                 : {
-                    Success: true,
-                    Data:
+                    success: true,
+                    root: null,
+                    data:
                       operation === "serialize"
                         ? api.serialize(lesson.definition!, preset!.json!, options)
                         : api.updateStream(
@@ -213,14 +215,15 @@ test("all curated operation presets match real managed results", async ({ page }
                   };
           } catch (cause) {
             const message = cause instanceof Error ? cause.message : String(cause);
-            result = { Success: false, Error: JSON.parse(message) };
+            result = { success: false, error: JSON.parse(message) };
           }
-          const actual = !result.Success
-            ? { error: result.Error.Code }
+          // Lessons describe the selected value exactly as the v8 envelope's `data` carries it.
+          const actual = !result.success
+            ? { error: result.error.code }
             : operation === "parse"
-              ? { data: result.Data }
+              ? { data: result.data }
               : {
-                  hex: Array.from(result.Data as Uint8Array, (b) =>
+                  hex: Array.from(result.data as Uint8Array, (b) =>
                     b.toString(16).padStart(2, "0"),
                   ).join(" "),
                 };

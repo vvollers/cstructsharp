@@ -36,7 +36,8 @@ public readonly record struct DebugData
     /// <summary>Gets the number of bytes the item occupies.</summary>
     public long Length => this.End - this.Start;
 
-    /// <inheritdoc/>
+    /// <summary>Formats the item for diagnostics.</summary>
+    /// <returns>The path, byte range, type name, and value, such as <c>header.kind [0, 2) uint16 = 2</c>.</returns>
     public override string ToString()
     {
         return $"{this.Path} [{this.Start}, {this.End}) {this.TypeName} = {this.Value}";

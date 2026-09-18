@@ -24,12 +24,13 @@ export function useParseSession() {
   const focusPath = shallowRef<string[] | null>(null);
   let controller: AbortController | null = null;
 
-  const debugData = computed(() => (result.value?.Success ? result.value.DebugData : []));
+  const debugData = computed(() => (result.value?.success ? result.value.debug : []));
+  // The JSON tree keeps the selected root as its first step so debug paths ("root.values[2]") map onto it directly.
   const parsedResult = computed(() =>
-    result.value?.Success &&
-    result.value.Operation === "parse" &&
-    !(result.value.Data instanceof Uint8Array)
-      ? result.value.Data
+    result.value?.success &&
+    result.value.operation === "parse" &&
+    !(result.value.data instanceof Uint8Array)
+      ? { [result.value.root ?? "root"]: result.value.data }
       : undefined,
   );
 
@@ -141,11 +142,21 @@ export function parseFailure(
   offset: number | null = null,
 ): InteropResult {
   return {
-    ContractVersion: INTEROP_CONTRACT_VERSION,
-    Operation: "parse",
-    Success: false,
-    Data: null,
-    DebugData: [],
-    Error: { Code: code, Message: message, Offset: offset, Path: null },
+    contractVersion: INTEROP_CONTRACT_VERSION,
+    operation: "parse",
+    success: false,
+    root: null,
+    data: null,
+    debug: [],
+    error: {
+      code,
+      message,
+      offset,
+      path: null,
+      member: null,
+      memberType: null,
+      line: null,
+      column: null,
+    },
   };
 }

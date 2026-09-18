@@ -20,7 +20,7 @@ try {
       binaryHex: lesson.binaryHex,
       jsonValue: preset.json ?? "{}",
       path: preset.path ?? "",
-      options: { rootTypeName: lesson.rootType, ...lesson.parserOptions, ...lesson.options },
+      options: { root: lesson.rootType, ...lesson.parserOptions, ...lesson.options },
     }).csharp;
     const body = source.replace(/^using .+;$/gm, (line) => {
       imports.add(line);

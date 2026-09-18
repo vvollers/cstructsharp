@@ -55,7 +55,7 @@ This distinction is why the choice between owned output, direct output, and an u
 
 ## What is not an error
 
-Some situations look like problems but are deliberate, documented behaviour. The library stays quiet about them,
+Some situations look like problems but are deliberate, documented behavior. The library stays quiet about them,
 and each has an opt-in where strictness makes sense:
 
 | Situation | What happens | Opt in to strictness |

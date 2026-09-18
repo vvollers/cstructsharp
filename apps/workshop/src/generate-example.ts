@@ -14,7 +14,7 @@ const comment = (value: string) =>
 
 // Defaults shared by the managed APIs and the public browser wrapper.
 const defaults: Record<string, unknown> = {
-  rootTypeName: null,
+  root: null,
   pointerSize: 8,
   aligned: false,
   littleEndian: true,
@@ -47,7 +47,7 @@ const updateOnlyOptions = new Set([
   "maxTraversalBytesRead",
   "maxTraversalNestingDepth",
 ]);
-const layoutOptions = new Set(["rootTypeName", "pointerSize", "aligned", "littleEndian"]);
+const layoutOptions = new Set(["root", "pointerSize", "aligned", "littleEndian"]);
 
 function nonDefaultOptions(request: WorkbenchRequest): Record<string, unknown> {
   return Object.fromEntries(
@@ -70,7 +70,7 @@ function nonDefaultOptions(request: WorkbenchRequest): Record<string, unknown> {
           return true;
         }
       }
-      if (key === "rootTypeName" && typeof value === "string" && !value.trim()) return false;
+      if (key === "root" && typeof value === "string" && !value.trim()) return false;
       return value !== defaults[key];
     }),
   );
@@ -102,16 +102,16 @@ function csValue(value: unknown, indent = 4): string {
   if (Array.isArray(value))
     return `new object?[] { ${value.map((v) => csValue(v, indent)).join(", ")} }`;
   const obj = value as Record<string, unknown>;
-  if (obj.$kind === "union") {
-    const name = csString(String(obj.Union));
+  if (obj.kind === "union") {
+    const name = csString(String(obj.union));
     const raw =
-      obj.RawStorage == null
+      obj.rawStorage == null
         ? null
-        : `UnionValue.FromRaw(${name}, Convert.FromBase64String(${csString(String(obj.RawStorage))}))`;
-    if (typeof obj.SelectedMember === "string") {
-      const member = csString(obj.SelectedMember);
+        : `UnionValue.FromRaw(${name}, Convert.FromBase64String(${csString(String(obj.rawStorage))}))`;
+    if (typeof obj.selectedMember === "string") {
+      const member = csString(obj.selectedMember);
       const selected = csValue(
-        (obj.Members as Record<string, unknown>)[obj.SelectedMember],
+        (obj.members as Record<string, unknown>)[obj.selectedMember],
         indent,
       );
       return raw
@@ -136,11 +136,11 @@ export function generateExample(
   const value = operation === "parse" ? null : JSON.parse(request.jsonValue);
   const expected = !observed
     ? "Run this example to inspect the result for these inputs."
-    : !observed.Success
-      ? `These inputs currently fail in the browser: ${observed.Error?.Code}.\nExpected: the error handler reports the invalid input or exceeded limit.`
+    : !observed.success
+      ? `These inputs currently fail in the browser: ${observed.error?.code}.\nExpected: the error handler reports the invalid input or exceeded limit.`
       : operation === "parse"
-        ? `Observed browser values (C# uses its native value types without the outer root wrapper):\n${JSON.stringify(observed.Data)}`
-        : `Expected output bytes (hex): ${Array.from(observed.Data as Uint8Array, (b) => b.toString(16).padStart(2, "0")).join(" ")}`;
+        ? `Observed browser values (C# uses its native value types for the same members):\n${JSON.stringify(observed.data)}`
+        : `Expected output bytes (hex): ${Array.from(observed.data as Uint8Array, (b) => b.toString(16).padStart(2, "0")).join(" ")}`;
   const options = nonDefaultOptions(request);
   const policy = Object.entries(options)
     .filter(([key]) => !layoutOptions.has(key))
@@ -150,12 +150,12 @@ export function generateExample(
     )
     .join("\n");
   const constructorOptions = Object.entries(options)
-    .filter(([key]) => layoutOptions.has(key) && key !== "rootTypeName")
+    .filter(([key]) => layoutOptions.has(key) && key !== "root")
     .map(([key, value]) => `, ${key === "littleEndian" ? "isLittleEndian" : key}: ${value}`)
     .join("");
   const csOptionsArgument = policy ? ", options: options" : "";
   const jsOptionsArgument = Object.keys(options).length ? ", options" : "";
-  const root = o.rootTypeName ? csString(o.rootTypeName) : "layout.DefaultRoot";
+  const root = o.root ? csString(o.root) : "layout.DefaultRoot";
   const csharp = `// Create a .NET 10 console project and install the CStructSharp package.
 // Replace Program.cs with this code. These are the inputs captured when you clicked Generate.
 using System;
@@ -254,9 +254,9 @@ const value = JSON.parse(${JSON.stringify(request.jsonValue)});
 try {
     // The public async wrapper loads the runtime before performing the operation.
     const result = await ${api}(definition, ${operation === "parse" ? "bytes" : operation === "serialize" ? "value" : `bytes, ${JSON.stringify(request.path)}, value`}${jsOptionsArgument});
-    if (!result.Success) {
+    if (!result.success) {
         // Operation errors are reported in the result, rather than thrown.
-        console.error(result.Error.Code, result.Error.Message, result.Error.Path, result.Error.Offset);
+        console.error(result.error.code, result.error.message, result.error.path, result.error.offset);
     } else {
 ${comment(expected)
   .split("\n")
@@ -264,10 +264,10 @@ ${comment(expected)
   .join("\n")}
 ${
   operation === "parse"
-    ? `        // Data is the parsed value, including a root wrapper and exact large-integer strings.
-        console.log(result.Data);`
-    : `        // Data is already a Uint8Array, ready to save, send, or read again.
-        const output = result.Data;
+    ? `        // data is the parsed value (the selected root's members); large integers arrive as decimal strings.
+        console.log(result.data);`
+    : `        // data is already a Uint8Array, ready to save, send, or read again.
+        const output = result.data;
         console.log(Array.from(output, b => b.toString(16).padStart(2, "0")).join(" "));`
 }
     }

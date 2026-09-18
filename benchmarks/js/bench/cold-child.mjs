@@ -8,7 +8,7 @@ const t0 = performance.now();
 const bundle = await loadBundle();
 const t1 = performance.now();
 const { document, bytes } = loadFixture(id);
-const options = { pointerSize: document.options.pointerSize, aligned: document.options.aligned, littleEndian: document.options.littleEndian, rootTypeName: document.root };
+const options = { pointerSize: document.options.pointerSize, aligned: document.options.aligned, littleEndian: document.options.littleEndian, root: document.root };
 const optionsJson = JSON.stringify(options);
 bundle.managed.BenchCompile(document.definition, optionsJson);
 const t2 = performance.now();
@@ -25,6 +25,6 @@ console.log(JSON.stringify({
   firstCoreParseMs: t3 - t2,
   firstPublicParseMs: t4 - t3,
   consumed,
-  publicSuccess: result.Success,
+  publicSuccess: result.success,
 }));
 process.exit(0);

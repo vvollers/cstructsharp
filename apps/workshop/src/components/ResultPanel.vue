@@ -3,7 +3,7 @@ import { computed, ref, watch } from "vue";
 
 import { VueHex } from "vuehex";
 
-import type { DebugDataItem, InteropResult } from "../wasm/cstruct-contract";
+import type { DebugItem, InteropResult } from "../wasm/cstruct-contract";
 import { formatParsedJson } from "../format-parsed-json";
 import LayoutEditor from "./LayoutEditor.vue";
 
@@ -32,20 +32,20 @@ watch(
   { immediate: true },
 );
 const ranges = computed<DebugRange[]>(() =>
-  (props.result?.DebugData ?? []).map((item, index) => ({
+  (props.result?.debug ?? []).map((item, index) => ({
     index,
-    start: Math.max(0, item.CurPos),
-    end: Math.max(item.CurPos + 1, item.EndPos),
+    start: Math.max(0, item.start),
+    end: Math.max(item.start + 1, item.end),
   })),
 );
-// Only "parse" results are ever rendered as parsed data (the template guards on Operation === "parse"
-// before using this); "serialize"/"update" results carry a Uint8Array here instead. Since contract v7 the
-// parsed value arrives as an object, not as JSON text.
+// Only "parse" results are ever rendered as parsed data (the template guards on operation === "parse"
+// before using this); "serialize"/"update" results carry a Uint8Array here instead. The parsed value is the
+// selected value itself (contract v8), shown exactly as application code receives it in `data`.
 const parsedData = computed(() => {
-  if (props.result?.Operation !== "parse" || props.result.Data instanceof Uint8Array) {
+  if (props.result?.operation !== "parse" || props.result.data instanceof Uint8Array) {
     return null;
   }
-  return props.result.Data as unknown;
+  return props.result.data;
 });
 function rangeFor(index: number): DebugRange | undefined {
   return ranges.value.find((range) => index >= range.start && index < range.end);
@@ -63,20 +63,20 @@ function byteClass(index: number): string[] {
   return classes;
 }
 
-function formatDebug(item: DebugDataItem): string {
-  let value = item.Value ?? "null";
+function formatDebug(item: DebugItem): string {
+  let value = item.value ?? "null";
   const isText =
     /^(?:w?char[<>]?|utf8|latin1|cp437|utf16le|utf16be|cstring|(?:ascii_|utf8_|unicode_)?string(?:_zero|_newline)?[<>]?)$/.test(
-      item.Type,
+      item.type,
     );
-  const isFixedPoint = /^(?:u?fixed16_16|fixed2_30|ufixed8_8)[<>]?$/.test(item.Type);
+  const isFixedPoint = /^(?:u?fixed16_16|fixed2_30|ufixed8_8)[<>]?$/.test(item.type);
   if (!isText && !isFixedPoint && /^-?\d+$/.test(value)) {
     // Debug values arrive as decimal strings; BigInt preserves all 64-bit integer digits.
     const integer = BigInt(value);
     const magnitude = integer < 0n ? -integer : integer;
     value += ` (${integer < 0n ? "-" : ""}0x${magnitude.toString(16).toUpperCase()})`;
   }
-  return `${item.DebugStackString || "value"} · ${item.Type} · value ${value} · offset ${item.CurPos} · width ${item.EndPos - item.CurPos} bytes · bytes ${item.CurPos}–${Math.max(item.CurPos, item.EndPos - 1)}`;
+  return `${item.path || "value"} · ${item.type} · value ${value} · offset ${item.start} · width ${item.end - item.start} bytes · bytes ${item.start}–${Math.max(item.start, item.end - 1)}`;
 }
 
 const recovery = computed(() => {
@@ -97,7 +97,7 @@ const recovery = computed(() => {
       "Check that bytes are pairs of hexadecimal digits and the value is valid JSON.",
   };
   return (
-    hints[props.result?.Error?.Code ?? ""] ??
+    hints[props.result?.error?.code ?? ""] ??
     "Review the code, path, and offset below and compare with the lesson's original inputs."
   );
 });
@@ -113,28 +113,39 @@ function handleBytesEdited(bytes: Uint8Array): void {
     <h2>Result</h2>
     <p v-if="!result" class="placeholder">Run an operation to inspect its output.</p>
     <template v-else>
-      <div class="result-status" :class="result.Success ? 'success' : 'error'">
-        {{ result.Success ? `${result.Operation} completed` : result.Error?.Message }}
+      <div class="result-status" :class="result.success ? 'success' : 'error'">
+        {{ result.success ? `${result.operation} completed` : result.error?.message }}
       </div>
 
-      <dl v-if="!result.Success && result.Error" class="error-details">
+      <dl v-if="!result.success && result.error" class="error-details">
         <div>
           <dt>Code</dt>
-          <dd>{{ result.Error.Code }}</dd>
+          <dd>{{ result.error.code }}</dd>
         </div>
-        <div v-if="result.Error.Path">
+        <div v-if="result.error.path">
           <dt>Path</dt>
-          <dd>{{ result.Error.Path }}</dd>
+          <dd>{{ result.error.path }}</dd>
         </div>
-        <div v-if="result.Error.Offset !== null">
+        <div v-if="result.error.offset !== null">
           <dt>Offset</dt>
-          <dd>{{ result.Error.Offset }}</dd>
+          <dd>{{ result.error.offset }}</dd>
+        </div>
+        <div v-if="result.error.member">
+          <dt>Member</dt>
+          <dd>
+            {{ result.error.member
+            }}<span v-if="result.error.memberType"> ({{ result.error.memberType }})</span>
+          </dd>
+        </div>
+        <div v-if="result.error.line !== null">
+          <dt>Source</dt>
+          <dd>line {{ result.error.line }}, column {{ result.error.column }}</dd>
         </div>
       </dl>
-      <p v-if="!result.Success">{{ recovery }}</p>
+      <p v-if="!result.success">{{ recovery }}</p>
 
-      <template v-if="result.Success">
-        <h3>{{ result.Operation === "parse" ? "Input bytes" : "Output bytes" }}</h3>
+      <template v-if="result.success">
+        <h3>{{ result.operation === "parse" ? "Input bytes" : "Output bytes" }}</h3>
         <div v-if="editorBytes.length" class="binary-editor" data-testid="binary-editor">
           <VueHex
             v-model="editorBytes"
@@ -153,12 +164,12 @@ function handleBytesEdited(bytes: Uint8Array): void {
         </div>
         <p v-else class="placeholder">The operation produced no bytes.</p>
 
-        <template v-if="result.DebugData.length">
+        <template v-if="result.debug.length">
           <h3>Field map</h3>
           <div class="debug-list">
             <button
-              v-for="(item, index) in result.DebugData"
-              :key="`${item.CurPos}-${index}`"
+              v-for="(item, index) in result.debug"
+              :key="`${item.start}-${index}`"
               type="button"
               :class="[`range-${index % 6}`, { active: selectedRange === index }]"
               @click="selectedRange = selectedRange === index ? null : index"
@@ -168,7 +179,7 @@ function handleBytesEdited(bytes: Uint8Array): void {
           </div>
         </template>
 
-        <template v-if="result.Operation === 'parse'">
+        <template v-if="result.operation === 'parse'">
           <h3>Parsed JSON</h3>
           <LayoutEditor
             :model-value="formatParsedJson(parsedData)"

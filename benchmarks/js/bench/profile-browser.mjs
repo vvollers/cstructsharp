@@ -89,7 +89,7 @@ try {
     const summary = await page.evaluate(async ({ fixtureId, iterations, mode }) => {
       const doc = await (await fetch(`/fixtures/cases/${fixtureId}.json`)).json();
       const bytes = Uint8Array.from(doc.bytes.hex.match(/../g), (h) => parseInt(h, 16));
-      const options = { pointerSize: doc.options.pointerSize, aligned: doc.options.aligned, littleEndian: doc.options.littleEndian, rootTypeName: doc.root, ...(doc.readOptions?.addressingMode ? { addressingMode: doc.readOptions.addressingMode } : {}) };
+      const options = { pointerSize: doc.options.pointerSize, aligned: doc.options.aligned, littleEndian: doc.options.littleEndian, root: doc.root, ...(doc.readOptions?.addressingMode ? { addressingMode: doc.readOptions.addressingMode } : {}) };
       const managed = window.CStructSharpWasm.exports.CStructSharpWeb.Wasm.CStructExports;
       const { createPublicApi } = await import("/bundle/cstructsharp-api.js");
       const api = createPublicApi(async () => window.CStructSharpWasm);
@@ -98,7 +98,7 @@ try {
       const start = performance.now();
       for (let i = 0; i < iterations; i++) {
         if (mode === "main-direct") sink += managed.ParseSource(doc.definition, source, JSON.stringify(options), false).length;
-        else sink += (await api.parse(doc.definition, bytes, options)).Data.length;
+        else sink += (await api.parse(doc.definition, bytes, options)).data.length;
       }
       return { iterations, elapsedMs: performance.now() - start, sink };
     }, { fixtureId, iterations: mode === "main-public" ? Math.max(50, Math.floor(iterations / 10)) : iterations, mode });

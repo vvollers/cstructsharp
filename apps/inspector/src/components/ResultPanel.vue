@@ -25,14 +25,14 @@ const editorRef = ref<InstanceType<typeof JsonEditorVue> | null>(null);
 
 const parsedJson = computed<unknown>(() => {
   if (
-    !props.result?.Success ||
-    props.result.Operation !== "parse" ||
-    props.result.Data instanceof Uint8Array
+    !props.result?.success ||
+    props.result.operation !== "parse" ||
+    props.result.data instanceof Uint8Array
   ) {
     return null;
   }
 
-  return props.result.Data;
+  return { [props.result.root ?? "root"]: props.result.data };
 });
 
 const recovery = computed(() => {
@@ -49,7 +49,7 @@ const recovery = computed(() => {
   };
 
   return (
-    hints[props.result?.Error?.Code ?? ""] ??
+    hints[props.result?.error?.code ?? ""] ??
     "Review the code, path, and offset below and compare with the schema."
   );
 });
@@ -107,26 +107,26 @@ watch(
         Run the schema against the binary data to see a result.
       </p>
       <template v-else>
-        <div class="result-status" :class="result.Success ? 'success' : 'error'">
-          {{ result.Success ? "Parse completed" : result.Error?.Message }}
+        <div class="result-status" :class="result.success ? 'success' : 'error'">
+          {{ result.success ? "Parse completed" : result.error?.message }}
         </div>
-        <dl v-if="!result.Success && result.Error" class="error-details">
+        <dl v-if="!result.success && result.error" class="error-details">
           <div>
             <dt>Code</dt>
-            <dd>{{ result.Error.Code }}</dd>
+            <dd>{{ result.error.code }}</dd>
           </div>
-          <div v-if="result.Error.Path">
+          <div v-if="result.error.path">
             <dt>Path</dt>
-            <dd>{{ result.Error.Path }}</dd>
+            <dd>{{ result.error.path }}</dd>
           </div>
-          <div v-if="result.Error.Offset !== null">
+          <div v-if="result.error.offset !== null">
             <dt>Offset</dt>
             <dd>
-              {{ result.Error.Offset }} (0x{{ result.Error.Offset.toString(16).toUpperCase() }})
+              {{ result.error.offset }} (0x{{ result.error.offset.toString(16).toUpperCase() }})
             </dd>
           </div>
         </dl>
-        <p v-if="!result.Success" class="recovery">{{ recovery }}</p>
+        <p v-if="!result.success" class="recovery">{{ recovery }}</p>
         <div v-else class="json-body" data-testid="result-json">
           <JsonEditorVue
             ref="editorRef"

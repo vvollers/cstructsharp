@@ -171,14 +171,14 @@ test("every runnable generated demo parses through the WebAssembly bridge", asyn
         );
         const result = JSON.parse(
           window.CStructSharpWasm!.parseWithDebug(entry.definition, binary, {
-            rootTypeName: entry.rootType,
+            root: entry.rootType,
             aligned: entry.parserOptions.aligned,
             littleEndian: entry.parserOptions.littleEndian,
             pointerSize: entry.parserOptions.pointerSize,
           }),
-        ) as { Error: { Message: string } | null; Success: boolean };
+        ) as { error: { message: string } | null; success: boolean };
 
-        return result.Success ? [] : [`${entry.id}: ${result.Error?.Message ?? "unknown error"}`];
+        return result.success ? [] : [`${entry.id}: ${result.error?.message ?? "unknown error"}`];
       });
     },
     runnableTests.flatMap((entry) => [

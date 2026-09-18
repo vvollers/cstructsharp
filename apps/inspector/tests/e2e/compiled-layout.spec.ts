@@ -41,14 +41,14 @@ test("compiled browser layouts retain decisions per read and recover after cance
       await layout.dispose();
     }
   });
-  expect(results.parsed.map((result) => result.Data)).toEqual([
-    { root: { tag: 1, value: 42 } },
-    { root: { tag: 2, small: 19 } },
-    { root: { tag: 3, fallback: 7 } },
+  expect(results.parsed.map((result) => result.data)).toEqual([
+    { tag: 1, value: 42 },
+    { tag: 2, small: 19 },
+    { tag: 3, fallback: 7 },
   ]);
-  expect(results.debug.DebugData.map((item) => item.DebugStackString)).toContain("root.value");
-  expect(results.limit.Success).toBe(false);
+  expect(results.debug.debug.map((item) => item.path)).toContain("root.value");
+  expect(results.limit.success).toBe(false);
   expect(results.abortName).toBe("AbortError");
-  expect(results.recovered.Success).toBe(true);
+  expect(results.recovered.success).toBe(true);
   expect(results.disposed).toBe(true);
 });

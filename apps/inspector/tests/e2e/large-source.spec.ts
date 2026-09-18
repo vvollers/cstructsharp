@@ -51,8 +51,8 @@ test("decompression streams feed the source parser", async ({ page }) => {
       false,
     );
   });
-  expect(result.Success).toBe(true);
-  expect(result.Data).toEqual({ root: { value: 42 } });
+  expect(result.success).toBe(true);
+  expect(result.data).toEqual({ value: 42 });
 });
 
 test("browser sources preserve view boundaries and stage one-pass data", async ({ page }) => {
@@ -83,9 +83,9 @@ test("browser sources preserve view boundaries and stage one-pass data", async (
     return values;
   });
   for (const result of results) {
-    expect(result.Success).toBe(true);
-    expect(result.Data).toEqual({ root: { value: 42 } });
-    expect(result.DebugData).toEqual([]);
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({ value: 42 });
+    expect(result.debug).toEqual([]);
   }
 });
 
@@ -111,11 +111,12 @@ test("pointers can reach beyond 4 GiB and read across a page boundary", async ({
       true,
     );
   });
-  expect(result.Success).toBe(true);
-  expect(result.Data.root.ptr).toMatchObject({
-    Address: 2 ** 32 + 65535,
-    Value: 42,
-    IsDereferenced: true,
+  expect(result.success).toBe(true);
+  expect(result.data.ptr).toMatchObject({
+    kind: "pointer",
+    address: 2 ** 32 + 65535,
+    value: 42,
+    dereferenced: true,
   });
 });
 
@@ -216,17 +217,17 @@ test("read budgets can exceed former browser caps while defaults still apply", a
       false,
     );
     return {
-      defaults: defaults.Error,
-      success: raised.Success,
-      error: raised.Error,
-      length: raised.Data?.root.data.length,
-      invalid: invalid.Error,
+      defaults: defaults.error,
+      success: raised.success,
+      error: raised.error,
+      length: raised.data?.data.length,
+      invalid: invalid.error,
     };
   });
-  expect(result.defaults?.Code).toBe("read-budget");
+  expect(result.defaults?.code).toBe("read-budget");
   expect(result.success, JSON.stringify(result.error)).toBe(true);
   expect(result.length).toBe(1_000_001);
-  expect(result.invalid?.Code).toBe("invalid-input");
+  expect(result.invalid?.code).toBe("invalid-input");
 });
 
 test("multiple linked targets beyond 4 GiB preserve addresses and the parent cursor", async ({
@@ -260,15 +261,16 @@ test("multiple linked targets beyond 4 GiB preserve addresses and the parent cur
     return wasm.parseSource(
       "struct node { uint32 number; node *next; }; struct root { node *nodes[2]; uint32 tail; };",
       source,
-      { rootTypeName: "root", pointerSize: 8, maxTotalBytesRead: 256 },
+      { root: "root", pointerSize: 8, maxTotalBytesRead: 256 },
       true,
     );
   });
-  expect(result.Success, JSON.stringify(result.Error)).toBe(true);
-  expect(result.Data.root.nodes[0]).toMatchObject({
-    Address: 2 ** 32 + 65535,
-    Value: { number: 11, next: { Address: 4096, Value: { number: 22 } } },
+  expect(result.success, JSON.stringify(result.error)).toBe(true);
+  expect(result.data.nodes[0]).toMatchObject({
+    kind: "pointer",
+    address: 2 ** 32 + 65535,
+    value: { number: 11, next: { kind: "pointer", address: 4096, value: { number: 22 } } },
   });
-  expect(result.Data.root.nodes[1].Value.number).toBe(22);
-  expect(result.Data.root.tail).toBe(99);
+  expect(result.data.nodes[1].value.number).toBe(22);
+  expect(result.data.tail).toBe(99);
 });

@@ -33,16 +33,16 @@ test("upstream detection fixtures compile with their selected schemas", async ({
         return JSON.parse(
           wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), {
             ...schema.parserOptions,
-            rootTypeName: "root",
+            root: "root",
             maxArrayElements: 100000,
           }),
         );
       },
       { schema, bytes: [...bytes] },
     );
-    results.push({ name, ext: type.ext, success: result.Success, error: result.Error });
+    results.push({ name, ext: type.ext, success: result.success, error: result.error });
     expect
-      .soft(result.Error?.Code, `${name}: ${JSON.stringify(result.Error)}`)
+      .soft(result.error?.code, `${name}: ${JSON.stringify(result.error)}`)
       .not.toBe("invalid-layout");
   }
   await testInfo.attach("fixture-results", {

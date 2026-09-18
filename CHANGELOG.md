@@ -6,6 +6,23 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- **Breaking (JavaScript, contract v8):** every operation returns one camelCase envelope - `contractVersion` (8),
+  `operation`, `success`, `root`, `data`, `debug`, `error` - and a parse's `data` is the selected value itself
+  (`result.data.kind`, no `Data.header` wrapper), exactly what C# `Parse` returns; `root` names the root or path
+  the operation selected. Debug items are `{ start, end, path, type, value }`, errors are `{ code, message, path,
+  offset, member, memberType, line, column }`, and `error.message` is the library's own diagnostic verbatim; the
+  new `redactDiagnostics` option keeps only the category text. Tagged values carry a `kind`: `{ kind: "enum",
+  enum, name, value, names?, remainder? }`, `{ kind: "union", union, rawStorage, members, selectedMember }`, and
+  `{ kind: "pointer", address, depth, dereferenced, value }`. Options are one camelCase object per call: `root`
+  replaces `rootTypeName`, and `bitfieldPacking`, `bitfieldAllocation`, `cLongWidth`, `trimFixedText`, and
+  `unknownMembers` are exposed. New `resolveAddress(definition, source, path, options)`; `update` accepts any
+  binary source; a compiled layout reports its `root` and gains `serialize`, `update`, and `resolveAddress`. The
+  canonical TypeScript declarations live in `packages/cstructsharp/index.d.ts` (the ZIP and both apps re-export
+  them), `node tools/quality/browser-contract.mjs` replaces `Validate-BrowserContract.ps1`, and the benchmark
+  fixture tool writes the same tagged shapes (fixtures re-recorded; the primitive-root fixture now reads through
+  `ReadValue`). The Explorer and Inspector apps, the starters, the npm/ZIP consumer checks, and the browser guides
+  use the new envelope. The JavaScript fast path formats a float32 with a bisection over the decimal precision
+  (2.6-3.6x faster than the exact formatter introduced with the parity fix, same output).
 - Compiler comparison fixture: `tools/compiler-fixtures/portable-host-facts.c` now records twenty-two layout shapes
   (the bitfield shapes where compiler families diverge, zero-width separators, a signed bitfield, `uint64`/`double`
   after a byte, native `long`, a large enum, `_Bool`, `#pragma pack(2)` with an array, nested-struct alignment, union

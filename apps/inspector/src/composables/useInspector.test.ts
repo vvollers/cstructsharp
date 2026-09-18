@@ -125,7 +125,7 @@ describe("inspection session", () => {
     expect(inspector.isRunning.value).toBe(false);
     pending.resolve(parseFailure("Too late"));
     await run;
-    expect(inspector.result.value?.Error?.Code).toBe("cancelled");
+    expect(inspector.result.value?.error?.code).toBe("cancelled");
     inspector.selectExample(sampleExamples[1]!);
     expect(inspector.result.value).toBeNull();
   });

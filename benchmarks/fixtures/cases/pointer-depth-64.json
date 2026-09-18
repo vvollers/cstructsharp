@@ -25,330 +25,395 @@
   "expectedError": null,
   "expected": {
     "head": {
-      "Address": 4,
-      "Depth": 1,
-      "IsDereferenced": true,
-      "Value": {
+      "kind": "pointer",
+      "address": 4,
+      "depth": 1,
+      "dereferenced": true,
+      "value": {
         "next": {
-          "Address": 12,
-          "Depth": 1,
-          "IsDereferenced": true,
-          "Value": {
+          "kind": "pointer",
+          "address": 12,
+          "depth": 1,
+          "dereferenced": true,
+          "value": {
             "next": {
-              "Address": 20,
-              "Depth": 1,
-              "IsDereferenced": true,
-              "Value": {
+              "kind": "pointer",
+              "address": 20,
+              "depth": 1,
+              "dereferenced": true,
+              "value": {
                 "next": {
-                  "Address": 28,
-                  "Depth": 1,
-                  "IsDereferenced": true,
-                  "Value": {
+                  "kind": "pointer",
+                  "address": 28,
+                  "depth": 1,
+                  "dereferenced": true,
+                  "value": {
                     "next": {
-                      "Address": 36,
-                      "Depth": 1,
-                      "IsDereferenced": true,
-                      "Value": {
+                      "kind": "pointer",
+                      "address": 36,
+                      "depth": 1,
+                      "dereferenced": true,
+                      "value": {
                         "next": {
-                          "Address": 44,
-                          "Depth": 1,
-                          "IsDereferenced": true,
-                          "Value": {
+                          "kind": "pointer",
+                          "address": 44,
+                          "depth": 1,
+                          "dereferenced": true,
+                          "value": {
                             "next": {
-                              "Address": 52,
-                              "Depth": 1,
-                              "IsDereferenced": true,
-                              "Value": {
+                              "kind": "pointer",
+                              "address": 52,
+                              "depth": 1,
+                              "dereferenced": true,
+                              "value": {
                                 "next": {
-                                  "Address": 60,
-                                  "Depth": 1,
-                                  "IsDereferenced": true,
-                                  "Value": {
+                                  "kind": "pointer",
+                                  "address": 60,
+                                  "depth": 1,
+                                  "dereferenced": true,
+                                  "value": {
                                     "next": {
-                                      "Address": 68,
-                                      "Depth": 1,
-                                      "IsDereferenced": true,
-                                      "Value": {
+                                      "kind": "pointer",
+                                      "address": 68,
+                                      "depth": 1,
+                                      "dereferenced": true,
+                                      "value": {
                                         "next": {
-                                          "Address": 76,
-                                          "Depth": 1,
-                                          "IsDereferenced": true,
-                                          "Value": {
+                                          "kind": "pointer",
+                                          "address": 76,
+                                          "depth": 1,
+                                          "dereferenced": true,
+                                          "value": {
                                             "next": {
-                                              "Address": 84,
-                                              "Depth": 1,
-                                              "IsDereferenced": true,
-                                              "Value": {
+                                              "kind": "pointer",
+                                              "address": 84,
+                                              "depth": 1,
+                                              "dereferenced": true,
+                                              "value": {
                                                 "next": {
-                                                  "Address": 92,
-                                                  "Depth": 1,
-                                                  "IsDereferenced": true,
-                                                  "Value": {
+                                                  "kind": "pointer",
+                                                  "address": 92,
+                                                  "depth": 1,
+                                                  "dereferenced": true,
+                                                  "value": {
                                                     "next": {
-                                                      "Address": 100,
-                                                      "Depth": 1,
-                                                      "IsDereferenced": true,
-                                                      "Value": {
+                                                      "kind": "pointer",
+                                                      "address": 100,
+                                                      "depth": 1,
+                                                      "dereferenced": true,
+                                                      "value": {
                                                         "next": {
-                                                          "Address": 108,
-                                                          "Depth": 1,
-                                                          "IsDereferenced": true,
-                                                          "Value": {
+                                                          "kind": "pointer",
+                                                          "address": 108,
+                                                          "depth": 1,
+                                                          "dereferenced": true,
+                                                          "value": {
                                                             "next": {
-                                                              "Address": 116,
-                                                              "Depth": 1,
-                                                              "IsDereferenced": true,
-                                                              "Value": {
+                                                              "kind": "pointer",
+                                                              "address": 116,
+                                                              "depth": 1,
+                                                              "dereferenced": true,
+                                                              "value": {
                                                                 "next": {
-                                                                  "Address": 124,
-                                                                  "Depth": 1,
-                                                                  "IsDereferenced": true,
-                                                                  "Value": {
+                                                                  "kind": "pointer",
+                                                                  "address": 124,
+                                                                  "depth": 1,
+                                                                  "dereferenced": true,
+                                                                  "value": {
                                                                     "next": {
-                                                                      "Address": 132,
-                                                                      "Depth": 1,
-                                                                      "IsDereferenced": true,
-                                                                      "Value": {
+                                                                      "kind": "pointer",
+                                                                      "address": 132,
+                                                                      "depth": 1,
+                                                                      "dereferenced": true,
+                                                                      "value": {
                                                                         "next": {
-                                                                          "Address": 140,
-                                                                          "Depth": 1,
-                                                                          "IsDereferenced": true,
-                                                                          "Value": {
+                                                                          "kind": "pointer",
+                                                                          "address": 140,
+                                                                          "depth": 1,
+                                                                          "dereferenced": true,
+                                                                          "value": {
                                                                             "next": {
-                                                                              "Address": 148,
-                                                                              "Depth": 1,
-                                                                              "IsDereferenced": true,
-                                                                              "Value": {
+                                                                              "kind": "pointer",
+                                                                              "address": 148,
+                                                                              "depth": 1,
+                                                                              "dereferenced": true,
+                                                                              "value": {
                                                                                 "next": {
-                                                                                  "Address": 156,
-                                                                                  "Depth": 1,
-                                                                                  "IsDereferenced": true,
-                                                                                  "Value": {
+                                                                                  "kind": "pointer",
+                                                                                  "address": 156,
+                                                                                  "depth": 1,
+                                                                                  "dereferenced": true,
+                                                                                  "value": {
                                                                                     "next": {
-                                                                                      "Address": 164,
-                                                                                      "Depth": 1,
-                                                                                      "IsDereferenced": true,
-                                                                                      "Value": {
+                                                                                      "kind": "pointer",
+                                                                                      "address": 164,
+                                                                                      "depth": 1,
+                                                                                      "dereferenced": true,
+                                                                                      "value": {
                                                                                         "next": {
-                                                                                          "Address": 172,
-                                                                                          "Depth": 1,
-                                                                                          "IsDereferenced": true,
-                                                                                          "Value": {
+                                                                                          "kind": "pointer",
+                                                                                          "address": 172,
+                                                                                          "depth": 1,
+                                                                                          "dereferenced": true,
+                                                                                          "value": {
                                                                                             "next": {
-                                                                                              "Address": 180,
-                                                                                              "Depth": 1,
-                                                                                              "IsDereferenced": true,
-                                                                                              "Value": {
+                                                                                              "kind": "pointer",
+                                                                                              "address": 180,
+                                                                                              "depth": 1,
+                                                                                              "dereferenced": true,
+                                                                                              "value": {
                                                                                                 "next": {
-                                                                                                  "Address": 188,
-                                                                                                  "Depth": 1,
-                                                                                                  "IsDereferenced": true,
-                                                                                                  "Value": {
+                                                                                                  "kind": "pointer",
+                                                                                                  "address": 188,
+                                                                                                  "depth": 1,
+                                                                                                  "dereferenced": true,
+                                                                                                  "value": {
                                                                                                     "next": {
-                                                                                                      "Address": 196,
-                                                                                                      "Depth": 1,
-                                                                                                      "IsDereferenced": true,
-                                                                                                      "Value": {
+                                                                                                      "kind": "pointer",
+                                                                                                      "address": 196,
+                                                                                                      "depth": 1,
+                                                                                                      "dereferenced": true,
+                                                                                                      "value": {
                                                                                                         "next": {
-                                                                                                          "Address": 204,
-                                                                                                          "Depth": 1,
-                                                                                                          "IsDereferenced": true,
-                                                                                                          "Value": {
+                                                                                                          "kind": "pointer",
+                                                                                                          "address": 204,
+                                                                                                          "depth": 1,
+                                                                                                          "dereferenced": true,
+                                                                                                          "value": {
                                                                                                             "next": {
-                                                                                                              "Address": 212,
-                                                                                                              "Depth": 1,
-                                                                                                              "IsDereferenced": true,
-                                                                                                              "Value": {
+                                                                                                              "kind": "pointer",
+                                                                                                              "address": 212,
+                                                                                                              "depth": 1,
+                                                                                                              "dereferenced": true,
+                                                                                                              "value": {
                                                                                                                 "next": {
-                                                                                                                  "Address": 220,
-                                                                                                                  "Depth": 1,
-                                                                                                                  "IsDereferenced": true,
-                                                                                                                  "Value": {
+                                                                                                                  "kind": "pointer",
+                                                                                                                  "address": 220,
+                                                                                                                  "depth": 1,
+                                                                                                                  "dereferenced": true,
+                                                                                                                  "value": {
                                                                                                                     "next": {
-                                                                                                                      "Address": 228,
-                                                                                                                      "Depth": 1,
-                                                                                                                      "IsDereferenced": true,
-                                                                                                                      "Value": {
+                                                                                                                      "kind": "pointer",
+                                                                                                                      "address": 228,
+                                                                                                                      "depth": 1,
+                                                                                                                      "dereferenced": true,
+                                                                                                                      "value": {
                                                                                                                         "next": {
-                                                                                                                          "Address": 236,
-                                                                                                                          "Depth": 1,
-                                                                                                                          "IsDereferenced": true,
-                                                                                                                          "Value": {
+                                                                                                                          "kind": "pointer",
+                                                                                                                          "address": 236,
+                                                                                                                          "depth": 1,
+                                                                                                                          "dereferenced": true,
+                                                                                                                          "value": {
                                                                                                                             "next": {
-                                                                                                                              "Address": 244,
-                                                                                                                              "Depth": 1,
-                                                                                                                              "IsDereferenced": true,
-                                                                                                                              "Value": {
+                                                                                                                              "kind": "pointer",
+                                                                                                                              "address": 244,
+                                                                                                                              "depth": 1,
+                                                                                                                              "dereferenced": true,
+                                                                                                                              "value": {
                                                                                                                                 "next": {
-                                                                                                                                  "Address": 252,
-                                                                                                                                  "Depth": 1,
-                                                                                                                                  "IsDereferenced": true,
-                                                                                                                                  "Value": {
+                                                                                                                                  "kind": "pointer",
+                                                                                                                                  "address": 252,
+                                                                                                                                  "depth": 1,
+                                                                                                                                  "dereferenced": true,
+                                                                                                                                  "value": {
                                                                                                                                     "next": {
-                                                                                                                                      "Address": 260,
-                                                                                                                                      "Depth": 1,
-                                                                                                                                      "IsDereferenced": true,
-                                                                                                                                      "Value": {
+                                                                                                                                      "kind": "pointer",
+                                                                                                                                      "address": 260,
+                                                                                                                                      "depth": 1,
+                                                                                                                                      "dereferenced": true,
+                                                                                                                                      "value": {
                                                                                                                                         "next": {
-                                                                                                                                          "Address": 268,
-                                                                                                                                          "Depth": 1,
-                                                                                                                                          "IsDereferenced": true,
-                                                                                                                                          "Value": {
+                                                                                                                                          "kind": "pointer",
+                                                                                                                                          "address": 268,
+                                                                                                                                          "depth": 1,
+                                                                                                                                          "dereferenced": true,
+                                                                                                                                          "value": {
                                                                                                                                             "next": {
-                                                                                                                                              "Address": 276,
-                                                                                                                                              "Depth": 1,
-                                                                                                                                              "IsDereferenced": true,
-                                                                                                                                              "Value": {
+                                                                                                                                              "kind": "pointer",
+                                                                                                                                              "address": 276,
+                                                                                                                                              "depth": 1,
+                                                                                                                                              "dereferenced": true,
+                                                                                                                                              "value": {
                                                                                                                                                 "next": {
-                                                                                                                                                  "Address": 284,
-                                                                                                                                                  "Depth": 1,
-                                                                                                                                                  "IsDereferenced": true,
-                                                                                                                                                  "Value": {
+                                                                                                                                                  "kind": "pointer",
+                                                                                                                                                  "address": 284,
+                                                                                                                                                  "depth": 1,
+                                                                                                                                                  "dereferenced": true,
+                                                                                                                                                  "value": {
                                                                                                                                                     "next": {
-                                                                                                                                                      "Address": 292,
-                                                                                                                                                      "Depth": 1,
-                                                                                                                                                      "IsDereferenced": true,
-                                                                                                                                                      "Value": {
+                                                                                                                                                      "kind": "pointer",
+                                                                                                                                                      "address": 292,
+                                                                                                                                                      "depth": 1,
+                                                                                                                                                      "dereferenced": true,
+                                                                                                                                                      "value": {
                                                                                                                                                         "next": {
-                                                                                                                                                          "Address": 300,
-                                                                                                                                                          "Depth": 1,
-                                                                                                                                                          "IsDereferenced": true,
-                                                                                                                                                          "Value": {
+                                                                                                                                                          "kind": "pointer",
+                                                                                                                                                          "address": 300,
+                                                                                                                                                          "depth": 1,
+                                                                                                                                                          "dereferenced": true,
+                                                                                                                                                          "value": {
                                                                                                                                                             "next": {
-                                                                                                                                                              "Address": 308,
-                                                                                                                                                              "Depth": 1,
-                                                                                                                                                              "IsDereferenced": true,
-                                                                                                                                                              "Value": {
+                                                                                                                                                              "kind": "pointer",
+                                                                                                                                                              "address": 308,
+                                                                                                                                                              "depth": 1,
+                                                                                                                                                              "dereferenced": true,
+                                                                                                                                                              "value": {
                                                                                                                                                                 "next": {
-                                                                                                                                                                  "Address": 316,
-                                                                                                                                                                  "Depth": 1,
-                                                                                                                                                                  "IsDereferenced": true,
-                                                                                                                                                                  "Value": {
+                                                                                                                                                                  "kind": "pointer",
+                                                                                                                                                                  "address": 316,
+                                                                                                                                                                  "depth": 1,
+                                                                                                                                                                  "dereferenced": true,
+                                                                                                                                                                  "value": {
                                                                                                                                                                     "next": {
-                                                                                                                                                                      "Address": 324,
-                                                                                                                                                                      "Depth": 1,
-                                                                                                                                                                      "IsDereferenced": true,
-                                                                                                                                                                      "Value": {
+                                                                                                                                                                      "kind": "pointer",
+                                                                                                                                                                      "address": 324,
+                                                                                                                                                                      "depth": 1,
+                                                                                                                                                                      "dereferenced": true,
+                                                                                                                                                                      "value": {
                                                                                                                                                                         "next": {
-                                                                                                                                                                          "Address": 332,
-                                                                                                                                                                          "Depth": 1,
-                                                                                                                                                                          "IsDereferenced": true,
-                                                                                                                                                                          "Value": {
+                                                                                                                                                                          "kind": "pointer",
+                                                                                                                                                                          "address": 332,
+                                                                                                                                                                          "depth": 1,
+                                                                                                                                                                          "dereferenced": true,
+                                                                                                                                                                          "value": {
                                                                                                                                                                             "next": {
-                                                                                                                                                                              "Address": 340,
-                                                                                                                                                                              "Depth": 1,
-                                                                                                                                                                              "IsDereferenced": true,
-                                                                                                                                                                              "Value": {
+                                                                                                                                                                              "kind": "pointer",
+                                                                                                                                                                              "address": 340,
+                                                                                                                                                                              "depth": 1,
+                                                                                                                                                                              "dereferenced": true,
+                                                                                                                                                                              "value": {
                                                                                                                                                                                 "next": {
-                                                                                                                                                                                  "Address": 348,
-                                                                                                                                                                                  "Depth": 1,
-                                                                                                                                                                                  "IsDereferenced": true,
-                                                                                                                                                                                  "Value": {
+                                                                                                                                                                                  "kind": "pointer",
+                                                                                                                                                                                  "address": 348,
+                                                                                                                                                                                  "depth": 1,
+                                                                                                                                                                                  "dereferenced": true,
+                                                                                                                                                                                  "value": {
                                                                                                                                                                                     "next": {
-                                                                                                                                                                                      "Address": 356,
-                                                                                                                                                                                      "Depth": 1,
-                                                                                                                                                                                      "IsDereferenced": true,
-                                                                                                                                                                                      "Value": {
+                                                                                                                                                                                      "kind": "pointer",
+                                                                                                                                                                                      "address": 356,
+                                                                                                                                                                                      "depth": 1,
+                                                                                                                                                                                      "dereferenced": true,
+                                                                                                                                                                                      "value": {
                                                                                                                                                                                         "next": {
-                                                                                                                                                                                          "Address": 364,
-                                                                                                                                                                                          "Depth": 1,
-                                                                                                                                                                                          "IsDereferenced": true,
-                                                                                                                                                                                          "Value": {
+                                                                                                                                                                                          "kind": "pointer",
+                                                                                                                                                                                          "address": 364,
+                                                                                                                                                                                          "depth": 1,
+                                                                                                                                                                                          "dereferenced": true,
+                                                                                                                                                                                          "value": {
                                                                                                                                                                                             "next": {
-                                                                                                                                                                                              "Address": 372,
-                                                                                                                                                                                              "Depth": 1,
-                                                                                                                                                                                              "IsDereferenced": true,
-                                                                                                                                                                                              "Value": {
+                                                                                                                                                                                              "kind": "pointer",
+                                                                                                                                                                                              "address": 372,
+                                                                                                                                                                                              "depth": 1,
+                                                                                                                                                                                              "dereferenced": true,
+                                                                                                                                                                                              "value": {
                                                                                                                                                                                                 "next": {
-                                                                                                                                                                                                  "Address": 380,
-                                                                                                                                                                                                  "Depth": 1,
-                                                                                                                                                                                                  "IsDereferenced": true,
-                                                                                                                                                                                                  "Value": {
+                                                                                                                                                                                                  "kind": "pointer",
+                                                                                                                                                                                                  "address": 380,
+                                                                                                                                                                                                  "depth": 1,
+                                                                                                                                                                                                  "dereferenced": true,
+                                                                                                                                                                                                  "value": {
                                                                                                                                                                                                     "next": {
-                                                                                                                                                                                                      "Address": 388,
-                                                                                                                                                                                                      "Depth": 1,
-                                                                                                                                                                                                      "IsDereferenced": true,
-                                                                                                                                                                                                      "Value": {
+                                                                                                                                                                                                      "kind": "pointer",
+                                                                                                                                                                                                      "address": 388,
+                                                                                                                                                                                                      "depth": 1,
+                                                                                                                                                                                                      "dereferenced": true,
+                                                                                                                                                                                                      "value": {
                                                                                                                                                                                                         "next": {
-                                                                                                                                                                                                          "Address": 396,
-                                                                                                                                                                                                          "Depth": 1,
-                                                                                                                                                                                                          "IsDereferenced": true,
-                                                                                                                                                                                                          "Value": {
+                                                                                                                                                                                                          "kind": "pointer",
+                                                                                                                                                                                                          "address": 396,
+                                                                                                                                                                                                          "depth": 1,
+                                                                                                                                                                                                          "dereferenced": true,
+                                                                                                                                                                                                          "value": {
                                                                                                                                                                                                             "next": {
-                                                                                                                                                                                                              "Address": 404,
-                                                                                                                                                                                                              "Depth": 1,
-                                                                                                                                                                                                              "IsDereferenced": true,
-                                                                                                                                                                                                              "Value": {
+                                                                                                                                                                                                              "kind": "pointer",
+                                                                                                                                                                                                              "address": 404,
+                                                                                                                                                                                                              "depth": 1,
+                                                                                                                                                                                                              "dereferenced": true,
+                                                                                                                                                                                                              "value": {
                                                                                                                                                                                                                 "next": {
-                                                                                                                                                                                                                  "Address": 412,
-                                                                                                                                                                                                                  "Depth": 1,
-                                                                                                                                                                                                                  "IsDereferenced": true,
-                                                                                                                                                                                                                  "Value": {
+                                                                                                                                                                                                                  "kind": "pointer",
+                                                                                                                                                                                                                  "address": 412,
+                                                                                                                                                                                                                  "depth": 1,
+                                                                                                                                                                                                                  "dereferenced": true,
+                                                                                                                                                                                                                  "value": {
                                                                                                                                                                                                                     "next": {
-                                                                                                                                                                                                                      "Address": 420,
-                                                                                                                                                                                                                      "Depth": 1,
-                                                                                                                                                                                                                      "IsDereferenced": true,
-                                                                                                                                                                                                                      "Value": {
+                                                                                                                                                                                                                      "kind": "pointer",
+                                                                                                                                                                                                                      "address": 420,
+                                                                                                                                                                                                                      "depth": 1,
+                                                                                                                                                                                                                      "dereferenced": true,
+                                                                                                                                                                                                                      "value": {
                                                                                                                                                                                                                         "next": {
-                                                                                                                                                                                                                          "Address": 428,
-                                                                                                                                                                                                                          "Depth": 1,
-                                                                                                                                                                                                                          "IsDereferenced": true,
-                                                                                                                                                                                                                          "Value": {
+                                                                                                                                                                                                                          "kind": "pointer",
+                                                                                                                                                                                                                          "address": 428,
+                                                                                                                                                                                                                          "depth": 1,
+                                                                                                                                                                                                                          "dereferenced": true,
+                                                                                                                                                                                                                          "value": {
                                                                                                                                                                                                                             "next": {
-                                                                                                                                                                                                                              "Address": 436,
-                                                                                                                                                                                                                              "Depth": 1,
-                                                                                                                                                                                                                              "IsDereferenced": true,
-                                                                                                                                                                                                                              "Value": {
+                                                                                                                                                                                                                              "kind": "pointer",
+                                                                                                                                                                                                                              "address": 436,
+                                                                                                                                                                                                                              "depth": 1,
+                                                                                                                                                                                                                              "dereferenced": true,
+                                                                                                                                                                                                                              "value": {
                                                                                                                                                                                                                                 "next": {
-                                                                                                                                                                                                                                  "Address": 444,
-                                                                                                                                                                                                                                  "Depth": 1,
-                                                                                                                                                                                                                                  "IsDereferenced": true,
-                                                                                                                                                                                                                                  "Value": {
+                                                                                                                                                                                                                                  "kind": "pointer",
+                                                                                                                                                                                                                                  "address": 444,
+                                                                                                                                                                                                                                  "depth": 1,
+                                                                                                                                                                                                                                  "dereferenced": true,
+                                                                                                                                                                                                                                  "value": {
                                                                                                                                                                                                                                     "next": {
-                                                                                                                                                                                                                                      "Address": 452,
-                                                                                                                                                                                                                                      "Depth": 1,
-                                                                                                                                                                                                                                      "IsDereferenced": true,
-                                                                                                                                                                                                                                      "Value": {
+                                                                                                                                                                                                                                      "kind": "pointer",
+                                                                                                                                                                                                                                      "address": 452,
+                                                                                                                                                                                                                                      "depth": 1,
+                                                                                                                                                                                                                                      "dereferenced": true,
+                                                                                                                                                                                                                                      "value": {
                                                                                                                                                                                                                                         "next": {
-                                                                                                                                                                                                                                          "Address": 460,
-                                                                                                                                                                                                                                          "Depth": 1,
-                                                                                                                                                                                                                                          "IsDereferenced": true,
-                                                                                                                                                                                                                                          "Value": {
+                                                                                                                                                                                                                                          "kind": "pointer",
+                                                                                                                                                                                                                                          "address": 460,
+                                                                                                                                                                                                                                          "depth": 1,
+                                                                                                                                                                                                                                          "dereferenced": true,
+                                                                                                                                                                                                                                          "value": {
                                                                                                                                                                                                                                             "next": {
-                                                                                                                                                                                                                                              "Address": 468,
-                                                                                                                                                                                                                                              "Depth": 1,
-                                                                                                                                                                                                                                              "IsDereferenced": true,
-                                                                                                                                                                                                                                              "Value": {
+                                                                                                                                                                                                                                              "kind": "pointer",
+                                                                                                                                                                                                                                              "address": 468,
+                                                                                                                                                                                                                                              "depth": 1,
+                                                                                                                                                                                                                                              "dereferenced": true,
+                                                                                                                                                                                                                                              "value": {
                                                                                                                                                                                                                                                 "next": {
-                                                                                                                                                                                                                                                  "Address": 476,
-                                                                                                                                                                                                                                                  "Depth": 1,
-                                                                                                                                                                                                                                                  "IsDereferenced": true,
-                                                                                                                                                                                                                                                  "Value": {
+                                                                                                                                                                                                                                                  "kind": "pointer",
+                                                                                                                                                                                                                                                  "address": 476,
+                                                                                                                                                                                                                                                  "depth": 1,
+                                                                                                                                                                                                                                                  "dereferenced": true,
+                                                                                                                                                                                                                                                  "value": {
                                                                                                                                                                                                                                                     "next": {
-                                                                                                                                                                                                                                                      "Address": 484,
-                                                                                                                                                                                                                                                      "Depth": 1,
-                                                                                                                                                                                                                                                      "IsDereferenced": true,
-                                                                                                                                                                                                                                                      "Value": {
+                                                                                                                                                                                                                                                      "kind": "pointer",
+                                                                                                                                                                                                                                                      "address": 484,
+                                                                                                                                                                                                                                                      "depth": 1,
+                                                                                                                                                                                                                                                      "dereferenced": true,
+                                                                                                                                                                                                                                                      "value": {
                                                                                                                                                                                                                                                         "next": {
-                                                                                                                                                                                                                                                          "Address": 492,
-                                                                                                                                                                                                                                                          "Depth": 1,
-                                                                                                                                                                                                                                                          "IsDereferenced": true,
-                                                                                                                                                                                                                                                          "Value": {
+                                                                                                                                                                                                                                                          "kind": "pointer",
+                                                                                                                                                                                                                                                          "address": 492,
+                                                                                                                                                                                                                                                          "depth": 1,
+                                                                                                                                                                                                                                                          "dereferenced": true,
+                                                                                                                                                                                                                                                          "value": {
                                                                                                                                                                                                                                                             "next": {
-                                                                                                                                                                                                                                                              "Address": 500,
-                                                                                                                                                                                                                                                              "Depth": 1,
-                                                                                                                                                                                                                                                              "IsDereferenced": true,
-                                                                                                                                                                                                                                                              "Value": {
+                                                                                                                                                                                                                                                              "kind": "pointer",
+                                                                                                                                                                                                                                                              "address": 500,
+                                                                                                                                                                                                                                                              "depth": 1,
+                                                                                                                                                                                                                                                              "dereferenced": true,
+                                                                                                                                                                                                                                                              "value": {
                                                                                                                                                                                                                                                                 "next": {
-                                                                                                                                                                                                                                                                  "Address": 508,
-                                                                                                                                                                                                                                                                  "Depth": 1,
-                                                                                                                                                                                                                                                                  "IsDereferenced": true,
-                                                                                                                                                                                                                                                                  "Value": {
+                                                                                                                                                                                                                                                                  "kind": "pointer",
+                                                                                                                                                                                                                                                                  "address": 508,
+                                                                                                                                                                                                                                                                  "depth": 1,
+                                                                                                                                                                                                                                                                  "dereferenced": true,
+                                                                                                                                                                                                                                                                  "value": {
                                                                                                                                                                                                                                                                     "next": {
-                                                                                                                                                                                                                                                                      "Address": 0,
-                                                                                                                                                                                                                                                                      "Depth": 1,
-                                                                                                                                                                                                                                                                      "IsDereferenced": false,
-                                                                                                                                                                                                                                                                      "Value": null
+                                                                                                                                                                                                                                                                      "kind": "pointer",
+                                                                                                                                                                                                                                                                      "address": 0,
+                                                                                                                                                                                                                                                                      "depth": 1,
+                                                                                                                                                                                                                                                                      "dereferenced": false,
+                                                                                                                                                                                                                                                                      "value": null
                                                                                                                                                                                                                                                                     },
                                                                                                                                                                                                                                                                     "value": 1063
                                                                                                                                                                                                                                                                   }
@@ -543,6 +608,6 @@
       }
     }
   },
-  "expectedSha256": "c5626387a2373652b707c0f6b7e2436a625649e9b47be9cbcb7d072a5ab0dac7",
-  "expectedJsonLength": 5047
+  "expectedSha256": "bfc35a02e6da386b8741cad0bb18b415d05b8b999520f39fd910dee081bf625c",
+  "expectedJsonLength": 6022
 }

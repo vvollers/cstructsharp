@@ -313,11 +313,12 @@ class WorkerSession {
       checkAbort(signal);
       if (this.layout) {
         const result = await this.send({ command: "compile", ...this.layout }, signal);
-        if (!result.Success) {
-          const error = new Error(result.Error.Message);
-          error.details = result.Error;
+        if (!result.success) {
+          const error = new Error(result.error.message);
+          error.details = result.error;
           throw error;
         }
+        this.root = result.root;
       }
     } catch (error) {
       // Creation yields during Node's import. An abort in that window must not
@@ -376,15 +377,20 @@ class WorkerSession {
   }
 
   parse(definition, input, options, debug) {
-    const { signal, maxSpoolBytes, ...parserOptions } = options ?? {};
+    return this.request(this.layout ? "parseCompiled" : "parse", definition, input, options, { debug });
+  }
+
+  resolveAddress(definition, input, path, options) {
+    return this.request(this.layout ? "resolveAddressCompiled" : "resolveAddress", definition, input, options, { path });
+  }
+
+  request(command, definition, input, options, extra) {
+    const { signal, maxSpoolBytes, ...operationOptions } = options ?? {};
     return this.enqueue(async (combined) => {
       const source = await prepareSource(input, { signal: combined, maxSpoolBytes });
       try {
         await this.ensureWorker(combined);
-        return await this.send({
-          command: this.layout ? "parseCompiled" : "parse",
-          descriptor: source.descriptor, definition, options: parserOptions, debug,
-        }, combined);
+        return await this.send({ command, descriptor: source.descriptor, definition, options: operationOptions, ...extra }, combined);
       } finally {
         await source.dispose();
       }
@@ -395,27 +401,73 @@ class WorkerSession {
 const sharedSession = new WorkerSession();
 
 export async function parseLargeSource(definition, input, options = {}, debug = true) {
-  const { signal, maxSpoolBytes, ...parserOptions } = options ?? {};
+  return sharedRequest("parse", definition, input, options, { debug });
+}
+
+/** Resolves a path's absolute position through the shared worker; the source is staged exactly like a parse. */
+export async function resolveAddressLargeSource(definition, input, path, options = {}) {
+  return sharedRequest("resolveAddress", definition, input, options, { path });
+}
+
+async function sharedRequest(command, definition, input, options, extra) {
+  const { signal, maxSpoolBytes, ...operationOptions } = options ?? {};
   // Independent ordinary API calls may stage concurrently. A stalled producer
   // must not prevent an unrelated ready source from reaching the shared worker.
   const source = await prepareSource(input, { signal, maxSpoolBytes });
   try {
     return await sharedSession.enqueue(async (combined) => {
       await sharedSession.ensureWorker(combined);
-      return sharedSession.send({
-        command: "parse", descriptor: source.descriptor,
-        definition, options: parserOptions, debug,
-      }, combined);
+      return sharedSession.send({ command, descriptor: source.descriptor, definition, options: operationOptions, ...extra }, combined);
     }, signal);
   } finally {
     await source.dispose();
   }
 }
 
-const layoutKeys = new Set([
-  "aligned", "pointerSize", "littleEndian", "maxDefinitionLength",
-  "maxLayoutNestingDepth", "maxExpressionNestingDepth", "maxExpressionTokens",
+/**
+ * Reads a whole binary source into one Uint8Array for the operations that need every byte in memory (update). A
+ * buffer or view is used as is (no copy); anything else is drained through the same chunk reader the staging
+ * path uses, bounded by maxSpoolBytes.
+ */
+export async function collectBytes(input, { signal, maxSpoolBytes = defaultSpoolLimit } = {}) {
+  checkAbort(signal);
+  if (
+    input instanceof ArrayBuffer ||
+    ArrayBuffer.isView(input) ||
+    (typeof SharedArrayBuffer !== "undefined" && input instanceof SharedArrayBuffer)
+  ) {
+    return byteView(input);
+  }
+  if (typeof Response !== "undefined" && input instanceof Response) {
+    if (!input.ok) throw new Error(`Binary response failed: HTTP ${input.status}.`);
+    if (!input.body || input.bodyUsed) throw new TypeError("The binary response has no unread body.");
+    input = input.body;
+  }
+  if (typeof input?.getFile === "function") input = await abortable(input.getFile(), signal);
+  const parts = [];
+  let size = 0;
+  for await (const bytes of chunks(input, signal)) {
+    if (size + bytes.byteLength > maxSpoolBytes) {
+      throw new RangeError(`Input exceeds maxSpoolBytes (${maxSpoolBytes} bytes).`);
+    }
+    parts.push(new Uint8Array(bytes));
+    size += bytes.byteLength;
+  }
+  const result = new Uint8Array(size);
+  let offset = 0;
+  for (const part of parts) {
+    result.set(part, offset);
+    offset += part.byteLength;
+  }
+  return result;
+}
+
+/** Options fixed when a layout is compiled (contract v8 CompileOptions). */
+export const COMPILE_OPTION_KEYS = new Set([
+  "aligned", "pointerSize", "littleEndian", "bitfieldPacking", "bitfieldAllocation", "cLongWidth",
+  "maxDefinitionLength", "maxLayoutNestingDepth", "maxExpressionNestingDepth", "maxExpressionTokens",
 ]);
+const layoutKeys = COMPILE_OPTION_KEYS;
 
 /** Byte inputs up to this size, without a cancellation signal, are parsed on the calling thread (E3.6). */
 export const SYNCHRONOUS_PARSE_LIMIT = 64 * 1024;
@@ -437,11 +489,11 @@ export function isSmallByteInput(source, options) {
  * `parseBytes`, small byte inputs are parsed on the calling thread through the shared compiled-layout cache
  * instead of the retained worker; the worker still owns every large, streamed, or cancellable read.
  */
-export async function compileLargeSource(definition, options = {}, { parseBytes } = {}) {
+export async function compileLargeSource(definition, options = {}, { parseBytes, serialize, update } = {}) {
   if (typeof definition !== "string") throw new TypeError("Layout definition must be a string.");
   const frozenOptions = Object.freeze({ ...options });
   for (const key of Object.keys(frozenOptions)) {
-    if (!layoutKeys.has(key) && key !== "rootTypeName") {
+    if (!layoutKeys.has(key) && key !== "root") {
       throw new TypeError(`Unsupported compile option: ${key}`);
     }
   }
@@ -453,18 +505,25 @@ export async function compileLargeSource(definition, options = {}, { parseBytes 
     throw error;
   }
   let disposed = false;
-  function parse(input, readOptions, debug) {
-    if (disposed) return Promise.reject(new Error("Compiled layout has been disposed."));
-    for (const key of Object.keys(readOptions ?? {})) {
+  function merge(operationOptions) {
+    if (disposed) throw new Error("Compiled layout has been disposed.");
+    for (const key of Object.keys(operationOptions ?? {})) {
       if (layoutKeys.has(key)) {
-        return Promise.reject(new TypeError(`Layout option ${key} is fixed at compilation.`));
+        throw new TypeError(`Compile option ${key} is fixed at compilation.`);
       }
     }
-    const merged = {
-      ...frozenOptions, ...readOptions,
-      rootTypeName: readOptions?.rootTypeName === undefined
-        ? frozenOptions.rootTypeName : readOptions.rootTypeName,
+    return {
+      ...frozenOptions, ...operationOptions,
+      root: operationOptions?.root === undefined ? frozenOptions.root : operationOptions.root,
     };
+  }
+  function parse(input, readOptions, debug) {
+    let merged;
+    try {
+      merged = merge(readOptions);
+    } catch (error) {
+      return Promise.reject(error);
+    }
     if (parseBytes && isSmallByteInput(input, readOptions)) {
       const parserOptions = { ...merged };
       delete parserOptions.signal;
@@ -478,8 +537,32 @@ export async function compileLargeSource(definition, options = {}, { parseBytes 
     return session.parse(definition, input, merged, debug);
   }
   return Object.freeze({
+    root: session.root,
     parse: (input, options = null) => parse(input, options, false),
     parseWithDebug: (input, options = null) => parse(input, options, true),
+    resolveAddress(input, path, options = null) {
+      try {
+        return session.resolveAddress(definition, input, path, merge(options));
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    },
+    // Writes run on the calling thread through the shared compiled-layout cache: the layout is immutable, and a
+    // write never needs the worker's staged source.
+    serialize(value, options = null) {
+      try {
+        return serialize(definition, value, merge(options));
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    },
+    update(input, path, value, options = null) {
+      try {
+        return update(definition, input, path, value, merge(options));
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    },
     async dispose() {
       disposed = true;
       await session.dispose();

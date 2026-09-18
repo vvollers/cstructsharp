@@ -40,7 +40,10 @@ test("manual loading preserves the local ZIP example and returns the library rea
   await chooser.setFiles({ name: "empty.zip", mimeType: "application/zip", buffer: bytes });
   await expect(page.locator(".file-name")).toContainText("empty.zip");
   await page.getByRole("button", { name: /^Run$/ }).click();
-  await expect(page.locator(".result-status")).toContainText("Unexpected end");
+  // Contract v8 carries the library's own diagnostic verbatim, including the field and its declared type.
+  await expect(page.locator(".result-status")).toContainText(
+    "Not enough bytes: needed 4, available 0 (field 'uncompressed_size' (uint32), in 'root', offset 22).",
+  );
 });
 
 test("the real bridge preserves actionable input and read diagnostics", async ({ page }) => {
@@ -61,12 +64,22 @@ test("the real bridge preserves actionable input and read diagnostics", async ({
       }),
     };
   });
-  expect(results.large.Error.Message).toContain("4194305 bytes");
-  expect(results.large.Error.Message).toContain("4194304 bytes (4 MiB)");
-  expect(results.empty.Error.Message).toContain("No binary data");
-  expect(results.truncated.Error).toMatchObject({ Code: "read-failed", Path: "root", Offset: 1 });
-  expect(results.truncated.Error.Message).toContain("Unexpected end");
-  expect(results.encoding.Error.Message).toContain("declared encoding");
-  expect(results.budget.Error.Message).toContain("MaxArrayElements");
-  expect(results.option.Error.Message).toContain("between 1 and 2147483647; received 0");
+  expect(results.large.error.message).toContain("4194305 bytes");
+  expect(results.large.error.message).toContain("4194304 bytes (4 MiB)");
+  expect(results.empty.error.message).toContain("No binary data");
+  expect(results.truncated.error).toMatchObject({
+    code: "read-failed",
+    path: "root",
+    offset: 1,
+    member: "value",
+    memberType: "uint32",
+  });
+  expect(results.truncated.error.message).toBe(
+    "Not enough bytes: needed 4, available 1 (field 'value' (uint32), in 'root', offset 1).",
+  );
+  expect(results.encoding.error.message).toBe(
+    "String field contains bytes that are invalid for its encoding (field 'value' (utf8_string_zero), in 'root', offset 3).",
+  );
+  expect(results.budget.error.message).toContain("MaxArrayElements");
+  expect(results.option.error.message).toContain("between 1 and 2147483647; received 0");
 });

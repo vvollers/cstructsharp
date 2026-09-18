@@ -28,7 +28,7 @@ function initialOptions(): SchemaSettingsValues {
   const defaults = props.example?.parserOptions;
 
   return {
-    rootTypeName: props.example?.rootType ?? "",
+    root: props.example?.rootType ?? "",
     aligned: defaults?.aligned ?? false,
     littleEndian: defaults?.littleEndian ?? true,
     pointerSize: defaults?.pointerSize ?? 8,
@@ -56,7 +56,7 @@ function submit(): void {
   if (props.disabled || settingsOpen.value) return;
 
   // Send a copy of the settings for this run. An empty root name means "use the first declaration".
-  emit("run", { ...options.value, rootTypeName: options.value.rootTypeName.trim() || null });
+  emit("run", { ...options.value, root: options.value.root.trim() || null });
 }
 </script>
 

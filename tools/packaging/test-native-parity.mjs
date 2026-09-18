@@ -42,7 +42,7 @@ for (const entry of manifest().fixtures) {
   const id = typeof entry === "string" ? entry : entry.id;
   const { document, bytes } = loadFixture(id);
   if (bytes.byteLength > 64 * 1024 || bytes.byteLength === 0 || document.readOptions) continue;
-  const options = { ...document.options, rootTypeName: document.root };
+  const options = { ...document.options, root: document.root };
   const [native, wasm] = await both(document.definition, bytes, options);
   assert.deepStrictEqual(native, wasm, `fixture ${id}`);
   compared++;
@@ -67,9 +67,9 @@ const size = 3 * 4 + 4 * 2 + 8 * 2 + 1 + 2 + 1 + 1 + 3 + 5 + 4 + 12 + 16 + 16 + 
 const random = xorshiftBytes(seed, size * trials);
 for (let trial = 0; trial < trials; trial++) {
   const bytes = random.subarray(trial * size, (trial + 1) * size);
-  const [native, wasm] = await both(definition, bytes, { rootTypeName: "s" });
+  const [native, wasm] = await both(definition, bytes, { root: "s" });
   assert.deepStrictEqual(native, wasm, `random trial ${trial} (seed ${seed})`);
-  assert.equal(native.Success, true, `random trial ${trial} must parse`);
+  assert.equal(native.success, true, `random trial ${trial} must parse`);
   compared++;
   nativeRuns++;
 }
@@ -89,20 +89,20 @@ for (const [a, b, c, d] of cases) {
   view.setUint32(4, b, false);
   view.setBigUint64(8, c, true);
   view.setBigUint64(16, d, false);
-  const [native, wasm] = await both(floats, bytes, { rootTypeName: "s" });
+  const [native, wasm] = await both(floats, bytes, { root: "s" });
   assert.deepStrictEqual(native, wasm, `float case ${a.toString(16)}`);
-  assert.equal(native.Success, true);
+  assert.equal(native.success, true);
   compared++;
 }
 
-const nan = await api.parse(floats, new Uint8Array([0, 0, 0xc0, 0x7f, 0x7f, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0xf0, 0xff, 0x7f, 0xf0, 0, 0, 0, 0, 0, 0]), { rootTypeName: "s" });
-assert.deepStrictEqual(nan.Data.s, { a: "NaN", b: "Infinity", c: "-Infinity", d: "Infinity" });
+const nan = await api.parse(floats, new Uint8Array([0, 0, 0xc0, 0x7f, 0x7f, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0xf0, 0xff, 0x7f, 0xf0, 0, 0, 0, 0, 0, 0]), { root: "s" });
+assert.deepStrictEqual(nan.data, { a: "NaN", b: "Infinity", c: "-Infinity", d: "Infinity" });
 
 // 4. The same strings are accepted back by the write path, so a parsed value round-trips through serialize.
-const written = await api.serialize(floats, { a: "NaN", b: "Infinity", c: "-Infinity", d: 1.5 }, { rootTypeName: "s" });
-assert.equal(written.Success, true, JSON.stringify(written.Error));
-const reread = await api.parse(floats, written.Data, { rootTypeName: "s" });
-assert.deepStrictEqual(reread.Data.s, { a: "NaN", b: "Infinity", c: "-Infinity", d: 1.5 });
+const written = await api.serialize(floats, { a: "NaN", b: "Infinity", c: "-Infinity", d: 1.5 }, { root: "s" });
+assert.equal(written.success, true, JSON.stringify(written.error));
+const reread = await api.parse(floats, written.data, { root: "s" });
+assert.deepStrictEqual(reread.data, { a: "NaN", b: "Infinity", c: "-Infinity", d: 1.5 });
 
 console.log(`Native/WASM parity: ${compared} inputs compared (${nativeRuns} random trials, seed ${seed}).`);
 fs.writeFileSync(path.join(consumer, "parity.txt"), `${compared}\n`);

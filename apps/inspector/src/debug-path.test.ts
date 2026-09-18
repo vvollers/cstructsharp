@@ -6,15 +6,15 @@ import {
   findDebugEntryIndicesByPath,
   tokenizePath,
 } from "./debug-path";
-import type { DebugDataItem } from "./wasm/cstruct-contract";
+import type { DebugItem } from "./wasm/cstruct-contract";
 
-function debugItem(overrides: Partial<DebugDataItem>): DebugDataItem {
+function debugItem(overrides: Partial<DebugItem>): DebugItem {
   return {
-    CurPos: 0,
-    EndPos: 1,
-    DebugStackString: "root",
-    Type: "uint8",
-    Value: "0",
+    start: 0,
+    end: 1,
+    path: "root",
+    type: "uint8",
+    value: "0",
     ...overrides,
   };
 }
@@ -42,39 +42,45 @@ describe("tokenizePath", () => {
 });
 
 describe("findDebugEntryIndicesByPath", () => {
-  it("maps pointer target fields separately from address storage, preserving real Value fields", () => {
-    const pointer = (Value: unknown) => ({ Address: 32, Depth: 1, IsDereferenced: true, Value });
+  it("maps pointer target fields separately from address storage, preserving real value fields", () => {
+    const pointer = (value: unknown) => ({
+      kind: "pointer",
+      address: 32,
+      depth: 1,
+      dereferenced: true,
+      value,
+    });
     const result = {
       root: {
-        ptr: pointer({ myfield: 7, Value: 9, nested: pointer({ leaf: 11 }) }),
-        Value: { leaf: 12 },
+        ptr: pointer({ myfield: 7, value: 9, nested: pointer({ leaf: 11 }) }),
+        value: { leaf: 12 },
       },
     };
     const entries = [
-      debugItem({ DebugStackString: "root.ptr.myfield", CurPos: 32, EndPos: 36 }),
-      debugItem({ DebugStackString: "root.ptr.Value", CurPos: 36, EndPos: 40 }),
-      debugItem({ DebugStackString: "root.ptr.nested.leaf", CurPos: 48, EndPos: 52 }),
-      debugItem({ DebugStackString: "root.ptr.nested", CurPos: 40, EndPos: 44 }),
-      debugItem({ DebugStackString: "root.ptr", CurPos: 0, EndPos: 4 }),
-      debugItem({ DebugStackString: "root.Value.leaf", CurPos: 4, EndPos: 8 }),
+      debugItem({ path: "root.ptr.myfield", start: 32, end: 36 }),
+      debugItem({ path: "root.ptr.value", start: 36, end: 40 }),
+      debugItem({ path: "root.ptr.nested.leaf", start: 48, end: 52 }),
+      debugItem({ path: "root.ptr.nested", start: 40, end: 44 }),
+      debugItem({ path: "root.ptr", start: 0, end: 4 }),
+      debugItem({ path: "root.value.leaf", start: 4, end: 8 }),
     ];
     expect(
-      findDebugEntryIndicesByPath(entries, ["root", "ptr", "Value", "myfield"], result),
+      findDebugEntryIndicesByPath(entries, ["root", "ptr", "value", "myfield"], result),
     ).toEqual([0]);
-    expect(findDebugEntryIndicesByPath(entries, ["root", "ptr", "Value", "Value"], result)).toEqual(
+    expect(findDebugEntryIndicesByPath(entries, ["root", "ptr", "value", "value"], result)).toEqual(
       [1],
     );
-    expect(findDebugEntryIndicesByPath(entries, ["root", "ptr", "Address"], result)).toEqual([4]);
-    expect(findDebugEntryIndicesByPath(entries, ["root", "ptr", "Value"], result)).toEqual([
+    expect(findDebugEntryIndicesByPath(entries, ["root", "ptr", "address"], result)).toEqual([4]);
+    expect(findDebugEntryIndicesByPath(entries, ["root", "ptr", "value"], result)).toEqual([
       0, 1, 2, 3,
     ]);
-    expect(findDebugEntryIndicesByPath(entries, ["root", "Value", "leaf"], result)).toEqual([5]);
+    expect(findDebugEntryIndicesByPath(entries, ["root", "value", "leaf"], result)).toEqual([5]);
     expect(debugEntryJsonPath(entries[2]!, result)).toEqual([
       "root",
       "ptr",
-      "Value",
+      "value",
       "nested",
-      "Value",
+      "value",
       "leaf",
     ]);
   });
@@ -85,32 +91,39 @@ describe("findDebugEntryIndicesByPath", () => {
         entries: [
           {
             ptr: {
-              Address: 8,
-              Depth: 2,
-              IsDereferenced: true,
-              Value: { Address: 16, Depth: 1, IsDereferenced: true, Value: { leaf: 5 } },
+              kind: "pointer",
+              address: 8,
+              depth: 2,
+              dereferenced: true,
+              value: {
+                kind: "pointer",
+                address: 16,
+                depth: 1,
+                dereferenced: true,
+                value: { leaf: 5 },
+              },
             },
           },
         ],
       },
     };
-    const entry = debugItem({ DebugStackString: "root.entries[0].ptr.leaf" });
+    const entry = debugItem({ path: "root.entries[0].ptr.leaf" });
     expect(debugEntryJsonPath(entry, result)).toEqual([
       "root",
       "entries",
       "0",
       "ptr",
-      "Value",
-      "Value",
+      "value",
+      "value",
       "leaf",
     ]);
   });
 
   const debugData = [
-    debugItem({ DebugStackString: "root.file_header.signature", CurPos: 0, EndPos: 2 }),
-    debugItem({ DebugStackString: "root.info_header.bits_per_pixel", CurPos: 28, EndPos: 30 }),
-    debugItem({ DebugStackString: "root.entries[0].width", CurPos: 22, EndPos: 23 }),
-    debugItem({ DebugStackString: "root.entries[1].width", CurPos: 30, EndPos: 31 }),
+    debugItem({ path: "root.file_header.signature", start: 0, end: 2 }),
+    debugItem({ path: "root.info_header.bits_per_pixel", start: 28, end: 30 }),
+    debugItem({ path: "root.entries[0].width", start: 22, end: 23 }),
+    debugItem({ path: "root.entries[1].width", start: 30, end: 31 }),
   ];
 
   it("finds the single entry whose tokenized path exactly matches a leaf", () => {
@@ -129,9 +142,9 @@ describe("findDebugEntryIndicesByPath", () => {
 
   it("returns every entry sharing an identical un-indexed path (a scalar array quirk)", () => {
     const scalarArrayData = [
-      debugItem({ DebugStackString: "root.dos.e_res", CurPos: 28, EndPos: 30 }),
-      debugItem({ DebugStackString: "root.dos.e_res", CurPos: 30, EndPos: 32 }),
-      debugItem({ DebugStackString: "root.dos.e_res", CurPos: 32, EndPos: 34 }),
+      debugItem({ path: "root.dos.e_res", start: 28, end: 30 }),
+      debugItem({ path: "root.dos.e_res", start: 30, end: 32 }),
+      debugItem({ path: "root.dos.e_res", start: 32, end: 34 }),
     ];
     expect(findDebugEntryIndicesByPath(scalarArrayData, ["root", "dos", "e_res"])).toEqual([
       0, 1, 2,
@@ -140,8 +153,8 @@ describe("findDebugEntryIndicesByPath", () => {
 
   it("still returns the full scalar-array set when the clicked path names a specific index it cannot represent", () => {
     const scalarArrayData = [
-      debugItem({ DebugStackString: "root.dos.e_res", CurPos: 28, EndPos: 30 }),
-      debugItem({ DebugStackString: "root.dos.e_res", CurPos: 30, EndPos: 32 }),
+      debugItem({ path: "root.dos.e_res", start: 28, end: 30 }),
+      debugItem({ path: "root.dos.e_res", start: 30, end: 32 }),
     ];
     expect(findDebugEntryIndicesByPath(scalarArrayData, ["root", "dos", "e_res", "1"])).toEqual([
       0, 1,
@@ -159,15 +172,15 @@ describe("findDebugEntryIndicesByPath", () => {
 
 describe("findDebugEntryIndexByOffset", () => {
   const debugData = [
-    debugItem({ DebugStackString: "root.file_header.signature", CurPos: 0, EndPos: 2 }),
-    debugItem({ DebugStackString: "root.info_header.bits_per_pixel", CurPos: 28, EndPos: 30 }),
+    debugItem({ path: "root.file_header.signature", start: 0, end: 2 }),
+    debugItem({ path: "root.info_header.bits_per_pixel", start: 28, end: 30 }),
   ];
 
   it("finds the index of the entry covering an offset", () => {
     expect(findDebugEntryIndexByOffset(debugData, 29)).toBe(1);
   });
 
-  it("treats CurPos as inclusive and EndPos as exclusive", () => {
+  it("treats start as inclusive and end as exclusive", () => {
     expect(findDebugEntryIndexByOffset(debugData, 28)).toBe(1);
     expect(findDebugEntryIndexByOffset(debugData, 30)).toBe(-1);
   });
@@ -180,37 +193,37 @@ describe("findDebugEntryIndexByOffset", () => {
 describe("computeFieldGroups", () => {
   it("puts every element of an array of structs into one shared group", () => {
     const debugData = [
-      debugItem({ DebugStackString: "root.entries[0].width" }),
-      debugItem({ DebugStackString: "root.entries[0].height" }),
-      debugItem({ DebugStackString: "root.entries[1].width" }),
-      debugItem({ DebugStackString: "root.entries[1].height" }),
+      debugItem({ path: "root.entries[0].width" }),
+      debugItem({ path: "root.entries[0].height" }),
+      debugItem({ path: "root.entries[1].width" }),
+      debugItem({ path: "root.entries[1].height" }),
     ];
     expect(computeFieldGroups(debugData)).toEqual([0, 0, 0, 0]);
   });
 
   it("keeps non-array leaf fields in their own individual groups", () => {
     const debugData = [
-      debugItem({ DebugStackString: "root.file_header.signature" }),
-      debugItem({ DebugStackString: "root.file_header.file_size" }),
-      debugItem({ DebugStackString: "root.info_header.width" }),
+      debugItem({ path: "root.file_header.signature" }),
+      debugItem({ path: "root.file_header.file_size" }),
+      debugItem({ path: "root.info_header.width" }),
     ];
     expect(computeFieldGroups(debugData)).toEqual([0, 1, 2]);
   });
 
   it("assigns a new group per distinct array field, in order of first appearance", () => {
     const debugData = [
-      debugItem({ DebugStackString: "root.a[0]" }),
-      debugItem({ DebugStackString: "root.b.leaf" }),
-      debugItem({ DebugStackString: "root.a[1]" }),
-      debugItem({ DebugStackString: "root.b2.leaf" }),
+      debugItem({ path: "root.a[0]" }),
+      debugItem({ path: "root.b.leaf" }),
+      debugItem({ path: "root.a[1]" }),
+      debugItem({ path: "root.b2.leaf" }),
     ];
     expect(computeFieldGroups(debugData)).toEqual([0, 1, 0, 2]);
   });
 
   it("collapses a multidimensional array to one group regardless of dimension count", () => {
     const debugData = [
-      debugItem({ DebugStackString: "root.matrix[0][0]" }),
-      debugItem({ DebugStackString: "root.matrix[2][3]" }),
+      debugItem({ path: "root.matrix[0][0]" }),
+      debugItem({ path: "root.matrix[2][3]" }),
     ];
     expect(computeFieldGroups(debugData)).toEqual([0, 0]);
   });

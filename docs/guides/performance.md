@@ -75,12 +75,12 @@ bounded cache within each runtime.
 For repeated reads of the same schema, use `compile` from the npm package or standalone browser bundle:
 
 ```js
-const layout = await compile(definition, { rootTypeName: "root" });
+const layout = await compile(definition, { root: "root" });
 try {
   for (const bytes of records) {
     const result = await layout.parse(bytes);
-    if (!result.Success) throw new Error(result.Error.Message);
-    consume(result.Data);
+    if (!result.success) throw new Error(result.error.message);
+    consume(result.data);
   }
 } finally {
   await layout.dispose();

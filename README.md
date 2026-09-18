@@ -126,10 +126,10 @@ import { parseWithDebug } from "cstructsharp";
 const result = await parseWithDebug(
   "struct header { uint16 kind; uint32 length; };",
   new Uint8Array([2, 0, 6, 0, 0, 0]),
-  { rootTypeName: "header" },
+  { root: "header" },
 );
-if (!result.Success) throw new Error(result.Error.Message);
-console.log(result.Data.header.kind); // 2
+if (!result.success) throw new Error(result.error.message);
+console.log(result.data.kind); // 2
 ```
 
 Node loads the installed runtime from disk; no .NET SDK or server is needed. Browser applications use the same

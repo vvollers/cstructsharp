@@ -1,32 +1,27 @@
-/** Shared operation conversions for the ZIP, Node, and browser adapters. */
-const INTEROP_CONTRACT_VERSION = 7;
+/** Shared operation conversions for the ZIP, Node, and browser adapters (contract v8). */
+const INTEROP_CONTRACT_VERSION = 8;
 /**
  * Byte inputs up to this size, without a cancellation signal, are parsed on the calling thread (E3.6). Kept in
  * step with SYNCHRONOUS_PARSE_LIMIT in large-source.js; this module is staged at the npm package root while the
  * source adapter lives beside the runtime, so it cannot import it.
  */
 const SYNCHRONOUS_PARSE_LIMIT = 64 * 1024;
+/** Byte inputs beyond this size are staged and read by the worker rather than copied into WASM memory. */
+const MANAGED_COPY_LIMIT = 4 * 1024 * 1024;
 
 export function createPublicApi(loadCStructSharpWasm) {
-  /** Parse bytes; successful Data is the parsed value with the selected root wrapper (contract v7).
+  /** Parse bytes and record every value's byte range. `data` is the selected value; `debug` lists the ranges.
    * @param {string} definition Portable layout source.
    * @param {import("./cstructsharp-wasm.js").BinarySource} bytes Binary source.
-   * @param {import("./cstructsharp-wasm.js").ParseWithDebugOptions | null} [options]
-   * @returns {Promise<import("./cstructsharp-wasm.js").Result<import("./cstructsharp-wasm.js").ParsedData, "parse">>}
+   * @param {import("./cstructsharp-wasm.js").ParseOptions | null} [options]
+   * @returns {Promise<import("./cstructsharp-wasm.js").ParseResult>}
    */
   async function parseWithDebug(definition, bytes, options = null) {
     const api = await loadCStructSharpWasm();
-    if (
-      !(bytes instanceof Uint8Array) ||
-      bytes.byteLength > 4 * 1024 * 1024 ||
-      options?.signal
-    ) {
+    if (!(bytes instanceof Uint8Array) || bytes.byteLength > MANAGED_COPY_LIMIT || options?.signal) {
       return api.parseSource(definition, bytes, options, true);
     }
-    return parseEnvelope(
-      api.parseWithDebug(definition, bytes, options),
-      "parse",
-    );
+    return parseEnvelope(api.parseWithDebug(definition, bytes, options), "parse");
   }
 
   /**
@@ -41,15 +36,12 @@ export function createPublicApi(loadCStructSharpWasm) {
       // E3.9: a fully fixed layout is read by the static plan in JavaScript; everything else crosses into WASM.
       const native = tryParseNative(api, definition, bytes, options);
       if (native !== null) return native;
-      return parseEnvelope(
-        api.parseBytes(definition, bytes, options, false),
-        "parse",
-      );
+      return parseEnvelope(api.parseBytes(definition, bytes, options, false), "parse");
     }
     return api.parseSource(definition, source, options, false);
   }
 
-  /** Serialize root fields (without a parse root wrapper). BigInt values retain exact decimal digits.
+  /** Serialize a value: the selected root's fields, or a parse result's `data`. BigInt values keep exact digits.
    * @param {string} definition Portable layout source.
    * @param {unknown} value A JSON-serializable value, optionally containing BigInt values.
    * @param {import("./cstructsharp-wasm.js").SerializeOptions | null} [options]
@@ -57,31 +49,37 @@ export function createPublicApi(loadCStructSharpWasm) {
    */
   async function serialize(definition, value, options = null) {
     const api = await loadCStructSharpWasm();
-    return runBinaryOperation("serialize", () =>
+    return runBinaryOperation("serialize", options, () =>
       api.serialize(definition, stringifyInteropValue(value), options),
     );
   }
 
-  /** Update one path without mutating input. Successful Data is the complete updated byte array.
+  /** Replace the value at one path and return the complete updated bytes; the input is never mutated.
    * @param {string} definition Portable layout source.
-   * @param {Uint8Array} bytes Original input.
+   * @param {import("./cstructsharp-wasm.js").BinarySource} source Original input (any binary source; it is read completely).
    * @param {string} path Case-sensitive field path.
    * @param {unknown} value Replacement value; BigInt is sent as decimal text.
    * @param {import("./cstructsharp-wasm.js").UpdateOptions | null} [options]
    * @returns {Promise<import("./cstructsharp-wasm.js").Result<Uint8Array, "update">>}
    */
-  async function update(definition, bytes, path, value, options = null) {
-    requireBytes(bytes);
+  async function update(definition, source, path, value, options = null) {
     const api = await loadCStructSharpWasm();
-    return runBinaryOperation("update", () =>
-      api.updateStream(
-        definition,
-        bytes,
-        path,
-        stringifyInteropValue(value),
-        options,
-      ),
+    const bytes = await api.collectBytes(source, options);
+    return runBinaryOperation("update", options, () =>
+      api.updateStream(definition, bytes, path, stringifyInteropValue(value), options),
     );
+  }
+
+  /** Resolve the absolute byte position of a path in a source; `data` is the position (a decimal string beyond 2^53).
+   * @param {string} definition Portable layout source.
+   * @param {import("./cstructsharp-wasm.js").BinarySource} source Binary source.
+   * @param {string} path Case-sensitive field path.
+   * @param {import("./cstructsharp-wasm.js").ParseOptions | null} [options]
+   * @returns {Promise<import("./cstructsharp-wasm.js").Result<number | string, "resolveAddress">>}
+   */
+  async function resolveAddress(definition, source, path, options = null) {
+    const api = await loadCStructSharpWasm();
+    return api.resolveAddressSource(definition, source, path, options);
   }
 
   /** Return the managed library version from the loaded bundle. */
@@ -92,7 +90,7 @@ export function createPublicApi(loadCStructSharpWasm) {
 
   async function compile(definition, options = null) {
     const api = await loadCStructSharpWasm();
-    return api.compile(definition, options);
+    return api.compile(definition, options, { serialize, update });
   }
 
   return {
@@ -102,6 +100,7 @@ export function createPublicApi(loadCStructSharpWasm) {
     parseWithDebug,
     serialize,
     update,
+    resolveAddress,
     getVersion,
   };
 }
@@ -130,73 +129,51 @@ function parseEnvelope(value, operation) {
   try {
     return JSON.parse(value);
   } catch (cause) {
-    throw new TypeError(
-      `CStructSharp returned an invalid ${operation} response envelope.`,
-      {
-        cause,
-      },
-    );
+    throw new TypeError(`CStructSharp returned an invalid ${operation} response envelope.`, { cause });
   }
+}
+
+/** The v8 envelope every operation returns. */
+export function envelope(operation, root, data, error = null, debug = []) {
+  return {
+    contractVersion: INTEROP_CONTRACT_VERSION,
+    operation,
+    success: error === null,
+    root,
+    data: error === null ? data : null,
+    debug,
+    error,
+  };
 }
 
 /**
  * Runs a byte-returning managed export: success returns the bytes directly; failure is reported by the managed
- * export throwing (its message is the same JSON-serialized ErrorDetails shape the "parse" envelope's Error field
- * uses), since there is no envelope object to carry an Error field alongside a native byte-array success payload.
+ * export throwing (its message is the same JSON-serialized error-details shape the "parse" envelope's error field
+ * uses), since there is no envelope object to carry an error field alongside a native byte-array success payload.
  * Reconstructs the same envelope shape parseEnvelope produces either way.
  */
-function runBinaryOperation(operation, invoke) {
+function runBinaryOperation(operation, options, invoke) {
+  const root = typeof options?.root === "string" ? options.root : null;
   try {
-    return {
-      ContractVersion: INTEROP_CONTRACT_VERSION,
-      Operation: operation,
-      Success: true,
-      Data: invoke(),
-      DebugData: [],
-      Error: null,
-    };
+    return envelope(operation, root, invoke());
   } catch (cause) {
-    return {
-      ContractVersion: INTEROP_CONTRACT_VERSION,
-      Operation: operation,
-      Success: false,
-      Data: null,
-      DebugData: [],
-      Error: parseBridgeError(cause, operation),
-    };
+    return envelope(operation, root, null, parseBridgeError(cause, operation));
   }
 }
 
-function parseBridgeError(cause, operation) {
+/** Reconstructs the structured error a byte-returning export threw. */
+export function parseBridgeError(cause, operation) {
   const message = cause instanceof Error ? cause.message : String(cause);
   let parsed;
   try {
     parsed = JSON.parse(message);
   } catch (parseCause) {
-    throw new TypeError(
-      `CStructSharp returned an invalid ${operation} error.`,
-      {
-        cause: parseCause,
-      },
-    );
+    throw new TypeError(`CStructSharp returned an invalid ${operation} error.`, { cause: parseCause });
   }
-
-  if (
-    typeof parsed !== "object" ||
-    parsed === null ||
-    typeof parsed.Code !== "string" ||
-    typeof parsed.Message !== "string"
-  ) {
+  if (typeof parsed !== "object" || parsed === null || typeof parsed.code !== "string" || typeof parsed.message !== "string") {
     throw new TypeError(`CStructSharp returned an invalid ${operation} error.`);
   }
-
   return parsed;
-}
-
-function requireBytes(bytes) {
-  if (!(bytes instanceof Uint8Array)) {
-    throw new TypeError("Binary data must be a Uint8Array.");
-  }
 }
 
 function stringifyInteropValue(value) {
@@ -211,7 +188,7 @@ function stringifyInteropValue(value) {
 // The managed side describes a fully fixed root (the compiler's static read plan: member offsets, codecs, counts,
 // nested plans, enum tables) once per definition and options; parsing such a layout is then a DataView walk that
 // produces exactly the value shapes the JSON projection produces (safe integers as numbers, larger ones as decimal
-// strings, float32 as the shortest round-trip decimal, Latin-1 character buffers, `{Enum, Name, Value}` enums).
+// strings, float32 as the shortest round-trip decimal, Latin-1 character buffers, `{kind, enum, name, value}` enums).
 // Any option that changes read semantics (limits, pointers), a buffer shorter than the plan, a non-finite float, or
 // a plan the bundle cannot describe sends the parse to WASM, which is the reference implementation.
 // ---------------------------------------------------------------------------------------------------------------
@@ -220,7 +197,10 @@ const NATIVE_PLAN_OPTION_KEYS = new Set([
   "aligned",
   "littleEndian",
   "pointerSize",
-  "rootTypeName",
+  "root",
+  "bitfieldPacking",
+  "bitfieldAllocation",
+  "cLongWidth",
   "maxDefinitionLength",
   "maxLayoutNestingDepth",
   "maxExpressionNestingDepth",
@@ -238,15 +218,7 @@ function tryParseNative(api, definition, bytes, options) {
     return null;
   }
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const value = executeNativePlan(view, 0, plan.plan);
-  return {
-    ContractVersion: INTEROP_CONTRACT_VERSION,
-    Operation: "parse",
-    Success: true,
-    Data: { [plan.root]: value },
-    DebugData: [],
-    Error: null,
-  };
+  return envelope("parse", plan.root, executeNativePlan(view, 0, plan.plan));
 }
 
 function nativePlanOptionsEligible(options) {
@@ -306,7 +278,7 @@ function executeNativePlan(view, base, plan) {
         break;
       case "e": {
         const value = readNativeNumber(view, at, op);
-        result[op.name] = { Enum: op.enum, Name: op.lookup.get(String(value)) ?? null, Value: value };
+        result[op.name] = { kind: "enum", enum: op.enum, name: op.lookup.get(String(value)) ?? null, value };
         break;
       }
       case "c":
@@ -397,33 +369,56 @@ function nonFiniteText(value) {
  * with the same tie rule as the managed formatter: when two shortest decimals are equally close to the exact
  * binary value, the one whose last digit is even wins. `toPrecision` alone rounds such ties away from zero, which
  * made ~0.3 % of float32 values differ between this path and the WASM path.
+ *
+ * "Some decimal of p digits round-trips" is monotonic in p (rounding the exact value to more digits moves it closer),
+ * and nine digits always do, so the shortest precision is found by bisection - three or four probes instead of up to
+ * nine - and the exact BigInt comparison runs only when both candidates at that precision round-trip (a tie is
+ * possible), which is rare.
  */
 function float32AsProjected(value) {
   if (!Number.isFinite(value)) return nonFiniteText(value);
   if (value === 0) return value;
   const magnitude = Math.abs(value);
-  for (let precision = 1; precision <= 9; precision++) {
-    const upperText = magnitude.toExponential(precision - 1);
-    const upper = Number(upperText);
-    const upperFits = Math.fround(upper) === magnitude;
-    // toExponential rounds a tie away from zero, so the other candidate at this precision is one unit down.
-    const [mantissa, exponent] = upperText.split("e");
-    const digits = BigInt(mantissa.replace(".", ""));
-    const scale = Number(exponent) - (precision - 1);
-    const lowerDigits = digits - 1n;
-    const lower = lowerDigits > 0n ? Number(`${lowerDigits}e${scale}`) : NaN;
-    const lowerFits = Number.isFinite(lower) && Math.fround(lower) === magnitude;
-    if (!upperFits && !lowerFits) continue;
-    let chosen;
-    if (upperFits && lowerFits) {
-      const comparison = compareDecimalDistances(magnitude, digits, lowerDigits, scale);
-      chosen = comparison < 0 ? upper : comparison > 0 ? lower : digits % 2n === 0n ? upper : lower;
+  let low = 1;
+  let high = 9;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (float32CandidatesAt(magnitude, middle, false) === null) {
+      low = middle + 1;
     } else {
-      chosen = upperFits ? upper : lower;
+      high = middle;
     }
-    return value < 0 ? -chosen : chosen;
   }
-  return value;
+  const found = float32CandidatesAt(magnitude, low, true);
+  if (found === null) return value;
+  let chosen;
+  if (found.upperFits && found.lowerFits) {
+    const comparison = compareDecimalDistances(magnitude, BigInt(found.digits), BigInt(found.digits - 1), found.scale);
+    chosen = comparison < 0 ? found.upper : comparison > 0 ? found.lower : found.digits % 2 === 0 ? found.upper : found.lower;
+  } else {
+    chosen = found.upperFits ? found.upper : found.lower;
+  }
+  return value < 0 ? -chosen : chosen;
+}
+
+/**
+ * The two decimals of `precision` significant digits nearest to `magnitude` - `toExponential`'s rounding (ties away
+ * from zero) and the one a unit below it - and whether each round-trips to the same float32; null when neither does.
+ * A probe that only asks whether some decimal fits (`complete` false) stops at the upper candidate when it fits.
+ * Digit strings of at most nine digits are exact as Numbers, so the BigInt arithmetic stays out of this probe.
+ */
+function float32CandidatesAt(magnitude, precision, complete) {
+  const upperText = magnitude.toExponential(precision - 1);
+  const upper = Number(upperText);
+  const upperFits = Math.fround(upper) === magnitude;
+  if (upperFits && !complete) return { precision, upper, lower: NaN, upperFits, lowerFits: false, digits: 0, scale: 0 };
+  const exponentAt = upperText.indexOf("e");
+  const digits = Number(upperText.slice(0, exponentAt).replace(".", ""));
+  const scale = Number(upperText.slice(exponentAt + 1)) - (precision - 1);
+  const lower = digits > 1 ? Number(`${digits - 1}e${scale}`) : NaN;
+  const lowerFits = Number.isFinite(lower) && Math.fround(lower) === magnitude;
+  if (!upperFits && !lowerFits) return null;
+  return { precision, upper, lower, upperFits, lowerFits, digits, scale };
 }
 
 /**

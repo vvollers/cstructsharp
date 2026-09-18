@@ -2,7 +2,7 @@ const find = (id) => document.getElementById(id);
 const definition =
   "struct record { uint16 id; uint8 flags; }; struct root { uint16 signature; uint8 version; uint8 count; record records[2]; };";
 const options = {
-  rootTypeName: "root",
+  root: "root",
   aligned: false,
   littleEndian: true,
   pointerSize: 8,
@@ -28,11 +28,11 @@ function fail(message) {
 }
 
 function dataOrThrow(result) {
-  if (!result.Success)
+  if (!result.success)
     throw new Error(
-      `${result.Error.Code}: ${result.Error.Message} (path ${result.Error.Path ?? "unknown"}, offset ${result.Error.Offset ?? "unknown"})`,
+      `${result.error.code}: ${result.error.message} (path ${result.error.path ?? "unknown"}, offset ${result.error.offset ?? "unknown"})`,
     );
-  return result.Data;
+  return result.data;
 }
 
 try {
@@ -61,13 +61,13 @@ try {
     }
     const parsed = await parseWithDebug(definition, bytes, options);
     find("result").textContent = JSON.stringify(dataOrThrow(parsed), null, 2);
-    for (const field of parsed.DebugData) {
+    for (const field of parsed.debug) {
       const button = document.createElement("button");
       button.type = "button";
-      button.textContent = `${field.DebugStackString} · ${field.Type} · ${field.Value}`;
+      button.textContent = `${field.path} · ${field.type} · ${field.value}`;
       button.addEventListener("click", () => {
         find("selection").textContent =
-          `Offset ${field.CurPos}; width ${field.EndPos - field.CurPos} bytes; ${hex(bytes.slice(field.CurPos, field.EndPos))}`;
+          `Offset ${field.start}; width ${field.end - field.start} bytes; ${hex(bytes.slice(field.start, field.end))}`;
       });
       find("fields").append(button);
     }

@@ -73,12 +73,12 @@ test("every registered schema compiles in the real WASM parser", async ({ page }
       const result = JSON.parse(
         wasm.parseWithDebug(schema.definition, new Uint8Array(65536), {
           ...schema.parserOptions,
-          rootTypeName: "root",
+          root: "root",
           maxArrayElements: 1024,
         }),
       );
-      return result.Error?.Code === "invalid-layout"
-        ? [{ id: schema.id, error: result.Error }]
+      return result.error?.code === "invalid-layout"
+        ? [{ id: schema.id, error: result.error }]
         : [];
     });
   }, cases);
@@ -110,15 +110,15 @@ test("TIFF directory pointers and SQLite header fields decode actual values", as
         return JSON.parse(
           wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), {
             ...schema.parserOptions,
-            rootTypeName: "root",
+            root: "root",
           }),
         );
       },
       { schema, bytes: [...bytes] },
     );
-    expect(result.Success).toBe(true);
-    const json = JSON.stringify(result.Data);
-    if (ext === "tif") expect(json).toContain('"Name":"ImageWidth","Value":256');
+    expect(result.success).toBe(true);
+    const json = JSON.stringify(result.data);
+    if (ext === "tif") expect(json).toContain('"name":"ImageWidth","value":256');
     for (const [key, value] of Object.entries(expected))
       expect(json).toContain(`"${key}":${value}`);
   }

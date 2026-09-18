@@ -26,17 +26,12 @@ assert.equal(pkg.name, "cstructsharp");
 // Source files are deliberately unpublishable; only the complete staged package is public.
 delete pkg.private;
 fs.writeFileSync(path.join(stage, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
-fs.writeFileSync(
-  path.join(stage, "cstructsharp-api.js"),
-  fs
-    .readFileSync(path.join(wasmSource, "cstructsharp-api.js"), "utf8")
-    .replaceAll("./cstructsharp-wasm.js", "./index.d.ts"),
-);
-const types = fs
-  .readFileSync(path.join(wasmSource, "cstructsharp-wasm.d.ts"), "utf8")
-  .replace("Public browser bundle.", "Public Node.js and browser package.")
-  .replace("loadCStructSharpWasm():", "loadCStructSharpWasm(options?: { runtimeUrl?: string }):");
-fs.writeFileSync(path.join(stage, "index.d.ts"), types);
+// The API module's JSDoc names the ZIP bundle's declaration file; the package publishes the same declarations
+// as index.d.ts, which is the one source of truth (packages/cstructsharp/index.d.ts).
+const apiSource = fs.readFileSync(path.join(wasmSource, "cstructsharp-api.js"), "utf8");
+assert.ok(apiSource.includes("./cstructsharp-wasm.js"), "cstructsharp-api.js no longer references its declaration module; update the packaging rewrite.");
+fs.writeFileSync(path.join(stage, "cstructsharp-api.js"), apiSource.replaceAll("./cstructsharp-wasm.js", "./index.d.ts"));
+fs.copyFileSync(path.join(root, "packages/cstructsharp/index.d.ts"), path.join(stage, "index.d.ts"));
 fs.copyFileSync(path.join(root, "LICENSE.txt"), path.join(stage, "LICENSE.txt"));
 fs.writeFileSync(
   path.join(stage, "runtime-manifest.json"),

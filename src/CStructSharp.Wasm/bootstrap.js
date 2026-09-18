@@ -1,8 +1,8 @@
 /**
- * Locate and validate the managed exports, then expose the stable browser-facing adapter.
+ * Locate and validate the managed exports, then expose the stable browser-facing adapter (contract v8).
  * This module has no dependency on the .NET runtime and is therefore directly unit-testable.
  */
-import { compileLargeSource, parseLargeSource } from "./large-source.js";
+import { collectBytes, compileLargeSource, parseLargeSource, resolveAddressLargeSource } from "./large-source.js";
 
 export function createCStructSharpWasm(assemblyExports) {
   const managed =
@@ -17,6 +17,7 @@ export function createCStructSharpWasm(assemblyExports) {
     "ParseBytes",
     "Serialize",
     "UpdateStream",
+    "ResolveAddress",
     "GetVersion",
   ];
   const missing = required.filter(
@@ -31,11 +32,18 @@ export function createCStructSharpWasm(assemblyExports) {
   return {
     exports: assemblyExports,
     parseSource: parseLargeSource,
-    compile: (definition, options = null) =>
+    /**
+     * A dedicated worker runtime that retains one compiled layout. The public API supplies its serialize/update
+     * so the compiled layout's writes run on the calling thread through the same envelope builders.
+     */
+    compile: (definition, options = null, writers = {}) =>
       compileLargeSource(definition, options ?? {}, {
         parseBytes: (layout, bytes, parserOptions, debug) =>
           managed.ParseBytes(layout, bytes, stringifyOptions(parserOptions), debug),
+        ...writers,
       }),
+    resolveAddressSource: resolveAddressLargeSource,
+    collectBytes,
     parseWithDebug(definition, bytes, options = null) {
       return managed.ParseWithDebug(
         definition,
@@ -62,6 +70,9 @@ export function createCStructSharpWasm(assemblyExports) {
         valueJson,
         stringifyOptions(options),
       );
+    },
+    resolveAddress(definition, bytes, path, options = null) {
+      return managed.ResolveAddress(definition, bytes, path, stringifyOptions(options));
     },
     getVersion() {
       return managed.GetVersion();

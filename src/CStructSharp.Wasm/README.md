@@ -33,9 +33,9 @@ the old synchronous byte-array transport ceiling; returned values and read budge
 
 ```js
 import { parse } from "./cstructsharp-wasm.js";
-const result = await parse("struct header { uint32 signature; };", file, { rootTypeName: "header" });
-if (!result.Success) throw new Error(result.Error.Message);
-console.log(result.Data.header.signature);
+const result = await parse("struct header { uint32 signature; };", file, { root: "header" });
+if (!result.success) throw new Error(result.error.message);
+console.log(result.data.signature);
 ```
 
 See [large files, buffers, and streams](https://vvollers.github.io/cstructsharp/docs/guides/browser/large-data.html)
@@ -51,23 +51,23 @@ try {
   const result = await parseWithDebug(
     "struct header { uint16 kind; uint32 length; };",
     new Uint8Array([2, 0, 6, 0, 0, 0]),
-    { rootTypeName: "header" },
+    { root: "header" },
   );
-  if (result.Success) {
-    const values = result.Data;
-    console.log(values.header.kind); // 2; debug parses include the root wrapper
+  if (result.success) {
+    console.log(result.data.kind); // 2
+    console.log(result.debug[0]); // { start: 0, end: 2, path: "header.kind", type: "uint16", value: "2" }
   } else {
-    console.error(result.Error.Code, result.Error.Path, result.Error.Offset);
+    console.error(result.error.code, result.error.message, result.error.path, result.error.offset);
   }
 } catch (error) {
   console.error("Loading or JavaScript error:", error.message);
 }
 ```
 
-Also exported: `serialize(definition, value, options)`, `update(definition, bytes, path, value, options)`,
-`getVersion()`, and `loadCStructSharpWasm()`. All return promises. Serialize and update return a `Uint8Array` in `Data`.
-Use it directly; older examples that call `atob(result.Data)` should remove that conversion.
-Pass the selected struct's fields when serializing, without the debug root wrapper.
+Also exported: `serialize(definition, value, options)`, `update(definition, source, path, value, options)`,
+`resolveAddress(definition, source, path, options)`, `getVersion()`, and `loadCStructSharpWasm()`. All return
+promises. Serialize and update return a `Uint8Array` in `data`; resolveAddress returns the byte position. Pass the
+selected struct's fields when serializing; a parse result's `data` works as is.
 
 Keep `cstructsharp-wasm.js`, `cstructsharp-api.js`, `main.js`, `bootstrap.js`, the runtime configuration, and `_framework/` together.
 Serve over HTTP(S), not `file://`, with `.wasm` served as `application/wasm`. Relative imports work under a deployment
@@ -75,7 +75,7 @@ subdirectory when the complete bundle is kept together. The included server is f
 
 A definition written for dissect.cstruct or copied from a Windows SDK / Linux kernel header compiles as it is:
 `DWORD`/`BYTE`/`__u32` spellings, `typedef struct _X { ... } X, *PX;`, `flag` declarations (their values carry
-`Names` and `Remainder` next to `Enum`/`Name`/`Value`), `[EOF]` and `[]` arrays, `#define`/`#ifdef`/`#pragma pack`
+`names` and `remainder` next to `enum`/`name`/`value`), `[EOF]` and `[]` arrays, `#define`/`#ifdef`/`#pragma pack`
 lines, and inline unions whose members appear directly on the parent object. See the
 [migration guide](https://vvollers.github.io/cstructsharp/docs/guides/migrating-from-dissect.html).
 
@@ -86,8 +86,8 @@ large integers, union values, and the differences from C#. Read the
 ## TypeScript
 
 Keep `cstructsharp-wasm.d.ts` beside the public JavaScript entry point. Editors discover the options and
-success/failure result types from the same import. After checking `Success`, parse `Data` is the parsed value and
-serialize/update `Data` is a `Uint8Array`. No explorer source or separate type package is required.
+success/failure result types from the same import. After checking `success`, parse `data` is the selected value and
+serialize/update `data` is a `Uint8Array`. No explorer source or separate type package is required.
 
 ## Reusing a compiled layout
 
@@ -98,13 +98,13 @@ const layout = await compile("struct root { uint32 value; };", { littleEndian: t
 try {
   const result = await layout.parse(new Uint8Array([42, 0, 0, 0]));
   const debug = await layout.parseWithDebug(new Blob([new Uint8Array([42, 0, 0, 0])]));
-  if (result.Success) console.log(result.Data);
+  if (result.success) console.log(result.data);
 } finally {
   await layout.dispose();
 }
 ```
 
-`compile(definition, layoutOptions)` validates and retains an immutable layout in a dedicated worker/runtime. It rejects on invalid definitions; the error's `details` property contains the bridge diagnostic. `parse` and `parseWithDebug` accept the same binary sources and read limits as the existing functions and return the same version-7 envelopes (with the parsed value in `Data`). Compiler settings are fixed; read options may override `rootTypeName`, addressing and resource limits. Passing a compiler setting to a retained read rejects.
+`compile(definition, layoutOptions)` validates and retains an immutable layout in a dedicated worker/runtime. It rejects on invalid definitions; the error's `details` property contains the bridge diagnostic. The handle reports the selected `root` and exposes `parse`, `parseWithDebug`, `serialize`, `update`, and `resolveAddress`; they accept the same binary sources and per-operation options as the standalone functions and return the same version-8 envelopes (with the selected value in `data`). Compiler settings are fixed; per-call options may override `root`, addressing and resource limits. Passing a compiler setting to a retained call rejects.
 
 Calls on one handle are queued, with independent read state. Byte views are snapshotted when their queued read starts; keep inputs unchanged until the read completes. Separate handles have separate runtimes. Cancellation rejects with `AbortError`; an active parse is stopped by terminating its worker. The next read recreates the runtime and recompiles the saved definition. Cancelling a queued read does not cancel the active read. Always `await dispose()` to cancel outstanding calls, finish source cleanup, and release the worker and layout. Disposal is idempotent; subsequent reads reject. Keep handles only for layouts you need: each owns a WASM runtime, not merely a small native descriptor. Node idle workers do not keep the process alive.
 

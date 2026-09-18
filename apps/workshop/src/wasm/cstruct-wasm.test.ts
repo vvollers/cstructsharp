@@ -3,20 +3,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { InteropResult, RawWasmAdapter } from "./cstruct-contract";
 
 const validParseResult: InteropResult = {
-  ContractVersion: 7,
-  Operation: "parse",
-  Success: true,
-  Data: { root: { value: 42 } },
-  DebugData: [
+  contractVersion: 8,
+  operation: "parse",
+  success: true,
+  root: "root",
+  data: { value: 42 },
+  debug: [
     {
-      CurPos: 0,
-      EndPos: 1,
-      DebugStackString: "root.value",
-      Type: "byte",
-      Value: "42",
+      start: 0,
+      end: 1,
+      path: "root.value",
+      type: "byte",
+      value: "42",
     },
   ],
-  Error: null,
+  error: null,
 };
 
 function installAdapter(overrides: Partial<RawWasmAdapter> = {}): RawWasmAdapter {
@@ -25,6 +26,8 @@ function installAdapter(overrides: Partial<RawWasmAdapter> = {}): RawWasmAdapter
     ready: true,
     error: null,
     parseWithDebug: vi.fn(() => JSON.stringify(validParseResult)),
+    parseBytes: vi.fn(() => JSON.stringify(validParseResult)),
+    parseSource: vi.fn(async () => validParseResult) as unknown as RawWasmAdapter["parseSource"],
     serialize: vi.fn(() => new Uint8Array([0x2a])),
     updateStream: vi.fn(() => new Uint8Array([0x2a])),
     getVersion: vi.fn(() => "test"),
@@ -67,7 +70,7 @@ describe("CStructSharp WASM browser boundary", () => {
     const { parseWithDebug } = await import("./cstruct-wasm");
     const bytes = Uint8Array.from({ length: 1_048_576 }, (_, index) => index & 0xff);
     const options = {
-      rootTypeName: "root",
+      root: "root",
       aligned: true,
       pointerSize: 4,
       littleEndian: false,
@@ -98,19 +101,29 @@ describe("CStructSharp WASM browser boundary", () => {
   });
 
   it.each([
-    ["missing data", { ...validParseResult, Data: undefined }],
-    ["malformed debug entry", { ...validParseResult, DebugData: [{}] }],
+    ["malformed debug entry", { ...validParseResult, debug: [{}] }],
+    ["malformed root", { ...validParseResult, root: 7 }],
     [
       "success with an error",
       {
         ...validParseResult,
-        Error: { Code: "bad", Message: "bad", Offset: null, Path: null },
+        error: {
+          code: "bad",
+          message: "bad",
+          offset: null,
+          path: null,
+          member: null,
+          memberType: null,
+          line: null,
+          column: null,
+        },
       },
     ],
     [
       "failure without an error",
-      { ...validParseResult, Success: false, Data: null, DebugData: [], Error: null },
+      { ...validParseResult, success: false, data: null, debug: [], error: null },
     ],
+    ["stale contract version", { ...validParseResult, contractVersion: 7 }],
   ])("rejects a structurally invalid envelope: %s", async (_name, response) => {
     installAdapter({ parseWithDebug: vi.fn(() => JSON.stringify(response)) });
     const { parseWithDebug } = await import("./cstruct-wasm");
@@ -125,8 +138,8 @@ describe("CStructSharp WASM browser boundary", () => {
     const { serialize, updateStream } = await import("./cstruct-wasm");
 
     const serialized = serialize("struct root { byte value; };", { value: 42 });
-    expect(serialized.Success).toBe(true);
-    expect(serialized.Data).toEqual(new Uint8Array([0x2a]));
+    expect(serialized.success).toBe(true);
+    expect(serialized.data).toEqual(new Uint8Array([0x2a]));
     expect(adapter.serialize).toHaveBeenCalledOnce();
 
     const updated = updateStream(
@@ -135,17 +148,22 @@ describe("CStructSharp WASM browser boundary", () => {
       "root.value",
       42,
     );
-    expect(updated.Success).toBe(true);
-    expect(updated.Data).toEqual(new Uint8Array([0x2a]));
+    expect(updated.success).toBe(true);
+    expect(updated.data).toEqual(new Uint8Array([0x2a]));
     expect(adapter.updateStream).toHaveBeenCalledOnce();
   });
 
   it("reconstructs the structured error from a thrown serialize/update failure", async () => {
     const errorJson = JSON.stringify({
-      Code: "write-budget",
-      Message: "A binary write safety limit was exceeded.",
-      Offset: 12,
-      Path: "root.value",
+      code: "write-budget",
+      message:
+        "Write operation exceeded the configured total write-byte limit (field 'value' (byte), in 'root', offset 12).",
+      offset: 12,
+      path: "root.value",
+      member: "value",
+      memberType: "byte",
+      line: null,
+      column: null,
     });
     installAdapter({
       serialize: vi.fn(() => {
@@ -155,13 +173,18 @@ describe("CStructSharp WASM browser boundary", () => {
     const { serialize } = await import("./cstruct-wasm");
 
     const result = serialize("struct root { byte value; };", { value: 42 });
-    expect(result.Success).toBe(false);
-    expect(result.Data).toBeNull();
-    expect(result.Error).toEqual({
-      Code: "write-budget",
-      Message: "A binary write safety limit was exceeded.",
-      Offset: 12,
-      Path: "root.value",
+    expect(result.success).toBe(false);
+    expect(result.data).toBeNull();
+    expect(result.error).toEqual({
+      code: "write-budget",
+      message:
+        "Write operation exceeded the configured total write-byte limit (field 'value' (byte), in 'root', offset 12).",
+      offset: 12,
+      path: "root.value",
+      member: "value",
+      memberType: "byte",
+      line: null,
+      column: null,
     });
   });
 

@@ -65,10 +65,11 @@
         0
       ],
       "e_lfanew": {
-        "Address": 64,
-        "Depth": 1,
-        "IsDereferenced": true,
-        "Value": {
+        "kind": "pointer",
+        "address": 64,
+        "depth": 1,
+        "dereferenced": true,
+        "value": {
           "signature": "PE\u0000\u0000",
           "machine": 34404,
           "number_of_sections": 1,
@@ -82,6 +83,6 @@
       }
     }
   },
-  "expectedSha256": "76eff953b501583f2f10aa56e8c443f7068a09d470c232a83adc2543a4ff656b",
-  "expectedJsonLength": 531
+  "expectedSha256": "be75d882fadee69be5c56ca4c9245bf72fa0921abaf3bbca78f8683a7f9006be",
+  "expectedJsonLength": 546
 }

@@ -5,12 +5,12 @@ import { DEFAULT_ASCII_CATEGORY_CELL_CLASS_RESOLVER, VueHex } from "vuehex";
 import { useBinarySource } from "../composables/useBinarySource";
 
 import { computeFieldGroups, findDebugEntryIndexByOffset } from "../debug-path";
-import type { DebugDataItem } from "../wasm/cstruct-contract";
+import type { DebugItem } from "../wasm/cstruct-contract";
 
 const props = defineProps<{
   bytes: Uint8Array;
   source: Blob | null;
-  debugData: DebugDataItem[];
+  debugData: DebugItem[];
   selectedIndices: ReadonlySet<number>;
 }>();
 
@@ -76,7 +76,7 @@ watch(
     let offset = Number.POSITIVE_INFINITY;
     for (const index of indices) {
       const entry = props.debugData[index];
-      if (entry) offset = Math.min(offset, entry.CurPos);
+      if (entry) offset = Math.min(offset, entry.start);
     }
 
     if (!Number.isFinite(offset)) return;

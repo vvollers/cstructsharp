@@ -22,13 +22,13 @@ for (const f of fixtures.filter(f=>label!=='main'||!f.conditional)) {
  managed.BenchmarkCompile(f.definition);
  if(managed.BenchmarkParseCore(bytes)!==bytes.length) throw Error('Length mismatch '+f.name);
  const compiledData=JSON.parse(managed.BenchmarkParse(bytes));
- const retained = managed.InitializeCompiledLayout ? await api.compile(f.definition,{aligned:false,rootTypeName:'root'}) : null;
+ const retained = managed.InitializeCompiledLayout ? await api.compile(f.definition,{aligned:false,root:'root'}) : null;
  for(const op of (process.env.BENCH_OPERATIONS?.split(',') || ['compile','parseCore','parseJson','publicParse','publicDebug',...(retained?['compiledParse','compiledDebug']:[])])) {
-  const action=op==='compiledParse'?()=>retained.parse(bytes):op==='compiledDebug'?()=>retained.parseWithDebug(bytes):op==='compile'?()=>managed.BenchmarkCompile(f.definition):op==='parseCore'?()=>managed.BenchmarkParseCore(bytes):op==='parseJson'?()=>JSON.parse(managed.BenchmarkParse(bytes)):op==='publicParse'?()=>api.parse(f.definition,bytes,{aligned:false,rootTypeName:'root'}):()=>api.parseWithDebug(f.definition,bytes,{aligned:false,rootTypeName:'root'});
+  const action=op==='compiledParse'?()=>retained.parse(bytes):op==='compiledDebug'?()=>retained.parseWithDebug(bytes):op==='compile'?()=>managed.BenchmarkCompile(f.definition):op==='parseCore'?()=>managed.BenchmarkParseCore(bytes):op==='parseJson'?()=>JSON.parse(managed.BenchmarkParse(bytes)):op==='publicParse'?()=>api.parse(f.definition,bytes,{aligned:false,root:'root'}):()=>api.parseWithDebug(f.definition,bytes,{aligned:false,root:'root'});
   const check=await action();
   if(op.startsWith('public') || op.startsWith('compiled')) {
-    if(!check.Success) throw Error(JSON.stringify(check));
-    if(JSON.stringify(check.Data.root)!==JSON.stringify(compiledData)) throw Error('Data mismatch '+f.name);
+    if(!check.success) throw Error(JSON.stringify(check));
+    if(JSON.stringify(check.data)!==JSON.stringify(compiledData)) throw Error('Data mismatch '+f.name);
   }
   let sink, count=0, start=performance.now();
   while(performance.now()-start<600){sink=await action();count++;}

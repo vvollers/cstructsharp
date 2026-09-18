@@ -20,23 +20,23 @@ test("common formats parse one standalone definition against the complete source
         return wasm.parseSource(
           schema.definition,
           new Blob([new Uint8Array(bytes)]),
-          { ...schema.parserOptions, rootTypeName: "root" },
+          { ...schema.parserOptions, root: "root" },
           true,
         );
       },
       { schema, bytes: [...files[ext]!] },
     );
-    expect(result.Success, `${ext}: ${JSON.stringify(result.Error)}`).toBe(true);
-    const header = result.Data.root.header;
+    expect(result.success, `${ext}: ${JSON.stringify(result.error)}`).toBe(true);
+    const header = result.data.header;
     if (ext === "png") {
       expect(header.chunk_0.width).toBe(320);
       expect(header.chunk_2.gamma_times_100000).toBe(45455);
       expect(header.chunk_3.colors[0]).toEqual({ red: 10, green: 20, blue: 30 });
-      expect(result.DebugData).toContainEqual(
+      expect(result.debug).toContainEqual(
         expect.objectContaining({
-          DebugStackString: "root.header.chunk_2.gamma_times_100000",
-          CurPos: 70053,
-          EndPos: 70057,
+          path: "root.header.chunk_2.gamma_times_100000",
+          start: 70053,
+          end: 70057,
         }),
       );
     }
@@ -53,11 +53,12 @@ test("common formats parse one standalone definition against the complete source
     if (ext === "zip")
       expect(header.local).toMatchObject({ filename_cp437: "a", flags: { data_descriptor: 1 } });
     if (ext === "exe") {
-      expect(header.pe.Address).toBe(66000);
-      expect(header.pe.Value.pe32.directories).toHaveLength(16);
-      expect(header.pe.Value.sections[0].raw_data).toMatchObject({
-        Address: 70000,
-        IsDereferenced: true,
+      expect(header.pe.address).toBe(66000);
+      expect(header.pe.value.pe32.directories).toHaveLength(16);
+      expect(header.pe.value.sections[0].raw_data).toMatchObject({
+        kind: "pointer",
+        address: 70000,
+        dereferenced: true,
       });
     }
     if (ext === "elf") expect(header.header64_le.section_headers_offset).toBe(66000);
@@ -76,15 +77,15 @@ test("the same definitions select PE32+, big-endian ELF and PDF header variants"
         return wasm.parseSource(
           schema.definition,
           new Blob([new Uint8Array(bytes)]),
-          { ...schema.parserOptions, rootTypeName: "root" },
+          { ...schema.parserOptions, root: "root" },
           false,
         );
       },
       { schema, bytes: [...variant.bytes] },
     );
-    expect(result.Success, `${variant.name}: ${JSON.stringify(result.Error)}`).toBe(true);
-    const header = result.Data.root.header;
-    if (variant.ext === "exe") expect(header.pe.Value.pe64.image_base).toBe(5368709120);
+    expect(result.success, `${variant.name}: ${JSON.stringify(result.error)}`).toBe(true);
+    const header = result.data.header;
+    if (variant.ext === "exe") expect(header.pe.value.pe64.image_base).toBe(5368709120);
     if (variant.ext === "elf") expect(header.header64_be.section_headers_offset).toBe(66000);
     if (variant.ext === "pdf") expect(header.version).toBe("1.7");
   }
@@ -106,16 +107,16 @@ test("PNG branches follow changed tags and lengths without regenerating the layo
         return JSON.parse(
           wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), {
             ...schema.parserOptions,
-            rootTypeName: "root",
+            root: "root",
           }),
         );
       },
       { schema, bytes: [...gamma] },
     );
-    expect(result.Success, JSON.stringify(result.Error)).toBe(true);
-    if (valid) expect(result.Data.root.header.chunk_0.gamma_times_100000).toBe(45455);
-    else expect(result.Data.root.header.chunk_0.invalid_gamma).toHaveLength(3);
-    expect(result.Data.root.header).not.toHaveProperty("chunk_2");
+    expect(result.success, JSON.stringify(result.error)).toBe(true);
+    if (valid) expect(result.data.header.chunk_0.gamma_times_100000).toBe(45455);
+    else expect(result.data.header.chunk_0.invalid_gamma).toHaveLength(3);
+    expect(result.data.header).not.toHaveProperty("chunk_2");
   }
 });
 
@@ -129,15 +130,15 @@ test("binary STL reads every declared triangle instead of a preview cap", async 
       return JSON.parse(
         wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), {
           ...schema.parserOptions,
-          rootTypeName: "root",
+          root: "root",
         }),
       );
     },
     { schema: schemaForFile("stl"), bytes: [...bytes] },
   );
-  expect(result.Success, JSON.stringify(result.Error)).toBe(true);
-  expect(result.Data.root.header.triangles).toHaveLength(129);
-  expect(result.Data.root.header.triangles[128].normal[0]).toBe(3.5);
+  expect(result.success, JSON.stringify(result.error)).toBe(true);
+  expect(result.data.header.triangles).toHaveLength(129);
+  expect(result.data.header.triangles[128].normal[0]).toBe(3.5);
 });
 
 test("BMP calibration uses fixed-point values only for calibrated RGB", async ({ page }) => {
@@ -160,30 +161,30 @@ test("BMP calibration uses fixed-point values only for calibrated RGB", async ({
       const result = await page.evaluate(
         ({ schema, bytes }) => {
           const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
-          const options = { ...schema.parserOptions, rootTypeName: "root" };
+          const options = { ...schema.parserOptions, root: "root" };
           const parsed = JSON.parse(
             wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), options),
           );
           return {
             parsed,
-            encoded: parsed.Success
-              ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.Data.root), options)]
+            encoded: parsed.success
+              ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.data), options)]
               : [],
           };
         },
         { schema, bytes: [...input] },
       );
-      expect(result.parsed.Success, JSON.stringify(result.parsed.Error)).toBe(true);
+      expect(result.parsed.success, JSON.stringify(result.parsed.error)).toBe(true);
       expect(result.encoded).toEqual([...input]);
-      const root = result.parsed.Data.root.header;
+      const root = result.parsed.data.header;
       if (calibrated) {
         expect(root.endpoints_xyz[0]).toEqual([0.5, -0.25, 0]);
         expect([root.gamma_red, root.gamma_green, root.gamma_blue]).toEqual([1.5, 2, 2.5]);
-        expect(result.parsed.DebugData).toContainEqual(
+        expect(result.parsed.debug).toContainEqual(
           expect.objectContaining({
-            DebugStackString: "root.header.gamma_red",
-            CurPos: 110,
-            EndPos: 114,
+            path: "root.header.gamma_red",
+            start: 110,
+            end: 114,
           }),
         );
       } else {
@@ -211,30 +212,30 @@ test("Palm record IDs use three-byte big-endian integers with exact array stride
   const result = await page.evaluate(
     ({ schema, bytes }) => {
       const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
-      const options = { ...schema.parserOptions, rootTypeName: "root" };
+      const options = { ...schema.parserOptions, root: "root" };
       const parsed = JSON.parse(
         wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), options),
       );
       return {
         parsed,
-        encoded: parsed.Success
-          ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.Data.root), options)]
+        encoded: parsed.success
+          ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.data), options)]
           : [],
       };
     },
     { schema, bytes: [...bytes] },
   );
-  expect(result.parsed.Success, JSON.stringify(result.parsed.Error)).toBe(true);
-  expect(result.parsed.Data.root.header.records).toEqual([
+  expect(result.parsed.success, JSON.stringify(result.parsed.error)).toBe(true);
+  expect(result.parsed.data.header.records).toEqual([
     { offset: 100, attributes: 64, unique_id: 0x123456 },
     { offset: 200, attributes: 128, unique_id: 0xffffff },
   ]);
   expect(result.encoded).toEqual([...bytes]);
-  expect(result.parsed.DebugData).toContainEqual(
+  expect(result.parsed.debug).toContainEqual(
     expect.objectContaining({
-      DebugStackString: "root.header.records[1].unique_id",
-      CurPos: 91,
-      EndPos: 94,
+      path: "root.header.records[1].unique_id",
+      start: 91,
+      end: 94,
     }),
   );
 });

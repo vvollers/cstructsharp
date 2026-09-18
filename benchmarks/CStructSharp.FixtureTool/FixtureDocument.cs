@@ -24,12 +24,14 @@ public sealed class FixtureDocument
     [JsonPropertyName("tags")]
     public List<string> Tags { get; set; } = [];
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("notes")]
     public string? Notes { get; set; }
 
     [JsonPropertyName("definition")]
     public string Definition { get; set; } = string.Empty;
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("definitions")]
     public List<string>? Definitions { get; set; }
 

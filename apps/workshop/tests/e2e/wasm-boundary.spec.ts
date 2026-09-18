@@ -20,7 +20,7 @@ interface PositionalTestAdapter extends Omit<
   serializeToBase64(
     definition: string,
     dataJson: string,
-    rootTypeName: string | null,
+    root: string | null,
     aligned: boolean,
     pointerSize: number,
   ): string;
@@ -50,7 +50,7 @@ test.beforeEach(async ({ page }) => {
   });
   await page.evaluate(() => {
     const raw = window.CStructSharpWasm as unknown as RawWasmAdapter;
-    const CONTRACT_VERSION = 7;
+    const CONTRACT_VERSION = 8;
 
     const toBytes = (base64: string): Uint8Array =>
       Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
@@ -67,22 +67,22 @@ test.beforeEach(async ({ page }) => {
     ): string => {
       try {
         return JSON.stringify({
-          ContractVersion: CONTRACT_VERSION,
-          Operation: operation,
-          Success: true,
-          Data: toBase64(invoke()),
-          DebugData: [],
-          Error: null,
+          contractVersion: CONTRACT_VERSION,
+          operation: operation,
+          success: true,
+          data: toBase64(invoke()),
+          debug: [],
+          error: null,
         });
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : String(cause);
         return JSON.stringify({
-          ContractVersion: CONTRACT_VERSION,
-          Operation: operation,
-          Success: false,
-          Data: null,
-          DebugData: [],
-          Error: JSON.parse(message),
+          contractVersion: CONTRACT_VERSION,
+          operation: operation,
+          success: false,
+          data: null,
+          debug: [],
+          error: JSON.parse(message),
         });
       }
     };
@@ -92,9 +92,9 @@ test.beforeEach(async ({ page }) => {
       parseWithDebug(definition, binaryBase64, options) {
         return raw.parseWithDebug(definition, toBytes(binaryBase64), options);
       },
-      serializeToBase64(definition, dataJson, rootTypeName, aligned, pointerSize) {
+      serializeToBase64(definition, dataJson, root, aligned, pointerSize) {
         return toEnvelopeJson("serialize", () =>
-          raw.serialize(definition, dataJson, { rootTypeName, aligned, pointerSize }),
+          raw.serialize(definition, dataJson, { root, aligned, pointerSize }),
         );
       },
       updateStreamToBase64(
@@ -140,19 +140,19 @@ test("real managed exports parse, serialize, and update through the browser", as
         wasm.parseWithDebug(
           "union choice { uint8 small; uint16 large; }; struct root { choice *target; };",
           "ATQS",
-          { rootTypeName: "root", pointerSize: 1 },
+          { root: "root", pointerSize: 1 },
         ),
       ) as Envelope,
       unionParse: JSON.parse(
         wasm.parseWithDebug("union choice { uint8 small; uint16 large; };", "NBI=", {
-          rootTypeName: "choice",
+          root: "choice",
           pointerSize: 1,
         }),
       ) as Envelope,
       selectedUnionSerialize: JSON.parse(
         wasm.serializeToBase64(
           "union choice { uint8 small; uint16 large; };",
-          '{"$kind":"union","Union":"choice","RawStorage":null,"Members":{"small":165},"SelectedMember":"small"}',
+          '{"kind":"union","union":"choice","rawStorage":null,"members":{"small":165},"selectedMember":"small"}',
           "choice",
           false,
           1,
@@ -161,7 +161,7 @@ test("real managed exports parse, serialize, and update through the browser", as
       rawUnionSerialize: JSON.parse(
         wasm.serializeToBase64(
           "union choice { uint8 small; uint16 large; };",
-          '{"$kind":"union","Union":"choice","RawStorage":"NBI=","Members":{},"SelectedMember":null}',
+          '{"kind":"union","union":"choice","rawStorage":"NBI=","members":{},"selectedMember":null}',
           "choice",
           false,
           1,
@@ -181,7 +181,7 @@ test("real managed exports parse, serialize, and update through the browser", as
           "union choice { uint8 small; uint16 large; };",
           "NBI=",
           "choice",
-          '{"$kind":"union","Union":"choice","RawStorage":null,"Members":{"small":165},"SelectedMember":"small"}',
+          '{"kind":"union","union":"choice","rawStorage":null,"members":{"small":165},"selectedMember":"small"}',
           false,
           1,
           "Absolute",
@@ -287,177 +287,170 @@ test("real managed exports parse, serialize, and update through the browser", as
   });
 
   expect(results.parse).toMatchObject({
-    ContractVersion: 7,
-    Operation: "parse",
-    Success: true,
-    Error: null,
+    contractVersion: 8,
+    operation: "parse",
+    success: true,
+    error: null,
   });
-  expect(results.parse.Data ?? {}).toEqual({
-    root: { value: 42 },
-  });
+  expect(results.parse.data).toEqual({ value: 42 });
   expect(results.scopedInlineParse).toMatchObject({
-    ContractVersion: 7,
-    Operation: "parse",
-    Success: true,
-    Error: null,
+    contractVersion: 8,
+    operation: "parse",
+    success: true,
+    error: null,
   });
-  expect(results.scopedInlineParse.Data ?? {}).toEqual({
-    first: { value: { small: 42 } },
-  });
+  expect(results.scopedInlineParse.data).toEqual({ value: { small: 42 } });
   expect(results.pointerUnionParse).toMatchObject({
-    ContractVersion: 7,
-    Operation: "parse",
-    Success: true,
-    Error: null,
+    contractVersion: 8,
+    operation: "parse",
+    success: true,
+    error: null,
   });
-  expect(results.pointerUnionParse.Data ?? {}).toEqual({
-    root: {
-      target: {
-        Address: 1,
-        Depth: 1,
-        IsDereferenced: true,
-        Value: {
-          $kind: "union",
-          Union: "choice",
-          RawStorage: "NBI=",
-          Members: { small: 52, large: 4660 },
-          SelectedMember: null,
-        },
+  expect(results.pointerUnionParse.data).toEqual({
+    target: {
+      kind: "pointer",
+      address: 1,
+      depth: 1,
+      dereferenced: true,
+      value: {
+        kind: "union",
+        union: "choice",
+        rawStorage: "NBI=",
+        members: { small: 52, large: 4660 },
+        selectedMember: null,
       },
     },
   });
   expect(results.unionParse).toMatchObject({
-    ContractVersion: 7,
-    Operation: "parse",
-    Success: true,
-    Error: null,
+    contractVersion: 8,
+    operation: "parse",
+    success: true,
+    error: null,
   });
-  expect(results.unionParse.Data ?? {}).toEqual({
-    $kind: "union",
-    Union: "choice",
-    RawStorage: "NBI=",
-    Members: { small: 52, large: 4660 },
-    SelectedMember: null,
+  expect(results.unionParse.data).toEqual({
+    kind: "union",
+    union: "choice",
+    rawStorage: "NBI=",
+    members: { small: 52, large: 4660 },
+    selectedMember: null,
   });
   expect(results.selectedUnionSerialize).toMatchObject({
-    ContractVersion: 7,
-    Operation: "serialize",
-    Success: true,
-    Data: "pQA=",
-    Error: null,
+    contractVersion: 8,
+    operation: "serialize",
+    success: true,
+    data: "pQA=",
+    error: null,
   });
   expect(results.rawUnionSerialize).toMatchObject({
-    ContractVersion: 7,
-    Operation: "serialize",
-    Success: true,
-    Data: "NBI=",
-    Error: null,
+    contractVersion: 8,
+    operation: "serialize",
+    success: true,
+    data: "NBI=",
+    error: null,
   });
   expect(results.legacyUnionSerialize).toMatchObject({
-    ContractVersion: 7,
-    Operation: "serialize",
-    Success: false,
-    Data: null,
-    Error: {
-      Code: "write-failed",
+    contractVersion: 8,
+    operation: "serialize",
+    success: false,
+    data: null,
+    error: {
+      code: "write-failed",
     },
   });
   expect(results.selectedUnionUpdate).toMatchObject({
-    ContractVersion: 7,
-    Operation: "update",
-    Success: true,
-    Data: "pQA=",
-    Error: null,
+    contractVersion: 8,
+    operation: "update",
+    success: true,
+    data: "pQA=",
+    error: null,
   });
   expect(results.serialize).toMatchObject({
-    ContractVersion: 7,
-    Operation: "serialize",
-    Success: true,
-    Data: "Kg==",
-    Error: null,
+    contractVersion: 8,
+    operation: "serialize",
+    success: true,
+    data: "Kg==",
+    error: null,
   });
   expect(results.selectedArraySerialize).toMatchObject({
-    ContractVersion: 7,
-    Operation: "serialize",
-    Success: true,
-    Data: "NBI=",
-    Error: null,
+    contractVersion: 8,
+    operation: "serialize",
+    success: true,
+    data: "NBI=",
+    error: null,
   });
   expect(results.update).toMatchObject({
-    ContractVersion: 7,
-    Operation: "update",
-    Success: true,
-    Data: "Kg==",
-    Error: null,
+    contractVersion: 8,
+    operation: "update",
+    success: true,
+    data: "Kg==",
+    error: null,
   });
   expect(results.alignedPointerUpdate).toMatchObject({
-    ContractVersion: 7,
-    Operation: "update",
-    Success: true,
-    Data: "A+6l775+",
-    Error: null,
+    contractVersion: 8,
+    operation: "update",
+    success: true,
+    data: "A+6l775+",
+    error: null,
   });
   expect(results.relativeNullPointer).toMatchObject({
-    ContractVersion: 7,
-    Operation: "update",
-    Success: true,
-    Data: "AA==",
-    Error: null,
+    contractVersion: 8,
+    operation: "update",
+    success: true,
+    data: "AA==",
+    error: null,
   });
   expect(results.nullPointerSerialize).toMatchObject({
-    ContractVersion: 7,
-    Operation: "serialize",
-    Success: true,
-    Data: "AKU=",
-    Error: null,
+    contractVersion: 8,
+    operation: "serialize",
+    success: true,
+    data: "AKU=",
+    error: null,
   });
   expect(results.nullRootPointerSerialize).toMatchObject({
-    ContractVersion: 7,
-    Operation: "serialize",
-    Success: true,
-    Data: "AAA=",
-    Error: null,
+    contractVersion: 8,
+    operation: "serialize",
+    success: true,
+    data: "AAA=",
+    error: null,
   });
   expect(results.nullPrimitiveSerialize).toMatchObject({
-    ContractVersion: 7,
-    Operation: "serialize",
-    Success: false,
-    Data: null,
-    Error: {
-      Code: "write-failed",
+    contractVersion: 8,
+    operation: "serialize",
+    success: false,
+    data: null,
+    error: {
+      code: "write-failed",
     },
   });
   expect(results.nullRootStructSerialize).toMatchObject({
-    ContractVersion: 7,
-    Operation: "serialize",
-    Success: false,
-    Data: null,
-    Error: {
-      Code: "write-failed",
+    contractVersion: 8,
+    operation: "serialize",
+    success: false,
+    data: null,
+    error: {
+      code: "write-failed",
     },
   });
   expect(results.explicitBigEndianWideParse).toMatchObject({
-    ContractVersion: 7,
-    Operation: "parse",
-    Success: true,
-    Error: null,
+    contractVersion: 8,
+    operation: "parse",
+    success: true,
+    error: null,
   });
-  expect(results.explicitBigEndianWideParse.Data ?? {}).toEqual({
-    root: { value: "A" },
-  });
+  expect(results.explicitBigEndianWideParse.data).toEqual({ value: "A" });
   expect(results.explicitBigEndianWideSerialize).toMatchObject({
-    ContractVersion: 7,
-    Operation: "serialize",
-    Success: true,
-    Data: "AEEAAA==",
-    Error: null,
+    contractVersion: 8,
+    operation: "serialize",
+    success: true,
+    data: "AEEAAA==",
+    error: null,
   });
   expect(results.explicitBigEndianWideUpdate).toMatchObject({
-    ContractVersion: 7,
-    Operation: "update",
-    Success: true,
-    Data: "AEIAAA==",
-    Error: null,
+    contractVersion: 8,
+    operation: "update",
+    success: true,
+    data: "AEIAAA==",
+    error: null,
   });
 });
 
@@ -487,20 +480,18 @@ test("64-bit values remain exact and invalid options return stable errors", asyn
     };
   });
 
-  expect(results.parse.Data ?? {}).toEqual({
-    root: { value: "18446744073709551615" },
-  });
+  expect(results.parse.data).toEqual({ value: "18446744073709551615" });
   expect(results.serialize).toMatchObject({
-    Success: true,
-    Data: "//////////8=",
+    success: true,
+    data: "//////////8=",
   });
   expect(results.invalidMode).toMatchObject({
-    ContractVersion: 7,
-    Operation: "update",
-    Success: false,
-    Data: null,
-    Error: {
-      Code: "invalid-input",
+    contractVersion: 8,
+    operation: "update",
+    success: false,
+    data: null,
+    error: {
+      code: "invalid-input",
     },
   });
 });
@@ -518,7 +509,7 @@ test("v4 options control endian behavior and enforce caller-selected safety budg
     return {
       bigEndian: parse(
         wasm.parseWithDebug(definition, toBytes("EjQ="), {
-          rootTypeName: "root",
+          root: "root",
           littleEndian: false,
           pointerSize: 4,
         }),
@@ -542,28 +533,26 @@ test("v4 options control endian behavior and enforce caller-selected safety budg
   });
 
   expect(results.bigEndian).toMatchObject({
-    ContractVersion: 7,
-    Operation: "parse",
-    Success: true,
-    Error: null,
+    contractVersion: 8,
+    operation: "parse",
+    success: true,
+    error: null,
   });
-  expect(results.bigEndian.Data ?? {}).toEqual({
-    root: { value: 0x1234 },
-  });
+  expect(results.bigEndian.data).toEqual({ value: 0x1234 });
   expect(results.readBudget).toMatchObject({
-    ContractVersion: 7,
-    Success: false,
-    Error: { Code: "read-budget" },
+    contractVersion: 8,
+    success: false,
+    error: { code: "read-budget" },
   });
   expect(results.optionCap).toMatchObject({
-    ContractVersion: 7,
-    Success: false,
-    Error: { Code: "invalid-input" },
+    contractVersion: 8,
+    success: false,
+    error: { code: "invalid-input" },
   });
   expect(results.definitionBudget).toMatchObject({
-    ContractVersion: 7,
-    Success: false,
-    Error: { Code: "invalid-layout" },
+    contractVersion: 8,
+    success: false,
+    error: { code: "invalid-layout" },
   });
 });
 
@@ -617,20 +606,20 @@ test("all signed and unsigned JavaScript precision boundaries round-trip exactly
   });
 
   for (const result of results) {
-    const parsedValue = (result.parsed.Data ?? {}).root.value as number | string;
+    const parsedValue = result.parsed.data.value as number | string;
     expect(String(parsedValue)).toBe(result.expected);
     expect(result.parsed).toMatchObject({
-      ContractVersion: 7,
-      Operation: "parse",
-      Success: true,
-      Error: null,
+      contractVersion: 8,
+      operation: "parse",
+      success: true,
+      error: null,
     });
     expect(result.serialized).toMatchObject({
-      ContractVersion: 7,
-      Operation: "serialize",
-      Success: true,
-      Data: result.bytes,
-      Error: null,
+      contractVersion: 8,
+      operation: "serialize",
+      success: true,
+      data: result.bytes,
+      error: null,
     });
   }
 });
@@ -662,7 +651,7 @@ test("full-width enum values remain exact across browser parse, serialize, and u
       objectShape: JSON.parse(
         wasm.serializeToBase64(
           knownDefinition,
-          '{"value":{"Enum":"state","Name":"Maximum","Value":"18446744073709551615"}}',
+          '{"value":{"kind":"enum","enum":"state","name":"Maximum","value":"18446744073709551615"}}',
           "root",
           false,
           8,
@@ -687,56 +676,54 @@ test("full-width enum values remain exact across browser parse, serialize, and u
     };
   });
 
-  expect(results.unknown.Data ?? {}).toEqual({
-    root: {
-      value: {
-        Enum: "state",
-        Name: null,
-        Value: "18446744073709551615",
-      },
+  expect(results.unknown.data).toEqual({
+    value: {
+      kind: "enum",
+      enum: "state",
+      name: null,
+      value: "18446744073709551615",
     },
   });
-  expect(results.unknown.DebugData).toEqual([
-    expect.objectContaining({ Value: "18446744073709551615" }),
+  expect(results.unknown.debug).toEqual([
+    expect.objectContaining({ value: "18446744073709551615" }),
   ]);
-  expect(results.known.Data ?? {}).toEqual({
-    root: {
-      value: {
-        Enum: "state",
-        Name: "Maximum",
-        Value: "18446744073709551615",
-      },
+  expect(results.known.data).toEqual({
+    value: {
+      kind: "enum",
+      enum: "state",
+      name: "Maximum",
+      value: "18446744073709551615",
     },
   });
   expect(results.decimalString).toMatchObject({
-    ContractVersion: 7,
-    Operation: "serialize",
-    Success: true,
-    Data: "//////////8=",
-    Error: null,
+    contractVersion: 8,
+    operation: "serialize",
+    success: true,
+    data: "//////////8=",
+    error: null,
   });
   expect(results.safeNumber).toMatchObject({
-    Success: true,
-    Data: "KgAAAAAAAAA=",
+    success: true,
+    data: "KgAAAAAAAAA=",
   });
   expect(results.objectShape).toMatchObject({
-    Success: true,
-    Data: "//////////8=",
+    success: true,
+    data: "//////////8=",
   });
   expect(results.update).toMatchObject({
-    ContractVersion: 7,
-    Operation: "update",
-    Success: true,
-    Data: "//////////8=",
-    Error: null,
+    contractVersion: 8,
+    operation: "update",
+    success: true,
+    data: "//////////8=",
+    error: null,
   });
   expect(results.fractional).toMatchObject({
-    ContractVersion: 7,
-    Operation: "serialize",
-    Success: false,
-    Data: null,
-    Error: {
-      Code: "write-failed",
+    contractVersion: 8,
+    operation: "serialize",
+    success: false,
+    data: null,
+    error: {
+      code: "write-failed",
     },
   });
 });
@@ -867,34 +854,43 @@ test("each major failure category uses the same release-safe contract", async ({
 
   for (const [name, failure] of Object.entries(failures)) {
     expect(failure).toMatchObject({
-      ContractVersion: 7,
-      Success: false,
-      Data: null,
-      Error: {
-        Code: expectedCodes[name],
+      contractVersion: 8,
+      success: false,
+      data: null,
+      error: {
+        code: expectedCodes[name],
       },
     });
-    expect(Object.keys(failure.Error ?? {}).sort()).toEqual(["Code", "Message", "Offset", "Path"]);
-    expect(failure.Error?.Message).toBeTruthy();
-    expect(failure.Error?.Message).not.toContain("src/CStructSharp");
-    expect(failure.Error?.Message).not.toContain("System.");
-    if (failure.Error?.Offset !== null) {
-      expect(Number.isSafeInteger(failure.Error?.Offset)).toBe(true);
-      expect(failure.Error?.Offset).toBeGreaterThanOrEqual(0);
+    expect(Object.keys(failure.error ?? {}).sort()).toEqual([
+      "code",
+      "column",
+      "line",
+      "member",
+      "memberType",
+      "message",
+      "offset",
+      "path",
+    ]);
+    expect(failure.error?.message).toBeTruthy();
+    expect(failure.error?.message).not.toContain("src/CStructSharp");
+    expect(failure.error?.message).not.toContain("System.");
+    if (failure.error?.offset !== null) {
+      expect(Number.isSafeInteger(failure.error?.offset)).toBe(true);
+      expect(failure.error?.offset).toBeGreaterThanOrEqual(0);
     }
-    if (failure.Error?.Path !== null) {
-      expect(failure.Error?.Path).toMatch(
+    if (failure.error?.path !== null) {
+      expect(failure.error?.path).toMatch(
         /^[A-Za-z_][A-Za-z0-9_]*(?:\[\d+\])?(?:\.[A-Za-z_][A-Za-z0-9_]*(?:\[\d+\])?)*$/,
       );
     }
   }
 
-  expect(failures.invalidPath.Error).toMatchObject({
-    Offset: 1,
-    Path: "root.missing",
+  expect(failures.invalidPath.error).toMatchObject({
+    offset: 1,
+    path: "root.missing",
   });
-  expect(failures.readFailed.Error).toMatchObject({
-    Offset: 1,
-    Path: "root",
+  expect(failures.readFailed.error).toMatchObject({
+    offset: 1,
+    path: "root",
   });
 });

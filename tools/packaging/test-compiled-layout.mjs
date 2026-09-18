@@ -13,13 +13,13 @@ const compiled = await compileLargeSource(definition, options);
 options.aligned = true;
 const a = new Uint8Array([1, 42, 0, 0, 0, 7]);
 const b = new Uint8Array([0, 19, 0, 8]);
-function value(result) { assert.equal(result.Success, true, JSON.stringify(result)); return result.Data.root; }
+function value(result) { assert.equal(result.success, true, JSON.stringify(result)); return result.data; }
 try {
   const results = await Promise.all(Array.from({length: 20}, (_, i) => compiled.parse(i % 2 ? b : a)));
   results.forEach((result, i) => assert.deepEqual(value(result), i % 2 ? {tag:0,small:19,tail:8} : {tag:1,value:42,tail:7}));
   const debug = await compiled.parseWithDebug(a);
   assert.deepEqual(debug, await parseLargeSource(definition, a, {}, true));
-  assert.equal((await compiled.parse(a, {maxTotalBytesRead: 1})).Success, false);
+  assert.equal((await compiled.parse(a, {maxTotalBytesRead: 1})).success, false);
   assert.equal(value(await compiled.parse(a)).value, 42);
   await assert.rejects(compiled.parse(a, {aligned: true}), /fixed at compilation/);
   const cancelled = new AbortController(); cancelled.abort();
@@ -39,7 +39,7 @@ try {
     const pending = expensive.parse(new Uint8Array(1000000), {signal:abort.signal, maxArrayElements:1000000, maxTotalBytesRead:40000000});
     setTimeout(() => abort.abort(), 50);
     await assert.rejects(pending, {name:'AbortError'});
-    assert.equal((await expensive.parse(new Uint8Array(1))).Success, false);
+    assert.equal((await expensive.parse(new Uint8Array(1))).success, false);
   } finally { await expensive.dispose(); }
   const pendingDispose = compiled.parse(hanging);
   const queued = compiled.parse(a);
@@ -67,9 +67,10 @@ try {
 } finally { slowAbort.abort(); await checkedSlow; }
 console.log('PASS ordinary source staging remains independent');
 
-const roots = await compileLargeSource('struct first { uint8 small; }; struct root { uint16 value; };', {rootTypeName:'root'});
+const roots = await compileLargeSource('struct first { uint8 small; }; struct root { uint16 value; };', {root:'root'});
 try {
-  assert.equal(value(await roots.parse(new Uint8Array([1,2]), {rootTypeName:undefined})).value, 513);
-  assert.equal((await roots.parse(new Uint8Array([1,2]), {rootTypeName:'first'})).Data.first.small, 1);
+  assert.equal(roots.root, 'root');
+  assert.equal(value(await roots.parse(new Uint8Array([1,2]), {root:undefined})).value, 513);
+  assert.equal((await roots.parse(new Uint8Array([1,2]), {root:'first'})).data.small, 1);
 } finally { await roots.dispose(); }
 console.log('PASS compiled root defaults and per-read root overrides');

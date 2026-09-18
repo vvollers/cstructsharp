@@ -88,7 +88,7 @@ internal static class Program
         try
         {
             using var stream = new MemoryStream(bytes, writable: false);
-            object result = layout.Parse(stream, fixture.Root, fixture.Variables, options);
+            object? result = layout.ReadValue(stream, fixture.Root, fixture.Variables, options);
             long consumed = stream.Position;
             string json = CanonicalJson.Serialize(result);
             return new Outcome(json, null, consumed, bytes.Length);

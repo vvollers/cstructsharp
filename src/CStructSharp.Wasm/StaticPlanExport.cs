@@ -36,9 +36,7 @@ public partial class CStructExports
         {
             InteropOptionsDto options = ParseOptions(optionsJson);
             CStruct cstruct = CreateCStruct(definition, options);
-            string root = string.IsNullOrWhiteSpace(options.RootTypeName)
-                              ? ResolveDefaultRootTypeName(cstruct)
-                              : options.RootTypeName;
+            string root = ResolveRoot(cstruct, options);
             return DescribeStaticPlan(cstruct, root) ?? string.Empty;
         }
         catch (Exception exception) when (exception is CStructException or ArgumentException or InvalidOperationException)

@@ -7,23 +7,23 @@ description: Parse JavaScript binary sources with paged reads, worker execution,
 
 Pass a binary source directly to `parse` or `parseWithDebug`. You do not need to split a file into parser calls,
 work around the 4 MiB limit of the raw API, or call `file.arrayBuffer()` first. Both functions return the usual result
-envelope with the root-wrapped parsed value in `Data`. `parse` returns empty `DebugData` and avoids debug byte copies;
+envelope with the selected value in `data`. `parse` returns an empty `debug` list and avoids debug byte copies;
 prefer it when you only need values.
 
 ```js
 import { parse, parseWithDebug } from "cstructsharp";
 
 const definition = "struct header { uint16 kind; uint32 length; };";
-const options = { rootTypeName: "header" };
+const options = { root: "header" };
 const file = document.querySelector('input[type="file"]').files[0];
 const result = await parse(definition, file, options);
-if (!result.Success) throw new Error(result.Error.Message);
-console.log(result.Data.header.kind);
+if (!result.success) throw new Error(result.error.message);
+console.log(result.data.kind);
 
 // Inspect field byte ranges when building a binary viewer.
 const inspected = await parseWithDebug(definition, file, options);
-if (!inspected.Success) throw new Error(inspected.Error.Message);
-console.log(inspected.DebugData);
+if (!inspected.success) throw new Error(inspected.error.message);
+console.log(inspected.debug);
 ```
 
 Standalone ZIP consumers import the same functions from `cstructsharp-wasm.js`. Browser npm consumers configure
@@ -65,7 +65,7 @@ const result = await parse(definition, response, {
   signal: controller.signal,
   maxSpoolBytes: 2 * 1024 ** 3,
 });
-if (!result.Success) throw new Error(result.Error.Message);
+if (!result.success) throw new Error(result.error.message);
 ```
 
 Decompress a transport before interpreting its binary layout:
@@ -78,7 +78,7 @@ const result = await parse(definition, decompressed, {
   ...options,
   maxSpoolBytes: 2 * 1024 ** 3, // Counts decompressed bytes.
 });
-if (!result.Success) throw new Error(result.Error.Message);
+if (!result.success) throw new Error(result.error.message);
 ```
 
 One-pass sources are fully consumed before parsing begins. The parser seeks for pointers, union views, and debug
@@ -94,10 +94,10 @@ import { parse } from "cstructsharp";
 const result = await parse(
   "struct header { uint16 kind; uint32 length; };",
   createReadStream("capture.bin"),
-  { rootTypeName: "header", maxSpoolBytes: 2 * 1024 ** 3 },
+  { root: "header", maxSpoolBytes: 2 * 1024 ** 3 },
 );
-if (!result.Success) throw new Error(result.Error.Message);
-console.log(result.Data.header);
+if (!result.success) throw new Error(result.error.message);
+console.log(result.data);
 ```
 
 Use binary mode: a stream configured with a text encoding yields strings and is rejected. Pass `Buffer` directly
@@ -127,15 +127,15 @@ const pending = parseWithDebug(definition, file, { ...options, signal: controlle
 cancelButton.onclick = () => controller.abort();
 try {
   const result = await pending;
-  if (!result.Success) console.error(result.Error.Code, result.Error.Message, result.Error.Offset);
+  if (!result.success) console.error(result.error.code, result.error.message, result.error.offset);
 } catch (error) {
   if (error.name !== "AbortError") throw error;
 }
 ```
 
 Cancellation rejects with `AbortError`, stops source consumption, and terminates worker parsing. Loading, storage,
-HTTP, and invalid-source errors also reject; layout/read failures use `Success: false`. Use both `try`/`catch` and
-the `Success` check.
+HTTP, and invalid-source errors also reject; layout/read failures use `success: false`. Use both `try`/`catch` and
+the `success` check.
 
 Read, array, string, and nesting limits still apply to parser work. A header in a multi-gigabyte file can be cheap;
 decoding an enormous array still constructs an enormous result. Debug parsing additionally retains field values
@@ -168,12 +168,12 @@ struct root {
 
 ```js
 const result = await parse(definition, file, {
-  rootTypeName: "root",
+  root: "root",
   pointerSize: 8,
   littleEndian: true,
 });
-if (!result.Success) throw new Error(result.Error.Message);
-console.log(result.Data.root.records[0].Value);
+if (!result.success) throw new Error(result.error.message);
+console.log(result.data.records[0].value);
 ```
 
 No offset calculation, file splitting, preprocessing or special large-address option is required. Absolute pointer
@@ -187,8 +187,8 @@ The same definition works with a managed `FileStream`, which avoids reading the 
 ```csharp
 var layout = new CStructSharp.CStruct(definition, pointerSize: 8, isLittleEndian: true);
 using var stream = File.OpenRead("large.bin");
-dynamic root = layout.Parse(stream, "root");
-Console.WriteLine(root.records[0].Value.kind);
+StructValue root = layout.Parse(stream, "root");
+Console.WriteLine(root.Get<uint>("records[0].value.kind"));
 ```
 
 The default budgets remain one million elements per array, 16 MiB per string and 64 MiB of total reads. They
@@ -197,7 +197,7 @@ If you intentionally decode larger payloads, set larger budgets:
 
 ```js
 const result = await parse(definition, file, {
-  rootTypeName: "root",
+  root: "root",
   pointerSize: 8,
   maxArrayElements: 8_000_000,
   maxStringBytes: 32 * 1024 ** 2,

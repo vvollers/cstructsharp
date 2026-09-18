@@ -41,8 +41,9 @@ export function createWasmPackage(sourceDirectory = source, destinationDirectory
     path.join(webRoot, "../../src/CStructSharp.Wasm", "cstructsharp-api.js"),
     path.join(destinationDirectory, "cstructsharp-api.js"),
   );
+  // The ZIP bundle ships the package's declarations under the bundle entry's name.
   fs.copyFileSync(
-    path.join(webRoot, "../../src/CStructSharp.Wasm", "cstructsharp-wasm.d.ts"),
+    path.join(webRoot, "../../packages/cstructsharp/index.d.ts"),
     path.join(destinationDirectory, "cstructsharp-wasm.d.ts"),
   );
   fs.copyFileSync(readme, path.join(destinationDirectory, "README.md"));

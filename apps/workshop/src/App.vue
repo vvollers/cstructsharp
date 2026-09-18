@@ -86,7 +86,7 @@ const wasmStatus = ref<"loading" | "ready" | "error">("loading");
 const wasmVersion = ref("");
 const wasmError = ref("");
 const isProcessing = ref(false);
-const result = ref<InteropResult | null>(null);
+const result = shallowRef<InteropResult | null>(null);
 const resultBytes = shallowRef<Uint8Array>(new Uint8Array());
 const binaryHexInput = ref("");
 
@@ -149,22 +149,27 @@ onUnmounted(() => {
 
 function failure(operation: WorkbenchRequest["operation"], error: unknown): InteropResult {
   return {
-    ContractVersion: INTEROP_CONTRACT_VERSION,
-    Operation: operation,
-    Success: false,
-    Data: null,
-    DebugData: [],
-    Error: {
-      Code: "browser-error",
-      Message: error instanceof Error ? error.message : "The browser operation failed.",
-      Offset: null,
-      Path: null,
+    contractVersion: INTEROP_CONTRACT_VERSION,
+    operation,
+    success: false,
+    root: null,
+    data: null,
+    debug: [],
+    error: {
+      code: "browser-error",
+      message: error instanceof Error ? error.message : "The browser operation failed.",
+      offset: null,
+      path: null,
+      member: null,
+      memberType: null,
+      line: null,
+      column: null,
     },
   };
 }
 
 function successBytes(result: InteropResult): Uint8Array {
-  return result.Success && result.Data instanceof Uint8Array ? result.Data : new Uint8Array();
+  return result.success && result.data instanceof Uint8Array ? result.data : new Uint8Array();
 }
 
 function parseJson(value: string): unknown {

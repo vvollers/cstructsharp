@@ -83,7 +83,7 @@ network message expected to contain at most 100 items, set a limit near 100 rath
 
 ## Choose a policy for the quiet cases
 
-Two options change behaviour rather than a limit. Both default to the permissive choice:
+Two options change behavior rather than a limit. Both default to the permissive choice:
 
 - `ReadOptions.TrimFixedText` (default `false`): fixed-capacity text such as `char name[8]`, `wchar[N]`, or a
   bounded `utf8 name[N]` buffer keeps its NUL padding when read, so `61 62 00 00` is `"ab\0\0"`. Set the option to

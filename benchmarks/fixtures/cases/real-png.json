@@ -43,9 +43,10 @@
       "height": 1,
       "bit_depth": 8,
       "color_type": {
-        "Enum": "png_color_type",
-        "Name": "Rgb",
-        "Value": 2
+        "kind": "enum",
+        "enum": "png_color_type",
+        "name": "Rgb",
+        "value": 2
       },
       "compression_method": 0,
       "filter_method": 0,
@@ -53,6 +54,6 @@
       "crc": 0
     }
   },
-  "expectedSha256": "6f14037d600b7ac039b97ff4bdd279d512f29db4ce268e7aea359df4fc318d6f",
-  "expectedJsonLength": 248
+  "expectedSha256": "4b4c8f3ada5e2139c606697b1ed2aeb0bd6657beb9053cfefb920ba1a1f90db1",
+  "expectedJsonLength": 262
 }

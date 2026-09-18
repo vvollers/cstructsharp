@@ -40,9 +40,10 @@
       "planes": 1,
       "bits_per_pixel": 24,
       "compression": {
-        "Enum": "bmp_compression",
-        "Name": "Rgb",
-        "Value": 0
+        "kind": "enum",
+        "enum": "bmp_compression",
+        "name": "Rgb",
+        "value": 0
       },
       "image_size": 0,
       "x_pixels_per_meter": 0,
@@ -51,6 +52,6 @@
       "colors_important": 0
     }
   },
-  "expectedSha256": "e54d916ab92029a200f50a0097db3c130a417948e28ea65275649b6afe745733",
-  "expectedJsonLength": 347
+  "expectedSha256": "bcde92ee5e5ea1683e5fce2f32c67d5f4519673ecc0bf50d618bcd7c9fb9f2d3",
+  "expectedJsonLength": 361
 }

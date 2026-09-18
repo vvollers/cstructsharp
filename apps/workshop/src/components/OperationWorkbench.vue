@@ -188,7 +188,7 @@ function currentRequest(): WorkbenchRequest {
     jsonValue: jsonValue.value,
     path: path.value,
     options: {
-      rootTypeName: rootTypeName.value.trim() || null,
+      root: rootTypeName.value.trim() || null,
       aligned: aligned.value,
       pointerSize: pointerSize.value,
       littleEndian: endian.value === "little",

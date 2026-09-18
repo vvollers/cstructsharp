@@ -71,7 +71,7 @@ test("generated JavaScript runs every lesson through the public WASM wrapper", a
       binaryHex: lesson.binaryHex!,
       jsonValue: preset.json ?? "{}",
       path: preset.path ?? "",
-      options: { rootTypeName: lesson.rootType, ...lesson.parserOptions, ...lesson.options },
+      options: { root: lesson.rootType, ...lesson.parserOptions, ...lesson.options },
     }).javascript;
     const outcome = await page.evaluate(async (code) => {
       const api = await import(/* @vite-ignore */ `${location.origin}/generated-public-api.js`);

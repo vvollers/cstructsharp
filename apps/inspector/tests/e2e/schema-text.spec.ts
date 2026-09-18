@@ -14,7 +14,7 @@ test("bounded legacy and UTF-16 encodings survive the real WASM writer", async (
       { type: "utf16be", text: "🌍", bytes: [0xd8, 0x3c, 0xdf, 0x0d] },
     ].map(({ type, text, bytes }) => {
       const definition = `struct root { ${type} text[${bytes.length}]; uint8 tail; };`;
-      const options = { rootTypeName: "root", aligned: false };
+      const options = { root: "root", aligned: false };
       const data = new Uint8Array([...bytes, 99]);
       const parsed = JSON.parse(wasm.parseWithDebug(definition, data, options));
       const written = [...wasm.serialize(definition, JSON.stringify({ text, tail: 99 }), options)];
@@ -25,8 +25,8 @@ test("bounded legacy and UTF-16 encodings survive the real WASM writer", async (
     });
   });
   for (const result of results) {
-    expect(result.parsed.Success).toBe(true);
-    expect(result.parsed.Data.root).toEqual({ text: result.text, tail: 99 });
+    expect(result.parsed.success).toBe(true);
+    expect(result.parsed.data).toEqual({ text: result.text, tail: 99 });
     expect(result.written).toEqual([...result.bytes, 99]);
     expect(result.updated).toEqual([...result.bytes.map(() => 0), 99]);
   }
@@ -40,7 +40,7 @@ test("bounded UTF-8 works through the WASM parse, serialize and update bridge", 
   const result = await page.evaluate(() => {
     const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
     const schema = "struct root { uint8 length; utf8 name[length]; uint8 tail; };";
-    const options = { rootTypeName: "root", aligned: false };
+    const options = { root: "root", aligned: false };
     const bytes = new Uint8Array([6, ...new TextEncoder().encode("é🌍"), 99]);
     const parsed = JSON.parse(wasm.parseWithDebug(schema, bytes, options));
     const serialized = wasm.serialize(
@@ -63,15 +63,15 @@ test("bounded UTF-8 works through the WASM parse, serialize and update bridge", 
       invalid,
     };
   });
-  expect(result.parsed.Success).toBe(true);
-  expect(result.parsed.Data.root).toEqual({ length: 6, name: "é🌍", tail: 99 });
+  expect(result.parsed.success).toBe(true);
+  expect(result.parsed.data).toEqual({ length: 6, name: "é🌍", tail: 99 });
   expect(result.serialized).toEqual([6, 0xc3, 0xa9, 0xf0, 0x9f, 0x8c, 0x8d, 99]);
-  expect(result.updated.Success).toBe(true);
-  expect(result.updated.Data.root).toEqual({ length: 6, name: "你好", tail: 99 });
-  expect(result.parsed.DebugData).toContainEqual(
-    expect.objectContaining({ DebugStackString: "root.name", CurPos: 1, EndPos: 7 }),
+  expect(result.updated.success).toBe(true);
+  expect(result.updated.data).toEqual({ length: 6, name: "你好", tail: 99 });
+  expect(result.parsed.debug).toContainEqual(
+    expect.objectContaining({ path: "root.name", start: 1, end: 7 }),
   );
-  expect(result.invalid.Error.Code).toBe("read-failed");
+  expect(result.invalid.error.code).toBe("read-failed");
 });
 
 test("text fields produce strings while retaining their byte extents and binary neighbours", async ({
@@ -210,19 +210,17 @@ test("text fields produce strings while retaining their byte extents and binary 
         return JSON.parse(
           wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), {
             ...schema.parserOptions,
-            rootTypeName: "root",
+            root: "root",
           }),
         );
       },
       { schema: schemaForFile(ext), bytes: [...bytes] },
     );
-    expect(result.Success, `${ext}: ${JSON.stringify(result.Error)}`).toBe(true);
-    expect(result.Data.root.header, ext).toMatchObject(expected);
-    const ranges = result.DebugData.filter(
-      (entry: { DebugStackString: string }) => entry.DebugStackString === field,
-    );
-    expect(Math.min(...ranges.map((entry: { CurPos: number }) => entry.CurPos)), field).toBe(start);
-    expect(Math.max(...ranges.map((entry: { EndPos: number }) => entry.EndPos)), field).toBe(end);
+    expect(result.success, `${ext}: ${JSON.stringify(result.error)}`).toBe(true);
+    expect(result.data.header, ext).toMatchObject(expected);
+    const ranges = result.debug.filter((entry: { path: string }) => entry.path === field);
+    expect(Math.min(...ranges.map((entry: { start: number }) => entry.start)), field).toBe(start);
+    expect(Math.max(...ranges.map((entry: { end: number }) => entry.end)), field).toBe(end);
   }
 });
 
@@ -243,28 +241,27 @@ test("FBX node identifiers preserve raw code units across both header widths", a
     const result = await page.evaluate(
       ({ schema, bytes }) => {
         const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
-        const options = { ...schema.parserOptions, rootTypeName: "root" };
+        const options = { ...schema.parserOptions, root: "root" };
         const parsed = JSON.parse(
           wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), options),
         );
         return {
           parsed,
-          encoded: parsed.Success
-            ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.Data.root), options)]
+          encoded: parsed.success
+            ? [...wasm.serialize(schema.definition, JSON.stringify(parsed.data), options)]
             : [],
         };
       },
       { schema, bytes: [...bytes] },
     );
-    expect(result.parsed.Success, JSON.stringify(result.parsed.Error)).toBe(true);
-    expect(result.parsed.Data.root.header.first_node.name).toBe("A\0ÿP");
+    expect(result.parsed.success, JSON.stringify(result.parsed.error)).toBe(true);
+    expect(result.parsed.data.header.first_node.name).toBe("A\0ÿP");
     expect(result.encoded).toEqual([...bytes]);
-    const spans = result.parsed.DebugData.filter(
-      (entry: { DebugStackString: string }) =>
-        entry.DebugStackString === "root.header.first_node.name",
+    const spans = result.parsed.debug.filter(
+      (entry: { path: string }) => entry.path === "root.header.first_node.name",
     );
-    expect(
-      spans.map((entry: { CurPos: number; EndPos: number }) => [entry.CurPos, entry.EndPos]),
-    ).toEqual(Array.from({ length: 4 }, (_, index) => [start + index, start + index + 1]));
+    expect(spans.map((entry: { start: number; end: number }) => [entry.start, entry.end])).toEqual(
+      Array.from({ length: 4 }, (_, index) => [start + index, start + index + 1]),
+    );
   }
 });

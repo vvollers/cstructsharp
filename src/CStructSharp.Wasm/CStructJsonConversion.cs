@@ -12,9 +12,10 @@ using CStructSharp.Values;
 /// <summary>Contains the explicit JSON conversion rules used at the browser boundary.</summary>
 public partial class CStructExports
 {
-    private static readonly byte[] ParseEnvelopeHead = Encoding.UTF8.GetBytes("{\"ContractVersion\":" + InteropContractVersion + ",\"Operation\":\"parse\",\"Success\":true,\"Data\":");
-    private static readonly byte[] ParseEnvelopeDebugData = ",\"DebugData\":"u8.ToArray();
-    private static readonly byte[] ParseEnvelopeTail = ",\"Error\":null}"u8.ToArray();
+    private static readonly byte[] ParseEnvelopeHead = Encoding.UTF8.GetBytes("{\"contractVersion\":" + InteropContractVersion + ",\"operation\":\"parse\",\"success\":true,\"root\":");
+    private static readonly byte[] ParseEnvelopeData = ",\"data\":"u8.ToArray();
+    private static readonly byte[] ParseEnvelopeDebugData = ",\"debug\":"u8.ToArray();
+    private static readonly byte[] ParseEnvelopeTail = ",\"error\":null}"u8.ToArray();
     private static readonly byte[] EmptyArray = "[]"u8.ToArray();
 
     [ThreadStatic]
@@ -27,15 +28,21 @@ public partial class CStructExports
         {
         case JsonValueKind.Object:
             {
-                if (element.TryGetProperty("$kind", out JsonElement kind))
+                if (element.TryGetProperty("kind", out JsonElement kind) && kind.ValueKind == JsonValueKind.String)
                 {
-                    if (kind.ValueKind != JsonValueKind.String ||
-                        !string.Equals(kind.GetString(), "union", StringComparison.Ordinal))
+                    switch (kind.GetString())
                     {
-                        throw new JsonException("Unknown tagged value kind.");
+                        case "union":
+                            return ConvertJsonUnion(element);
+                        case "enum" when element.TryGetProperty("value", out JsonElement enumValue):
+                            // A parsed enum comes back as its tagged shape; the value is what the writer encodes.
+                            return ConvertJsonElement(enumValue);
+                        case "pointer" when element.TryGetProperty("address", out JsonElement address):
+                            // A parsed pointer writes its stored address; the target is written through `.value` paths.
+                            return ConvertJsonElement(address);
+                        default:
+                            throw new JsonException("Unknown tagged value kind '" + kind.GetString() + "'.");
                     }
-
-                    return ConvertJsonUnion(element);
                 }
 
                 var expando = new ExpandoObject();
@@ -93,21 +100,21 @@ public partial class CStructExports
     /// <summary>Validates and converts the tagged browser union shape into the managed explicit value model.</summary>
     private static UnionValue ConvertJsonUnion(JsonElement element)
     {
-        if (!element.TryGetProperty("Union", out JsonElement unionNameElement) ||
+        if (!element.TryGetProperty("union", out JsonElement unionNameElement) ||
             unionNameElement.ValueKind != JsonValueKind.String ||
             string.IsNullOrWhiteSpace(unionNameElement.GetString()))
         {
-            throw new JsonException("A tagged union requires a non-empty Union name.");
+            throw new JsonException("A tagged union requires a non-empty union name.");
         }
 
         string unionName = unionNameElement.GetString()!;
         byte[]? rawStorage = null;
-        if (element.TryGetProperty("RawStorage", out JsonElement rawElement) &&
+        if (element.TryGetProperty("rawStorage", out JsonElement rawElement) &&
             rawElement.ValueKind != JsonValueKind.Null)
         {
             if (rawElement.ValueKind != JsonValueKind.String)
             {
-                throw new JsonException("A tagged union RawStorage value must be Base64 text or null.");
+                throw new JsonException("A tagged union rawStorage value must be Base64 text or null.");
             }
 
             try
@@ -116,24 +123,24 @@ public partial class CStructExports
             }
             catch (FormatException exception)
             {
-                throw new JsonException("A tagged union RawStorage value must contain valid Base64.", exception);
+                throw new JsonException("A tagged union rawStorage value must contain valid Base64.", exception);
             }
         }
 
-        if (!element.TryGetProperty("Members", out JsonElement membersElement) ||
+        if (!element.TryGetProperty("members", out JsonElement membersElement) ||
             membersElement.ValueKind != JsonValueKind.Object)
         {
-            throw new JsonException("A tagged union requires a Members object.");
+            throw new JsonException("A tagged union requires a members object.");
         }
 
         string? selectedMember = null;
-        if (element.TryGetProperty("SelectedMember", out JsonElement selectedElement) &&
+        if (element.TryGetProperty("selectedMember", out JsonElement selectedElement) &&
             selectedElement.ValueKind != JsonValueKind.Null)
         {
             if (selectedElement.ValueKind != JsonValueKind.String ||
                 string.IsNullOrWhiteSpace(selectedElement.GetString()))
             {
-                throw new JsonException("A tagged union SelectedMember value must be a non-empty string or null.");
+                throw new JsonException("A tagged union selectedMember value must be a non-empty string or null.");
             }
 
             selectedMember = selectedElement.GetString();
@@ -143,7 +150,7 @@ public partial class CStructExports
         {
             if (rawStorage is null)
             {
-                throw new JsonException("An unselected tagged union requires RawStorage.");
+                throw new JsonException("An unselected tagged union requires rawStorage.");
             }
 
             return UnionValue.FromRaw(unionName, rawStorage);
@@ -151,7 +158,7 @@ public partial class CStructExports
 
         if (!membersElement.TryGetProperty(selectedMember, out JsonElement selectedValueElement))
         {
-            throw new JsonException("The selected tagged union member is absent from Members.");
+            throw new JsonException("The selected tagged union member is absent from members.");
         }
 
         object? selectedValue = ConvertJsonElement(selectedValueElement);
@@ -177,11 +184,13 @@ public partial class CStructExports
     ///     projected straight into the envelope as a JSON value - no intermediate Data string, no escaping pass, one
     ///     JSON.parse on the JavaScript side.
     /// </summary>
-    private static string SerializeParseEnvelope(object result, List<DebugDataDto> debugData)
+    private static string SerializeParseEnvelope(string root, object? result, List<DebugDataDto> debugData)
     {
         ParsedJsonWriter writer = projectionWriter ??= new ParsedJsonWriter(16 * 1024);
         writer.Reset();
         writer.WriteRawBytes(ParseEnvelopeHead);
+        writer.WriteValue(root);
+        writer.WriteRawBytes(ParseEnvelopeData);
         writer.WriteValue(result);
         writer.WriteRawBytes(ParseEnvelopeDebugData);
         if (debugData.Count == 0)

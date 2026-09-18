@@ -18,23 +18,24 @@ Save this as `example.mjs`, then run `node example.mjs`:
 import { parseWithDebug, serialize, update } from "cstructsharp";
 
 const definition = "struct header { uint16 kind; uint32 length; };";
-const options = { rootTypeName: "header" };
+const options = { root: "header" };
 const bytes = new Uint8Array([2, 0, 6, 0, 0, 0]);
 const read = await parseWithDebug(definition, bytes, options);
-if (!read.Success) throw new Error(read.Error.Message);
-console.log(read.Data.header.kind); // 2
+if (!read.success) throw new Error(read.error.message);
+console.log(read.data.kind); // 2
+console.log(read.debug[1]); // { start: 2, end: 6, path: "header.length", type: "uint32", value: "6" }
 
 const written = await serialize(definition, { kind: 3, length: 6 }, options);
-if (!written.Success) throw new Error(written.Error.Message);
+if (!written.success) throw new Error(written.error.message);
 const updated = await update(
   definition,
-  written.Data,
+  written.data,
   "header.kind",
   4,
   options,
 );
-if (!updated.Success) throw new Error(updated.Error.Message);
-console.log(updated.Data); // Uint8Array [4, 0, 6, 0, 0, 0]
+if (!updated.success) throw new Error(updated.error.message);
+console.log(updated.data); // Uint8Array [4, 0, 6, 0, 0, 0]
 ```
 
 Node `Buffer` inputs are also supported. The installed runtime loads from disk independently of the current
@@ -57,10 +58,10 @@ const fileInput = document.querySelector('input[type="file"]');
 const result = await parse(
   "struct header { uint16 kind; uint32 length; };",
   fileInput.files[0],
-  { rootTypeName: "header", signal: controller.signal },
+  { root: "header", signal: controller.signal },
 );
-if (!result.Success) throw new Error(result.Error.Message);
-console.log(result.Data.header);
+if (!result.success) throw new Error(result.error.message);
+console.log(result.data);
 ```
 
 In Node, pass `createReadStream("capture.bin")` from `node:fs`, or a resident `Buffer`. For a network response,
@@ -114,12 +115,15 @@ and `connect-src 'self'` for same-origin assets). No cross-origin isolation head
 
 ## API and lifecycle
 
-The package includes TypeScript declarations. All five public functions return promises:
-`parseWithDebug`, `serialize`, `update`, `getVersion`, and `loadCStructSharpWasm`.
-Read results contain the parsed value with a root wrapper; writes return `Uint8Array`. Check `Success` before using
-`Data`; operation errors carry `Code`, `Message`, `Path`, and `Offset`. Loading and argument failures reject the
-promise, so use `try/catch` at the application boundary as well. BigInt input is preserved as decimal text;
-large integers in read JSON may be strings and should not be coerced to Number.
+The package includes TypeScript declarations. All public functions return promises: `parse`, `parseWithDebug`,
+`serialize`, `update`, `resolveAddress`, `compile`, `getVersion`, and `loadCStructSharpWasm`. Every operation
+returns the same envelope: `contractVersion`, `operation`, `success`, `root`, `data`, `debug`, and `error`. Read
+results carry the selected value in `data` (the root struct's members by name); writes return a `Uint8Array`;
+`resolveAddress` returns a byte position. Check `success` before using `data`; operation errors carry `code`,
+`message`, `path`, `offset`, `member`, `memberType`, `line`, and `column`, with the library's message verbatim
+unless `redactDiagnostics` is set. Loading and argument failures reject the promise, so use `try/catch` at the
+application boundary as well. BigInt input is preserved as decimal text; large integers in read results may be
+strings and should not be coerced to Number.
 
 Imports are lazy and safe during SSR. Node conditions select the Node loader; explicit `cstructsharp/node` and
 `cstructsharp/browser` imports resolve ambiguous host configurations. Concurrent operations share initialization.
@@ -144,13 +148,13 @@ const layout = await compile("struct root { uint32 value; };", { littleEndian: t
 try {
   const result = await layout.parse(new Uint8Array([42, 0, 0, 0]));
   const debug = await layout.parseWithDebug(new Blob([new Uint8Array([42, 0, 0, 0])]));
-  if (result.Success) console.log(result.Data);
+  if (result.success) console.log(result.data);
 } finally {
   await layout.dispose();
 }
 ```
 
-`compile(definition, layoutOptions)` validates and retains an immutable layout in a dedicated worker/runtime. It rejects on invalid definitions; the error's `details` property contains the bridge diagnostic. `parse` and `parseWithDebug` accept the same binary sources and read limits as the existing functions and return the same version-7 envelopes (with the parsed value in `Data`). Compiler settings are fixed; read options may override `rootTypeName`, addressing and resource limits. Passing a compiler setting to a retained read rejects.
+`compile(definition, layoutOptions)` validates and retains an immutable layout in a dedicated worker/runtime. It rejects on invalid definitions; the error's `details` property contains the bridge diagnostic. The handle reports the selected `root` and exposes `parse`, `parseWithDebug`, `serialize`, `update`, and `resolveAddress`; they accept the same binary sources and per-operation options as the standalone functions and return the same version-8 envelopes (with the selected value in `data`). Compiler settings are fixed; per-call options may override `root`, addressing and resource limits. Passing a compiler setting to a retained call rejects.
 
 Calls on one handle are queued, with independent read state. Byte views are snapshotted when their queued read starts; keep inputs unchanged until the read completes. Separate handles have separate runtimes. Cancellation rejects with `AbortError`; an active parse is stopped by terminating its worker. The next read recreates the runtime and recompiles the saved definition. Cancelling a queued read does not cancel the active read. Always `await dispose()` to cancel outstanding calls, finish source cleanup, and release the worker and layout. Disposal is idempotent; subsequent reads reject. Keep handles only for layouts you need: each owns a WASM runtime, not merely a small native descriptor. Node idle workers do not keep the process alive.
 

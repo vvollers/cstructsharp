@@ -35,17 +35,18 @@ describe("ResultPanel", () => {
       props: {
         bytes: new Uint8Array(),
         result: {
-          ContractVersion: 7,
-          Operation: "parse",
-          Success: true,
-          Data: { value: 42 },
-          Error: null,
-          DebugData: values.map(([Type, Value], index) => ({
-            Type: Type!,
-            Value: Value!,
-            CurPos: index,
-            EndPos: index + 1,
-            DebugStackString: `root.field${index}`,
+          contractVersion: 8,
+          operation: "parse",
+          success: true,
+          root: "root",
+          data: { value: 42 },
+          error: null,
+          debug: values.map(([type, value], index) => ({
+            type: type!,
+            value: value!,
+            start: index,
+            end: index + 1,
+            path: `root.field${index}`,
           })),
         },
       },
@@ -57,7 +58,7 @@ describe("ResultPanel", () => {
     expect(jsonEditor.props("modelValue")).toBe('{\n  "value": 42 // 0x2A\n}');
     expect(jsonEditor.props("language")).toBe("json");
     expect(jsonEditor.props("readOnly")).toBe("");
-    expect(wrapper.props("result")!.Data).toEqual({ value: 42 });
+    expect(wrapper.props("result")!.data).toEqual({ value: 42 });
   });
 
   it("uses VueHex as an editable binary viewer for successful output", async () => {
@@ -66,12 +67,13 @@ describe("ResultPanel", () => {
       props: {
         bytes,
         result: {
-          ContractVersion: 7,
-          Operation: "parse",
-          Success: true,
-          Data: { value: 42 },
-          DebugData: [],
-          Error: null,
+          contractVersion: 8,
+          operation: "parse",
+          success: true,
+          root: "root",
+          data: { value: 42 },
+          debug: [],
+          error: null,
         },
       },
     });

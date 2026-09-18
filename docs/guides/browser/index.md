@@ -23,10 +23,10 @@ try {
   const result = await parseWithDebug(
     "struct header { uint16 kind; uint32 length; };",
     new Uint8Array([2, 0, 6, 0, 0, 0]),
-    { rootTypeName: "header" },
+    { root: "header" },
   );
-  if (!result.Success) throw new Error(result.Error.Message);
-  console.log(result.Data.header.kind); // 2
+  if (!result.success) throw new Error(result.error.message);
+  console.log(result.data.kind); // 2
 } catch (error) {
   console.error(error);
 }
@@ -94,9 +94,8 @@ The script import uses `../` to reach its parent directory.
 [!code-javascript[Starter JavaScript](../../../src/CStructSharp.Wasm/starter/app.js)]
 
 `type="module"` allows JavaScript imports. `await` waits for the runtime and the operation to finish.
-The result's `Success` field tells you whether the operation worked. Parse `Data` is the parsed value; write and update
-`Data` is a `Uint8Array` ready to use. The starter decodes the read JSON and keeps operation failures separate
-from loading errors.
+The result's `success` field tells you whether the operation worked. Parse `data` is the selected value; write and
+update `data` is a `Uint8Array` ready to use. The starter keeps operation failures separate from loading errors.
 
 ## Try a change
 
@@ -108,4 +107,4 @@ input. If the page never reaches Ready, follow [Loading and deployment](deployme
 
 Continue with the [JavaScript API and value guide](api.md) and [large files, buffers, and streams](large-data.md).
 The C# API has additional stream and memory operations;
-the browser API offers parse, serialize, and update rather than every managed method.
+the browser API offers parse, serialize, update, and resolveAddress rather than every managed method.

@@ -83,7 +83,7 @@ for (const [group, cases] of groups) {
       pageReads: copyCounter.pages,
       pageBytes: copyCounter.pageBytes,
       inputBytes: bytesIn,
-      outputChars: typeof value === "string" ? value.length : typeof value?.Data === "string" ? value.Data.length : value?.Data?.byteLength ?? null,
+      outputChars: typeof value === "string" ? value.length : typeof value?.data === "string" ? value.data.length : value?.data?.byteLength ?? null,
     };
     groupRecords[i].group = group;
   }

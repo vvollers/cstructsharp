@@ -101,8 +101,8 @@ not replace the baseline simply to make the check green. For an intentional publ
 The browser API has its own compatibility files in `contracts/api/browser-rc1/`. Run the browser
 contract check when exports, options, result envelopes, error categories, or number handling change:
 
-```powershell
-.\tools\quality\Validate-BrowserContract.ps1
+```bash
+node tools/quality/browser-contract.mjs
 ```
 
 A browser change must also pass the relevant frontend checks locally. The release workflow builds the production

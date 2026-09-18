@@ -25,50 +25,59 @@
   "expectedError": null,
   "expected": {
     "head": {
-      "Address": 4,
-      "Depth": 1,
-      "IsDereferenced": true,
-      "Value": {
+      "kind": "pointer",
+      "address": 4,
+      "depth": 1,
+      "dereferenced": true,
+      "value": {
         "next": {
-          "Address": 12,
-          "Depth": 1,
-          "IsDereferenced": true,
-          "Value": {
+          "kind": "pointer",
+          "address": 12,
+          "depth": 1,
+          "dereferenced": true,
+          "value": {
             "next": {
-              "Address": 20,
-              "Depth": 1,
-              "IsDereferenced": true,
-              "Value": {
+              "kind": "pointer",
+              "address": 20,
+              "depth": 1,
+              "dereferenced": true,
+              "value": {
                 "next": {
-                  "Address": 28,
-                  "Depth": 1,
-                  "IsDereferenced": true,
-                  "Value": {
+                  "kind": "pointer",
+                  "address": 28,
+                  "depth": 1,
+                  "dereferenced": true,
+                  "value": {
                     "next": {
-                      "Address": 36,
-                      "Depth": 1,
-                      "IsDereferenced": true,
-                      "Value": {
+                      "kind": "pointer",
+                      "address": 36,
+                      "depth": 1,
+                      "dereferenced": true,
+                      "value": {
                         "next": {
-                          "Address": 44,
-                          "Depth": 1,
-                          "IsDereferenced": true,
-                          "Value": {
+                          "kind": "pointer",
+                          "address": 44,
+                          "depth": 1,
+                          "dereferenced": true,
+                          "value": {
                             "next": {
-                              "Address": 52,
-                              "Depth": 1,
-                              "IsDereferenced": true,
-                              "Value": {
+                              "kind": "pointer",
+                              "address": 52,
+                              "depth": 1,
+                              "dereferenced": true,
+                              "value": {
                                 "next": {
-                                  "Address": 60,
-                                  "Depth": 1,
-                                  "IsDereferenced": true,
-                                  "Value": {
+                                  "kind": "pointer",
+                                  "address": 60,
+                                  "depth": 1,
+                                  "dereferenced": true,
+                                  "value": {
                                     "next": {
-                                      "Address": 0,
-                                      "Depth": 1,
-                                      "IsDereferenced": false,
-                                      "Value": null
+                                      "kind": "pointer",
+                                      "address": 0,
+                                      "depth": 1,
+                                      "dereferenced": false,
+                                      "value": null
                                     },
                                     "value": 1007
                                   }
@@ -95,6 +104,6 @@
       }
     }
   },
-  "expectedSha256": "cdd99b08a70ad64c5b0fd9d0e8037c4c65aec85ea5a5952f72d2ffbd3cb4bf9f",
-  "expectedJsonLength": 683
+  "expectedSha256": "689747efd2e642e779ec15385452303e22b8d997744123145a6c60e01b5504ba",
+  "expectedJsonLength": 818
 }

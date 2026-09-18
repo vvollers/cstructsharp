@@ -12,6 +12,8 @@ using CStructSharp.Diagnostics;
 public sealed record ReadResult(object? Value, IReadOnlyList<DebugData> Debug)
 {
     /// <summary>Splits the result into its value and its debug records, in that order.</summary>
+    /// <param name="value">Receives <see cref="Value"/>.</param>
+    /// <param name="debug">Receives <see cref="Debug"/>.</param>
     public void Deconstruct(out object? value, out IReadOnlyList<DebugData> debug)
     {
         value = this.Value;

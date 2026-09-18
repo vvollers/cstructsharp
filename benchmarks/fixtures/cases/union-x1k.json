@@ -21,6 +21,6 @@
   "byteLength": 5120,
   "expectedError": null,
   "expected": null,
-  "expectedSha256": "de74f2fba4cd22e7c405a5129079f84eca9816500ab4879988a09cdd362ae6f2",
-  "expectedJsonLength": 180368
+  "expectedSha256": "a89d82f1b1d91e028faf32bdffc49b9dfc4058f4368f09c25e7be00d36a17005",
+  "expectedJsonLength": 179344
 }

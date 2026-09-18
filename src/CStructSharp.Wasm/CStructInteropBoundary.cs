@@ -13,7 +13,7 @@ using Enum = System.Enum;
 /// <summary>Validates untrusted browser inputs and creates the stable transport envelope.</summary>
 public partial class CStructExports
 {
-    private const int InteropContractVersion = 7;
+    private const int InteropContractVersion = 8;
     private const int MaximumBinaryInputLength = 4 * 1024 * 1024;
     private const int MaximumDefinitionLength = 128 * 1024;
     private const int MaximumExpressionNestingDepth = 256;
@@ -64,6 +64,9 @@ public partial class CStructExports
                 MaximumExpressionTokens,
                 MaximumExpressionTokens,
                 nameof(options.MaxExpressionTokens)),
+            BitfieldPacking = ParseEnumOption<BitfieldPacking>(options.BitfieldPacking, "bitfieldPacking"),
+            BitfieldAllocation = ParseEnumOption<BitfieldAllocation>(options.BitfieldAllocation, "bitfieldAllocation"),
+            CLongWidth = options.CLongWidth is null or 64 ? 64 : options.CLongWidth == 32 ? 32 : throw new BrowserInputException($"Option cLongWidth must be 32 or 64; received {options.CLongWidth}."),
         };
 
         int pointerSize = options.PointerSize ?? 8;
@@ -120,6 +123,7 @@ public partial class CStructExports
                 MaximumNestingDepth,
                 nameof(options.MaxNestingDepth)),
             Origin = ParseOrigin(options.Origin),
+            TrimFixedText = options.TrimFixedText ?? false,
         };
     }
 
@@ -130,6 +134,7 @@ public partial class CStructExports
         {
             AddressingMode = ParseAddressingMode(options.AddressingMode),
             BindingMode = ParseBindingMode(options.BindingMode),
+            UnknownMembers = ParseEnumOption<UnknownMemberPolicy>(options.UnknownMembers, "unknownMembers"),
             MaxArrayElements = Bounded(
                 options.MaxArrayElements,
                 DefaultArrayElements,
@@ -162,6 +167,7 @@ public partial class CStructExports
         {
             AddressingMode = write.AddressingMode,
             BindingMode = write.BindingMode,
+            UnknownMembers = write.UnknownMembers,
             MaxArrayElements = write.MaxArrayElements,
             MaxStringBytes = write.MaxStringBytes,
             MaxTotalBytesWritten = write.MaxTotalBytesWritten,
@@ -230,6 +236,23 @@ public partial class CStructExports
         throw new ArgumentException("Unknown pointer addressing mode: " + mode, nameof(mode));
     }
 
+    /// <summary>Reads an option spelled as an enum member name (case-insensitive); an omitted option is the default.</summary>
+    private static TEnum ParseEnumOption<TEnum>(string? value, string name)
+        where TEnum : struct, Enum
+    {
+        if (value is null)
+        {
+            return default;
+        }
+
+        if (Enum.TryParse(value, true, out TEnum parsed) && Enum.IsDefined(parsed))
+        {
+            return parsed;
+        }
+
+        throw new BrowserInputException($"Option {name} must be one of {string.Join(", ", Enum.GetNames<TEnum>())}; received '{value}'.");
+    }
+
     private static PocoBindingMode ParseBindingMode(string? mode)
     {
         mode ??= nameof(PocoBindingMode.PublicReadable);
@@ -257,6 +280,11 @@ public partial class CStructExports
     ///     used as a fallback for an anonymous <c>typedef struct { ... } Name;</c> alias (LANG-02), which has no
     ///     separate tagged entry to prefer.
     /// </summary>
+    private static string ResolveRoot(CStruct cstruct, InteropOptionsDto options)
+    {
+        return string.IsNullOrWhiteSpace(options.Root) ? ResolveDefaultRootTypeName(cstruct) : options.Root;
+    }
+
     private static string ResolveDefaultRootTypeName(CStruct cstruct)
     {
         foreach (KeyValuePair<string, CStructElement> element in cstruct.CStructElements)
@@ -288,19 +316,34 @@ public partial class CStructExports
     ///     builds for the JSON-envelope operations - for exports that report failure by throwing instead, so JS
     ///     can catch it, JSON.parse the message, and reconstruct the exact same structured error.
     /// </summary>
-    private static Exception CreateBridgeException(Exception exception)
+    private static Exception CreateBridgeException(Exception exception, InteropOptionsDto? options)
     {
-        (string code, string message) = GetBrowserError(exception);
+        return new InvalidOperationException(
+            JsonSerializer.Serialize(DescribeError(exception, options), CStructJsonContext.Default.ErrorDetailsDto));
+    }
+
+    /// <summary>
+    ///     The error details a failure produces. By default the library's own message travels verbatim with every
+    ///     location fact it carries; <c>redactDiagnostics</c> keeps only the category code and its curated text (for
+    ///     pages that must not echo layout text, values, or paths).
+    /// </summary>
+    private static ErrorDetailsDto DescribeError(Exception exception, InteropOptionsDto? options)
+    {
+        (string code, string curated) = GetBrowserError(exception);
+        bool redact = options?.RedactDiagnostics ?? false;
         CStructException? domainException = exception as CStructException;
-        var error = new ErrorDetailsDto
+        CStructLayoutException? layoutException = exception as CStructLayoutException;
+        return new ErrorDetailsDto
         {
             Code = code,
-            Message = message,
+            Message = redact || exception is not (CStructException or BrowserInputException) ? curated : exception.Message,
+            Path = redact ? null : domainException?.Path,
             Offset = domainException?.Offset,
-            Path = domainException?.Path,
+            Member = redact ? null : domainException?.Member,
+            MemberType = redact ? null : domainException?.MemberType,
+            Line = layoutException?.Line,
+            Column = layoutException?.Column,
         };
-        return new InvalidOperationException(
-            JsonSerializer.Serialize(error, CStructJsonContext.Default.ErrorDetailsDto));
     }
 
     /// <summary>Rejects empty or overly large layout text before invoking the parser.</summary>
@@ -335,15 +378,16 @@ public partial class CStructExports
     }
 
     /// <summary>Creates a successful result whose Data is an already-parsed JSON value (the compiled-layout handshake).</summary>
-    private static InteropResultDto CreateSuccess(string operation, JsonElement data)
+    private static InteropResultDto CreateSuccess(string operation, JsonElement data, string? root = null)
     {
         return new InteropResultDto
         {
             ContractVersion = InteropContractVersion,
             Operation = operation,
             Success = true,
+            Root = root,
             Data = data,
-            DebugData = [],
+            Debug = [],
             Error = null,
         };
     }
@@ -356,25 +400,33 @@ public partial class CStructExports
     }
 
     /// <summary>Creates a release-safe categorized error without echoing raw caller input.</summary>
-    private static InteropResultDto CreateFailure(string operation, Exception exception)
+    private static InteropResultDto CreateFailure(string operation, Exception exception, InteropOptionsDto? options)
     {
-        (string code, string message) = GetBrowserError(exception);
-        CStructException? domainException = exception as CStructException;
         return new InteropResultDto
         {
             ContractVersion = InteropContractVersion,
             Operation = operation,
             Success = false,
+
+            // The root the caller asked for; the default root is unknown until the layout compiles.
+            Root = options?.Root,
             Data = null,
-            DebugData = [],
-            Error = new ErrorDetailsDto
-            {
-                Code = code,
-                Message = message,
-                Offset = domainException?.Offset,
-                Path = domainException?.Path,
-            },
+            Debug = [],
+            Error = DescribeError(exception, options),
         };
+    }
+
+    /// <summary>The options of a call, or none when the options text itself could not be read.</summary>
+    private static InteropOptionsDto? TryParseOptions(string optionsJson)
+    {
+        try
+        {
+            return ParseOptions(optionsJson);
+        }
+        catch (Exception exception) when (exception is JsonException or BrowserInputException or ArgumentException)
+        {
+            return null;
+        }
     }
 
     /// <summary>Maps failures to stable categories, exposing only controlled diagnostics, never raw exception text.</summary>

@@ -13,7 +13,7 @@ function fixtureOptions(document) {
     pointerSize: document.options.pointerSize,
     aligned: document.options.aligned,
     littleEndian: document.options.littleEndian,
-    rootTypeName: document.root,
+    root: document.root,
     ...(document.readOptions?.addressingMode ? { addressingMode: document.readOptions.addressingMode } : {}),
     ...(document.readOptions?.maxArrayElements ? { maxArrayElements: document.readOptions.maxArrayElements } : {}),
     ...(document.readOptions?.maxTotalBytesRead ? { maxTotalBytesRead: document.readOptions.maxTotalBytesRead } : {}),
@@ -40,16 +40,16 @@ export async function verifyFixture(env, id) {
   const { document, bytes } = await env.loadFixture(id);
   const options = fixtureOptions(document);
   const result = await env.api.parse(document.definition, bytes, options);
-  if (!result.Success) throw new Error(`${id}: public parse failed: ${JSON.stringify(result.Error)}`);
-  const parsed = result.Data;
-  const actual = JSON.stringify(parsed[document.root]);
+  if (!result.success) throw new Error(`${id}: public parse failed: ${JSON.stringify(result.error)}`);
+  const parsed = result.data;
+  const actual = JSON.stringify(parsed);
   if (document.expected !== null && document.expected !== undefined) {
     const expected = JSON.stringify(document.expected);
     if (actual !== expected) throw new Error(`${id}: JS result differs from the C# expected JSON`);
   } else if (document.expectedSha256) {
     // The digest is over the C# canonical text (Utf8JsonWriter default escaping), so re-serialize with the same
     // escaping before hashing; JSON.stringify would leave non-ASCII characters raw.
-    const digest = await sha256Hex(env, canonicalJson(parsed[document.root]));
+    const digest = await sha256Hex(env, canonicalJson(parsed));
     if (digest !== document.expectedSha256) throw new Error(`${id}: JS result SHA-256 ${digest} != ${document.expectedSha256}`);
   }
   return true;
@@ -63,9 +63,9 @@ export function canonicalJson(value) {
   if (typeof value === "string") return canonicalString(value);
   if (typeof value === "number" || typeof value === "boolean") return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  // Utf8JsonWriter.WriteBase64StringValue writes base64 without escaping, so a union's RawStorage keeps its raw
+  // Utf8JsonWriter.WriteBase64StringValue writes base64 without escaping, so a union's rawStorage keeps its raw
   // "+" and "/" while every other string escapes "+" as \u002B.
-  return `{${Object.entries(value).map(([key, item]) => `${canonicalString(key)}:${key === "RawStorage" && typeof item === "string" ? `"${item}"` : canonicalJson(item)}`).join(",")}}`;
+  return `{${Object.entries(value).map(([key, item]) => `${canonicalString(key)}:${key === "rawStorage" && typeof item === "string" ? `"${item}"` : canonicalJson(item)}`).join(",")}}`;
 }
 
 const unescapedAscii = /^[A-Za-z0-9 !#$%()*,\-./:;=?@[\]^_`{|}~]$/;

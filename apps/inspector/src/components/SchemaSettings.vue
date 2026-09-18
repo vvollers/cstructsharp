@@ -1,6 +1,6 @@
 <script lang="ts">
 export interface SchemaSettingsValues {
-  rootTypeName: string;
+  root: string;
   aligned: boolean;
   pointerSize: number;
   littleEndian: boolean;
@@ -37,9 +37,9 @@ const formatBytes = (value: number): string =>
 const settingsSummary = computed(() => [
   {
     label: "Root",
-    value: options.value.rootTypeName.trim() || "first declaration",
+    value: options.value.root.trim() || "first declaration",
     color: "#67e8f9",
-    explanation: options.value.rootTypeName.trim()
+    explanation: options.value.root.trim()
       ? "This name selects the layout type where parsing starts. It must match the declaration's spelling and capitalization."
       : "No root name is supplied, so the first declared struct is used.",
   },
@@ -158,7 +158,7 @@ watch(
       <div class="option-grid">
         <div class="field">
           <label for="root-type">Root type/path</label>
-          <input id="root-type" v-model="options.rootTypeName" placeholder="First declaration" />
+          <input id="root-type" v-model="options.root" placeholder="First declaration" />
         </div>
         <div class="field">
           <label for="endian">Default byte order</label>

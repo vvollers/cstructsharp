@@ -31,7 +31,7 @@ for (const entry of manifest().fixtures) {
     pointerSize: document.options.pointerSize,
     aligned: document.options.aligned,
     littleEndian: document.options.littleEndian,
-    rootTypeName: document.root,
+    root: document.root,
     ...(document.readOptions?.addressingMode ? { addressingMode: document.readOptions.addressingMode } : {}),
     ...(document.readOptions?.maxArrayElements ? { maxArrayElements: document.readOptions.maxArrayElements } : {}),
     ...(document.readOptions?.maxTotalBytesRead ? { maxTotalBytesRead: document.readOptions.maxTotalBytesRead } : {}),
@@ -41,12 +41,12 @@ for (const entry of manifest().fixtures) {
   for (let i = 0; i < (coreOnly ? 1 : iterations) && parsable; i++) {
     const parsed = await env.api.parse(document.definition, bytes, options);
     operations++;
-    parsable = parsed.Success;
-    if (i === 0 && parsed.Success && !coreOnly) {
-      const value = parsed.Data[document.root];
+    parsable = parsed.success;
+    if (i === 0 && parsed.success && !coreOnly) {
+      const value = parsed.data;
       const written = await env.api.serialize(document.definition, value, options);
-      if (written.Success) {
-        await env.api.parseWithDebug(document.definition, written.Data, options);
+      if (written.success) {
+        await env.api.parseWithDebug(document.definition, written.data, options);
       }
       operations += 2;
     }

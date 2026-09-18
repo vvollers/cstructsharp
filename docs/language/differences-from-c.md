@@ -56,7 +56,7 @@ equivalence with every native compiler.
 | `floating-point-field` | `long double value;` | No single portable width exists to standardize on (80-bit extended, 128-bit quad, or 64-bit, depending on compiler/target) | Use `float32`/`float64` (or the `float`/`double` aliases) when 64 bits of precision is enough |
 | `enum-value-outside-storage` | `enum kind : uint8 { BIG = 256 };` | A member must fit the declared (or defaulted) backing type; a compiler would widen the enum or reject it, dissect keeps the value and fails on write | Declare a wider backing type, or omit it for the 32-bit compiler default |
 | `indexed-nested-reference` | `uint8 v[items[0].n];` | The head of a dotted reference is a scalar struct field; an array element's field is reached through its bare name after the element is read | Count with `n` after `items`, or copy the value into a field of the enclosing struct |
-| `named-zero-width-bitfield` | `uint8 reserved : 0;` | A zero width has no storage, so it cannot carry a name; C rejects it too | Write the separator unnamed: `uint8 : 0;` |
+| `zero-width-bitfield` | `uint8 reserved : 0;` | A zero width has no storage, so it cannot carry a name; C rejects it too | Write the separator unnamed: `uint8 : 0;` |
 | `non-power-of-two-alignment` | `uint8 value @align(3);` | An explicit alignment override must be a positive power of two, matching every native ABI's own alignment rule | Use a power-of-two value, e.g. `@align(4)` |
 | `non-power-of-two-composite-alignment` | `struct root @align(3) { uint8 value; };` | A composite's own explicit alignment override must also be a positive power of two | Use a power-of-two value, e.g. `@align(4)` |
 | `non-power-of-two-pack-pragma` | `#pragma pack(3)` | A pack value is a composite alignment override and follows the same power-of-two rule | Use `#pragma pack(1)`, `(2)`, `(4)`, ... |
@@ -105,7 +105,7 @@ column names the `BitfieldPacking` mode(s) in which the library, given the equiv
 slice.
 
 <!-- compiler-fixture-table:start -->
-| Shape | C declaration | Portable | GCC 15.2.0 (Linux x64, sysv) |
+| Shape | C declaration | Portable | GCC 15.2.0 (Linux x64, SysV ABI) |
 | --- | --- | --- | --- |
 | `bits-u8-u16` | `struct { uint8_t a:4; uint16_t b:4; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 2, align 2: `AF00` |
 | `bits-u8-u8-u16` | `struct { uint8_t a:3; uint8_t b:5; uint16_t c; }` | `SysV`, `Msvc` (modelled, no msvc baseline yet) | size 4, align 2: `FF00CDAB` |

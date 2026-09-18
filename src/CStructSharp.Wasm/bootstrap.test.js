@@ -21,6 +21,10 @@ function createExports(calls) {
       calls.push(["UpdateStream", args]);
       return new Uint8Array([0x2a]);
     },
+    ResolveAddress(...args) {
+      calls.push(["ResolveAddress", args]);
+      return "resolve-address";
+    },
     GetVersion() {
       calls.push(["GetVersion", []]);
       return "version";
@@ -44,7 +48,7 @@ test("adapter binds every managed export and normalizes boundary values", () => 
   assert.equal(adapter.parseWithDebug("layout", bytes), "parse-default");
   assert.equal(
     adapter.parseWithDebug("layout", bytes, {
-      rootTypeName: "root",
+      root: "root",
       aligned: true,
       pointerSize: 4,
     }),
@@ -52,7 +56,7 @@ test("adapter binds every managed export and normalizes boundary values", () => 
   );
   assert.deepEqual(
     adapter.serialize("layout", "{}", {
-      rootTypeName: null,
+      root: null,
       aligned: false,
       pointerSize: 8,
     }),
@@ -68,15 +72,16 @@ test("adapter binds every managed export and normalizes boundary values", () => 
     }),
     new Uint8Array([0x2a]),
   );
-  assert.equal(adapter.parseBytes("layout", bytes, { rootTypeName: "root" }, false), "parse-bytes");
+  assert.equal(adapter.parseBytes("layout", bytes, { root: "root" }, false), "parse-bytes");
+  assert.equal(adapter.resolveAddress("layout", bytes, "root.value", { root: "root" }), "resolve-address");
   assert.equal(adapter.getVersion(), "version");
   assert.equal(adapter.ready, true);
   assert.equal(adapter.error, null);
 
   assert.deepEqual(calls, [
     ["ParseWithDebug", ["layout", bytes, "{}"]],
-    ["ParseWithDebug", ["layout", bytes, '{"rootTypeName":"root","aligned":true,"pointerSize":4}']],
-    ["Serialize", ["layout", "{}", '{"rootTypeName":null,"aligned":false,"pointerSize":8}']],
+    ["ParseWithDebug", ["layout", bytes, '{"root":"root","aligned":true,"pointerSize":4}']],
+    ["Serialize", ["layout", "{}", '{"root":null,"aligned":false,"pointerSize":8}']],
     [
       "UpdateStream",
       [
@@ -87,7 +92,8 @@ test("adapter binds every managed export and normalizes boundary values", () => 
         '{"aligned":false,"pointerSize":8,"addressingMode":"Relative","origin":"9007199254740993","dereferencePointers":true}',
       ],
     ],
-    ["ParseBytes", ["layout", bytes, '{"rootTypeName":"root"}', false]],
+    ["ParseBytes", ["layout", bytes, '{"root":"root"}', false]],
+    ["ResolveAddress", ["layout", bytes, "root.value", '{"root":"root"}']],
     ["GetVersion", []],
   ]);
 });

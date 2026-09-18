@@ -125,7 +125,7 @@ public partial class CStructExports
 
     /// <summary>Envelope serialization alone for a given Data payload.</summary>
     [JSExport]
-    public static int BenchEnvelope(string data) => SerializeParseEnvelope(data, []).Length;
+    public static int BenchEnvelope(string data) => SerializeParseEnvelope("root", data, []).Length;
 
     /// <summary>Layout cache lookup alone (definition hashing + options → compilation options).</summary>
     [JSExport]

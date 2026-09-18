@@ -18,6 +18,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+/** How each ABI family is named in the generated table. */
+const ABI_LABELS = { sysv: "SysV ABI", msvc: "MSVC ABI" };
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const sourcePath = path.join(root, "tools/compiler-fixtures/portable-host-facts.c");
 const shapesPath = path.join(root, "contracts/quality/compiler-fixtures/shapes.json");
@@ -246,7 +248,7 @@ function validateLayout(layout, context, requireBytes) {
 /** The Markdown comparison table: one row per shape, one column per baseline, plus the verified Portable claim. */
 function renderTable(shapes, baselines) {
   const columns = baselines.map((baseline) => ({
-    label: `${baseline.compiler.family} ${baseline.compiler.version} (${baseline.host.os} ${baseline.host.architecture}, ${baseline.compiler.abi})`,
+    label: `${baseline.compiler.family} ${baseline.compiler.version} (${baseline.host.os} ${baseline.host.architecture}, ${ABI_LABELS[baseline.compiler.abi]})`,
     facts: baseline.facts.shapes ?? {},
   }));
   const lines = [];

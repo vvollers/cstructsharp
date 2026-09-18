@@ -9,7 +9,7 @@ test("conditional update reachability and anonymous inactive fields survive WASM
   await expect(page.locator(".status-badge")).toContainText("Ready");
   const result = await page.evaluate(() => {
     const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
-    const options = { rootTypeName: "root", aligned: false };
+    const options = { root: "root", aligned: false };
     const unrelated =
       "struct unused { uint8 tag; if (tag) { uint16 payload; } }; struct root { uint8 value; utf8 trailing[1]; };";
     const updated = [
@@ -32,8 +32,8 @@ test("conditional update reachability and anonymous inactive fields survive WASM
   expect(result.updated).toEqual([42, 255]);
   expect(result.rejected).toBe(true);
   expect(result.encoded).toEqual([1, 42, 99]);
-  expect(result.parsed.Success).toBe(true);
-  expect(result.parsed.Data.root).toEqual({ tag: 1, value: 42, tail: 99 });
+  expect(result.parsed.success).toBe(true);
+  expect(result.parsed.data).toEqual({ tag: 1, value: 42, tail: 99 });
 });
 
 test("conditional groups retain outer discriminators across nested fields and array elements", async ({
@@ -45,10 +45,10 @@ test("conditional groups retain outer discriminators across nested fields and ar
     const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
     const definition =
       "struct entry { uint8 tag; switch(tag) { case 1: { struct { uint8 tag; } child; uint8 value; } default: { uint16 other; } } if(tag == 1) { uint8 trailer; } }; struct root { entry items[2]; };";
-    const options = { rootTypeName: "root", aligned: false };
+    const options = { root: "root", aligned: false };
     const bytes = new Uint8Array([1, 0, 42, 88, 0, 52, 18]);
     const parsed = JSON.parse(wasm.parseWithDebug(definition, bytes, options));
-    const encoded = wasm.serialize(definition, JSON.stringify(parsed.Data.root), options);
+    const encoded = wasm.serialize(definition, JSON.stringify(parsed.data), options);
     const changed = wasm.updateStream(definition, bytes, "root.items[0].child.tag", "2", options);
     return {
       parsed,
@@ -56,14 +56,14 @@ test("conditional groups retain outer discriminators across nested fields and ar
       updated: JSON.parse(wasm.parseWithDebug(definition, changed, options)),
     };
   });
-  expect(result.parsed.Success).toBe(true);
+  expect(result.parsed.success).toBe(true);
   expect(result.encoded).toEqual([1, 0, 42, 88, 0, 52, 18]);
-  expect(result.updated.Data.root.items).toEqual([
+  expect(result.updated.data.items).toEqual([
     { tag: 1, child: { tag: 2 }, value: 42, trailer: 88 },
     { tag: 0, other: 4660 },
   ]);
-  expect(result.parsed.DebugData).toContainEqual(
-    expect.objectContaining({ DebugStackString: "root.items[0].trailer", CurPos: 3, EndPos: 4 }),
+  expect(result.parsed.debug).toContainEqual(
+    expect.objectContaining({ path: "root.items[0].trailer", start: 3, end: 4 }),
   );
 });
 
@@ -105,15 +105,15 @@ test("PE and GLB schemas select alternatives from the loaded bytes", async ({ pa
           return JSON.parse(
             wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), {
               ...schema.parserOptions,
-              rootTypeName: "root",
+              root: "root",
             }),
           );
         },
         { schema, bytes: [...bytes] },
       );
-      expect(result.Success, JSON.stringify(result.Error)).toBe(true);
-      expect(JSON.stringify(result.Data)).toContain(`"${active}"`);
-      expect(JSON.stringify(result.Data)).not.toContain(`"${inactive}"`);
+      expect(result.success, JSON.stringify(result.error)).toBe(true);
+      expect(JSON.stringify(result.data)).toContain(`"${active}"`);
+      expect(JSON.stringify(result.data)).not.toContain(`"${inactive}"`);
     }
   }
 });
@@ -140,14 +140,14 @@ test("one CRX schema selects versioned headers from runtime bytes", async ({ pag
         return JSON.parse(
           wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), {
             ...schema.parserOptions,
-            rootTypeName: "root",
+            root: "root",
           }),
         );
       },
       { schema, bytes: [...bytes] },
     );
-    expect(result.Success).toBe(true);
-    const header = result.Data.root.header;
+    expect(result.success).toBe(true);
+    const header = result.data.header;
     if (bytes === v2) expect(header.signature_bytes).toEqual([22, 33]);
     else expect(header.signed_header).toEqual([44, 55]);
   }
@@ -175,14 +175,14 @@ test("ZIP selects each entry's own text encoding with native conditions", async 
         return JSON.parse(
           wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), {
             ...schema.parserOptions,
-            rootTypeName: "root",
+            root: "root",
           }),
         );
       },
       { schema, bytes: [...bytes] },
     );
-    expect(result.Success).toBe(true);
-    const local = result.Data.root.header.local;
+    expect(result.success).toBe(true);
+    const local = result.data.header.local;
     expect(local[utf8 ? "filename_utf8" : "filename_cp437"]).toBe("é.txt");
     expect(local).not.toHaveProperty(utf8 ? "filename_cp437" : "filename_utf8");
   }
@@ -195,7 +195,7 @@ test("identifiers and fixed-point values round-trip through WASM", async ({ page
     const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
     const definition =
       "typedef fixed16_16> revision_type; struct root { uuid network; guid windows; revision_type revision; ufixed8_8< volume; fixed2_30< matrix; };";
-    const options = { rootTypeName: "root", aligned: false };
+    const options = { root: "root", aligned: false };
     const id = "00112233-4455-6677-8899-aabbccddeeff";
     const value = { network: id, windows: id, revision: -1.5, volume: 0.5, matrix: -1.25 };
     const bytes = wasm.serialize(definition, JSON.stringify(value), options);
@@ -214,13 +214,13 @@ test("identifiers and fixed-point values round-trip through WASM", async ({ page
       updated: JSON.parse(wasm.parseWithDebug(definition, updated, options)),
     };
   });
-  expect(result.parsed.Success).toBe(true);
-  expect(result.parsed.Data.root).toEqual(result.value);
+  expect(result.parsed.success).toBe(true);
+  expect(result.parsed.data).toEqual(result.value);
   expect(result.bytes.slice(0, 8)).toEqual([0, 17, 34, 51, 68, 85, 102, 119]);
   expect(result.bytes.slice(16, 24)).toEqual([51, 34, 17, 0, 85, 68, 119, 102]);
-  expect(result.updated.Data.root.windows).toBe("00000000-0000-0000-0000-000000000000");
-  expect(result.parsed.DebugData).toContainEqual(
-    expect.objectContaining({ DebugStackString: "root.windows", CurPos: 16, EndPos: 32 }),
+  expect(result.updated.data.windows).toBe("00000000-0000-0000-0000-000000000000");
+  expect(result.parsed.debug).toContainEqual(
+    expect.objectContaining({ path: "root.windows", start: 16, end: 32 }),
   );
 });
 
@@ -233,7 +233,7 @@ test("LEB128 preserves 64-bit values and rejects extent-changing updates in WASM
     const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
     const definition =
       "struct root { uleb128_64 unsigned_value; sleb128_64 signed_value; uint8 tail; };";
-    const options = { rootTypeName: "root", aligned: false };
+    const options = { root: "root", aligned: false };
     const value = {
       unsigned_value: "18446744073709551615",
       signed_value: "-9223372036854775808",
@@ -262,13 +262,13 @@ test("LEB128 preserves 64-bit values and rejects extent-changing updates in WASM
       rejected,
     };
   });
-  expect(result.parsed.Success).toBe(true);
-  expect(result.parsed.Data.root).toEqual(result.value);
+  expect(result.parsed.success).toBe(true);
+  expect(result.parsed.data).toEqual(result.value);
   expect(result.length).toBe(21);
   expect(result.rejected).toBe(true);
-  expect(result.changed.Data.root.unsigned_value).toBe("18446744073709551614");
-  expect(result.parsed.DebugData).toContainEqual(
-    expect.objectContaining({ DebugStackString: "root.signed_value", CurPos: 10, EndPos: 20 }),
+  expect(result.changed.data.unsigned_value).toBe("18446744073709551614");
+  expect(result.parsed.debug).toContainEqual(
+    expect.objectContaining({ path: "root.signed_value", start: 10, end: 20 }),
   );
 });
 
@@ -292,14 +292,14 @@ test("PNG international text stays opaque without external separator scans", asy
         return JSON.parse(
           wasm.parseWithDebug(schema.definition, new Uint8Array(bytes), {
             ...schema.parserOptions,
-            rootTypeName: "root",
+            root: "root",
           }),
         );
       },
       { schema, bytes: [...bytes] },
     );
-    expect(result.Success).toBe(true);
-    expect(result.Data.root.header.chunk_1.payload).toEqual([
+    expect(result.success).toBe(true);
+    expect(result.data.header.chunk_1.payload).toEqual([
       ...bytes.subarray(41, 41 + payload.length),
     ]);
   }

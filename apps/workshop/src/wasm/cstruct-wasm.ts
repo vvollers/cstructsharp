@@ -13,20 +13,31 @@ import {
   type InteropResult,
   type ParseWithDebugOptions,
   type RawWasmAdapter,
-  type SerializeOptions,
-  type UpdateOptions,
+  type SerializeCallOptions,
+  type UpdateCallOptions,
 } from "./cstruct-contract";
 
-export { INTEROP_CONTRACT_VERSION } from "./cstruct-contract";
+export {
+  INTEROP_CONTRACT_VERSION,
+  isEnumValue,
+  isPointerValue,
+  isUnionValue,
+} from "./cstruct-contract";
 export type {
-  DebugDataItem,
+  DebugItem,
   ErrorDetails,
   InteropOperation,
   InteropResult,
   ParseWithDebugOptions,
+  ParsedStruct,
+  ParsedValue,
   RawWasmAdapter,
-  SerializeOptions,
-  UpdateOptions,
+  SerializeCallOptions,
+  UpdateCallOptions,
+} from "./cstruct-contract";
+export type {
+  SerializeCallOptions as SerializeOptions,
+  UpdateCallOptions as UpdateOptions,
 } from "./cstruct-contract";
 
 // Retain the original exported name for source compatibility with applications
@@ -158,9 +169,9 @@ export function parseWithDebug(
 export function serialize(
   cstructDefinition: string,
   data: unknown,
-  options?: SerializeOptions,
+  options?: SerializeCallOptions,
 ): InteropResult {
-  return runBinaryOperation("serialize", () =>
+  return runBinaryOperation("serialize", options, () =>
     requireReadyWasm().serialize(
       cstructDefinition,
       stringifyInteropValue(data ?? {}),
@@ -174,9 +185,9 @@ export function updateStream(
   binaryData: Uint8Array,
   elementNameOrPath: string,
   value: unknown,
-  options?: UpdateOptions,
+  options?: UpdateCallOptions,
 ): InteropResult {
-  return runBinaryOperation("update", () =>
+  return runBinaryOperation("update", options, () =>
     requireReadyWasm().updateStream(
       cstructDefinition,
       binaryData,
@@ -195,26 +206,30 @@ export function updateStream(
  * already uses, so this reconstructs an identical InteropResult either way.
  */
 function runBinaryOperation(
-  operation: Exclude<InteropOperation, "parse">,
+  operation: "serialize" | "update",
+  options: { root?: string | null } | undefined,
   invoke: () => Uint8Array,
 ): InteropResult {
+  const root = typeof options?.root === "string" ? options.root : null;
   try {
     return {
-      ContractVersion: INTEROP_CONTRACT_VERSION,
-      Operation: operation,
-      Success: true,
-      Data: invoke(),
-      DebugData: [],
-      Error: null,
+      contractVersion: INTEROP_CONTRACT_VERSION,
+      operation,
+      success: true,
+      root,
+      data: invoke(),
+      debug: [],
+      error: null,
     };
   } catch (cause) {
     return {
-      ContractVersion: INTEROP_CONTRACT_VERSION,
-      Operation: operation,
-      Success: false,
-      Data: null,
-      DebugData: [],
-      Error: parseBridgeError(cause, operation),
+      contractVersion: INTEROP_CONTRACT_VERSION,
+      operation,
+      success: false,
+      root,
+      data: null,
+      debug: [],
+      error: parseBridgeError(cause, operation),
     };
   }
 }
@@ -276,17 +291,15 @@ function parseInteropResult(json: string, expectedOperation: InteropOperation): 
   }
 
   if (
-    value.ContractVersion !== INTEROP_CONTRACT_VERSION ||
-    value.Operation !== expectedOperation ||
-    typeof value.Success !== "boolean" ||
-    (value.Success
-      ? typeof value.Data !== "object" || value.Data === null || Array.isArray(value.Data)
-      : value.Data !== null) ||
-    !Array.isArray(value.DebugData) ||
-    !value.DebugData.every(isDebugDataItem) ||
-    !isErrorDetails(value.Error) ||
-    (value.Success ? value.Error !== null : value.Error === null) ||
-    (!value.Success && value.Data !== null)
+    value.contractVersion !== INTEROP_CONTRACT_VERSION ||
+    value.operation !== expectedOperation ||
+    typeof value.success !== "boolean" ||
+    (value.root !== null && typeof value.root !== "string") ||
+    !Array.isArray(value.debug) ||
+    !value.debug.every(isDebugItem) ||
+    !isErrorDetails(value.error) ||
+    (value.success ? value.error !== null : value.error === null) ||
+    (!value.success && value.data !== null)
   ) {
     throw new TypeError(`WASM returned an invalid ${expectedOperation} response envelope.`);
   }
@@ -294,18 +307,18 @@ function parseInteropResult(json: string, expectedOperation: InteropOperation): 
   return value as InteropResult;
 }
 
-function isDebugDataItem(value: unknown): boolean {
+function isDebugItem(value: unknown): boolean {
   if (typeof value !== "object" || value === null) {
     return false;
   }
 
   const item = value as Record<string, unknown>;
   return (
-    Number.isSafeInteger(item.CurPos) &&
-    Number.isSafeInteger(item.EndPos) &&
-    typeof item.DebugStackString === "string" &&
-    typeof item.Type === "string" &&
-    (typeof item.Value === "string" || item.Value === null)
+    Number.isSafeInteger(item.start) &&
+    Number.isSafeInteger(item.end) &&
+    typeof item.path === "string" &&
+    typeof item.type === "string" &&
+    (typeof item.value === "string" || item.value === null)
   );
 }
 
@@ -320,12 +333,14 @@ function isErrorDetails(value: unknown): boolean {
 
   const error = value as Record<string, unknown>;
   return (
-    typeof error.Code === "string" &&
-    error.Code.length > 0 &&
-    typeof error.Message === "string" &&
-    error.Message.length > 0 &&
-    (error.Offset === null || Number.isSafeInteger(error.Offset)) &&
-    (error.Path === null || typeof error.Path === "string")
+    typeof error.code === "string" &&
+    error.code.length > 0 &&
+    typeof error.message === "string" &&
+    error.message.length > 0 &&
+    (error.offset === null || Number.isSafeInteger(error.offset)) &&
+    (error.path === null || typeof error.path === "string") &&
+    (error.member === null || typeof error.member === "string") &&
+    (error.line === null || Number.isSafeInteger(error.line))
   );
 }
 

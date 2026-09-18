@@ -334,16 +334,18 @@ Assert-Condition ($browserCompatibility.status -eq 'frozen') `
     'browserApiCompatibilityContract must be frozen.'
 Assert-Condition ($browserCompatibility.packageVersion -eq '0.2.0-preview') `
     'browserApiCompatibilityContract names an unexpected package version.'
-Assert-Condition ($browserCompatibility.contractVersion -eq 4) `
-    'browserApiCompatibilityContract must retain contract version 4.'
-Assert-Condition ($browserCompatibility.managedExports -eq 4) `
-    'browserApiCompatibilityContract must retain four managed exports.'
-Assert-Condition ($browserCompatibility.operations -eq 3) `
-    'browserApiCompatibilityContract must retain three operations.'
-Assert-Condition ($browserCompatibility.optionFields -eq 27) `
-    'browserApiCompatibilityContract must retain 27 option fields.'
-Assert-Condition ($browserCompatibility.errorCodes -eq 9) `
-    'browserApiCompatibilityContract must retain nine error codes.'
+# The counts mirror the frozen browser baseline; browser-contract.mjs checks that baseline against the sources.
+$browserBaseline = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'contracts/api/browser-rc1/contract.json') -Raw | ConvertFrom-Json
+Assert-Condition ($browserCompatibility.contractVersion -eq $browserBaseline.contractVersion) `
+    'browserApiCompatibilityContract must record the browser baseline contract version.'
+Assert-Condition ($browserCompatibility.managedExports -eq $browserBaseline.managedExports.Count) `
+    'browserApiCompatibilityContract must record the browser baseline managed export count.'
+Assert-Condition ($browserCompatibility.operations -eq $browserBaseline.operations.Count) `
+    'browserApiCompatibilityContract must record the browser baseline operation count.'
+Assert-Condition ($browserCompatibility.optionFields -eq $browserBaseline.optionFields.Count) `
+    'browserApiCompatibilityContract must record the browser baseline option field count.'
+Assert-Condition ($browserCompatibility.errorCodes -eq $browserBaseline.errorCodes.Count) `
+    'browserApiCompatibilityContract must record the browser baseline error code count.'
 foreach ($property in @('manifest', 'gate', 'policy')) {
     $relativePath = [string]$browserCompatibility.$property
     Assert-Condition (-not [string]::IsNullOrWhiteSpace($relativePath)) `

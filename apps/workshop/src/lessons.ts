@@ -1,9 +1,8 @@
 import type { TestEntry } from "./demo-types";
-import type {
-  InteropOperation,
-  InteropResult,
-  ParseWithDebugOptions,
-} from "./wasm/cstruct-contract";
+import type { InteropResult, ParseWithDebugOptions } from "./wasm/cstruct-contract";
+
+/** The operations the workbench can run for a lesson. */
+export type LessonOperationKind = "parse" | "serialize" | "update";
 
 export interface LessonOperation {
   json?: string;
@@ -20,7 +19,7 @@ export interface Lesson extends TestEntry {
   answer: string;
   guide: string;
   sourceScenario: string;
-  operations: Partial<Record<InteropOperation, LessonOperation>>;
+  operations: Partial<Record<LessonOperationKind, LessonOperation>>;
   options?: ParseWithDebugOptions;
 }
 
@@ -76,7 +75,7 @@ const lessonTopics: Lesson[] = [
       answer: "kind becomes 3; length stays 6. Reset before comparing with the starting result.",
       guide: "guides/install-and-first-parse.html",
       operations: {
-        parse: { expected: { data: { header: { kind: 2, length: 6 } } } },
+        parse: { expected: { data: { kind: 2, length: 6 } } },
         serialize: { json: '{"kind":3,"length":6}', expected: { hex: "03 00 06 00 00 00" } },
         update: { json: "4", path: "header.kind", expected: { hex: "04 00 06 00 00 00" } },
       },
@@ -98,7 +97,7 @@ const lessonTopics: Lesson[] = [
       exercise: "Select Big endian and read again.",
       answer: "kind becomes 512 and length becomes 100663296. The field widths did not change.",
       guide: "guides/binary-layout-basics.html",
-      operations: { parse: { expected: { data: { header: { kind: 2, length: 6 } } } } },
+      operations: { parse: { expected: { data: { kind: 2, length: 6 } } } },
     },
   ),
   lesson(
@@ -158,7 +157,7 @@ const lessonTopics: Lesson[] = [
         "The text becomes XBC followed by a zero character. The fixed field still occupies four bytes.",
       guide: "guides/strings-and-encodings.html",
       operations: {
-        parse: { expected: { data: { label: { text: "ABC\0" } } } },
+        parse: { expected: { data: { text: "ABC\0" } } },
         serialize: { json: '{"text":"XY"}', expected: { hex: "58 59 00 00" } },
         update: { json: '"XY"', path: "label.text", expected: { hex: "58 59 00 00" } },
       },
@@ -181,7 +180,7 @@ const lessonTopics: Lesson[] = [
       answer: "flags becomes 165; id stays 4660. The nested fields occupy separate bytes.",
       guide: "guides/updating-existing-data.html",
       operations: {
-        parse: { expected: { data: { root: { value: { id: 4660, flags: 1 } } } } },
+        parse: { expected: { data: { value: { id: 4660, flags: 1 } } } },
         serialize: { json: '{"value":{"id":4660,"flags":165}}', expected: { hex: "34 12 a5" } },
         update: { json: "165", path: "root.value.flags", expected: { hex: "34 12 a5" } },
       },
@@ -204,7 +203,7 @@ const lessonTopics: Lesson[] = [
       answer: "The second id becomes 3. The first record stays 01 00.",
       guide: "guides/reading-values.html",
       operations: {
-        parse: { expected: { data: { packet: { items: [{ id: 1 }, { id: 2 }] } } } },
+        parse: { expected: { data: { items: [{ id: 1 }, { id: 2 }] } } },
         serialize: { json: '{"items":[{"id":1},{"id":2}]}', expected: { hex: "01 00 02 00" } },
         update: { json: "3", path: "packet.items[1].id", expected: { hex: "01 00 03 00" } },
       },
@@ -229,7 +228,7 @@ const lessonTopics: Lesson[] = [
       guide: "guides/binary-layout-basics.html",
       options: { aligned: true },
       operations: {
-        parse: { expected: { data: { header: { kind: 2, length: 6 } } } },
+        parse: { expected: { data: { kind: 2, length: 6 } } },
         serialize: { json: '{"kind":2,"length":6}', expected: { hex: "02 00 00 00 06 00 00 00" } },
       },
     },
@@ -252,7 +251,7 @@ const lessonTopics: Lesson[] = [
         "enabled changes from 1 to 0; mode stays 5. Portable bitfields start at the low bits.",
       guide: "language/bitfields.html",
       operations: {
-        parse: { expected: { data: { flags: { enabled: 1, mode: 5, reserved: 0 } } } },
+        parse: { expected: { data: { enabled: 1, mode: 5, reserved: 0 } } },
         serialize: { json: '{"enabled":1,"mode":5,"reserved":0}', expected: { hex: "0b" } },
       },
     },
@@ -274,7 +273,7 @@ const lessonTopics: Lesson[] = [
       answer: "The read fails because the terminator is missing. End of input does not replace it.",
       guide: "guides/strings-and-encodings.html",
       operations: {
-        parse: { expected: { data: { label: { text: "AB" } } } },
+        parse: { expected: { data: { text: "AB" } } },
         serialize: { json: '{"text":"AB"}', expected: { hex: "41 42 00" } },
       },
     },
@@ -298,7 +297,9 @@ const lessonTopics: Lesson[] = [
       guide: "guides/enums.html",
       operations: {
         parse: {
-          expected: { data: { root: { value: { Enum: "state", Name: null, Value: 4294967295 } } } },
+          expected: {
+            data: { value: { kind: "enum", enum: "state", name: null, value: 4294967295 } },
+          },
         },
         serialize: { json: '{"value":4294967295}', expected: { hex: "ff ff ff ff" } },
       },
@@ -319,26 +320,24 @@ const lessonTopics: Lesson[] = [
       prerequisite: "Read the union guide and understand Base64 in browser results.",
       exercise: "Compare the small and large member values after reading 34 12.",
       answer:
-        "small reads the first byte as 52; large reads both bytes as 4660. RawStorage NBI= preserves the same two bytes.",
+        "small reads the first byte as 52; large reads both bytes as 4660. rawStorage NBI= preserves the same two bytes.",
       guide: "guides/unions.html",
       operations: {
         parse: {
           expected: {
             data: {
-              root: {
-                value: {
-                  $kind: "union",
-                  Union: "choice",
-                  RawStorage: "NBI=",
-                  Members: { small: 52, large: 4660 },
-                  SelectedMember: null,
-                },
+              value: {
+                kind: "union",
+                union: "choice",
+                rawStorage: "NBI=",
+                members: { small: 52, large: 4660 },
+                selectedMember: null,
               },
             },
           },
         },
         serialize: {
-          json: '{"value":{"$kind":"union","Union":"choice","RawStorage":null,"Members":{"small":165},"SelectedMember":"small"}}',
+          json: '{"value":{"kind":"union","union":"choice","rawStorage":null,"members":{"small":165},"selectedMember":"small"}}',
           expected: { hex: "a5 00" },
         },
       },
@@ -353,13 +352,15 @@ const lessonTopics: Lesson[] = [
     prerequisite: "Understand offsets. Open Workbench settings to see the one-byte pointer width.",
     exercise: "Turn off Follow pointers.",
     answer:
-      "Address stays 1, IsDereferenced becomes false, and Value becomes null. The pointed-to byte was not read.",
+      "address stays 1, dereferenced becomes false, and value becomes null. The pointed-to byte was not read.",
     guide: "guides/pointers.html",
     options: { pointerSize: 1 },
     operations: {
       parse: {
         expected: {
-          data: { root: { target: { Address: 1, Depth: 1, IsDereferenced: true, Value: 42 } } },
+          data: {
+            target: { kind: "pointer", address: 1, depth: 1, dereferenced: true, value: 42 },
+          },
         },
       },
     },
@@ -403,7 +404,7 @@ const lessonTopics: Lesson[] = [
         "18446744073709551615 needs a string or BigInt in JavaScript. Converting it to Number loses precision.",
       guide: "guides/browser/api.html",
       operations: {
-        parse: { expected: { data: { root: { value: "18446744073709551615" } } } },
+        parse: { expected: { data: { value: "18446744073709551615" } } },
         serialize: {
           json: '{"value":"18446744073709551615"}',
           expected: { hex: "ff ff ff ff ff ff ff ff" },
@@ -429,7 +430,7 @@ const lessonTopics: Lesson[] = [
       answer: "The value exceeds 24 unsigned bits and is rejected.",
       guide: "guides/binary-metadata-types.html",
       operations: {
-        parse: { expected: { data: { root: { size: 16777215, delta: -2, tail: 99 } } } },
+        parse: { expected: { data: { size: 16777215, delta: -2, tail: 99 } } },
         serialize: {
           json: '{"size":16777215,"delta":-2,"tail":99}',
           expected: { hex: "ff ff ff fe ff ff 63" },
@@ -458,9 +459,7 @@ const lessonTopics: Lesson[] = [
       operations: {
         parse: {
           expected: {
-            data: {
-              root: { currency: "€", western: "é", dos: "é", little: "😀", big: "😀", tail: 99 },
-            },
+            data: { currency: "€", western: "é", dos: "é", little: "😀", big: "😀", tail: 99 },
           },
         },
         serialize: {
@@ -494,7 +493,7 @@ const lessonTopics: Lesson[] = [
       guide: "guides/binary-metadata-types.html",
       operations: {
         parse: {
-          expected: { data: { root: { count: 2, values: [127, 128], delta: -65, tail: 99 } } },
+          expected: { data: { count: 2, values: [127, 128], delta: -65, tail: 99 } },
         },
         serialize: {
           json: '{"count":2,"values":[127,128],"delta":-65,"tail":99}',
@@ -523,7 +522,7 @@ const lessonTopics: Lesson[] = [
         "It does not lie on the unsigned 8.8 grid, so the writer rejects it instead of rounding.",
       guide: "guides/binary-metadata-types.html",
       operations: {
-        parse: { expected: { data: { root: { revision: -1.5, volume: 0.5 } } } },
+        parse: { expected: { data: { revision: -1.5, volume: 0.5 } } },
         serialize: {
           json: '{"revision":-1.5,"volume":0.5}',
           expected: { hex: "ff fe 80 00 80 00" },
@@ -554,10 +553,8 @@ const lessonTopics: Lesson[] = [
         parse: {
           expected: {
             data: {
-              root: {
-                network: "00112233-4455-6677-8899-aabbccddeeff",
-                windows: "00112233-4455-6677-8899-aabbccddeeff",
-              },
+              network: "00112233-4455-6677-8899-aabbccddeeff",
+              windows: "00112233-4455-6677-8899-aabbccddeeff",
             },
           },
         },
@@ -599,13 +596,11 @@ const lessonTopics: Lesson[] = [
         parse: {
           expected: {
             data: {
-              root: {
-                count: 2,
-                items: [
-                  { kind: 1, label: "€", flags: 7 },
-                  { kind: 2, number: 42 },
-                ],
-              },
+              count: 2,
+              items: [
+                { kind: 1, label: "€", flags: 7 },
+                { kind: 2, number: 42 },
+              ],
             },
           },
         },
@@ -643,13 +638,11 @@ const lessonTopics: Lesson[] = [
         parse: {
           expected: {
             data: {
-              root: {
-                items: [
-                  { tag: 1, some_parameter: 0, low: 10, first: 11 },
-                  { tag: 2, some_parameter: 1, high: 20, second: 21 },
-                  { tag: 3, some_parameter: -1, low: 30, other: 31 },
-                ],
-              },
+              items: [
+                { tag: 1, some_parameter: 0, low: 10, first: 11 },
+                { tag: 2, some_parameter: 1, high: 20, second: 21 },
+                { tag: 3, some_parameter: -1, low: 30, other: 31 },
+              ],
             },
           },
         },
@@ -693,7 +686,7 @@ const lessonTopics: Lesson[] = [
       answer:
         "The outer branch becomes active. The inner condition now evaluates missing and the read fails because that name has no value. Reset restores the successful parse with tail 9.",
       guide: "guides/conditional-fields.html",
-      operations: { parse: { expected: { data: { root: { tag: 0, tail: 9 } } } } },
+      operations: { parse: { expected: { data: { tag: 0, tail: 9 } } } },
     },
   ),
   lesson(
@@ -718,14 +711,12 @@ const lessonTopics: Lesson[] = [
         parse: {
           expected: {
             data: {
-              RECORD: {
-                Magic: 23117,
-                Version: 2,
-                Packed: 809041930,
-                Major: 10,
-                Minor: 0,
-                Build: 12345,
-              },
+              Magic: 23117,
+              Version: 2,
+              Packed: 809041930,
+              Major: 10,
+              Minor: 0,
+              Build: 12345,
             },
           },
         },
@@ -751,22 +742,21 @@ const lessonTopics: Lesson[] = [
       prerequisite: "Complete the enum lesson.",
       exercise: "Change the first byte from 05 to 03 and read again.",
       answer:
-        "Names becomes READ, WRITE, HIDDEN and Value 259. A bit with no member would show up in Remainder instead.",
+        "names becomes READ, WRITE, HIDDEN and value 259. A bit with no member would show up in remainder instead.",
       guide: "guides/enums.html",
       operations: {
         parse: {
           expected: {
             data: {
-              root: {
-                mode: {
-                  Enum: "access",
-                  Name: null,
-                  Value: 261,
-                  Names: ["READ", "EXEC", "HIDDEN"],
-                  Remainder: 0,
-                },
-                tail: 7,
+              mode: {
+                kind: "enum",
+                enum: "access",
+                name: null,
+                value: 261,
+                names: ["READ", "EXEC", "HIDDEN"],
+                remainder: 0,
               },
+              tail: 7,
             },
           },
         },
@@ -795,13 +785,11 @@ const lessonTopics: Lesson[] = [
         parse: {
           expected: {
             data: {
-              root: {
-                entries: [
-                  { kind: 1, size: 10 },
-                  { kind: 2, size: 20 },
-                ],
-                trailer: [4660, 22136],
-              },
+              entries: [
+                { kind: 1, size: 10 },
+                { kind: 2, size: 20 },
+              ],
+              trailer: [4660, 22136],
             },
           },
         },
@@ -830,7 +818,7 @@ const lessonTopics: Lesson[] = [
         "Count 3 selects offsetof(header, length) = 1, so the payload has one element and the input needs only 03 00 01.",
       guide: "language/expressions-defines-and-variables.html",
       operations: {
-        parse: { expected: { data: { root: { count: 4, payload: [1, 2, 3, 4, 5] } } } },
+        parse: { expected: { data: { count: 4, payload: [1, 2, 3, 4, 5] } } },
       },
     },
   ),
@@ -890,7 +878,7 @@ const readExplanations: Record<string, string> = {
   "windows-header":
     "DWORD, WORD, and BYTE are built-in spellings of uint32, uint16, and uint8. The typedef declares the tag _RECORD and the aliases RECORD and PRECORD. The union version_information is declared as a global type and its members Packed, Major, Minor, and Build are promoted into the record; the two `_` fields are padding, read and discarded. Aligned placement puts the union at offset 8.",
   flags:
-    "Bytes 05 01 hold 0x0105 = 261. READ (1), EXEC (4), and HIDDEN (0x100) are set, so Names lists those three; Name is null because no single member equals 261, and Remainder is 0 because every set bit belongs to a member.",
+    "Bytes 05 01 hold 0x0105 = 261. READ (1), EXEC (4), and HIDDEN (0x100) are set, so names lists those three; name is null because no single member equals 261, and remainder is 0 because every set bit belongs to a member.",
   "data-sized-arrays":
     "entries[] reads two-byte entry elements until an all-zero element (00 00), which is consumed and not reported. trailer[EOF] then reads whole uint16 elements to the end: 4660 and 22136. A trailing partial element is an error.",
   "header-preprocessor":
@@ -983,10 +971,10 @@ const writeExplanations: Record<string, string> = {
 };
 
 // Preserve existing read URLs; each additional operation gets its own stable lesson URL.
-export const lessons: (Lesson & { operation: InteropOperation; explanation: string })[] =
+export const lessons: (Lesson & { operation: LessonOperationKind; explanation: string })[] =
   lessonTopics.flatMap((topic) =>
     Object.entries(topic.operations).map(([key, preset]) => {
-      const operation = key as InteropOperation;
+      const operation = key as LessonOperationKind;
       const title =
         operationTitles[topic.id]?.[{ parse: 0, serialize: 1, update: 2 }[operation]] ??
         topic.title;
@@ -1044,13 +1032,14 @@ export function compareLessonResult(
   result: InteropResult,
   bytes: Uint8Array,
 ): boolean {
-  if (expected.error) return !result.Success && result.Error?.Code === expected.error;
-  if (!result.Success) return false;
+  if (expected.error) return !result.success && result.error?.code === expected.error;
+  if (!result.success) return false;
   if (expected.hex !== undefined) {
     return (
       Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(" ") === expected.hex
     );
   }
-  const parsedData = result.Data instanceof Uint8Array ? null : result.Data;
+  // Lessons describe the selected value exactly as `data` carries it.
+  const parsedData = result.data instanceof Uint8Array ? null : result.data;
   return JSON.stringify(parsedData) === JSON.stringify(expected.data);
 }

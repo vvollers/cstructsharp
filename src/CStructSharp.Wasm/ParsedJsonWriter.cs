@@ -27,19 +27,19 @@ internal sealed class ParsedJsonWriter
     private static readonly byte[] NullBytes = "null"u8.ToArray();
     private static readonly byte[] TrueBytes = "true"u8.ToArray();
     private static readonly byte[] FalseBytes = "false"u8.ToArray();
-    private static readonly byte[] UnionHead = "{\"$kind\":\"union\",\"Union\":"u8.ToArray();
-    private static readonly byte[] RawStorageName = ",\"RawStorage\":"u8.ToArray();
-    private static readonly byte[] MembersName = ",\"Members\":{"u8.ToArray();
-    private static readonly byte[] SelectedMemberName = "},\"SelectedMember\":"u8.ToArray();
-    private static readonly byte[] PointerAddress = "{\"Address\":"u8.ToArray();
-    private static readonly byte[] PointerDepth = ",\"Depth\":"u8.ToArray();
-    private static readonly byte[] PointerIsDereferenced = ",\"IsDereferenced\":"u8.ToArray();
-    private static readonly byte[] PointerValue = ",\"Value\":"u8.ToArray();
-    private static readonly byte[] EnumHead = "{\"Enum\":"u8.ToArray();
-    private static readonly byte[] EnumName = ",\"Name\":"u8.ToArray();
-    private static readonly byte[] EnumValue = ",\"Value\":"u8.ToArray();
-    private static readonly byte[] FlagNames = ",\"Names\":"u8.ToArray();
-    private static readonly byte[] FlagRemainder = ",\"Remainder\":"u8.ToArray();
+    private static readonly byte[] UnionHead = "{\"kind\":\"union\",\"union\":"u8.ToArray();
+    private static readonly byte[] RawStorageName = ",\"rawStorage\":"u8.ToArray();
+    private static readonly byte[] MembersName = ",\"members\":{"u8.ToArray();
+    private static readonly byte[] SelectedMemberName = "},\"selectedMember\":"u8.ToArray();
+    private static readonly byte[] PointerHead = "{\"kind\":\"pointer\",\"address\":"u8.ToArray();
+    private static readonly byte[] PointerDepth = ",\"depth\":"u8.ToArray();
+    private static readonly byte[] PointerIsDereferenced = ",\"dereferenced\":"u8.ToArray();
+    private static readonly byte[] PointerValue = ",\"value\":"u8.ToArray();
+    private static readonly byte[] EnumHead = "{\"kind\":\"enum\",\"enum\":"u8.ToArray();
+    private static readonly byte[] EnumName = ",\"name\":"u8.ToArray();
+    private static readonly byte[] EnumValue = ",\"value\":"u8.ToArray();
+    private static readonly byte[] FlagNames = ",\"names\":"u8.ToArray();
+    private static readonly byte[] FlagRemainder = ",\"remainder\":"u8.ToArray();
     private static readonly byte[] HexDigits = "0123456789abcdef"u8.ToArray();
     private static readonly SearchValues<byte> UnescapedUtf8 = SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !#$%()*,-./:;=?@[]^_`{|}~"u8);
 
@@ -170,7 +170,7 @@ internal sealed class ParsedJsonWriter
             this.WriteUnion(unionValue);
             return;
         case Pointer pointer:
-            this.WriteRaw(PointerAddress);
+            this.WriteRaw(PointerHead);
             this.WriteSafeInteger(pointer.Address);
             this.WriteRaw(PointerDepth);
             this.WriteNumber(pointer.Depth);

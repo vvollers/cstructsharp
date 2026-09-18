@@ -9,8 +9,8 @@ using CStructSharp.Values;
 /// <summary>
 ///     Serializes a parse result with the same value conventions as the WASM bridge
 ///     (src/CStructSharp.Wasm/CStructJsonConversion.cs): objects in field order, unions and pointers as tagged
-///     objects, enums as {Enum, Name, Value}, byte arrays as Base64, and 64-bit integers beyond the JavaScript safe
-///     range as decimal strings. Keeping the shapes identical lets the JS harness compare its JSON.parse(Data)
+///     objects, enums as {kind, enum, name, value}, byte arrays as Base64, and 64-bit integers beyond the JavaScript safe
+///     range as decimal strings. Keeping the shapes identical lets the JS harness compare its parse result's `data`
 ///     output to the fixture's expected value byte-for-byte. This is a deliberate copy: the bridge project only
 ///     builds for browser-wasm, so it cannot be referenced from a console tool.
 /// </summary>
@@ -93,31 +93,33 @@ public static class CanonicalJson
             return;
         case Pointer pointer:
             writer.WriteStartObject();
-            writer.WriteNumber("Address", pointer.Address);
-            writer.WriteNumber("Depth", pointer.Depth);
-            writer.WriteBoolean("IsDereferenced", pointer.IsDereferenced);
-            writer.WritePropertyName("Value");
+            writer.WriteString("kind", "pointer");
+            writer.WriteNumber("address", pointer.Address);
+            writer.WriteNumber("depth", pointer.Depth);
+            writer.WriteBoolean("dereferenced", pointer.IsDereferenced);
+            writer.WritePropertyName("value");
             Write(writer, pointer.Value);
             writer.WriteEndObject();
             return;
         case EnumValueResult enumValue:
             writer.WriteStartObject();
-            writer.WriteString("Enum", enumValue.Enum);
-            writer.WritePropertyName("Name");
+            writer.WriteString("kind", "enum");
+            writer.WriteString("enum", enumValue.Enum);
+            writer.WritePropertyName("name");
             Write(writer, enumValue.Name);
-            writer.WritePropertyName("Value");
+            writer.WritePropertyName("value");
             Write(writer, enumValue.Value);
             if (enumValue is FlagValueResult flagValue)
             {
                 // The browser envelope adds the decomposition to the three enum keys; the canonical text matches it.
-                writer.WriteStartArray("Names");
+                writer.WriteStartArray("names");
                 foreach (string name in flagValue.Names)
                 {
                     writer.WriteStringValue(name);
                 }
 
                 writer.WriteEndArray();
-                writer.WritePropertyName("Remainder");
+                writer.WritePropertyName("remainder");
                 Write(writer, flagValue.Remainder);
             }
 
@@ -125,9 +127,9 @@ public static class CanonicalJson
             return;
         case UnionValue union:
             writer.WriteStartObject();
-            writer.WriteString("$kind", "union");
-            writer.WriteString("Union", union.UnionName);
-            writer.WritePropertyName("RawStorage");
+            writer.WriteString("kind", "union");
+            writer.WriteString("union", union.UnionName);
+            writer.WritePropertyName("rawStorage");
             if (union.HasRawStorage)
             {
                 writer.WriteBase64StringValue(union.RawStorage!.Value.Span);
@@ -137,7 +139,7 @@ public static class CanonicalJson
                 writer.WriteNullValue();
             }
 
-            writer.WritePropertyName("Members");
+            writer.WritePropertyName("members");
             writer.WriteStartObject();
             foreach (KeyValuePair<string, object?> member in union.Members)
             {
@@ -146,7 +148,7 @@ public static class CanonicalJson
             }
 
             writer.WriteEndObject();
-            writer.WritePropertyName("SelectedMember");
+            writer.WritePropertyName("selectedMember");
             Write(writer, union.SelectedMember);
             writer.WriteEndObject();
             return;

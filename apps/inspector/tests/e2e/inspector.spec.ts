@@ -67,7 +67,7 @@ test("pointer target fields highlight their bytes and hex clicks select the targ
   await expect(active).toHaveCount(2);
   await expect(page.getByTestId("result-json").locator(".jse-selected-value")).toHaveAttribute(
     "data-path",
-    "%2Froot%2Fdos%2Fe_lfanew%2FValue%2Fmachine",
+    "%2Froot%2Fdos%2Fe_lfanew%2Fvalue%2Fmachine",
   );
 });
 

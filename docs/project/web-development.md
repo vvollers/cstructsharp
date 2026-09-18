@@ -60,7 +60,7 @@ make these settings possible:
 Measured effect of the full trim (publication as shipped by `publish-wasm.mjs`): 33 → 27 files, 5.35 → 4.36 MB
 raw, 2.05 → 1.66 MB gzip; Node cold start: first public parse 142 → 17 ms, process wall −25 %; runtime creation
 and first layout compilation unchanged. The gates that must stay green when touching these settings: the JS
-benchmark harness's fixture verification, `Validate-BrowserContract.ps1`, both apps' e2e suites against the
+benchmark harness's fixture verification, `browser-contract.mjs`, both apps' e2e suites against the
 production build, `verify-wasm-publication.mjs`, and `measure-web-artifacts.mjs --check`. If a change reintroduces
 a `dynamic` call site in the bridge, the trimmer fails the publish or the first parse throws a
 `MissingMethodException` - the harness verification catches both.

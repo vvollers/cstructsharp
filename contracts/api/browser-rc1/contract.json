@@ -2,32 +2,56 @@
   "schemaVersion": 1,
   "name": "browser-rc1",
   "packageVersion": "0.2.0-preview",
-  "contractVersion": 7,
+  "contractVersion": 8,
   "managedExports": [
     "GetVersion",
     "ParseBytes",
     "ParseWithDebug",
     "Serialize",
     "UpdateStream",
+    "ResolveAddress",
     "GetStaticPlan"
   ],
   "operations": [
     "parse",
     "serialize",
-    "update"
+    "update",
+    "resolveAddress",
+    "compile"
   ],
   "envelopeFields": [
-    "ContractVersion",
-    "Operation",
-    "Success",
-    "Data",
-    "DebugData",
-    "Error"
+    "contractVersion",
+    "operation",
+    "success",
+    "root",
+    "data",
+    "debug",
+    "error"
+  ],
+  "errorFields": [
+    "code",
+    "message",
+    "path",
+    "offset",
+    "member",
+    "memberType",
+    "line",
+    "column"
+  ],
+  "debugFields": [
+    "start",
+    "end",
+    "path",
+    "type",
+    "value"
   ],
   "optionFields": [
     "addressingMode",
     "aligned",
     "bindingMode",
+    "bitfieldAllocation",
+    "bitfieldPacking",
+    "cLongWidth",
     "clearUnionStorage",
     "dereferencePointers",
     "littleEndian",
@@ -49,8 +73,11 @@
     "maxTraversalStringBytes",
     "origin",
     "pointerSize",
+    "redactDiagnostics",
     "requireExistingPointerTarget",
-    "rootTypeName"
+    "root",
+    "trimFixedText",
+    "unknownMembers"
   ],
   "errorCodes": [
     "invalid-input",
@@ -65,12 +92,17 @@
   ],
   "compatibilityPolicy": "Exact until a reviewed contract-version increment updates this baseline.",
   "evidence": {
-    "unitTests": 7,
+    "unitTests": 12,
     "bootstrapTests": 3,
     "browserTests": 8,
     "browserEngine": "Playwright Chromium"
   },
   "history": [
+    {
+      "contractVersion": 8,
+      "date": "2026-09-18",
+      "change": "Contract v8 (improvement plan 7.1): the envelope is camelCase - contractVersion, operation, success, root, data, debug, error - and `data` is the selected value itself (no root wrapper); the new `root` field names the root or path the operation selected. Debug items are {start, end, path, type, value}; error details are {code, message, path, offset, member, memberType, line, column} and carry the library's own message verbatim unless `redactDiagnostics` is set. Tagged values are {kind: \"enum\", enum, name, value, names?, remainder?}, {kind: \"union\", union, rawStorage, members, selectedMember}, and {kind: \"pointer\", address, depth, dereferenced, value}. Options: `root` replaces rootTypeName; bitfieldPacking, bitfieldAllocation, cLongWidth, trimFixedText, unknownMembers and redactDiagnostics are new. New operation resolveAddress (managed export ResolveAddress) and compile (the retained CompiledLayout also exposes serialize, update, resolveAddress and its root); update accepts any binary source."
+    },
     {
       "contractVersion": 7,
       "date": "2026-09-18",

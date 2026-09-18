@@ -33,7 +33,7 @@ Select **Download updated file** to save the result. The other nine bytes must r
 [!code-javascript[Inspector logic](../../../src/CStructSharp.Wasm/starter/inspector.js)]
 
 The application checks file size before reading the file into memory, then validates signature, version, and count.
-It passes explicit read limits. `DebugData` provides field positions with an exclusive end offset, so a range
+It passes explicit read limits. The `debug` list provides field positions with an exclusive end offset, so a range
 `[7,9)` covers bytes 7 and 8. The field buttons expose positions and bytes as text, without relying on color.
 
 An update result contains a `Uint8Array`. The example verifies the unchanged prefix and reads the new

@@ -18,7 +18,7 @@ export function consume(value) {
   if (typeof value === "number") sink = (sink + value) | 0;
   else if (typeof value === "string") sink = (sink + value.length) | 0;
   else if (value.byteLength !== undefined) sink = (sink + value.byteLength) | 0;
-  else if (value.Data !== undefined) sink = (sink + (typeof value.Data === "string" ? value.Data.length : value.Data?.byteLength ?? (value.Data ? Object.keys(value.Data).length : 0))) | 0;
+  else if (value.data !== undefined) sink = (sink + (typeof value.data === "string" ? value.data.length : value.data?.byteLength ?? (value.data ? Object.keys(value.data).length : 0))) | 0;
   else sink = (sink + 1) | 0;
 }
 export function sinkValue() {

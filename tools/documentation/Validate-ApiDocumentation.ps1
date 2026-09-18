@@ -41,7 +41,11 @@ foreach ($line in $baseline -split '\r?\n') {
     }
 }
 $typeNames = @($typeNames | Sort-Object -Unique)
-Assert-Condition ($typeNames.Count -eq 66) "Expected 66 baseline types, found $($typeNames.Count)."
+# The managed API manifest counts the top-level exported types; nested public types (indented deeper) add to it.
+$manifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot '../../contracts/api/managed-rc1/manifest.json') -Raw | ConvertFrom-Json
+$nestedTypeCount = @(($baseline -split '\r?\n') | Where-Object { $_ -match '^ {5,}public (?:abstract |sealed |static |readonly )*(?:class|enum|struct|interface) ' }).Count
+$expectedTypeCount = [int]$manifest.exportedTypes + $nestedTypeCount
+Assert-Condition ($typeNames.Count -eq $expectedTypeCount) "Expected $expectedTypeCount baseline types, found $($typeNames.Count)."
 
 # Generic metadata file names carry arity, for example PrimitiveArray-1.yml.
 $missingTypes = @(
@@ -93,10 +97,11 @@ function Get-RecordSynthesizedUids {
         [string]$Namespace
     )
 
+    # Record classes and record structs both declare IEquatable<T> in the snapshot; a record struct is `readonly struct`.
     $declarations = @(
         [regex]::Matches(
             $Baseline,
-            '(?m)^\s*public\s+(?<sealed>sealed\s+)?class\s+(?<name>[A-Za-z][A-Za-z0-9]*)' +
+            '(?m)^\s*public\s+(?<sealed>sealed\s+)?(?<readonly>readonly\s+)?(?<kind>class|struct)\s+(?<name>[A-Za-z][A-Za-z0-9]*)' +
                 '(?:\s*:\s*(?<bases>[^\r\n{]+))?'))
     $recordNames = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($declaration in $declarations) {
@@ -124,6 +129,10 @@ function Get-RecordSynthesizedUids {
                 [void]$uids.Add($deconstructs[0].Groups[1].Value)
             }
         }
+        $isStruct = $declaration.Groups['kind'].Value -eq 'struct'
+        $structBody = if ($isStruct) {
+            [regex]::Match($Baseline, '(?ms)^    public [^\r\n]*\b' + [regex]::Escape($name) + '\b[^\r\n]*\r?\n    \{(?<members>.*?)^    \}').Groups['members'].Value
+        } else { '' }
         foreach ($member in @(
             'ToString',
             "op_Inequality($qualified,$qualified)",
@@ -131,7 +140,13 @@ function Get-RecordSynthesizedUids {
             'GetHashCode',
             'Equals(System.Object)',
             "Equals($qualified)")) {
+            # A record struct's explicit override (ToString) already appears in the snapshot as an authored member.
+            if ($isStruct -and $member -eq 'ToString' -and $structBody -match '\boverride string ToString\(') { continue }
             [void]$uids.Add("$qualified.$member")
+        }
+
+        if ($isStruct) {
+            continue
         }
 
         if (-not $declaration.Groups['sealed'].Success) {

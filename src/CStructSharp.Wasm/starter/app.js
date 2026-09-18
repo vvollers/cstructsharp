@@ -2,16 +2,16 @@ const status = document.querySelector("#status");
 const output = document.querySelector("#output");
 const button = document.querySelector("#run");
 const definition = "struct header { uint16 kind; uint32 length; };";
-const options = { rootTypeName: "header", littleEndian: true, aligned: false, pointerSize: 8 };
+const options = { root: "header", littleEndian: true, aligned: false, pointerSize: 8 };
 
-// Data contains JSON text after a read, and a Uint8Array after a write or update.
+// data holds the parsed value after a read, and a Uint8Array after a write or update.
 function requireData(result) {
-  if (!result.Success) {
-    const error = result.Error;
-    output.textContent = `Operation failed: ${error.Code}\n${error.Message}\nPath: ${error.Path ?? "unknown"}\nOffset: ${error.Offset ?? "unknown"}`;
+  if (!result.success) {
+    const error = result.error;
+    output.textContent = `Operation failed: ${error.code}\n${error.message}\nPath: ${error.path ?? "unknown"}\nOffset: ${error.offset ?? "unknown"}`;
     return null;
   }
-  return result.Data;
+  return result.data;
 }
 
 function hex(bytes) {

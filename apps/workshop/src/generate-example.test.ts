@@ -9,7 +9,7 @@ const request: WorkbenchRequest = {
   jsonValue: "2",
   path: "header.kind",
   options: {
-    rootTypeName: null,
+    root: null,
     pointerSize: 8,
     aligned: false,
     littleEndian: true,
@@ -42,7 +42,7 @@ describe("generated option defaults", () => {
       ...request,
       options: {
         ...request.options,
-        rootTypeName: "header",
+        root: "header",
         littleEndian: false,
         aligned: true,
         pointerSize: 4,
@@ -56,7 +56,7 @@ describe("generated option defaults", () => {
     expect(source.csharp).toContain("DereferencePointers = false");
     expect(source.csharp).toContain("MaxTotalBytesRead = 3L");
     expect(source.csharp).not.toContain("MaxStringBytes =");
-    expect(source.javascript).toContain('"rootTypeName": "header"');
+    expect(source.javascript).toContain('"root": "header"');
     expect(source.javascript).toContain('"dereferencePointers": false');
     expect(source.javascript).not.toContain('"maxStringBytes"');
   });

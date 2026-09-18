@@ -91,7 +91,7 @@ public sealed partial class CStruct
     /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <returns>The struct's values and the debug records.</returns>
     /// <exception cref="CStructPathException">The path is invalid, or selects a union or scalar rather than a struct.</exception>
-    /// <exception cref="CStructReadException">The stream is not seekable or cannot provide or decode the required bytes.</exception>
+    /// <exception cref="CStructReadException">The region cannot provide or decode the required bytes.</exception>
     public ParseResult ParseWithDebug(
         Stream stream,
         string? path = null,
@@ -103,7 +103,13 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads a struct from a byte span and records the byte range of every value read.</summary>
-    /// <inheritdoc cref="ParseWithDebug(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <param name="source">The complete byte region available to this operation.</param>
+    /// <param name="path">The case-sensitive root name or nested path; <see langword="null"/> selects the first declared struct.</param>
+    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
+    /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <returns>The struct's values and the debug records.</returns>
+    /// <exception cref="CStructPathException">The path is invalid, or selects a union or scalar rather than a struct.</exception>
+    /// <exception cref="CStructReadException">The region cannot provide or decode the required bytes.</exception>
     public ParseResult ParseWithDebug(
         ReadOnlySpan<byte> source,
         string? path = null,
@@ -115,7 +121,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads a struct from read-only memory and records the byte range of every value read.</summary>
-    /// <inheritdoc cref="ParseWithDebug(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <inheritdoc cref="ParseWithDebug(ReadOnlySpan{byte}, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
     public ParseResult ParseWithDebug(
         ReadOnlyMemory<byte> source,
         string? path = null,
@@ -126,7 +132,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads a struct from a byte array and records the byte range of every value read.</summary>
-    /// <inheritdoc cref="ParseWithDebug(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <inheritdoc cref="ParseWithDebug(ReadOnlySpan{byte}, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
     public ParseResult ParseWithDebug(
         byte[] source,
@@ -161,7 +167,13 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads one value from a byte span in its natural representation.</summary>
-    /// <inheritdoc cref="ReadValue(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <param name="source">The complete byte region available to this operation.</param>
+    /// <param name="path">The case-sensitive root name or nested path; <see langword="null"/> selects the first declared struct or union.</param>
+    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
+    /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <returns>A <see cref="StructValue"/>, <see cref="UnionValue"/>, scalar, string, <see cref="PrimitiveArray{T}"/> or list, <see cref="Pointer"/>, or <see cref="EnumValueResult"/>.</returns>
+    /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
+    /// <exception cref="CStructReadException">The region cannot provide or decode the required bytes.</exception>
     public object? ReadValue(
         ReadOnlySpan<byte> source,
         string? path = null,
@@ -172,7 +184,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads one value from read-only memory in its natural representation.</summary>
-    /// <inheritdoc cref="ReadValue(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <inheritdoc cref="ReadValue(ReadOnlySpan{byte}, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
     public object? ReadValue(
         ReadOnlyMemory<byte> source,
         string? path = null,
@@ -183,7 +195,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads one value from a byte array in its natural representation.</summary>
-    /// <inheritdoc cref="ReadValue(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <inheritdoc cref="ReadValue(ReadOnlySpan{byte}, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
     public object? ReadValue(
         byte[] source,
@@ -207,7 +219,7 @@ public sealed partial class CStruct
     /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <returns>The value at the path and the debug records.</returns>
     /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
-    /// <exception cref="CStructReadException">The stream is not seekable or cannot provide or decode the required bytes.</exception>
+    /// <exception cref="CStructReadException">The region cannot provide or decode the required bytes.</exception>
     public ReadResult ReadValueWithDebug(
         Stream stream,
         string? path = null,
@@ -219,7 +231,13 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads one value from a byte span and records the byte range of every value read.</summary>
-    /// <inheritdoc cref="ReadValueWithDebug(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <param name="source">The complete byte region available to this operation.</param>
+    /// <param name="path">The case-sensitive root name or nested path; <see langword="null"/> selects the first declared struct or union.</param>
+    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
+    /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <returns>The value at the path and the debug records.</returns>
+    /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
+    /// <exception cref="CStructReadException">The region cannot provide or decode the required bytes.</exception>
     public ReadResult ReadValueWithDebug(
         ReadOnlySpan<byte> source,
         string? path = null,
@@ -231,7 +249,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads one value from read-only memory and records the byte range of every value read.</summary>
-    /// <inheritdoc cref="ReadValueWithDebug(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <inheritdoc cref="ReadValueWithDebug(ReadOnlySpan{byte}, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
     public ReadResult ReadValueWithDebug(
         ReadOnlyMemory<byte> source,
         string? path = null,
@@ -242,7 +260,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads one value from a byte array and records the byte range of every value read.</summary>
-    /// <inheritdoc cref="ReadValueWithDebug(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <inheritdoc cref="ReadValueWithDebug(ReadOnlySpan{byte}, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
     public ReadResult ReadValueWithDebug(
         byte[] source,
@@ -277,7 +295,14 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads one value from a byte span and maps it to <typeparamref name="T"/>.</summary>
-    /// <inheritdoc cref="ReadValue{T}(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <typeparam name="T">The destination type; a POCO needs a public parameterless constructor and public bindable members.</typeparam>
+    /// <param name="source">The complete byte region available to this operation.</param>
+    /// <param name="path">The case-sensitive root name or nested path; <see langword="null"/> selects the first declared struct or union.</param>
+    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
+    /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <returns>The selected value converted or bound to <typeparamref name="T"/>.</returns>
+    /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
+    /// <exception cref="CStructReadException">The bytes cannot be decoded or the result cannot be bound to <typeparamref name="T"/>.</exception>
     public T ReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
         ReadOnlySpan<byte> source,
         string? path = null,
@@ -288,7 +313,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads one value from read-only memory and maps it to <typeparamref name="T"/>.</summary>
-    /// <inheritdoc cref="ReadValue{T}(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <inheritdoc cref="ReadValue{T}(ReadOnlySpan{byte}, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
     public T ReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
         ReadOnlyMemory<byte> source,
         string? path = null,
@@ -299,7 +324,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads one value from a byte array and maps it to <typeparamref name="T"/>.</summary>
-    /// <inheritdoc cref="ReadValue{T}(Stream, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <inheritdoc cref="ReadValue{T}(ReadOnlySpan{byte}, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
     public T ReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
         byte[] source,
@@ -354,7 +379,13 @@ public sealed partial class CStruct
     }
 
     /// <summary>Attempts a typed read from a byte span; an expected CStructSharp failure returns <see langword="false"/>.</summary>
-    /// <inheritdoc cref="TryReadValue{T}(Stream, string?, out T, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <typeparam name="T">The destination type; a POCO needs a public parameterless constructor and public bindable members.</typeparam>
+    /// <param name="source">The complete byte region available to this operation.</param>
+    /// <param name="path">The case-sensitive root name or nested path; <see langword="null"/> selects the first declared struct or union.</param>
+    /// <param name="value">Receives the typed result on success, or the default value of <typeparamref name="T"/> on failure.</param>
+    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
+    /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <returns><see langword="true"/> on success; <see langword="false"/> for a categorized CStructSharp failure.</returns>
     public bool TryReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
         ReadOnlySpan<byte> source,
         string? path,
@@ -375,7 +406,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>Attempts a typed read from read-only memory; an expected CStructSharp failure returns <see langword="false"/>.</summary>
-    /// <inheritdoc cref="TryReadValue{T}(Stream, string?, out T, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <inheritdoc cref="TryReadValue{T}(ReadOnlySpan{byte}, string?, out T, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
     public bool TryReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
         ReadOnlyMemory<byte> source,
         string? path,
@@ -387,7 +418,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>Attempts a typed read from a byte array; an expected CStructSharp failure returns <see langword="false"/>.</summary>
-    /// <inheritdoc cref="TryReadValue{T}(Stream, string?, out T, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <inheritdoc cref="TryReadValue{T}(ReadOnlySpan{byte}, string?, out T, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
     public bool TryReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
         byte[] source,
@@ -413,7 +444,7 @@ public sealed partial class CStruct
     /// <param name="options">Optional traversal limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <returns>The absolute stream position of the selected field or pointer target.</returns>
     /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
-    /// <exception cref="CStructReadException">The stream cannot provide the bytes required for traversal.</exception>
+    /// <exception cref="CStructReadException">The region cannot provide the bytes required for traversal.</exception>
     public long ResolveAddress(
         Stream stream,
         string path,
@@ -424,8 +455,13 @@ public sealed partial class CStruct
     }
 
     /// <summary>Finds the offset of a path within a byte span without reading its value.</summary>
-    /// <inheritdoc cref="ResolveAddress(Stream, string, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
     /// <returns>The zero-based offset of the selected field or pointer target within <paramref name="source"/>.</returns>
+    /// <param name="source">The complete byte region available to this operation.</param>
+    /// <param name="path">The case-sensitive root name or nested path to locate.</param>
+    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
+    /// <param name="options">Optional traversal limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
+    /// <exception cref="CStructReadException">The region cannot provide the bytes required for traversal.</exception>
     public unsafe long ResolveAddress(
         ReadOnlySpan<byte> source,
         string path,
@@ -484,7 +520,13 @@ public sealed partial class CStruct
     }
 
     /// <summary>Returns the element or character count a path selects within a byte span.</summary>
-    /// <inheritdoc cref="GetArrayLength(Stream, string, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    /// <param name="source">The complete byte region available to this operation.</param>
+    /// <param name="path">The case-sensitive path of an array or string field.</param>
+    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
+    /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <returns>The number of elements in the selected array or of characters in the selected string.</returns>
+    /// <exception cref="CStructPathException">The path is invalid or does not select an array or string.</exception>
+    /// <exception cref="CStructReadException">The stream cannot provide the bytes required to resolve the count.</exception>
     public unsafe int GetArrayLength(
         ReadOnlySpan<byte> source,
         string path,

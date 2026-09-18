@@ -1,4 +1,4 @@
-import type { DebugDataItem } from "./wasm/cstruct-contract";
+import type { DebugItem } from "./wasm/cstruct-contract";
 
 /**
  * Split a parser path into the steps needed to walk the JSON result.
@@ -11,18 +11,18 @@ export function tokenizePath(stackString: string): string[] {
 
 /**
  * Convert a schema field's path into the path used by the JSON result.
- * Pointer results have extra properties: Address holds the stored address and Value holds the
+ * Pointer results have extra properties: address holds the stored address and value holds the
  * data found there. Add those steps where necessary so clicks select the right JSON property.
  */
-export function debugEntryJsonPath(item: DebugDataItem, result?: unknown): string[] {
+export function debugEntryJsonPath(item: DebugItem, result?: unknown): string[] {
   const path: string[] = [];
   let value = result;
 
-  for (const segment of tokenizePath(item.DebugStackString)) {
+  for (const segment of tokenizePath(item.path)) {
     // Follow pointer wrappers before looking up the next ordinary field.
     while (isPointer(value)) {
-      path.push("Value");
-      value = value.Value;
+      path.push("value");
+      value = value.value;
     }
 
     path.push(segment);
@@ -32,25 +32,28 @@ export function debugEntryJsonPath(item: DebugDataItem, result?: unknown): strin
         : undefined;
   }
 
-  // If the path ends at the pointer itself, highlight Address: these bytes store the address.
-  if (isPointer(value)) path.push("Address");
+  // If the path ends at the pointer itself, highlight address: these bytes store the address.
+  if (isPointer(value)) path.push("address");
 
   return path;
 }
 
-function isPointer(
-  value: unknown,
-): value is { Address: number; Depth: number; IsDereferenced: boolean; Value: unknown } {
+function isPointer(value: unknown): value is {
+  kind: "pointer";
+  address: number | string;
+  depth: number;
+  dereferenced: boolean;
+  value: unknown;
+} {
   return (
     value !== null &&
     typeof value === "object" &&
-    "Address" in value &&
-    typeof value.Address === "number" &&
-    "Depth" in value &&
-    typeof value.Depth === "number" &&
-    "IsDereferenced" in value &&
-    typeof value.IsDereferenced === "boolean" &&
-    "Value" in value
+    "kind" in value &&
+    value.kind === "pointer" &&
+    "address" in value &&
+    "dereferenced" in value &&
+    typeof value.dereferenced === "boolean" &&
+    "value" in value
   );
 }
 
@@ -66,7 +69,7 @@ function isPointer(
  * array element match the shorter, shared path used by the parser's scalar-array entries.
  */
 export function findDebugEntryIndicesByPath(
-  debugData: DebugDataItem[],
+  debugData: DebugItem[],
   path: string[],
   result?: unknown,
 ): number[] {
@@ -92,9 +95,9 @@ function isPathRelated(a: string[], b: string[]): boolean {
   return true;
 }
 
-/** Find the field containing the clicked byte. CurPos is inclusive; EndPos is exclusive. */
-export function findDebugEntryIndexByOffset(debugData: DebugDataItem[], offset: number): number {
-  return debugData.findIndex((item) => offset >= item.CurPos && offset < item.EndPos);
+/** Find the field containing the clicked byte. start is inclusive; end is exclusive. */
+export function findDebugEntryIndexByOffset(debugData: DebugItem[], offset: number): number {
+  return debugData.findIndex((item) => offset >= item.start && offset < item.end);
 }
 
 /**
@@ -102,11 +105,11 @@ export function findDebugEntryIndexByOffset(debugData: DebugDataItem[], offset: 
  * group, so an array looks like one block in the hex view. Other fields get their own groups.
  * These numbers are later used to choose colors from a repeating palette.
  */
-export function computeFieldGroups(debugData: DebugDataItem[]): number[] {
+export function computeFieldGroups(debugData: DebugItem[]): number[] {
   const groupIndexByKey = new Map<string, number>();
 
   return debugData.map((item) => {
-    const key = arrayGroupKey(tokenizePath(item.DebugStackString));
+    const key = arrayGroupKey(tokenizePath(item.path));
     let index = groupIndexByKey.get(key);
 
     // Reuse a known group, or assign the next number when this field first appears.

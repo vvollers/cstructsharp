@@ -51,7 +51,7 @@ try {
     const bundle = await loadBundle();
     const t1 = performance.now();
     const { document: doc, bytes } = await loadFixture(id);
-    const options = { pointerSize: doc.options.pointerSize, aligned: doc.options.aligned, littleEndian: doc.options.littleEndian, rootTypeName: doc.root };
+    const options = { pointerSize: doc.options.pointerSize, aligned: doc.options.aligned, littleEndian: doc.options.littleEndian, root: doc.root };
     const optionsJson = JSON.stringify(options);
     bundle.managed.BenchCompile(doc.definition, optionsJson);
     const t2 = performance.now();
@@ -68,7 +68,7 @@ try {
       firstCoreParseMs: t3 - t2,
       firstPublicParseMs: t4 - t3,
       consumed,
-      publicSuccess: result.Success,
+      publicSuccess: result.success,
     };
     log(JSON.stringify(window.__coldReport));
   } else {
@@ -113,7 +113,7 @@ try {
           pageReads: copyCounter.pages,
           pageBytes: copyCounter.pageBytes,
           inputBytes: selected[i].meta?.bytes ?? 0,
-          outputChars: typeof value === "string" ? value.length : typeof value?.Data === "string" ? value.Data.length : value?.Data?.byteLength ?? null,
+          outputChars: typeof value === "string" ? value.length : typeof value?.data === "string" ? value.data.length : value?.data?.byteLength ?? null,
         };
         groupRecords[i].group = group;
       }
