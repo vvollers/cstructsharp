@@ -58,7 +58,10 @@ internal static class SymbolValidation
         if ((fieldHandlers.ContainsKey(declaration.Name.Name) || declaration.Name.Name == "void") && !PrimitiveSpellings.IsAlias(declaration.Name.Name))
         {
             throw new CStructLayoutException(
-                $"Global {GetDeclarationKind(declaration)} name '{declaration.Name.Name}' conflicts with a built-in codec.");
+                $"Global {GetDeclarationKind(declaration)} name '{declaration.Name.Name}' conflicts with a built-in codec.")
+            {
+                SourceOffset = declaration.Name.SourceOffset,
+            };
         }
     }
 
@@ -110,7 +113,10 @@ internal static class SymbolValidation
                 string memberKind = owningStruct.IsUnion ? "member" : "field";
                 string declarationKind = owningStruct.IsUnion ? "union" : "struct";
                 throw new CStructLayoutException(
-                    $"Duplicate {memberKind} name '{field.Name.Name}' in {declarationKind} '{scopeName}'.");
+                    $"Duplicate {memberKind} name '{field.Name.Name}' in {declarationKind} '{scopeName}'.")
+                {
+                    SourceOffset = field.Name.SourceOffset,
+                };
             }
         }
     }
@@ -124,7 +130,10 @@ internal static class SymbolValidation
             if (!names.Add(value.Name.Name))
             {
                 throw new CStructLayoutException(
-                    $"Duplicate enum member name '{value.Name.Name}' in enum '{enm.Name.Name}'.");
+                    $"Duplicate enum member name '{value.Name.Name}' in enum '{enm.Name.Name}'.")
+                {
+                    SourceOffset = value.Name.SourceOffset,
+                };
             }
         }
     }

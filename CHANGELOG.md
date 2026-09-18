@@ -6,6 +6,11 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- Diagnostics: a layout error about a declaration now names the field and its struct and reports the source
+  position - `Unknown type 'foo' for field 'z' in struct 'c'. (line 3, column 12)` - through the new
+  `CStructLayoutException.Line`/`Column` properties and the message. A multi-word type spelling that starts with a
+  known type is reported as a probable missing `;` (`a ';' may be missing after 'kind'`). Duplicate names,
+  built-in name collisions, and by-value recursion carry positions as well; parser errors keep their own text.
 - Browser/WASM: a float that is NaN or infinite no longer fails the whole parse with `invalid-input`; it arrives
   as the string `"NaN"`, `"Infinity"`, or `"-Infinity"` (the convention already used for integers beyond
   `Number`'s exact range), and `serialize`/`update` accept those strings for float fields.

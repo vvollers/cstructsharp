@@ -421,6 +421,48 @@ public partial class CStruct
     }
 
     /// <summary>Resolves one exported or primitive name once, accumulating pointer depth across typedef chains.</summary>
+    /// <summary>
+    ///     Resolves a field's declared type and, when the spelling is unknown, reports it with the field, the
+    ///     containing declaration, and the most likely cause: a multi-word spelling whose first word is itself a
+    ///     type is almost always a missing <c>;</c> between two declarators.
+    /// </summary>
+    private CompiledTypeReference ResolveFieldTypeReference(
+        Field field,
+        Struct owner,
+        ImmutableDictionary<string, CompiledTypeReference>.Builder namedTypes,
+        IReadOnlyDictionary<Struct, CompiledTypeSymbol> compositeSymbols,
+        HashSet<string> resolvingAliases)
+    {
+        try
+        {
+            return this.ResolveCompiledTypeReference(field.Type.Name, namedTypes, compositeSymbols, resolvingAliases);
+        }
+        catch (CStructLayoutException exception) when (exception.SourceOffset < 0 && exception.Message.StartsWith("Unknown field type: ", StringComparison.Ordinal))
+        {
+            string spelling = field.Type.Name;
+            string where = owner.Name.Name.Length == 0 ? "an anonymous " + (owner.IsUnion ? "union" : "struct") : (owner.IsUnion ? "union '" : "struct '") + owner.Name.Name + "'";
+            string hint = string.Empty;
+            int space = spelling.IndexOf(' ');
+            if (space > 0)
+            {
+                string firstWord = spelling[..space];
+                if (this.fieldHandlers.ContainsKey(firstWord) || namedTypes.ContainsKey(firstWord) || this.CStructElements.ContainsKey(firstWord))
+                {
+                    int secondSpace = spelling.IndexOf(' ', space + 1);
+                    string secondWord = secondSpace > 0 ? spelling[(space + 1)..secondSpace] : spelling[(space + 1)..];
+                    hint = $"; a ';' may be missing after '{secondWord}'";
+                }
+            }
+
+            throw new CStructLayoutException(
+                $"Unknown type '{spelling}' for field '{field.Name.Name}' in {where}{hint}.",
+                exception)
+            {
+                SourceOffset = field.Type.SourceOffset,
+            };
+        }
+    }
+
     private CompiledTypeReference ResolveCompiledTypeReference(
         string name,
         ImmutableDictionary<string, CompiledTypeReference>.Builder namedTypes,
@@ -601,7 +643,10 @@ public partial class CStruct
         if (!compiling.Add(strct))
         {
             throw new CStructLayoutException(
-                "By-value recursive struct declarations are not supported: " + strct.Name.Name);
+                "By-value recursive struct declarations are not supported: " + strct.Name.Name)
+            {
+                SourceOffset = strct.Name.SourceOffset,
+            };
         }
 
         try
@@ -624,18 +669,17 @@ public partial class CStruct
                                                      compositeSymbols[inlineStruct],
                                                      0,
                                                      inlineStruct.Name.Name)
-                                                 : this.ResolveCompiledTypeReference(
-                                                     field.Type.Name,
-                                                     namedTypes,
-                                                     compositeSymbols,
-                                                     resolvingAliases);
+                                                 : this.ResolveFieldTypeReference(field, strct, namedTypes, compositeSymbols, resolvingAliases);
                 if (field.TypeKeywordHint is not null)
                 {
                     string actualKind = type.Symbol.Kind.ToString().ToLowerInvariant();
                     if (!string.Equals(field.TypeKeywordHint, actualKind, StringComparison.Ordinal))
                     {
                         throw new CStructLayoutException(
-                            $"Field '{field.Name.Name}' declared as '{field.TypeKeywordHint}' but '{field.Type.Name}' is a {actualKind}.");
+                            $"Field '{field.Name.Name}' declared as '{field.TypeKeywordHint}' but '{field.Type.Name}' is a {actualKind}.")
+                        {
+                            SourceOffset = field.Type.SourceOffset,
+                        };
                     }
                 }
 
@@ -651,7 +695,10 @@ public partial class CStruct
                     if (compiling.Contains(nested))
                     {
                         throw new CStructLayoutException(
-                            "By-value recursive struct declarations are not supported: " + nested.Name.Name);
+                            "By-value recursive struct declarations are not supported: " + nested.Name.Name)
+                        {
+                            SourceOffset = field.Name.SourceOffset,
+                        };
                     }
 
                     _ = this.CompileComposite(

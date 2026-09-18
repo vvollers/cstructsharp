@@ -172,6 +172,9 @@ namespace CStructSharp.Diagnostics
         public CStructLayoutException() { }
         public CStructLayoutException(string message) { }
         public CStructLayoutException(string message, System.Exception innerException) { }
+        public int? Column { get; }
+        public int? Line { get; }
+        public override string Message { get; }
     }
     public sealed class CStructPathException : CStructSharp.Diagnostics.CStructException
     {

@@ -276,7 +276,7 @@ public class ScopedInlineTypeTests
     ///     An anonymous child field named local or value does not declare a reusable type with that name.
     /// </summary>
     /// <remarks>
-    ///     Attempts to reference it elsewhere, including through a pointer, must fail with Unknown field type. The
+    ///     Attempts to reference it elsewhere, including through a pointer, must fail as an unknown type. The
     ///     supplied stream must retain its bytes and position because the error belongs to the layout itself.
     /// </remarks>
     [TestMethod]
@@ -302,7 +302,7 @@ public class ScopedInlineTypeTests
                 },
                 layout);
 
-            StringAssert.Contains(exception.Message, "Unknown field type", layout);
+            StringAssert.Contains(exception.Message, "Unknown type", layout);
             Assert.AreEqual(1L, stream.Position, layout);
             CollectionAssert.AreEqual(original, stream.ToArray(), layout);
         }

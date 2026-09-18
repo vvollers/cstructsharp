@@ -128,136 +128,153 @@ public sealed partial class CStruct
             this.customSymbols = FrozenDictionary<string, CompiledTypeReference>.Empty;
         }
 
-        // Parse the layout text and index only exported top-level names. Anonymous inline declarations stay attached
-        // to their containing field and receive declaration identity in the compiled model.
-        // Syntax errors already carry the "invalid syntax" prefix; the remaining implementation exceptions can only
-        // come from semantic projections of otherwise well-formed text and are normalized to the same public shape.
-        IReadOnlyList<CStructElement> structResult;
-        bool usesQualifiedIdentifiers;
         try
         {
-            structResult = CStructDefinitionParser.ParseLayout(this.Source, effectiveCompilationOptions.Defined, effectiveCompilationOptions.DefaultEnumStorage, out usesQualifiedIdentifiers);
-        }
-        catch (Exception exception) when (exception is FormatException or OverflowException or
-                                          InvalidOperationException or ArgumentException)
-        {
-            throw new CStructLayoutException(LayoutParser.SyntaxErrorPrefix + exception.Message, exception);
-        }
-
-        var includes = new List<string>();
-        foreach (CStructElement declaration in structResult)
-        {
-            if (declaration is IncludeDirective include)
+            // Parse the layout text and index only exported top-level names. Anonymous inline declarations stay attached
+            // to their containing field and receive declaration identity in the compiled model.
+            // Syntax errors already carry the "invalid syntax" prefix; the remaining implementation exceptions can only
+            // come from semantic projections of otherwise well-formed text and are normalized to the same public shape.
+            IReadOnlyList<CStructElement> structResult;
+            bool usesQualifiedIdentifiers;
+            try
             {
-                // Recorded, never resolved: the core does not read translation-unit files.
-                includes.Add(include.Path);
-                continue;
+                structResult = CStructDefinitionParser.ParseLayout(this.Source, effectiveCompilationOptions.Defined, effectiveCompilationOptions.DefaultEnumStorage, out usesQualifiedIdentifiers);
+            }
+            catch (Exception exception) when (exception is FormatException or OverflowException or
+                                              InvalidOperationException or ArgumentException)
+            {
+                throw new CStructLayoutException(LayoutParser.SyntaxErrorPrefix + exception.Message, exception);
             }
 
-            SymbolValidation.ValidateBuiltInNameCollision(declaration, this.fieldHandlers);
-            if (this.cStructElements.TryGetValue(declaration.Name.Name, out CStructElement? existing))
+            var includes = new List<string>();
+            foreach (CStructElement declaration in structResult)
             {
-                throw new CStructLayoutException(
-                    $"Duplicate global declaration name '{declaration.Name.Name}': " +
-                    $"{SymbolValidation.GetDeclarationKind(existing)} and {SymbolValidation.GetDeclarationKind(declaration)}.");
+                if (declaration is IncludeDirective include)
+                {
+                    // Recorded, never resolved: the core does not read translation-unit files.
+                    includes.Add(include.Path);
+                    continue;
+                }
+
+                SymbolValidation.ValidateBuiltInNameCollision(declaration, this.fieldHandlers);
+                if (this.cStructElements.TryGetValue(declaration.Name.Name, out CStructElement? existing))
+                {
+                    throw new CStructLayoutException(
+                        $"Duplicate global declaration name '{declaration.Name.Name}': " +
+                        $"{SymbolValidation.GetDeclarationKind(existing)} and {SymbolValidation.GetDeclarationKind(declaration)}.")
+                    {
+                        SourceOffset = declaration.Name.SourceOffset,
+                    };
+                }
+
+                this.cStructElements.Add(declaration.Name.Name, declaration);
             }
 
-            this.cStructElements.Add(declaration.Name.Name, declaration);
-        }
+            this.Includes = includes.Count == 0 ? Array.Empty<string>() : includes.ToArray();
+            structResult = structResult.Where(declaration => declaration is not IncludeDirective).ToArray();
 
-        this.Includes = includes.Count == 0 ? Array.Empty<string>() : includes.ToArray();
-        structResult = structResult.Where(declaration => declaration is not IncludeDirective).ToArray();
+            // Validate enum storage before either expression evaluation or alignment can narrow/lookup the backing type.
+            this.enumIntegerCodecs = new EnumIntegerCodecTable(structResult, this.cStructElements, effectiveCompilationOptions.CLongWidth, this.PointerSize);
 
-        // Validate enum storage before either expression evaluation or alignment can narrow/lookup the backing type.
-        this.enumIntegerCodecs = new EnumIntegerCodecTable(structResult, this.cStructElements, effectiveCompilationOptions.CLongWidth, this.PointerSize);
-
-        // Resolve layout-wide constants once. Operation-specific variables later reuse this resolver's static cache
-        // and invalidate only definitions downstream of a caller override.
-        Defines[] definitions = this.CStructElements.Values.OfType<Defines>().ToArray();
-        if (usesQualifiedIdentifiers)
-        {
-            // `Enum.Member` in an expression: evaluate every named enum against the plain definitions first, then
-            // publish each member as a literal constant next to them. Only layouts that spell a qualified name pay
-            // for this second resolver.
-            definitions = [.. definitions, .. this.CreateQualifiedMemberDefinitions(structResult, definitions),];
-        }
-
-        this.layoutVariableResolver = new LayoutVariableResolver(
-            definitions,
-            this.expressionEvaluator,
-            this.FindExactEnumDefinitionDependencies(structResult, definitions));
-        this.staticLayoutVariables = this.layoutVariableResolver.CreateStatic();
-
-        // Compile every retained expression with this layout's immutable limits. Bit widths and enum values are static;
-        // array expressions keep their compiled program because caller variables may change their result per operation.
-        structResult = structResult.Select(this.NormalizeDeclarationExpressions).ToArray();
-        this.cStructElements.ReplaceWith(
-            structResult.Select(
-                declaration => new KeyValuePair<string, CStructElement>(
-                    declaration.Name.Name,
-                    declaration)));
-
-        // `typedef struct tag { ... } alias;` declares the tag as well as the alias, as in C. Registered after
-        // normalization so the tag names the same (normalized) declaration instance the alias does.
-        foreach (CStructElement declaration in structResult)
-        {
-            if (declaration is not Typedef { Struct: { } tagged, } || tagged.Name.Name == declaration.Name.Name)
+            // Resolve layout-wide constants once. Operation-specific variables later reuse this resolver's static cache
+            // and invalidate only definitions downstream of a caller override.
+            Defines[] definitions = this.CStructElements.Values.OfType<Defines>().ToArray();
+            if (usesQualifiedIdentifiers)
             {
-                continue;
+                // `Enum.Member` in an expression: evaluate every named enum against the plain definitions first, then
+                // publish each member as a literal constant next to them. Only layouts that spell a qualified name pay
+                // for this second resolver.
+                definitions = [.. definitions, .. this.CreateQualifiedMemberDefinitions(structResult, definitions),];
             }
 
-            if (this.cStructElements.TryGetValue(tagged.Name.Name, out CStructElement? existing))
+            this.layoutVariableResolver = new LayoutVariableResolver(
+                definitions,
+                this.expressionEvaluator,
+                this.FindExactEnumDefinitionDependencies(structResult, definitions));
+            this.staticLayoutVariables = this.layoutVariableResolver.CreateStatic();
+
+            // Compile every retained expression with this layout's immutable limits. Bit widths and enum values are static;
+            // array expressions keep their compiled program because caller variables may change their result per operation.
+            structResult = structResult.Select(this.NormalizeDeclarationExpressions).ToArray();
+            this.cStructElements.ReplaceWith(
+                structResult.Select(
+                    declaration => new KeyValuePair<string, CStructElement>(
+                        declaration.Name.Name,
+                        declaration)));
+
+            // `typedef struct tag { ... } alias;` declares the tag as well as the alias, as in C. Registered after
+            // normalization so the tag names the same (normalized) declaration instance the alias does.
+            foreach (CStructElement declaration in structResult)
             {
-                if (ReferenceEquals(existing, tagged))
+                if (declaration is not Typedef { Struct: { } tagged, } || tagged.Name.Name == declaration.Name.Name)
                 {
                     continue;
                 }
 
-                throw new CStructLayoutException(
-                    $"Duplicate global declaration name '{tagged.Name.Name}': " +
-                    $"{SymbolValidation.GetDeclarationKind(existing)} and {SymbolValidation.GetDeclarationKind(tagged)}.");
+                if (this.cStructElements.TryGetValue(tagged.Name.Name, out CStructElement? existing))
+                {
+                    if (ReferenceEquals(existing, tagged))
+                    {
+                        continue;
+                    }
+
+                    throw new CStructLayoutException(
+                        $"Duplicate global declaration name '{tagged.Name.Name}': " +
+                        $"{SymbolValidation.GetDeclarationKind(existing)} and {SymbolValidation.GetDeclarationKind(tagged)}.")
+                    {
+                        SourceOffset = tagged.Name.SourceOffset,
+                    };
+                }
+
+                SymbolValidation.ValidateBuiltInNameCollision(tagged, this.fieldHandlers);
+                this.cStructElements.Add(tagged.Name.Name, tagged);
+                structResult = [.. structResult, tagged,];
             }
 
-            SymbolValidation.ValidateBuiltInNameCollision(tagged, this.fieldHandlers);
-            this.cStructElements.Add(tagged.Name.Name, tagged);
-            structResult = [.. structResult, tagged,];
-        }
+            // A compiled layout cannot safely expose duplicate field or enum-member names: readers, writers, and paths
+            // would otherwise select different declarations from the same lexical scope.
+            SymbolValidation.ValidateScopedMemberNames(structResult);
 
-        // A compiled layout cannot safely expose duplicate field or enum-member names: readers, writers, and paths
-        // would otherwise select different declarations from the same lexical scope.
-        SymbolValidation.ValidateScopedMemberNames(structResult);
-
-        foreach (KeyValuePair<string, CStructElement> el in this.CStructElements)
-        {
-            if (el.Value is CstructEnum en)
+            foreach (KeyValuePair<string, CStructElement> el in this.CStructElements)
             {
-                // An enum occupies exactly the same bytes as its declared primitive storage type.
-                this.fieldAlignments[el.Key] = (byte)this.enumIntegerCodecs.Get(en.Name.Name).SizeInBytes;
+                if (el.Value is CstructEnum en)
+                {
+                    // An enum occupies exactly the same bytes as its declared primitive storage type.
+                    this.fieldAlignments[el.Key] = (byte)this.enumIntegerCodecs.Get(en.Name.Name).SizeInBytes;
+                }
             }
-        }
 
-        // Convert parsed declarations into one validated immutable model. Its recursive binder owns type resolution,
-        // alignment, sizing, placement, and operation descriptors, so no parallel layout cache can drift from it.
-        this.compiledLayout = this.CompileIntermediateRepresentation();
-        this.compiledModelQueries = new CompiledModelQueries(this.compiledLayout);
-        this.compiledSizeQueries = new CompiledSizeQueries(
-            this.compiledLayout.Composites,
-            this.Aligned,
-            this.layoutExpressionEvaluator);
-        foreach (KeyValuePair<string, CStructElement> declaration in this.CStructElements)
-        {
-            if (this.compiledLayout.Symbols.TryGetValue(
-                    declaration.Key,
-                    out CompiledTypeReference compiledType))
+            // Convert parsed declarations into one validated immutable model. Its recursive binder owns type resolution,
+            // alignment, sizing, placement, and operation descriptors, so no parallel layout cache can drift from it.
+            this.compiledLayout = this.CompileIntermediateRepresentation();
+            this.compiledModelQueries = new CompiledModelQueries(this.compiledLayout);
+            this.compiledSizeQueries = new CompiledSizeQueries(
+                this.compiledLayout.Composites,
+                this.Aligned,
+                this.layoutExpressionEvaluator);
+            foreach (KeyValuePair<string, CStructElement> declaration in this.CStructElements)
             {
-                this.fieldAlignments[declaration.Key] =
-                    compiledType.PointerDepth > 0 ? this.PointerSize : (byte)compiledType.Symbol.Alignment;
+                if (this.compiledLayout.Symbols.TryGetValue(
+                        declaration.Key,
+                        out CompiledTypeReference compiledType))
+                {
+                    this.fieldAlignments[declaration.Key] =
+                        compiledType.PointerDepth > 0 ? this.PointerSize : (byte)compiledType.Symbol.Alignment;
+                }
             }
-        }
 
-        // Publish immutable snapshots only after every constructor-time validator and compiler has finished.
-        this.cStructElements.Freeze();
-        this.fieldAlignments.Freeze();
+            // Publish immutable snapshots only after every constructor-time validator and compiler has finished.
+            this.cStructElements.Freeze();
+            this.fieldAlignments.Freeze();
+        }
+        catch (CStructLayoutException exception) when (exception.SourceOffset >= 0 && exception.Line is null)
+        {
+            // The declaration that failed is known by its source offset; report it as a line and column once, here,
+            // where the source text is at hand.
+            (int line, int column) = LayoutParser.LocatePosition(this.Source, exception.SourceOffset);
+            exception.AttachSourcePosition(line, column);
+            throw;
+        }
     }
 
     /// <summary>

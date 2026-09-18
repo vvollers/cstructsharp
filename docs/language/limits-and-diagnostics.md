@@ -33,6 +33,16 @@ expressions support.` A write that receives such a value fails with `CStructWrit
 A syntax error's message starts with `Layout definition contains invalid syntax:` and names the line and column of
 the first unexpected character (or the end of the text) together with what the parser expected there.
 
+An error about a declaration that parsed but cannot be compiled - an unknown type, a duplicate name, a by-value
+recursion, a name that collides with a built-in codec - names the declaration and ends with its position, which
+`CStructLayoutException.Line` and `.Column` also expose (one-based, counted over the text handed to `CStruct`,
+prelude included). A type spelling made of several words whose first word is itself a type is almost always a
+missing `;`, and the message says so:
+
+```text
+Unknown type 'uint16 kind uint32' for field 'length' in struct 'header'; a ';' may be missing after 'kind'. (line 2, column 3)
+```
+
 The [Differences from C](differences-from-c.md) page lists 17 representative rejected C forms executed on both target
 frameworks.
 

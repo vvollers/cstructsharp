@@ -26,10 +26,16 @@ internal class Identifier : Expr
 
         this.PointerDepth = name.Count(c => c == '*');
         this.Name = name.Replace("*", string.Empty);
-        this.IsPointer = this.PointerDepth > 0;
     }
 
-    public bool IsPointer { get; }
+    /// <summary>Whether the spelling carried one or more <c>*</c>. Computed so the node stays within 32 bytes with its source offset.</summary>
+    public bool IsPointer => this.PointerDepth > 0;
+
+    /// <summary>
+    ///     The zero-based offset of this name in the layout source, or -1 when the identifier was synthesized
+    ///     rather than parsed. Equality and hashing ignore it: two spellings of the same name are the same name.
+    /// </summary>
+    public int SourceOffset { get; init; } = -1;
 
     public string Name { get; }
 

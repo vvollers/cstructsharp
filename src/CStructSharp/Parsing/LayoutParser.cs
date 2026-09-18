@@ -704,7 +704,7 @@ internal sealed class LayoutParser
             throw this.Fail("an enum member name");
         }
 
-        var name = new Identifier(this.source[start..this.position]);
+        var name = new Identifier(this.source[start..this.position]) { SourceOffset = start, };
         this.SkipTrivia();
         return name;
     }
@@ -1122,7 +1122,7 @@ internal sealed class LayoutParser
             this.position++;
         }
 
-        return new Identifier(this.source[nameStart..this.position]);
+        return new Identifier(this.source[nameStart..this.position]) { SourceOffset = nameStart, };
     }
 
     /// <summary>Skips non-line-ending whitespace, block comments, and continuations where a line end is significant.</summary>
@@ -1469,7 +1469,7 @@ internal sealed class LayoutParser
         (Expr? alignmentOverride, Expr? offsetAssertion) = this.ParsePlacementSuffix();
 
         bool firstDeclaratorIsAnonymous = words.Count == 1 && bitSize is not null;
-        Identifier typeIdentifier = firstDeclaratorIsAnonymous ? new Identifier(words[0].Name) : BuildTypeIdentifier(words);
+        Identifier typeIdentifier = firstDeclaratorIsAnonymous ? new Identifier(words[0].Name) { SourceOffset = words[0].SourceOffset, } : BuildTypeIdentifier(words);
         int firstPointerDepth = 0;
         if (!firstDeclaratorIsAnonymous)
         {
@@ -1614,7 +1614,7 @@ internal sealed class LayoutParser
             builder.Append(name);
         }
 
-        return new Identifier(builder.ToString());
+        return new Identifier(builder.ToString()) { SourceOffset = words.Count > 0 ? words[0].SourceOffset : -1, };
     }
 
     /// <summary>
@@ -1679,7 +1679,7 @@ internal sealed class LayoutParser
             }
             while (this.IsExtendedIdentifierPart(this.position));
 
-            words.Add(new Identifier(this.source.Substring(start, this.position - start)));
+            words.Add(new Identifier(this.source.Substring(start, this.position - start)) { SourceOffset = start, });
             this.SkipTrivia();
         }
     }
@@ -2430,7 +2430,7 @@ operand:
         }
         while (this.IsIdentifierPart(this.position));
 
-        var identifier = new Identifier(this.source.Substring(start, this.position - start));
+        var identifier = new Identifier(this.source.Substring(start, this.position - start)) { SourceOffset = start, };
         this.SkipTrivia();
         return identifier;
     }
@@ -2440,14 +2440,15 @@ operand:
         return this.TryParseIdentifier() ?? throw this.Fail("an identifier");
     }
 
-    private CStructLayoutException Fail(string expected)
+    /// <summary>Converts a zero-based offset into the one-based line and column the diagnostics report.</summary>
+    internal static (int Line, int Column) LocatePosition(string source, int offset)
     {
         int line = 1;
         int column = 1;
-        int end = Math.Min(this.position, this.source.Length);
+        int end = Math.Min(offset, source.Length);
         for (int index = 0; index < end; index++)
         {
-            if (this.source[index] == '\n')
+            if (source[index] == '\n')
             {
                 line++;
                 column = 1;
@@ -2458,6 +2459,12 @@ operand:
             }
         }
 
+        return (line, column);
+    }
+
+    private CStructLayoutException Fail(string expected)
+    {
+        (int line, int column) = LocatePosition(this.source, this.position);
         string found = this.AtEnd
                            ? "end of input"
                            : $"'{DescribeCharacter(this.source[this.position])}'";
