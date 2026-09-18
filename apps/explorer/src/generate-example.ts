@@ -1,4 +1,4 @@
-import type { WorkbenchRequest } from "./components/OperationWorkbench.vue";
+import type { OperationRequest } from "./components/OperationPanel.vue";
 import type { InteropResult } from "./wasm/cstruct-contract";
 import { hexToBytes } from "./wasm/cstruct-wasm";
 
@@ -49,7 +49,7 @@ const updateOnlyOptions = new Set([
 ]);
 const layoutOptions = new Set(["root", "pointerSize", "aligned", "littleEndian"]);
 
-function nonDefaultOptions(request: WorkbenchRequest): Record<string, unknown> {
+function nonDefaultOptions(request: OperationRequest): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(request.options).filter(([key, value]) => {
       if (request.operation !== "parse" && readOnlyOptions.has(key)) return false;
@@ -127,7 +127,7 @@ function csValue(value: unknown, indent = 4): string {
 }
 
 export function generateExample(
-  request: WorkbenchRequest,
+  request: OperationRequest,
   observed?: InteropResult,
 ): { csharp: string; javascript: string } {
   const { operation, definition, options: o } = request;
@@ -187,7 +187,7 @@ ${
     {
 ${policy}
     };`
-    : "    // Default operation settings already match the workbench."
+    : "    // Default operation settings already match the operation panel."
 }
 ${
   operation !== "parse"
@@ -241,7 +241,7 @@ ${
   jsOptionsArgument
     ? `// Only settings that differ from the defaults need to be supplied.
 const options = ${JSON.stringify(options, (_key, value) => (typeof value === "bigint" ? value.toString() : value), 4)};`
-    : "// Default settings already match the workbench; no options object is needed."
+    : "// Default settings already match the operation panel; no options object is needed."
 }
 ${
   operation === "parse"

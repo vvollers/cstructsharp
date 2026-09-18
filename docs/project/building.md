@@ -6,7 +6,7 @@ description: Build only the part of CStructSharp you are changing and understand
 # Building the repository
 
 Run these commands from the repository root. Start with the smallest build that covers your change; this keeps the
-feedback loop short and avoids rebuilding the optional browser workbench.
+feedback loop short and avoids rebuilding the optional browser apps.
 
 ## Build only the core library
 

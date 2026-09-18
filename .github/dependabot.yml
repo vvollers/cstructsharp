@@ -15,7 +15,7 @@ updates:
           - "*"
 
   - package-ecosystem: npm
-    directory: /apps/workshop
+    directory: /apps/explorer
     # Keep the supported TypeScript 6 toolchain; ignore every TypeScript 7 release.
     ignore:
       - dependency-name: typescript

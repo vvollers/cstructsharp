@@ -3,8 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import http from "node:http";
 import { pathToFileURL } from "node:url";
-import { build, createServer, preview } from "../../apps/workshop/node_modules/vite/dist/node/index.js";
-import { chromium } from "../../apps/workshop/node_modules/@playwright/test/index.mjs";
+import { build, createServer, preview } from "../../apps/explorer/node_modules/vite/dist/node/index.js";
+import { chromium } from "../../apps/explorer/node_modules/@playwright/test/index.mjs";
 
 const exercise = `
 const def = "struct header { uint16 kind; uint32 length; };";

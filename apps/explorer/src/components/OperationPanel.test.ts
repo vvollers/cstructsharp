@@ -2,15 +2,15 @@ import { mount } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { VueHex } from "vuehex";
 
-import OperationWorkbench from "./OperationWorkbench.vue";
+import OperationPanel from "./OperationPanel.vue";
 import LayoutEditor from "./LayoutEditor.vue";
 vi.mock("./LayoutEditor.vue", () => ({ default: { props: ["modelValue"], template: "<div />" } }));
 
-describe("OperationWorkbench", () => {
+describe("OperationPanel", () => {
   it.each(["parse", "serialize", "update"] as const)(
-    "fixes the workbench to %s with its valid preset",
+    "fixes the operation panel to %s with its valid preset",
     async (operation) => {
-      const wrapper = mount(OperationWorkbench, {
+      const wrapper = mount(OperationPanel, {
         props: {
           definition: "struct header { uint16 kind; uint32 length; };",
           binaryHex: "02 00 06 00 00 00",
@@ -39,7 +39,7 @@ describe("OperationWorkbench", () => {
   );
 
   it("initializes the byte order supplied by a generated demo", async () => {
-    const wrapper = mount(OperationWorkbench, {
+    const wrapper = mount(OperationPanel, {
       props: {
         definition: "struct root { uint16 value; };",
         binaryHex: "12 34",
@@ -56,7 +56,7 @@ describe("OperationWorkbench", () => {
   });
 
   it("collects editable update inputs without hiding binary options", async () => {
-    const wrapper = mount(OperationWorkbench, {
+    const wrapper = mount(OperationPanel, {
       props: {
         definition: "struct root { byte value; };",
         binaryHex: "2a",
@@ -86,7 +86,7 @@ describe("OperationWorkbench", () => {
   });
 
   it("accepts binary data updates from the result editor", async () => {
-    const wrapper = mount(OperationWorkbench, {
+    const wrapper = mount(OperationPanel, {
       props: {
         definition: "struct root { byte value; };",
         binaryHex: "2a",
@@ -100,8 +100,8 @@ describe("OperationWorkbench", () => {
     ).toEqual(new Uint8Array([0x2b, 0x00]));
   });
 
-  it("converts bytes edited in VueHex back to the workbench hex request", async () => {
-    const wrapper = mount(OperationWorkbench, {
+  it("converts bytes edited in VueHex back to the operation panel hex request", async () => {
+    const wrapper = mount(OperationPanel, {
       props: {
         definition: "struct root { byte value; };",
         binaryHex: "2a",

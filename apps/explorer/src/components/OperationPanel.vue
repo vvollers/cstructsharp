@@ -15,10 +15,10 @@ import type {
 import { hexToBytes } from "../wasm/cstruct-wasm";
 import type { LessonOperation } from "../lessons";
 
-export type WorkbenchOperation = "parse" | "serialize" | "update";
+export type PanelOperation = "parse" | "serialize" | "update";
 
-export interface WorkbenchRequest {
-  operation: WorkbenchOperation;
+export interface OperationRequest {
+  operation: PanelOperation;
   definition: string;
   binaryHex: string;
   jsonValue: string;
@@ -30,23 +30,23 @@ const props = defineProps<{
   binaryHex: string;
   definition: string;
   disabled: boolean;
-  operation?: WorkbenchOperation;
+  operation?: PanelOperation;
   initialAligned?: boolean;
   initialLittleEndian?: boolean;
   initialPointerSize?: number;
   initialRootType?: string | null;
-  presets?: Partial<Record<WorkbenchOperation, LessonOperation>>;
+  presets?: Partial<Record<PanelOperation, LessonOperation>>;
   initialOptions?: ParseWithDebugOptions;
   running?: boolean;
 }>();
 
 const emit = defineEmits<{
-  run: [request: WorkbenchRequest];
+  run: [request: OperationRequest];
   changed: [];
   reset: [];
 }>();
 
-const operation = ref<WorkbenchOperation>(props.operation ?? "parse");
+const operation = ref<PanelOperation>(props.operation ?? "parse");
 const definition = ref(formatLayout(props.definition));
 const binaryHex = ref(props.binaryHex);
 const binaryEditorBytes = ref<Uint8Array<ArrayBufferLike>>(parseBinaryHex(props.binaryHex));
@@ -121,7 +121,7 @@ const settingExplanations = computed<Record<string, string>>(() => ({
     ? "Reads can visit the data at a pointer's target. Updates may also traverse a pointer when the selected path requires it."
     : "Reads keep the pointer address without reading its target. Updates cannot follow a pointer to change its target.",
   Total:
-    "This budget limits bytes read or written, including rereads during traversal. Workbench parsing also rereads field bytes for its debug view, so the budget can need to be larger than the input. Exceeding the applicable budget stops the operation.",
+    "This budget limits bytes read or written, including rereads during traversal. Debug parsing also rereads field bytes for its debug view, so the budget can need to be larger than the input. Exceeding the applicable budget stops the operation.",
   Elements:
     "An array may contain at most this many elements. This limits work on large or untrusted inputs; it does not set the array's declared length.",
   Text: "A string may use at most this many encoded bytes. Bytes and characters are not always the same count, especially with multi-byte encodings.",
@@ -180,7 +180,7 @@ function submit(): void {
   if (settingsDialog.value?.open) return;
   emit("run", currentRequest());
 }
-function currentRequest(): WorkbenchRequest {
+function currentRequest(): OperationRequest {
   return {
     operation: operation.value,
     definition: definition.value,
@@ -208,14 +208,14 @@ function currentRequest(): WorkbenchRequest {
 </script>
 
 <template>
-  <form class="workbench" @submit.prevent="submit">
-    <div class="workbench-heading">
+  <form class="operation-panel" @submit.prevent="submit">
+    <div class="operation-heading">
       <button
         ref="settingsButton"
         class="icon-button"
         type="button"
-        aria-label="Workbench settings"
-        title="Workbench settings"
+        aria-label="Operation settings"
+        title="Operation settings"
         @click="settingsDialog?.showModal()"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6M16 14v6" /></svg>
@@ -229,7 +229,7 @@ function currentRequest(): WorkbenchRequest {
       >
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 8M4 4v6h6" /></svg>
       </button>
-      <h2>Workbench</h2>
+      <h2>Operation panel</h2>
       <button
         class="icon-button"
         type="button"
@@ -251,7 +251,7 @@ function currentRequest(): WorkbenchRequest {
         <span aria-hidden="true">JS</span>
       </button>
     </div>
-    <p class="settings-summary" aria-label="Current workbench settings">
+    <p class="settings-summary" aria-label="Current operation settings">
       <SettingStatusItem
         v-for="setting in settingsSummary"
         :key="setting.label"
@@ -268,7 +268,7 @@ function currentRequest(): WorkbenchRequest {
     >
       <div class="dialog-content">
         <div class="dialog-heading">
-          <h2 id="settings-title">Workbench settings</h2>
+          <h2 id="settings-title">Operation settings</h2>
           <button
             class="icon-button"
             type="button"
@@ -405,21 +405,21 @@ function currentRequest(): WorkbenchRequest {
 </template>
 
 <style scoped>
-.workbench-heading,
+.operation-heading,
 .dialog-heading {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
-.workbench-heading h2,
+.operation-heading h2,
 .dialog-heading h2 {
   margin: 0;
 }
 .dialog-heading {
   justify-content: space-between;
 }
-.workbench-heading h2 {
+.operation-heading h2 {
   margin-inline-end: auto;
 }
 .icon-button {
@@ -488,7 +488,7 @@ function currentRequest(): WorkbenchRequest {
   margin: 0;
 }
 
-.workbench {
+.operation-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;

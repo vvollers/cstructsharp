@@ -179,10 +179,10 @@
     "gate": "tools/quality/browser-contract.mjs",
     "policy": "docs/api/index.md",
     "evidence": [
-      "apps/workshop/src/wasm/cstruct-wasm.test.ts",
+      "apps/explorer/src/wasm/cstruct-wasm.test.ts",
       "src/CStructSharp.Wasm/bootstrap.test.js",
-      "apps/workshop/tests/e2e/wasm-boundary.spec.ts",
-      "apps/workshop/tests/e2e/workbench.spec.ts"
+      "apps/explorer/tests/e2e/wasm-boundary.spec.ts",
+      "apps/explorer/tests/e2e/operations.spec.ts"
     ],
     "workItem": "QA-07"
   },

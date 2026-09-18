@@ -18,7 +18,7 @@ function Get-WorkflowRuleCodes {
     )
 
     $codes = [Collections.Generic.List[string]]::new()
-    if ($Text -match '(?i)(?:CStructSharpWeb|apps/workshop|src/CStructSharp\.Wasm)')
+    if ($Text -match '(?i)(?:CStructSharpWeb|apps/explorer|src/CStructSharp\.Wasm)')
     {
         $codes.Add('web-target')
     }
@@ -93,7 +93,7 @@ if ($SelfTest)
         Replace(
             './tools/documentation/Validate-Documentation.ps1',
             'missing-validator.ps1') +
-        "`n# apps/workshop"
+        "`n# apps/explorer"
     $codes = @(Get-WorkflowRuleCodes -Text $invalidText -Contract $contract)
     foreach ($expected in @('web-target', 'moving-action-tag', 'non-immutable-action'))
     {

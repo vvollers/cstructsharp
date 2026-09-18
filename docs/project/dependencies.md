@@ -70,7 +70,7 @@ instead of rewriting dependency versions. Success reports the installed package 
 
 ## Optional frontend packages
 
-The Web workbench is outside routine core and documentation builds:
+The web apps are outside routine core and documentation builds:
 
 | Scope | Package |
 | --- | --- |

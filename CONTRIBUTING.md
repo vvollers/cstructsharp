@@ -20,7 +20,7 @@ The test command runs on both `net8.0` and `net10.0`. If it fails before you mak
 your `dotnet --info` output. That makes it much easier to tell a setup problem from a code problem.
 
 Use `CStructSharp.NonWeb.sln` for normal library work. It leaves out the WebAssembly project and keeps the build
-smaller. Build the web projects only when your change affects the browser bridge or web workbench.
+smaller. Build the web projects only when your change affects the browser bridge or the web apps.
 
 ## A good workflow for a code change
 
@@ -96,7 +96,7 @@ not replace the baseline simply to make the check green. For an intentional publ
 3. Add or update behavior tests and package-consumer tests.
 4. Put migration notes in `CHANGELOG.md` and update guides and API documentation to describe the current behavior.
 
-### Browser bridge and web workbench
+### Browser bridge and web apps
 
 The browser API has its own compatibility files in `contracts/api/browser-rc1/`. Run the browser
 contract check when exports, options, result envelopes, error categories, or number handling change:

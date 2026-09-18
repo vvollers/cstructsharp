@@ -105,7 +105,7 @@ jobs:
             .replace(/<VersionPrefix>[^<]+<\/VersionPrefix>/, `<VersionPrefix>${version}</VersionPrefix>`)
             .replace(/\s*<VersionSuffix>[^<]+<\/VersionSuffix>/, '');
           fs.writeFileSync(projectPath, updatedProject);
-          for (const dir of ['apps/workshop', 'apps/inspector', 'packages/cstructsharp']) {
+          for (const dir of ['apps/explorer', 'apps/inspector', 'packages/cstructsharp']) {
             const packagePath = `${dir}/package.json`;
             const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
             packageJson.version = version;
@@ -149,7 +149,7 @@ jobs:
         run: dotnet workload restore ./src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
 
       - name: Install explorer dependencies
-        working-directory: apps/workshop
+        working-directory: apps/explorer
         run: npm ci
 
       - name: Pack NuGet package for all target frameworks
@@ -171,11 +171,11 @@ jobs:
         run: ./tools/packaging/Test-OnboardingPackage.ps1 -PackageDirectory ./artifacts/package
 
       - name: Build WebAssembly explorer
-        working-directory: apps/workshop
+        working-directory: apps/explorer
         run: npm run build
 
       # Both independent apps stage the repository-owned validated WASM publication.
-      # The workshop's full build above has already populated artifacts/wasm.
+      # The explorer's full build above has already populated artifacts/wasm.
       - name: Install inspector dependencies
         working-directory: apps/inspector
         run: npm ci
@@ -192,11 +192,11 @@ jobs:
           (cd artifacts/wasm-package && zip -r "../cstructsharp-wasm-v${VERSION}.zip" .)
 
       - name: Install browser for onboarding checks
-        working-directory: apps/workshop
+        working-directory: apps/explorer
         run: npx playwright install --with-deps chromium
 
       - name: Pack and verify the npm consumer artifact
-        working-directory: apps/workshop
+        working-directory: apps/explorer
         run: |
           npm run pack:npm
           npm run test:npm
@@ -206,12 +206,12 @@ jobs:
           node ../../tools/release/npm-release.mjs --require-missing
 
       - name: Verify explorer lessons
-        working-directory: apps/workshop
+        working-directory: apps/explorer
         run: |
           npm run test:unit
           npm run test:e2e
 
-      # apps/inspector pins the same @playwright/test range as apps/workshop, but each app's own
+      # apps/inspector pins the same @playwright/test range as apps/explorer, but each app's own
       # lockfile can independently drift to a different resolved patch version - and different patches can
       # require a different downloaded browser revision. Install this app's own browser build explicitly
       # rather than assuming the previous step's Chromium download still satisfies it.
@@ -235,7 +235,7 @@ jobs:
       # PR CI stays Chromium-only; the full suites above already ran there. The starter host staged by the
       # onboarding check is reused.
       - name: Install Firefox and WebKit for the cross-engine smoke
-        working-directory: apps/workshop
+        working-directory: apps/explorer
         run: |
           npx playwright install --with-deps firefox webkit
           (cd ../inspector && npx playwright install --with-deps firefox webkit)
@@ -244,7 +244,7 @@ jobs:
         env:
           CSTRUCT_BROWSERS: firefox,webkit
         run: |
-          (cd apps/workshop && npx playwright test --config playwright.starter.config.ts)
+          (cd apps/explorer && npx playwright test --config playwright.starter.config.ts)
           (cd apps/inspector && npx playwright test tests/e2e/inspector.spec.ts)
 
       - name: Prepare README badges
@@ -285,8 +285,8 @@ jobs:
           name: version-bump-files
           path: |
             src/CStructSharp/CStructSharp.csproj
-            apps/workshop/package.json
-            apps/workshop/package-lock.json
+            apps/explorer/package.json
+            apps/explorer/package-lock.json
             apps/inspector/package.json
             apps/inspector/package-lock.json
             packages/cstructsharp/package.json
@@ -339,7 +339,7 @@ jobs:
           name: npm-package
           path: artifacts/npm
       - name: Test the installed tarball without the SDK or browser
-        working-directory: apps/workshop
+        working-directory: apps/explorer
         run: npm run test:npm:node
 
   publish:

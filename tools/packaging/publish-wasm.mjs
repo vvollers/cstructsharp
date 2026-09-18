@@ -11,7 +11,7 @@ import {
 } from "./wasm-publication.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const webRoot = path.resolve(scriptDirectory, "../../apps/workshop");
+const webRoot = path.resolve(scriptDirectory, "../../apps/explorer");
 const repositoryRoot = path.resolve(webRoot, "../..");
 const projectPath = path.join(webRoot, "../../src/CStructSharp.Wasm", "CStructSharpWeb.Wasm.csproj");
 const appBundle = path.join(

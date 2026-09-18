@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
 
-import OperationWorkbench, { type WorkbenchRequest } from "./components/OperationWorkbench.vue";
+import OperationPanel, { type OperationRequest } from "./components/OperationPanel.vue";
 import ResultPanel from "./components/ResultPanel.vue";
 import TestNavigator from "./components/TestNavigator.vue";
 import LessonNavigator from "./components/LessonNavigator.vue";
@@ -147,7 +147,7 @@ onUnmounted(() => {
   narrowViewport.removeEventListener("change", updateCatalog);
 });
 
-function failure(operation: WorkbenchRequest["operation"], error: unknown): InteropResult {
+function failure(operation: OperationRequest["operation"], error: unknown): InteropResult {
   return {
     contractVersion: INTEROP_CONTRACT_VERSION,
     operation,
@@ -186,7 +186,7 @@ function applyEditedBytes(bytes: Uint8Array): void {
   stale.value = true;
 }
 
-async function run(request: WorkbenchRequest): Promise<void> {
+async function run(request: OperationRequest): Promise<void> {
   if (wasmStatus.value !== "ready") {
     return;
   }
@@ -310,7 +310,7 @@ async function run(request: WorkbenchRequest): Promise<void> {
         </section>
 
         <section v-if="selectedRunnable" class="card">
-          <OperationWorkbench
+          <OperationPanel
             :key="`${selectedRunnable.id}-${resetCount}`"
             :binary-hex="binaryHexInput"
             :definition="selectedRunnable.definition"
@@ -351,7 +351,7 @@ async function run(request: WorkbenchRequest): Promise<void> {
     </main>
 
     <footer>
-      CStructSharp interactive workbench · generated examples remain tied to the managed tests
+      CStructSharp interactive explorer · generated examples remain tied to the managed tests
     </footer>
   </div>
 </template>

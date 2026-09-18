@@ -97,7 +97,7 @@ a browser to build protocol tools, file inspectors, and binary editors.
 
 Prepare a layout once and reuse it to read dynamic objects or C# classes, write new records, and update selected
 fields in existing data. The definition keeps the format's structure and byte-level rules together as your tools
-grow from a single header parser into a complete format workbench. The library is trim-safe and Native AOT
+grow from a single header parser into a complete format explorer. The library is trim-safe and Native AOT
 compatible; see [typed values](docs/guides/typed-values.md#trimming-and-native-aot) for the one rule about
 nested classes.
 
@@ -136,7 +136,7 @@ Node loads the installed runtime from disk; no .NET SDK or server is needed. Bro
 API with the `cstructsharp/vite` plugin or an explicit static-asset directory. See the
 [npm package README](packages/cstructsharp/README.md) for complete setup, write/update examples, and supported hosts.
 Until the first npm publication, contributors can install the tested `.tgz` produced by `npm run pack:npm`
-in `apps/workshop`. The [release guide](docs/project/release-process.md) covers the first publication.
+in `apps/explorer`. The [release guide](docs/project/release-process.md) covers the first publication.
 
 ## Use the standalone browser bundle
 

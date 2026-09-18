@@ -18,9 +18,9 @@ function measure(relative) {
 }
 validateWasmPublication(path.join(root, "artifacts/wasm"));
 const wasm = measure("artifacts/wasm");
-const frontend = measure("apps/workshop/dist");
+const frontend = measure("apps/explorer/dist");
 const main = frontend.entries.filter((entry) => /^assets\/index-.*\.js$/.test(entry.path)).sort((a, b) => b.bytes - a.bytes)[0];
-if (!main) throw new Error("Build the workshop before measuring its entry bundle.");
+if (!main) throw new Error("Build the explorer before measuring its entry bundle.");
 const values = { wasmFiles: wasm.files, wasmBytes: wasm.bytes, wasmGzipBytes: wasm.gzipBytes, frontendBytes: frontend.bytes, frontendGzipBytes: frontend.gzipBytes, mainJavaScriptBytes: main.bytes, mainJavaScriptGzipBytes: main.gzipBytes };
 const exceeded = Object.entries(values).filter(([key, value]) => value > policy.maximums[key]).map(([key, value]) => `${key}: ${value} > ${policy.maximums[key]}`);
 const report = { schemaVersion: 1, policy: policy.name, values, maximums: policy.maximums, exceeded };

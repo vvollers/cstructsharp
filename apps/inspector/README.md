@@ -68,7 +68,7 @@ specific feature. Keeping both as explicit variants preserves those examples wit
 Identical declarations, such as the EXE/DLL sample layout and TAR fields, are shared within the catalog.
 Catalog tests check detector coverage, unique IDs/extensions, aliases and sample placement.
 
-`apps/workshop/src/lessons.ts` belongs to the separate workshop application. It teaches language
+`apps/explorer/src/lessons.ts` belongs to the separate explorer application. It teaches language
 features through lessons and expected results; it is not used for the inspector's file-type selection.
 
 ### Build and verification

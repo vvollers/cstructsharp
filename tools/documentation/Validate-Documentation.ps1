@@ -326,7 +326,7 @@ $metadataSources = @($docfxConfig.metadata | ForEach-Object { $_.src } | ForEach
 Assert-Condition ($metadataSources.Count -eq 1) 'DocFX must have exactly one managed metadata source root.'
 Assert-Condition ($metadataSources[0] -eq '../src/CStructSharp/bin/Release/net10.0') `
     "Unexpected DocFX metadata source '$($metadataSources[0])'."
-Assert-Condition ($docfxConfigText -notmatch '(?i)apps/workshop') `
+Assert-Condition ($docfxConfigText -notmatch '(?i)apps/explorer') `
     'DocFX configuration must not select CStructSharpWeb or CStructSharpWeb.Wasm.'
 Assert-Condition ($docfxConfig.build.globalMetadata._enableSearch -eq $true) 'DocFX local search must remain enabled.'
 

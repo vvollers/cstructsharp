@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { generateExample } from "./generate-example";
-import type { WorkbenchRequest } from "./components/OperationWorkbench.vue";
+import type { OperationRequest } from "./components/OperationPanel.vue";
 
-const request: WorkbenchRequest = {
+const request: OperationRequest = {
   operation: "parse",
   definition: "struct header { uint16 kind; };",
   binaryHex: "0200",

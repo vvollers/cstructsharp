@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: apps/workshop
+        working-directory: apps/explorer
 
     steps:
       - name: Check out source
@@ -30,7 +30,7 @@ jobs:
         with:
           node-version: 26.5.0
           cache: npm
-          cache-dependency-path: apps/workshop/package-lock.json
+          cache-dependency-path: apps/explorer/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -40,7 +40,7 @@ jobs:
 
       - name: Lint relocated WASM and repository scripts
         working-directory: .
-        run: node apps/workshop/node_modules/eslint/bin/eslint.js --config tools/eslint.config.mjs "tools/**/*.mjs" "src/CStructSharp.Wasm/**/*.js" --max-warnings 0
+        run: node apps/explorer/node_modules/eslint/bin/eslint.js --config tools/eslint.config.mjs "tools/**/*.mjs" "src/CStructSharp.Wasm/**/*.js" --max-warnings 0
 
       - name: Check formatting
         run: npm run format:check

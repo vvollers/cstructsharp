@@ -4,7 +4,7 @@
 compiled examples, API-page additions, styling, search checks, and browser tests.
 
 The documentation tools use only the core `src/CStructSharp` project. They must not restore, build, publish, or test
-`apps/workshop` or `CStructSharpWeb.Wasm`. Avoid the full `CStructSharp.sln` during routine documentation work
+`apps/explorer` or `CStructSharpWeb.Wasm`. Avoid the full `CStructSharp.sln` during routine documentation work
 because that solution includes the WebAssembly bridge.
 
 ## Before you start

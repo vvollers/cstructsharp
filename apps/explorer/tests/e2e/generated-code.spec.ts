@@ -16,7 +16,7 @@ test("generation uses edited inputs, opens either language, and downloads the co
   await page.getByTestId("binary-input").locator(".vuehex-byte").first().click();
   await page.keyboard.press("0");
   await page.keyboard.press("a");
-  await page.getByRole("button", { name: "Workbench settings", exact: true }).click();
+  await page.getByRole("button", { name: "Operation settings", exact: true }).click();
   await page.getByTestId("endian-select").selectOption("big");
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await page.getByRole("button", { name: "Generate C#", exact: true }).click();

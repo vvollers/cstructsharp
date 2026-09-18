@@ -6,6 +6,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- **Breaking (repository layout):** the lesson app is the **Explorer** everywhere: `apps/workshop` is now
+  `apps/explorer` (package `cstructsharp-explorer`; the inspector package is `cstructsharp-inspector`), its
+  operation form is the "Operation panel" (`OperationPanel.vue`, "Operation settings"), and every workflow,
+  script, contract, and guide points at the new path.
 - The release workflow smokes the packaged starter page and one inspector flow in Firefox and WebKit
   (`CSTRUCT_BROWSERS` selects the Playwright engines); PR CI stays Chromium-only.
 - npm package polish: the README lists every public function, states the 4 MiB in-memory limit of `update` and

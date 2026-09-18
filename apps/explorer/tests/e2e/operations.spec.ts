@@ -55,7 +55,7 @@ test("Monaco highlights C, starts formatted, and supports formatting and reset",
   await source.screenshot({ path: "artifacts/monaco-layout-editor.png" });
 });
 
-test("the editable workbench parses, serializes, and updates without reloading", async ({
+test("the editable operation panel parses, serializes, and updates without reloading", async ({
   page,
 }) => {
   const definition = "struct root { byte value; };";
@@ -65,7 +65,7 @@ test("the editable workbench parses, serializes, and updates without reloading",
   await binaryEditor.locator(".vuehex-byte").first().click();
   await page.keyboard.press("2");
   await page.keyboard.press("a");
-  await page.getByRole("button", { name: "Workbench settings", exact: true }).click();
+  await page.getByRole("button", { name: "Operation settings", exact: true }).click();
   await page.locator("#root-type").fill("root");
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await page.getByRole("button", { name: "Run parse" }).click();
@@ -75,7 +75,7 @@ test("the editable workbench parses, serializes, and updates without reloading",
   await page.goto("/#lesson=header-serialize");
   await page.getByTestId("definition-input").getByRole("textbox").press("Control+A");
   await page.keyboard.insertText(definition);
-  await page.getByRole("button", { name: "Workbench settings", exact: true }).click();
+  await page.getByRole("button", { name: "Operation settings", exact: true }).click();
   await page.locator("#root-type").fill("root");
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await page.getByTestId("json-input").fill('{"value":165}');
@@ -87,7 +87,7 @@ test("the editable workbench parses, serializes, and updates without reloading",
   await page.goto("/#lesson=header-update");
   await page.getByTestId("definition-input").getByRole("textbox").press("Control+A");
   await page.keyboard.insertText(definition);
-  await page.getByRole("button", { name: "Workbench settings", exact: true }).click();
+  await page.getByRole("button", { name: "Operation settings", exact: true }).click();
   await page.locator("#root-type").fill("root");
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await binaryEditor.locator(".vuehex-byte").first().click();

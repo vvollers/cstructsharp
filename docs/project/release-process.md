@@ -106,7 +106,7 @@ Do not start another normal patch release to complete a partly published version
 
 ## Build and test npm locally
 
-From `apps/workshop`:
+From `apps/explorer`:
 
 ```sh
 npm ci

@@ -18,7 +18,7 @@ and which direction their dependencies point.
 | `docs/` | DocFX pages, examples, site assets, browser checks, and machine-readable reference data | Reads a prebuilt core net10 assembly |
 | `src/CStructSharp.Wasm/` | Managed WebAssembly adapter and standalone package source | References core |
 | `packages/cstructsharp/` | Public npm package loaders, Vite plugin, and package README | Packages the prebuilt WASM adapter for Node.js and browsers |
-| `apps/workshop/` | Independent test/lesson workshop | Loads the published WASM adapter output |
+| `apps/explorer/` | Independent test/lesson explorer | Loads the published WASM adapter output |
 | `apps/inspector/` | Independent binary inspector UI, format examples, and browser checks | Stages the repository WASM publication |
 | `contracts/` | Reviewed compatibility, fixture, quality, and documentation inputs | Read by managed tests, validators, and DocFX |
 | `tools/` | Validation, measurement, package, and documentation scripts | Takes explicit files/projects as inputs |

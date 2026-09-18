@@ -1,8 +1,8 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
-// Reuse the pinned workshop tooling without sharing either application's source.
-const require = createRequire(new URL("../apps/workshop/package.json", import.meta.url));
+// Reuse the pinned explorer tooling without sharing either application's source.
+const require = createRequire(new URL("../apps/explorer/package.json", import.meta.url));
 const js = require("@eslint/js");
 const { default: globals } = await import(pathToFileURL(require.resolve("globals")).href);
 

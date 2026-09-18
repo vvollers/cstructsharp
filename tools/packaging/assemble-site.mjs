@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const destination = path.join(root, "artifacts/pages");
-const sections = { docs: "docs/_site", explorer: "apps/workshop/dist", inspector: "apps/inspector/dist" };
+const sections = { docs: "docs/_site", explorer: "apps/explorer/dist", inspector: "apps/inspector/dist" };
 for (const source of Object.values(sections)) {
   assert.ok(fs.statSync(path.join(root, source, "index.html")).size > 0, `Missing site: ${source}`);
 }
@@ -25,4 +25,4 @@ for (const name of badgeFiles) {
   fs.copyFileSync(path.join(badges, name), path.join(destination, "badges", name));
 }
 fs.writeFileSync(path.join(destination, ".nojekyll"), "");
-console.log("Assembled complete website: landing page, docs, workshop, inspector, and badges.");
+console.log("Assembled complete website: landing page, docs, explorer, inspector, and badges.");

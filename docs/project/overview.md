@@ -50,9 +50,9 @@ CStructSharp is not a drop-in C compiler, native-memory marshaller, schema regis
 Direct stream writes can leave a prefix after a late failure. `Update` validates errors the library can detect
 before changing the destination, but a physical stream can still accept part of the final commit and then fail.
 
-## Optional browser workbench
+## Optional browser apps
 
-`CStructSharpWeb.Wasm` adapts the managed library to WebAssembly, and `apps/workshop` provides a Vue/Vite workbench.
+`CStructSharpWeb.Wasm` adapts the managed library to WebAssembly, and `apps/explorer` provides the Vue/Vite explorer (lessons and an operation panel) and `apps/inspector` the binary file inspector.
 They are separate from the NuGet library and are not needed to build, test, or document the core. Their JSON-facing
 behavior has its own versioned browser format because JavaScript callers do not consume the managed .NET API
 directly.

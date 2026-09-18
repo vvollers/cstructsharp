@@ -12,7 +12,7 @@ public class ManagedFuzzCliTests
     /// </summary>
     /// <remarks>
     ///     The input file contains a simple one-byte struct declaration. This tests the tool used to reproduce
-    ///     robustness failures, not the workbench's interactive parser.
+    ///     robustness failures, not the explorer's interactive parser.
     /// </remarks>
     [TestMethod]
     public void Run_SupportsDiscoveryReportsAndSingleInputReplay()

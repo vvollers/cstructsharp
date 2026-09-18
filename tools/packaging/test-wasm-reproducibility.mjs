@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { validateWasmPublication } from "./wasm-publication.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const webRoot = path.resolve(scriptDirectory, "../../apps/workshop");
+const webRoot = path.resolve(scriptDirectory, "../../apps/explorer");
 const publicationDirectory = path.resolve(webRoot, "../../artifacts/wasm");
 const staleRootFile = path.join(publicationDirectory, "stale-output.dll");
 const staleFrameworkFile = path.join(publicationDirectory, "_framework", "stale-output.map");

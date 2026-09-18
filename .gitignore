@@ -46,11 +46,11 @@
 *.stylelintcache
 
 # Generated WebAssembly/frontend assets
-apps/workshop/public/wasm/
-apps/workshop/public/wasm*
-apps/workshop/src/generated/test-demos.json
-apps/workshop/vite.config.d.ts
-apps/workshop/vite.config.d.ts.map
+apps/explorer/public/wasm/
+apps/explorer/public/wasm*
+apps/explorer/src/generated/test-demos.json
+apps/explorer/vite.config.d.ts
+apps/explorer/vite.config.d.ts.map
 apps/inspector/public/wasm/
 apps/inspector/public/wasm*
 apps/inspector/vite.config.d.ts

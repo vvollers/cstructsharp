@@ -32,7 +32,7 @@ test("status tooltips explain live settings with matching value colors", async (
     await page.keyboard.press("Escape");
     await expect(tooltip).toHaveCount(0);
   }
-  await page.getByRole("button", { name: "Workbench settings", exact: true }).click();
+  await page.getByRole("button", { name: "Operation settings", exact: true }).click();
   await page.getByTestId("endian-select").selectOption("big");
   await page.getByRole("button", { name: "Done", exact: true }).click();
   const order = items.filter({ has: page.locator(".setting-label", { hasText: "Order:" }) });
@@ -41,7 +41,7 @@ test("status tooltips explain live settings with matching value colors", async (
   await expect(page.getByRole("tooltip")).toContainText("most significant byte comes first");
   await page.getByRole("tooltip").hover();
   await expect(page.getByRole("tooltip")).toBeVisible();
-  await page.screenshot({ path: "artifacts/workbench-setting-tooltip.png" });
+  await page.screenshot({ path: "artifacts/operation-setting-tooltip.png" });
   await page.keyboard.press("Escape");
   await expect(page.getByRole("tooltip")).toHaveCount(0);
 });
@@ -51,9 +51,9 @@ test("settings popup updates the summary, applies options, and resets with the l
 }) => {
   await page.goto("/#lesson=header");
   await expect(page.locator(".status-badge")).toContainText("Ready", { timeout: 60_000 });
-  const settings = page.getByRole("button", { name: "Workbench settings", exact: true });
-  const dialog = page.getByRole("dialog", { name: "Workbench settings" });
-  const summary = page.getByLabel("Current workbench settings");
+  const settings = page.getByRole("button", { name: "Operation settings", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Operation settings" });
+  const summary = page.getByLabel("Current operation settings");
   await expect(summary.getByRole("img", { name: "Enabled", exact: true })).toHaveCount(1);
   await expect(summary.getByRole("img", { name: "Disabled", exact: true })).toHaveCount(1);
   await expect(page.getByText("Read bytes (parse)", { exact: true })).toHaveCount(0);
@@ -80,11 +80,13 @@ test("settings popup updates the summary, applies options, and resets with the l
   await page.getByRole("button", { name: "Run parse", exact: true }).click();
   await expect(page.locator(".result-panel")).toContainText("read-budget");
   await page.getByRole("button", { name: "Reset example", exact: true }).click();
-  await page.locator(".workbench").screenshot({ path: "artifacts/workbench-settings-header.png" });
+  await page
+    .locator(".operation-panel")
+    .screenshot({ path: "artifacts/operation-settings-header.png" });
   await page.setViewportSize({ width: 390, height: 844 });
   await settings.click();
   expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-  await page.screenshot({ path: "artifacts/workbench-settings-mobile.png" });
+  await page.screenshot({ path: "artifacts/operation-settings-mobile.png" });
   await dialog.getByRole("button", { name: "Done", exact: true }).click();
   await expect(settings).toBeFocused();
 });
@@ -97,8 +99,8 @@ test("the byte-limit lesson recovers at the documented budget", async ({ page })
   await run.click();
   await expect(page.locator(".result-panel")).toContainText("read-budget");
   for (const budget of [4, 5, 6]) {
-    await page.getByRole("button", { name: "Workbench settings", exact: true }).click();
-    const dialog = page.getByRole("dialog", { name: "Workbench settings" });
+    await page.getByRole("button", { name: "Operation settings", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Operation settings" });
     await dialog.locator("#max-total").fill(String(budget));
     await dialog.getByRole("button", { name: "Done", exact: true }).click();
     await run.click();
@@ -288,7 +290,7 @@ test("intentional errors can be repaired by pasting into VueHex", async ({ page 
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);
   await page.screenshot({ path: "artifacts/onboarding-mobile.png", fullPage: true });
-  // Wider fallback fonts must not force the workbench's grid columns off-screen.
+  // Wider fallback fonts must not force the operation panel's grid columns off-screen.
   await page.addStyleTag({ content: ':root { --font-sans: "Courier New", monospace; }' });
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))

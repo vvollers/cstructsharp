@@ -12,7 +12,7 @@ using Pidgin;
 
 /// <summary>
 ///     Differential oracle for the hand-written <see cref="LayoutParser"/> (E1.2): every layout in the repository's
-///     corpus - benchmark fixtures, language contracts, compiler-fixture baselines, workshop demos, documentation
+///     corpus - benchmark fixtures, language contracts, compiler-fixture baselines, explorer demos, documentation
 ///     snippets, and every layout-looking string literal in this test project - plus thousands of deterministic
 ///     mutations of them, is parsed by both the new parser and the frozen Pidgin grammar it replaced. Everything the
 ///     reference accepts, the current parser must accept with a structurally identical tree; the reference grammar

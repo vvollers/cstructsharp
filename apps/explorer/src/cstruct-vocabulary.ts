@@ -15,7 +15,7 @@ export const cstructKeywords = [
   "default",
 ];
 
-// Consume the repository contract directly so new runtime spellings reach the workshop editor.
+// Consume the repository contract directly so new runtime spellings reach the explorer editor.
 export const cstructTypes = [
   ...contract.fixedPrimitives.map((type) => ({
     name: type.spelling,

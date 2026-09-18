@@ -4,7 +4,7 @@ param([Parameter(Mandatory)][string]$ArchivePath)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
-$web = Join-Path $root 'apps/workshop'
+$web = Join-Path $root 'apps/explorer'
 $hostRoot = Join-Path $web 'artifacts/onboarding-host'
 $resolved = [IO.Path]::GetFullPath($hostRoot)
 $expectedParent = [IO.Path]::GetFullPath((Join-Path $web 'artifacts'))

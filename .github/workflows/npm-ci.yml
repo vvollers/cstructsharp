@@ -23,14 +23,14 @@ jobs:
         with:
           node-version: 26.5.0
           cache: npm
-          cache-dependency-path: apps/workshop/package-lock.json
+          cache-dependency-path: apps/explorer/package-lock.json
       - run: dotnet workload restore src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
       - run: npm ci
-        working-directory: apps/workshop
+        working-directory: apps/explorer
       - run: npx playwright install --with-deps chromium
-        working-directory: apps/workshop
+        working-directory: apps/explorer
       - name: Build once and test the actual tarball
-        working-directory: apps/workshop
+        working-directory: apps/explorer
         run: |
           npm run build:wasm
           npm run pack:npm
@@ -38,8 +38,8 @@ jobs:
           npm run test:npm-release
           npm run test:bootstrap
           npm run test:wasm-publication
-      - name: Verify workshop catalog and browser integration
-        working-directory: apps/workshop
+      - name: Verify explorer catalog and browser integration
+        working-directory: apps/explorer
         run: |
           npm run copy:wasm
           npm run build:frontend
@@ -87,4 +87,4 @@ jobs:
           name: npm-package
           path: artifacts/npm
       - run: npm run test:npm:node
-        working-directory: apps/workshop
+        working-directory: apps/explorer

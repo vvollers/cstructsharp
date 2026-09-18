@@ -11,28 +11,28 @@ This page is for contributors changing the explorer or its managed bridge. Brows
 ## Build both parts
 
 Install the stable .NET 10 SDK selected by `global.json`, Node.js and npm compatible with
-`apps/workshop/package.json`, and PowerShell 7 for repository scripts. The manifest's `packageManager` field
+`apps/explorer/package.json`, and PowerShell 7 for repository scripts. The manifest's `packageManager` field
 records the preferred npm version; the lockfile fixes the dependency graph.
 
 From the repository root:
 
 ```powershell
 dotnet workload restore ./src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
-npm --prefix ./apps/workshop ci
-npm --prefix ./apps/workshop run build
+npm --prefix ./apps/explorer ci
+npm --prefix ./apps/explorer run build
 ```
 
-The production build publishes the C# bridge into `artifacts/wasm`, stages it into the workshop's `public/wasm`, and builds Vue into
-`apps/workshop/dist`. It verifies the copied runtime publication. The managed solution alone does not build Vue.
+The production build publishes the C# bridge into `artifacts/wasm`, stages it into the explorer's `public/wasm`, and builds Vue into
+`apps/explorer/dist`. It verifies the copied runtime publication. The managed solution alone does not build Vue.
 
 After the first build:
 
 ```powershell
-npm --prefix ./apps/workshop run dev
+npm --prefix ./apps/explorer run dev
 ```
 
 Open the address printed by Vite. Changes to Vue update during development; changes to C# require
-`npm --prefix ./apps/workshop run build:wasm`. Run the complete production build before browser tests.
+`npm --prefix ./apps/explorer run build:wasm`. Run the complete production build before browser tests.
 
 ## Managed bridge trimming
 
@@ -79,12 +79,12 @@ in Markdown.
 ## Verify the change
 
 ```powershell
-npm --prefix ./apps/workshop run lint
-npm --prefix ./apps/workshop run test:unit
-npm --prefix ./apps/workshop run test:demos
-npm --prefix ./apps/workshop run test:bootstrap
-npm --prefix ./apps/workshop run build
-npm --prefix ./apps/workshop run test:e2e
+npm --prefix ./apps/explorer run lint
+npm --prefix ./apps/explorer run test:unit
+npm --prefix ./apps/explorer run test:demos
+npm --prefix ./apps/explorer run test:bootstrap
+npm --prefix ./apps/explorer run build
+npm --prefix ./apps/explorer run test:e2e
 ```
 
 Install Playwright Chromium from the web directory with `npx playwright install chromium` if it is missing.
@@ -118,7 +118,7 @@ In another terminal, set the explorer's documentation base before starting Vite:
 
 ```powershell
 $env:VITE_DOCS_BASE_URL = 'http://localhost:8080/'
-npm --prefix ./apps/workshop run dev
+npm --prefix ./apps/explorer run dev
 ```
 
 Open `http://127.0.0.1:5173/cstructsharp/explorer/`. The header links open the local docs, and lesson links

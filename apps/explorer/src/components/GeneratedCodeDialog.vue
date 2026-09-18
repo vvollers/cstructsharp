@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, ref } from "vue";
 import LayoutEditor from "./LayoutEditor.vue";
-import type { WorkbenchRequest } from "./OperationWorkbench.vue";
+import type { OperationRequest } from "./OperationPanel.vue";
 import { generateExample } from "../generate-example";
 import { hexToBytes, parseWithDebug, serialize, updateStream } from "../wasm/cstruct-wasm";
 
@@ -14,7 +14,7 @@ const error = ref("");
 const copyStatus = ref("");
 const revision = ref(0);
 let opener: HTMLElement | null = null;
-function open(request: WorkbenchRequest, tab: Language) {
+function open(request: OperationRequest, tab: Language) {
   opener = document.activeElement as HTMLElement;
   language.value = tab;
   error.value = "";
@@ -36,7 +36,7 @@ function open(request: WorkbenchRequest, tab: Language) {
             );
     sources.value = generateExample(request, result);
   } catch (caught) {
-    error.value = `Could not generate the example: ${caught instanceof Error ? caught.message : String(caught)}. Check the workbench inputs and try again.`;
+    error.value = `Could not generate the example: ${caught instanceof Error ? caught.message : String(caught)}. Check the operation panel inputs and try again.`;
   }
   opened.value = true;
   dialog.value?.showModal();
@@ -91,7 +91,7 @@ defineExpose({ open });
       </header>
       <p class="hint">
         Snapshot of your current inputs. Edit or copy the example here; changes do not affect the
-        workbench.
+        operation panel.
       </p>
       <div class="code-toolbar">
         <div

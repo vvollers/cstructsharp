@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { validateWasmPublication } from "./wasm-publication.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const webRoot = path.resolve(scriptDirectory, "../../apps/workshop");
+const webRoot = path.resolve(scriptDirectory, "../../apps/explorer");
 const source = path.resolve(webRoot, "../../artifacts/wasm");
 const destination = path.resolve(webRoot, "../../artifacts/wasm-package");
 const libraryEntry = path.join(webRoot, "../../src/CStructSharp.Wasm", "cstructsharp-wasm.js");

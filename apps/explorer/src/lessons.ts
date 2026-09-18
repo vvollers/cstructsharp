@@ -1,7 +1,7 @@
 import type { TestEntry } from "./demo-types";
 import type { InteropResult, ParseWithDebugOptions } from "./wasm/cstruct-contract";
 
-/** The operations the workbench can run for a lesson. */
+/** The operations the panel can run for a lesson. */
 export type LessonOperationKind = "parse" | "serialize" | "update";
 
 export interface LessonOperation {
@@ -132,7 +132,7 @@ const lessonTopics: Lesson[] = [
       sourceScenario: "decode-header",
       summary: "Names are case-sensitive. Header does not select the declaration named header.",
       prerequisite: "Complete the file header lesson.",
-      exercise: "Open Workbench settings and change Root type/path to header.",
+      exercise: "Open Operation settings and change Root type/path to header.",
       answer:
         "The read succeeds. The declaration name and the selected root must use the same spelling.",
       guide: "guides/reading-values.html",
@@ -349,7 +349,7 @@ const lessonTopics: Lesson[] = [
     sourceScenario: "follow-pointer",
     summary:
       "The one-byte pointer stores address 1. That position contains value 42. This is a position in the input, not process memory.",
-    prerequisite: "Understand offsets. Open Workbench settings to see the one-byte pointer width.",
+    prerequisite: "Understand offsets. Open Operation settings to see the one-byte pointer width.",
     exercise: "Turn off Follow pointers.",
     answer:
       "address stays 1, dereferenced becomes false, and value becomes null. The pointed-to byte was not read.",
@@ -378,7 +378,7 @@ const lessonTopics: Lesson[] = [
       summary:
         "This lesson intentionally allows only three bytes of reading, although the input contains six.",
       prerequisite: "Understand field widths and the missing-bytes lesson.",
-      exercise: "Open Workbench settings and increase Total bytes to 6 under Safety limits.",
+      exercise: "Open Operation settings and increase Total bytes to 6 under Safety limits.",
       answer:
         "The header occupies six bytes, and a debug read spends exactly the same budget as a plain read: its records carry byte ranges, not copies. A budget of 6 lets it finish with kind 2 and length 6; 5 still fails.",
       guide: "guides/variables-options-and-limits.html",
@@ -904,11 +904,11 @@ const readExplanations: Record<string, string> = {
   header:
     "This six-byte header stores kind in two bytes and length in four bytes. Reading 02 00 06 00 00 00 in little-endian order gives kind 2 and length 6. Changing the first byte to 03 changes kind to 3 without changing length.",
   "byte-order":
-    "The same bytes produce different values depending on byte order. This header reads kind 2 and length 6 with little-endian order. Selecting Big endian in Workbench settings instead produces kind 512 and length 100663296; the field widths stay the same.",
+    "The same bytes produce different values depending on byte order. This header reads kind 2 and length 6 with little-endian order. Selecting Big endian in Operation settings instead produces kind 512 and length 100663296; the field widths stay the same.",
   truncated:
     "This read fails because the input has only three bytes, while the header needs six. Paste 02 00 06 00 00 00 into the hex editor and run again to read kind 2 and length 6.",
   "invalid-path":
-    "This read fails because the selected root is Header, but the layout declares header. Names are case-sensitive. Open Workbench settings, change Root type/path to header, and run again to read kind 2 and length 6.",
+    "This read fails because the selected root is Header, but the layout declares header. Names are case-sensitive. Open Operation settings, change Root type/path to header, and run again to read kind 2 and length 6.",
   text: "The four-byte text field reads 41 42 43 00 as ABC followed by a zero character. Fixed-capacity text keeps that character in the result. Changing 41 to 58 produces XBC followed by zero, using the same four bytes.",
   nested:
     "The root contains a nested record with a two-byte id and a one-byte flags field. Bytes 34 12 01 read as id 4660 and flags 1. Changing the last byte to A5 changes flags to 165 while preserving the id.",
@@ -924,9 +924,9 @@ const readExplanations: Record<string, string> = {
   union:
     "Both union members interpret the same bytes. For 34 12, small reads the first byte as 52 and large reads both bytes as 4660. The result keeps both interpretations and the original raw storage so the bytes can be preserved when writing again.",
   pointer:
-    "The first byte stores pointer address 1, and the byte at that position contains 42. The result includes the address and the value read there. Turning off Follow pointers in Workbench settings keeps the address but leaves the target unread; this is a position in the input, not a process memory address. For unsigned virtual addresses and mapped images, the managed CStructSharp.Memory APIs use StoredPointer and explicit .value traversal; those sources are not exposed by this browser lesson.",
+    "The first byte stores pointer address 1, and the byte at that position contains 42. The result includes the address and the value read there. Turning off Follow pointers in Operation settings keeps the address but leaves the target unread; this is a position in the input, not a process memory address. For unsigned virtual addresses and mapped images, the managed CStructSharp.Memory APIs use StoredPointer and explicit .value traversal; those sources are not exposed by this browser lesson.",
   limits:
-    "This read fails because its total-byte limit is 3. The header contains six bytes, and Total bytes counts every byte the parser reads, so the budget must be at least 6. Open Workbench settings and increase Total bytes to 6 under Safety limits, then run again to get kind 2 and length 6. Layouts with unions, pointers, or selected fields can read some bytes more than once, so the input size is a lower bound, not always the exact cost.",
+    "This read fails because its total-byte limit is 3. The header contains six bytes, and Total bytes counts every byte the parser reads, so the budget must be at least 6. Open Operation settings and increase Total bytes to 6 under Safety limits, then run again to get kind 2 and length 6. Layouts with unions, pointers, or selected fields can read some bytes more than once, so the input size is a lower bound, not always the exact cost.",
   "large-integer":
     "Eight FF bytes represent the largest uint64 value, 18446744073709551615. The browser returns it as a decimal string because JavaScript Number cannot represent it exactly. Keep it as a string or convert it to BigInt to preserve all digits.",
 };

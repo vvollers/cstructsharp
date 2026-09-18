@@ -42,7 +42,7 @@ jobs:
       - name: Install WebAssembly workload
         run: dotnet workload restore ./src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
       - name: Build and test explorer
-        working-directory: apps/workshop
+        working-directory: apps/explorer
         run: |
           npm ci
           npm run build

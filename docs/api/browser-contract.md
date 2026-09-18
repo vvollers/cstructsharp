@@ -67,5 +67,5 @@ checks the description against the canonical declarations (`packages/cstructshar
 contract module, the managed bridge, and the bootstrap.
 
 Routine documentation validation checks this page against tracked sources and saved data. It deliberately does not
-restore, build, or test `apps/workshop` or `CStructSharpWeb.Wasm`, because those projects are expensive and
+restore, build, or test `apps/explorer` or `CStructSharpWeb.Wasm`, because those projects are expensive and
 optional. Their implementation and browser tests run together during the repository's final Web integration phase.

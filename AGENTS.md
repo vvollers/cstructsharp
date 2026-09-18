@@ -9,7 +9,7 @@ update the current contracts, tests, and documentation without retaining unused 
 ## Project boundaries
 
 - `src/CStructSharp` owns the layout language and binary operations; `src/CStructSharp.Wasm` exposes the browser bridge.
-- `apps/workshop` teaches the library; `apps/inspector` applies standalone schemas to binary files.
+- `apps/explorer` teaches the library; `apps/inspector` applies standalone schemas to binary files.
   Use each app's README and package scripts. Keep related helpers together; create modules for clear responsibilities.
 - Inspector definitions belong in `apps/inspector/src/schema-catalog.ts`. Keep a format expressible as one CStruct;
   do not introduce file scans, generated offsets, or merged parse results to compensate for schema limitations.

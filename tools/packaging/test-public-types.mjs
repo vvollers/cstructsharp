@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const webRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../apps/workshop");
+const webRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../apps/explorer");
 const bundle = path.resolve(process.argv[2] ?? path.join(webRoot, "../../artifacts/wasm-package"));
 const work = fs.mkdtempSync(path.join(os.tmpdir(), "cstructsharp-types-"));
 try {

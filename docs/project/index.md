@@ -27,6 +27,6 @@ Keep these reference pages nearby:
 - [Documentation deployment](documentation-deployment.md) and
   [documentation maintenance](maintenance.md) cover the site.
 
-Routine development uses `CStructSharp.NonWeb.sln`. The WebAssembly adapter and browser workbench are optional and
+Routine development uses `CStructSharp.NonWeb.sln`. The WebAssembly adapter and browser apps are optional and
 are tested together only during final integration, because rebuilding them for every core or documentation change
 adds substantial time without improving those focused checks.
