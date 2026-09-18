@@ -176,6 +176,32 @@ internal sealed unsafe class ReadBudgetStream : Stream
     }
 
     /// <summary>
+    ///     The bytes from the current position to the end of a memory-backed source, without consuming or charging
+    ///     them; false for a stream source. Pair with <see cref="Advance"/> once the consumer knows how many it used.
+    /// </summary>
+    public bool TryPeekRemaining(out ReadOnlySpan<byte> bytes)
+    {
+        if (this.memoryBacked && this.position <= this.memoryLength)
+        {
+            int count = (int)Math.Min(this.memoryLength - this.position, int.MaxValue);
+            bytes = this.memoryArray is null
+                        ? new ReadOnlySpan<byte>(this.memoryPointer + this.position, count)
+                        : new ReadOnlySpan<byte>(this.memoryArray, this.memoryArrayOffset + (int)this.position, count);
+            return true;
+        }
+
+        bytes = default;
+        return false;
+    }
+
+    /// <summary>Consumes <paramref name="count"/> bytes that <see cref="TryPeekRemaining"/> exposed, charging them like a read.</summary>
+    public void Advance(int count)
+    {
+        this.position += count;
+        this.RecordRead(count);
+    }
+
+    /// <summary>
     ///     Like <see cref="TryReadSpan"/> but also fails, without charging or throwing, when the read would exceed the
     ///     total read budget - so a caller can fall back to a path that reports the limit failure at its usual place.
     /// </summary>

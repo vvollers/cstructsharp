@@ -62,8 +62,9 @@ X, *PX;` lists - and the API calls its users make have direct equivalents. This 
 
 ## A custom codec
 
-The protobuf varint that `dissect.target` registers with `add_custom_type` is a fifteen-line class in CStructSharp
-(`ICustomCodec` lives in `CStructSharp.Codecs`):
+The protobuf varint that `dissect.target` registers with `add_custom_type` is a short span-based class in
+CStructSharp (`ICustomCodec` lives in `CStructSharp.Codecs`). `Read` sees the bytes from the value's start and
+reports how many it used; `Write` fills a window and asks for a larger one with `DestinationTooSmall`:
 
 ```csharp
 sealed class Varint : ICustomCodec
@@ -72,28 +73,38 @@ sealed class Varint : ICustomCodec
     public int? FixedSize => null;   // variable length
     public int Alignment => 1;
 
-    public object Read(Stream stream)
+    public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
     {
         ulong result = 0;
-        for (int shift = 0; ; shift += 7)
+        for (int index = 0; index < source.Length && index < 10; index++)
         {
-            int next = stream.ReadByte();
-            if (next < 0) throw new EndOfStreamException();
-            result |= (ulong)(next & 0x7F) << shift;
-            if ((next & 0x80) == 0) return result;
+            result |= (ulong)(source[index] & 0x7F) << (7 * index);
+            if ((source[index] & 0x80) == 0)
+            {
+                value = result;
+                bytesConsumed = index + 1;
+                return OperationStatus.Done;
+            }
         }
+
+        value = null;
+        bytesConsumed = 0;
+        return source.Length >= 10 ? OperationStatus.InvalidData : OperationStatus.NeedMoreData;
     }
 
-    public void Write(Stream stream, object value)
+    public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
     {
         ulong remaining = Convert.ToUInt64(value);
+        bytesWritten = 0;
         do
         {
+            if (bytesWritten == destination.Length) return OperationStatus.DestinationTooSmall;
             byte chunk = (byte)(remaining & 0x7F);
             remaining >>= 7;
-            stream.WriteByte(remaining == 0 ? chunk : (byte)(chunk | 0x80));
+            destination[bytesWritten++] = remaining == 0 ? chunk : (byte)(chunk | 0x80);
         }
         while (remaining != 0);
+        return OperationStatus.Done;
     }
 }
 

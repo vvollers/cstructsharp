@@ -149,8 +149,8 @@ namespace CStructSharp.Codecs
         int Alignment { get; }
         int? FixedSize { get; }
         string Name { get; }
-        object Read(System.IO.Stream stream);
-        void Write(System.IO.Stream stream, object value);
+        System.Buffers.OperationStatus Read(System.ReadOnlySpan<byte> source, out object? value, out int bytesConsumed);
+        System.Buffers.OperationStatus Write(System.Span<byte> destination, object value, out int bytesWritten);
     }
 }
 namespace CStructSharp.Diagnostics

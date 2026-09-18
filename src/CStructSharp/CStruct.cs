@@ -409,8 +409,8 @@ public sealed partial class CStruct
             }
 
             ICustomCodec captured = codec;
-            Func<Stream, object> reader = stream => captured.Read(stream);
-            Action<Stream, object> writer = (stream, value) => captured.Write(stream, value);
+            Func<Stream, object> reader = stream => CustomCodecAdapter.Read(captured, stream);
+            Action<Stream, object> writer = (stream, value) => CustomCodecAdapter.Write(captured, stream, value);
             readers.Add(name, reader);
             writers.Add(name, writer);
             this.fieldAlignments[name] = (byte)Math.Min(codec.Alignment, byte.MaxValue);

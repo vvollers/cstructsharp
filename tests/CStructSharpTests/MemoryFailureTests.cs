@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests;
 
+using System.Buffers;
 using CStructSharp.Codecs;
 using CStructSharp.Memory;
 
@@ -103,9 +104,26 @@ public class MemoryFailureTests
         public int Alignment => 1;
 
         /// <inheritdoc/>
-        public object Read(Stream stream) => ((char)stream.ReadByte()).ToString();
+        public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
+        {
+            if (source.IsEmpty)
+            {
+                value = null;
+                bytesConsumed = 0;
+                return OperationStatus.NeedMoreData;
+            }
+
+            value = ((char)source[0]).ToString();
+            bytesConsumed = 1;
+            return OperationStatus.Done;
+        }
 
         /// <inheritdoc/>
-        public void Write(Stream stream, object value) => stream.WriteByte(checked((byte)((string)value)[0]));
+        public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
+        {
+            destination[0] = checked((byte)((string)value)[0]);
+            bytesWritten = 1;
+            return OperationStatus.Done;
+        }
     }
 }

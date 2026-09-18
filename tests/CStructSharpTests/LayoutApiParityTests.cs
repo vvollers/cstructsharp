@@ -1,5 +1,7 @@
 namespace CStructSharp.Tests;
 
+using System.Buffers;
+using System.Globalization;
 using System.Numerics;
 using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
@@ -242,38 +244,43 @@ public class LayoutApiParityTests
 
         public int Alignment => 1;
 
-        public object Read(Stream stream)
+        public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
         {
             ulong result = 0;
-            int shift = 0;
-            while (true)
+            for (int index = 0; index < source.Length && index < 10; index++)
             {
-                int next = stream.ReadByte();
-                if (next < 0)
+                result |= (ulong)(source[index] & 0x7F) << (7 * index);
+                if ((source[index] & 0x80) == 0)
                 {
-                    throw new EndOfStreamException();
+                    value = result;
+                    bytesConsumed = index + 1;
+                    return OperationStatus.Done;
                 }
-
-                result |= (ulong)(next & 0x7F) << shift;
-                if ((next & 0x80) == 0)
-                {
-                    return result;
-                }
-
-                shift += 7;
             }
+
+            value = null;
+            bytesConsumed = 0;
+            return source.Length >= 10 ? OperationStatus.InvalidData : OperationStatus.NeedMoreData;
         }
 
-        public void Write(Stream stream, object value)
+        public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
         {
-            ulong remaining = Convert.ToUInt64(value);
+            ulong remaining = Convert.ToUInt64(value, CultureInfo.InvariantCulture);
+            bytesWritten = 0;
             do
             {
+                if (bytesWritten == destination.Length)
+                {
+                    return OperationStatus.DestinationTooSmall;
+                }
+
                 byte chunk = (byte)(remaining & 0x7F);
                 remaining >>= 7;
-                stream.WriteByte(remaining == 0 ? chunk : (byte)(chunk | 0x80));
+                destination[bytesWritten++] = remaining == 0 ? chunk : (byte)(chunk | 0x80);
             }
             while (remaining != 0);
+
+            return OperationStatus.Done;
         }
     }
 
@@ -288,19 +295,36 @@ public class LayoutApiParityTests
 
         public int Alignment => 1;
 
-        public object Read(Stream stream)
+        public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
         {
-            Span<byte> bytes = stackalloc byte[4];
-            stream.ReadExactly(bytes);
-            return string.Join('-', bytes.ToArray());
+            if (source.Length < 4)
+            {
+                value = null;
+                bytesConsumed = 0;
+                return OperationStatus.NeedMoreData;
+            }
+
+            value = string.Join('-', source[..4].ToArray());
+            bytesConsumed = 4;
+            return OperationStatus.Done;
         }
 
-        public void Write(Stream stream, object value)
+        public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
         {
-            foreach (string part in ((string)value).Split('-'))
+            string[] parts = ((string)value).Split('-');
+            if (destination.Length < parts.Length)
             {
-                stream.WriteByte(byte.Parse(part, System.Globalization.CultureInfo.InvariantCulture));
+                bytesWritten = 0;
+                return OperationStatus.DestinationTooSmall;
             }
+
+            for (int index = 0; index < parts.Length; index++)
+            {
+                destination[index] = byte.Parse(parts[index], CultureInfo.InvariantCulture);
+            }
+
+            bytesWritten = parts.Length;
+            return OperationStatus.Done;
         }
     }
 
@@ -312,8 +336,18 @@ public class LayoutApiParityTests
 
         public int Alignment => 1;
 
-        public object Read(Stream stream) => (byte)stream.ReadByte();
+        public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
+        {
+            value = source.Length > 0 ? source[0] : null;
+            bytesConsumed = source.Length > 0 ? 1 : 0;
+            return source.Length > 0 ? OperationStatus.Done : OperationStatus.NeedMoreData;
+        }
 
-        public void Write(Stream stream, object value) => stream.WriteByte(Convert.ToByte(value));
+        public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
+        {
+            destination[0] = Convert.ToByte(value, CultureInfo.InvariantCulture);
+            bytesWritten = 1;
+            return OperationStatus.Done;
+        }
     }
 }

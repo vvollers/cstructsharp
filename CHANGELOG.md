@@ -6,6 +6,13 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- **Breaking (API):** `ICustomCodec` is span-based. `OperationStatus Read(ReadOnlySpan<byte> source, out object?
+  value, out int bytesConsumed)` sees the bytes from the value's start (the whole remaining input for memory
+  sources; a window that grows on `NeedMoreData` for other streams, bounded by `MaxStringBytes`) and reports the
+  encoded length; `OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)` fills a
+  window and answers `DestinationTooSmall` for a larger one. `InvalidData`, a thrown exception, or an impossible
+  byte count become the operation's read or write error naming the codec and the field. The custom-codec recipe
+  and the dissect migration guide show the new shape.
 - Trimming and Native AOT: the package declares `IsTrimmable` (both targets) and `IsAotCompatible` (.NET 10),
   and publishes with zero trim/AOT warnings. `StructValue` and `UnionValue` implement `IDynamicMetaObjectProvider`
   directly instead of deriving from `DynamicObject` (which requires dynamic code); `dynamic` member access works as

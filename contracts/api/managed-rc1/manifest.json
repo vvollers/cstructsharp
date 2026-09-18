@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 17,
+  "baselineRevision": 18,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.5.0",
@@ -15,21 +15,21 @@
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
     "lines": 673,
-    "normalizedSha256": "FE32C141F3635A8D624867E7D18E829A604F22E65937A1902673C1A74D648422"
+    "normalizedSha256": "67B9CAF58B090877521D34C7BE685C903F3FE62EE91BB5688411EF15E210637A"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "2BF9BF497F81A44707F843E64CC4635921FE05154E1C0AF5986C56CBCA3BD4A8",
+      "normalizedSha256": "C5B7D15F5D989F93921CFC2B777E8783D5B492A63D0C1F1F1C90559A2E9DDA30",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "16B3A9BB10F4E545BAD385EB41721F5E68D85BA3788565A91DA9F4A0BD29BED2",
+      "normalizedSha256": "7604C2145BF0F58A2EA6A652598AE84AACB1ED096F39E7F38011C8845AEF6157",
       "aotCompatible": true
     }
   ],
@@ -186,6 +186,15 @@
       "combinedSha256": "1D108658C9B50BEEA2F772EC1674930F3366F47B005F933A93BD3A2EC8658A5F",
       "rationale": "4.4: StructValue and UnionValue implement IDynamicMetaObjectProvider directly instead of deriving from DynamicObject (whose constructor requires dynamic code); the DynamicObject overrides (GetMetaObject, TryGetMember, TrySetMember, TryDeleteMember, GetDynamicMemberNames) are no longer public. The assembly declares IsTrimmable (both frameworks) and IsAotCompatible (net10.0).",
       "releaseImpact": "dynamic member access is unchanged; code that called the DynamicObject overrides directly uses the dictionary members or Get<T> instead."
+    },
+    {
+      "revision": 18,
+      "kind": "breaking",
+      "date": "2026-09-18",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "3B24040DB399A1ADD64BC04CE9CCF15E50D13736E3654E5A1E1DD1C8862E6E1F",
+      "rationale": "5.4: ICustomCodec reads and writes spans - OperationStatus Read(ReadOnlySpan<byte>, out object?, out int bytesConsumed) and OperationStatus Write(Span<byte>, object, out int bytesWritten) - instead of Stream methods; the library supplies the remaining input or a growing window and charges the budgets.",
+      "releaseImpact": "Custom codec implementations change their two methods; layouts, options, and registration are unchanged."
     }
   ]
 }

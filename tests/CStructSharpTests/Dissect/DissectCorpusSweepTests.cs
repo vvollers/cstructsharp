@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests.Dissect;
 
+using System.Buffers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -173,8 +174,8 @@ public class DissectCorpusSweepTests
 
         public int Alignment => 1;
 
-        public object Read(Stream stream) => throw new NotSupportedException();
+        public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed) => throw new NotSupportedException();
 
-        public void Write(Stream stream, object value) => throw new NotSupportedException();
+        public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten) => throw new NotSupportedException();
     }
 }
