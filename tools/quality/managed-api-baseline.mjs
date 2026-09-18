@@ -27,6 +27,11 @@ const option = (name) => {
 };
 
 /** Normalizes line endings so hashes and diffs ignore platform conventions. */
+// The Native AOT claim is per framework (net10.0 only), so its assembly-metadata line is a placeholder that each
+// framework fills with the attribute or with nothing; `aotCompatible` in the manifest says which.
+const aotMetadataLine = '[assembly: System.Reflection.AssemblyMetadata("IsAotCompatible", "True")]\n';
+const aotPlaceholder = "<AOT_METADATA>\n";
+
 const normalize = (text) => text.replaceAll("\r\n", "\n").replace(/\n+$/, "") + "\n";
 const hashOf = (text) => crypto.createHash("sha256").update(normalize(text), "utf8").digest("hex").toUpperCase();
 
@@ -77,7 +82,10 @@ const actual = Object.fromEntries(frameworks.map((tfm) => [tfm, normalize(fs.rea
 
 /** The baseline text for one framework: a canonical text with its placeholders filled in. */
 function expectedFor(entry, text = canonicalText) {
-  return text.replaceAll("<TARGET_FRAMEWORK>", entry.targetFramework).replaceAll("<FRAMEWORK_DISPLAY>", entry.frameworkDisplayName);
+  return text
+    .replaceAll("<TARGET_FRAMEWORK>", entry.targetFramework)
+    .replaceAll("<FRAMEWORK_DISPLAY>", entry.frameworkDisplayName)
+    .replaceAll(aotPlaceholder, entry.aotCompatible ? aotMetadataLine : "");
 }
 
 function writeDiff(expected, received, file) {
@@ -116,9 +124,13 @@ if (!["additive", "breaking", "correction"].includes(kind ?? "") || !rationale |
   fail("update needs --kind additive|breaking|correction, --rationale, and --impact.");
 }
 const reference = manifest.frameworks.find((entry) => entry.tfm === "net10.0");
-let canonical = actual["net10.0"].replaceAll(reference.targetFramework, "<TARGET_FRAMEWORK>").replaceAll(reference.frameworkDisplayName, "<FRAMEWORK_DISPLAY>");
+let canonical = actual["net10.0"]
+  .replaceAll(reference.targetFramework, "<TARGET_FRAMEWORK>")
+  .replaceAll(reference.frameworkDisplayName, "<FRAMEWORK_DISPLAY>")
+  .replaceAll(aotMetadataLine, aotPlaceholder);
 for (const entry of manifest.frameworks) {
-  const filled = canonical.replaceAll("<TARGET_FRAMEWORK>", entry.targetFramework).replaceAll("<FRAMEWORK_DISPLAY>", entry.frameworkDisplayName);
+  entry.aotCompatible = actual[entry.tfm].includes(aotMetadataLine);
+  const filled = expectedFor(entry, canonical);
   if (filled !== actual[entry.tfm]) {
     const file = path.join(run, `CStructSharp.${entry.tfm}.framework-diff.txt`);
     writeDiff(filled, actual[entry.tfm], file);

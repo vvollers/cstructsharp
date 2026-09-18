@@ -1,3 +1,5 @@
+<AOT_METADATA>
+[assembly: System.Reflection.AssemblyMetadata("IsTrimmable", "True")]
 [assembly: System.Reflection.AssemblyMetadata("RepositoryUrl", "https://github.com/vvollers/CStructSharp.git")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("CStructSharpTests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("CStructSharpWeb.Wasm")]
@@ -620,7 +622,7 @@ namespace CStructSharp.Values
         public object? Value { get; init; }
         public void Deconstruct(out object? value, out System.Collections.Generic.IReadOnlyList<CStructSharp.Diagnostics.DebugData> debug) { }
     }
-    public sealed class StructValue : System.Dynamic.DynamicObject, System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IDictionary<string, object?>, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyCollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyDictionary<string, object?>, System.Collections.IEnumerable
+    public sealed class StructValue : System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IDictionary<string, object?>, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyCollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyDictionary<string, object?>, System.Collections.IEnumerable, System.Dynamic.IDynamicMetaObjectProvider
     {
         public StructValue() { }
         public int Count { get; }
@@ -631,16 +633,11 @@ namespace CStructSharp.Values
         public void Clear() { }
         public bool ContainsKey(string name) { }
         public T Get<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(string path) { }
-        public override System.Collections.Generic.IEnumerable<string> GetDynamicMemberNames() { }
         public CStructSharp.Values.StructValue.Enumerator GetEnumerator() { }
-        public override System.Dynamic.DynamicMetaObject GetMetaObject(System.Linq.Expressions.Expression parameter) { }
         public bool Remove(string name) { }
         public override string ToString() { }
-        public override bool TryDeleteMember(System.Dynamic.DeleteMemberBinder binder) { }
         public bool TryGet<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(string path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value) { }
-        public override bool TryGetMember(System.Dynamic.GetMemberBinder binder, out object? result) { }
         public bool TryGetValue(string name, out object? value) { }
-        public override bool TrySetMember(System.Dynamic.SetMemberBinder binder, object? value) { }
         public struct Enumerator : System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.IEnumerator, System.IDisposable
         {
             public System.Collections.Generic.KeyValuePair<string, object?> Current { get; }
@@ -649,7 +646,7 @@ namespace CStructSharp.Values
             public void Reset() { }
         }
     }
-    public sealed class UnionValue : System.Dynamic.DynamicObject, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyCollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyDictionary<string, object?>, System.Collections.IEnumerable
+    public sealed class UnionValue : System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyCollection<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.Generic.IReadOnlyDictionary<string, object?>, System.Collections.IEnumerable, System.Dynamic.IDynamicMetaObjectProvider
     {
         public int Count { get; }
         public bool HasRawStorage { get; }
@@ -667,7 +664,6 @@ namespace CStructSharp.Values
         public System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, object?>> GetEnumerator() { }
         public override string ToString() { }
         public bool TryGet<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(string path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value) { }
-        public override bool TryGetMember(System.Dynamic.GetMemberBinder binder, out object? result) { }
         public bool TryGetValue(string key, out object? value) { }
         public CStructSharp.Values.UnionValue WithSelectedMember(string memberName, object? value) { }
         public CStructSharp.Values.UnionValue WithoutSelection() { }
