@@ -50,8 +50,7 @@ dotnet stryker `
   --output .\artifacts\mutation\permanent `
   --skip-version-check
 
-.\tools\quality\Validate-MutationReport.ps1 `
-  -ReportPath .\artifacts\mutation\permanent\reports\mutation-report.json
+node tools/quality/mutation-report.mjs --report-path artifacts/mutation/permanent/reports/mutation-report.json
 ```
 
 The first command installs the version of Stryker listed in `.config/dotnet-tools.json`. The second command creates
@@ -97,7 +96,7 @@ dotnet stryker `
   --skip-version-check
 ```
 
-Do not pass a focused report to `Validate-MutationReport.ps1`; that validator expects the complete permanent scope.
+Do not pass a focused report to `mutation-report.mjs`; that validator expects the complete permanent scope.
 After the focused run is useful and the normal tests pass, run the complete check before finishing a high-risk
 change.
 

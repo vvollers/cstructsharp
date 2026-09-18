@@ -36,10 +36,10 @@ Some behavior is also recorded in JSON/text files so tests, docs, and release au
 related to your change:
 
 ```powershell
-.\tools\quality\Validate-FeatureOperationMatrix.ps1
+node tools/quality/feature-operation-matrix.mjs
 .\tools\documentation\Validate-CanonicalReference.ps1
 node tools/quality/compiler-fixture.mjs validate
-.\tools\quality\Validate-FuzzCorpus.ps1
+node tools/quality/fuzz-corpus.mjs
 node tools/quality/managed-api-baseline.mjs compare
 ```
 
@@ -61,8 +61,8 @@ gate.
 fail. A surviving mutation can reveal an assertion gap even when line coverage is high. The permanent score floor is
 75%.
 
-`Measure-CoverageRisk.ps1` combines coverage reports with the criticality policy.
-`Validate-MutationReport.ps1` checks the permanent-scope Stryker report. The exact pinned mutation command is in
+`coverage-risk.mjs` combines coverage reports with the criticality policy.
+`mutation-report.mjs` checks the permanent-scope Stryker report. The exact pinned mutation command is in
 the repository root `MUTATION_TESTING.md`.
 
 The layout parser has its own oracle: `ParserDifferentialTests` parses every fixture, contract, demo, and

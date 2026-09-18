@@ -4,7 +4,7 @@
 
 ## Manual measurements
 
-README quality badges come from `quality/Write-ReadmeBadges.ps1`, using CI's .NET 10 TRX and
+README quality badges come from `quality/readme-badges.mjs`, using CI's .NET 10 TRX and
 library-only Cobertura reports. Website and release builds run `packaging/prepare-site-badges.mjs`
 to retrieve the latest successful main CI statistics and measure the NuGet download. Releases use
 the newly built package; website-only deployments use the latest published release asset.
@@ -12,6 +12,6 @@ the newly built package; website-only deployments use the latest published relea
 Badge links lead to the measured CI run. Statistics refresh with site deployments; no generated
 Git branch or separate publishing workflow is needed.
 
-Use `quality/Measure-ArtifactBaseline.ps1 -PackageDirectory artifacts/package -OutputPath artifacts/package-sizes.json` to capture raw and gzip-equivalent package sizes. Pass that report to `quality/Validate-NonWebReleaseBudgets.ps1 -PackageArtifactPath artifacts/package-sizes.json`. The same meter accepts `-WasmDirectory` and `-FrontendDirectory`. Benchmark JSON conversion is documented in [benchmarks](../benchmarks/README.md). Reports are generated output; historical raw measurements are not required inputs.
+Use `quality/artifact-baseline.mjs --package-directory artifacts/package --output-path artifacts/package-sizes.json` to capture raw and gzip-equivalent package sizes. Pass that report to `quality/non-web-release-budgets.mjs --package-artifact-path artifacts/package-sizes.json`. The same meter accepts `--wasm-directory` and `--frontend-directory`. Benchmark JSON conversion is documented in [benchmarks](../benchmarks/README.md). Reports are generated output; historical raw measurements are not required inputs.
 
 Run `node tools/packaging/measure-web-artifacts.mjs` after building to record current web sizes without historical report dependencies. Add `--check` to enforce all historical frontend/gzip budgets; these are manual checks and may expose existing budget drift. The 6 MiB WASM publication limit and browser startup limit remain automatic gates.

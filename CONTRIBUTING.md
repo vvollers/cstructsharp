@@ -70,7 +70,7 @@ Then run:
 
 ```powershell
 .\tools\documentation\Validate-CanonicalReference.ps1
-.\tools\quality\Validate-FeatureOperationMatrix.ps1
+node tools/quality/feature-operation-matrix.mjs
 ```
 
 The feature-operation matrix records which types and operations are supported. Update it when you change accepted
@@ -124,7 +124,7 @@ Do not hide a failure by changing the stable seed, lowering the iteration count,
 review, or treating a new exception as expected. Check the corpus file with:
 
 ```powershell
-.\tools\quality\Validate-FuzzCorpus.ps1
+node tools/quality/fuzz-corpus.mjs
 ```
 
 ### Mutation testing
@@ -217,7 +217,7 @@ Most contributions do not need this section. Before preparing a release candidat
 - pass package, symbol-package, and package-consumer validation;
 - pass the benchmark and package limits in
   `contracts/performance/non-web-rc1.json`;
-- run `.\tools\quality\Validate-NonWebReleaseBudgets.ps1 -SelfTest`;
+- run `node tools/quality/non-web-release-budgets.mjs --self-test`;
 - build the full WebAssembly and Vue application and pass its audit, browser, compatibility, reproducibility, and
   size checks when the browser is part of the release;
 - update `CHANGELOG.md` and check the package version, license, repository URL, documentation URL, release notes, and

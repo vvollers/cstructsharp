@@ -37,10 +37,9 @@ jobs:
 
       - name: Enforce the permanent-scope report
         if: always()
-        shell: pwsh
         run: >-
-          ./tools/quality/Validate-MutationReport.ps1
-          -ReportPath ./artifacts/mutation/permanent/reports/mutation-report.json
+          node tools/quality/mutation-report.mjs
+          --report-path ./artifacts/mutation/permanent/reports/mutation-report.json
 
       - name: Mutate memory analysis
         if: always()

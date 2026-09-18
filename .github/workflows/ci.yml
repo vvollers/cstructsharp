@@ -29,7 +29,7 @@ jobs:
 
       - name: Verify .sln project-list parity
         shell: pwsh
-        run: ./tools/quality/Validate-SolutionParity.ps1
+        run: node tools/quality/solution-parity.mjs
 
       - name: Restore .NET tools
         run: dotnet tool restore
@@ -74,20 +74,17 @@ jobs:
           -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Include="[CStructSharp]*"
 
       - name: Generate README quality badges
-        shell: pwsh
         run: >-
-          ./tools/quality/Write-ReadmeBadges.ps1
-          -ResultsDirectory artifacts/test-results/net10
-          -OutputDirectory artifacts/readme-badges
-          -RunUrl "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          node tools/quality/readme-badges.mjs
+          --results-directory artifacts/test-results/net10
+          --output-directory artifacts/readme-badges
+          --run-url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
       - name: Test memory coverage
-        shell: pwsh
         run: |
           dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release -f net10.0 --no-build --filter FullyQualifiedName~Memory --collect:"XPlat Code Coverage" --results-directory artifacts/test-results/memory -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Include="[CStructSharp]CStructSharp.Memory.*"
-          if ($LASTEXITCODE -ne 0) { throw 'Memory tests failed.' }
-          $coverage = Get-ChildItem artifacts/test-results/memory -Recurse -Filter coverage.cobertura.xml | Select-Object -First 1
-          ./tools/quality/Measure-CoverageRisk.ps1 -CoveragePath $coverage.FullName -OutputDirectory artifacts/test-results/memory-risk -MinimumLinePercent 78 -MinimumBranchPercent 80 -MaximumHighRiskFiles 0 -MaximumCriticalRiskFiles 0
+          coverage=$(find artifacts/test-results/memory -name coverage.cobertura.xml | head -n 1)
+          node tools/quality/coverage-risk.mjs --coverage-path "$coverage" --output-directory artifacts/test-results/memory-risk --minimum-line-percent 78 --minimum-branch-percent 80 --maximum-high-risk-files 0 --maximum-critical-risk-files 0
 
       - name: Upload README quality badges
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -99,10 +96,10 @@ jobs:
         shell: pwsh
         run: |
           node tools/quality/browser-contract.mjs
-          ./tools/quality/Validate-FuzzCorpus.ps1
+          node tools/quality/fuzz-corpus.mjs
           node tools/quality/compiler-fixture.mjs validate
           node tools/quality/compiler-fixture.mjs table --check
-          ./tools/quality/Validate-NonWebReleaseBudgets.ps1 -SelfTest
+          node tools/quality/non-web-release-budgets.mjs --self-test
       - name: Pack and verify actual NuGet consumers
         shell: pwsh
         run: |

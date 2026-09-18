@@ -518,7 +518,7 @@
     "schemaVersion": 1,
     "corpus": "tests/CStructSharp.Fuzz/corpus/fuzz-corpus.json",
     "project": "tests/CStructSharp.Fuzz/CStructSharp.Fuzz.csproj",
-    "validator": "tools/quality/Validate-FuzzCorpus.ps1",
+    "validator": "tools/quality/fuzz-corpus.mjs",
     "guide": "docs/project/testing.md",
     "targets": [
       "binary-roundtrip",

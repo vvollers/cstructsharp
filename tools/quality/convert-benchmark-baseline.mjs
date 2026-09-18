@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Node port of Convert-BenchmarkBaseline.ps1: normalizes a BenchmarkDotNet "*report-full.json" into the
-// schemaVersion 1 summary consumed by Validate-NonWebReleaseBudgets.ps1 and compare-benchmark-baseline.mjs.
+// Normalizes a BenchmarkDotNet "*report-full.json" into the
+// schemaVersion 1 summary consumed by non-web-release-budgets.mjs and compare-benchmark-baseline.mjs.
 // The output is field-for-field identical to the PowerShell converter so either tool can feed the gate.
 //
 // Usage: node tools/quality/convert-benchmark-baseline.mjs <report-full.json | directory> <output.json>

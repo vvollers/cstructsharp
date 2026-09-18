@@ -19,7 +19,7 @@ $WorkflowValidationScript = Join-Path $PSScriptRoot 'Validate-DocumentationWorkf
 $PagesValidationScript = Join-Path $PSScriptRoot 'Validate-PagesArtifact.ps1'
 $PagesArtifactScript = Join-Path $PSScriptRoot 'New-DocumentationPagesArtifact.ps1'
 $CanonicalValidationScript = Join-Path $PSScriptRoot 'Validate-CanonicalReference.ps1'
-$FeatureMatrixValidationScript = Join-Path $PSScriptRoot '../quality/Validate-FeatureOperationMatrix.ps1'
+$FeatureMatrixValidationScript = Join-Path $PSScriptRoot '../quality/feature-operation-matrix.mjs'
 $DocfxConfigPath = Join-Path $DocumentationRoot 'docfx.json'
 $ToolManifestPath = Join-Path $RepositoryRoot '.config/dotnet-tools.json'
 $CoreProjectPath = Join-Path $RepositoryRoot 'src/CStructSharp/CStructSharp.csproj'
@@ -236,8 +236,8 @@ Write-Host "==> $CanonicalValidationScript"
 Assert-Condition $? 'Canonical Portable reference validation failed.'
 
 Write-Host "==> $FeatureMatrixValidationScript"
-& $FeatureMatrixValidationScript
-Assert-Condition $? 'Feature-operation matrix validation failed.'
+& node $FeatureMatrixValidationScript
+Assert-Condition ($LASTEXITCODE -eq 0) 'Feature-operation matrix validation failed.'
 
 Write-Host "==> $QualityValidationScript"
 & $QualityValidationScript

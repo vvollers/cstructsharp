@@ -40,10 +40,10 @@ Normalize and compare:
 ```sh
 node tools/quality/convert-benchmark-baseline.mjs <results dir or report-full.json> artifacts/summary.json
 node tools/quality/compare-benchmark-baseline.mjs --baseline contracts/performance/non-web-rc2.json --summary artifacts/summary.json
-pwsh -File tools/quality/Validate-NonWebReleaseBudgets.ps1 -BenchmarkSummaryPath artifacts/summary.json   # rc1 hard gate
+node tools/quality/non-web-release-budgets.mjs --benchmark-summary-path artifacts/summary.json   # rc1 hard gate
 ```
 
-`Convert-BenchmarkBaseline.ps1` remains equivalent to the Node converter for PowerShell users.
+`convert-benchmark-baseline.mjs` is the only converter.
 
 ## Memory analysis workloads
 

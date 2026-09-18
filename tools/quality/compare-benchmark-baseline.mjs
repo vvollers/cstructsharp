@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Soft drift report for BenchmarkDotNet summaries (schemaVersion 1, as produced by convert-benchmark-baseline.mjs
-// or Convert-BenchmarkBaseline.ps1) against a recorded baseline contract (contracts/performance/non-web-rc*.json).
+// ) against a recorded baseline contract (contracts/performance/non-web-rc*.json).
 // Reports cases whose median grew more than the policy's soft ratio (default +10 %) or whose allocation grew more
 // than the soft allocation ratio (default +5 %), plus unstable cases (RSD above the limit). Exit code is 0 unless
 // --strict is given, so CI can surface drift without blocking merges until runner variance is characterized.
