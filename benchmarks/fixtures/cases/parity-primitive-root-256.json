@@ -4,7 +4,6 @@
   "tags": [
     "warm"
   ],
-  "notes": null,
   "definition": "struct unused { uint8 a; };",
   "options": {
     "pointerSize": 8,

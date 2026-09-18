@@ -142,8 +142,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Build documentation
-        shell: pwsh
-        run: ./tools/documentation/Build-Documentation.ps1
+        run: node tools/documentation/build-documentation.mjs
 
       - name: Install WebAssembly workload
         run: dotnet workload restore ./src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj

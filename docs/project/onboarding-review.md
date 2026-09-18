@@ -44,7 +44,7 @@ with an automated readability score.
 Run the full documentation check, then validate actual artifacts:
 
 ```sh
-./tools/documentation/Validate-Documentation.ps1
+node tools/documentation/validate-documentation.mjs
 node tools/packaging/test-onboarding-package.mjs --package-directory artifacts/package
 node tools/packaging/test-onboarding-browser.mjs --archive-path artifacts/cstructsharp-wasm-vVERSION.zip
 ```

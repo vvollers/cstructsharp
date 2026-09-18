@@ -79,7 +79,7 @@ release lines need different instructions.
 
 Before handing off:
 
-```powershell
+```sh
 git diff --check
 git status --short
 ```

@@ -4,7 +4,6 @@
   "tags": [
     "warm"
   ],
-  "notes": null,
   "definition": "struct rec { uint32 a; union { uint32 x; uint16 y; }; uint8 z; }; struct root { rec items[1024]; };",
   "options": {
     "pointerSize": 8,

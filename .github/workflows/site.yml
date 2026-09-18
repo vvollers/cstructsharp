@@ -32,13 +32,10 @@ jobs:
       - name: Install documentation browser dependencies
         working-directory: docs
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes ripgrep
           npm ci --ignore-scripts
           npm exec -- playwright install-deps chromium
       - name: Validate documentation
-        shell: pwsh
-        run: ./tools/documentation/Validate-Documentation.ps1
+        run: node tools/documentation/validate-documentation.mjs
       - name: Install WebAssembly workload
         run: dotnet workload restore ./src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
       - name: Build and test explorer

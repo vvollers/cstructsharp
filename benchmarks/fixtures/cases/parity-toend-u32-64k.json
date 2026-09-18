@@ -4,7 +4,6 @@
   "tags": [
     "warm"
   ],
-  "notes": null,
   "definition": "struct root { uint32 magic; uint32 values[EOF]; };",
   "options": {
     "pointerSize": 8,

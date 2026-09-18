@@ -4,7 +4,7 @@
   "tags": [
     "warm"
   ],
-  "notes": "Definition reused from benchmarks/ConditionalComparison/cases.json; bytes regenerated with mixed tags.",
+  "notes": "Definition reused from benchmarks/fixtures/conditional-cases.json; bytes regenerated with mixed tags.",
   "definition": "struct entry { uint8 tag; switch (tag) { case 1: { uint32 value; } default: { uint16 small; } } uint16 tail; }; struct root { entry items[128]; };",
   "options": {
     "pointerSize": 8,

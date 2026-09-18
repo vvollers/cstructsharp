@@ -61,8 +61,8 @@ not enter either the NuGet package or the generated static site.
 
 Install exactly the locked documentation tree with:
 
-```powershell
-npm --prefix .\docs ci --ignore-scripts
+```sh
+npm --prefix docs ci --ignore-scripts
 ```
 
 Run this from the repository root. `npm ci` removes and recreates the local `node_modules` directory from the lockfile

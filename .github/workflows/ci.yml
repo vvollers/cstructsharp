@@ -28,7 +28,6 @@ jobs:
           cache-dependency-path: "**/*.csproj"
 
       - name: Verify .sln project-list parity
-        shell: pwsh
         run: node tools/quality/solution-parity.mjs
 
       - name: Restore .NET tools
@@ -93,7 +92,6 @@ jobs:
           path: artifacts/readme-badges
 
       - name: Verify quality contracts
-        shell: pwsh
         run: |
           node tools/quality/browser-contract.mjs
           node tools/quality/fuzz-corpus.mjs

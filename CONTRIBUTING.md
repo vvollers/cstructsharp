@@ -10,10 +10,10 @@ understand every release check before fixing a small bug.
 
 Run the normal build and test commands from the repository root:
 
-```powershell
-dotnet restore .\CStructSharp.NonWeb.sln
-dotnet build .\CStructSharp.NonWeb.sln -c Release --no-restore
-dotnet test .\tests\CStructSharpTests\CStructSharpTests.csproj -c Release --no-build
+```sh
+dotnet restore CStructSharp.NonWeb.sln
+dotnet build CStructSharp.NonWeb.sln -c Release --no-restore
+dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release --no-build
 ```
 
 The test command runs on both `net8.0` and `net10.0`. If it fails before you make a change, save the first error and
@@ -42,15 +42,15 @@ describes a public promise. If the promise has intentionally changed, replace th
 
 Run the full managed test suite:
 
-```powershell
-dotnet test .\tests\CStructSharpTests\CStructSharpTests.csproj -c Release
+```sh
+dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release
 ```
 
 When a change only affects one class, use a test filter while you work, then finish with the full suite. For example:
 
-```powershell
-dotnet test .\tests\CStructSharpTests\CStructSharpTests.csproj `
-  -c Release -f net10.0 `
+```sh
+dotnet test tests/CStructSharpTests/CStructSharpTests.csproj \
+  -c Release -f net10.0 \
   --filter "FullyQualifiedName~WriteBudgetTests"
 ```
 
@@ -68,8 +68,8 @@ Changes in this area can affect files, protocols, and stored data. Update the pa
 
 Then run:
 
-```powershell
-.\tools\documentation\Validate-CanonicalReference.ps1
+```sh
+node tools/documentation/validate-canonical-reference.mjs
 node tools/quality/feature-operation-matrix.mjs
 ```
 
@@ -123,7 +123,7 @@ finds a crash:
 Do not hide a failure by changing the stable seed, lowering the iteration count, increasing a safety limit without
 review, or treating a new exception as expected. Check the corpus file with:
 
-```powershell
+```sh
 node tools/quality/fuzz-corpus.mjs
 ```
 
@@ -170,8 +170,8 @@ just to improve a score. The
 
 Run the full documentation check whenever you change files in `docs/`:
 
-```powershell
-.\tools\documentation\Validate-Documentation.ps1
+```sh
+node tools/documentation/validate-documentation.mjs
 ```
 
 Update documentation alongside the code when you change:

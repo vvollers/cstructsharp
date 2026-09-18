@@ -13,6 +13,6 @@ dotnet run --project benchmarks/CStructSharp.FixtureTool -c Release -f net10.0 -
 ```
 
 Real-format fixtures are imported from `apps/inspector/src/formats.ts`, which `WellKnownFormatFixtures.cs` verifies;
-conditional fixtures reuse `benchmarks/ConditionalComparison/cases.json` definitions. The canonical JSON shape mirrors
+conditional fixtures reuse `benchmarks/fixtures/conditional-cases.json` definitions. The canonical JSON shape mirrors
 the WASM bridge (`CStructJsonConversion.cs`) so the JS harness can compare `result.Data[root]` directly.
 Expectations are inputs to the correctness gate: never regenerate them to hide a behavior change.

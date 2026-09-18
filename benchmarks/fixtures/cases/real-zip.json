@@ -9,7 +9,7 @@
     "compile",
     "typed"
   ],
-  "notes": "Imported from apps/inspector/src/formats.ts (WellKnownFormatFixtures.Zip_LocalFileHeader_DecodesBitflagsAndRuntimeLengthName).",
+  "notes": "Imported from apps/inspector/src/schema-catalog.ts (WellKnownFormatFixtures.Zip_LocalFileHeader_DecodesBitflagsAndRuntimeLengthName).",
   "definition": "struct root {\n    uint32 signature;\n    uint16 version_needed;\n    struct {\n        uint16 encrypted : 1;\n        uint16 compression_option : 2;\n        uint16 has_data_descriptor : 1;\n        uint16 reserved : 12;\n    } general_purpose_flag;\n    uint16 compression_method;\n    uint16 last_mod_time;\n    uint16 last_mod_date;\n    uint32 crc_32;\n    uint32 compressed_size;\n    uint32 uncompressed_size;\n    uint16 file_name_length;\n    uint16 extra_field_length;\n    char file_name[file_name_length];\n    uint8 extra_field[extra_field_length];\n};",
   "options": {
     "pointerSize": 8,

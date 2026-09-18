@@ -1,9 +1,0 @@
-[
-  {
-    "name": "header",
-    "definition": "struct root { uint8 kind; uint32 value; uint16 flags; };",
-    "size": 7,
-    "conditional": false,
-    "fill": 0
-  }
-]

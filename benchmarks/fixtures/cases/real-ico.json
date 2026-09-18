@@ -9,7 +9,7 @@
     "compile",
     "typed"
   ],
-  "notes": "Imported from apps/inspector/src/formats.ts (WellKnownFormatFixtures.Ico_IconDirectory_DecodesCountDrivenEntryArray).",
+  "notes": "Imported from apps/inspector/src/schema-catalog.ts (WellKnownFormatFixtures.Ico_IconDirectory_DecodesCountDrivenEntryArray).",
   "definition": "struct icon_dir_entry {\n    uint8 width;\n    uint8 height;\n    uint8 color_count;\n    uint8 reserved;\n    uint16 color_planes;\n    uint16 bits_per_pixel;\n    uint32 size_in_bytes;\n    uint32 data_offset;\n};\n\nstruct root {\n    uint16 reserved;\n    uint16 image_type;\n    uint16 image_count;\n    icon_dir_entry entries[image_count];\n};",
   "options": {
     "pointerSize": 8,

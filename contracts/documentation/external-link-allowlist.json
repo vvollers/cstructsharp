@@ -2,16 +2,16 @@
   "schemaVersion": 1,
   "exceptions": [
     {
-      "url": "https://github.com/vvollers/CStructSharp/blob/main/CHANGELOG.md",
+      "url": "https://www.npmjs.com/",
       "owner": "CStructSharp maintainers",
-      "reason": "The reviewed documentation source has not yet been authorized for its first push, so the future main-branch changelog URL returns HTTP 404.",
-      "reviewAfter": "2026-08-26"
+      "reason": "npm returns HTTP 403 to the automated documentation user agent; the page was reviewed manually on 2026-09-18.",
+      "reviewAfter": "2026-12-18"
     },
     {
-      "url": "https://github.com/vvollers/CStructSharp/issues/new?labels=documentation&title=Documentation%3A%20",
+      "url": "https://www.npmjs.com/package/cstructsharp",
       "owner": "CStructSharp maintainers",
-      "reason": "The reviewed documentation source has not yet been authorized for its first push, so the future repository issue URL returns HTTP 404.",
-      "reviewAfter": "2026-08-26"
+      "reason": "npm returns HTTP 403 to the automated documentation user agent; the page was reviewed manually on 2026-09-18.",
+      "reviewAfter": "2026-12-18"
     },
     {
       "url": "https://www.npmjs.com/package/vite",

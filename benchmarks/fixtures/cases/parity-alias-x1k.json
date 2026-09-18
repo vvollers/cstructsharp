@@ -5,7 +5,6 @@
     "warm",
     "update"
   ],
-  "notes": null,
   "definition": "struct rec { DWORD a; WORD b; BYTE c; }; struct root { rec items[1024]; };",
   "options": {
     "pointerSize": 8,

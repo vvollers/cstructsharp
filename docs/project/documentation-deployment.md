@@ -13,9 +13,9 @@ deploy.
 
 From the repository root:
 
-```powershell
-.\tools\documentation\Validate-Documentation.ps1
-.\tools\documentation\New-DocumentationPagesArtifact.ps1
+```sh
+node tools/documentation/validate-documentation.mjs
+node tools/documentation/new-documentation-pages-artifact.mjs
 ```
 
 The first command runs the complete site check. The second packages the already validated static output and checks

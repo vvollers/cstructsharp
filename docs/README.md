@@ -12,15 +12,14 @@ because that solution includes the WebAssembly bridge.
 Install these prerequisites:
 
 - the .NET 10 SDK selected by the repository's `global.json`;
-- PowerShell 7; and
-- Node.js 24 or 26 for prose, search, browser, and accessibility checks.
+- Node.js 24 or 26 for the documentation scripts, prose, search, browser, and accessibility checks.
 
 Run commands from the repository root, which is the directory containing `docs` and `tools`. You do not
 need a global DocFX installation. `dotnet tool restore` installs the repository-pinned version locally.
 
 Check your SDK and Node.js versions when setup fails:
 
-```powershell
+```sh
 dotnet --version
 node --version
 ```
@@ -32,8 +31,8 @@ The first command should report the .NET 10 SDK selected by `global.json`. The s
 
 For a first build, run:
 
-```powershell
-.\tools\documentation\Build-Documentation.ps1 -Serve
+```sh
+node tools/documentation/build-documentation.mjs --serve
 ```
 
 The wrapper restores the pinned .NET tools, restores and builds the core library for `Release/net10.0`, generates
@@ -46,17 +45,17 @@ stop and rerun the command to see the change.
 
 Once the core assembly is current, use the faster authoring command:
 
-```powershell
-.\tools\documentation\Build-Documentation.ps1 -NoBuild -Serve
+```sh
+node tools/documentation/build-documentation.mjs --no-build --serve
 ```
 
-`-NoBuild` skips the core restore and compilation. The wrapper refuses to continue if the assembly is missing or
+`--no-build` skips the core restore and compilation. The wrapper refuses to continue if the assembly is missing or
 older than a C# or project file, which prevents an API page from being generated from stale code.
 
 If port 8080 is already in use, choose another port:
 
-```powershell
-.\tools\documentation\Build-Documentation.ps1 -NoBuild -Serve -Port 8088
+```sh
+node tools/documentation/build-documentation.mjs --no-build --serve --port 8088
 ```
 
 Open `http://localhost:8088` for that example.
@@ -65,8 +64,8 @@ Open `http://localhost:8088` for that example.
 
 Before handing off a documentation change, run:
 
-```powershell
-.\tools\documentation\Validate-Documentation.ps1
+```sh
+node tools/documentation/validate-documentation.mjs
 ```
 
 This is the full local gate. It restores pinned .NET and Node dependencies, builds only the core library, regenerates
@@ -88,15 +87,15 @@ The wrapper is the normal entry point, but focused commands make an editing loop
 
 Install the exact Node.js dependencies from `package-lock.json`:
 
-```powershell
-npm --prefix .\docs ci --ignore-scripts
+```sh
+npm --prefix docs ci --ignore-scripts
 ```
 
 Then check Markdown formatting and spelling:
 
-```powershell
-npm --prefix .\docs run lint:markdown
-npm --prefix .\docs run lint:spelling
+```sh
+npm --prefix docs run lint:markdown
+npm --prefix docs run lint:spelling
 ```
 
 Both commands should finish with zero findings. Run them from the repository root; the `--prefix` argument tells npm
@@ -104,9 +103,9 @@ to use the package inside `docs`.
 
 To run the browser checks for the first time, install the pinned Chromium build and start the tests:
 
-```powershell
-npm --prefix .\docs run install:browser
-npm --prefix .\docs run test:browser
+```sh
+npm --prefix docs run install:browser
+npm --prefix docs run test:browser
 ```
 
 The first command downloads Playwright's browser runtime. The second serves the existing `_site` output and checks
@@ -116,22 +115,22 @@ prose checks.
 
 To isolate a DocFX problem after the core project has been built, run:
 
-```powershell
+```sh
 dotnet tool restore
-dotnet tool run docfx .\docs\docfx.json --warningsAsErrors
-dotnet tool run docfx serve .\docs\_site --hostname localhost --port 8080
+dotnet tool run docfx docs/docfx.json --warningsAsErrors
+dotnet tool run docfx serve docs/_site --hostname localhost --port 8080
 ```
 
 These commands restore local tools, rebuild `_site`, and serve the result. Prefer
-`Build-Documentation.ps1` for ordinary work because it also checks for stale core output and enforces the site time
+`build-documentation.mjs` for ordinary work because it also checks for stale core output and enforces the site time
 and size limits.
 
 ## Check external links and the Pages archive
 
 External sites can fail temporarily, so their check runs separately from the ordinary pull-request gate:
 
-```powershell
-.\tools\documentation\Test-DocumentationExternalLinks.ps1
+```sh
+node tools/documentation/test-documentation-external-links.mjs
 ```
 
 A successful run reports no unexpected broken link. Review a failure before changing the allowlist; a typo and a
@@ -139,8 +138,8 @@ temporary third-party outage need different fixes.
 
 After a successful site build, create and validate the archive expected by GitHub Pages:
 
-```powershell
-.\tools\documentation\New-DocumentationPagesArtifact.ps1
+```sh
+node tools/documentation/new-documentation-pages-artifact.mjs
 ```
 
 The command writes the ignored file `artifacts/documentation/cstructsharp-pages.tar.gz`. It prepares a local
@@ -149,8 +148,8 @@ for the separately authorized deployment procedure.
 
 Before there is a commit to check out, you can test the files Git would actually keep:
 
-```powershell
-.\tools\documentation\Test-DocumentationSourceSnapshot.ps1
+```sh
+node tools/documentation/test-documentation-source-snapshot.mjs
 ```
 
 The script creates a temporary copy from the current committed base, overlays only Git-visible prospective source,

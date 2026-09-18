@@ -11,12 +11,12 @@ This page is for contributors changing the explorer or its managed bridge. Brows
 ## Build both parts
 
 Install the stable .NET 10 SDK selected by `global.json`, Node.js and npm compatible with
-`apps/explorer/package.json`, and PowerShell 7 for repository scripts. The manifest's `packageManager` field
+`apps/explorer/package.json` (the repository scripts under `tools/` run on the same Node). The manifest's `packageManager` field
 records the preferred npm version; the lockfile fixes the dependency graph.
 
 From the repository root:
 
-```powershell
+```sh
 dotnet workload restore ./src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
 npm --prefix ./apps/explorer ci
 npm --prefix ./apps/explorer run build
@@ -27,7 +27,7 @@ The production build publishes the C# bridge into `artifacts/wasm`, stages it in
 
 After the first build:
 
-```powershell
+```sh
 npm --prefix ./apps/explorer run dev
 ```
 
@@ -78,7 +78,7 @@ in Markdown.
 
 ## Verify the change
 
-```powershell
+```sh
 npm --prefix ./apps/explorer run lint
 npm --prefix ./apps/explorer run test:unit
 npm --prefix ./apps/explorer run test:demos
@@ -108,17 +108,16 @@ For the public npm package, its Node.js loader, and the Vite integration, use th
 [npm build and consumer checks](release-process.md#build-and-test-npm-locally). Application users should start with
 the [JavaScript quick start](../guides/browser/index.md); they do not need to build this repository.
 
-For source review, run the documentation server with local explorer links in one PowerShell terminal:
+For source review, run the documentation server with local explorer links in one terminal:
 
-```powershell
-./tools/documentation/Build-Documentation.ps1 -Serve -Port 8080 -ExplorerUrl http://127.0.0.1:5173/cstructsharp/explorer/
+```sh
+node tools/documentation/build-documentation.mjs --serve --port 8080 --explorer-url http://127.0.0.1:5173/cstructsharp/explorer/
 ```
 
 In another terminal, set the explorer's documentation base before starting Vite:
 
-```powershell
-$env:VITE_DOCS_BASE_URL = 'http://localhost:8080/'
-npm --prefix ./apps/explorer run dev
+```sh
+VITE_DOCS_BASE_URL=http://localhost:8080/ npm --prefix ./apps/explorer run dev
 ```
 
 Open `http://127.0.0.1:5173/cstructsharp/explorer/`. The header links open the local docs, and lesson links

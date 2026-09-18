@@ -65,7 +65,7 @@ available to your publishing account. Then:
    Wait for verification and all six Node jobs to succeed. The publish job is intentionally skipped.
 3. Record the run ID from the Actions URL (`/actions/runs/NUMBER`). Download its **npm-package** artifact and
    extract the downloaded ZIP. It contains `cstructsharp-VERSION.tgz` and `package-info.json`. Keep the `.tgz` intact.
-4. In PowerShell run `npm login --registry=https://registry.npmjs.org/`, complete authentication, and confirm
+4. Run `npm login --registry=https://registry.npmjs.org/`, complete authentication, and confirm
    your account with `npm whoami --registry=https://registry.npmjs.org/`.
 5. Publish the downloaded file with
    `npm publish "FULL-PATH/cstructsharp-VERSION.tgz" --access public --registry=https://registry.npmjs.org/`.

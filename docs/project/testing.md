@@ -13,9 +13,9 @@ Start narrow, then widen according to the changed behavior.
 
 After building the test project, run the smallest relevant class or method separately for .NET 8 and .NET 10:
 
-```powershell
-dotnet test .\tests\CStructSharpTests\CStructSharpTests.csproj -c Release -f net8.0 --no-build --filter "FullyQualifiedName~ManualLanguageFixtureTests"
-dotnet test .\tests\CStructSharpTests\CStructSharpTests.csproj -c Release -f net10.0 --no-build --filter "FullyQualifiedName~ManualLanguageFixtureTests"
+```sh
+dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release -f net8.0 --no-build --filter "FullyQualifiedName~ManualLanguageFixtureTests"
+dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release -f net10.0 --no-build --filter "FullyQualifiedName~ManualLanguageFixtureTests"
 ```
 
 Replace the sample filter with the test that covers your change. Running both targets catches differences hidden by
@@ -23,8 +23,8 @@ one runtime. A successful result reports no failed tests and exit code 0 for eac
 
 Then run the full managed suite:
 
-```powershell
-dotnet test .\tests\CStructSharpTests\CStructSharpTests.csproj -c Release
+```sh
+dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release
 ```
 
 This builds as needed and runs unit, integration, regression, property, stream-adapter, concurrency, limit, and
@@ -35,9 +35,9 @@ compatibility tests on both frameworks.
 Some behavior is also recorded in JSON/text files so tests, docs, and release automation agree. Run the checks
 related to your change:
 
-```powershell
+```sh
 node tools/quality/feature-operation-matrix.mjs
-.\tools\documentation\Validate-CanonicalReference.ps1
+node tools/documentation/validate-canonical-reference.mjs
 node tools/quality/compiler-fixture.mjs validate
 node tools/quality/fuzz-corpus.mjs
 node tools/quality/managed-api-baseline.mjs compare
@@ -119,8 +119,8 @@ for the local commands.
 
 ## Documentation
 
-```powershell
-.\tools\documentation\Validate-Documentation.ps1
+```sh
+node tools/documentation/validate-documentation.mjs
 ```
 
 Run this from the repository root after changing public behavior or the site. It builds only the core net10 assembly,

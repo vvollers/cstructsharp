@@ -26,8 +26,7 @@ update the current contracts, tests, and documentation without retaining unused 
   and `<inheritdoc/>` only when the inherited documentation accurately describes the implementation.
 - JavaScript/TypeScript, including Vue scripts: use `/** ... */` JSDoc/TSDoc immediately above the declaration.
   Describe purpose, inputs, outputs, and relevant side effects; do not duplicate TypeScript type annotations in prose.
-- PowerShell: use comment-based help with `.SYNOPSIS` and applicable `.DESCRIPTION`, `.PARAMETER`, and `.OUTPUTS`.
-  Python: use a triple-quoted docstring as the first statement of each class/function.
+- Node tools under `tools/`: a header comment states purpose and usage; the shared helpers live in `tools/lib/`.
 - Explain the contract: what the operation achieves, units such as bytes versus elements, offset origin, ownership,
   mutation, cancellation, and failure behavior where relevant. Simple helpers can have a brief summary.
 - Add selective inline comments around difficult algorithms, state transitions, binary layouts, and non-obvious
@@ -58,14 +57,14 @@ update the current contracts, tests, and documentation without retaining unused 
 
 ## Validation and delivery
 
-- Use the SDK in `global.json`, PowerShell 7, and each package's declared Node/npm versions and lockfile.
+- Use the SDK in `global.json`, Node 22.14 or later for `tools/`, and each package's declared Node/npm versions and lockfile.
   Run commands from the repository root unless an app directory is specified.
 - Managed changes: `dotnet build CStructSharp.NonWeb.sln -c Release`, then
   `dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release --no-build` (both target frameworks).
   Add regression tests for behavior changes; use focused tests while iterating, then the required area checks.
 - Vue changes: from the affected app, run `npm run lint`, `npm run format:check`, `npm run test:unit`,
   `npm run build`, and relevant `npm run test:e2e` checks. Follow its README for WASM build prerequisites.
-- Documentation changes under `docs/`: run `./tools/documentation/Validate-Documentation.ps1`.
+- Documentation changes under `docs/`: run `node tools/documentation/validate-documentation.mjs`.
   Follow [docs/README.md](docs/README.md); routine documentation work builds the core library, not the full WASM solution.
   For root prose-only edits, check links and `git diff --check`; unrelated application tests are unnecessary.
 - API/language changes: follow the contract, fixture, and baseline checks in `CONTRIBUTING.md`.

@@ -483,7 +483,7 @@
     "contract": "contracts/language/portable-v1.json",
     "manualFixtures": "contracts/language/manual-fixtures-v1.json",
     "reference": "docs/language/index.md",
-    "validator": "tools/documentation/Validate-CanonicalReference.ps1",
+    "validator": "tools/documentation/validate-canonical-reference.mjs",
     "tests": [
       "tests/CStructSharpTests/CanonicalPortableReferenceTests.cs#PrimitiveTables_AgreeWithCompiledCodecs",
       "tests/CStructSharpTests/CanonicalPortableReferenceTests.cs#LayoutExamples_PredictCompiledBytesAndOffsets",

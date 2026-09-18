@@ -5,7 +5,6 @@
     "warm",
     "update"
   ],
-  "notes": null,
   "definition": "struct entry { uint16 a; uint16 b; }; struct root { entry items[]; uint8 tail; };",
   "options": {
     "pointerSize": 8,

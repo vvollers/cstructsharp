@@ -18,7 +18,7 @@ for the importers.
 
 From the repository root:
 
-```powershell
+```sh
 dotnet run --project docs/examples/memory-analysis -c Release -f net10.0
 dotnet run --project docs/examples/memory-analysis -c Release -f net8.0
 ```

@@ -13,7 +13,6 @@ non-failing drift report in CI (`.github/workflows/benchmark-drift.yml`), not an
 | `fixtures/` | Seeded fixture corpus shared by .NET, Node, and browser harnesses (see its README). |
 | `js/` | Node + headless-Chromium harness for the WASM bridge (see its README). |
 | `profiling/` | `perf` and Chrome DevTools Protocol profiling scripts. |
-| `ConditionalComparison/` | Historical three-version comparative harness for the conditional feature. |
 
 ## Run the .NET benchmarks
 

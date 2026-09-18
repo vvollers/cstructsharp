@@ -10,9 +10,9 @@ feedback loop short and avoids rebuilding the optional browser apps.
 
 ## Build only the core library
 
-```powershell
-dotnet restore .\src\CStructSharp\CStructSharp.csproj
-dotnet build .\src\CStructSharp\CStructSharp.csproj -c Release -f net10.0 --no-restore
+```sh
+dotnet restore src/CStructSharp/CStructSharp.csproj
+dotnet build src/CStructSharp/CStructSharp.csproj -c Release -f net10.0 --no-restore
 ```
 
 The restore resolves core NuGet dependencies. The build then compiles only the `net10.0` target in Release mode and
@@ -27,9 +27,9 @@ target.
 
 ## Build the routine development solution
 
-```powershell
-dotnet restore .\CStructSharp.NonWeb.sln
-dotnet build .\CStructSharp.NonWeb.sln -c Release --no-restore
+```sh
+dotnet restore CStructSharp.NonWeb.sln
+dotnet build CStructSharp.NonWeb.sln -c Release --no-restore
 ```
 
 This compiles core, tests, fuzzing support, and benchmarks. It deliberately excludes the WebAssembly adapter.
@@ -42,8 +42,8 @@ the final integration and release rehearsal.
 
 The complete documentation check is:
 
-```powershell
-.\tools\documentation\Validate-Documentation.ps1
+```sh
+node tools/documentation/validate-documentation.mjs
 ```
 
 It restores pinned tools, builds only the core `Release/net10.0` assembly, runs examples and language fixtures,
@@ -51,12 +51,12 @@ generates API pages, builds DocFX with warnings treated as errors, and runs cont
 
 After one complete validation, use the faster authoring command:
 
-```powershell
-.\tools\documentation\Build-Documentation.ps1 -NoBuild -Serve
+```sh
+node tools/documentation/build-documentation.mjs --no-build --serve
 ```
 
-`-NoBuild` reuses the current core assembly but refuses to run when that assembly is missing or older than relevant
-source. `-Serve` starts the generated site at `http://localhost:8080`; press `Ctrl+C` to stop it. The generated
+`--no-build` reuses the current core assembly but refuses to run when that assembly is missing or older than relevant
+source. `--serve` starts the generated site at `http://localhost:8080`; press `Ctrl+C` to stop it. The generated
 `docs/api/*.yml` files and `_site/` directory are ignored build output.
 
 ## Package candidate

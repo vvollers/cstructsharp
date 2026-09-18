@@ -1331,7 +1331,7 @@
         "littleEndian": true,
         "size": 9,
         "alignment": 4,
-        "bytes": "ffffffff0200000007",
+        "bytes": "FFFFFFFF0200000007",
         "offsets": {
           "root.a": 0,
           "root.b": 4,

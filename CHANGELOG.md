@@ -6,6 +6,18 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- **Tooling is Node only.** The 29 PowerShell scripts, the shared module, and the Python corpus extractor are
+  replaced by Node scripts under `tools/` with the same checks, messages, and exit codes (`node tools/<area>/<name>.mjs
+  --option value`; `--self-test` where a tool has fail-first fixtures): the quality validators (solution parity,
+  README badges, coverage risk, fuzz corpus, mutation report, release budgets, artifact baseline, feature matrix,
+  dissect corpus), the packaging checks (package validation, package/memory/onboarding consumers, browser
+  onboarding), and the documentation family (build, API, language, canonical reference, quality, external links,
+  workflow, Pages artifact, source snapshot, and the `validate-documentation.mjs` gate). Shared helpers live in
+  `tools/lib/` (assertions, a logged `dotnet` runner, argument parsing, and small XML, ZIP, and NuGet readers), so
+  the tools need no dependencies beyond Node. PowerShell 7 and `ripgrep` are no longer prerequisites; the workflows
+  and guides run the Node commands. The historical `benchmarks/ConditionalComparison` harness is retired (its case
+  definitions moved to `benchmarks/fixtures/conditional-cases.json`), and the fixture generator reads the inspector's
+  format registry again.
 - The npm package owns the JavaScript it ships: the adapter sources (`main.js`, `bootstrap.js`,
   `large-source.js`, `source-worker.js`, `cstructsharp-api.js`, the ZIP entry `cstructsharp-wasm.js`) and their
   unit tests live in `packages/cstructsharp/src/`, the standalone bundle's README, starter pages, and `serve.mjs`

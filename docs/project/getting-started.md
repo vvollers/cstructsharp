@@ -6,7 +6,7 @@ description: Install the required tools, clone the repository, and establish a p
 # Contributor setup
 
 This page prepares a machine for core, tests, benchmarks, packages, and documentation work. Run every command in
-PowerShell from the repository root unless a step says otherwise.
+a shell from the repository root unless a step says otherwise.
 
 ## Prerequisites
 
@@ -14,18 +14,18 @@ Install:
 
 - Git;
 - a stable .NET 10 SDK; and
-- PowerShell 7 for the repository scripts.
+- Node.js 22.14 or later for the repository scripts under `tools/` (the documentation build needs Node 24 or 26).
 
-Node.js is not needed for ordinary core, test, benchmark, or package work. Install Node 24 or 26 only when you will
-build or validate the documentation. The optional Web projects use their own separately maintained Node toolchain.
+Node.js is not needed for ordinary core and test work through `dotnet`. The optional Web projects use their own
+separately maintained Node toolchain.
 
 The repository's `global.json` requests SDK `10.0.100` or a newer installed .NET 10 feature band and rejects
 prerelease SDKs. From the directory containing `global.json`, verify the tools:
 
-```powershell
+```sh
 dotnet --version
 git --version
-pwsh --version
+node --version
 ```
 
 The .NET command should print a stable `10.0.x` version. If it prints an older major version or reports an SDK
@@ -35,7 +35,7 @@ resolver error, install a stable .NET 10 SDK before changing project targets.
 
 Choose a parent directory where you keep source projects:
 
-```powershell
+```sh
 git clone https://github.com/vvollers/CStructSharp.git
 cd CStructSharp
 ```
@@ -45,9 +45,9 @@ for the commands that follow. Confirm that `CStructSharp.NonWeb.sln` and `global
 
 ## Restore pinned tools and packages
 
-```powershell
+```sh
 dotnet tool restore
-dotnet restore .\CStructSharp.NonWeb.sln
+dotnet restore CStructSharp.NonWeb.sln
 ```
 
 The first command installs the exact local versions recorded in `.config/dotnet-tools.json`, including DocFX,
@@ -59,9 +59,9 @@ package/build state.
 
 ## Build and test the baseline
 
-```powershell
-dotnet build .\CStructSharp.NonWeb.sln -c Release --no-restore
-dotnet test .\tests\CStructSharpTests\CStructSharpTests.csproj -c Release --no-build
+```sh
+dotnet build CStructSharp.NonWeb.sln -c Release --no-restore
+dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release --no-build
 ```
 
 `-c Release` uses the configuration measured by repository quality checks. `--no-restore` is safe because the
@@ -89,8 +89,8 @@ Use this loop:
 
 For example, this real filter runs the Portable manual fixtures on one framework:
 
-```powershell
-dotnet test .\tests\CStructSharpTests\CStructSharpTests.csproj -c Release -f net10.0 --no-build --filter "FullyQualifiedName~ManualLanguageFixtureTests"
+```sh
+dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release -f net10.0 --no-build --filter "FullyQualifiedName~ManualLanguageFixtureTests"
 ```
 
 Run the equivalent command with `-f net8.0` as well. Replace the filter with the narrow test class for your change.
@@ -98,7 +98,7 @@ A successful focused run reports only the selected tests and exits with code 0.
 
 Before asking for review:
 
-```powershell
+```sh
 git status --short
 git diff --check
 ```

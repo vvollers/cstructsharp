@@ -25,8 +25,8 @@ and is also used before a release.
 
 The memory-analysis scope covers `src/CStructSharp/Memory/**/*.cs` in the library project:
 
-```powershell
-dotnet stryker --config-file stryker-memory-config.json --solution CStructSharp.NonWeb.sln `
+```sh
+dotnet stryker --config-file stryker-memory-config.json --solution CStructSharp.NonWeb.sln \
   --target-framework net10.0 --configuration Release --output artifacts/mutation/memory --skip-version-check
 ```
 
@@ -40,14 +40,14 @@ Run mutation testing independently of normal builds, tests, and benchmarks becau
 
 Run these commands from the repository root:
 
-```powershell
+```sh
 dotnet tool restore
-dotnet stryker `
-  --config-file .\stryker-config.json `
-  --solution .\CStructSharp.NonWeb.sln `
-  --target-framework net10.0 `
-  --configuration Release `
-  --output .\artifacts\mutation\permanent `
+dotnet stryker \
+  --config-file stryker-config.json \
+  --solution CStructSharp.NonWeb.sln \
+  --target-framework net10.0 \
+  --configuration Release \
+  --output artifacts/mutation/permanent \
   --skip-version-check
 
 node tools/quality/mutation-report.mjs --report-path artifacts/mutation/permanent/reports/mutation-report.json
@@ -85,14 +85,14 @@ mutations for this file, the result must be reviewed and the tests should run ag
 
 When you change a risky file, start by mutating only that file. For example:
 
-```powershell
-dotnet stryker `
-  --config-file .\stryker-config.json `
-  --solution .\CStructSharp.NonWeb.sln `
-  --target-framework net10.0 `
-  --configuration Release `
-  --mutate CStructWriter.cs `
-  --output .\artifacts\mutation\writer `
+```sh
+dotnet stryker \
+  --config-file stryker-config.json \
+  --solution CStructSharp.NonWeb.sln \
+  --target-framework net10.0 \
+  --configuration Release \
+  --mutate CStructWriter.cs \
+  --output artifacts/mutation/writer \
   --skip-version-check
 ```
 

@@ -7,10 +7,11 @@
 // result is NOT produced here: run `dotnet run --project benchmarks/CStructSharp.FixtureTool -c Release -f net10.0 -- fill`
 // afterwards so the managed library is the single source of truth for expectations.
 //
-// Real-format fixtures are imported from apps/inspector/src/formats.ts, which is itself verified byte-for-byte by
-// tests/CStructSharpTests/WellKnownFormatFixtures.cs. Conditional fixtures reuse the existing ConditionalComparison
-// harness definitions. Everything else is synthetic and seeded, so re-running this script is a no-op diff.
+// Real-format fixtures are imported from apps/inspector/src/schema-catalog.ts, which is itself verified byte-for-byte
+// by tests/CStructSharpTests/WellKnownFormatFixtures.cs. Conditional fixtures reuse the definitions in
+// conditional-cases.json (kept from the retired comparison harness). Everything else is synthetic and seeded, so re-running this script is a no-op diff.
 import fs from "node:fs";
+import { registerHooks } from "node:module";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -514,10 +515,10 @@ for (const depth of [1, 8, 64]) {
 // ---------------------------------------------------------------- S-COND -----------------------------------------------------------
 
 {
-  const conditional = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "benchmarks/ConditionalComparison/cases.json"), "utf8"));
+  const conditional = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "benchmarks/fixtures/conditional-cases.json"), "utf8"));
   for (const name of ["plain128", "if128", "switch128"]) {
     const source = conditional.find((c) => c.name === name);
-    if (!source) throw new Error(`ConditionalComparison case ${name} not found.`);
+    if (!source) throw new Error(`Conditional case ${name} not found in conditional-cases.json.`);
     // Mixed tags so both arms are exercised: tag 1 → uint32 value, otherwise uint16 small; tail always uint16.
     const next = xorshift32(0x5eed00a0);
     const b = new ByteBuilder();
@@ -533,7 +534,7 @@ for (const depth of [1, 8, 64]) {
       tags: ["warm"],
       definition: source.definition,
       bytes: b.toBytes(),
-      notes: "Definition reused from benchmarks/ConditionalComparison/cases.json; bytes regenerated with mixed tags.",
+      notes: "Definition reused from benchmarks/fixtures/conditional-cases.json; bytes regenerated with mixed tags.",
     });
   }
 }
@@ -541,8 +542,18 @@ for (const depth of [1, 8, 64]) {
 // ---------------------------------------------------------------- S-REAL ---------------------------------------------------------------
 
 {
-  const { formats } = await import(pathToFileURL(path.join(repositoryRoot, "apps/inspector/src/formats.ts")).href);
-  for (const format of formats) {
+  // The inspector's format registry is TypeScript; Node's type stripping loads it directly, and a resolve hook
+  // supplies the `.ts` extension its bundler-style relative imports omit.
+  registerHooks({
+    resolve(specifier, context, nextResolve) {
+      if (/^\.\.?\//.test(specifier) && !path.extname(specifier) && context.parentURL?.endsWith(".ts")) {
+        return nextResolve(`${specifier}.ts`, context);
+      }
+      return nextResolve(specifier, context);
+    },
+  });
+  const { sampleExamples } = await import(pathToFileURL(path.join(repositoryRoot, "apps/inspector/src/schema-catalog.ts")).href);
+  for (const format of sampleExamples) {
     if (format.schemaOnly) continue;
     const bytes = Uint8Array.from(format.binaryHex.trim().split(/\s+/), (h) => parseInt(h, 16));
     add({
@@ -558,7 +569,7 @@ for (const depth of [1, 8, 64]) {
       },
       readOptions: format.parserOptions.addressingMode ? { addressingMode: format.parserOptions.addressingMode } : null,
       bytes,
-      notes: `Imported from apps/inspector/src/formats.ts (${format.sourceFixture}).`,
+      notes: `Imported from apps/inspector/src/schema-catalog.ts (${format.sourceFixture}).`,
     });
   }
 }

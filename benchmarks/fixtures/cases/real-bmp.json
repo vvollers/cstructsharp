@@ -9,7 +9,7 @@
     "compile",
     "typed"
   ],
-  "notes": "Imported from apps/inspector/src/formats.ts (WellKnownFormatFixtures.Bmp_FileAndInfoHeaders_DecodeExpectedFields).",
+  "notes": "Imported from apps/inspector/src/schema-catalog.ts (WellKnownFormatFixtures.Bmp_FileAndInfoHeaders_DecodeExpectedFields).",
   "definition": "enum bmp_compression : uint32 {\n    Rgb = 0,\n    Rle8 = 1,\n    Rle4 = 2,\n    Bitfields = 3\n};\n\nstruct bitmap_file_header {\n    char signature[2];\n    uint32 file_size;\n    uint16 reserved1;\n    uint16 reserved2;\n    uint32 pixel_data_offset;\n};\n\nstruct bitmap_info_header {\n    uint32 header_size;\n    int32 width;\n    int32 height;\n    uint16 planes;\n    uint16 bits_per_pixel;\n    bmp_compression compression;\n    uint32 image_size;\n    int32 x_pixels_per_meter;\n    int32 y_pixels_per_meter;\n    uint32 colors_used;\n    uint32 colors_important;\n};\n\nstruct root {\n    bitmap_file_header file_header;\n    bitmap_info_header info_header;\n};",
   "options": {
     "pointerSize": 8,

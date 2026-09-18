@@ -9,7 +9,7 @@
     "compile",
     "typed"
   ],
-  "notes": "Imported from apps/inspector/src/formats.ts (WellKnownFormatFixtures.Wav_RiffFmtAndDataChunks_DecodeExpectedFields).",
+  "notes": "Imported from apps/inspector/src/schema-catalog.ts (WellKnownFormatFixtures.Wav_RiffFmtAndDataChunks_DecodeExpectedFields).",
   "definition": "struct riff_header {\n    char chunk_id[4];\n    uint32 chunk_size;\n    char format[4];\n};\n\nstruct fmt_chunk {\n    char chunk_id[4];\n    uint32 chunk_size;\n    uint16 audio_format;\n    uint16 num_channels;\n    uint32 sample_rate;\n    uint32 byte_rate;\n    uint16 block_align;\n    uint16 bits_per_sample;\n};\n\nstruct data_chunk_header {\n    char chunk_id[4];\n    uint32 chunk_size;\n};\n\nstruct root {\n    riff_header riff;\n    fmt_chunk fmt;\n    data_chunk_header data;\n};",
   "options": {
     "pointerSize": 8,

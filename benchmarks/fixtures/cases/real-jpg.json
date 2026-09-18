@@ -9,7 +9,7 @@
     "compile",
     "typed"
   ],
-  "notes": "Imported from apps/inspector/src/formats.ts (WellKnownFormatFixtures.Jpg_SoiAndJfifApp0Segment_DecodeExpectedFields).",
+  "notes": "Imported from apps/inspector/src/schema-catalog.ts (WellKnownFormatFixtures.Jpg_SoiAndJfifApp0Segment_DecodeExpectedFields).",
   "definition": "struct app0_segment {\n    uint16> marker;\n    uint16> length;\n    char identifier[5];\n    uint8 version_major;\n    uint8 version_minor;\n    uint8 density_units;\n    uint16> x_density;\n    uint16> y_density;\n    uint8 thumbnail_width;\n    uint8 thumbnail_height;\n};\n\nstruct root {\n    uint16> soi_marker;\n    app0_segment app0;\n};",
   "options": {
     "pointerSize": 8,

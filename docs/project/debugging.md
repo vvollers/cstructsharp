@@ -29,7 +29,7 @@ the problem.
 
 From the repository root:
 
-```powershell
+```sh
 dotnet --info
 dotnet --version
 ```
@@ -40,7 +40,7 @@ selected by `global.json`. The resolver message “there was no version specifie
 
 To find the NuGet package cache:
 
-```powershell
+```sh
 dotnet nuget locals global-packages --list
 ```
 
@@ -104,12 +104,12 @@ reviewed limitation when tooling genuinely cannot instrument the code; do not us
 
 Run the documented wrapper rather than a partial DocFX command:
 
-```powershell
-.\tools\documentation\Validate-Documentation.ps1
+```sh
+node tools/documentation/validate-documentation.mjs
 ```
 
 The wrapper prints each subcommand and stops at the first failed stage. A stale-core message means the docs were
-started with `-NoBuild` after a relevant source change; run the full validator once. Browser failures include the
+started with `--no-build` after a relevant source change; run the full validator once. Browser failures include the
 page, assertion, console output, and accessibility finding.
 
 After fixing the focused cause, return to [Testing and quality checks](testing.md) and rerun the affected wider gate.

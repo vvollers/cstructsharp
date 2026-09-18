@@ -10,7 +10,7 @@
     "typed",
     "partial-consume"
   ],
-  "notes": "Imported from apps/inspector/src/formats.ts (WellKnownFormatFixtures.Pe_DosHeaderPointerToCoffHeader_DecodesAcrossExeAndDll (DLL)).",
+  "notes": "Imported from apps/inspector/src/schema-catalog.ts (WellKnownFormatFixtures.Pe_DosHeaderPointerToCoffHeader_DecodesAcrossExeAndDll (DLL)).",
   "definition": "struct pe_header {\n    char signature[4];\n    uint16 machine;\n    uint16 number_of_sections;\n    uint32 time_date_stamp;\n    uint32 pointer_to_symbol_table;\n    uint32 number_of_symbols;\n    uint16 size_of_optional_header;\n    uint16 characteristics;\n    uint16 optional_header_magic;\n};\n\nstruct dos_header {\n    uint16 e_magic;\n    uint16 e_cblp;\n    uint16 e_cp;\n    uint16 e_crlc;\n    uint16 e_cparhdr;\n    uint16 e_minalloc;\n    uint16 e_maxalloc;\n    uint16 e_ss;\n    uint16 e_sp;\n    uint16 e_csum;\n    uint16 e_ip;\n    uint16 e_cs;\n    uint16 e_lfarlc;\n    uint16 e_ovno;\n    uint16 e_res[4];\n    uint16 e_oemid;\n    uint16 e_oeminfo;\n    uint16 e_res2[10];\n    pe_header *e_lfanew;\n};\n\nstruct root {\n    dos_header dos;\n};",
   "options": {
     "pointerSize": 4,
