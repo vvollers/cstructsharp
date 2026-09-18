@@ -42,7 +42,7 @@ public class BitfieldSemanticsTests
         bytes[tailOffset] = 0x7E;
         using var stream = new MemoryStream(bytes);
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
         Assert.AreEqual(0x05, (int)parsed.first);
         Assert.AreEqual(0x1A, (int)parsed.center);
         Assert.AreEqual(0xA5, (int)parsed.last);
@@ -55,8 +55,8 @@ public class BitfieldSemanticsTests
         }
 
         stream.Position = 0;
-        (List<DebugData> debug, dynamic debugResult) = cstruct.ParseStreamWithDebug(stream, "root");
-        dynamic debugParsed = ((IDictionary<string, object?>)debugResult)["root"]!;
+        (dynamic debugResult, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root");
+        dynamic debugParsed = debugResult;
         Assert.AreEqual(0x1A, (int)debugParsed.center);
         foreach (string name in new[] { "first", "center", "last", })
         {
@@ -77,7 +77,7 @@ public class BitfieldSemanticsTests
         {
             byte[] updatedBytes = (byte[])bytes.Clone();
             using var updateStream = new MemoryStream(updatedBytes);
-            cstruct.UpdateStream(updateStream, "root." + name, value);
+            cstruct.Update(updateStream, "root." + name, value);
 
             ulong mask = GetMask(width) << offset;
             ulong expectedStorage = (0xA5D5UL & ~mask) | (value << offset);
@@ -122,7 +122,7 @@ public class BitfieldSemanticsTests
         bytes[tailOffset] = 0x7E;
         using var stream = new MemoryStream(bytes);
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
         Assert.AreEqual(0xA, (int)parsed.a);
         Assert.AreEqual(0xB, (int)parsed.b);
         Assert.AreEqual(0xC, (int)parsed.c);
@@ -137,7 +137,7 @@ public class BitfieldSemanticsTests
         Assert.AreEqual(tailOffset, cstruct.ResolveAddress(stream, "root.tail"));
 
         stream.Position = 0;
-        (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
+        (dynamic _, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root");
         DebugData narrow = debug.Single(entry => entry.Path == "root.b");
         DebugData wide = debug.Single(entry => entry.Path == "root.d");
         Assert.AreEqual(0L, narrow.Start);
@@ -147,7 +147,7 @@ public class BitfieldSemanticsTests
         CollectionAssert.AreEqual(bytes, cstruct.Serialize("root", parsed));
 
         stream.Position = 0;
-        cstruct.UpdateStream(stream, "root.d", 0x5);
+        cstruct.Update(stream, "root.d", 0x5);
         byte[] expected = (byte[])bytes.Clone();
         WriteUnsigned(expected, wideUnitStart, 2, 0x005C, isLittleEndian);
         CollectionAssert.AreEqual(expected, stream.ToArray());
@@ -185,14 +185,14 @@ public class BitfieldSemanticsTests
                 WriteUnsigned(expected, 0, size, value, isLittleEndian);
                 using var input = new MemoryStream(expected);
 
-                dynamic parsed = cstruct.ParseStream(input, "root");
+                dynamic parsed = cstruct.Parse(input, "root");
                 Assert.AreEqual(value, Convert.ToUInt64(parsed.flags), $"{type}, little={isLittleEndian}");
 
                 var data = new Dictionary<string, object> { ["flags"] = value, };
                 CollectionAssert.AreEqual(expected, cstruct.Serialize("root", data), type);
 
                 using var update = new MemoryStream(new byte[size]);
-                cstruct.UpdateStream(update, "root.flags", value);
+                cstruct.Update(update, "root.flags", value);
                 CollectionAssert.AreEqual(expected, update.ToArray(), type);
             }
         }
@@ -214,7 +214,7 @@ public class BitfieldSemanticsTests
             ulong maximum = GetMask(width);
             using var valid = new MemoryStream(new byte[8]);
 
-            cstruct.UpdateStream(valid, "root.flags", maximum);
+            cstruct.Update(valid, "root.flags", maximum);
 
             byte[] expected = new byte[8];
             WriteUnsigned(expected, 0, 8, maximum, true);
@@ -226,7 +226,7 @@ public class BitfieldSemanticsTests
             byte[] original = Enumerable.Repeat((byte)0xA5, 8).ToArray();
             using var invalid = new MemoryStream((byte[])original.Clone());
             Assert.Throws<CStructWriteException>(
-                () => cstruct.UpdateStream(invalid, "root.flags", overflow),
+                () => cstruct.Update(invalid, "root.flags", overflow),
                 "overflow width " + width);
             CollectionAssert.AreEqual(original, invalid.ToArray(), "overflow width " + width);
             Assert.AreEqual(0, invalid.Position, "overflow width " + width);
@@ -249,7 +249,7 @@ public class BitfieldSemanticsTests
         {
             using var stream = new MemoryStream(new byte[] { 0xA5, });
 
-            Assert.Throws<CStructWriteException>(() => cstruct.UpdateStream(stream, "root.flags", invalid));
+            Assert.Throws<CStructWriteException>(() => cstruct.Update(stream, "root.flags", invalid));
 
             CollectionAssert.AreEqual(new byte[] { 0xA5, }, stream.ToArray(), invalid.ToString());
             Assert.AreEqual(0, stream.Position, invalid.ToString());
@@ -280,14 +280,14 @@ public class BitfieldSemanticsTests
             bytes[3] = 0x7E;
             using var stream = new MemoryStream(bytes);
 
-            dynamic parsed = cstruct.ParseStream(stream, "root");
+            dynamic parsed = cstruct.Parse(stream, "root");
             Assert.AreEqual(0x5, (int)parsed.value.low);
             Assert.AreEqual(0xBCA5UL, Convert.ToUInt64(parsed.value.all));
             stream.Position = 0;
             Assert.AreEqual(1L, cstruct.ResolveAddress(stream, "root.value.low"));
 
             stream.Position = 0;
-            cstruct.UpdateStream(stream, "root.value.low", 0x3);
+            cstruct.Update(stream, "root.value.low", 0x3);
 
             byte[] expected = (byte[])bytes.Clone();
             WriteUnsigned(expected, 1, 2, 0xBCA3, isLittleEndian);
@@ -323,7 +323,7 @@ public class BitfieldSemanticsTests
         var cstruct = new CStruct("struct root { uint8 low:4; uint8 high:4; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0xA5, });
 
-        Assert.Throws<CStructWriteException>(() => cstruct.UpdateStream(stream, "root.high", (byte)0x10));
+        Assert.Throws<CStructWriteException>(() => cstruct.Update(stream, "root.high", (byte)0x10));
 
         CollectionAssert.AreEqual(new byte[] { 0xA5, }, stream.ToArray());
         Assert.AreEqual(0, stream.Position);
@@ -342,7 +342,7 @@ public class BitfieldSemanticsTests
         var cstruct = new CStruct("struct root { int8 low:4; int8 high:4; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0xA5, });
 
-        Assert.Throws<CStructWriteException>(() => cstruct.UpdateStream(stream, "root.high", -1));
+        Assert.Throws<CStructWriteException>(() => cstruct.Update(stream, "root.high", -1));
 
         CollectionAssert.AreEqual(new byte[] { 0xA5, }, stream.ToArray());
         Assert.AreEqual(0, stream.Position);
@@ -361,7 +361,7 @@ public class BitfieldSemanticsTests
         var cstruct = new CStruct("struct root { int8 flags:8; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0xFF, });
 
-        dynamic result = cstruct.ParseStream(stream, "root");
+        dynamic result = cstruct.Parse(stream, "root");
 
         Assert.AreEqual(255, (int)result.flags);
     }

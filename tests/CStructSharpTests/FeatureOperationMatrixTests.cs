@@ -80,14 +80,14 @@ public class FeatureOperationMatrixTests
                 isLittleEndian: true);
             using var stream = new MemoryStream(bytes) { Position = 1, };
 
-            Assert.AreEqual(0, cstruct.GetDynamicArrayLength(stream, "root.value"), typeName);
+            Assert.AreEqual(0, cstruct.GetArrayLength(stream, "root.value"), typeName);
             Assert.AreEqual(1L, stream.Position, typeName + "/position");
         }
 
         var scalar = new CStruct("struct root { byte value; };", pointerSize: 1);
         using var scalarStream = new MemoryStream([0x2A,]);
         Assert.Throws<CStructPathException>(
-            () => scalar.GetDynamicArrayLength(scalarStream, "root.value"));
+            () => scalar.GetArrayLength(scalarStream, "root.value"));
         Assert.AreEqual(0L, scalarStream.Position);
     }
 
@@ -119,7 +119,7 @@ public class FeatureOperationMatrixTests
                     isLittleEndian: layoutLittleEndian);
 
                 using var parseStream = new MemoryStream(original);
-                StructValue parsed = cstruct.ParseStream(parseStream, "root");
+                StructValue parsed = cstruct.Parse(parseStream, "root");
                 Assert.AreEqual(0x12UL, Convert.ToUInt64(((dynamic)parsed).value), caseName + "/parse");
                 Assert.AreEqual((byte)0x7E, (byte)((dynamic)parsed).tail, caseName + "/tail");
 
@@ -141,9 +141,8 @@ public class FeatureOperationMatrixTests
                     caseName + "/memory-read-value");
 
                 using var debugStream = new MemoryStream(original);
-                (List<DebugData> debug, dynamic debugWrapper) =
-                    cstruct.ParseStreamWithDebug(debugStream, "root");
-                StructValue debugRoot = GetDebugRoot(debugWrapper);
+                (StructValue debugRoot, IReadOnlyList<DebugData> debug) =
+                    cstruct.ParseWithDebug(debugStream, "root");
                 Assert.AreEqual(
                     JsonSerializer.Serialize(parsed),
                     JsonSerializer.Serialize(debugRoot),
@@ -164,11 +163,11 @@ public class FeatureOperationMatrixTests
                 CollectionAssert.AreEqual(original, spanOutput, caseName + "/span-serialize");
 
                 using var writeStream = new MemoryStream();
-                cstruct.WriteStream(writeStream, "root", parsed);
+                cstruct.Write(writeStream, "root", parsed);
                 CollectionAssert.AreEqual(original, writeStream.ToArray(), caseName + "/write");
 
                 using var updateStream = new MemoryStream((byte[])original.Clone());
-                cstruct.UpdateStream(updateStream, "root.value", (byte)0x34);
+                cstruct.Update(updateStream, "root.value", (byte)0x34);
                 CollectionAssert.AreEqual(replacement, updateStream.ToArray(), caseName + "/update");
                 Assert.AreEqual(0L, updateStream.Position, caseName + "/update-position");
             }
@@ -196,7 +195,7 @@ public class FeatureOperationMatrixTests
                 isLittleEndian: item.LittleEndian);
 
             using var parseStream = new MemoryStream((byte[])item.Input.Clone());
-            StructValue parsed = cstruct.ParseStream(
+            StructValue parsed = cstruct.Parse(
                 parseStream,
                 "root",
                 variables,
@@ -230,13 +229,12 @@ public class FeatureOperationMatrixTests
             }
 
             using var debugStream = new MemoryStream((byte[])item.Input.Clone());
-            (List<DebugData> debug, dynamic debugWrapper) =
-                cstruct.ParseStreamWithDebug(
+            (StructValue debugRoot, IReadOnlyList<DebugData> debug) =
+                cstruct.ParseWithDebug(
                     debugStream,
                     "root",
                     variables,
                     new ReadOptions());
-            StructValue debugRoot = GetDebugRoot(debugWrapper);
             Assert.AreEqual(
                 JsonSerializer.Serialize(parsed),
                 JsonSerializer.Serialize(debugRoot),
@@ -258,7 +256,7 @@ public class FeatureOperationMatrixTests
             {
                 Assert.AreEqual(
                     item.ExpectedLength,
-                    cstruct.GetDynamicArrayLength(addressStream, item.LengthPath, variables),
+                    cstruct.GetArrayLength(addressStream, item.LengthPath, variables),
                     item.Id + "/length");
             }
 
@@ -283,11 +281,11 @@ public class FeatureOperationMatrixTests
                 item.Id + "/buffer-serialize");
 
             using var writeStream = new MemoryStream();
-            cstruct.WriteStream(writeStream, "root", parsed, variables);
+            cstruct.Write(writeStream, "root", parsed, variables);
             CollectionAssert.AreEqual(item.Serialized, writeStream.ToArray(), item.Id + "/write");
 
             using var updateStream = new MemoryStream((byte[])item.Input.Clone());
-            cstruct.UpdateStream(updateStream, item.UpdatePath, item.Replacement, variables);
+            cstruct.Update(updateStream, item.UpdatePath, item.Replacement, variables);
             CollectionAssert.AreEqual(item.Updated, updateStream.ToArray(), item.Id + "/update");
             Assert.AreEqual(0L, updateStream.Position, item.Id + "/update-position");
         }
@@ -311,7 +309,7 @@ public class FeatureOperationMatrixTests
         var cstruct = new CStruct(layout, pointerSize: 1);
 
         using var parseStream = new MemoryStream(original);
-        dynamic parsed = cstruct.ParseStream(parseStream, "root");
+        dynamic parsed = cstruct.Parse(parseStream, "root");
         Assert.IsInstanceOfType<UnionValue>(parsed.value);
         Assert.IsFalse(((UnionValue)parsed.value).HasSelection);
         Assert.AreEqual((ushort)0x1234, (ushort)parsed.value.wide);
@@ -325,10 +323,9 @@ public class FeatureOperationMatrixTests
         Assert.AreEqual((ushort)0x1234, (ushort)memorySelected["wide"]!);
 
         using var debugStream = new MemoryStream(original);
-        (List<DebugData> debug, dynamic debugWrapper) =
-            cstruct.ParseStreamWithDebug(debugStream, "root");
-        dynamic debugRoot = GetDebugRoot(debugWrapper);
-        Assert.AreEqual((ushort)0x1234, (ushort)debugRoot.value.wide);
+        (StructValue debugRoot, IReadOnlyList<DebugData> debug) =
+            cstruct.ParseWithDebug(debugStream, "root");
+        Assert.AreEqual((ushort)0x1234, (ushort)((dynamic)debugRoot).value.wide);
         Assert.IsTrue(debug.Any(item => item.Start == 1 && item.End == 3));
 
         using var addressStream = new MemoryStream(original);
@@ -354,11 +351,11 @@ public class FeatureOperationMatrixTests
             cstruct.Serialize(bufferOutput, "root", (object)writableRoot));
         CollectionAssert.AreEqual(expected, bufferOutput.WrittenSpan.ToArray());
         using var writeStream = new MemoryStream();
-        cstruct.WriteStream(writeStream, "root", writableRoot);
+        cstruct.Write(writeStream, "root", writableRoot);
         CollectionAssert.AreEqual(expected, writeStream.ToArray());
 
         using var updateStream = new MemoryStream((byte[])original.Clone());
-        cstruct.UpdateStream(updateStream, "root.value", selectedUnion);
+        cstruct.Update(updateStream, "root.value", selectedUnion);
         CollectionAssert.AreEqual(expected, updateStream.ToArray());
         Assert.AreEqual(0L, updateStream.Position);
 
@@ -720,14 +717,6 @@ public class FeatureOperationMatrixTests
             (ushort)0x9ABC,
             2,
             [0x12, 0x34, 0xBC, 0x9A,]);
-    }
-
-    private static StructValue GetDebugRoot(StructValue wrapper)
-    {
-        var values = (IDictionary<string, object?>)wrapper;
-        Assert.IsTrue(values.TryGetValue("root", out object? root));
-        Assert.IsInstanceOfType<StructValue>(root);
-        return (StructValue)root;
     }
 
     private static JsonDocument LoadCatalog()

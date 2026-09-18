@@ -29,7 +29,7 @@ public class TypedefResolutionTests
 
         var cstruct = new CStruct("typedef uint16 word; struct root { word value; };");
         using var stream = new MemoryStream([0x34, 0x12,]);
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual((ushort)0x1234, (ushort)parsed.value);
         Assert.AreEqual(2, cstruct.GetStructSizeInBytes("root"));
@@ -60,7 +60,7 @@ public class TypedefResolutionTests
         var cstruct = new CStruct(layout, pointerSize: 2);
         using var stream = new MemoryStream([0x2A, 0x34, 0x12, 0x78, 0x56, 0x08, 0x00, 0xA5, 0x00,]);
 
-        dynamic parsed = cstruct.ParseStream(
+        dynamic parsed = cstruct.Parse(
             stream,
             "root",
             (IReadOnlyDictionary<string, int>?)null,
@@ -81,7 +81,7 @@ public class TypedefResolutionTests
             "struct root { later first; final_t values[2]; }; " +
             "typedef uint16 later; typedef later middle; typedef middle final_t;");
         using var chainStream = new MemoryStream([0x34, 0x12, 0x78, 0x56, 0xBC, 0x9A,]);
-        dynamic chainParsed = chain.ParseStream(chainStream, "root");
+        dynamic chainParsed = chain.Parse(chainStream, "root");
         Assert.AreEqual((ushort)0x1234, (ushort)chainParsed.first);
         Assert.AreEqual((ushort)0x5678, (ushort)chainParsed.values[0]);
         Assert.AreEqual((ushort)0x9ABC, (ushort)chainParsed.values[1]);

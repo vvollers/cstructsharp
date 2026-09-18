@@ -31,7 +31,7 @@ public class CanonicalPortableReferenceTests
             Assert.AreEqual(primitive.Bytes, cstruct.GetStructSizeInBytes("root"), primitive.Spelling);
             Assert.AreEqual(primitive.Alignment, cstruct.GetStructAlignmentInBytes("root"), primitive.Spelling);
 
-            IDictionary<string, object?> parsed = cstruct.ParseStream(
+            IDictionary<string, object?> parsed = cstruct.Parse(
                 new MemoryStream(new byte[primitive.Bytes]),
                 "root");
             object value = parsed["value"] ??
@@ -45,7 +45,7 @@ public class CanonicalPortableReferenceTests
             Assert.AreEqual(primitive.Alignment, cstruct.GetStructAlignmentInBytes("root"), primitive.Spelling);
 
             byte[] terminator = GetTerminatorBytes(primitive);
-            IDictionary<string, object?> parsed = cstruct.ParseStream(new MemoryStream(terminator), "root");
+            IDictionary<string, object?> parsed = cstruct.Parse(new MemoryStream(terminator), "root");
             Assert.AreEqual(string.Empty, parsed["value"], primitive.Spelling);
         }
     }
@@ -114,11 +114,11 @@ public class CanonicalPortableReferenceTests
             }
 
             using var parseInput = new MemoryStream(bytes);
-            object parsed = cstruct.ParseStream(
+            object parsed = cstruct.ReadValue(
                 parseInput,
                 example.Root,
                 null,
-                new ReadOptions { DereferencePointers = false });
+                new ReadOptions { DereferencePointers = false })!;
             foreach (KeyValuePair<string, string> expected in example.Values)
             {
                 object? actual = SelectPath(parsed, example.Root, expected.Key);

@@ -23,7 +23,7 @@ public class StringEncodingTests
         var cstruct = new CStruct(layout, isLittleEndian: false);
         using var stream = new MemoryStream(new byte[] { 0x00, 0x41, 0x00, 0x00, });
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual("A", (string)parsed.value);
         Assert.AreEqual(4, stream.Position);
@@ -50,19 +50,19 @@ public class StringEncodingTests
             byte[] originalBytes = [.. originalString, 0x7F,];
 
             using var parseStream = new MemoryStream((byte[])originalBytes.Clone());
-            dynamic parsed = cstruct.ParseStream(parseStream, "root");
+            dynamic parsed = cstruct.Parse(parseStream, "root");
             Assert.AreEqual(original, (string)parsed.name);
             Assert.AreEqual((byte)0x7F, (byte)parsed.tail);
             Assert.AreEqual(originalBytes.Length, parseStream.Position);
 
             parseStream.Position = 0;
-            (List<DebugData> debug, _) = cstruct.ParseStreamWithDebug(parseStream, "root");
+            (_, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(parseStream, "root");
             DebugData stringDebug = debug.Single(item => item.Path == "root.name");
             Assert.AreEqual(0, stringDebug.Start);
             Assert.AreEqual(originalString.Length, stringDebug.End);
 
             parseStream.Position = 0;
-            Assert.AreEqual(original.Length, cstruct.GetDynamicArrayLength(parseStream, "root.name"));
+            Assert.AreEqual(original.Length, cstruct.GetArrayLength(parseStream, "root.name"));
             Assert.AreEqual(0, parseStream.Position);
             Assert.AreEqual(originalString.Length, cstruct.ResolveAddress(parseStream, "root.tail"));
             Assert.AreEqual(0, parseStream.Position);
@@ -75,12 +75,12 @@ public class StringEncodingTests
             CollectionAssert.AreEqual(originalBytes, cstruct.Serialize("root", value));
 
             using var writeStream = new MemoryStream();
-            cstruct.WriteStream(writeStream, "root", value);
+            cstruct.Write(writeStream, "root", value);
             CollectionAssert.AreEqual(originalBytes, writeStream.ToArray());
             Assert.AreEqual(originalBytes.Length, writeStream.Position);
 
             using var updateStream = new MemoryStream((byte[])originalBytes.Clone());
-            cstruct.UpdateStream(updateStream, "root.name", replacement);
+            cstruct.Update(updateStream, "root.name", replacement);
             byte[] replacementBytes = [.. EncodeUtf16(replacement + '\0', littleEndian), 0x7F,];
             CollectionAssert.AreEqual(replacementBytes, updateStream.ToArray());
             Assert.AreEqual(0, updateStream.Position);
@@ -115,7 +115,7 @@ public class StringEncodingTests
         ];
 
         using var fixedStream = new MemoryStream((byte[])fixedBytes.Clone());
-        dynamic fixedParsed = fixedStruct.ParseStream(fixedStream, "root");
+        dynamic fixedParsed = fixedStruct.Parse(fixedStream, "root");
         Assert.AreEqual("AZ", (string)fixedParsed.big);
         Assert.AreEqual("AZ", (string)fixedParsed.little);
         Assert.AreEqual("😀", (string)fixedParsed.neutral);
@@ -129,7 +129,7 @@ public class StringEncodingTests
         CollectionAssert.AreEqual(fixedBytes, fixedStruct.Serialize("root", fixedValue));
 
         fixedStream.Position = 0;
-        fixedStruct.UpdateStream(fixedStream, "root.big[1]", 'B');
+        fixedStruct.Update(fixedStream, "root.big[1]", 'B');
         byte[] updated = (byte[])fixedBytes.Clone();
         updated[2] = 0x00;
         updated[3] = 0x42;
@@ -144,7 +144,7 @@ public class StringEncodingTests
             .. EncodeUtf16("B\0", true),
         ];
         using var terminatedStream = new MemoryStream(terminatedBytes);
-        dynamic terminatedParsed = terminatedStruct.ParseStream(terminatedStream, "root");
+        dynamic terminatedParsed = terminatedStruct.Parse(terminatedStream, "root");
         Assert.AreEqual("A", (string)terminatedParsed.big);
         Assert.AreEqual("B", (string)terminatedParsed.little);
         Assert.AreEqual(terminatedBytes.Length, terminatedStream.Position);
@@ -159,11 +159,11 @@ public class StringEncodingTests
             terminatedStruct.Serialize("root", terminatedValue));
 
         using var terminatedWriteStream = new MemoryStream();
-        terminatedStruct.WriteStream(terminatedWriteStream, "root", terminatedValue);
+        terminatedStruct.Write(terminatedWriteStream, "root", terminatedValue);
         CollectionAssert.AreEqual(terminatedBytes, terminatedWriteStream.ToArray());
 
         using var terminatedUpdateStream = new MemoryStream((byte[])terminatedBytes.Clone());
-        terminatedStruct.UpdateStream(terminatedUpdateStream, "root.big", "C");
+        terminatedStruct.Update(terminatedUpdateStream, "root.big", "C");
         byte[] updatedTerminatedBytes = [.. EncodeUtf16("C\0", false), .. EncodeUtf16("B\0", true),];
         CollectionAssert.AreEqual(
             updatedTerminatedBytes,
@@ -195,7 +195,7 @@ public class StringEncodingTests
             byte[] initial = [0x02, 0x7F, .. EncodeUtf16("A\0", dataLittleEndian),];
             using var stream = new MemoryStream(initial);
 
-            dynamic parsed = cstruct.ParseStream(stream, "root");
+            dynamic parsed = cstruct.Parse(stream, "root");
             var pointer = (Pointer)parsed.name;
             Assert.AreEqual(2L, pointer.Address);
             Assert.AreEqual("A", (string)pointer.Value!);
@@ -204,7 +204,7 @@ public class StringEncodingTests
             Assert.AreEqual(2, cstruct.ResolveAddress(stream, "root.name.value"));
             Assert.AreEqual(0, stream.Position);
 
-            cstruct.UpdateStream(stream, "root.name.value", "B");
+            cstruct.Update(stream, "root.name.value", "B");
             CollectionAssert.AreEqual(
                 new byte[] { 0x02, 0x7F, }.Concat(EncodeUtf16("B\0", dataLittleEndian)).ToArray(),
                 stream.ToArray());
@@ -214,7 +214,7 @@ public class StringEncodingTests
         var limited = new CStruct("struct root { wchar> *name; };", pointerSize: 1);
         using var limitedStream = new MemoryStream(new byte[] { 0x01, 0x00, 0x41, 0x00, 0x00, });
         Assert.Throws<CStructReadLimitException>(
-            () => limited.ParseStream(
+            () => limited.Parse(
                 limitedStream,
                 "root",
                 new Dictionary<string, Expr>(),
@@ -242,7 +242,7 @@ public class StringEncodingTests
         ];
         using var stream = new MemoryStream(bytes);
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual("A", (string)parsed.big);
         Assert.AreEqual("B", (string)parsed.little);
@@ -294,7 +294,7 @@ public class StringEncodingTests
             byte[] expected = [.. stringBytes, 0x7F,];
             using var stream = new MemoryStream(expected);
 
-            dynamic parsed = cstruct.ParseStream(stream, "root");
+            dynamic parsed = cstruct.Parse(stream, "root");
             Assert.AreEqual(value, (string)parsed.value, type);
             Assert.AreEqual((byte)0x7F, (byte)parsed.tail, type);
             Assert.AreEqual(expected.Length, stream.Position, type);
@@ -325,19 +325,19 @@ public class StringEncodingTests
     {
         var utf8 = new CStruct("struct root { utf8_string_zero value; };");
         using var malformedUtf8 = new MemoryStream(new byte[] { 0xC3, 0x28, 0x00, });
-        Assert.Throws<CStructReadException>(() => utf8.ParseStream(malformedUtf8, "root"));
+        Assert.Throws<CStructReadException>(() => utf8.Parse(malformedUtf8, "root"));
 
         var ascii = new CStruct("struct root { ascii_string_zero value; };");
         using var malformedAscii = new MemoryStream(new byte[] { 0x80, 0x00, });
-        Assert.Throws<CStructReadException>(() => ascii.ParseStream(malformedAscii, "root"));
+        Assert.Throws<CStructReadException>(() => ascii.Parse(malformedAscii, "root"));
 
         var fixedWide = new CStruct("struct root { wchar> value[1]; };");
         using var unpairedSurrogate = new MemoryStream(new byte[] { 0xD8, 0x00, });
-        Assert.Throws<CStructReadException>(() => fixedWide.ParseStream(unpairedSurrogate, "root"));
+        Assert.Throws<CStructReadException>(() => fixedWide.Parse(unpairedSurrogate, "root"));
 
         var terminatedWide = new CStruct("struct root { wchar value[]; };", isLittleEndian: false);
         using var oddWide = new MemoryStream(new byte[] { 0x00, 0x41, 0x00, });
-        Assert.Throws<CStructReadException>(() => terminatedWide.ParseStream(oddWide, "root"));
+        Assert.Throws<CStructReadException>(() => terminatedWide.Parse(oddWide, "root"));
     }
 
     /// <summary>
@@ -428,7 +428,7 @@ public class StringEncodingTests
         byte[] bytes = EncodeUtf16("A\0", false);
 
         using var accepted = new MemoryStream(bytes);
-        dynamic parsed = cstruct.ParseStream(
+        dynamic parsed = cstruct.Parse(
             accepted,
             "root",
             new Dictionary<string, Expr>(),
@@ -438,7 +438,7 @@ public class StringEncodingTests
 
         using var rejected = new MemoryStream(bytes);
         Assert.Throws<CStructReadLimitException>(
-            () => cstruct.ParseStream(
+            () => cstruct.Parse(
                 rejected,
                 "root",
                 new Dictionary<string, Expr>(),
@@ -463,7 +463,7 @@ public class StringEncodingTests
         byte[] bytes = [.. Encoding.ASCII.GetBytes(expected), 0x00, 0x7F,];
 
         using var stream = new ReadCallCountingStream(bytes);
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual(expected, (string)parsed.value);
         Assert.AreEqual((byte)0x7F, (byte)parsed.tail);
@@ -491,7 +491,7 @@ public class StringEncodingTests
         byte[] bytes = [.. Encoding.UTF8.GetBytes(expected), 0x00, 0x7F,];
 
         using var stream = new ChunkedMemoryStream(bytes, maximumReadSize: 3, writable: false);
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual(expected, (string)parsed.value);
         Assert.AreEqual((byte)0x7F, (byte)parsed.tail);
@@ -515,7 +515,7 @@ public class StringEncodingTests
         using var stream = new MemoryStream(bytes);
 
         Assert.Throws<CStructReadLimitException>(
-            () => cstruct.ParseStream(
+            () => cstruct.Parse(
                 stream,
                 "root",
                 new Dictionary<string, Expr>(),
@@ -542,7 +542,7 @@ public class StringEncodingTests
             byte[] bytes = [.. Encoding.ASCII.GetBytes(expected), 0x00,];
             using var stream = new MemoryStream(bytes);
 
-            dynamic parsed = cstruct.ParseStream(stream, "root");
+            dynamic parsed = cstruct.Parse(stream, "root");
 
             Assert.AreEqual(expected, (string)parsed.value);
             Assert.AreEqual(bytes.Length, stream.Position);

@@ -21,7 +21,7 @@ public class ReviewRegressionTests
         var cstruct = new CStruct("union choice { uint8 small; uint16 large; };");
         using var stream = new MemoryStream([0x34, 0x12,]);
 
-        object parsed = cstruct.ParseStream(stream, "choice");
+        object parsed = cstruct.ReadValue(stream, "choice")!;
         byte[] serialized = cstruct.Serialize("choice", parsed);
 
         CollectionAssert.AreEqual(new byte[] { 0x34, 0x12, }, serialized);
@@ -41,7 +41,7 @@ public class ReviewRegressionTests
         var cstruct = new CStruct(definition, isLittleEndian: true);
         using var stream = new MemoryStream([0xFF, 0xFF, 0xFF, 0xFF,]);
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
         var value = (EnumValueResult)parsed.value;
 
         Assert.AreEqual("state", value.Enum);
@@ -74,7 +74,7 @@ public class ReviewRegressionTests
             isLittleEndian,
             aligned: aligned);
 
-        dynamic parsed = fixture.Layout.ParseStream(fixture.Stream, "root");
+        dynamic parsed = fixture.Layout.Parse(fixture.Stream, "root");
         var pointer = (Pointer)parsed.target;
         var union = (UnionValue)pointer.Value!;
         IReadOnlyDictionary<string, object?> members = union.Members;
@@ -86,7 +86,7 @@ public class ReviewRegressionTests
         RegressionTestSupport.AssertPositionRestored(fixture.Stream, 1);
 
         fixture.Stream.Position = 0;
-        (List<DebugData> debug, _) = fixture.Layout.ParseStreamWithDebug(fixture.Stream, "root");
+        (_, IReadOnlyList<DebugData> debug) = fixture.Layout.ParseWithDebug(fixture.Stream, "root");
         Assert.IsTrue(
             debug.Count(item => item.Start == fixture.TargetAddress) >= 2,
             "Every pointer-target union member must start at the overlapping target address.");

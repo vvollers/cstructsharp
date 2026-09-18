@@ -21,7 +21,7 @@ public class TerminatedStringScanTests
         {
             byte[] bytes = [.. Encoding.UTF8.GetBytes(new string('a', length)), 0, 0x7E];
             using var stream = new MemoryStream(bytes);
-            dynamic parsed = layout.ParseStream(stream, "root");
+            dynamic parsed = layout.Parse(stream, "root");
             Assert.AreEqual(length, ((string)parsed.text).Length, $"length {length}");
             Assert.AreEqual((byte)0x7E, (byte)parsed.tail, $"length {length}");
             Assert.AreEqual(bytes.Length, stream.Position, $"length {length}");
@@ -37,7 +37,7 @@ public class TerminatedStringScanTests
         // U+0A00 followed by U+000A: bytes 00 0A 0A 00 - the newline unit is the second one (0A 00), not the pair 0A 00 spanning units.
         byte[] bytes = [0x00, 0x0A, 0x0A, 0x00, 0x7E];
         using var stream = new MemoryStream(bytes);
-        dynamic parsed = layout.ParseStream(stream, "root");
+        dynamic parsed = layout.Parse(stream, "root");
         Assert.AreEqual("਀", (string)parsed.text);
         Assert.AreEqual((byte)0x7E, (byte)parsed.tail);
 
@@ -84,7 +84,7 @@ public class TerminatedStringScanTests
             byte[] bytes = [.. Encoding.UTF8.GetBytes(new string('a', 400)), 0];
             using var stream = new MemoryStream(bytes);
             Assert.ThrowsExactly<CStructReadLimitException>(
-                () => layout.ParseStream(stream, "root", options: new ReadOptions { MaxStringBytes = limit }),
+                () => layout.Parse(stream, "root", options: new ReadOptions { MaxStringBytes = limit }),
                 $"limit {limit}");
             Assert.AreEqual(limit + 1, stream.Position, $"limit {limit}");
         }
@@ -93,11 +93,11 @@ public class TerminatedStringScanTests
         byte[] exact = [0x61, 0x62, 0x63, 0];
         using var exactStream = new MemoryStream(exact);
         Assert.ThrowsExactly<CStructReadLimitException>(
-            () => layout.ParseStream(exactStream, "root", options: new ReadOptions { MaxStringBytes = 3 }));
+            () => layout.Parse(exactStream, "root", options: new ReadOptions { MaxStringBytes = 3 }));
         Assert.AreEqual(4, exactStream.Position);
 
         using var fitsStream = new MemoryStream(exact);
-        dynamic parsed = layout.ParseStream(fitsStream, "root", options: new ReadOptions { MaxStringBytes = 4 });
+        dynamic parsed = layout.Parse(fitsStream, "root", options: new ReadOptions { MaxStringBytes = 4 });
         Assert.AreEqual("abc", (string)parsed.text);
     }
 

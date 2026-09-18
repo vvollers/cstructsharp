@@ -43,8 +43,8 @@ public class PrimitiveArrayTests
             Assert.AreEqual(elementType, list[0]!.GetType());
 
             // The per-element path (debug parse) is the reference for every value.
-            (List<DebugData> _, dynamic reference) = layout.ParseStreamWithDebug(new MemoryStream(bytes, writable: false), "root");
-            CollectionAssert.AreEqual(((IList<object?>)reference.root.values).ToArray(), list.ToArray(), type + suffix);
+            (dynamic reference, IReadOnlyList<DebugData> _) = layout.ParseWithDebug(new MemoryStream(bytes, writable: false), "root");
+            CollectionAssert.AreEqual(((IList<object?>)reference.values).ToArray(), list.ToArray(), type + suffix);
         }
     }
 
@@ -107,8 +107,8 @@ public class PrimitiveArrayTests
         foreach ((string name, Func<CStruct, CStructReadLimitException> parse) in new (string, Func<CStruct, CStructReadLimitException>)[]
         {
             ("span", layout => Assert.Throws<CStructReadLimitException>(() => layout.Parse(bytes, "root", options: options))),
-            ("memory stream", layout => Assert.Throws<CStructReadLimitException>(() => layout.ParseStream(new MemoryStream(bytes, writable: false), "root", options: options))),
-            ("chunked stream", layout => Assert.Throws<CStructReadLimitException>(() => layout.ParseStream(new ChunkedMemoryStream(bytes, 7, false), "root", options: options))),
+            ("memory stream", layout => Assert.Throws<CStructReadLimitException>(() => layout.Parse(new MemoryStream(bytes, writable: false), "root", options: options))),
+            ("chunked stream", layout => Assert.Throws<CStructReadLimitException>(() => layout.Parse(new ChunkedMemoryStream(bytes, 7, false), "root", options: options))),
         })
         {
             Assert.AreEqual(parse(boxed).Offset, parse(typed).Offset, name);

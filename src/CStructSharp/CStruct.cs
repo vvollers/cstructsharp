@@ -299,6 +299,14 @@ public sealed partial class CStruct
     /// </summary>
     public IReadOnlyDictionary<string, LayoutConstant> Constants => this.constants.Value;
 
+    /// <summary>
+    ///     Gets the name of the first struct or union declared in the layout: the root that every read operation
+    ///     selects when its <c>path</c> argument is <see langword="null"/>, and the one to pass to
+    ///     <c>Serialize</c> or <c>Write</c> for a whole-record write.
+    /// </summary>
+    /// <exception cref="CStructLayoutException">The layout declares no struct or union.</exception>
+    public string DefaultRoot => this.compiledModelQueries.GetFirstCompiledStructName();
+
     /// <summary>Gets primitive-codec and exported-type alignments without exposing anonymous or backing-tag identities.</summary>
     internal IReadOnlyDictionary<string, byte> FieldAlignments => this.fieldAlignments;
 
@@ -764,31 +772,6 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     Reads the requested value and returns its item count when it is an array or string.
-    ///     Use this when a layout contains a length determined by data already present in the stream. Optional
-    ///     variables are plain integer values and are copied before traversal.
-    /// </summary>
-    /// <param name="stream">The readable, seekable stream whose current position is the operation origin.</param>
-    /// <param name="elementNameOrPath">The case-sensitive exported declaration or nested field path to inspect.</param>
-    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
-    /// <param name="options">Optional read limits and pointer-coordinate settings; <see langword="null"/> uses the documented defaults.</param>
-    /// <returns>The number of elements in the selected array or the number of characters in the selected string.</returns>
-    /// <exception cref="CStructPathException">The path is invalid or does not select an array or string.</exception>
-    /// <exception cref="CStructReadException">The stream cannot provide the bytes required to resolve the value.</exception>
-    public int GetDynamicArrayLength(
-        Stream stream,
-        string elementNameOrPath,
-        IReadOnlyDictionary<string, int>? variables = null,
-        ReadOptions? options = null)
-    {
-        return this.GetDynamicArrayLengthCore(
-            stream,
-            elementNameOrPath,
-            LayoutVariableInput.FromIntegers(variables),
-            options);
-    }
-
-    /// <summary>
     ///     Reads the requested array/string count with variables from a read-only caller view. The variables are
     ///     snapshotted before traversal and are never modified.
     /// </summary>
@@ -920,64 +903,11 @@ public sealed partial class CStruct
             true);
     }
 
-    /// <summary>Reads the first declared struct or union from a stream using this layout.</summary>
-    /// <param name="stream">The readable stream whose current position is the operation origin.</param>
-    /// <returns>A dynamic struct object or a lossless <see cref="UnionValue"/>.</returns>
-    /// <exception cref="CStructReadException">The stream cannot provide or decode the required bytes.</exception>
-    public dynamic ParseStream(Stream stream)
-    {
-        return this.ParseStreamCore(
-            stream,
-            this.compiledModelQueries.GetFirstCompiledStructName(),
-            LayoutVariableInput.FromIntegers(null),
-            new ReadOptions());
-    }
-
-    /// <summary>Reads the struct or nested object selected by <paramref name="elementNameOrPath"/>.</summary>
-    /// <param name="stream">The readable stream whose current position is the operation origin.</param>
-    /// <param name="elementNameOrPath">The case-sensitive exported declaration or nested field path to read.</param>
-    /// <returns>A dynamic struct object, lossless <see cref="UnionValue"/>, or selected nested value.</returns>
-    /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
-    /// <exception cref="CStructReadException">The stream cannot provide or decode the required bytes.</exception>
-    public dynamic ParseStream(Stream stream, string elementNameOrPath)
-    {
-        return this.ParseStreamCore(
-            stream,
-            elementNameOrPath,
-            LayoutVariableInput.FromIntegers(null),
-            new ReadOptions());
-    }
-
-    /// <summary>
-    ///     Reads a selected composite value. Structs return <see cref="StructValue"/> values and unions return
-    ///     lossless <see cref="UnionValue"/> values.
-    ///     The options control pointer handling; supplied integer variables are copied before the read starts.
-    /// </summary>
-    /// <param name="stream">The readable stream whose current position is the operation origin.</param>
-    /// <param name="elementNameOrPath">The case-sensitive exported declaration or nested field path to read.</param>
-    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
-    /// <param name="options">Optional read limits and pointer-coordinate settings; <see langword="null"/> uses the documented defaults.</param>
-    /// <returns>A dynamic struct object, lossless <see cref="UnionValue"/>, or selected nested value.</returns>
-    /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
-    /// <exception cref="CStructReadException">The stream cannot provide or decode the required bytes.</exception>
-    public dynamic ParseStream(
-        Stream stream,
-        string elementNameOrPath,
-        IReadOnlyDictionary<string, int>? variables = null,
-        ReadOptions? options = null)
-    {
-        return this.ParseStreamCore(
-            stream,
-            elementNameOrPath,
-            LayoutVariableInput.FromIntegers(variables),
-            options);
-    }
-
     /// <summary>
     ///     Reads a selected object using a read-only variable view. The operation snapshots the supplied entries before
     ///     resolving layout definitions or reading the stream.
     /// </summary>
-    internal dynamic ParseStreamCore(
+    internal object ParseStreamCore(
         Stream stream,
         string elementNameOrPath,
         LayoutVariableInput variables,
@@ -986,84 +916,10 @@ public sealed partial class CStruct
         return this.ParseStreamCoreImpl(stream, elementNameOrPath, variables, options, false).Result;
     }
 
-    /// <summary>Reads the first declared struct or union and also returns the byte ranges used for each value.</summary>
-    /// <param name="stream">The readable, seekable stream whose current position is the operation origin.</param>
-    /// <returns>The captured byte-range records and the parsed dynamic result.</returns>
-    /// <exception cref="CStructReadException">The stream is not seekable or cannot provide or decode the required bytes.</exception>
-    public (List<DebugData> DebugData, dynamic Result) ParseStreamWithDebug(Stream stream)
-    {
-        return this.ParseStreamWithDebugCore(
-            stream,
-            this.compiledModelQueries.GetFirstCompiledStructName(),
-            LayoutVariableInput.FromIntegers(null),
-            new ReadOptions());
-    }
-
-    /// <summary>Reads a selected object and returns its values together with debug byte ranges.</summary>
-    /// <param name="stream">The readable, seekable stream whose current position is the operation origin.</param>
-    /// <param name="elementNameOrPath">The case-sensitive exported declaration or nested field path to read.</param>
-    /// <returns>The captured byte-range records and the parsed dynamic result.</returns>
-    /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
-    /// <exception cref="CStructReadException">The stream is not seekable or cannot provide or decode the required bytes.</exception>
-    public (List<DebugData> DebugData, dynamic Result) ParseStreamWithDebug(
-        Stream stream,
-        string elementNameOrPath)
-    {
-        return this.ParseStreamWithDebugCore(
-            stream,
-            elementNameOrPath,
-            LayoutVariableInput.FromIntegers(null),
-            new ReadOptions());
-    }
-
-    /// <summary>Reads a selected object with debug data and the requested pointer settings.</summary>
-    /// <param name="stream">The readable, seekable stream whose current position is the operation origin.</param>
-    /// <param name="elementNameOrPath">The case-sensitive exported declaration or nested field path to read.</param>
-    /// <param name="options">Read limits and pointer-coordinate settings.</param>
-    /// <returns>The captured byte-range records and the parsed dynamic result.</returns>
-    /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
-    /// <exception cref="CStructReadException">The stream is not seekable or cannot provide or decode the required bytes.</exception>
-    public (List<DebugData> DebugData, dynamic Result) ParseStreamWithDebug(
-        Stream stream,
-        string elementNameOrPath,
-        ReadOptions options)
-    {
-        return this.ParseStreamWithDebugCore(
-            stream,
-            elementNameOrPath,
-            LayoutVariableInput.FromIntegers(null),
-            options);
-    }
-
-    /// <summary>
-    ///     Reads a selected object and records where every read value came from in the stream.
-    ///     Debug reads require a seekable stream because the reader revisits bytes to capture them. Optional variables
-    ///     are plain integer values and are copied before traversal.
-    /// </summary>
-    /// <param name="stream">The readable, seekable stream whose current position is the operation origin.</param>
-    /// <param name="elementNameOrPath">The case-sensitive exported declaration or nested field path to read.</param>
-    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
-    /// <param name="options">Optional read limits and pointer-coordinate settings; <see langword="null"/> uses the documented defaults.</param>
-    /// <returns>The captured byte-range records and the parsed dynamic result.</returns>
-    /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
-    /// <exception cref="CStructReadException">The stream is not seekable or cannot provide or decode the required bytes.</exception>
-    public (List<DebugData> DebugData, dynamic Result) ParseStreamWithDebug(
-        Stream stream,
-        string elementNameOrPath,
-        IReadOnlyDictionary<string, int>? variables,
-        ReadOptions? options = null)
-    {
-        return this.ParseStreamWithDebugCore(
-            stream,
-            elementNameOrPath,
-            LayoutVariableInput.FromIntegers(variables),
-            options);
-    }
-
     /// <summary>
     ///     Reads a selected object with debug ranges while snapshotting a read-only variable view before traversal.
     /// </summary>
-    internal (List<DebugData> DebugData, dynamic Result) ParseStreamWithDebugCore(
+    internal (List<DebugData> DebugData, object Result) ParseStreamWithDebugCore(
         Stream stream,
         string elementNameOrPath,
         LayoutVariableInput variables,
@@ -1073,17 +929,10 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     Reads a selected object, optionally recording debug byte ranges - the shared implementation behind
-    ///     <see cref="ParseStreamCore" /> and <see cref="ParseStreamWithDebugCore" />, which previously carried
-    ///     two independently-maintained ~50-line copies of this same segment-resolution/parse/exception-attachment
-    ///     structure, differing only by the <paramref name="debug" /> flag threaded through
-    ///     <see cref="ParseStreamInternal" /> and <see cref="ParseCompiledStructAt" />. The one genuine behavioral
-    ///     difference between the two modes - a single-segment root path returns the unwrapped selected value in
-    ///     non-debug mode, but the whole root container (unless it is itself a <see cref="UnionValue" />) in debug
-    ///     mode, so debug callers can see the root's own debug stack - is preserved explicitly below rather than
-    ///     flattened away.
+    ///     Reads the composite a path selects, optionally recording debug byte ranges. Both modes return the
+    ///     selected value itself; a debug caller gets the root's own records in the list.
     /// </summary>
-    private (List<DebugData> DebugData, dynamic Result) ParseStreamCoreImpl(
+    private (List<DebugData> DebugData, object Result) ParseStreamCoreImpl(
         Stream stream,
         string elementNameOrPath,
         LayoutVariableInput variables,
@@ -1113,8 +962,7 @@ public sealed partial class CStruct
                 }
             }
 
-            dynamic returnedValue = debug ? (selected is UnionValue ? selected : root) : selected;
-            return (rootDebugData, returnedValue);
+            return (rootDebugData, selected);
         }
 
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
@@ -1150,31 +998,6 @@ public sealed partial class CStruct
         {
             state.Complete();
         }
-    }
-
-    /// <summary>
-    ///     Finds the stream position for a layout path without changing the caller-facing data model.
-    ///     A path ending in <c>.value</c> on a pointer resolves to the pointer target; <c>.address</c> resolves to the pointer field.
-    ///     Optional variables are plain integer values and are copied before traversal.
-    /// </summary>
-    /// <param name="stream">The readable, seekable stream whose current position is the operation origin.</param>
-    /// <param name="elementNameOrPath">The case-sensitive exported declaration or nested field path to locate.</param>
-    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
-    /// <param name="options">Optional traversal limits and pointer-coordinate settings; <see langword="null"/> uses the documented defaults.</param>
-    /// <returns>The absolute stream position of the selected field or pointer target.</returns>
-    /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
-    /// <exception cref="CStructReadException">The stream cannot provide the bytes required for traversal.</exception>
-    public long ResolveAddress(
-        Stream stream,
-        string elementNameOrPath,
-        IReadOnlyDictionary<string, int>? variables = null,
-        ReadOptions? options = null)
-    {
-        return this.ResolveAddressCore(
-            stream,
-            elementNameOrPath,
-            LayoutVariableInput.FromIntegers(variables),
-            options);
     }
 
     /// <summary>

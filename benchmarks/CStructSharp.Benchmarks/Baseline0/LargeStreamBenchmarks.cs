@@ -33,13 +33,13 @@ public class LargeStreamBenchmarks
     [InvocationCount(1)]
     public object Parse16M_MemoryStream()
     {
-        return this.fixture.ParseStream(this.memoryStream);
+        return this.fixture.Parse(this.memoryStream);
     }
 
     [Benchmark]
     [InvocationCount(1)]
     public object Parse16M_BufferedFileStream_1M()
     {
-        return this.fixture.ParseStream(this.bufferedStream);
+        return this.fixture.Parse(this.bufferedStream);
     }
 }

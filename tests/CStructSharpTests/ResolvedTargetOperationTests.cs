@@ -21,7 +21,7 @@ public class ResolvedTargetOperationTests
 
         Assert.AreEqual(0L, cstruct.ResolveAddress(stream, "word"));
 
-        cstruct.UpdateStream(stream, "word", (ushort)0x1234);
+        cstruct.Update(stream, "word", (ushort)0x1234);
 
         CollectionAssert.AreEqual(new byte[] { 0x34, 0x12, }, stream.ToArray());
     }
@@ -48,17 +48,17 @@ public class ResolvedTargetOperationTests
         Assert.AreEqual(8L, cstruct.ResolveAddress(stream, "root.items[1].value"));
 
         stream.Position = 0;
-        dynamic selected = cstruct.ParseStream(stream, "root.items[1]");
+        dynamic selected = cstruct.Parse(stream, "root.items[1]");
         Assert.AreEqual((byte)0x20, (byte)selected.prefix);
         Assert.AreEqual((ushort)0x2222, (ushort)selected.value);
 
         stream.Position = 0;
-        (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root.items[1]");
+        (dynamic _, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root.items[1]");
         Assert.IsTrue(
             debug.Any(item => item.Start == 8 && item.End == 10 && item.Path == "root.items.value"));
 
         stream.Position = 0;
-        cstruct.UpdateStream(stream, "root.items[1].value", (ushort)0xABCD);
+        cstruct.Update(stream, "root.items[1].value", (ushort)0xABCD);
 
         CollectionAssert.AreEqual(
             new byte[] { 0x01, 0x00, 0x10, 0x00, 0x11, 0x11, 0x20, 0x00, 0xCD, 0xAB, },
@@ -104,7 +104,7 @@ public class ResolvedTargetOperationTests
         Assert.AreEqual((ushort)0xBEEF, cstruct.ReadValue<ushort>(stream, $"root.items[{lastIndex}].tag"));
 
         stream.Position = 0;
-        cstruct.UpdateStream(stream, $"root.items[{lastIndex}].id", 0x11223344u);
+        cstruct.Update(stream, $"root.items[{lastIndex}].id", 0x11223344u);
         Assert.AreEqual(0, stream.Position);
 
         byte[] finalBytes = stream.ToArray();
@@ -146,11 +146,11 @@ public class ResolvedTargetOperationTests
         Assert.AreEqual(0L, cstruct.ResolveAddress(stream, "root.middle"));
 
         stream.Position = 0;
-        cstruct.UpdateStream(stream, "root.middle", (byte)0x0A);
+        cstruct.Update(stream, "root.middle", (byte)0x0A);
 
         CollectionAssert.AreEqual(new byte[] { expectedFirst, expectedSecond, }, stream.ToArray());
         stream.Position = 0;
-        dynamic parsed = cstruct.ParseStream(stream);
+        dynamic parsed = cstruct.Parse(stream);
         Assert.AreEqual(0x05UL, Convert.ToUInt64(parsed.low));
         Assert.AreEqual(0x0AUL, Convert.ToUInt64(parsed.middle));
         Assert.AreEqual(0xA5UL, Convert.ToUInt64(parsed.high));
@@ -177,15 +177,15 @@ public class ResolvedTargetOperationTests
         Assert.AreEqual(4L, cstruct.ResolveAddress(stream, "root.ptr.value.value"));
 
         stream.Position = 0;
-        dynamic selected = cstruct.ParseStream(stream, "root.ptr.value");
+        dynamic selected = cstruct.Parse(stream, "root.ptr.value");
         Assert.AreEqual((byte)0x2A, (byte)selected.value);
 
         stream.Position = 0;
-        (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root.ptr.value");
+        (object? _, IReadOnlyList<DebugData> debug) = cstruct.ReadValueWithDebug(stream, "root.ptr.value");
         Assert.IsTrue(debug.Any(item => item.Start == 4 && item.Path == "root.ptr.value"));
 
         stream.Position = 0;
-        cstruct.UpdateStream(stream, "root.ptr.value.value", (byte)0xA5);
+        cstruct.Update(stream, "root.ptr.value.value", (byte)0xA5);
 
         CollectionAssert.AreEqual(new byte[] { 0x04, 0x00, 0x00, 0x00, 0xA5, }, stream.ToArray());
     }
@@ -208,7 +208,7 @@ public class ResolvedTargetOperationTests
         using var stream = new MemoryStream(new byte[] { 0x04, 0x00, 0x00, 0x00, 0x2A, });
 
         Assert.Throws<CStructPathException>(
-            () => cstruct.UpdateStream(
+            () => cstruct.Update(
                 stream,
                 "root.ptr.value.value",
                 (byte)0xA5,
@@ -222,7 +222,7 @@ public class ResolvedTargetOperationTests
     ///     child** requires two .value steps to reach a child object.
     /// </summary>
     /// <remarks>
-    ///     ParseStream must reject selections that stop on either pointer slot and accept the complete path, returning
+    ///     Parse must reject selections that stop on either pointer slot and accept the complete path, returning
     ///     value = 0x2A. Object parsing must not confuse remaining pointer storage with the final struct.
     /// </remarks>
     [TestMethod]
@@ -235,12 +235,12 @@ public class ResolvedTargetOperationTests
         var cstruct = new CStruct(layout, pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0x02, 0x00, 0x04, 0x00, 0x2A, });
 
-        Assert.Throws<CStructPathException>(() => cstruct.ParseStream(stream, "root.ptr"));
+        Assert.Throws<CStructPathException>(() => cstruct.Parse(stream, "root.ptr"));
         stream.Position = 0;
-        Assert.Throws<CStructPathException>(() => cstruct.ParseStream(stream, "root.ptr.value"));
+        Assert.Throws<CStructPathException>(() => cstruct.Parse(stream, "root.ptr.value"));
 
         stream.Position = 0;
-        dynamic selected = cstruct.ParseStream(stream, "root.ptr.value.value");
+        dynamic selected = cstruct.Parse(stream, "root.ptr.value.value");
         Assert.AreEqual((byte)0x2A, (byte)selected.value);
     }
 
@@ -266,13 +266,13 @@ public class ResolvedTargetOperationTests
         Assert.AreEqual(4L, cstruct.ResolveAddress(addressStream, "root.ptr.value.value"));
 
         using var implicitStorageStream = new MemoryStream((byte[])bytes.Clone());
-        cstruct.UpdateStream(implicitStorageStream, "root.ptr.value", (byte)0x05);
+        cstruct.Update(implicitStorageStream, "root.ptr.value", (byte)0x05);
         CollectionAssert.AreEqual(
             new byte[] { 0x02, 0x00, 0x05, 0x00, 0x34, 0x12, },
             implicitStorageStream.ToArray());
 
         using var explicitStorageStream = new MemoryStream((byte[])bytes.Clone());
-        cstruct.UpdateStream(explicitStorageStream, "root.ptr.value.address", (byte)0x05);
+        cstruct.Update(explicitStorageStream, "root.ptr.value.address", (byte)0x05);
         CollectionAssert.AreEqual(implicitStorageStream.ToArray(), explicitStorageStream.ToArray());
     }
 
@@ -291,7 +291,7 @@ public class ResolvedTargetOperationTests
         var cstruct = new CStruct(layout, pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0x02, 0x00, 0x00, 0x00, 0x00, });
 
-        cstruct.UpdateStream(stream, "root.name.value", "hi");
+        cstruct.Update(stream, "root.name.value", "hi");
 
         CollectionAssert.AreEqual(new byte[] { 0x02, 0x00, (byte)'h', (byte)'i', 0x00, }, stream.ToArray());
     }
@@ -316,15 +316,15 @@ public class ResolvedTargetOperationTests
         Assert.AreEqual(1L, cstruct.ResolveAddress(stream, "root.value.large"));
 
         stream.Position = 0;
-        dynamic selected = cstruct.ParseStream(stream, "root.value");
+        dynamic selected = cstruct.ReadValue(stream, "root.value")!;
         Assert.AreEqual((ushort)0x1234, (ushort)selected.large);
 
         stream.Position = 0;
-        (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root.value");
+        (object? _, IReadOnlyList<DebugData> debug) = cstruct.ReadValueWithDebug(stream, "root.value");
         Assert.IsTrue(debug.Any(item => item.Start == 1 && item.End == 3));
 
         stream.Position = 0;
-        cstruct.UpdateStream(stream, "root.value.large", (ushort)0xABCD);
+        cstruct.Update(stream, "root.value.large", (ushort)0xABCD);
 
         CollectionAssert.AreEqual(new byte[] { 0xEE, 0xCD, 0xAB, }, stream.ToArray());
     }
@@ -346,11 +346,11 @@ public class ResolvedTargetOperationTests
         Assert.AreEqual(0L, cstruct.ResolveAddress(stream, "root.child.value"));
 
         stream.Position = 0;
-        dynamic selected = cstruct.ParseStream(stream, "root.child");
+        dynamic selected = cstruct.Parse(stream, "root.child");
         Assert.AreEqual((byte)0x2A, (byte)selected.value);
 
         stream.Position = 0;
-        cstruct.UpdateStream(stream, "root.child.value", (byte)0xA5);
+        cstruct.Update(stream, "root.child.value", (byte)0xA5);
 
         CollectionAssert.AreEqual(new byte[] { 0xA5, }, stream.ToArray());
     }
@@ -369,7 +369,7 @@ public class ResolvedTargetOperationTests
         var cstruct = new CStruct(layout, pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0xA5, });
 
-        Assert.Throws<CStructReadException>(() => cstruct.UpdateStream(stream, "root.high", (byte)0x3));
+        Assert.Throws<CStructReadException>(() => cstruct.Update(stream, "root.high", (byte)0x3));
 
         CollectionAssert.AreEqual(new byte[] { 0xA5, }, stream.ToArray());
         Assert.AreEqual(0, stream.Position);

@@ -17,7 +17,7 @@ AssertInitOnlyOptions();
 
 using (var stream = new MemoryStream(input))
 {
-    IDictionary<string, object?> parsed = cstruct.ParseStream(stream, "root");
+    IDictionary<string, object?> parsed = cstruct.Parse(stream, "root");
     AssertEqual((byte)0xA5, parsed["marker"], "parsed marker");
     AssertEqual((ushort)0x1234, parsed["value"], "parsed value");
 
@@ -29,7 +29,7 @@ using (var stream = new MemoryStream(input))
     AssertEqual((byte)0x7E, pointer.Value, "parsed pointer target");
 
     stream.Position = 0;
-    (List<DebugData> debugData, object debugResult) = cstruct.ParseStreamWithDebug(stream, "root");
+    (List<DebugData> debugData, object debugResult) = cstruct.ParseWithDebug(stream, "root");
     var debugRoot = ((IDictionary<string, object?>)debugResult)["root"] as IDictionary<string, object?> ??
                      throw new InvalidOperationException("Debug parsing did not return the named root object.");
     AssertEqual((byte)0xA5, debugRoot["marker"], "debug parse marker");
@@ -111,14 +111,14 @@ AssertBytes(expectedSerialized, bufferOutput.WrittenSpan.ToArray(), "buffer-writ
 
 using (var stream = new MemoryStream())
 {
-    cstruct.WriteStream(stream, "root", output);
+    cstruct.Write(stream, "root", output);
     AssertBytes(expectedSerialized, stream.ToArray(), "stream write");
 }
 
 using (var stream = new MemoryStream((byte[])input.Clone()))
 {
     stream.Position = 0;
-    cstruct.UpdateStream(stream, "root.value", (ushort)0xABCD);
+    cstruct.Update(stream, "root.value", (ushort)0xABCD);
     AssertEqual(0L, stream.Position, "value-update stream position");
     AssertBytes([0xA5, 0xCD, 0xAB, 0x04, 0x7E,], stream.ToArray(), "value update");
 }
@@ -126,7 +126,7 @@ using (var stream = new MemoryStream((byte[])input.Clone()))
 using (var stream = new MemoryStream((byte[])input.Clone()))
 {
     stream.Position = 0;
-    cstruct.UpdateStream(stream, "root.target.value", (byte)0x55);
+    cstruct.Update(stream, "root.target.value", (byte)0x55);
     AssertEqual(0L, stream.Position, "pointer-update stream position");
     AssertBytes([0xA5, 0x34, 0x12, 0x04, 0x55,], stream.ToArray(), "pointer target update");
 }
@@ -135,7 +135,7 @@ using (var stream = new MemoryStream((byte[])input.Clone()))
 {
     try
     {
-        cstruct.UpdateStream(stream, "root", new { marker = (byte)0x11, });
+        cstruct.Update(stream, "root", new { marker = (byte)0x11, });
         throw new InvalidOperationException("A late package update binding failure did not fail.");
     }
     catch (CStructWriteException)
@@ -149,7 +149,7 @@ using (var stream = new MemoryStream((byte[])input.Clone()) { Position = input.L
 {
     try
     {
-        cstruct.UpdateStream(stream, "root.marker", (byte)0x11);
+        cstruct.Update(stream, "root.marker", (byte)0x11);
         throw new InvalidOperationException("A package update unexpectedly extended the destination.");
     }
     catch (CStructException)
@@ -166,7 +166,7 @@ IReadOnlyDictionary<string, int> variables =
     new ReadOnlyDictionary<string, int>(variableSource);
 using (var stream = new MemoryStream([0x11, 0x22,]))
 {
-    IDictionary<string, object?> parsed = variableLayout.ParseStream(stream, "variable_root", variables);
+    IDictionary<string, object?> parsed = variableLayout.Parse(stream, "variable_root", variables);
     var values = parsed["values"] as IList<object> ??
                  throw new InvalidOperationException("Read-only variables did not produce an array result.");
     AssertEqual(2, values.Count, "read-only variable array count");
@@ -191,7 +191,7 @@ const string UnionDefinition = "union choice { uint8 small; uint16 large; };";
 var unionLayout = new CStruct(UnionDefinition, pointerSize: 1);
 using (var stream = new MemoryStream([0x34, 0x12,]))
 {
-    object parsedValue = unionLayout.ParseStream(stream, "choice");
+    object parsedValue = unionLayout.Parse(stream, "choice");
     var parsedUnion = parsedValue as UnionValue ??
                       throw new InvalidOperationException("Union parsing did not return a package UnionValue.");
     AssertBytes([0x34, 0x12,], parsedUnion.RawStorage!.Value.ToArray(), "union raw storage");
@@ -209,7 +209,7 @@ const string EnumDefinition =
 var enumLayout = new CStruct(EnumDefinition);
 using (var stream = new MemoryStream([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,]))
 {
-    IDictionary<string, object?> parsed = enumLayout.ParseStream(stream, "enum_root");
+    IDictionary<string, object?> parsed = enumLayout.Parse(stream, "enum_root");
     var parsedEnum = parsed["value"] as EnumValueResult ??
                      throw new InvalidOperationException("Enum parsing did not return EnumValueResult.");
     AssertEqual(new BigInteger(ulong.MaxValue), parsedEnum.Value, "enum exact value");

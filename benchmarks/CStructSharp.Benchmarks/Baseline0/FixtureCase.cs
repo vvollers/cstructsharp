@@ -50,9 +50,9 @@ public sealed class FixtureCase
         return this.Layout.Parse(this.Bytes.AsSpan(), this.Root, this.Variables, this.ReadOptions);
     }
 
-    public dynamic ParseStream(Stream stream)
+    public object Parse(Stream stream)
     {
         stream.Position = 0;
-        return this.Layout.ParseStream(stream, this.Root, this.Variables, this.ReadOptions);
+        return this.Layout.Parse(stream, this.Root, this.Variables, this.ReadOptions);
     }
 }

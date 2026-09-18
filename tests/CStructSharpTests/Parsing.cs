@@ -23,7 +23,7 @@ public class Parsing
         var mem = new MemoryStream(testData);
 
         var strct = new CStruct(structDef);
-        dynamic result = strct.ParseStream(mem);
+        dynamic result = strct.Parse(mem);
 
         Assert.AreEqual(10, result.a[0]);
         Assert.AreEqual(20, result.a[1]);
@@ -50,7 +50,7 @@ public class Parsing
         var mem = new MemoryStream(testData);
 
         var strct = new CStruct(structDef);
-        dynamic result = strct.ParseStream(mem, "mystruct");
+        dynamic result = strct.Parse(mem, "mystruct");
 
         Assert.AreEqual(10, result.sub[0].a);
         Assert.AreEqual(20, result.sub[0].b);
@@ -83,18 +83,18 @@ public class Parsing
         var mem = new MemoryStream(testData);
 
         var strct = new CStruct(structDef);
-        (List<DebugData>? debugData, dynamic resultObj)
-            = strct.ParseStreamWithDebug(mem, "mystruct", new ReadOptions());
+        (dynamic resultObj, IReadOnlyList<DebugData> debugData)
+            = strct.ParseWithDebug(mem, "mystruct", options: new ReadOptions());
         dynamic result = resultObj;
 
-        Assert.AreEqual(10, result.mystruct.sub[0].a);
-        Assert.AreEqual(20, result.mystruct.sub[0].b);
+        Assert.AreEqual(10, result.sub[0].a);
+        Assert.AreEqual(20, result.sub[0].b);
 
-        Assert.AreEqual(12, result.mystruct.sub[2].a);
-        Assert.AreEqual(22, result.mystruct.sub[2].b);
+        Assert.AreEqual(12, result.sub[2].a);
+        Assert.AreEqual(22, result.sub[2].b);
 
-        Assert.AreEqual(14, result.mystruct.sub[4].a);
-        Assert.AreEqual(24, result.mystruct.sub[4].b);
+        Assert.AreEqual(14, result.sub[4].a);
+        Assert.AreEqual(24, result.sub[4].b);
 
         Assert.IsNotEmpty(debugData);
     }
@@ -120,7 +120,7 @@ public class Parsing
         var mem = new MemoryStream(byteArray);
 
         var strct = new CStruct(structDef);
-        dynamic result = strct.ParseStream(mem);
+        dynamic result = strct.Parse(mem);
 
         Assert.AreEqual(10, result.a);
         Assert.AreEqual(20, result.b);
@@ -160,7 +160,7 @@ public class Parsing
         var mem = new MemoryStream(testData);
 
         var strct = new CStruct(structDef);
-        dynamic result = strct.ParseStream(mem, "mystruct");
+        dynamic result = strct.Parse(mem, "mystruct");
 
         Assert.AreEqual(1, result.a);
         Assert.AreEqual(0, result.b);
@@ -216,7 +216,7 @@ public class Parsing
         var mem = new MemoryStream(testData);
 
         var strct = new CStruct(structDef, aligned: true);
-        dynamic result = strct.ParseStream(mem, "mystruct");
+        dynamic result = strct.Parse(mem, "mystruct");
 
         Assert.AreEqual(10, result.u);
 
@@ -256,7 +256,7 @@ public class Parsing
         var mem = new MemoryStream(testData);
 
         var strct = new CStruct(structDef);
-        dynamic result = strct.ParseStream(mem, "mystruct");
+        dynamic result = strct.Parse(mem, "mystruct");
 
         Assert.AreEqual("Red", result.a.Name);
         Assert.AreEqual("Blue", result.b.Name);
@@ -279,7 +279,7 @@ public class Parsing
         var mem = new MemoryStream(testData);
 
         var strct = new CStruct(structDef);
-        dynamic result = strct.ParseStream(mem);
+        dynamic result = strct.Parse(mem);
 
         Assert.AreEqual(10, result.a);
         Assert.AreEqual(20, result.b);
@@ -304,7 +304,7 @@ public class Parsing
         var mem = new MemoryStream(testData);
 
         var strct = new CStruct(structDef);
-        dynamic result = strct.ParseStream(mem);
+        dynamic result = strct.Parse(mem);
 
         Assert.AreEqual("test", result.a);
     }
@@ -327,7 +327,7 @@ public class Parsing
         var mem = new MemoryStream(testData);
 
         var strct = new CStruct(structDef);
-        dynamic result = strct.ParseStream(mem);
+        dynamic result = strct.Parse(mem);
 
         Assert.AreEqual('t', result.a);
         Assert.AreEqual('e', result.b);

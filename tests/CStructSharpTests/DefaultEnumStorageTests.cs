@@ -38,7 +38,7 @@ public class DefaultEnumStorageTests
 
         byte[] bytes = [2, 7,];
         using var stream = new MemoryStream((byte[])bytes.Clone());
-        List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
+        IReadOnlyList<DebugData> debug = layout.ParseWithDebug(stream, "root").Debug;
         Assert.IsTrue(debug.Any(item => item.Path == "root.type" && item.Start == 0 && item.End == 1));
         stream.Position = 0;
         Assert.AreEqual(1, layout.ResolveAddress(stream, "root.tail"));
@@ -46,9 +46,9 @@ public class DefaultEnumStorageTests
 
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", new Dictionary<string, object?> { ["type"] = "DATA", ["tail"] = (byte)7, }));
         using var target = new MemoryStream();
-        layout.WriteStream(target, "root", new Dictionary<string, object?> { ["type"] = 2, ["tail"] = (byte)7, });
+        layout.Write(target, "root", new Dictionary<string, object?> { ["type"] = 2, ["tail"] = (byte)7, });
         CollectionAssert.AreEqual(bytes, target.ToArray());
-        layout.UpdateStream(stream, "root.type", "NONE");
+        layout.Update(stream, "root.type", "NONE");
         CollectionAssert.AreEqual(new byte[] { 0, 7, }, stream.ToArray());
 
         Assert.Throws<CStructLayoutException>(() => new CStruct("enum big { HUGE = 256 }; struct root { big b; };", compilationOptions: options));

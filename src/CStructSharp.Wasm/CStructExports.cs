@@ -10,6 +10,7 @@ using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
 using CStructSharp;
 using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>
 ///     Exposes CStructSharp read, write, and debug operations to the browser.
@@ -162,7 +163,7 @@ public partial class CStructExports
             CStruct cstruct = CreateCStruct(cstructDefinition, options);
             using var stream = new MemoryStream(ownedBinaryData);
 
-            cstruct.UpdateStream(stream, elementNameOrPath, value!, options: CreateUpdateOptions(options));
+            cstruct.Update(stream, elementNameOrPath, value!, options: CreateUpdateOptions(options));
             return stream.ToArray();
         }
         catch (Exception exception)
@@ -198,19 +199,20 @@ public partial class CStructExports
         string root = string.IsNullOrWhiteSpace(options.RootTypeName)
                           ? ResolveDefaultRootTypeName(cstruct)
                           : options.RootTypeName;
-        List<DebugData> debugData = [];
-        object result;
+        ReadOptions readOptions = CreateReadOptions(options);
+        IReadOnlyList<DebugData> debugData = [];
+        object? selected;
         if (debug)
         {
-            (debugData, result) = cstruct.ParseStreamWithDebug(stream, root, CreateReadOptions(options));
+            (selected, debugData) = cstruct.ReadValueWithDebug(stream, root, options: readOptions);
         }
         else
         {
-            result = new Dictionary<string, object?>
-            {
-                [root] = (object)cstruct.ParseStream(stream, root, options: CreateReadOptions(options)),
-            };
+            selected = cstruct.ReadValue(stream, root, options: readOptions);
         }
+
+        // Contract v7 keeps the declaration-name wrapper around struct roots and returns other selections bare.
+        object result = selected is StructValue ? new Dictionary<string, object?> { [root] = selected, } : selected ?? new Dictionary<string, object?>();
 
         var debugDataDtos = new List<DebugDataDto>(debugData.Count);
         foreach (DebugData item in debugData)

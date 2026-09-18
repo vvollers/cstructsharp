@@ -39,19 +39,19 @@ public class TopLevelDeclarationTests
         byte[] bytes = [1, 0, 2, 0, 3,];
         using var stream = new MemoryStream((byte[])bytes.Clone());
 
-        List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
+        IReadOnlyList<DebugData> debug = layout.ParseWithDebug(stream, "root").Debug;
         stream.Position = 0;
-        dynamic parsed = layout.ParseStream(stream, "root");
+        dynamic parsed = layout.Parse(stream, "root");
         stream.Position = 0;
         Assert.IsTrue(debug.Any(item => item.Path == "root.stamp.usec" && item.Start == 2 && item.End == 4));
         Assert.AreEqual(2, layout.ResolveAddress(stream, "root.stamp.usec"));
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", parsed));
 
         using var written = new MemoryStream();
-        layout.WriteStream(written, "timeval", new Dictionary<string, object?> { ["sec"] = (ushort)1, ["usec"] = (ushort)2, });
+        layout.Write(written, "timeval", new Dictionary<string, object?> { ["sec"] = (ushort)1, ["usec"] = (ushort)2, });
         CollectionAssert.AreEqual(new byte[] { 1, 0, 2, 0, }, written.ToArray());
 
-        layout.UpdateStream(stream, "root.stamp.sec", (ushort)0x0A0B);
+        layout.Update(stream, "root.stamp.sec", (ushort)0x0A0B);
         CollectionAssert.AreEqual(new byte[] { 0x0B, 0x0A, 2, 0, 3, }, stream.ToArray());
         Assert.AreEqual((ushort)0x0A0B, layout.ReadValue<ushort>(stream.ToArray().AsSpan(), "root.stamp.sec"));
     }

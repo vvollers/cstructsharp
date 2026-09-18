@@ -35,7 +35,7 @@ public class BitfieldAllocationTests
         CollectionAssert.AreEqual(new byte[] { 0xF0, 0x00, 0b001_00000, }, written);
 
         using var stream = new MemoryStream((byte[])bytes.Clone());
-        big.UpdateStream(stream, "root.a", 0xA);
+        big.Update(stream, "root.a", 0xA);
         Assert.AreEqual(0xA2, stream.ToArray()[0]);
         Assert.AreEqual(0x234, big.ReadValue<int>(stream.ToArray().AsSpan(), "root.b"));
         Assert.AreEqual(0b101, big.ReadValue<int>(stream.ToArray().AsSpan(), "root.c"));
@@ -52,7 +52,7 @@ public class BitfieldAllocationTests
         byte[] bytes = [0x12, 0x34, 0x26,];
         using var stream = new MemoryStream(bytes);
 
-        List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
+        IReadOnlyList<DebugData> debug = layout.ParseWithDebug(stream, "root").Debug;
         Assert.IsTrue(debug.Any(item => item.Path == "root.b" && item.Start == 0 && item.End == 2));
         Assert.IsTrue(debug.Any(item => item.Path == "root.d" && item.Start == 2 && item.End == 3));
         stream.Position = 0;
@@ -60,7 +60,7 @@ public class BitfieldAllocationTests
         Assert.AreEqual(2, layout.ResolveAddress(stream, "root.c"));
 
         using var target = new MemoryStream();
-        layout.WriteStream(target, "root", new Dictionary<string, object?> { ["a"] = 1, ["b"] = 0x234, ["c"] = 1, ["d"] = 6, });
+        layout.Write(target, "root", new Dictionary<string, object?> { ["a"] = 1, ["b"] = 0x234, ["c"] = 1, ["d"] = 6, });
         CollectionAssert.AreEqual(bytes, target.ToArray());
     }
 }

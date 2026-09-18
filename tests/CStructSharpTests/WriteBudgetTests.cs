@@ -30,7 +30,7 @@ public class WriteBudgetTests
         {
             using var stream = new MemoryStream([0xA5,]) { Position = 0, };
             Assert.Throws<ArgumentOutOfRangeException>(
-                () => cstruct.WriteStream(
+                () => cstruct.Write(
                     stream,
                     "root",
                     new Dictionary<string, object> { ["value"] = (byte)0x11, },
@@ -41,7 +41,7 @@ public class WriteBudgetTests
 
         using var updateStream = new MemoryStream([0xA5,]) { Position = 0, };
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => cstruct.UpdateStream(
+            () => cstruct.Update(
                 updateStream,
                 "root.value",
                 (byte)0x11,
@@ -191,7 +191,7 @@ public class WriteBudgetTests
         using var limited = new MemoryStream();
 
         Assert.Throws<CStructWriteException>(
-            () => cstruct.WriteStream(
+            () => cstruct.Write(
                 limited,
                 "root",
                 data,
@@ -254,8 +254,8 @@ public class WriteBudgetTests
     ///     With room for only one write, first becomes 0x11 but writing second must fail.
     /// </summary>
     /// <remarks>
-    ///     The destination is then 11 A5 and the position is 1. This deliberately documents that direct WriteStream can
-    ///     leave earlier fields written; it does not provide the staged validation behavior of UpdateStream.
+    ///     The destination is then 11 A5 and the position is 1. This deliberately documents that direct Write can
+    ///     leave earlier fields written; it does not provide the staged validation behavior of Update.
     /// </remarks>
     [TestMethod]
     public void DirectWrite_TotalBudgetNeverExceedsLimit_ButMayLeaveEarlierFields()
@@ -265,7 +265,7 @@ public class WriteBudgetTests
         using var stream = new MemoryStream([0xA5, 0xA5,]);
 
         Assert.Throws<CStructWriteException>(
-            () => cstruct.WriteStream(
+            () => cstruct.Write(
                 stream,
                 "root",
                 data,
@@ -324,7 +324,7 @@ public class WriteBudgetTests
         using var stream = new MemoryStream((byte[])original.Clone()) { Position = 1, };
 
         Assert.Throws<CStructWriteException>(
-            () => cstruct.UpdateStream(
+            () => cstruct.Update(
                 stream,
                 "root.name.value.value",
                 "hi",
@@ -407,7 +407,7 @@ public class WriteBudgetTests
         using var stream = new MemoryStream((byte[])original.Clone());
 
         Assert.Throws<CStructWriteException>(
-            () => cstruct.UpdateStream(
+            () => cstruct.Update(
                 stream,
                 "root.selected.value",
                 CreateMiddle(0x22),
@@ -415,7 +415,7 @@ public class WriteBudgetTests
         CollectionAssert.AreEqual(original, stream.ToArray());
         Assert.AreEqual(0L, stream.Position);
 
-        cstruct.UpdateStream(
+        cstruct.Update(
             stream,
             "root.selected.value",
             CreateMiddle(0x22),
@@ -509,7 +509,7 @@ public class WriteBudgetTests
         using var stream = new MemoryStream((byte[])original.Clone());
 
         Assert.Throws<CStructWriteException>(
-            () => cstruct.UpdateStream(
+            () => cstruct.Update(
                 stream,
                 path,
                 value,

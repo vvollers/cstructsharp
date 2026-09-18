@@ -187,19 +187,19 @@ public class PreprocessorTests
         byte[] bytes = [1, 2, 0, 0, 0,];
         using var stream = new MemoryStream((byte[])bytes.Clone());
 
-        List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
+        IReadOnlyList<DebugData> debug = layout.ParseWithDebug(stream, "root").Debug;
         stream.Position = 0;
-        dynamic parsed = layout.ParseStream(stream, "root");
+        dynamic parsed = layout.Parse(stream, "root");
         stream.Position = 0;
         Assert.IsTrue(debug.Any(item => item.Path == "root.b" && item.Start == 1 && item.End == 5));
         Assert.AreEqual(1, layout.ResolveAddress(stream, "root.b"));
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", parsed));
 
         using var written = new MemoryStream();
-        layout.WriteStream(written, "root", new Dictionary<string, object?> { ["a"] = (byte)1, ["b"] = 2U, });
+        layout.Write(written, "root", new Dictionary<string, object?> { ["a"] = (byte)1, ["b"] = 2U, });
         CollectionAssert.AreEqual(bytes, written.ToArray());
 
-        layout.UpdateStream(stream, "root.b", 3U);
+        layout.Update(stream, "root.b", 3U);
         CollectionAssert.AreEqual(new byte[] { 1, 3, 0, 0, 0, }, stream.ToArray());
         Assert.AreEqual(3U, layout.ReadValue<uint>(stream.ToArray().AsSpan(), "root.b"));
     }

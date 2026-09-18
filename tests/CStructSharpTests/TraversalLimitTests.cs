@@ -30,19 +30,19 @@ public class TraversalLimitTests
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStream(stream, "root", new Dictionary<string, Expr>(), options));
+                () => cstruct.Parse(stream, "root", new Dictionary<string, Expr>(), options));
         }
 
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStream(stream, "root.items[2]", new Dictionary<string, Expr>(), options));
+                () => cstruct.Parse(stream, "root.items[2]", new Dictionary<string, Expr>(), options));
         }
 
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStreamWithDebug(stream, "root.items[2]", new Dictionary<string, Expr>(), options));
+                () => cstruct.ParseWithDebug(stream, "root.items[2]", new Dictionary<string, Expr>(), options));
         }
 
         using (var stream = new MemoryStream([0xEE, .. bytes]) { Position = 1, })
@@ -59,7 +59,7 @@ public class TraversalLimitTests
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.GetDynamicArrayLength(
+                () => cstruct.GetArrayLength(
                     stream,
                     "root.items",
                     new Dictionary<string, Expr>(),
@@ -89,19 +89,19 @@ public class TraversalLimitTests
         using (var stream = new MemoryStream([0x2A,]))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStream(stream, "root", new Dictionary<string, Expr>(), options));
+                () => cstruct.Parse(stream, "root", new Dictionary<string, Expr>(), options));
         }
 
         using (var stream = new MemoryStream([0x2A,]))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStream(stream, "root.child.child", new Dictionary<string, Expr>(), options));
+                () => cstruct.Parse(stream, "root.child.child", new Dictionary<string, Expr>(), options));
         }
 
         using (var stream = new MemoryStream([0x2A,]))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStreamWithDebug(
+                () => cstruct.ParseWithDebug(
                     stream,
                     "root.child.child",
                     new Dictionary<string, Expr>(),
@@ -187,13 +187,13 @@ public class TraversalLimitTests
         using (var stream = new MemoryStream([0x2A,]))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStream(stream, "root.selected", new Dictionary<string, Expr>(), options));
+                () => cstruct.Parse(stream, "root.selected", new Dictionary<string, Expr>(), options));
         }
 
         using (var stream = new MemoryStream([0x2A,]))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStreamWithDebug(
+                () => cstruct.ParseWithDebug(
                     stream,
                     "root.selected",
                     new Dictionary<string, Expr>(),
@@ -259,7 +259,7 @@ public class TraversalLimitTests
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStream(
+                () => cstruct.Parse(
                     stream,
                     "root.selected",
                     new Dictionary<string, Expr>(),
@@ -269,7 +269,7 @@ public class TraversalLimitTests
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStreamWithDebug(
+                () => cstruct.ParseWithDebug(
                     stream,
                     "root.selected",
                     new Dictionary<string, Expr>(),
@@ -282,7 +282,7 @@ public class TraversalLimitTests
     ///     bytes.
     /// </summary>
     /// <remarks>
-    ///     A budget covering only part of that combined work must fail. GetDynamicArrayLength must restore the original
+    ///     A budget covering only part of that combined work must fail. GetArrayLength must restore the original
     ///     stream position even after exhausting the budget.
     /// </remarks>
     [TestMethod]
@@ -293,7 +293,7 @@ public class TraversalLimitTests
         using var stream = new MemoryStream([0x02, 0xA1, 0xA2, 0x41, 0x00,]);
 
         Assert.Throws<CStructReadLimitException>(
-            () => cstruct.GetDynamicArrayLength(
+            () => cstruct.GetArrayLength(
                 stream,
                 "root.text",
                 new Dictionary<string, Expr>(),
@@ -322,19 +322,19 @@ public class TraversalLimitTests
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStream(stream, "root", new Dictionary<string, Expr>(), options));
+                () => cstruct.Parse(stream, "root", new Dictionary<string, Expr>(), options));
         }
 
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStream(stream, "root.head.value", new Dictionary<string, Expr>(), options));
+                () => cstruct.Parse(stream, "root.head.value", new Dictionary<string, Expr>(), options));
         }
 
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStreamWithDebug(
+                () => cstruct.ParseWithDebug(
                     stream,
                     "root.head.value",
                     new Dictionary<string, Expr>(),
@@ -378,19 +378,19 @@ public class TraversalLimitTests
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStream(stream, "root", new Dictionary<string, Expr>(), readOptions));
+                () => cstruct.Parse(stream, "root", new Dictionary<string, Expr>(), readOptions));
         }
 
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStream(stream, "root.selected", new Dictionary<string, Expr>(), readOptions));
+                () => cstruct.Parse(stream, "root.selected", new Dictionary<string, Expr>(), readOptions));
         }
 
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStreamWithDebug(
+                () => cstruct.ParseWithDebug(
                     stream,
                     "root.selected",
                     new Dictionary<string, Expr>(),
@@ -407,7 +407,7 @@ public class TraversalLimitTests
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.GetDynamicArrayLength(
+                () => cstruct.GetArrayLength(
                     stream,
                     "root.text",
                     new Dictionary<string, Expr>(),
@@ -419,7 +419,7 @@ public class TraversalLimitTests
         {
             AssertUpdateLimit(
                 stream,
-                () => cstruct.UpdateStream(
+                () => cstruct.Update(
                     stream,
                     "root.selected.value",
                     (byte)0x5A,
@@ -444,7 +444,7 @@ public class TraversalLimitTests
         {
             AssertUpdateLimit(
                 stream,
-                () => arrayStruct.UpdateStream(
+                () => arrayStruct.Update(
                     stream,
                     "root.items[2].value",
                     (byte)0x5A,
@@ -458,7 +458,7 @@ public class TraversalLimitTests
         {
             AssertUpdateLimit(
                 stream,
-                () => nestedStruct.UpdateStream(
+                () => nestedStruct.Update(
                     stream,
                     "root.child.child.value",
                     (byte)0x5A,
@@ -472,7 +472,7 @@ public class TraversalLimitTests
         {
             AssertUpdateLimit(
                 stream,
-                () => pointerStruct.UpdateStream(
+                () => pointerStruct.Update(
                     stream,
                     "root.head.value.next.value.value",
                     (byte)0x5A,
@@ -484,7 +484,7 @@ public class TraversalLimitTests
         {
             AssertUpdateLimit(
                 stream,
-                () => targetStruct.UpdateStream(
+                () => targetStruct.Update(
                     stream,
                     "root.pointer.value",
                     (ushort)0xBEEF,
@@ -496,7 +496,7 @@ public class TraversalLimitTests
         {
             AssertUpdateLimit(
                 stream,
-                () => totalStruct.UpdateStream(
+                () => totalStruct.Update(
                     stream,
                     "root.target",
                     (byte)0x5A,
@@ -527,7 +527,7 @@ public class TraversalLimitTests
             // MaxArrayElements alone no longer bounds traversal.
             AssertUpdateLimit(
                 stream,
-                () => arrayStruct.UpdateStream(
+                () => arrayStruct.Update(
                     stream,
                     "root.items[2].value",
                     (byte)0x5A,
@@ -539,7 +539,7 @@ public class TraversalLimitTests
         {
             // A tight write-side array limit does not block traversal reaching the same target - proving the two
             // budgets are independently enforced, not aliases of each other.
-            arrayStruct.UpdateStream(
+            arrayStruct.Update(
                 stream,
                 "root.items[2].value",
                 (byte)0x5A,
@@ -572,19 +572,19 @@ public class TraversalLimitTests
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStream(stream, "root", new Dictionary<string, Expr>(), readOptions));
+                () => cstruct.Parse(stream, "root", new Dictionary<string, Expr>(), readOptions));
         }
 
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStream(stream, "root.selected", new Dictionary<string, Expr>(), readOptions));
+                () => cstruct.Parse(stream, "root.selected", new Dictionary<string, Expr>(), readOptions));
         }
 
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStreamWithDebug(
+                () => cstruct.ParseWithDebug(
                     stream,
                     "root.selected",
                     new Dictionary<string, Expr>(),
@@ -602,7 +602,7 @@ public class TraversalLimitTests
         {
             AssertUpdateLimit(
                 stream,
-                () => cstruct.UpdateStream(
+                () => cstruct.Update(
                     stream,
                     "root.selected.value",
                     (byte)0x5A,
@@ -632,13 +632,13 @@ public class TraversalLimitTests
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStream(stream, "root.selected", new Dictionary<string, Expr>(), readOptions));
+                () => cstruct.Parse(stream, "root.selected", new Dictionary<string, Expr>(), readOptions));
         }
 
         using (var stream = new MemoryStream((byte[])bytes.Clone()))
         {
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStreamWithDebug(
+                () => cstruct.ParseWithDebug(
                     stream,
                     "root.selected",
                     new Dictionary<string, Expr>(),
@@ -656,7 +656,7 @@ public class TraversalLimitTests
         {
             AssertUpdateLimit(
                 stream,
-                () => cstruct.UpdateStream(
+                () => cstruct.Update(
                     stream,
                     "root.selected",
                     (byte)0x5A,
@@ -691,7 +691,7 @@ public class TraversalLimitTests
         };
 
         using var stream = new MemoryStream((byte[])bytes.Clone());
-        dynamic selected = cstruct.ParseStream(
+        dynamic selected = cstruct.Parse(
             stream,
             "root.selected.value",
             new Dictionary<string, Expr>(),

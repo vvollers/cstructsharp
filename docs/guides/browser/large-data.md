@@ -187,7 +187,7 @@ The same definition works with a managed `FileStream`, which avoids reading the 
 ```csharp
 var layout = new CStructSharp.CStruct(definition, pointerSize: 8, isLittleEndian: true);
 using var stream = File.OpenRead("large.bin");
-dynamic root = layout.ParseStream(stream, "root");
+dynamic root = layout.Parse(stream, "root");
 Console.WriteLine(root.records[0].Value.kind);
 ```
 

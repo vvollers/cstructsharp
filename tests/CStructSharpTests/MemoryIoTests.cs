@@ -53,8 +53,8 @@ public class MemoryIoTests
         Assert.AreEqual(MemoryStatus.Ready, typed.State);
         Assert.AreEqual("OK", typed.Name);
 
-        Assert.IsFalse(cstruct.TryReadValue<DateTime>(memory, out _, "root.items[0].value"));
-        Assert.IsTrue(cstruct.TryReadValue(memory, out ushort selected, "root.items[0].value"));
+        Assert.IsFalse(cstruct.TryReadValue<DateTime>(memory, "root.items[0].value", out _));
+        Assert.IsTrue(cstruct.TryReadValue(memory, "root.items[0].value", out ushort selected));
         Assert.AreEqual((ushort)0x0102, selected);
     }
 
@@ -123,8 +123,8 @@ public class MemoryIoTests
         Assert.IsFalse(
             cstruct.TryReadValue(
                 (ReadOnlyMemory<byte>)complete,
-                out uint _,
                 "root.value",
+                out uint _,
                 options: new ReadOptions { MaxTotalBytesRead = 3, }));
         Assert.Throws<ArgumentOutOfRangeException>(
             () => cstruct.ReadValue<uint>(

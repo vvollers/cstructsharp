@@ -88,6 +88,6 @@ public class ParseBenchmarks
     [Benchmark]
     public object ParseStream()
     {
-        return this.fixture.ParseStream(this.stream);
+        return this.fixture.Parse(this.stream);
     }
 }

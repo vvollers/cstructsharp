@@ -100,7 +100,7 @@ public class SparseUpdateStreamTests
     ///     The baseline has two bytes, so writing at its end or increasing its length would extend existing storage.
     /// </summary>
     /// <remarks>
-    ///     Both requests must fail and make zero underlying writes. This is the mechanism that keeps UpdateStream a
+    ///     Both requests must fail and make zero underlying writes. This is the mechanism that keeps Update a
     ///     replacement operation rather than an append operation.
     /// </remarks>
     [TestMethod]

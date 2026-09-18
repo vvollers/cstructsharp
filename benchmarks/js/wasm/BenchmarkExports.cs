@@ -90,7 +90,7 @@ public partial class CStructExports
     public static int BenchParseCore(byte[] bytes, string root, string optionsJson)
     {
         using var stream = new MemoryStream(bytes, writable: false);
-        object result = benchLayout!.ParseStream(stream, root, options: CreateReadOptions(ParseOptions(optionsJson)));
+        object result = benchLayout!.Parse(stream, root, options: CreateReadOptions(ParseOptions(optionsJson)));
         GC.KeepAlive(result);
         return checked((int)stream.Position);
     }
@@ -100,7 +100,7 @@ public partial class CStructExports
     public static int BenchParseRetain(byte[] bytes, string root, string optionsJson)
     {
         using var stream = new MemoryStream(bytes, writable: false);
-        benchRetainedResult = benchLayout!.ParseStream(stream, root, options: CreateReadOptions(ParseOptions(optionsJson)));
+        benchRetainedResult = benchLayout!.Parse(stream, root, options: CreateReadOptions(ParseOptions(optionsJson)));
         return checked((int)stream.Position);
     }
 
@@ -113,7 +113,7 @@ public partial class CStructExports
     public static string BenchParseJson(byte[] bytes, string root, string optionsJson)
     {
         using var stream = new MemoryStream(bytes, writable: false);
-        return SerializeParsedValue((object)benchLayout!.ParseStream(stream, root, options: CreateReadOptions(ParseOptions(optionsJson))));
+        return SerializeParsedValue((object)benchLayout!.Parse(stream, root, options: CreateReadOptions(ParseOptions(optionsJson))));
     }
 
     [JSExport]

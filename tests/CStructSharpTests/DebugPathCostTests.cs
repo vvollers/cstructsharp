@@ -12,7 +12,7 @@ public class DebugPathCostTests
     public void RepeatedDebugPathAccess_DoesNotAllocate()
     {
         var layout = new CStruct("struct cell { uint8 value; }; struct root { cell cells[2]; };");
-        (List<DebugData> debug, _) = layout.ParseStreamWithDebug(new MemoryStream(new byte[2]), "root");
+        (_, IReadOnlyList<DebugData> debug) = layout.ParseWithDebug(new MemoryStream(new byte[2]), "root");
         DebugData item = debug[1];
         Assert.AreEqual("root.cells[1].value", item.Path);
         for (int index = 0; index < 1000; index++)

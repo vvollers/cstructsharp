@@ -61,7 +61,7 @@ block does not make a physical stream transactional.
 
 ## Why updates use staging
 
-`UpdateStream` must inspect existing bytes to find a path, but it should not change the destination before it knows
+`Update` must inspect existing bytes to find a path, but it should not change the destination before it knows
 the replacement is valid. It therefore runs the writer against `SparseUpdateStream`, a bounded copy-on-write view.
 That view records changed ranges while reading unchanged bytes from the original stream. A contiguous replacement
 uses one pooled buffer; separated ranges fall back to chunk staging.

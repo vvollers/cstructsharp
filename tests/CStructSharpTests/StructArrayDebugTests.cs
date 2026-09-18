@@ -20,7 +20,7 @@ public class StructArrayDebugTests
         bytes[0] = 2;
         var parser = new CStruct(layout, aligned: false);
         using var stream = new MemoryStream(bytes);
-        (List<DebugData> debug, _) = parser.ParseStreamWithDebug(stream, "root");
+        (_, IReadOnlyList<DebugData> debug) = parser.ParseWithDebug(stream, "root");
         for (int i = 0; i < 8; i++)
         {
             string path = $"root.data[{i / 4}].cells[{(i % 4) / 2}][{i % 2}].val";
@@ -35,10 +35,10 @@ public class StructArrayDebugTests
     public void RetainedDebugPaths_AreIndependentOfLaterOperations()
     {
         var parser = new CStruct("struct cell { uint8 value; }; struct root { cell cells[2][2]; };");
-        (List<DebugData> retained, _) = parser.ParseStreamWithDebug(new MemoryStream(new byte[4]), "root");
+        (_, IReadOnlyList<DebugData> retained) = parser.ParseWithDebug(new MemoryStream(new byte[4]), "root");
         Parallel.For(0, 32, _ =>
         {
-            parser.ParseStreamWithDebug(new MemoryStream(new byte[4]), "root");
+            parser.ParseWithDebug(new MemoryStream(new byte[4]), "root");
             string[] paths = retained.Select(item => item.Path).ToArray();
             CollectionAssert.AreEqual(
                 new[] { "root.cells[0][0].value", "root.cells[0][1].value", "root.cells[1][0].value", "root.cells[1][1].value" },
@@ -56,7 +56,7 @@ public class StructArrayDebugTests
                               """;
         var parser = new CStruct(layout, pointerSize: 1, aligned: false);
         using var stream = new MemoryStream(new byte[] { 2, 4, 11, 0, 22, 0 });
-        (List<DebugData> debug, _) = parser.ParseStreamWithDebug(stream, "root");
+        (_, IReadOnlyList<DebugData> debug) = parser.ParseWithDebug(stream, "root");
         Assert.AreEqual(2L, debug.Single(item => item.Path == "root.data[0].val").Start);
         Assert.AreEqual(4L, debug.Single(item => item.Path == "root.data[1].val").Start);
         Assert.AreEqual(0L, debug.Single(item => item.Path == "root.data[0]").Start);

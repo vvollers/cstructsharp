@@ -74,7 +74,7 @@ public class FlagDeclarationTests
         Assert.Throws<CStructWriteException>(() => Write("READ|NOPE"));
 
         using var stream = new MemoryStream(new byte[6]);
-        layout.UpdateStream(stream, "root.mode", "HIDDEN");
+        layout.Update(stream, "root.mode", "HIDDEN");
         CollectionAssert.AreEqual(new byte[] { 0, 1, 0, 0, 0, 0, }, stream.ToArray());
     }
 
@@ -95,11 +95,11 @@ public class FlagDeclarationTests
         var layout = new CStruct(Layout);
         byte[] bytes = [0x05, 0x01, 0x03, 0x00, 0x00, 0x00,];
         using var stream = new MemoryStream((byte[])bytes.Clone());
-        (List<DebugData> debug, dynamic _) = layout.ParseStreamWithDebug(stream, "root");
+        (dynamic _, IReadOnlyList<DebugData> debug) = layout.ParseWithDebug(stream, "root");
         stream.Position = 0;
         Assert.IsTrue(debug.Any(item => item.Path == "root.mode" && item.Start == 0 && item.End == 2));
         Assert.AreEqual(2, layout.ResolveAddress(stream, "root.modes[0]"));
-        layout.UpdateStream(stream, "root.modes[1]", "EXEC|HIDDEN");
+        layout.Update(stream, "root.modes[1]", "EXEC|HIDDEN");
         CollectionAssert.AreEqual(new byte[] { 0x05, 0x01, 0x03, 0x00, 0x04, 0x01, }, stream.ToArray());
         var updated = (FlagValueResult)layout.ReadValue<EnumValueResult>(stream.ToArray().AsSpan(), "root.modes[1]");
         CollectionAssert.AreEqual(new[] { "EXEC", "HIDDEN", }, updated.Names.ToArray());
@@ -146,11 +146,11 @@ public class FlagDeclarationTests
         CollectionAssert.AreEqual(new byte[] { 0b0100_0101, 0xFF, }, written);
 
         using var stream = new MemoryStream((byte[])bytes.Clone());
-        layout.UpdateStream(stream, "root.type", "CONST");
+        layout.Update(stream, "root.type", "CONST");
         Assert.AreEqual(0b1010_1111, stream.ToArray()[0]);
         Assert.AreEqual("CONST", layout.ReadValue<EnumValueResult>(stream.ToArray().AsSpan(), "root.type").Name);
 
-        (List<DebugData> debug, dynamic _) = layout.ParseStreamWithDebug(new MemoryStream(bytes), "root");
+        (dynamic _, IReadOnlyList<DebugData> debug) = layout.ParseWithDebug(new MemoryStream(bytes), "root");
         Assert.IsTrue(debug.Any(item => item.Path == "root.type"));
     }
 

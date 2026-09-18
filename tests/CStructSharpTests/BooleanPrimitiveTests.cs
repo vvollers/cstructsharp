@@ -18,8 +18,8 @@ public class BooleanPrimitiveTests
     {
         var cstruct = new CStruct("struct root { bool value; };");
 
-        dynamic falseParsed = cstruct.ParseStream(new MemoryStream([0x00,]), "root");
-        dynamic trueParsed = cstruct.ParseStream(new MemoryStream([0x01,]), "root");
+        dynamic falseParsed = cstruct.Parse(new MemoryStream([0x00,]), "root");
+        dynamic trueParsed = cstruct.Parse(new MemoryStream([0x01,]), "root");
 
         Assert.AreEqual(false, (bool)falseParsed.value);
         Assert.AreEqual(true, (bool)trueParsed.value);
@@ -32,7 +32,7 @@ public class BooleanPrimitiveTests
     {
         var cstruct = new CStruct("struct root { bool value; };");
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([0x05,]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([0x05,]), "root");
 
         Assert.AreEqual(true, (bool)parsed.value);
     }
@@ -57,7 +57,7 @@ public class BooleanPrimitiveTests
         var cstruct = new CStruct("struct root { bool value; };");
         using var stream = new MemoryStream([0x05,]);
 
-        cstruct.UpdateStream(stream, "root.value", true);
+        cstruct.Update(stream, "root.value", true);
 
         CollectionAssert.AreEqual(new byte[] { 1, }, stream.ToArray());
     }
@@ -69,7 +69,7 @@ public class BooleanPrimitiveTests
         var cstruct = new CStruct("struct root { bool value; };");
 
         using var writeStream = new MemoryStream();
-        cstruct.WriteStream(writeStream, "root", new { value = true, });
+        cstruct.Write(writeStream, "root", new { value = true, });
         CollectionAssert.AreEqual(new byte[] { 1, }, writeStream.ToArray());
 
         byte[] bytes = cstruct.Serialize("root", new { value = true, });
@@ -79,7 +79,7 @@ public class BooleanPrimitiveTests
         Assert.AreEqual(true, Convert.ToBoolean(cstruct.ReadValue(readStream, "root.value")));
 
         using var updateStream = new MemoryStream(bytes);
-        cstruct.UpdateStream(updateStream, "root.value", false);
+        cstruct.Update(updateStream, "root.value", false);
         CollectionAssert.AreEqual(new byte[] { 0, }, updateStream.ToArray());
     }
 
@@ -89,7 +89,7 @@ public class BooleanPrimitiveTests
     {
         var cstruct = new CStruct("struct root { bool flags[3]; };");
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([1, 0, 1,]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([1, 0, 1,]), "root");
 
         Assert.AreEqual(true, (bool)parsed.flags[0]);
         Assert.AreEqual(false, (bool)parsed.flags[1]);
@@ -102,7 +102,7 @@ public class BooleanPrimitiveTests
     {
         var cstruct = new CStruct("struct root { _Bool value; };");
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([1,]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([1,]), "root");
 
         Assert.AreEqual(true, (bool)parsed.value);
         Assert.AreEqual(1, cstruct.GetStructSizeInBytes("root"));

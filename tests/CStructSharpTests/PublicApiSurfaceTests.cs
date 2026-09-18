@@ -69,8 +69,10 @@ public class PublicApiSurfaceTests
         "CStructSharp.UpdateOptions",
         "CStructSharp.Values.EnumValueResult",
         "CStructSharp.Values.FlagValueResult",
+        "CStructSharp.Values.ParseResult",
         "CStructSharp.Values.Pointer",
         "CStructSharp.Values.PrimitiveArray`1",
+        "CStructSharp.Values.ReadResult",
         "CStructSharp.Values.StructValue",
         "CStructSharp.Values.StructValue+Enumerator",
         "CStructSharp.Values.UnionValue",
@@ -156,16 +158,15 @@ public class PublicApiSurfaceTests
         Type expectedVariables = typeof(IReadOnlyDictionary<string, int>);
         string[] operationNames =
         [
-            nameof(CStruct.GetDynamicArrayLength),
+            nameof(CStruct.GetArrayLength),
             nameof(CStruct.Parse),
-            nameof(CStruct.ParseStream),
-            nameof(CStruct.ParseStreamWithDebug),
+            nameof(CStruct.ParseWithDebug),
             nameof(CStruct.ReadValue),
             nameof(CStruct.ResolveAddress),
             nameof(CStruct.Serialize),
             nameof(CStruct.TryReadValue),
-            nameof(CStruct.UpdateStream),
-            nameof(CStruct.WriteStream),
+            nameof(CStruct.Update),
+            nameof(CStruct.Write),
         ];
 
         foreach (string operationName in operationNames)

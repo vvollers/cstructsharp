@@ -27,7 +27,7 @@ public class DuplicateNameValidationTests
             () =>
             {
                 var cstruct = new CStruct(layout);
-                _ = cstruct.ParseStream(stream, "root");
+                _ = cstruct.Parse(stream, "root");
             });
 
         StringAssert.Contains(exception.Message, "Duplicate field name 'value' in struct 'root'.");
@@ -116,7 +116,7 @@ public class DuplicateNameValidationTests
 
         var cstruct = new CStruct(layout);
         using var stream = new MemoryStream([0xA5, 0x01,]);
-        dynamic result = cstruct.ParseStream(stream, "Ready");
+        dynamic result = cstruct.Parse(stream, "Ready");
 
         Assert.AreEqual((byte)0xA5, (byte)result.Ready);
         Assert.AreEqual("Ready", result.state.Name);
@@ -197,10 +197,10 @@ public class DuplicateNameValidationTests
                 switch (operation)
                 {
                 case "parse":
-                    _ = cstruct.ParseStream(stream, "root");
+                    _ = cstruct.Parse(stream, "root");
                     break;
                 case "debug":
-                    _ = cstruct.ParseStreamWithDebug(stream, "root");
+                    _ = cstruct.ParseWithDebug(stream, "root");
                     break;
                 case "address":
                     _ = cstruct.ResolveAddress(stream, "root.value");
@@ -209,10 +209,10 @@ public class DuplicateNameValidationTests
                     _ = cstruct.Serialize("root", data);
                     break;
                 case "write":
-                    cstruct.WriteStream(stream, "root", data);
+                    cstruct.Write(stream, "root", data);
                     break;
                 case "update":
-                    cstruct.UpdateStream(stream, "root.value", (byte)0x55);
+                    cstruct.Update(stream, "root.value", (byte)0x55);
                     break;
                 case "pointer":
                     _ = cstruct.ResolveAddress(stream, "root.pointer.value.value");

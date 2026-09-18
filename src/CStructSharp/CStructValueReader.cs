@@ -38,77 +38,8 @@ public sealed partial class CStruct
         throw new CStructPathException("The selected layout element does not produce a readable value.");
     }
 
-    /// <summary>
-    ///     Reads the first declared struct or union in its natural representation. Structs use
-    ///     <see cref="StructValue"/> and unions use <see cref="UnionValue"/>.
-    /// </summary>
-    /// <param name="stream">The readable stream whose current position is the operation origin.</param>
-    /// <returns>The first composite in its natural dynamic representation.</returns>
-    /// <exception cref="CStructReadException">The stream cannot provide or decode the required bytes.</exception>
-    public object? ReadValue(Stream stream)
-    {
-        return this.ReadValue(
-            stream,
-            this.compiledModelQueries.GetFirstCompiledStructName(),
-            null,
-            null);
-    }
-
-    /// <summary>
-    ///     Reads one root, field, array item, pointer accessor, or nested object without materializing unrelated
-    ///     siblings. Optional integer variables are copied before traversal.
-    /// </summary>
-    /// <param name="stream">The readable stream whose current position is the operation origin.</param>
-    /// <param name="elementNameOrPath">The case-sensitive exported declaration or nested field path to read.</param>
-    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
-    /// <param name="options">Optional read limits and pointer-coordinate settings; <see langword="null"/> uses the documented defaults.</param>
-    /// <returns>The selected value in its natural dynamic, scalar, collection, pointer, enum, or union representation.</returns>
-    /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
-    /// <exception cref="CStructReadException">The stream cannot provide or decode the required bytes.</exception>
-    public object? ReadValue(
-        Stream stream,
-        string elementNameOrPath,
-        IReadOnlyDictionary<string, int>? variables = null,
-        ReadOptions? options = null)
-    {
-        return this.ReadValueCore(
-            stream,
-            elementNameOrPath,
-            LayoutVariableInput.FromIntegers(variables),
-            options);
-    }
-
-    /// <summary>
-    ///     Reads the first declared struct or union and maps it to <typeparamref name="T"/>. Public writable properties
-    ///     and fields are matched to struct members without regard to case; numeric and CLR-enum conversions are checked.
-    /// </summary>
-    /// <typeparam name="T">The destination type; supported POCOs require a public parameterless constructor and public bindable members.</typeparam>
-    /// <param name="stream">The readable stream whose current position is the operation origin.</param>
-    /// <returns>The first composite converted or bound to <typeparamref name="T"/>.</returns>
-    /// <exception cref="CStructReadException">The bytes cannot be decoded or the result cannot be bound to <typeparamref name="T"/>.</exception>
-    public T ReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(Stream stream)
-    {
-        return this.ReadValue<T>(
-            stream,
-            this.compiledModelQueries.GetFirstCompiledStructName(),
-            null,
-            null);
-    }
-
-    /// <summary>
-    ///     Reads one selected value and maps it to <typeparamref name="T"/>. Arrays and common generic list
-    ///     abstractions are mapped element by element. Unsupported or lossy conversions fail with
-    ///     <see cref="CStructReadException"/>.
-    /// </summary>
-    /// <typeparam name="T">The destination type; supported POCOs require a public parameterless constructor and public bindable members.</typeparam>
-    /// <param name="stream">The readable stream whose current position is the operation origin.</param>
-    /// <param name="elementNameOrPath">The case-sensitive exported declaration or nested field path to read.</param>
-    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
-    /// <param name="options">Optional read limits and pointer-coordinate settings; <see langword="null"/> uses the documented defaults.</param>
-    /// <returns>The selected value converted or bound to <typeparamref name="T"/>.</returns>
-    /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
-    /// <exception cref="CStructReadException">The bytes cannot be decoded or the result cannot be bound to <typeparamref name="T"/>.</exception>
-    public T ReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
+    /// <summary>Reads one selected value through the compiled reader and maps it to <typeparamref name="T"/>.</summary>
+    internal T ReadTypedValueCore<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
         Stream stream,
         string elementNameOrPath,
         IReadOnlyDictionary<string, int>? variables = null,
@@ -133,65 +64,6 @@ public sealed partial class CStruct
             ExceptionContext.Attach(exception, segments, stream);
             throw;
         }
-    }
-
-    /// <summary>
-    ///     Attempts to read and map one selected value. Expected layout, path, read, or conversion failures return
-    ///     <see langword="false"/> and restore the stream position from before the attempt. Invalid arguments and
-    ///     unexpected runtime failures are not hidden.
-    /// </summary>
-    /// <typeparam name="T">The destination type; supported POCOs require a public parameterless constructor and public bindable members.</typeparam>
-    /// <param name="stream">The readable, seekable stream whose position is restored after an expected failure.</param>
-    /// <param name="elementNameOrPath">The case-sensitive exported declaration or nested field path to read.</param>
-    /// <param name="value">Receives the typed result on success, or the default value of <typeparamref name="T"/> on failure.</param>
-    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
-    /// <param name="options">Optional read limits and pointer-coordinate settings; <see langword="null"/> uses the documented defaults.</param>
-    /// <returns><see langword="true"/> on success; <see langword="false"/> for a categorized CStructSharp layout, path, read, or conversion failure.</returns>
-    /// <exception cref="ArgumentException"><paramref name="stream"/> is not readable and seekable.</exception>
-    public bool TryReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
-        Stream stream,
-        string elementNameOrPath,
-        [MaybeNullWhen(false)] out T value,
-        IReadOnlyDictionary<string, int>? variables = null,
-        ReadOptions? options = null)
-    {
-        ArgumentNullException.ThrowIfNull(stream);
-        if (!stream.CanRead || !stream.CanSeek)
-        {
-            throw new ArgumentException("Reading values requires a readable, seekable stream.", nameof(stream));
-        }
-
-        long initialPosition = stream.Position;
-        try
-        {
-            value = this.ReadValue<T>(stream, elementNameOrPath, variables, options);
-            return true;
-        }
-        catch (CStructException)
-        {
-            stream.Position = initialPosition;
-            value = default;
-            return false;
-        }
-    }
-
-    /// <summary>
-    ///     Attempts to read and map the first declared struct or union. Expected domain failures return
-    ///     <see langword="false"/> and restore the stream position from before the attempt.
-    /// </summary>
-    /// <typeparam name="T">The destination type; supported POCOs require a public parameterless constructor and public bindable members.</typeparam>
-    /// <param name="stream">The readable, seekable stream whose position is restored after an expected failure.</param>
-    /// <param name="value">Receives the typed result on success, or the default value of <typeparamref name="T"/> on failure.</param>
-    /// <returns><see langword="true"/> on success; <see langword="false"/> for a categorized CStructSharp layout, path, read, or conversion failure.</returns>
-    /// <exception cref="ArgumentException"><paramref name="stream"/> is not readable and seekable.</exception>
-    public bool TryReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
-        Stream stream,
-        [MaybeNullWhen(false)] out T value)
-    {
-        return this.TryReadValue(
-            stream,
-            this.compiledModelQueries.GetFirstCompiledStructName(),
-            out value);
     }
 
     /// <summary>Reads one semantically resolved target through the compiled reader.</summary>

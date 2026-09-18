@@ -32,7 +32,7 @@ public class CompositeAlignmentTests
         var cstruct = new CStruct(layout, aligned: true);
 
         using var stream = new MemoryStream(bytes);
-        dynamic parsed = cstruct.ParseStream(stream, "outer");
+        dynamic parsed = cstruct.Parse(stream, "outer");
 
         Assert.AreEqual((byte)0x11, (byte)parsed.prefix);
         Assert.AreEqual((byte)0x22, (byte)parsed.item.a);
@@ -53,7 +53,7 @@ public class CompositeAlignmentTests
         CollectionAssert.AreEqual(bytes, serialized);
 
         stream.Position = 0;
-        (List<DebugData> debug, _) = cstruct.ParseStreamWithDebug(stream, "outer");
+        (_, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "outer");
         DebugData nestedFirstField = debug.Single(item => item.Path == "outer.item.a");
         Assert.AreEqual(8L, nestedFirstField.Start);
         Assert.AreEqual(9L, nestedFirstField.End);
@@ -84,7 +84,7 @@ public class CompositeAlignmentTests
         inlineBytes[24] = 0x44;
         var inline = new CStruct(inlineLayout, aligned: true);
         using var inlineStream = new MemoryStream(inlineBytes);
-        dynamic inlineParsed = inline.ParseStream(inlineStream, "root");
+        dynamic inlineParsed = inline.Parse(inlineStream, "root");
         Assert.AreEqual((byte)0x22, (byte)inlineParsed.item.narrow);
         Assert.AreEqual(32, inline.GetStructSizeInBytes("root"));
         inlineStream.Position = 0;
@@ -104,7 +104,7 @@ public class CompositeAlignmentTests
         arrayBytes[40] = 0x44;
         var array = new CStruct(arrayLayout, aligned: true);
         using var arrayStream = new MemoryStream(arrayBytes);
-        dynamic arrayParsed = array.ParseStream(arrayStream, "root");
+        dynamic arrayParsed = array.Parse(arrayStream, "root");
         Assert.AreEqual((byte)0x21, (byte)arrayParsed.items[0].narrow);
         Assert.AreEqual((byte)0x31, (byte)arrayParsed.items[1].narrow);
         Assert.AreEqual(48, array.GetStructSizeInBytes("root"));
@@ -124,7 +124,7 @@ public class CompositeAlignmentTests
         unionBytes[16] = 0x44;
         var union = new CStruct(unionLayout, aligned: true);
         using var unionStream = new MemoryStream(unionBytes);
-        dynamic unionParsed = union.ParseStream(unionStream, "root");
+        dynamic unionParsed = union.Parse(unionStream, "root");
         Assert.AreEqual((byte)0x22, (byte)unionParsed.item.narrow);
         Assert.AreEqual(24, union.GetStructSizeInBytes("root"));
         unionStream.Position = 0;
@@ -149,7 +149,7 @@ public class CompositeAlignmentTests
         var cstruct = new CStruct(layout);
         using var stream = new MemoryStream(bytes);
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual(0xA, (int)parsed.a);
         Assert.AreEqual(0xB, (int)parsed.b);

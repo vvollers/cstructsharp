@@ -25,7 +25,7 @@ public class FixedPointTests
             byte[] bytes = parser.Serialize("root", new { value = 1m });
             CollectionAssert.AreEqual(parser.Serialize("root", new { value = 1.0 }), bytes);
             using var stream = new MemoryStream(bytes);
-            Assert.Throws<CStructWriteException>(() => parser.UpdateStream(stream, "root.value", 1.0000000000000000000000000001m));
+            Assert.Throws<CStructWriteException>(() => parser.Update(stream, "root.value", 1.0000000000000000000000000001m));
             CollectionAssert.AreEqual(bytes, stream.ToArray());
         }
     }
@@ -59,7 +59,7 @@ public class FixedPointTests
                 foreach (double invalid in new[] { double.NaN, double.PositiveInfinity, 0.1, double.MaxValue })
                 {
                     stream.Position = 0;
-                    Assert.Throws<CStructWriteException>(() => parser.UpdateStream(stream, "root.value", invalid));
+                    Assert.Throws<CStructWriteException>(() => parser.Update(stream, "root.value", invalid));
                     CollectionAssert.AreEqual(bytes, stream.ToArray());
                 }
             }

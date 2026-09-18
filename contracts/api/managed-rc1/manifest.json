@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 13,
+  "baselineRevision": 14,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.5.0",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 65,
+  "exportedTypes": 67,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -14,21 +14,21 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 656,
-    "normalizedSha256": "ACF262D29C71C987583A42D93893E8665FAEAB845353197D47F3EFDC924C891F"
+    "lines": 665,
+    "normalizedSha256": "6112BC3124D3F74736D3E62315D4D312D3D7D0ECFA31EE8C36D82B92E578EC1C"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "A12E38AB9FE4D6594CDDF705D1EE7640B7A0F39FF5B56F93D75EDF1FC83FF0DE"
+      "normalizedSha256": "0B09BD96C6988781B746FC57A4A02EED47374C4752F45468D6DBC0C8E7DBD818"
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "7CFEE85E5751607CB9223148B713AECDB5F8FEFE6183CBABE0B0B97B0007DE22"
+      "normalizedSha256": "C5176320EEA41DCE6B2FFDA053225F2DA5A6C301CABC0C806A72A9097A9F8CF0"
     }
   ],
   "history": [
@@ -148,6 +148,15 @@
       "combinedSha256": "B5BD3C904170C079A88547E458A1C3D0FA278FE0AB7DCC84A5F5AB5D88931903",
       "rationale": "CStructException gains Member and MemberType (the innermost field a read/write failure belongs to and its layout type); Message is composed from the known facts.",
       "releaseImpact": "Additive; messages now end with a parenthesized context clause."
+    },
+    {
+      "revision": 14,
+      "kind": "breaking",
+      "date": "2026-09-18",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "71070C6210222586388B248F44AB550DAC5F46706E4A1B9C39BCE860C1A5D6AA",
+      "rationale": "4.1: one operation vocabulary for every input kind. Parse returns StructValue (struct roots only); ParseWithDebug returns ParseResult; ReadValue/ReadValueWithDebug cover every selection; ResolveAddress, GetArrayLength (was GetDynamicArrayLength), Serialize, Write, Update share one parameter order for Stream, span, memory, and byte[]. ParseStream*, ParseMemory*, ReadMemoryValue, SerializeToMemory, UpdateStream, WriteStream removed. CStruct.DefaultRoot added.",
+      "releaseImpact": "Callers rename methods and take StructValue/ParseResult instead of dynamic and (List<DebugData>, dynamic) tuples; union roots move from Parse to ReadValue."
     }
   ]
 }

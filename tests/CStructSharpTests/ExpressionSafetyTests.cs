@@ -22,7 +22,7 @@ public class ExpressionSafetyTests
     {
         var cstruct = new CStruct("#define COUNT 3U\nstruct root { uint8 values[COUNT]; };");
 
-        dynamic result = cstruct.ParseStream(new MemoryStream([1, 2, 3,]), "root");
+        dynamic result = cstruct.Parse(new MemoryStream([1, 2, 3,]), "root");
 
         Assert.AreEqual(3, result.values.Count);
     }
@@ -155,11 +155,11 @@ public class ExpressionSafetyTests
         }
 
         acyclic["COUNT"] = new Identifier("NODE100");
-        dynamic valid = defaultLimits.ParseStream(new MemoryStream([0x2A,]), "root", acyclic);
+        dynamic valid = defaultLimits.Parse(new MemoryStream([0x2A,]), "root", acyclic);
         Assert.AreEqual(1, valid.values.Count);
 
         var withDefault = new CStruct("#define COUNT 2\n" + layout);
-        dynamic overridden = withDefault.ParseStream(
+        dynamic overridden = withDefault.Parse(
             new MemoryStream([0x2A,]),
             "root",
             new Dictionary<string, Expr> { ["COUNT"] = new Literal(1), });
@@ -167,7 +167,7 @@ public class ExpressionSafetyTests
 
         var undefined = new Dictionary<string, Expr> { ["COUNT"] = new Identifier("MISSING"), };
         Assert.Throws<CStructLayoutException>(
-            () => defaultLimits.ParseStream(new MemoryStream([0x2A,]), "root", undefined));
+            () => defaultLimits.Parse(new MemoryStream([0x2A,]), "root", undefined));
         Assert.IsInstanceOfType<Identifier>(undefined["COUNT"]);
 
         var depthOptions = new CStructCompilationOptions
@@ -185,7 +185,7 @@ public class ExpressionSafetyTests
         }
 
         Assert.Throws<CStructLayoutException>(
-            () => depthLimited.ParseStream(
+            () => depthLimited.Parse(
                 new MemoryStream([1,]),
                 "root",
                 new Dictionary<string, Expr> { ["COUNT"] = deep, }));
@@ -202,7 +202,7 @@ public class ExpressionSafetyTests
             new BinaryOp(BinaryOperatorType.Or, new Literal(1), new Literal(1)),
             new Literal(1));
         Assert.Throws<CStructLayoutException>(
-            () => workLimited.ParseStream(
+            () => workLimited.Parse(
                 new MemoryStream([1,]),
                 "root",
                 new Dictionary<string, Expr> { ["COUNT"] = tooMuchWork, }));
@@ -212,7 +212,7 @@ public class ExpressionSafetyTests
             ["COUNT"] = new Identifier("COUNT"),
         };
         Assert.Throws<CStructLayoutException>(
-            () => depthLimited.ParseStream(new MemoryStream([1,]), "root", selfReferential));
+            () => depthLimited.Parse(new MemoryStream([1,]), "root", selfReferential));
         Assert.IsInstanceOfType<Identifier>(selfReferential["COUNT"]);
 
         var cyclic = new Dictionary<string, Expr>
@@ -221,7 +221,7 @@ public class ExpressionSafetyTests
             ["OTHER"] = new Identifier("COUNT"),
         };
         Assert.Throws<CStructLayoutException>(
-            () => depthLimited.ParseStream(new MemoryStream([1,]), "root", cyclic));
+            () => depthLimited.Parse(new MemoryStream([1,]), "root", cyclic));
         Assert.IsInstanceOfType<Identifier>(cyclic["COUNT"]);
         Assert.IsInstanceOfType<Identifier>(cyclic["OTHER"]);
     }
@@ -243,13 +243,13 @@ public class ExpressionSafetyTests
         var cstruct = new CStruct(layout);
         var variables = new Dictionary<string, Expr> { ["BASE"] = new Literal(1), };
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([0x2A, 0xA5,]), "root", variables);
+        dynamic parsed = cstruct.Parse(new MemoryStream([0x2A, 0xA5,]), "root", variables);
 
         Assert.AreEqual(2, parsed.values.Count);
         Assert.AreEqual(1, variables.Count);
         Assert.AreEqual(1, variables["BASE"].Value);
         Assert.Throws<CStructReadException>(
-            () => cstruct.ParseStream(new MemoryStream([0x2A, 0xA5,]), "root"));
+            () => cstruct.Parse(new MemoryStream([0x2A, 0xA5,]), "root"));
     }
 
     /// <summary>
@@ -271,7 +271,7 @@ public class ExpressionSafetyTests
                               """;
         var cstruct = new CStruct(layout);
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([0x03, 0x2A, 0xA5, 0x05,]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([0x03, 0x2A, 0xA5, 0x05,]), "root");
 
         Assert.AreEqual(3UL, Convert.ToUInt64(parsed.flags));
         Assert.AreEqual(2, parsed.values.Count);
@@ -298,24 +298,24 @@ public class ExpressionSafetyTests
         };
 
         Assert.Throws<CStructReadException>(
-            () => cstruct.ParseStream(new MemoryStream([1, 2,]), "root", variables));
+            () => cstruct.Parse(new MemoryStream([1, 2,]), "root", variables));
         Assert.Throws<CStructReadException>(
-            () => cstruct.ParseStreamWithDebug(new MemoryStream([1, 2,]), "root", variables));
+            () => cstruct.ParseWithDebug(new MemoryStream([1, 2,]), "root", variables));
         Assert.Throws<CStructReadException>(
             () => cstruct.ResolveAddress(new MemoryStream([1, 2,]), "root.tail", variables));
         Assert.Throws<CStructReadException>(
-            () => cstruct.GetDynamicArrayLength(new MemoryStream([1, 2,]), "root.values", variables));
+            () => cstruct.GetArrayLength(new MemoryStream([1, 2,]), "root.values", variables));
         Assert.Throws<CStructWriteException>(() => cstruct.Serialize("root", data, variables));
 
         using var writeStream = new MemoryStream([0xA5, 0xA5,]);
         Assert.Throws<CStructWriteException>(
-            () => cstruct.WriteStream(writeStream, "root", data, variables));
+            () => cstruct.Write(writeStream, "root", data, variables));
         CollectionAssert.AreEqual(new byte[] { 0xA5, 0xA5, }, writeStream.ToArray());
         Assert.AreEqual(0L, writeStream.Position);
 
         using var updateStream = new MemoryStream([0xA5, 0xA5,]) { Position = 1, };
         Assert.Throws<CStructReadException>(
-            () => cstruct.UpdateStream(updateStream, "root.tail", (byte)3, variables));
+            () => cstruct.Update(updateStream, "root.tail", (byte)3, variables));
         CollectionAssert.AreEqual(new byte[] { 0xA5, 0xA5, }, updateStream.ToArray());
         Assert.AreEqual(1L, updateStream.Position);
     }
@@ -633,26 +633,26 @@ public class ExpressionSafetyTests
         byte[] bytes = [0x01, first, second, 0x7E,];
 
         using var parseStream = new MemoryStream((byte[])bytes.Clone());
-        dynamic parsed = cstruct.ParseStream(parseStream, "root", variables);
+        dynamic parsed = cstruct.Parse(parseStream, "root", variables);
         var pointer = (Pointer)parsed.ptr;
         dynamic target = pointer.Value!;
         Assert.AreEqual((ushort)0x1234, (ushort)target.values[0]);
         Assert.AreEqual((byte)0x7E, (byte)target.tail);
 
         using var selectedStream = new MemoryStream((byte[])bytes.Clone());
-        dynamic selected = cstruct.ParseStream(selectedStream, "root.ptr.value", variables);
+        dynamic selected = cstruct.Parse(selectedStream, "root.ptr.value", variables);
         Assert.AreEqual((ushort)0x1234, (ushort)selected.values[0]);
         Assert.AreEqual((byte)0x7E, (byte)selected.tail);
 
         using var debugStream = new MemoryStream((byte[])bytes.Clone());
-        (List<DebugData> debug, _) = cstruct.ParseStreamWithDebug(debugStream, "root", variables);
+        (_, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(debugStream, "root", variables);
         Assert.IsTrue(debug.Any(item => item.Start == 1 && item.End == 3));
         Assert.IsTrue(debug.Any(item => item.Start == 3 && item.End == 4));
 
         using var addressStream = new MemoryStream((byte[])bytes.Clone());
         Assert.AreEqual(1L, cstruct.ResolveAddress(addressStream, "root.ptr.value.values[0]", variables));
         Assert.AreEqual(0L, addressStream.Position);
-        Assert.AreEqual(1, cstruct.GetDynamicArrayLength(addressStream, "root.ptr.value.values", variables));
+        Assert.AreEqual(1, cstruct.GetArrayLength(addressStream, "root.ptr.value.values", variables));
         Assert.AreEqual(0L, addressStream.Position);
 
         var data = new Dictionary<string, object>
@@ -664,11 +664,11 @@ public class ExpressionSafetyTests
         CollectionAssert.AreEqual(targetBytes, cstruct.Serialize("target", data, variables));
 
         using var writeStream = new MemoryStream();
-        cstruct.WriteStream(writeStream, "target", data, variables);
+        cstruct.Write(writeStream, "target", data, variables);
         CollectionAssert.AreEqual(targetBytes, writeStream.ToArray());
 
         using var updateStream = new MemoryStream((byte[])bytes.Clone());
-        cstruct.UpdateStream(updateStream, "root.ptr.value.tail", (byte)0xA5, variables);
+        cstruct.Update(updateStream, "root.ptr.value.tail", (byte)0xA5, variables);
         CollectionAssert.AreEqual(new byte[] { 0x01, first, second, 0xA5, }, updateStream.ToArray());
         Assert.AreEqual(0L, updateStream.Position);
     }

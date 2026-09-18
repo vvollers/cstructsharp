@@ -158,7 +158,7 @@ public class ConcurrentReuseTests
             () =>
             {
                 using var stream = new MemoryStream((byte[])source.Clone());
-                dynamic parsed = cstruct.ParseStream(stream, "root", variables, readOptions);
+                dynamic parsed = cstruct.Parse(stream, "root", variables, readOptions);
                 Assert.AreEqual((byte)0xA5, (byte)parsed.prefix);
                 Assert.AreEqual((ushort)0x1234, (ushort)parsed.big);
                 Assert.AreEqual((ushort)0x5678, (ushort)parsed.little);
@@ -173,8 +173,8 @@ public class ConcurrentReuseTests
             () =>
             {
                 using var stream = new MemoryStream((byte[])source.Clone());
-                (List<DebugData> debug, dynamic parsed) =
-                    cstruct.ParseStreamWithDebug(stream, "root", variables, readOptions);
+                (dynamic parsed, IReadOnlyList<DebugData> debug) =
+                    cstruct.ParseWithDebug(stream, "root", variables, readOptions);
                 Assert.IsNotEmpty(debug);
                 Assert.IsNotNull(parsed);
             },
@@ -191,7 +191,7 @@ public class ConcurrentReuseTests
                 using var stream = new MemoryStream((byte[])source.Clone());
                 Assert.AreEqual(
                     2,
-                    cstruct.GetDynamicArrayLength(stream, "root.values", variables, readOptions));
+                    cstruct.GetArrayLength(stream, "root.values", variables, readOptions));
                 Assert.AreEqual(0L, stream.Position);
             },
             () => CollectionAssert.AreEqual(
@@ -200,7 +200,7 @@ public class ConcurrentReuseTests
             () =>
             {
                 using var stream = new MemoryStream();
-                cstruct.WriteStream(
+                cstruct.Write(
                     stream,
                     "root",
                     CreatePayload(pointerCell),
@@ -211,20 +211,20 @@ public class ConcurrentReuseTests
             () =>
             {
                 using var stream = new MemoryStream((byte[])source.Clone());
-                cstruct.UpdateStream(
+                cstruct.Update(
                     stream,
                     "root.values[1]",
                     (ushort)0xBEEF,
                     variables,
                     updateOptions);
                 stream.Position = 0;
-                dynamic parsed = cstruct.ParseStream(stream, "root", variables, readOptions);
+                dynamic parsed = cstruct.Parse(stream, "root", variables, readOptions);
                 Assert.AreEqual((ushort)0xBEEF, (ushort)parsed.values[1]);
             },
             () =>
             {
                 using var stream = new MemoryStream((byte[])source.Clone());
-                cstruct.UpdateStream(
+                cstruct.Update(
                     stream,
                     "root.ptr.value.value",
                     (byte)0x7E,

@@ -16,7 +16,7 @@ using CStructSharp.Compilation;
 ///     documented value table describes (boxed primitives, <see cref="string"/>, nested <see cref="StructValue"/>,
 ///     <see cref="IList{T}"/> of <see cref="object"/> for arrays, <see cref="UnionValue"/>, <see cref="Pointer"/>,
 ///     <see cref="EnumValueResult"/>). Instances are mutable, so a parsed
-///     value can be edited and handed back to <c>Serialize</c>/<c>UpdateStream</c>.
+///     value can be edited and handed back to <c>Serialize</c>/<c>Update</c>.
 /// </summary>
 public sealed class StructValue : DynamicObject, IDictionary<string, object?>, IReadOnlyDictionary<string, object?>
 {

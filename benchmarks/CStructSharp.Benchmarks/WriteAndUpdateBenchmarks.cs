@@ -141,28 +141,28 @@ public class WriteAndUpdateBenchmarks
     {
         this.directWriteStream.SetLength(0);
         this.directWriteStream.Position = 0;
-        this.objectLayout.WriteStream(this.directWriteStream, "root", this.dictionaryData);
+        this.objectLayout.Write(this.directWriteStream, "root", this.dictionaryData);
         return this.directWriteStream.Length;
     }
 
     [Benchmark]
     public byte UpdatePrimitive()
     {
-        this.primitiveUpdateLayout.UpdateStream(this.primitiveUpdateStream, "root.value", 0x12345678U);
+        this.primitiveUpdateLayout.Update(this.primitiveUpdateStream, "root.value", 0x12345678U);
         return this.primitiveUpdateData[0];
     }
 
     [Benchmark]
     public byte UpdateLaterBitfield()
     {
-        this.bitfieldUpdateLayout.UpdateStream(this.bitfieldUpdateStream, "root.high", 3);
+        this.bitfieldUpdateLayout.Update(this.bitfieldUpdateStream, "root.high", 3);
         return this.bitfieldUpdateData[0];
     }
 
     [Benchmark]
     public byte UpdateIndexedArrayElement()
     {
-        this.arrayUpdateLayout.UpdateStream(this.arrayUpdateStream, "root.values[127]", (byte)0x5A);
+        this.arrayUpdateLayout.Update(this.arrayUpdateStream, "root.values[127]", (byte)0x5A);
         return this.arrayUpdateData[127];
     }
 
@@ -170,14 +170,14 @@ public class WriteAndUpdateBenchmarks
     [BenchmarkCategory("ReleaseGate")]
     public byte UpdatePointerTarget()
     {
-        this.pointerUpdateLayout.UpdateStream(this.pointerUpdateStream, "root.value.value", (ushort)0xBEEF);
+        this.pointerUpdateLayout.Update(this.pointerUpdateStream, "root.value.value", (ushort)0xBEEF);
         return this.pointerUpdateData[1];
     }
 
     [Benchmark]
     public byte UpdateUnionMember()
     {
-        this.unionUpdateLayout.UpdateStream(this.unionUpdateStream, "root.value.small", (byte)0x7E);
+        this.unionUpdateLayout.Update(this.unionUpdateStream, "root.value.small", (byte)0x7E);
         return this.unionUpdateData[0];
     }
 

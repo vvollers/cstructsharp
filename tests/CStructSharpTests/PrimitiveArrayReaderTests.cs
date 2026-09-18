@@ -32,15 +32,15 @@ public class PrimitiveArrayReaderTests
             }
 
             using var stream = new MemoryStream(bytes, writable: false);
-            dynamic bulk = layout.ParseStream(stream, "root");
+            dynamic bulk = layout.Parse(stream, "root");
             Assert.AreEqual(bytes.Length, stream.Position, type);
-            (List<DebugData> _, dynamic perElement) = layout.ParseStreamWithDebug(new MemoryStream(bytes, writable: false), "root");
+            (dynamic perElement, IReadOnlyList<DebugData> _) = layout.ParseWithDebug(new MemoryStream(bytes, writable: false), "root");
             var bulkValues = (IList<object?>)bulk.values;
-            var perElementValues = (IList<object?>)perElement.root.values;
+            var perElementValues = (IList<object?>)perElement.values;
             Assert.AreEqual(70000, bulkValues.Count, type);
             CollectionAssert.AreEqual(perElementValues.ToArray(), bulkValues.ToArray(), type);
             Assert.AreEqual(perElementValues[0]!.GetType(), bulkValues[0]!.GetType(), type);
-            Assert.AreEqual((byte)perElement.root.tail, (byte)bulk.tail, type);
+            Assert.AreEqual((byte)perElement.tail, (byte)bulk.tail, type);
         }
     }
 

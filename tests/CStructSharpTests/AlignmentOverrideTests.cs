@@ -60,7 +60,7 @@ public class AlignmentOverrideTests
 
         // a's override raises the struct's own alignment to 4, so the tail pads to 4, but b still sits immediately
         // after a (offset 1) since only a's own placement decision - not b's - consults the override.
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([1, 2, 0, 0,]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([1, 2, 0, 0,]), "root");
         Assert.AreEqual((byte)1, (byte)parsed.a);
         Assert.AreEqual((byte)2, (byte)parsed.b);
         Assert.AreEqual(4, cstruct.GetStructSizeInBytes("root"));
@@ -104,7 +104,7 @@ public class AlignmentOverrideTests
         var cstruct = new CStruct("struct root { uint8 a; uint8 value @align(4); };", aligned: true);
 
         using var writeStream = new MemoryStream();
-        cstruct.WriteStream(writeStream, "root", new { a = (byte)1, value = (byte)2, });
+        cstruct.Write(writeStream, "root", new { a = (byte)1, value = (byte)2, });
         CollectionAssert.AreEqual(new byte[] { 1, 0, 0, 0, 2, 0, 0, 0, }, writeStream.ToArray());
 
         byte[] bytes = cstruct.Serialize("root", new { a = (byte)1, value = (byte)2, });
@@ -114,7 +114,7 @@ public class AlignmentOverrideTests
         Assert.AreEqual(2, Convert.ToInt32(cstruct.ReadValue(readStream, "root.value")));
 
         using var updateStream = new MemoryStream(bytes);
-        cstruct.UpdateStream(updateStream, "root.value", (byte)9);
+        cstruct.Update(updateStream, "root.value", (byte)9);
         CollectionAssert.AreEqual(new byte[] { 1, 0, 0, 0, 9, 0, 0, 0, }, updateStream.ToArray());
     }
 }

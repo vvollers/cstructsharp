@@ -8,8 +8,11 @@ description: Connect decoded values to the exact positions they occupied in a st
 Normal parsing tells you what the data means. Diagnostic parsing also tells you which bytes produced each value.
 This is useful for hex viewers, format inspectors, and error reports.
 
-Use `ParseStreamWithDebug` when you need values and ranges together. Use `ResolveAddress` when you need only the
-absolute stream position of one path. `DebugData` lives in the `CStructSharp.Diagnostics` namespace.
+Use `ParseWithDebug` when you need a struct's values and ranges together; it returns a `ParseResult` whose `Value`
+is the same `StructValue` that `Parse` returns and whose `Debug` list holds one `DebugData` record per value read.
+`ReadValueWithDebug` does the same for any selection (a union, an array, a scalar) and returns a `ReadResult`. Use
+`ResolveAddress` when you need only the absolute stream position of one path. `DebugData` lives in the
+`CStructSharp.Diagnostics` namespace.
 
 ## Capture value ranges
 

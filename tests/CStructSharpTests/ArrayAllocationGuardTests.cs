@@ -36,7 +36,7 @@ public class ArrayAllocationGuardTests
         var layout = new CStruct(Layout);
         using var stream = new MemoryStream([0x40, 0x42, 0x0F, 0x00, 1, 2, 3, 4, 5, 6, 7, 8,]);
 
-        CStructReadException exception = Assert.Throws<CStructReadException>(() => layout.ParseStream(stream, "p"));
+        CStructReadException exception = Assert.Throws<CStructReadException>(() => layout.Parse(stream, "p"));
 
         StringAssert.Contains(exception.Message, "Not enough bytes");
         Assert.AreEqual(stream.Length, stream.Position);

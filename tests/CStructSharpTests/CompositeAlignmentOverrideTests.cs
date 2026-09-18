@@ -23,7 +23,7 @@ public class CompositeAlignmentOverrideTests
         Assert.AreEqual(5, cstruct.GetStructSizeInBytes("root"));
         Assert.AreEqual(1, cstruct.GetStructAlignmentInBytes("root"));
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([1, 2, 3, 4, 5,]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([1, 2, 3, 4, 5,]), "root");
         Assert.AreEqual((byte)1, (byte)parsed.a);
         Assert.AreEqual(0x05040302u, (uint)parsed.b);
     }
@@ -124,7 +124,7 @@ public class CompositeAlignmentOverrideTests
         var cstruct = new CStruct("struct root @align(1) { uint8 a; uint32 b; };", aligned: true);
 
         using var writeStream = new MemoryStream();
-        cstruct.WriteStream(writeStream, "root", new { a = (byte)1, b = 0x04030201u, });
+        cstruct.Write(writeStream, "root", new { a = (byte)1, b = 0x04030201u, });
         CollectionAssert.AreEqual(new byte[] { 1, 1, 2, 3, 4, }, writeStream.ToArray());
 
         byte[] bytes = cstruct.Serialize("root", new { a = (byte)1, b = 0x04030201u, });
@@ -134,7 +134,7 @@ public class CompositeAlignmentOverrideTests
         Assert.AreEqual(0x04030201u, Convert.ToUInt32(cstruct.ReadValue(readStream, "root.b")));
 
         using var updateStream = new MemoryStream(bytes);
-        cstruct.UpdateStream(updateStream, "root.b", 0xAABBCCDDu);
+        cstruct.Update(updateStream, "root.b", 0xAABBCCDDu);
         CollectionAssert.AreEqual(new byte[] { 1, 0xDD, 0xCC, 0xBB, 0xAA, }, updateStream.ToArray());
     }
 }

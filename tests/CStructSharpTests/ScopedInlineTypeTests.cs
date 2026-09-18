@@ -30,8 +30,8 @@ public class ScopedInlineTypeTests
         using var firstStream = new MemoryStream([0x2A,]);
         using var secondStream = new MemoryStream([0x34, 0x12,]);
 
-        dynamic first = cstruct.ParseStream(firstStream, "first");
-        dynamic second = cstruct.ParseStream(secondStream, "second");
+        dynamic first = cstruct.Parse(firstStream, "first");
+        dynamic second = cstruct.Parse(secondStream, "second");
 
         Assert.AreEqual((byte)0x2A, (byte)first.value.small);
         Assert.AreEqual((ushort)0x1234, (ushort)second.value.large);
@@ -86,7 +86,7 @@ public class ScopedInlineTypeTests
         byte[] completeBytes = [.. rootBytes, 0xA5,];
         using var stream = new MemoryStream((byte[])completeBytes.Clone());
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual((byte)0xEE, (byte)parsed.prefix);
         Assert.AreEqual((ushort)0x1122, (ushort)parsed.value.values[0]);
@@ -99,7 +99,7 @@ public class ScopedInlineTypeTests
         Assert.AreEqual(16, cstruct.GetStructSizeInBytes("root"));
 
         stream.Position = 0;
-        (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
+        (dynamic _, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root");
         Assert.IsTrue(
             debug.Any(item =>
                 item.Path == "root.value.value.payload" &&
@@ -115,7 +115,7 @@ public class ScopedInlineTypeTests
         Assert.AreEqual(0L, stream.Position);
 
         stream.Position = 0;
-        dynamic selected = cstruct.ParseStream(stream, "root.value.value");
+        dynamic selected = cstruct.Parse(stream, "root.value.value");
         Assert.AreEqual(0x55667788U, (uint)selected.payload);
 
         var data = new
@@ -131,17 +131,17 @@ public class ScopedInlineTypeTests
         CollectionAssert.AreEqual(rootBytes, cstruct.Serialize("root", data));
 
         using var written = new MemoryStream();
-        cstruct.WriteStream(written, "root", data);
+        cstruct.Write(written, "root", data);
         CollectionAssert.AreEqual(rootBytes, written.ToArray());
 
         stream.Position = 0;
-        cstruct.UpdateStream(stream, "root.value.value.payload", 0xA1B2C3D4U);
+        cstruct.Update(stream, "root.value.value.payload", 0xA1B2C3D4U);
         byte[] expected = (byte[])completeBytes.Clone();
         WriteUnsigned(expected, 8, 4, 0xA1B2C3D4, isLittleEndian);
         CollectionAssert.AreEqual(expected, stream.ToArray());
         Assert.AreEqual(0L, stream.Position);
 
-        cstruct.UpdateStream(stream, "root.value.pointer.value.marker", (byte)0x5A);
+        cstruct.Update(stream, "root.value.pointer.value.marker", (byte)0x5A);
         expected[16] = 0x5A;
         CollectionAssert.AreEqual(expected, stream.ToArray());
         Assert.AreEqual(0L, stream.Position);
@@ -175,7 +175,7 @@ public class ScopedInlineTypeTests
         byte[] expected = [0x2A, 0x2B, 0x00, 0x00, 0x78, 0x56, 0x34, 0x12,];
         using var stream = new MemoryStream((byte[])expected.Clone());
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual((byte)0x2A, (byte)parsed.first.small);
         Assert.AreEqual((byte)0x2B, (byte)parsed.again.small);
@@ -187,7 +187,7 @@ public class ScopedInlineTypeTests
         Assert.AreEqual((byte)4, cstruct.FieldAlignments["large_payload"]);
 
         stream.Position = 0;
-        (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
+        (dynamic _, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root");
         Assert.IsTrue(
             debug.Any(item =>
                 item.Path == "root.second.large" &&
@@ -215,7 +215,7 @@ public class ScopedInlineTypeTests
         var cstruct = new CStruct(layout);
         using var stream = new MemoryStream([0x34, 0x12, 0xA5,]);
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual((ushort)0x1234, (ushort)parsed.item.local);
         Assert.AreEqual((byte)0xA5, (byte)parsed.@byte.raw);
@@ -298,7 +298,7 @@ public class ScopedInlineTypeTests
                 () =>
                 {
                     var cstruct = new CStruct(layout, pointerSize: 1);
-                    _ = cstruct.ParseStream(stream, cstruct.CStructElements.Keys.First());
+                    _ = cstruct.Parse(stream, cstruct.CStructElements.Keys.First());
                 },
                 layout);
 
@@ -348,7 +348,7 @@ public class ScopedInlineTypeTests
         CollectionAssert.AreEqual(new byte[] { 0x00, 0x2A, }, cstruct.Serialize("node", data));
 
         using var stream = new MemoryStream([0x00, 0x2A,]);
-        dynamic parsed = cstruct.ParseStream(
+        dynamic parsed = cstruct.Parse(
             stream,
             "node",
             (IReadOnlyDictionary<string, int>?)null,
@@ -379,7 +379,7 @@ public class ScopedInlineTypeTests
         var cstruct = new CStruct(layout, pointerSize: 1);
         using var stream = new MemoryStream([0x02, 0xEE, 0x04, 0xEE, 0x34, 0x12,]);
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
         var outer = (Pointer)parsed.value;
 
         Assert.AreEqual(2L, outer.Address);
@@ -387,7 +387,7 @@ public class ScopedInlineTypeTests
         Assert.AreEqual((ushort)0x1234, (ushort)outer.Next.Value!);
         stream.Position = 0;
         Assert.AreEqual(4L, cstruct.ResolveAddress(stream, "root.value.value.value"));
-        cstruct.UpdateStream(stream, "root.value.value.value", (ushort)0xBEEF);
+        cstruct.Update(stream, "root.value.value.value", (ushort)0xBEEF);
         CollectionAssert.AreEqual(
             new byte[] { 0x02, 0xEE, 0x04, 0xEE, 0xEF, 0xBE, },
             stream.ToArray());
@@ -401,7 +401,7 @@ public class ScopedInlineTypeTests
     public void AnonymousTypedefStruct_IsAcceptedAndUsableAtTheRootPath()
     {
         var cstruct = new CStruct("typedef struct { uint8 x; uint8 y; } Point;");
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([1, 2,]), "Point");
+        dynamic parsed = cstruct.Parse(new MemoryStream([1, 2,]), "Point");
 
         Assert.AreEqual((byte)1, (byte)parsed.x);
         Assert.AreEqual((byte)2, (byte)parsed.y);
@@ -427,7 +427,7 @@ public class ScopedInlineTypeTests
     {
         var cstruct = new CStruct("typedef struct { struct { uint8 a; } inner; uint8 b; } Outer;");
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([1, 2,]), "Outer");
+        dynamic parsed = cstruct.Parse(new MemoryStream([1, 2,]), "Outer");
 
         Assert.AreEqual((byte)1, (byte)parsed.inner.a);
         Assert.AreEqual((byte)2, (byte)parsed.b);
@@ -460,7 +460,7 @@ public class ScopedInlineTypeTests
         var cstruct = new CStruct(
             "typedef struct point { uint8 x; uint8 y; } point_alias; struct root { point_alias item; };");
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([1, 2,]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([1, 2,]), "root");
 
         Assert.AreEqual((byte)1, (byte)parsed.item.x);
         Assert.AreEqual((byte)2, (byte)parsed.item.y);

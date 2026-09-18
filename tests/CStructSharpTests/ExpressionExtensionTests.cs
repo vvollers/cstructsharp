@@ -70,17 +70,17 @@ public class ExpressionExtensionTests
         var layout = new CStruct("enum kind : uint8 { A = 1, B = 6 ^ 3 }; struct head { uint32 a; uint16 b; }; struct root { uint8 x[kind.B % 4]; uint8 y[sizeof(head) ? offsetof(head, b) : 9]; };");
         byte[] bytes = [1, 2, 3, 4, 5,];
         using var stream = new MemoryStream((byte[])bytes.Clone());
-        List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
+        IReadOnlyList<DebugData> debug = layout.ParseWithDebug(stream, "root").Debug;
         stream.Position = 0;
-        dynamic parsed = layout.ParseStream(stream, "root");
+        dynamic parsed = layout.Parse(stream, "root");
         stream.Position = 0;
         Assert.IsTrue(debug.Any(item => item.Path == "root.y" && item.Start == 4 && item.End == 5));
         Assert.AreEqual(1, layout.ResolveAddress(stream, "root.y"));
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", parsed));
         using var written = new MemoryStream();
-        layout.WriteStream(written, "root", new Dictionary<string, object?> { ["x"] = new byte[] { 1, }, ["y"] = new byte[] { 2, 3, 4, 5, }, });
+        layout.Write(written, "root", new Dictionary<string, object?> { ["x"] = new byte[] { 1, }, ["y"] = new byte[] { 2, 3, 4, 5, }, });
         CollectionAssert.AreEqual(bytes, written.ToArray());
-        layout.UpdateStream(stream, "root.y[3]", (byte)9);
+        layout.Update(stream, "root.y[3]", (byte)9);
         Assert.AreEqual((byte)9, layout.ReadValue<byte>(stream.ToArray().AsSpan(), "root.y[3]"));
     }
 

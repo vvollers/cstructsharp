@@ -24,7 +24,7 @@ public class PathAccess
         var c = new CStruct(d, 1);
         using var stream = new MemoryStream(buf);
 
-        int length = c.GetDynamicArrayLength(stream, "root.items");
+        int length = c.GetArrayLength(stream, "root.items");
 
         Assert.AreEqual(3, length);
     }
@@ -47,7 +47,7 @@ public class PathAccess
         var c = new CStruct(d, 1);
         using var stream = new MemoryStream(buf);
 
-        int length = c.GetDynamicArrayLength(stream, "root.name");
+        int length = c.GetArrayLength(stream, "root.name");
 
         Assert.AreEqual(2, length);
     }
@@ -71,7 +71,7 @@ public class PathAccess
         var c = new CStruct(d, 1);
         using var stream = new MemoryStream(buf);
 
-        dynamic item = c.ParseStream(stream, "root.items[1]");
+        dynamic item = c.Parse(stream, "root.items[1]");
 
         Assert.AreEqual(0x22, item.value);
     }
@@ -96,12 +96,12 @@ public class PathAccess
         var c = new CStruct(d, 1);
         using var stream = new MemoryStream(buf);
 
-        dynamic inner = c.ParseStream(stream, "outer.inn");
+        dynamic inner = c.Parse(stream, "outer.inn");
 
         Assert.AreEqual(0x11, inner.x);
 
         stream.Seek(0, SeekOrigin.Begin);
-        dynamic outer = c.ParseStream(stream, "outer");
+        dynamic outer = c.Parse(stream, "outer");
         Assert.AreEqual(0x22, outer.y);
     }
 
@@ -126,12 +126,12 @@ public class PathAccess
         var c = new CStruct(d, 1);
         using var stream = new MemoryStream(buf);
 
-        dynamic secondItem = c.ParseStream(stream, "root.items[1]");
+        dynamic secondItem = c.Parse(stream, "root.items[1]");
 
         Assert.AreEqual("test", secondItem.name);
 
         stream.Seek(0, SeekOrigin.Begin);
-        dynamic firstItem = c.ParseStream(stream, "root.items[0]");
+        dynamic firstItem = c.Parse(stream, "root.items[0]");
         Assert.StartsWith("one", firstItem.name);
         Assert.AreEqual(4, firstItem.name.Length);
         Assert.AreEqual(0, firstItem.name[3]);
@@ -156,7 +156,7 @@ public class PathAccess
         var c = new CStruct(d, 1);
         using var stream = new MemoryStream(buf);
 
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(stream, "outer.i");
+        (dynamic obj, IReadOnlyList<DebugData> debug) = c.ParseWithDebug(stream, "outer.i");
         dynamic inner = obj;
 
         Assert.AreEqual(0x02, inner.x);

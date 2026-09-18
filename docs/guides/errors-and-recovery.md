@@ -47,9 +47,9 @@ bug in application code into `false`.
 | `ResolveAddress` / length lookup | Restores position after inspection. |
 | `Serialize` to a new `byte[]` | No result array is returned. |
 | Span / `IBufferWriter` serialization | An initialized or advanced prefix may remain. |
-| `WriteStream` | Earlier fields may already be written. |
-| `UpdateStream` validation failure | Content, length, and position remain unchanged. |
-| `UpdateStream` physical commit failure | A destination-accepted prefix may remain; position restoration is best effort. |
+| `Write` | Earlier fields may already be written. |
+| `Update` validation failure | Content, length, and position remain unchanged. |
+| `Update` physical commit failure | A destination-accepted prefix may remain; position restoration is best effort. |
 
 This distinction is why the choice between owned output, direct output, and an update matters.
 

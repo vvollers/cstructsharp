@@ -82,11 +82,11 @@ more important than avoiding an allocation.
 
 ## Write to a stream
 
-`WriteStream` writes at a writable, seekable stream's current position:
+`Write` writes at a writable, seekable stream's current position:
 
 ```csharp
 using var stream = new MemoryStream();
-layout.WriteStream(stream, "sample", value);
+layout.Write(stream, "sample", value);
 ```
 
 The stream remains open and belongs to the caller. Direct stream writing is not transactional: a later conversion or

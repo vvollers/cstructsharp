@@ -35,7 +35,7 @@ public class UnionValueTests
         RegressionTestSupport.WriteUnsigned(bytes, 0, 2, 0x1234, isLittleEndian);
         using var stream = new MemoryStream(bytes);
 
-        var parsed = (UnionValue)cstruct.ParseStream(stream, "choice");
+        var parsed = (UnionValue)cstruct.ReadValue(stream, "choice")!;
         dynamic dynamicParsed = parsed;
 
         Assert.AreEqual("choice", parsed.UnionName);
@@ -64,7 +64,7 @@ public class UnionValueTests
         using var stream = new MemoryStream(new byte[] { 0x34, });
 
         CStructReadException exception = Assert.Throws<CStructReadException>(
-            () => cstruct.ParseStream(stream, "choice"));
+            () => cstruct.Parse(stream, "choice"));
 
         StringAssert.Contains(exception.Message, "Not enough bytes");
         Assert.AreEqual(1L, stream.Position);
@@ -110,7 +110,7 @@ public class UnionValueTests
     {
         var cstruct = new CStruct("union choice { uint8 small; uint16 large; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0x34, 0x12, });
-        var parsed = (UnionValue)cstruct.ParseStream(stream, "choice");
+        var parsed = (UnionValue)cstruct.ReadValue(stream, "choice")!;
         UnionValue edited = parsed.WithSelectedMember("small", (byte)0xA5);
         UnionValue restored = edited.WithoutSelection();
 
@@ -164,15 +164,15 @@ public class UnionValueTests
             cstruct.Serialize("choice", selected));
 
         using var clearing = new MemoryStream(new byte[] { 0x34, 0x12, });
-        cstruct.UpdateStream(clearing, "choice", selected);
+        cstruct.Update(clearing, "choice", selected);
         CollectionAssert.AreEqual(new byte[] { 0xA5, 0x00, }, clearing.ToArray());
 
         using var directWrite = new MemoryStream(new byte[] { 0x34, 0x12, });
-        cstruct.WriteStream(directWrite, "choice", selected);
+        cstruct.Write(directWrite, "choice", selected);
         CollectionAssert.AreEqual(new byte[] { 0xA5, 0x00, }, directWrite.ToArray());
 
         using var preserving = new MemoryStream(new byte[] { 0x34, 0x12, });
-        cstruct.UpdateStream(
+        cstruct.Update(
             preserving,
             "choice",
             selected,
@@ -180,7 +180,7 @@ public class UnionValueTests
         CollectionAssert.AreEqual(new byte[] { 0xA5, 0x12, }, preserving.ToArray());
 
         using var raw = new MemoryStream(new byte[] { 0x34, 0x12, });
-        cstruct.UpdateStream(
+        cstruct.Update(
             raw,
             "choice",
             UnionValue.FromRaw("choice", new byte[] { 0xFE, 0xDC, }),
@@ -215,7 +215,7 @@ public class UnionValueTests
             using var stream = new MemoryStream((byte[])original.Clone()) { Position = 1, };
 
             Assert.Throws<CStructWriteException>(
-                () => cstruct.UpdateStream(stream, "choice", invalid),
+                () => cstruct.Update(stream, "choice", invalid),
                 invalid.GetType().Name);
             CollectionAssert.AreEqual(original, stream.ToArray(), invalid.GetType().Name);
             Assert.AreEqual(1L, stream.Position, invalid.GetType().Name);
@@ -224,7 +224,7 @@ public class UnionValueTests
         var arrayUnion = new CStruct("union choice { uint8 values[2]; uint16 wide; };", pointerSize: 1);
         using var arrayStream = new MemoryStream(new byte[] { 0x34, 0x12, });
         Assert.Throws<CStructWriteException>(
-            () => arrayUnion.UpdateStream(
+            () => arrayUnion.Update(
                 arrayStream,
                 "choice",
                 UnionValue.FromMember("choice", "values", (byte)1)));
@@ -245,7 +245,7 @@ public class UnionValueTests
         using var stream = new MemoryStream(new byte[] { 0x34, });
 
         Assert.Throws<CStructReadException>(
-            () => cstruct.UpdateStream(
+            () => cstruct.Update(
                 stream,
                 "choice",
                 UnionValue.FromMember("choice", "small", (byte)0xA5),
@@ -274,7 +274,7 @@ public class UnionValueTests
         var cstruct = new CStruct(layout, pointerSize: 1);
         using var stream = new MemoryStream(bytes);
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual(1, ((IList<object?>)parsed.items).Count);
         CollectionAssert.AreEqual(bytes, cstruct.Serialize("root", parsed));
@@ -297,7 +297,7 @@ public class UnionValueTests
         var cstruct = new CStruct(layout, pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0x03, 0xA5, 0xA5, });
 
-        var parsed = (UnionValue)cstruct.ParseStream(stream, "choice");
+        var parsed = (UnionValue)cstruct.ReadValue(stream, "choice")!;
 
         Assert.AreEqual(1, ((IList<object?>)parsed["data"]!).Count);
         Assert.AreEqual(1L, stream.Position);
@@ -321,13 +321,13 @@ public class UnionValueTests
         var cstruct = new CStruct(layout, pointerSize: 1);
 
         Assert.Throws<CStructReadLimitException>(
-            () => cstruct.ParseStream(
+            () => cstruct.Parse(
                 new MemoryStream(new byte[] { 1, 2, }),
                 "root",
                 new Dictionary<string, CStructSharp.Syntax.Expr>(),
                 new ReadOptions { MaxNestingDepth = 1, }));
 
-        dynamic parsed = cstruct.ParseStream(
+        dynamic parsed = cstruct.Parse(
             new MemoryStream(new byte[] { 1, 2, }),
             "root",
             new Dictionary<string, CStructSharp.Syntax.Expr>(),
@@ -354,7 +354,7 @@ public class UnionValueTests
         var cstruct = new CStruct(layout, pointerSize: 1);
         using var stream = new MemoryStream(bytes);
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
         var values = (IList<object?>)parsed.values;
         var first = (UnionValue)values[0]!;
         var second = (UnionValue)values[1]!;
@@ -384,7 +384,7 @@ public class UnionValueTests
         var cstruct = new CStruct(layout, pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0x02, 0x00, 0xA5, });
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
         var union = (UnionValue)parsed.value;
         var pointer = (Pointer)union["target"]!;
 
@@ -410,7 +410,7 @@ public class UnionValueTests
         var cstruct = new CStruct(layout, pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0x34, 0x12, });
 
-        (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
+        (dynamic _, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root");
         DebugData storage = debug.Single(item => item.Value is UnionValue);
 
         Assert.AreEqual(0L, storage.Start);
@@ -423,7 +423,7 @@ public class UnionValueTests
         Assert.IsTrue(debug.Count(item => item.Start == 0) >= 3);
 
         stream.Position = 0;
-        (List<DebugData> rootDebug, _) = cstruct.ParseStreamWithDebug(stream, "choice");
+        (_, IReadOnlyList<DebugData> rootDebug) = cstruct.ReadValueWithDebug(stream, "choice");
         Assert.AreEqual("choice", rootDebug.Single(item => item.Value is UnionValue).Path);
         Assert.IsTrue(rootDebug.Any(item => item.Path == "choice.small" && item.Start == 0 && item.End == 1));
     }

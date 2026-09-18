@@ -79,9 +79,9 @@ public class InlineUnionTests
         Assert.AreEqual((ushort)0x5678, layout.ReadValue<ushort>(FileNameBytes.AsSpan(), "file_name.Reserved"));
         Assert.AreEqual(0x56781234U, layout.ReadValue<uint>(FileNameBytes.AsSpan(), "file_name.ReparseTag"));
 
-        layout.UpdateStream(stream, "file_name.EaSize", (ushort)0xAAAA);
+        layout.Update(stream, "file_name.EaSize", (ushort)0xAAAA);
         CollectionAssert.AreEqual(new byte[] { 0x20, 0, 0, 0, 0xAA, 0xAA, 0x78, 0x56, 3, }, stream.ToArray());
-        layout.UpdateStream(stream, "file_name.ReparseTag", 0x01020304U);
+        layout.Update(stream, "file_name.ReparseTag", 0x01020304U);
         CollectionAssert.AreEqual(new byte[] { 0x20, 0, 0, 0, 4, 3, 2, 1, 3, }, stream.ToArray());
 
         FileName typed = layout.ReadValue<FileName>(FileNameBytes.AsSpan(), "file_name");
@@ -116,7 +116,7 @@ public class InlineUnionTests
     public void AnonymousUnion_DebugPathsSkipTheAnonymousLevel()
     {
         var layout = new CStruct(FileNameLayout);
-        (List<DebugData> debug, dynamic _) = layout.ParseStreamWithDebug(new MemoryStream(FileNameBytes), "file_name");
+        (dynamic _, IReadOnlyList<DebugData> debug) = layout.ParseWithDebug(new MemoryStream(FileNameBytes), "file_name");
         Assert.IsTrue(debug.Any(item => item.Path == "file_name.EaSize" && item.Start == 4 && item.End == 6));
         Assert.IsTrue(debug.Any(item => item.Path == "file_name.ReparseTag" && item.Start == 4 && item.End == 8));
         Assert.IsFalse(debug.Any(item => item.Path.Contains("..")));
@@ -130,8 +130,8 @@ public class InlineUnionTests
         Assert.AreEqual(8, layout.GetStructSizeInBytes("u"));
         Assert.AreEqual(8, layout.GetStructAlignmentInBytes("u"));
 
-        dynamic value = layout.Parse(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, }.AsSpan(), "u");
-        var union = (UnionValue)value;
+        object? value = layout.ReadValue(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, }.AsSpan(), "u");
+        var union = (UnionValue)value!;
         Assert.AreEqual(0x04030201U, (uint)((dynamic)union["pair"]!).a);
         Assert.AreEqual((byte)1, (byte)union["x"]!);
         Assert.AreEqual((ushort)0x0201, (ushort)((UnionValue)union["inner"]!)["s"]!);

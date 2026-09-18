@@ -8,7 +8,7 @@ using System.Globalization;
 /// <summary>
 ///     A parsed one-dimensional array of a fixed-width numeric primitive, stored as a <typeparamref name="T"/>[]
 ///     (E2.3). It is the <see cref="IList{T}"/> of <see cref="object"/> the documented value table promises for
-///     arrays - enumeration, indexing and passing it back to <c>Serialize</c>/<c>UpdateStream</c> all work - while
+///     arrays - enumeration, indexing and passing it back to <c>Serialize</c>/<c>Update</c> all work - while
 ///     <see cref="Span"/> and <see cref="ToArray"/> expose the values without boxing. Like a .NET array it is fixed
 ///     size: elements can be replaced through the indexer, never added or removed.
 /// </summary>

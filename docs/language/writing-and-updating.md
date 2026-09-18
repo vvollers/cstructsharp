@@ -5,8 +5,8 @@ description: Encode complete values, limit output, and replace existing storage 
 
 # Writing and updating
 
-`Serialize` creates a new encoded region. `WriteStream` writes one at the current destination position.
-`UpdateStream` finds and replaces storage that already exists.
+`Serialize` creates a new encoded region. `Write` writes one at the current destination position.
+`Update` finds and replaces storage that already exists.
 
 All three use the prepared layout to check value shape, numeric range, arrays, strings, enums, unions, pointers, and
 configured limits.
@@ -53,12 +53,12 @@ shared bitfield or union storage counts each physical write.
 Negative byte/array limits or a non-positive nesting limit are argument errors rejected before output begins.
 Exceeding a configured write ceiling raises `CStructWriteLimitException`.
 
-`WriteStream` is not transactional. It checks each next write before exceeding a limit, but a later field failure may
+`Write` is not transactional. It checks each next write before exceeding a limit, but a later field failure may
 leave earlier fields in the destination.
 
 ## Update validation before destination writes
 
-`UpdateStream` first locates the selected path by reading existing data. `UpdateOptions` therefore has separate
+`Update` first locates the selected path by reading existing data. `UpdateOptions` therefore has separate
 `MaxTraversal*` limits for pointer depth/target bytes, strings, total bytes read, and nesting, in addition to the
 inherited write limits used for the replacement.
 
@@ -81,7 +81,7 @@ restore the original position.
 
 ## Pointer updates
 
-`UpdateStream(path + ".address")` changes the stored pointer coordinate. `UpdateStream(path + ".value")` follows one
+`Update(path + ".address")` changes the stored pointer coordinate. `Update(path + ".value")` follows one
 level and writes the target.
 
 An existing non-null target is required by default. Set `RequireExistingPointerTarget = false` only when writing at
@@ -113,7 +113,7 @@ Paths use dot-separated names and one unpadded non-negative decimal index per se
 `root.items[2].value` or `root.matrix[1][2]`. Empty segments, signs, trailing text, too many indices, and indices on
 non-arrays produce `CStructPathException`. See [multidimensional paths](paths-and-selection.md#multidimensional-arrays).
 
-`GetDynamicArrayLength` accepts fixed/runtime arrays, unsized character strings, and named terminated strings. It
+`GetArrayLength` accepts fixed/runtime arrays, unsized character strings, and named terminated strings. It
 returns array element counts or decoded string character/code-unit counts and restores the original stream position.
 
 Path resolution retains array, bitfield, pointer-depth, alignment, and union information rather than reducing every

@@ -26,14 +26,14 @@ public class CStructPrimitiveCodecsTests
         byte[] bytes = little.Serialize("root", new { value = 0x11223344, pair = (ushort)0xAABB, });
 
         using var littleStream = new MemoryStream(bytes);
-        dynamic parsedLittle = little.ParseStream(littleStream, "root");
+        dynamic parsedLittle = little.Parse(littleStream, "root");
         Assert.AreEqual(0x11223344, parsedLittle.value);
         Assert.AreEqual((ushort)0xAABB, parsedLittle.pair);
 
         // The same bytes decoded with the opposite-endianness instance must NOT agree - proving `big` truly uses
         // its own byte order rather than one baked into a shared, first-instance-wins static table.
         using var bigStream = new MemoryStream(bytes);
-        dynamic parsedBig = big.ParseStream(bigStream, "root");
+        dynamic parsedBig = big.Parse(bigStream, "root");
         Assert.AreNotEqual(0x11223344, parsedBig.value);
         Assert.AreNotEqual((ushort)0xAABB, parsedBig.pair);
 
@@ -56,7 +56,7 @@ public class CStructPrimitiveCodecsTests
 
             byte[] bytes = cstruct.Serialize("root", new { value = 1, pair = (ushort)2, });
             using var stream = new MemoryStream(bytes);
-            dynamic parsed = cstruct.ParseStream(stream, "root");
+            dynamic parsed = cstruct.Parse(stream, "root");
 
             Assert.AreEqual(1, parsed.value);
             Assert.AreEqual((ushort)2, parsed.pair);

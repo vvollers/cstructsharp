@@ -32,7 +32,7 @@ public class PointerArithmeticTests
         byte[] original = [0xA5, 0xA5, 0xA5,];
         using var writeStream = new MemoryStream((byte[])original.Clone()) { Position = 1, };
         Assert.Throws<CStructWriteException>(
-            () => cstruct.WriteStream(writeStream, "root", data, options: options));
+            () => cstruct.Write(writeStream, "root", data, options: options));
         CollectionAssert.AreEqual(original, writeStream.ToArray());
         Assert.AreEqual(1L, writeStream.Position);
 
@@ -43,7 +43,7 @@ public class PointerArithmeticTests
             Origin = -2,
         };
         Assert.Throws<CStructWriteException>(
-            () => cstruct.UpdateStream(updateStream, "root.ptr.address", -1L, options: updateOptions));
+            () => cstruct.Update(updateStream, "root.ptr.address", -1L, options: updateOptions));
         CollectionAssert.AreEqual(original, updateStream.ToArray());
         Assert.AreEqual(1L, updateStream.Position);
     }
@@ -181,7 +181,7 @@ public class PointerArithmeticTests
         using (var parseStream = new MemoryStream((byte[])original.Clone()) { Position = rootStart, })
         {
             CStructReadException exception = Assert.Throws<CStructReadException>(
-                () => cstruct.ParseStream(
+                () => cstruct.Parse(
                     parseStream,
                     "root",
                     variables: (IReadOnlyDictionary<string, int>?)null,
@@ -192,7 +192,7 @@ public class PointerArithmeticTests
         using (var debugStream = new MemoryStream((byte[])original.Clone()) { Position = rootStart, })
         {
             CStructReadException exception = Assert.Throws<CStructReadException>(
-                () => cstruct.ParseStreamWithDebug(
+                () => cstruct.ParseWithDebug(
                     debugStream,
                     "root",
                     new Dictionary<string, Syntax.Expr>(),
@@ -211,7 +211,7 @@ public class PointerArithmeticTests
         using (var lengthStream = new MemoryStream((byte[])original.Clone()) { Position = rootStart, })
         {
             CStructPathException exception = Assert.Throws<CStructPathException>(
-                () => cstruct.GetDynamicArrayLength(lengthStream, "root.ptr.value", options: options));
+                () => cstruct.GetArrayLength(lengthStream, "root.ptr.value", options: options));
             Assert.IsInstanceOfType<OverflowException>(exception.InnerException);
             Assert.AreEqual(rootStart, lengthStream.Position);
         }
@@ -223,7 +223,7 @@ public class PointerArithmeticTests
             Origin = long.MaxValue,
         };
         CStructPathException updateException = Assert.Throws<CStructPathException>(
-            () => cstruct.UpdateStream(updateStream, "root.ptr.value", 'Z', options: updateOptions));
+            () => cstruct.Update(updateStream, "root.ptr.value", 'Z', options: updateOptions));
         Assert.IsInstanceOfType<OverflowException>(updateException.InnerException);
         CollectionAssert.AreEqual(original, updateStream.ToArray());
         Assert.AreEqual(rootStart, updateStream.Position);
@@ -252,7 +252,7 @@ public class PointerArithmeticTests
         using (var parseStream = new MemoryStream((byte[])original.Clone()))
         {
             CStructReadException exception = Assert.Throws<CStructReadException>(
-                () => cstruct.ParseStream(
+                () => cstruct.Parse(
                     parseStream,
                     "root",
                     variables: (IReadOnlyDictionary<string, int>?)null,
@@ -265,7 +265,7 @@ public class PointerArithmeticTests
         using (var debugStream = new MemoryStream((byte[])original.Clone()))
         {
             _ = Assert.Throws<CStructReadException>(
-                () => cstruct.ParseStreamWithDebug(
+                () => cstruct.ParseWithDebug(
                     debugStream,
                     "root",
                     new Dictionary<string, Syntax.Expr>(),
@@ -284,13 +284,13 @@ public class PointerArithmeticTests
 
         using var updateStream = new MemoryStream((byte[])original.Clone());
         _ = Assert.Throws<CStructReadException>(
-            () => cstruct.UpdateStream(updateStream, "root.ptr.value", (byte)1));
+            () => cstruct.Update(updateStream, "root.ptr.value", (byte)1));
         CollectionAssert.AreEqual(original, updateStream.ToArray());
         Assert.AreEqual(0L, updateStream.Position);
 
         using var maximumStream = new MemoryStream(
             RegressionTestSupport.EncodeUnsigned((ulong)long.MaxValue, 8, isLittleEndian));
-        dynamic maximumResult = cstruct.ParseStream(
+        dynamic maximumResult = cstruct.Parse(
             maximumStream,
             "root",
             variables: (IReadOnlyDictionary<string, int>?)null,
@@ -309,7 +309,7 @@ public class PointerArithmeticTests
         };
         using var dependentParse = new MemoryStream((byte[])dependentBytes.Clone());
         _ = Assert.Throws<CStructReadException>(
-            () => dependent.ParseStream(dependentParse, "root", staleOverride, noDereference));
+            () => dependent.Parse(dependentParse, "root", staleOverride, noDereference));
 
         using var dependentAddress = new MemoryStream((byte[])dependentBytes.Clone());
         _ = Assert.Throws<CStructReadException>(
@@ -340,7 +340,7 @@ public class PointerArithmeticTests
         };
         using var targetZeroStream = new MemoryStream(new byte[] { 0x2A, 0x01, }) { Position = 1, };
 
-        dynamic parsed = cstruct.ParseStream(
+        dynamic parsed = cstruct.Parse(
             targetZeroStream,
             "root",
             variables: (IReadOnlyDictionary<string, int>?)null,
@@ -350,7 +350,7 @@ public class PointerArithmeticTests
         Assert.AreEqual((byte)0x2A, pointer.Value);
 
         using var absoluteStream = new MemoryStream(new byte[] { 0x01, 0x2A, });
-        dynamic absoluteResult = cstruct.ParseStream(
+        dynamic absoluteResult = cstruct.Parse(
             absoluteStream,
             "root",
             variables: (IReadOnlyDictionary<string, int>?)null,
@@ -374,7 +374,7 @@ public class PointerArithmeticTests
                 Origin = origin,
             };
             using var nullStream = new MemoryStream([0x00,]);
-            dynamic nullResult = cstruct.ParseStream(
+            dynamic nullResult = cstruct.Parse(
                 nullStream,
                 "root",
                 variables: (IReadOnlyDictionary<string, int>?)null,

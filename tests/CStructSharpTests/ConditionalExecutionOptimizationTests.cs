@@ -17,7 +17,7 @@ public class ConditionalExecutionOptimizationTests
         var layout = new CStruct("#define TAG 1\nstruct child { uint8 TAG; }; struct root { if (TAG) { child nested; uint8 payload; } else { uint16 fallback; } };", aligned: false);
         byte[] bytes = [0, 42];
         using var stream = new MemoryStream(bytes);
-        dynamic value = layout.ParseStream(stream, "root");
+        dynamic value = layout.Parse(stream, "root");
         Assert.AreEqual((byte)42, value.payload);
         Assert.AreEqual(2L, stream.Position);
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", (object)value));
@@ -31,7 +31,7 @@ public class ConditionalExecutionOptimizationTests
         var layout = new CStruct("struct root { if (1) { uint8 value; } else { uint16 other; } };", aligned: false);
         byte[] bytes = [42];
         using var stream = new MemoryStream(bytes);
-        dynamic value = layout.ParseStream(stream, "root");
+        dynamic value = layout.Parse(stream, "root");
         Assert.AreEqual((byte)42, value.value);
         Assert.AreEqual(1L, stream.Position);
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", (object)value));
@@ -45,7 +45,7 @@ public class ConditionalExecutionOptimizationTests
     {
         var layout = new CStruct("struct child { uint8 count; }; struct root { if (0) { uint8 count; } child nested; if (count) { uint8 payload; } };", aligned: false);
         byte[] bytes = [1, 42];
-        Assert.Throws<CStructReadException>(() => layout.ParseStream(new MemoryStream(bytes), "root"));
+        Assert.Throws<CStructReadException>(() => layout.Parse(new MemoryStream(bytes), "root"));
         Assert.Throws<CStructReadException>(() => layout.ResolveAddress(new MemoryStream(bytes), "root.payload"));
         Assert.Throws<CStructException>(() => layout.Serialize("root", new { nested = new { count = 1 }, payload = 42 }));
     }
@@ -55,7 +55,7 @@ public class ConditionalExecutionOptimizationTests
     public void MissingSelector_IdentifiesConditionalEvaluation()
     {
         var layout = new CStruct("struct root { if (missing) { uint8 value; } };", aligned: false);
-        CStructReadException error = Assert.Throws<CStructReadException>(() => layout.ParseStream(new MemoryStream([42]), "root"));
+        CStructReadException error = Assert.Throws<CStructReadException>(() => layout.Parse(new MemoryStream([42]), "root"));
         StringAssert.Contains(error.Message, "conditional selector");
     }
 
@@ -131,7 +131,7 @@ public class ConditionalExecutionOptimizationTests
         Parallel.For(0, 64, _ =>
         {
             using var stream = new MemoryStream(bytes);
-            dynamic value = layout.ParseStream(stream, "root");
+            dynamic value = layout.Parse(stream, "root");
             Assert.AreEqual(bytes.Length, stream.Position);
             CollectionAssert.AreEqual(bytes, layout.Serialize("root", (object)value));
             Assert.AreEqual(6L, layout.ResolveAddress(new MemoryStream(bytes), "root.entries[0].trailer"));

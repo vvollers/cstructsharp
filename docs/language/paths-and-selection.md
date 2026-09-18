@@ -57,7 +57,7 @@ root.matrix[2][3]      ──► one scalar/struct element
 Supplying fewer indices than the field has dimensions selects the corresponding lower-dimensional sub-array rather
 than one element - `root.matrix[2]` is exactly the third row, not an error, and behaves like an ordinary
 one-dimensional array field from that point on (it can itself be indexed further, has its own
-`GetDynamicArrayLength`, and so on). Traversing into a nested field or pointer accessor still requires every
+`GetArrayLength`, and so on). Traversing into a nested field or pointer accessor still requires every
 dimension to be indexed first (`root.grid[1].member` is rejected the same way `root.grid.member` is for a plain
 array with no index at all; `root.grid[1][2].member` is fine). Supplying more indices than the field has dimensions is
 rejected. A fixed table of fixed-width strings (`char names[10][32]`) selects one row at a time as a whole string,
@@ -73,8 +73,8 @@ A struct segment follows normal sequential placement. A union member begins at t
 first byte position is the same. If that member is a struct, its own child fields then advance within the selected
 view.
 
-Selecting a whole struct/union and selecting one scalar are different result shapes. Use `Parse`/`ParseStream` for a
-composite or `ReadValue` for any single direct value.
+Selecting a whole struct/union and selecting one scalar are different result shapes. Use `Parse` for a
+struct (`StructValue`) or `ReadValue` for any selection, including unions (`UnionValue`) and single direct values.
 
 ## Pointer accessors
 
@@ -96,13 +96,13 @@ either name normally.
 
 | Operation | What a path selects |
 | --- | --- |
-| `Parse` / `ParseStream` | A root or selected composite |
-| `ReadValue` / `ReadValue<T>` | A root, nested object, scalar, or array item |
-| `ParseStreamWithDebug` | A value plus ranges visited while reading it |
+| `Parse` | A root or nested struct |
+| `ReadValue` / `ReadValue<T>` | A root, nested object, union, scalar, or array item |
+| `ParseWithDebug` / `ReadValueWithDebug` | A value plus ranges visited while reading it |
 | `ResolveAddress` | The absolute stream position of the selected storage/target |
-| `GetDynamicArrayLength` | A fixed/runtime array or terminated string |
-| `Serialize` / `WriteStream` | The value shape to encode |
-| `UpdateStream` | Existing storage to locate and replace |
+| `GetArrayLength` | A fixed/runtime array or terminated string |
+| `Serialize` / `Write` | The value shape to encode |
+| `Update` | Existing storage to locate and replace |
 
 The [feature table](operation-matrix.md#feature-support) gives exact support and limitations for each language
 feature.

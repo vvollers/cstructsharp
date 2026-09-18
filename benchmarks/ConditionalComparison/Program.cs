@@ -11,15 +11,15 @@ foreach (var f in fixtures.Where(f => args[1] != "main" || !f.Conditional))
     var bytes = f.Bytes?.Select(value => checked((byte)value)).ToArray() ?? Enumerable.Repeat((byte)f.Fill, f.Size).ToArray();
     var layout = new CStruct(f.Definition, aligned: false);
     using var stream = new MemoryStream(bytes, writable: false);
-    object expected = layout.ParseStream(stream, "root");
+    object expected = layout.Parse(stream, "root");
     if (stream.Position != bytes.Length) throw new Exception($"{f.Name}: consumed {stream.Position}/{bytes.Length}");
     if (!layout.Serialize("root", expected).SequenceEqual(bytes)) throw new Exception("Roundtrip failed: " + f.Name);
     foreach (var op in Environment.GetEnvironmentVariable("BENCH_OPERATIONS")?.Split(',') ?? new[] { "compile", "parse", "debug", "span" })
     {
         Func<object> action = op switch {
             "compile" => () => new CStruct(f.Definition, aligned: false),
-            "parse" => () => { stream.Position = 0; return layout.ParseStream(stream, "root"); },
-            "debug" => () => { stream.Position = 0; return layout.ParseStreamWithDebug(stream, "root"); },
+            "parse" => () => { stream.Position = 0; return layout.Parse(stream, "root"); },
+            "debug" => () => { stream.Position = 0; return layout.ParseWithDebug(stream, "root"); },
             _ => () => layout.Parse(bytes.AsSpan(), "root")
         };
         object? sink = null;

@@ -14,7 +14,7 @@ public class Leb128Tests
         var parser = new CStruct("struct root { uleb128_32 count; sleb128_32 values[count]; uint8 tail; };", aligned: false);
         byte[] bytes = [3, 0x7f, 0x80, 1, 0x80, 0x7f, 99];
         using var stream = new MemoryStream(bytes);
-        dynamic parsed = parser.ParseStream(stream, "root");
+        dynamic parsed = parser.Parse(stream, "root");
         Assert.AreEqual(-1, (int)parsed.values[0]);
         Assert.AreEqual(128, (int)parsed.values[1]);
         Assert.AreEqual(-128, (int)parsed.values[2]);
@@ -25,12 +25,12 @@ public class Leb128Tests
         stream.Position = 0;
         Assert.AreEqual(-128, parser.ReadValue<int>(stream, "root.values[2]"));
         stream.Position = 0;
-        parser.UpdateStream(stream, "root.values[1]", 129);
+        parser.Update(stream, "root.values[1]", 129);
         stream.Position = 0;
         Assert.AreEqual(129, parser.ReadValue<int>(stream, "root.values[1]"));
         byte[] before = stream.ToArray();
         stream.Position = 0;
-        Assert.Throws<CStructWriteException>(() => parser.UpdateStream(stream, "root.values[1]", 1));
+        Assert.Throws<CStructWriteException>(() => parser.Update(stream, "root.values[1]", 1));
         CollectionAssert.AreEqual(before, stream.ToArray());
     }
 
@@ -43,7 +43,7 @@ public class Leb128Tests
         Assert.AreEqual(3U, parser.ReadValue<uint>(padded, "root.value"));
         foreach (byte[] bytes in new byte[][] { [0x80], [0xff, 0xff, 0xff, 0xff, 0x10], [0x80, 0x80, 0x80, 0x80, 0x80, 0] })
         {
-            Assert.Throws<CStructReadException>(() => parser.ParseStream(new MemoryStream(bytes), "root"));
+            Assert.Throws<CStructReadException>(() => parser.Parse(new MemoryStream(bytes), "root"));
         }
 
         foreach (long value in new[] { long.MinValue, -1L, 0L, 63L, 64L, long.MaxValue })

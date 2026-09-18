@@ -27,7 +27,7 @@ its `uint` property matches `uint32`. These property names have an unambiguous c
 
 ## Change existing bytes
 
-`UpdateStream` selects `header.kind` and writes the replacement in its existing two-byte space. It leaves the four
+`Update` selects `header.kind` and writes the replacement in its existing two-byte space. It leaves the four
 length bytes alone. A stream is an object that supports reading or writing bytes; `MemoryStream` keeps those bytes
 in memory and lets the library move to the selected position. An update cannot insert space or move later fields.
 

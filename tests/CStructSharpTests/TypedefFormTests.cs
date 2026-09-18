@@ -81,7 +81,7 @@ public class TypedefFormTests
         Assert.AreEqual((ushort)6, (ushort)value.g[1][1]);
         Assert.AreEqual((byte)9, (byte)value.tail);
 
-        dynamic root = layout.Parse(bytes.AsSpan(), "pair");
+        dynamic root = layout.ReadValue(bytes.AsSpan(), "pair")!;
         Assert.AreEqual((ushort)1, (ushort)root[0]);
 
         Assert.Throws<CStructLayoutException>(() => new CStruct("typedef uint16 pair[2]; struct root { pair *p; };"));
@@ -97,9 +97,9 @@ public class TypedefFormTests
         byte[] bytes = [7, 1, 0, 2, 0, 9,];
         using var stream = new MemoryStream((byte[])bytes.Clone());
 
-        List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
+        IReadOnlyList<DebugData> debug = layout.ParseWithDebug(stream, "root").Debug;
         stream.Position = 0;
-        dynamic parsed = layout.ParseStream(stream, "root");
+        dynamic parsed = layout.Parse(stream, "root");
         stream.Position = 0;
         Assert.IsTrue(debug.Any(item => item.Path == "root.p" && item.Start == 3 && item.End == 5));
         Assert.AreEqual(1, layout.ResolveAddress(stream, "root.p"));
@@ -107,10 +107,10 @@ public class TypedefFormTests
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", parsed));
 
         using var written = new MemoryStream();
-        layout.WriteStream(written, "root", new Dictionary<string, object?> { ["head"] = (byte)7, ["p"] = new ushort[] { 1, 2, }, ["tail"] = (byte)9, });
+        layout.Write(written, "root", new Dictionary<string, object?> { ["head"] = (byte)7, ["p"] = new ushort[] { 1, 2, }, ["tail"] = (byte)9, });
         CollectionAssert.AreEqual(bytes, written.ToArray());
 
-        layout.UpdateStream(stream, "root.p[1]", (ushort)0x1234);
+        layout.Update(stream, "root.p[1]", (ushort)0x1234);
         CollectionAssert.AreEqual(new byte[] { 7, 1, 0, 0x34, 0x12, 9, }, stream.ToArray());
         Assert.AreEqual((ushort)0x1234, layout.ReadValue<ushort>(stream.ToArray().AsSpan(), "root.p[1]"));
     }

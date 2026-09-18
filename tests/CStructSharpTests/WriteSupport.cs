@@ -62,7 +62,7 @@ public class WriteSupport
         var c = new CStruct(d, 1);
 
         using var stream = new MemoryStream(new byte[4]);
-        c.UpdateStream(stream, "test.b", (ushort)0x1122);
+        c.Update(stream, "test.b", (ushort)0x1122);
 
         CollectionAssert.AreEqual(new byte[] { 0x00, 0x00, 0x22, 0x11, }, stream.ToArray());
     }
@@ -82,7 +82,7 @@ public class WriteSupport
 
         using var stream = new MemoryStream(new byte[] { 0xA5, });
 
-        c.UpdateStream(stream, "root.high", (byte)0x3);
+        c.Update(stream, "root.high", (byte)0x3);
 
         CollectionAssert.AreEqual(new byte[] { 0x35, }, stream.ToArray());
         RegressionTestSupport.AssertPositionRestored(stream, 0);
@@ -103,7 +103,7 @@ public class WriteSupport
 
         using var stream = new MemoryStream(new byte[] { 0x11, 0x11, 0x22, 0x22, 0x33, 0x33, });
 
-        c.UpdateStream(stream, "root.items[1]", (ushort)0xABCD);
+        c.Update(stream, "root.items[1]", (ushort)0xABCD);
 
         CollectionAssert.AreEqual(
             new byte[] { 0x11, 0x11, 0xCD, 0xAB, 0x33, 0x33, },
@@ -126,7 +126,7 @@ public class WriteSupport
 
         using var stream = new MemoryStream(new byte[] { 0x02, 0x00, 0x04, 0x00, 0x00, 0x00, });
 
-        c.UpdateStream(stream, "root.ptr.value.value", (ushort)0x1234);
+        c.Update(stream, "root.ptr.value.value", (ushort)0x1234);
 
         CollectionAssert.AreEqual(
             new byte[] { 0x02, 0x00, 0x04, 0x00, 0x34, 0x12, },
@@ -152,7 +152,7 @@ public class WriteSupport
         buf[1] = 0x00;
 
         using var stream = new MemoryStream(buf);
-        c.UpdateStream(stream, "ptrtest.ptr.value", (ushort)0x1234);
+        c.Update(stream, "ptrtest.ptr.value", (ushort)0x1234);
 
         CollectionAssert.AreEqual(new byte[] { 0x04, 0x00, 0x00, 0x00, 0x34, 0x12, }, stream.ToArray());
     }
@@ -174,7 +174,7 @@ public class WriteSupport
         inner.x = (byte)0x11;
 
         using var stream = new MemoryStream(new byte[1]);
-        c.WriteStream(stream, "outer.i", inner);
+        c.Write(stream, "outer.i", inner);
 
         CollectionAssert.AreEqual(new byte[] { 0x11, }, stream.ToArray());
     }

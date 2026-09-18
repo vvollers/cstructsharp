@@ -23,11 +23,11 @@ public class NestedReferenceTests
         CollectionAssert.AreEqual(new byte[] { 7, 8, }, ((IEnumerable<object?>)parsed.v).Select(item => (byte)item!).ToArray());
         Assert.AreEqual((byte)9, (byte)parsed.tail);
 
-        List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
+        IReadOnlyList<DebugData> debug = layout.ParseWithDebug(stream, "root").Debug;
         Assert.IsTrue(debug.Any(item => item.Path == "root.tail" && item.Start == 4));
         stream.Position = 0;
         Assert.AreEqual(4, layout.ResolveAddress(stream, "root.tail"));
-        Assert.AreEqual(2, layout.GetDynamicArrayLength(stream, "root.v"));
+        Assert.AreEqual(2, layout.GetArrayLength(stream, "root.v"));
         Assert.AreEqual((byte)9, layout.ReadValue<byte>(bytes.AsSpan(), "root.tail"));
 
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", parsed));
@@ -41,10 +41,10 @@ public class NestedReferenceTests
             });
         CollectionAssert.AreEqual(new byte[] { 1, 0, 5, 9, }, written);
         using var target = new MemoryStream();
-        layout.WriteStream(target, "root", parsed);
+        layout.Write(target, "root", parsed);
         CollectionAssert.AreEqual(bytes, target.ToArray());
 
-        layout.UpdateStream(stream, "root.tail", (byte)6);
+        layout.Update(stream, "root.tail", (byte)6);
         CollectionAssert.AreEqual(new byte[] { 2, 0, 7, 8, 6, }, stream.ToArray());
     }
 

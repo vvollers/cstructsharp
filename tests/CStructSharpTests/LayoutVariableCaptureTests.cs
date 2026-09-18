@@ -44,7 +44,7 @@ public class LayoutVariableCaptureTests
         Assert.AreEqual((byte)0x33, parsed.mark);
         Assert.AreEqual((byte)5, parsed.bits);
         Assert.AreEqual((byte)0x44, parsed.tail);
-        Assert.AreEqual(3, cstruct.GetDynamicArrayLength(new MemoryStream(bytes), "root.items"));
+        Assert.AreEqual(3, cstruct.GetArrayLength(new MemoryStream(bytes), "root.items"));
         Assert.AreEqual(10L, cstruct.ResolveAddress(new MemoryStream(bytes), "root.mark"));
         foreach (string referenced in new[] { "base", "n", "flag", "sel" })
         {

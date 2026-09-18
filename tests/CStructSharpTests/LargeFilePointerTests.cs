@@ -19,7 +19,7 @@ public class LargeFilePointerTests
     {
         var layout = new CStruct(Definition, pointerSize: 8);
         using var source = CreateSource();
-        dynamic parsed = layout.ParseStream(source, "root");
+        dynamic parsed = layout.Parse(source, "root");
         Assert.AreEqual(111U, (uint)parsed.nodes[0].Value.value);
         Assert.AreEqual(222U, (uint)parsed.nodes[0].Value.next.Value.value);
         Assert.AreEqual(333U, (uint)parsed.nodes[0].Value.next.Value.next.Value.value);
@@ -37,14 +37,14 @@ public class LargeFilePointerTests
         var layout = new CStruct(Definition, pointerSize: 8);
         var options = new ReadOptions { MaxTotalBytesRead = 512, };
         using var source = CreateSource();
-        _ = layout.ParseStreamWithDebug(source, "root", options: options);
+        _ = layout.ParseWithDebug(source, "root", options: options);
         Assert.IsLessThanOrEqualTo(512L, source.BytesRead);
         source.Position = 0;
         Assert.AreEqual(Far, layout.ResolveAddress(source, "root.nodes[0].value.value", options: options));
         Assert.AreEqual(0L, source.Position);
         Assert.AreEqual(Near, layout.ResolveAddress(source, "root.nodes[0].value.next.value.next.value.value", options: options));
         Assert.AreEqual(0L, source.Position);
-        dynamic selected = layout.ParseStream(source, "root.nodes[1].value", options: options);
+        dynamic selected = layout.Parse(source, "root.nodes[1].value", options: options);
         Assert.AreEqual(222U, (uint)selected.value);
     }
 
@@ -54,7 +54,7 @@ public class LargeFilePointerTests
     {
         var layout = new CStruct(Definition, pointerSize: 8);
         using var source = CreateSource();
-        Assert.Throws<CStructReadLimitException>(() => layout.ParseStream(source, "root", options: new ReadOptions { MaxTotalBytesRead = 8, }));
+        Assert.Throws<CStructReadLimitException>(() => layout.Parse(source, "root", options: new ReadOptions { MaxTotalBytesRead = 8, }));
     }
 
     private static SparseSource CreateSource()

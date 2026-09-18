@@ -47,7 +47,7 @@ more of these:
 - an in-place update whose storage size cannot change.
 
 CStructSharp is not a drop-in C compiler, native-memory marshaller, schema registry, or database transaction system.
-Direct stream writes can leave a prefix after a late failure. `UpdateStream` validates errors the library can detect
+Direct stream writes can leave a prefix after a late failure. `Update` validates errors the library can detect
 before changing the destination, but a physical stream can still accept part of the final commit and then fail.
 
 ## Optional browser workbench

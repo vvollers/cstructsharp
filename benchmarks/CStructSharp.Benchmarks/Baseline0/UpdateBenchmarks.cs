@@ -55,7 +55,7 @@ public class UpdateBenchmarks
     public long Update_Scalar_4B()
     {
         this.primStream.Position = 0;
-        this.prim.Layout.UpdateStream(this.primStream, "root.c", 0x12345678U);
+        this.prim.Layout.Update(this.primStream, "root.c", 0x12345678U);
         return this.primStream.Position;
     }
 
@@ -63,7 +63,7 @@ public class UpdateBenchmarks
     public long Update_Bitfield()
     {
         this.bitfieldStream.Position = 0;
-        this.bitfield.Layout.UpdateStream(this.bitfieldStream, "root.items[3].b", 5);
+        this.bitfield.Layout.Update(this.bitfieldStream, "root.items[3].b", 5);
         return this.bitfieldStream.Position;
     }
 
@@ -71,7 +71,7 @@ public class UpdateBenchmarks
     public long Update_ArrayElement_1K()
     {
         this.array1KStream.Position = 0;
-        this.array1K.Layout.UpdateStream(this.array1KStream, "root.values[512]", (byte)0x5A);
+        this.array1K.Layout.Update(this.array1KStream, "root.values[512]", (byte)0x5A);
         return this.array1KStream.Position;
     }
 
@@ -79,7 +79,7 @@ public class UpdateBenchmarks
     public long Update_ArrayElement_1M()
     {
         this.array1MStream.Position = 0;
-        this.array1M.Layout.UpdateStream(this.array1MStream, "root.values[1048575]", (byte)0x5A, options: this.largeArrayOptions);
+        this.array1M.Layout.Update(this.array1MStream, "root.values[1048575]", (byte)0x5A, options: this.largeArrayOptions);
         return this.array1MStream.Position;
     }
 
@@ -88,7 +88,7 @@ public class UpdateBenchmarks
     public long Update_PointerTarget()
     {
         this.pointerStream.Position = 0;
-        this.pointer.Layout.UpdateStream(this.pointerStream, "root.head.value.value", 0xBEEFU);
+        this.pointer.Layout.Update(this.pointerStream, "root.head.value.value", 0xBEEFU);
         return this.pointerStream.Position;
     }
 
@@ -96,7 +96,7 @@ public class UpdateBenchmarks
     public long Update_UnionMember()
     {
         this.unionStream.Position = 0;
-        this.union.Layout.UpdateStream(this.unionStream, "root.items[7].value.large", 0x7E7E7E7EU);
+        this.union.Layout.Update(this.unionStream, "root.items[7].value.large", 0x7E7E7E7EU);
         return this.unionStream.Position;
     }
 

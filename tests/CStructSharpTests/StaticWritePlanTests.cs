@@ -119,7 +119,7 @@ public class StaticWritePlanTests
         Dictionary<string, object?> data = CreateDictionary();
         data["tail"] = "nope";
         using var destination = new MemoryStream();
-        Assert.Throws<CStructWriteException>(() => layout.WriteStream(destination, "root", data));
+        Assert.Throws<CStructWriteException>(() => layout.Write(destination, "root", data));
         Assert.AreEqual(0, destination.Length);
     }
 
@@ -135,13 +135,13 @@ public class StaticWritePlanTests
             using var withPlan = new MemoryStream();
             withPlan.Write(existing);
             withPlan.Position = start;
-            layout.WriteStream(withPlan, "root", data);
+            layout.Write(withPlan, "root", data);
 
             using var withoutPlan = new MemoryStream();
             withoutPlan.Write(existing);
             withoutPlan.Position = start;
             StaticReadPlan.DisabledForTesting = true;
-            layout.WriteStream(withoutPlan, "root", data);
+            layout.Write(withoutPlan, "root", data);
             StaticReadPlan.DisabledForTesting = false;
 
             CollectionAssert.AreEqual(withoutPlan.ToArray(), withPlan.ToArray(), $"start {start}");
@@ -263,7 +263,7 @@ public class StaticWritePlanTests
             ("stream", (value, o) =>
             {
                 using var stream = new MemoryStream();
-                layout.WriteStream(stream, "root", value, options: o);
+                layout.Write(stream, "root", value, options: o);
                 return stream.ToArray();
             }),
         })

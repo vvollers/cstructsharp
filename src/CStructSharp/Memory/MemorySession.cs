@@ -270,7 +270,7 @@ public sealed class MemorySession
                 // A bit slice is patched in place with the core's masked update, never re-encoded as a whole integer.
                 CStruct codec = this.Schema.GetCodec(selected.Type, selected.Field, selected.ParentTypeId);
                 using var staging = new MemoryStream(bytes, writable: true);
-                codec.UpdateStream(staging, "__bits.value", EncodeBits(selected.Field, value));
+                codec.Update(staging, "__bits.value", EncodeBits(selected.Field, value));
             }
             else
             {
@@ -629,7 +629,7 @@ public sealed class MemorySession
     /// <summary>Encodes one member into its slice of the destination; a bit slice changes only its own bits of the storage unit.</summary>
     /// <remarks>A bit slice cannot be serialized as a fresh integer, because that would overwrite the other slices
     /// sharing the storage unit. Instead the unit's current bytes are copied out, the core masked
-    /// <see cref="CStruct.UpdateStream"/> changes only the selected bits, and the unit is copied back.</remarks>
+    /// <see cref="CStruct.Update(System.IO.Stream, string, object, System.Collections.Generic.IReadOnlyDictionary{string, int}?, UpdateOptions?)"/> changes only the selected bits, and the unit is copied back.</remarks>
     /// <param name="parent">Containing struct or union, which keys the slice codec.</param>
     /// <param name="field">Member to encode.</param>
     /// <param name="value">Value for that member.</param>
@@ -644,7 +644,7 @@ public sealed class MemorySession
         {
             byte[] bytes = target.ToArray();
             using var stream = new MemoryStream(bytes, writable: true);
-            this.Schema.GetCodec(member, field, parent.Id).UpdateStream(stream, "__bits.value", EncodeBits(field, value));
+            this.Schema.GetCodec(member, field, parent.Id).Update(stream, "__bits.value", EncodeBits(field, value));
             context.Charge("serialize", 0, bytes.Length);
             bytes.CopyTo(target);
         }

@@ -138,7 +138,7 @@ internal sealed class FuzzTargets
             _ = this.pathLayout.ReadValue(stream, path, options: this.readOptions);
             break;
         default:
-            _ = this.pathLayout.GetDynamicArrayLength(stream, path, options: this.readOptions);
+            _ = this.pathLayout.GetArrayLength(stream, path, options: this.readOptions);
             break;
         }
     }
@@ -148,7 +148,7 @@ internal sealed class FuzzTargets
         object parsed = this.binaryLayout.Parse(input.AsSpan(), "root", options: this.readOptions);
         byte[] serialized = this.binaryLayout.Serialize("root", parsed, options: this.writeOptions);
         using var output = new MemoryStream();
-        this.binaryLayout.WriteStream(output, "root", parsed, options: this.writeOptions);
+        this.binaryLayout.Write(output, "root", parsed, options: this.writeOptions);
         if (!serialized.AsSpan().SequenceEqual(output.ToArray()))
         {
             throw new InvalidDataException("Owned and stream writer paths produced different bytes.");
@@ -162,11 +162,11 @@ internal sealed class FuzzTargets
         using var stream = new MemoryStream(input, writable: false);
         if (input.Length > 0 && (input[0] & 1) != 0)
         {
-            _ = this.pointerUnionLayout.ParseStreamWithDebug(stream, "node", this.readOptions);
+            _ = this.pointerUnionLayout.ParseWithDebug(stream, "node", options: this.readOptions);
         }
         else
         {
-            _ = this.pointerUnionLayout.ParseStream(stream, "node", options: this.readOptions);
+            _ = this.pointerUnionLayout.Parse(stream, "node", options: this.readOptions);
         }
     }
 

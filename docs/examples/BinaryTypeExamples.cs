@@ -15,7 +15,7 @@ internal static partial class Program
         Equal(-2, layout.ReadValue<int>(bytes.AsSpan(), "root.delta"));
         using var stream = new MemoryStream(bytes);
         Equal(3L, layout.ResolveAddress(stream, "root.delta"));
-        Throws<CStructWriteException>(() => layout.UpdateStream(stream, "root.size", 16777216U));
+        Throws<CStructWriteException>(() => layout.Update(stream, "root.size", 16777216U));
         SequenceEqual(bytes, stream.ToArray());
     }
     #endregion
@@ -46,13 +46,13 @@ internal static partial class Program
         byte[] bytes = layout.Serialize("root", new { count = 2, values = new ulong[] { 127, 128 }, delta = -65, tail = 99 });
         SequenceEqual([2, 127, 128, 1, 191, 127, 99], bytes);
         using var stream = new MemoryStream(bytes);
-        Equal(2, layout.GetDynamicArrayLength(stream, "root.values"));
+        Equal(2, layout.GetArrayLength(stream, "root.values"));
         Equal(4L, layout.ResolveAddress(stream, "root.delta"));
         Equal(-65, layout.ReadValue<int>(stream, "root.delta"));
         stream.Position = 0;
-        layout.UpdateStream(stream, "root.values[1]", 129UL);
+        layout.Update(stream, "root.values[1]", 129UL);
         SequenceEqual([2, 127, 129, 1, 191, 127, 99], stream.ToArray());
-        Throws<CStructWriteException>(() => layout.UpdateStream(stream, "root.values[1]", 1UL));
+        Throws<CStructWriteException>(() => layout.Update(stream, "root.values[1]", 1UL));
         SequenceEqual([2, 127, 129, 1, 191, 127, 99], stream.ToArray());
     }
     #endregion
@@ -66,7 +66,7 @@ internal static partial class Program
         Equal(-1.5, layout.ReadValue<double>(bytes.AsSpan(), "root.revision"));
         Equal(0.5, layout.ReadValue<double>(bytes.AsSpan(), "root.volume"));
         using var stream = new MemoryStream(bytes);
-        Throws<CStructWriteException>(() => layout.UpdateStream(stream, "root.volume", 0.1));
+        Throws<CStructWriteException>(() => layout.Update(stream, "root.volume", 0.1));
         SequenceEqual(bytes, stream.ToArray());
     }
     #endregion
@@ -108,7 +108,7 @@ internal static partial class Program
         using var stream = new MemoryStream(bytes);
         Equal(7L, layout.ResolveAddress(stream, "root.items[1].number"));
         Throws<CStructPathException>(() => layout.ResolveAddress(stream, "root.items[1].label"));
-        Throws<CStructWriteException>(() => layout.UpdateStream(stream, "root.items[0].kind", 2));
+        Throws<CStructWriteException>(() => layout.Update(stream, "root.items[0].kind", 2));
         SequenceEqual(bytes, stream.ToArray());
         // Each item evaluates both groups with its own fields, including a calculation.
         const string decisions = "struct entry { uint8 tag; int8 some_parameter; if (some_parameter * 20 > 10) { uint8 high; } else { uint8 low; } switch (tag) { case 1: { uint8 first; } case 2: { uint8 second; } default: { uint8 other; } } }; struct root { entry items[3]; };";
@@ -120,17 +120,17 @@ internal static partial class Program
         Equal((byte)31, (byte)selected.items[2].other);
         SequenceEqual(items, decisionLayout.Serialize("root", selected));
         items[0] = 2;
-        Equal((byte)11, (byte)decisionLayout.Parse(items, "root").items[0].second);
+        Equal((byte)11, (byte)((dynamic)decisionLayout.Parse(items, "root")).items[0].second);
         items[0] = 1;
         items[1] = 1;
-        Equal((byte)10, (byte)decisionLayout.Parse(items, "root").items[0].high);
+        Equal((byte)10, (byte)((dynamic)decisionLayout.Parse(items, "root")).items[0].high);
 
         // A caller's count cannot replace an unread local; a short-circuit guard repairs the example.
         const string scope = "#define count 99\nstruct entry { uint8 tag; if (tag) { uint8 count; } if (count > 0) { uint8 payload[count]; } }; struct root { entry items[2]; };";
         byte[] scopedBytes = [1, 1, 42, 0];
         var variables = new Dictionary<string, int> { ["count"] = 99 };
         var scopedLayout = new CStruct(scope, aligned: false);
-        Throws<CStructLayoutException>(() => scopedLayout.Parse(scopedBytes, "root", variables: variables));
+        Throws<CStructReadException>(() => scopedLayout.Parse(scopedBytes, "root", variables: variables));
         var guarded = new CStruct(scope.Replace("if (count > 0)", "if (tag != 0 && count > 0)"), aligned: false);
         dynamic scoped = guarded.Parse(scopedBytes, "root", variables: variables);
         Equal(1, ((IDictionary<string, object>)scoped.items[1]).Count);
@@ -138,8 +138,8 @@ internal static partial class Program
 
         // Inactive nested expressions are skipped, but become errors when reached.
         var nested = new CStruct("struct root { uint8 tag; if (tag) { if (missing > 0) { uint8 value; } } uint8 tail; };", aligned: false);
-        Equal((byte)9, (byte)nested.Parse(new byte[] { 0, 9 }, "root").tail);
-        Throws<CStructLayoutException>(() => nested.Parse(new byte[] { 1, 9 }, "root"));
+        Equal((byte)9, (byte)((dynamic)nested.Parse(new byte[] { 0, 9 }, "root")).tail);
+        Throws<CStructReadException>(() => nested.Parse(new byte[] { 1, 9 }, "root"));
     }
     #endregion
 }

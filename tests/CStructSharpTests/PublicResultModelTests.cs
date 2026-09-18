@@ -18,7 +18,7 @@ public class PublicResultModelTests
     {
         var cstruct = new CStruct("struct root { uint8 *value; };", pointerSize: 1);
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([0]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([0]), "root");
         var pointer = (Pointer)parsed.value;
 
         Assert.IsTrue(pointer.IsNull);
@@ -61,13 +61,13 @@ public class PublicResultModelTests
     {
         var cstruct = new CStruct("struct root { uint8 *value; };", pointerSize: 1);
 
-        dynamic nullResult = cstruct.ParseStream(new MemoryStream([0]), "root");
+        dynamic nullResult = cstruct.Parse(new MemoryStream([0]), "root");
         var nullPointer = (Pointer)nullResult.value;
         Assert.IsTrue(nullPointer.IsNull);
         Assert.IsFalse(nullPointer.IsDereferenced);
         Assert.IsNull(nullPointer.Value);
 
-        dynamic unresolvedResult = cstruct.ParseStream(
+        dynamic unresolvedResult = cstruct.Parse(
             new MemoryStream([1, 42]),
             "root",
             null,
@@ -77,7 +77,7 @@ public class PublicResultModelTests
         Assert.IsFalse(unresolvedPointer.IsDereferenced);
         Assert.IsNull(unresolvedPointer.Value);
 
-        dynamic dereferencedResult = cstruct.ParseStream(new MemoryStream([1, 42]), "root");
+        dynamic dereferencedResult = cstruct.Parse(new MemoryStream([1, 42]), "root");
         var dereferencedPointer = (Pointer)dereferencedResult.value;
         Assert.IsFalse(dereferencedPointer.IsNull);
         Assert.IsTrue(dereferencedPointer.IsDereferenced);

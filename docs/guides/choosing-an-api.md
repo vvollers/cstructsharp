@@ -20,16 +20,16 @@ until measurements show that allocation matters.
 | Your data is in | Use | What happens |
 | --- | --- | --- |
 | `byte[]`, `ReadOnlySpan<byte>`, or `ReadOnlyMemory<byte>` | `Parse` or `ReadValue` | The call is synchronous and does not retain the input. |
-| A readable, seekable `Stream` | `ParseStream` or `ReadValue` | Reading begins at the stream's current position. |
+| A readable, seekable `Stream` | `Parse` or `ReadValue` | Reading begins at the stream's current position. |
 
 A *span* is a short-lived view over a section of memory. `ReadOnlyMemory<byte>` is a storable memory object, but the
 CStructSharp operation still finishes synchronously and does not keep it. Use a stream for files or data sources that
 already expose seeking. Use memory APIs when the bytes are already available as an array or memory region.
 
-For a byte array named `bytes`, pass `bytes.AsSpan()` to a memory read, for example
-`layout.Parse(bytes.AsSpan(), "header")`. This explicitly selects the span overload without copying bytes and also works with older packages
-whose span/memory overloads are ambiguous under C# 12. The current source additionally provides byte-array
-overloads for `Parse`, `ReadValue`, and `TryReadValue`; these reject null arrays and forward without copying.
+Every operation has the same shape for every input kind: the input comes first, then the path, then optional
+`variables` and options. A byte array named `bytes` can be passed directly (`layout.Parse(bytes, "header")`) or as
+`bytes.AsSpan()`; both read without copying. The path is optional for reads: `layout.Parse(bytes)` selects the first
+declared struct, which `layout.DefaultRoot` names.
 
 Pointer coordinates in memory APIs start at zero within the region you pass. If you pass a slice, a pointer cannot
 refer to bytes before that slice.
@@ -38,16 +38,17 @@ refer to bytes before that slice.
 
 | Result you need | Method | Use it when |
 | --- | --- | --- |
-| A whole struct or union with runtime field names | `Parse` / `ParseStream` | Exploring a format, building tools, or handling layouts that vary at runtime |
-| One field or nested value | `ReadValue` | You don't need the rest of the object |
+| A whole struct with runtime field names | `Parse` | Exploring a format, building tools, or handling layouts that vary at runtime |
+| One field, nested value, union, or array | `ReadValue` | You don't need the rest of the object, or the selection is not a struct |
 | A known C# type | `ReadValue<T>` | Application code benefits from typed properties and checked conversion |
 | A known C# type with an expected failure path | `TryReadValue<T>` | Truncated or malformed input is an ordinary outcome |
-| Values plus byte ranges | `ParseStreamWithDebug` | A hex viewer or diagnostic tool must show where values came from |
+| Values plus byte ranges | `ParseWithDebug` (struct) / `ReadValueWithDebug` (anything) | A hex viewer or diagnostic tool must show where values came from |
 | Only a field's stream position | `ResolveAddress` | You need a coordinate without materializing the value |
-| An array or terminated string length | `GetDynamicArrayLength` | The count depends on variables or scanned input |
+| An array or terminated string length | `GetArrayLength` | The count depends on variables or scanned input |
 
-`Parse` is for composite values: structs and unions. `ReadValue` also handles scalars, array elements, enum values,
-pointer parts, and other selected fields.
+`Parse` returns a `StructValue` and throws a `CStructPathException` when the path selects anything else. `ReadValue`
+handles every selection: structs, unions (`UnionValue`), scalars, array elements, enum values, pointer parts, and
+other selected fields.
 
 The untyped `ReadValue` result uses the library's direct C# representation. For example, `uint16` becomes `ushort`,
 a struct becomes a `StructValue` (readable through `dynamic` members or as an `IDictionary<string, object?>`), an enum becomes `EnumValueResult`, and a union becomes `UnionValue`.
@@ -60,14 +61,14 @@ a struct becomes a `StructValue` (readable through `dynamic` members or as an `I
 | Create a new `byte[]` | `Serialize` returning `byte[]` | The library allocates and returns an exact-sized array. |
 | Fill an existing `Span<byte>` | `Serialize(Span<byte>, ...)` | Returns the number of initialized bytes; unused capacity is unchanged. |
 | Append to a pipeline or pooled writer | `Serialize(IBufferWriter<byte>, ...)` | Appends directly and returns the byte count. |
-| Write at a stream's current position | `WriteStream` | Writes directly to a writable, seekable stream. |
-| Replace a value already present in a stream | `UpdateStream` | Locates the path and validates the replacement before committing it. |
+| Write at a stream's current position | `Write` | Writes directly to a writable, seekable stream. |
+| Replace a value already present in a stream | `Update` | Locates the path and validates the replacement before committing it. |
 
 The `byte[]` overload is the easiest choice for most new code. Span and buffer-writer output avoid the final owned
-array, but they cannot undo a prefix that was already initialized or advanced if a later write fails. `WriteStream`
+array, but they cannot undo a prefix that was already initialized or advanced if a later write fails. `Write`
 can likewise leave earlier fields written after a later error.
 
-`UpdateStream` is different: it is for fixed coordinates in existing data. It will not extend the stream or move
+`Update` is different: it is for fixed coordinates in existing data. It will not extend the stream or move
 following fields. Errors CStructSharp can detect are found before it writes to the destination, although a physical
 stream failure during the final commit may still leave a written prefix.
 
@@ -86,7 +87,7 @@ For a large file:
 1. Open a readable, seekable stream.
 2. Set `Position` to the start of the structure.
 3. Use a selected `ReadValue` when later fields are irrelevant.
-4. Use `UpdateStream` only when the existing field's storage plan must stay in place.
+4. Use `Update` only when the existing field's storage plan must stay in place.
 
 ## Common mistakes
 
@@ -97,7 +98,7 @@ For a large file:
   exclusive use for the complete operation.
 - Choosing span output only because it sounds faster. It requires capacity planning and has weaker rollback behavior
   than staging a `byte[]`.
-- Using `WriteStream` to patch existing data. It writes new output from the current position; `UpdateStream` first
+- Using `Write` to patch existing data. It writes new output from the current position; `Update` first
   finds existing storage by path.
 
 Continue with [Read values and paths](reading-values.md), [Map values to C# types](typed-values.md), or

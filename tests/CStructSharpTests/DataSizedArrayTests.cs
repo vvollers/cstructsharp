@@ -20,7 +20,7 @@ public class DataSizedArrayTests
         CollectionAssert.AreEqual(new ushort[] { 1, 2, 3, }, ((IEnumerable<object?>)value.values).Select(item => (ushort)item!).ToArray());
 
         using var stream = new MemoryStream(bytes);
-        dynamic streamed = layout.ParseStream(stream, "root");
+        dynamic streamed = layout.Parse(stream, "root");
         Assert.AreEqual(3, ((IEnumerable<object?>)streamed.values).Count());
         Assert.AreEqual(7, stream.Position);
 
@@ -49,19 +49,19 @@ public class DataSizedArrayTests
         byte[] bytes = [0x34, 0x12, 1, 10, 2, 20,];
         using var stream = new MemoryStream((byte[])bytes.Clone());
 
-        List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
+        IReadOnlyList<DebugData> debug = layout.ParseWithDebug(stream, "root").Debug;
         stream.Position = 0;
-        dynamic parsed = layout.ParseStream(stream, "root");
+        dynamic parsed = layout.Parse(stream, "root");
         stream.Position = 0;
         Assert.AreEqual((byte)20, (byte)parsed.entries[1].size);
         Assert.IsTrue(debug.Any(item => item.Path == "root.entries[1].size" && item.Start == 5));
-        Assert.AreEqual(2, layout.GetDynamicArrayLength(stream, "root.entries"));
+        Assert.AreEqual(2, layout.GetArrayLength(stream, "root.entries"));
         Assert.AreEqual(4, layout.ResolveAddress(stream, "root.entries[1]"));
         Assert.Throws<CStructPathException>(() => layout.ResolveAddress(stream, "root.entries[2]"));
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", parsed));
 
         using var written = new MemoryStream();
-        layout.WriteStream(
+        layout.Write(
             written,
             "root",
             new Dictionary<string, object?>
@@ -75,7 +75,7 @@ public class DataSizedArrayTests
             });
         CollectionAssert.AreEqual(bytes, written.ToArray());
 
-        layout.UpdateStream(stream, "root.entries[0].size", (byte)11);
+        layout.Update(stream, "root.entries[0].size", (byte)11);
         CollectionAssert.AreEqual(new byte[] { 0x34, 0x12, 1, 11, 2, 20, }, stream.ToArray());
         Assert.AreEqual((byte)11, layout.ReadValue<byte>(stream.ToArray().AsSpan(), "root.entries[0].size"));
 
@@ -111,13 +111,13 @@ public class DataSizedArrayTests
         byte[] bytes = [1, 10, 2, 20, 0, 0, 9,];
         using var stream = new MemoryStream((byte[])bytes.Clone());
 
-        List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
+        IReadOnlyList<DebugData> debug = layout.ParseWithDebug(stream, "root").Debug;
         stream.Position = 0;
-        dynamic parsed = layout.ParseStream(stream, "root");
+        dynamic parsed = layout.Parse(stream, "root");
         stream.Position = 0;
         Assert.AreEqual((byte)9, (byte)parsed.tail);
         Assert.IsTrue(debug.Any(item => item.Path == "root.tail" && item.Start == 6));
-        Assert.AreEqual(2, layout.GetDynamicArrayLength(stream, "root.entries"));
+        Assert.AreEqual(2, layout.GetArrayLength(stream, "root.entries"));
         Assert.AreEqual(2, layout.ResolveAddress(stream, "root.entries[1]"));
         Assert.AreEqual(6, layout.ResolveAddress(stream, "root.tail"));
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", parsed));
@@ -131,9 +131,9 @@ public class DataSizedArrayTests
             });
         CollectionAssert.AreEqual(new byte[] { 3, 30, 0, 0, 9, }, written);
 
-        layout.UpdateStream(stream, "root.entries[1].kind", (byte)7);
+        layout.Update(stream, "root.entries[1].kind", (byte)7);
         CollectionAssert.AreEqual(new byte[] { 1, 10, 7, 20, 0, 0, 9, }, stream.ToArray());
-        layout.UpdateStream(stream, "root.tail", (byte)8);
+        layout.Update(stream, "root.tail", (byte)8);
         CollectionAssert.AreEqual(new byte[] { 1, 10, 7, 20, 0, 0, 8, }, stream.ToArray());
     }
 

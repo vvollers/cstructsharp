@@ -14,7 +14,7 @@ internal static partial class Program
         byte[] bytes = layout.Serialize("header", new Dictionary<string, object?> { ["kind"] = 2, ["length"] = 6 });
         SequenceEqual([2, 0, 6, 0, 0, 0], bytes);
         using var stream = new MemoryStream(bytes);
-        layout.UpdateStream(stream, "header.kind", 3);
+        layout.Update(stream, "header.kind", 3);
         SequenceEqual([3, 0, 6, 0, 0, 0], stream.ToArray());
         Header header = layout.ReadValue<Header>(stream.ToArray().AsSpan(), "header");
         Equal((ushort)3, header.Kind);
@@ -110,7 +110,7 @@ internal static partial class Program
         byte[] bytes = [0xEE, 1, 42];
         using var stream = new MemoryStream(bytes);
         stream.Position = 1;
-        dynamic root = layout.ParseStream(stream, "root", options: new ReadOptions
+        dynamic root = layout.Parse(stream, "root", options: new ReadOptions
         {
             AddressingMode = PointerAddressingMode.Relative,
             Origin = 1,
@@ -131,7 +131,7 @@ internal static partial class Program
         stream.Position = 2;
         Equal(4L, layout.ResolveAddress(stream, "header.length"));
         Equal(2L, stream.Position);
-        dynamic header = layout.ParseStream(stream, "header");
+        dynamic header = layout.Parse(stream, "header");
         Equal(6U, (uint)header.length);
     }
     #endregion
@@ -167,7 +167,7 @@ internal static partial class Program
                 stream.Position = 4;
                 Equal((ushort)2, (ushort)recordsLayout.ReadValue(stream, "data.records[1].id", variables)!);
                 stream.Position = 4;
-                recordsLayout.UpdateStream(stream, "data.records[1].flags", 0xA5, variables);
+                recordsLayout.Update(stream, "data.records[1].flags", 0xA5, variables);
                 return stream.ToArray();
             }
 

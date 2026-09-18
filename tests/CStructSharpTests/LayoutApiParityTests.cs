@@ -18,32 +18,32 @@ public class LayoutApiParityTests
     public void TypeSpellingRoots_ReadAndWrite()
     {
         var layout = new CStruct("enum kind : uint8 { A = 1 }; struct entry { uint8 a; uint8 b; };");
-        Assert.AreEqual(0x04030201U, (uint)layout.Parse(new byte[] { 1, 2, 3, 4, }.AsSpan(), "uint32"));
-        Assert.AreEqual(0x0102, (int)layout.Parse(new byte[] { 1, 2, }.AsSpan(), "uint16>"));
-        Assert.AreEqual(3U, (uint)layout.Parse(new byte[] { 3, 0, 0, 0, }.AsSpan(), "DWORD"));
-        Assert.AreEqual("A", ((EnumValueResult)layout.Parse(new byte[] { 1, }.AsSpan(), "kind")).Name);
+        Assert.AreEqual(0x04030201U, (uint)layout.ReadValue(new byte[] { 1, 2, 3, 4, }.AsSpan(), "uint32")!);
+        Assert.AreEqual(0x0102, (ushort)layout.ReadValue(new byte[] { 1, 2, }.AsSpan(), "uint16>")!);
+        Assert.AreEqual(3U, (uint)layout.ReadValue(new byte[] { 3, 0, 0, 0, }.AsSpan(), "DWORD")!);
+        Assert.AreEqual("A", ((EnumValueResult)layout.ReadValue(new byte[] { 1, }.AsSpan(), "kind")!).Name);
 
-        dynamic pair = layout.Parse(new byte[] { 1, 0, 2, 0, }.AsSpan(), "uint16[2]");
+        dynamic pair = layout.ReadValue(new byte[] { 1, 0, 2, 0, }.AsSpan(), "uint16[2]")!;
         Assert.AreEqual((ushort)2, (ushort)pair[1]);
-        dynamic counted = layout.Parse(new byte[] { 1, 2, 3, }.AsSpan(), "uint8[N]", new Dictionary<string, int> { ["N"] = 3, });
+        dynamic counted = layout.ReadValue(new byte[] { 1, 2, 3, }.AsSpan(), "uint8[N]", new Dictionary<string, int> { ["N"] = 3, })!;
         Assert.AreEqual(3, ((IEnumerable<object?>)counted).Count());
-        dynamic rest = layout.Parse(new byte[] { 5, 0, 6, 0, }.AsSpan(), "uint16[EOF]");
+        dynamic rest = layout.ReadValue(new byte[] { 5, 0, 6, 0, }.AsSpan(), "uint16[EOF]")!;
         Assert.AreEqual((ushort)6, (ushort)rest[1]);
-        Assert.AreEqual("hi", (string)layout.Parse("hi\0zz"u8.ToArray().AsSpan(), "char[]"));
-        Assert.AreEqual("hi", (string)layout.Parse("hi\0"u8.ToArray().AsSpan(), "cstring"));
-        dynamic entries = layout.Parse(new byte[] { 1, 2, 3, 4, }.AsSpan(), "entry[2]");
+        Assert.AreEqual("hi", (string)layout.ReadValue("hi\0zz"u8.ToArray().AsSpan(), "char[]")!);
+        Assert.AreEqual("hi", (string)layout.ReadValue("hi\0"u8.ToArray().AsSpan(), "cstring")!);
+        dynamic entries = layout.ReadValue(new byte[] { 1, 2, 3, 4, }.AsSpan(), "entry[2]")!;
         Assert.AreEqual((byte)4, (byte)entries[1].b);
-        Assert.AreEqual((byte)9, (byte)layout.Parse(new byte[] { 9, 0, 0, 0, }.AsSpan(), "unsigned char"));
+        Assert.AreEqual((byte)9, (byte)layout.ReadValue(new byte[] { 9, 0, 0, 0, }.AsSpan(), "unsigned char")!);
 
         using var stream = new MemoryStream(new byte[] { 1, 0, 0, 0, 2, 0, 0, 0, });
-        Assert.AreEqual(1U, (uint)layout.ParseStream(stream, "uint32"));
-        Assert.AreEqual(2U, (uint)layout.ParseStream(stream, "uint32"));
+        Assert.AreEqual(1U, (uint)layout.ReadValue(stream, "uint32")!);
+        Assert.AreEqual(2U, (uint)layout.ReadValue(stream, "uint32")!);
         Assert.AreEqual(8, stream.Position);
 
         CollectionAssert.AreEqual(new byte[] { 0x34, 0x12, }, layout.Serialize("uint16", (ushort)0x1234));
         CollectionAssert.AreEqual(new byte[] { 1, 0, 2, 0, }, layout.Serialize("uint16[2]", new ushort[] { 1, 2, }));
         Assert.AreEqual(0x1234, layout.ReadValue<ushort>(new byte[] { 0x34, 0x12, }.AsSpan(), "uint16"));
-        Assert.AreEqual(2, layout.GetDynamicArrayLength(new MemoryStream(new byte[] { 1, 0, 2, 0, }), "uint16[EOF]"));
+        Assert.AreEqual(2, layout.GetArrayLength(new MemoryStream(new byte[] { 1, 0, 2, 0, }), "uint16[EOF]"));
 
         Assert.Throws<CStructPathException>(() => layout.Parse(new byte[4].AsSpan(), "missing"));
         Assert.Throws<CStructPathException>(() => layout.Parse(new byte[4].AsSpan(), "void"));
@@ -56,12 +56,12 @@ public class LayoutApiParityTests
     {
         var layout = new CStruct("struct DWORD { uint8 a; };");
         Assert.AreEqual(1, layout.GetStructSizeInBytes("DWORD"));
-        Assert.AreEqual((byte)7, (byte)layout.Parse(new byte[] { 7, }.AsSpan(), "DWORD").a);
+        Assert.AreEqual((byte)7, (byte)((dynamic)layout.Parse(new byte[] { 7, }.AsSpan(), "DWORD")).a);
         var layout2 = new CStruct("struct root { uint8 a; };");
         Assert.AreEqual(1, layout2.GetStructSizeInBytes("root"));
-        Assert.AreEqual((byte)7, (byte)layout2.Parse(new byte[] { 7, }.AsSpan(), "root").a);
-        Assert.AreEqual(3U, (uint)layout2.Parse(new byte[] { 3, 0, 0, 0, }.AsSpan(), "uint32"));
-        Assert.AreEqual(4U, (uint)layout2.Parse(new byte[] { 4, 0, 0, 0, }.AsSpan(), "uint32"));
+        Assert.AreEqual((byte)7, (byte)((dynamic)layout2.Parse(new byte[] { 7, }.AsSpan(), "root")).a);
+        Assert.AreEqual(3U, (uint)layout2.ReadValue(new byte[] { 3, 0, 0, 0, }.AsSpan(), "uint32")!);
+        Assert.AreEqual(4U, (uint)layout2.ReadValue(new byte[] { 4, 0, 0, 0, }.AsSpan(), "uint32")!);
     }
 
     /// <summary>A custom codec is a first-class primitive: fields, arrays, pointer targets, addresses, updates, and roots.</summary>
@@ -83,14 +83,14 @@ public class LayoutApiParityTests
         using var stream = new MemoryStream((byte[])bytes.Clone());
         Assert.AreEqual(4, layout.ResolveAddress(stream, "root.owner"));
         Assert.AreEqual(3, layout.ResolveAddress(stream, "root.values[1]"));
-        Assert.AreEqual(2, layout.GetDynamicArrayLength(stream, "root.values"));
-        layout.UpdateStream(stream, "root.values[1]", 6UL);
+        Assert.AreEqual(2, layout.GetArrayLength(stream, "root.values"));
+        layout.Update(stream, "root.values[1]", 6UL);
         Assert.AreEqual(6, stream.ToArray()[3]);
-        Assert.Throws<CStructWriteException>(() => layout.UpdateStream(stream, "root.values[1]", 300UL));
+        Assert.Throws<CStructWriteException>(() => layout.Update(stream, "root.values[1]", 300UL));
         Assert.AreEqual(8, layout.ResolveAddress(stream, "root.tail"));
-        Assert.AreEqual(300UL, (ulong)layout.Parse(new byte[] { 0xAC, 0x02, }.AsSpan(), "varint"));
+        Assert.AreEqual(300UL, (ulong)layout.ReadValue(new byte[] { 0xAC, 0x02, }.AsSpan(), "varint")!);
 
-        (List<DebugData> debug, dynamic _) = layout.ParseStreamWithDebug(new MemoryStream(bytes), "root");
+        (dynamic _, IReadOnlyList<DebugData> debug) = layout.ParseWithDebug(new MemoryStream(bytes), "root");
         Assert.IsTrue(debug.Any(item => item.Path == "root.owner" && item.Start == 4 && item.End == 8));
         Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { varint v; };"));
         Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { varint v : 3; };", compilationOptions: options));
@@ -126,7 +126,7 @@ public class LayoutApiParityTests
         CStruct big = layout.WithEndianness(false);
         Assert.AreSame(layout, layout.WithEndianness(true));
         Assert.AreSame(big, layout.WithEndianness(false));
-        Assert.AreEqual((ushort)0x0102, (ushort)big.Parse(new byte[] { 1, 2, 0, 0, 0, 0, }.AsSpan(), "root").value);
+        Assert.AreEqual((ushort)0x0102, (ushort)((dynamic)big.Parse(new byte[] { 1, 2, 0, 0, 0, 0, }.AsSpan(), "root")).value);
         Assert.AreEqual(10, layout.WithPointerSize(8).GetStructSizeInBytes("root"));
         Assert.AreEqual(8, layout.WithAlignment(true).GetStructSizeInBytes("root"));
         Assert.AreSame(layout.CompilationOptions, big.CompilationOptions);
@@ -217,8 +217,8 @@ public class LayoutApiParityTests
         var roundTrip = new CStruct(rendered, pointerSize: 4, aligned: true);
 
         byte[] bytes = [1, 0, 2, 0, 0x05, 0, 2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0x10, 0x11, (byte)'n', 0, 2, 0x20, 0x21, 0x22, 1, 2, 3, 4, 8, 0, 0, 0, 0, 0, 0, 0, 0x30, 0x31,];
-        (List<DebugData> before, dynamic _) = original.ParseStreamWithDebug(new MemoryStream(bytes), "root");
-        (List<DebugData> after, dynamic _) = roundTrip.ParseStreamWithDebug(new MemoryStream(bytes), "root");
+        (dynamic _, IReadOnlyList<DebugData> before) = original.ParseWithDebug(new MemoryStream(bytes), "root");
+        (dynamic _, IReadOnlyList<DebugData> after) = roundTrip.ParseWithDebug(new MemoryStream(bytes), "root");
         CollectionAssert.AreEqual(
             before.Select(item => (item.Path, item.Start, item.End)).ToArray(),
             after.Select(item => (item.Path, item.Start, item.End)).ToArray());

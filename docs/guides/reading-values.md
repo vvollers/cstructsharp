@@ -34,12 +34,12 @@ The field names come from the layout. Because the result is `dynamic`, the C# co
 such as `header.lenght`; that error appears at runtime. Dynamic results are useful for exploratory tools and layouts
 that are not known when the application is compiled.
 
-For a stream, use `ParseStream`. Reading starts at the stream's current position and a successful read advances past
+A stream works the same way. Reading starts at the stream's current position and a successful read advances past
 the selected data:
 
 ```csharp
 using var stream = new MemoryStream(bytes);
-dynamic header = layout.ParseStream(stream, "header");
+dynamic header = layout.Parse(stream, "header");
 ```
 
 The stream must be readable and seekable. Keep ownership of the stream; CStructSharp does not close it.
@@ -99,7 +99,7 @@ Successful parse and read calls advance a stream through the value they consumed
 differently on an expected CStructSharp failure: it restores the stream position, returns `false`, and assigns the
 default value to its output.
 
-`ResolveAddress` and `GetDynamicArrayLength` also restore the position because their purpose is inspection rather
+`ResolveAddress` and `GetArrayLength` also restore the position because their purpose is inspection rather
 than consumption. Do not assume every method has the same position behavior; check the relevant API reference when
 combining several operations on one stream.
 

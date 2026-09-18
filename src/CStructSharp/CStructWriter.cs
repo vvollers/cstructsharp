@@ -71,13 +71,13 @@ public partial class CStruct
             {
                 if (state.Options is UpdateOptions)
                 {
-                    // UpdateStream promises to modify bytes that already exist. Extending a partially present storage
+                    // Update promises to modify bytes that already exist. Extending a partially present storage
                     // unit would manufacture neighbouring bits and overwrite data the caller did not supply, so stop
                     // before the later write can mutate the stream.
                     throw new CStructReadException("Cannot update a bitfield whose complete storage unit is not present.");
                 }
 
-                // A new Serialize/WriteStream destination may not contain the rest of this storage unit yet. Only a
+                // A new Serialize/Write destination may not contain the rest of this storage unit yet. Only a
                 // genuine end of stream is zero-extended; a legal short read is retried so neighbouring bits cannot
                 // be accidentally erased.
                 Array.Clear(buffer, offset, buffer.Length - offset);
@@ -962,7 +962,7 @@ public partial class CStruct
 
         if (compiledField.PointerDepth > 0)
         {
-            // At the field itself, a pointer writes only its address. UpdateStream handles writing through .value separately.
+            // At the field itself, a pointer writes only its address. Update handles writing through .value separately.
             long address = CStructPointerArithmetic.ConvertTargetAddress(value);
             this.WritePointerAddress(state.Stream, address, state.Options);
             return null;
@@ -1086,31 +1086,6 @@ public partial class CStruct
     }
 
     /// <summary>
-    ///     Creates a new byte array containing a complete value for the named layout element. A null scalar pointer
-    ///     value encodes address zero; null is invalid for other layout values. Optional variables are plain integer
-    ///     values and are copied before writing.
-    /// </summary>
-    /// <param name="elementNameOrPath">The case-sensitive exported declaration or nested field path to serialize.</param>
-    /// <param name="data">The scalar, dynamic object, POCO, collection, pointer, enum, or union value to encode.</param>
-    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
-    /// <param name="options">Optional write limits, binding rules, and pointer settings; <see langword="null"/> uses the documented defaults.</param>
-    /// <returns>A new array containing exactly the serialized bytes.</returns>
-    /// <exception cref="CStructPathException">The requested path is invalid or cannot be resolved.</exception>
-    /// <exception cref="CStructWriteException">The supplied value cannot be represented by the selected layout.</exception>
-    public byte[] Serialize(
-        string elementNameOrPath,
-        object data,
-        IReadOnlyDictionary<string, int>? variables = null,
-        WriteOptions? options = null)
-    {
-        return this.SerializeCore(
-            elementNameOrPath,
-            data,
-            LayoutVariableInput.FromIntegers(variables),
-            options);
-    }
-
-    /// <summary>
     ///     Creates a new byte array while snapshotting expression variables from a read-only caller view.
     /// </summary>
     internal byte[] SerializeCore(
@@ -1123,34 +1098,6 @@ public partial class CStruct
         using var stream = new MemoryStream();
         this.WriteStreamCore(stream, elementNameOrPath, data, variables, options);
         return stream.ToArray();
-    }
-
-    /// <summary>
-    ///     Updates a field or object at a layout path in an existing seekable stream. A null scalar pointer value
-    ///     encodes address zero; null is invalid for other layout values. Optional variables are plain integer values
-    ///     and are copied before traversal.
-    /// </summary>
-    /// <param name="stream">The readable, writable, seekable stream to update without changing its caller-visible position.</param>
-    /// <param name="elementNameOrPath">The case-sensitive nested field path to replace.</param>
-    /// <param name="value">The scalar, dynamic object, POCO, collection, pointer, enum, or union replacement value.</param>
-    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
-    /// <param name="options">Optional traversal and write limits, binding rules, and pointer settings; <see langword="null"/> uses the documented defaults.</param>
-    /// <exception cref="ArgumentException"><paramref name="stream"/> is not readable, writable, and seekable.</exception>
-    /// <exception cref="CStructPathException">The requested path is empty, invalid, or cannot be resolved.</exception>
-    /// <exception cref="CStructWriteException">The replacement is too large or cannot be represented by the selected layout.</exception>
-    public void UpdateStream(
-        Stream stream,
-        string elementNameOrPath,
-        object value,
-        IReadOnlyDictionary<string, int>? variables = null,
-        UpdateOptions? options = null)
-    {
-        this.UpdateStreamCore(
-            stream,
-            elementNameOrPath,
-            value,
-            LayoutVariableInput.FromIntegers(variables),
-            options);
     }
 
     /// <summary>
@@ -1204,7 +1151,7 @@ public partial class CStruct
             this.Aligned,
             readOptions);
 
-        // UpdateStream promises not to leave the caller's stream somewhere unexpected, even if writing fails.
+        // Update promises not to leave the caller's stream somewhere unexpected, even if writing fails.
         long originalPosition = readState.Stream.Position;
         Exception? primaryException = null;
         try
@@ -1309,34 +1256,6 @@ public partial class CStruct
                 throw;
             }
         }
-    }
-
-    /// <summary>
-    ///     Writes a complete value or a selected nested value to the current position of a writable, seekable stream.
-    ///     A null scalar pointer value encodes address zero; null is invalid for other layout values. Optional variables
-    ///     are plain integer values and are copied before writing.
-    /// </summary>
-    /// <param name="stream">The writable, seekable stream whose current position is the operation origin.</param>
-    /// <param name="elementNameOrPath">The case-sensitive exported declaration or nested field path to serialize.</param>
-    /// <param name="data">The scalar, dynamic object, POCO, collection, pointer, enum, or union value to encode.</param>
-    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
-    /// <param name="options">Optional write limits, binding rules, and pointer settings; <see langword="null"/> uses the documented defaults.</param>
-    /// <exception cref="ArgumentException"><paramref name="stream"/> is not writable and seekable.</exception>
-    /// <exception cref="CStructPathException">The requested path is invalid or cannot be resolved.</exception>
-    /// <exception cref="CStructWriteException">The supplied value cannot be represented by the selected layout.</exception>
-    public void WriteStream(
-        Stream stream,
-        string elementNameOrPath,
-        object data,
-        IReadOnlyDictionary<string, int>? variables = null,
-        WriteOptions? options = null)
-    {
-        this.WriteStreamCore(
-            stream,
-            elementNameOrPath,
-            data,
-            LayoutVariableInput.FromIntegers(variables),
-            options);
     }
 
     /// <summary>

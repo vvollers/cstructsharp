@@ -119,7 +119,7 @@ public class PathOperationIsolationTests
         var cstruct = new CStruct(layout, pointerSize: 2);
         using var stream = new MemoryStream(new byte[] { 0xFF, 0x7F, 0x11, });
 
-        cstruct.UpdateStream(stream, "root.target", (byte)0xA5);
+        cstruct.Update(stream, "root.target", (byte)0xA5);
 
         CollectionAssert.AreEqual(new byte[] { 0xFF, 0x7F, 0xA5, }, stream.ToArray());
     }
@@ -142,12 +142,12 @@ public class PathOperationIsolationTests
         var objectStruct = new CStruct(objectLayout, pointerSize: 2);
         using var objectStream = new MemoryStream(new byte[] { 0xFF, 0x7F, 0x2A, });
 
-        dynamic selected = objectStruct.ParseStream(objectStream, "root.selected");
+        dynamic selected = objectStruct.Parse(objectStream, "root.selected");
         Assert.AreEqual((byte)0x2A, (byte)selected.value);
 
         objectStream.Position = 0;
-        (List<DebugData> debug, dynamic debugResult)
-            = objectStruct.ParseStreamWithDebug(objectStream, "root.selected");
+        (dynamic debugResult, IReadOnlyList<DebugData> debug)
+            = objectStruct.ParseWithDebug(objectStream, "root.selected");
         dynamic selectedWithDebug = debugResult;
         Assert.AreEqual((byte)0x2A, (byte)selectedWithDebug.value);
         Assert.IsTrue(debug.All(item => item.Path.StartsWith("root.selected", StringComparison.Ordinal)));
@@ -155,6 +155,6 @@ public class PathOperationIsolationTests
         const string arrayLayout = "struct root { byte* bad; byte count; byte values[count]; byte later; };";
         var arrayStruct = new CStruct(arrayLayout, pointerSize: 2);
         using var arrayStream = new MemoryStream(new byte[] { 0xFF, 0x7F, 0x02, 0x11, 0x22, });
-        Assert.AreEqual(2, arrayStruct.GetDynamicArrayLength(arrayStream, "root.values"));
+        Assert.AreEqual(2, arrayStruct.GetArrayLength(arrayStream, "root.values"));
     }
 }

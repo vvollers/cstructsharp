@@ -25,7 +25,7 @@ public class FixedArrayShapeTests
     {
         var zero = new CStruct("struct root { byte values[0]; byte tail; };");
         using var zeroStream = new MemoryStream([0xA5,]);
-        dynamic zeroParsed = zero.ParseStream(zeroStream, "root");
+        dynamic zeroParsed = zero.Parse(zeroStream, "root");
 
         Assert.AreEqual(0, ((IList<object>)zeroParsed.values).Count);
         Assert.AreEqual((byte)0xA5, (byte)zeroParsed.tail);
@@ -37,7 +37,7 @@ public class FixedArrayShapeTests
 
         var one = new CStruct("struct root { byte values[1]; byte tail; };");
         using var oneStream = new MemoryStream([0x2A, 0xA5,]);
-        dynamic oneParsed = one.ParseStream(oneStream, "root");
+        dynamic oneParsed = one.Parse(oneStream, "root");
 
         Assert.AreEqual(1, ((IList<object>)oneParsed.values).Count);
         Assert.AreEqual((byte)0x2A, (byte)oneParsed.values[0]);
@@ -58,7 +58,7 @@ public class FixedArrayShapeTests
     {
         var chars = new CStruct("struct root { char empty[0]; char one[1]; byte tail; };");
         using var charStream = new MemoryStream([(byte)'Q', 0xA5,]);
-        dynamic charParsed = chars.ParseStream(charStream, "root");
+        dynamic charParsed = chars.Parse(charStream, "root");
 
         Assert.AreEqual(string.Empty, (string)charParsed.empty);
         Assert.AreEqual("Q", (string)charParsed.one);
@@ -67,7 +67,7 @@ public class FixedArrayShapeTests
 
         var nested = new CStruct("struct item { byte value; }; struct root { item items[1]; byte tail; };");
         using var nestedStream = new MemoryStream([0x2A, 0xA5,]);
-        dynamic nestedParsed = nested.ParseStream(nestedStream, "root");
+        dynamic nestedParsed = nested.Parse(nestedStream, "root");
 
         Assert.AreEqual(1, ((IList<object>)nestedParsed.items).Count);
         Assert.AreEqual((byte)0x2A, (byte)nestedParsed.items[0].value);
@@ -90,7 +90,7 @@ public class FixedArrayShapeTests
             var primitives = new CStruct($"struct root {{ byte values[{count}]; byte tail; }};");
             byte[] primitiveBytes = [.. Enumerable.Range(0, count).Select(index => (byte)(index + 1)), 0xA5,];
             using var primitiveStream = new MemoryStream(primitiveBytes);
-            dynamic primitiveResult = primitives.ParseStream(primitiveStream, "root");
+            dynamic primitiveResult = primitives.Parse(primitiveStream, "root");
             Assert.AreEqual(count, ((IList<object>)primitiveResult.values).Count);
             CollectionAssert.AreEqual(
                 Enumerable.Range(0, count).Select(index => (object)(byte)(index + 1)).ToList(),
@@ -100,21 +100,21 @@ public class FixedArrayShapeTests
             primitiveStream.Position = 0;
             Assert.AreEqual(count, primitives.ResolveAddress(primitiveStream, "root.tail"));
             primitiveStream.Position = 0;
-            (List<DebugData> primitiveDebug, _) = primitives.ParseStreamWithDebug(primitiveStream, "root");
+            (_, IReadOnlyList<DebugData> primitiveDebug) = primitives.ParseWithDebug(primitiveStream, "root");
             Assert.AreEqual(count, primitiveDebug.Single(item => item.Path == "root.tail").Start);
             CollectionAssert.AreEqual(primitiveBytes, primitives.Serialize("root", primitiveResult));
 
             var characters = new CStruct($"struct root {{ char values[{count}]; byte tail; }};");
             byte[] characterBytes = [.. Enumerable.Range(0, count).Select(index => (byte)('A' + index)), 0xA5,];
             using var characterStream = new MemoryStream(characterBytes);
-            dynamic characterResult = characters.ParseStream(characterStream, "root");
+            dynamic characterResult = characters.Parse(characterStream, "root");
             Assert.AreEqual(new string(Enumerable.Range(0, count).Select(index => (char)('A' + index)).ToArray()), characterResult.values);
             Assert.AreEqual((byte)0xA5, (byte)characterResult.tail);
             Assert.AreEqual(count + 1, characters.GetStructSizeInBytes("root"));
             characterStream.Position = 0;
             Assert.AreEqual(count, characters.ResolveAddress(characterStream, "root.tail"));
             characterStream.Position = 0;
-            (List<DebugData> characterDebug, _) = characters.ParseStreamWithDebug(characterStream, "root");
+            (_, IReadOnlyList<DebugData> characterDebug) = characters.ParseWithDebug(characterStream, "root");
             Assert.AreEqual(count, characterDebug.Single(item => item.Path == "root.tail").Start);
             CollectionAssert.AreEqual(characterBytes, characters.Serialize("root", characterResult));
 
@@ -122,7 +122,7 @@ public class FixedArrayShapeTests
             var enums = new CStruct(enumPrefix + $" struct root {{ kind values[{count}]; byte tail; }};");
             byte[] enumBytes = [.. Enumerable.Range(0, count).Select(index => (byte)index), 0xA5,];
             using var enumStream = new MemoryStream(enumBytes);
-            dynamic enumResult = enums.ParseStream(enumStream, "root");
+            dynamic enumResult = enums.Parse(enumStream, "root");
             Assert.AreEqual(count, ((IList<object>)enumResult.values).Count);
             CollectionAssert.AreEqual(
                 Enumerable.Range(0, count).Select(value => new BigInteger(value)).ToList(),
@@ -132,7 +132,7 @@ public class FixedArrayShapeTests
             enumStream.Position = 0;
             Assert.AreEqual(count, enums.ResolveAddress(enumStream, "root.tail"));
             enumStream.Position = 0;
-            (List<DebugData> enumDebug, _) = enums.ParseStreamWithDebug(enumStream, "root");
+            (_, IReadOnlyList<DebugData> enumDebug) = enums.ParseWithDebug(enumStream, "root");
             Assert.AreEqual(count, enumDebug.Single(item => item.Path == "root.tail").Start);
             CollectionAssert.AreEqual(enumBytes, enums.Serialize("root", enumResult));
 
@@ -141,7 +141,7 @@ public class FixedArrayShapeTests
                 $" struct root {{ item values[{count}]; byte tail; }};");
             byte[] nestedBytes = [.. Enumerable.Range(0, count).Select(index => (byte)(index + 1)), 0xA5,];
             using var nestedStream = new MemoryStream(nestedBytes);
-            dynamic nestedResult = nested.ParseStream(nestedStream, "root");
+            dynamic nestedResult = nested.Parse(nestedStream, "root");
             Assert.AreEqual(count, ((IList<object>)nestedResult.values).Count);
             CollectionAssert.AreEqual(
                 Enumerable.Range(0, count).Select(index => (object)(byte)(index + 1)).ToList(),
@@ -151,7 +151,7 @@ public class FixedArrayShapeTests
             nestedStream.Position = 0;
             Assert.AreEqual(count, nested.ResolveAddress(nestedStream, "root.tail"));
             nestedStream.Position = 0;
-            (List<DebugData> nestedDebug, _) = nested.ParseStreamWithDebug(nestedStream, "root");
+            (_, IReadOnlyList<DebugData> nestedDebug) = nested.ParseWithDebug(nestedStream, "root");
             Assert.AreEqual(count, nestedDebug.Single(item => item.Path == "root.tail").Start);
             CollectionAssert.AreEqual(nestedBytes, nested.Serialize("root", nestedResult));
         }

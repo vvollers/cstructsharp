@@ -5,7 +5,7 @@ description: Replace one value in an existing stream without moving or rebuildin
 
 # Update existing data
 
-`UpdateStream` is for binary data that already exists. You give it a path such as `root.value.flags`, and it locates
+`Update` is for binary data that already exists. You give it a path such as `root.value.flags`, and it locates
 the corresponding byte range before writing the replacement.
 
 Use an update when:
@@ -15,7 +15,7 @@ Use an update when:
 - the destination is a readable, writable, seekable stream.
 
 Do not use it to insert data, grow the stream, relocate following fields, or rebuild a variable-size object. Use
-`Serialize` or `WriteStream` to create new output.
+`Serialize` or `Write` to create new output.
 
 ## Patch one nested field
 

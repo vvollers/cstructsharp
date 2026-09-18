@@ -26,7 +26,7 @@ public class RobustnessTests
         using ChunkedMemoryStream stream = RegressionTestSupport.CreateChunkedStream(bytes, 1);
         var cstruct = new CStruct(layout, 2);
 
-        dynamic result = cstruct.ParseStream(stream, "root");
+        dynamic result = cstruct.Parse(stream, "root");
 
         Assert.AreEqual(0x0102030405060708UL, (ulong)result.value);
         Pointer pointer = result.target;
@@ -48,7 +48,7 @@ public class RobustnessTests
         using var stream = new MemoryStream([0x01, 0x02,]);
         var cstruct = new CStruct(layout);
 
-        Assert.Throws<CStructReadException>(() => cstruct.ParseStream(stream, "root"));
+        Assert.Throws<CStructReadException>(() => cstruct.Parse(stream, "root"));
     }
 
     /// <summary>
@@ -71,7 +71,7 @@ public class RobustnessTests
             using var stream = new MemoryStream(bytes);
             var cstruct = new CStruct(layout, pointerSize, isLittleEndian: false);
 
-            dynamic result = cstruct.ParseStream(stream, "root");
+            dynamic result = cstruct.Parse(stream, "root");
             Pointer pointer = result.target;
 
             Assert.AreEqual((long)pointerSize, pointer.Address, "Pointer size " + pointerSize);
@@ -93,7 +93,7 @@ public class RobustnessTests
         using var stream = new MemoryStream([0x80, 0x00,]);
         var cstruct = new CStruct(layout, 2, isLittleEndian: false);
 
-        Assert.Throws<CStructReadException>(() => cstruct.ParseStream(stream, "root"));
+        Assert.Throws<CStructReadException>(() => cstruct.Parse(stream, "root"));
     }
 
     /// <summary>
@@ -110,7 +110,7 @@ public class RobustnessTests
         using var stream = new MemoryStream([0x02, 0x00, 0xA5,]);
         var cstruct = new CStruct(layout, 2);
 
-        dynamic result = cstruct.ParseStream(
+        dynamic result = cstruct.Parse(
                                              stream,
                                              "root",
                                              new System.Collections.Generic.Dictionary<string, Expr>(),
@@ -136,7 +136,7 @@ public class RobustnessTests
         using var stream = new MemoryStream([0x02, 0x00, 0x02, 0x00,]);
         var cstruct = new CStruct(layout, 2);
 
-        Assert.Throws<CStructReadException>(() => cstruct.ParseStream(stream, "root"));
+        Assert.Throws<CStructReadException>(() => cstruct.Parse(stream, "root"));
     }
 
     /// <summary>
@@ -154,7 +154,7 @@ public class RobustnessTests
         var cstruct = new CStruct(layout, 2);
 
         Assert.Throws<CStructReadException>(
-                                             () => cstruct.ParseStream(
+                                             () => cstruct.Parse(
                                                  stream,
                                                  "root",
                                                  new System.Collections.Generic.Dictionary<string, Expr>(),
@@ -175,7 +175,7 @@ public class RobustnessTests
         using var stream = new MemoryStream([0x7F,]);
         var cstruct = new CStruct(layout);
 
-        dynamic result = cstruct.ParseStream(stream, "root");
+        dynamic result = cstruct.Parse(stream, "root");
         EnumValueResult enumValue = result.value;
 
         Assert.IsNull(enumValue.Name);
@@ -244,7 +244,7 @@ public class RobustnessTests
         using var stream = new MemoryStream([0x00, 0x00,]);
         var cstruct = new CStruct(layout, 2);
 
-        Assert.Throws<CStructReadException>(() => cstruct.UpdateStream(stream, "root.target.value", (byte)0xA5));
+        Assert.Throws<CStructReadException>(() => cstruct.Update(stream, "root.target.value", (byte)0xA5));
     }
 
     /// <summary>
@@ -263,7 +263,7 @@ public class RobustnessTests
         UnionValue value = UnionValue.FromMember("choice", "small", (byte)0x11);
         var cstruct = new CStruct(layout);
 
-        cstruct.UpdateStream(stream, "root.value", value);
+        cstruct.Update(stream, "root.value", value);
 
         CollectionAssert.AreEqual(new byte[] { 0x11, 0x00, 0x00, 0x00, }, stream.ToArray());
     }
@@ -286,7 +286,7 @@ public class RobustnessTests
         using var stream = new MemoryStream([0x01, 0x02, 0x03,]);
         var cstruct = new CStruct(layout);
 
-        dynamic result = cstruct.ParseStream(stream, "root", variables);
+        dynamic result = cstruct.Parse(stream, "root", variables);
 
         Assert.AreEqual(3, result.values.Count);
         Assert.AreEqual(1, variables.Count);
@@ -341,7 +341,7 @@ public class RobustnessTests
         var cstruct = new CStruct(layout);
         using var input = new MemoryStream([0xFF, 0xFF, 0xFF, 0xFF,]);
 
-        dynamic parsed = cstruct.ParseStream(input, "root");
+        dynamic parsed = cstruct.Parse(input, "root");
         dynamic value = new System.Dynamic.ExpandoObject();
         value.flags = uint.MaxValue;
         byte[] serialized = cstruct.Serialize("root", value);

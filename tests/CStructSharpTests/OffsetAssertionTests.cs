@@ -18,7 +18,7 @@ public class OffsetAssertionTests
     {
         var cstruct = new CStruct("struct root { uint8 a; uint8 b; uint8 value @2; };");
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([1, 2, 3,]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([1, 2, 3,]), "root");
         Assert.AreEqual((byte)3, (byte)parsed.value);
     }
 
@@ -53,7 +53,7 @@ public class OffsetAssertionTests
     /// <summary>
     ///     When a field follows a runtime-length sibling, its static offset is unknowable at construction time, so
     ///     construction always succeeds regardless of whether the assertion is right - but the gap is closed, not
-    ///     left silently unchecked: the first operation that actually reaches the field (here, ParseStream) performs
+    ///     left silently unchecked: the first operation that actually reaches the field (here, Parse) performs
     ///     the check instead, at the point the field's real position finally becomes known.
     /// </summary>
     [TestMethod]
@@ -62,9 +62,9 @@ public class OffsetAssertionTests
         var wrong = new CStruct("struct root { uint8 count; uint8 items[count]; uint8 tail @999; };");
         var right = new CStruct("struct root { uint8 count; uint8 items[count]; uint8 tail @3; };");
 
-        Assert.Throws<CStructLayoutException>(() => wrong.ParseStream(new MemoryStream([2, 10, 20, 42,]), "root"));
+        Assert.Throws<CStructLayoutException>(() => wrong.Parse(new MemoryStream([2, 10, 20, 42,]), "root"));
 
-        dynamic parsed = right.ParseStream(new MemoryStream([2, 10, 20, 42,]), "root");
+        dynamic parsed = right.Parse(new MemoryStream([2, 10, 20, 42,]), "root");
         Assert.AreEqual((byte)42, (byte)parsed.tail);
     }
 
@@ -138,7 +138,7 @@ public class OffsetAssertionTests
         var cstruct = new CStruct("struct root { uint8 a; uint8 b; uint8 value @2; };");
 
         using var writeStream = new MemoryStream();
-        cstruct.WriteStream(writeStream, "root", new { a = (byte)1, b = (byte)2, value = (byte)3, });
+        cstruct.Write(writeStream, "root", new { a = (byte)1, b = (byte)2, value = (byte)3, });
         CollectionAssert.AreEqual(new byte[] { 1, 2, 3, }, writeStream.ToArray());
 
         byte[] bytes = cstruct.Serialize("root", new { a = (byte)1, b = (byte)2, value = (byte)3, });
@@ -148,7 +148,7 @@ public class OffsetAssertionTests
         Assert.AreEqual(3, Convert.ToInt32(cstruct.ReadValue(readStream, "root.value")));
 
         using var updateStream = new MemoryStream(bytes);
-        cstruct.UpdateStream(updateStream, "root.value", (byte)9);
+        cstruct.Update(updateStream, "root.value", (byte)9);
         CollectionAssert.AreEqual(new byte[] { 1, 2, 9, }, updateStream.ToArray());
     }
 }

@@ -168,7 +168,7 @@ public class MemoryCoreCompatibilityTests
         Assert.AreEqual(2, value.Double.Length);
         Assert.AreEqual(2, value.Packed.Length);
         using var stream = new MemoryStream(bytes);
-        dynamic parsed = layout.ParseStream(stream, "Root");
+        dynamic parsed = layout.Parse(stream, "Root");
         Assert.AreEqual(2, ((IList<object?>)parsed.Packed).Count);
     }
 

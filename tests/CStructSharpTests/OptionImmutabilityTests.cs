@@ -71,7 +71,7 @@ public class OptionImmutabilityTests
         for (int index = 0; index < 2; index++)
         {
             using var readStream = new MemoryStream(new byte[] { (byte)(index + 1), });
-            dynamic parsed = cstruct.ParseStream(
+            dynamic parsed = cstruct.Parse(
                 readStream,
                 "root",
                 new Dictionary<string, Expr>(),
@@ -83,7 +83,7 @@ public class OptionImmutabilityTests
                 cstruct.Serialize("root.value", (byte)(index + 2), options: writeOptions));
 
             using var updateStream = new MemoryStream(new byte[] { 0, });
-            cstruct.UpdateStream(updateStream, "root.value", (byte)(index + 3), options: updateOptions);
+            cstruct.Update(updateStream, "root.value", (byte)(index + 3), options: updateOptions);
             CollectionAssert.AreEqual(new byte[] { (byte)(index + 3), }, updateStream.ToArray());
         }
     }

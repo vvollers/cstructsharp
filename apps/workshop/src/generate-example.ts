@@ -155,9 +155,7 @@ export function generateExample(
     .join("");
   const csOptionsArgument = policy ? ", options: options" : "";
   const jsOptionsArgument = Object.keys(options).length ? ", options" : "";
-  const root = o.rootTypeName
-    ? csString(o.rootTypeName)
-    : "layout.CStructElements.First(entry => entry.Value is CStructSharp.Syntax.Struct).Key";
+  const root = o.rootTypeName ? csString(o.rootTypeName) : "layout.DefaultRoot";
   const csharp = `// Create a .NET 10 console project and install the CStructSharp package.
 // Replace Program.cs with this code. These are the inputs captured when you clicked Generate.
 using System;
@@ -205,8 +203,8 @@ ${comment(expected)
   .join("\n")}
 ${
   operation === "parse"
-    ? `    // AsSpan selects the memory read overload without copying the input bytes.
-    object result = layout.Parse(bytes.AsSpan(), ${root}${csOptionsArgument});
+    ? `    // ReadValue accepts any root (struct, union, array, or scalar); Parse returns a StructValue for struct roots.
+    object? result = layout.ReadValue(bytes, ${root}${csOptionsArgument});
     Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));`
     : operation === "serialize"
       ? `    // Create a new byte array from the selected root and application values.
@@ -214,7 +212,7 @@ ${
     Console.WriteLine(Convert.ToHexString(output));`
       : `    // Change only the selected path in an existing, seekable byte buffer.
     using var stream = new MemoryStream(bytes);
-    layout.UpdateStream(stream, ${csString(request.path)}, value!${csOptionsArgument});
+    layout.Update(stream, ${csString(request.path)}, value!${csOptionsArgument});
     Console.WriteLine(Convert.ToHexString(stream.ToArray()));`
 }
 }

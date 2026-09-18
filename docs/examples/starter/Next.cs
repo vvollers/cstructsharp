@@ -8,7 +8,7 @@ Console.WriteLine($"Created: {Convert.ToHexString(bytes)}");
 
 // Change a fixed field in those bytes. MemoryStream lets the library seek to it.
 using var stream = new MemoryStream(bytes);
-layout.UpdateStream(stream, "header.kind", 3);
+layout.Update(stream, "header.kind", 3);
 Console.WriteLine($"Updated: {Convert.ToHexString(stream.ToArray())}");
 
 // Read into a class with checked property conversion.
@@ -16,7 +16,7 @@ Header header = layout.ReadValue<Header>(stream.ToArray().AsSpan(), "header");
 Console.WriteLine($"Kind = {header.Kind}; Length = {header.Length}");
 
 // Too few bytes are an expected input failure, so use TryReadValue.
-bool success = layout.TryReadValue<Header>(new byte[] { 2 }.AsSpan(), out _, "header");
+bool success = layout.TryReadValue<Header>(new byte[] { 2 }.AsSpan(), "header", out _);
 Console.WriteLine($"Truncated read succeeds = {success}");
 
 public sealed class Header

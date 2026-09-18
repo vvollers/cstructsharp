@@ -21,9 +21,9 @@ public class PointerFieldExtentTests
         Assert.AreEqual(4L, layout.ResolveAddress(stream, "root.after"));
         Assert.AreEqual(5L, layout.ResolveAddress(stream, "root.target.value"));
 
-        layout.UpdateStream(stream, "root.after", (byte)0x99);
+        layout.Update(stream, "root.after", (byte)0x99);
         Assert.AreEqual(0x99, bytes[4]);
-        layout.UpdateStream(stream, "root.target.value.tag", (ushort)0xABCD);
+        layout.Update(stream, "root.target.value.tag", (ushort)0xABCD);
         Assert.AreEqual(0xCD, bytes[9]);
         Assert.AreEqual(0xAB, bytes[10]);
     }
@@ -36,11 +36,11 @@ public class PointerFieldExtentTests
         byte[] bytes = [4, 0, 0, 0, 12, 0, 0, 0, 0xE8, 3, 0, 0, 0, 0, 0, 0, 0xE9, 3, 0, 0];
         using var stream = new MemoryStream(bytes, writable: true);
 
-        layout.UpdateStream(stream, "root.head.value.value", 0xBEEFU);
+        layout.Update(stream, "root.head.value.value", 0xBEEFU);
         Assert.AreEqual(0xEF, bytes[8]);
         Assert.AreEqual(0xBE, bytes[9]);
 
-        layout.UpdateStream(stream, "root.head.value.next.value.value", 0x1234U);
+        layout.Update(stream, "root.head.value.next.value.value", 0x1234U);
         Assert.AreEqual(0x34, bytes[16]);
         Assert.AreEqual(0x12, bytes[17]);
 

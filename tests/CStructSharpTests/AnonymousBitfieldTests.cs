@@ -22,7 +22,7 @@ public class AnonymousBitfieldTests
         var cstruct = new CStruct("struct root { uint8 flag:1, :3, other:4; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0b1011_0001, });
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual(1, (int)parsed.flag);
         Assert.AreEqual(0b1011, (int)parsed.other);
@@ -40,7 +40,7 @@ public class AnonymousBitfieldTests
         Assert.AreEqual(1, cstruct.GetStructSizeInBytes("root"));
 
         using var stream = new MemoryStream(new byte[] { 0xFF, });
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
         Assert.AreEqual(0, ((IDictionary<string, object?>)parsed).Count);
     }
 
@@ -66,7 +66,7 @@ public class AnonymousBitfieldTests
         CollectionAssert.AreEqual(new byte[] { 0b1111_0001, }, bytes);
 
         using var writeStream = new MemoryStream();
-        cstruct.WriteStream(writeStream, "root", new { flag = 1, other = 0b1111, });
+        cstruct.Write(writeStream, "root", new { flag = 1, other = 0b1111, });
         CollectionAssert.AreEqual(new byte[] { 0b1111_0001, }, writeStream.ToArray());
     }
 
@@ -77,7 +77,7 @@ public class AnonymousBitfieldTests
         var cstruct = new CStruct("struct root { uint8 flag:1, :3, other:4; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0b1010_1101, });
 
-        cstruct.UpdateStream(stream, "root.flag", 0);
+        cstruct.Update(stream, "root.flag", 0);
 
         // Only bit 0 (flag) changes; the padding bits (1-3) and other's bits (4-7) are untouched.
         CollectionAssert.AreEqual(new byte[] { 0b1010_1100, }, stream.ToArray());
@@ -94,7 +94,7 @@ public class AnonymousBitfieldTests
         var cstruct = new CStruct("struct root { unsigned int :3; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0x05, 0, 0, 0, });
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual(0x05, (int)parsed.@int);
     }
@@ -113,9 +113,9 @@ public class AnonymousBitfieldTests
         var cstruct = new CStruct("struct root { uint8 flag:1, :3, other:4; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 0b1011_0001, });
 
-        (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
+        (dynamic _, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root");
 
-        Assert.IsTrue(debug.Exists(entry => entry.Path == "root."));
+        Assert.IsTrue(debug.Any(entry => entry.Path == "root."));
     }
 
     /// <summary>An anonymous declarator can never be addressed by path, since a requested path segment can never be empty.</summary>

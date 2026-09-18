@@ -2,6 +2,7 @@ namespace CStructSharp.Benchmarks.Baseline0;
 
 using BenchmarkDotNet.Attributes;
 using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>S-DEBUG: byte-range capture on a 1k-record array and on a real format header.</summary>
 [BenchmarkCategory("Baseline0", "Debug")]
@@ -27,9 +28,9 @@ public class DebugBenchmarks
     }
 
     [Benchmark]
-    public (List<DebugData> DebugData, dynamic Result) ParseWithDebug()
+    public ParseResult ParseWithDebug()
     {
         this.stream.Position = 0;
-        return this.fixture.Layout.ParseStreamWithDebug(this.stream, this.fixture.Root, this.fixture.Variables, this.fixture.ReadOptions);
+        return this.fixture.Layout.ParseWithDebug(this.stream, this.fixture.Root, this.fixture.Variables, this.fixture.ReadOptions);
     }
 }

@@ -32,9 +32,9 @@ public class TestAlign
         var c = new CStruct(d, aligned: true);
         byte[]? bufBytes = buf.ParseHexDataContent();
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "test");
+        (object? obj, IReadOnlyList<DebugData> debug) = c.ReadValueWithDebug(str, "test");
 
-        dynamic result = obj;
+        dynamic result = obj!;
 
         Assert.AreEqual(8, str.Position);
         Assert.AreEqual(8, c.GetStructAlignmentInBytes("test"));
@@ -73,24 +73,24 @@ public class TestAlign
         var c = new CStruct(d, aligned: true);
         byte[]? bufBytes = buf.ParseHexDataContent();
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "test");
+        (dynamic obj, IReadOnlyList<DebugData> debug) = c.ParseWithDebug(str, "test");
 
         dynamic result = obj;
 
         Assert.AreEqual(64, str.Position);
         Assert.AreEqual(8, c.GetStructAlignmentInBytes("test"));
         Assert.AreEqual(64, c.GetStructSizeInBytes("test"));
-        Assert.AreEqual(0x00U, (uint)result.test.a);
+        Assert.AreEqual(0x00U, (uint)result.a);
         Assert.IsTrue(
-                      ((List<object>)result.test.b).Select(o => (ulong)o).
+                      ((List<object>)result.b).Select(o => (ulong)o).
                                                     ToArray().
                                                     SequenceEqual(new ulong[] { 0x08, 0x10, 0x18, 0x20, }));
-        Assert.AreEqual(0x28U, (uint)result.test.c);
+        Assert.AreEqual(0x28U, (uint)result.c);
         Assert.IsTrue(
-                      ((List<object>)result.test.d).Select(o => (uint)o).
+                      ((List<object>)result.d).Select(o => (uint)o).
                                                     ToArray().
                                                     SequenceEqual(new uint[] { 0x2C, 0x30, }));
-        Assert.AreEqual(0x38U, (uint)result.test.e);
+        Assert.AreEqual(0x38U, (uint)result.e);
     }
 
     /// <summary>
@@ -123,17 +123,17 @@ public class TestAlign
         var c = new CStruct(d, aligned: true);
         byte[]? bufBytes = buf.ParseHexDataContent();
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "test");
+        (dynamic obj, IReadOnlyList<DebugData> debug) = c.ParseWithDebug(str, "test");
 
         dynamic result = obj;
 
-        Assert.AreEqual((ushort)0b10, (ushort)result.test.a);
-        Assert.AreEqual((ushort)0b01, (ushort)result.test.b);
-        Assert.AreEqual(0b10UL, (ulong)result.test.c);
-        Assert.AreEqual(0b01UL, (ulong)result.test.d);
-        Assert.AreEqual((ushort)0x10, (ushort)result.test.e);
-        Assert.AreEqual(0b10U, (uint)result.test.f);
-        Assert.AreEqual(0x18UL, (ulong)result.test.g);
+        Assert.AreEqual((ushort)0b10, (ushort)result.a);
+        Assert.AreEqual((ushort)0b01, (ushort)result.b);
+        Assert.AreEqual(0b10UL, (ulong)result.c);
+        Assert.AreEqual(0b01UL, (ulong)result.d);
+        Assert.AreEqual((ushort)0x10, (ushort)result.e);
+        Assert.AreEqual(0b10U, (uint)result.f);
+        Assert.AreEqual(0x18UL, (ulong)result.g);
     }
 
     /// <summary>
@@ -168,27 +168,27 @@ public class TestAlign
         var c = new CStruct(d, aligned: true);
         byte[]? bufBytes = buf.ParseHexDataContent();
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "test");
+        (dynamic obj, IReadOnlyList<DebugData> debug) = c.ParseWithDebug(str, "test");
 
         dynamic result = obj;
 
-        Assert.AreEqual(0x06, (byte)result.test.a);
+        Assert.AreEqual(0x06, (byte)result.a);
         Assert.IsTrue(
-                      ((List<object>)result.test.b).Select(o => (ushort)o).
+                      ((List<object>)result.b).Select(o => (ushort)o).
                                                     ToArray().
                                                     SequenceEqual(
                                                                   new ushort[]
                                                                   {
                                                                       0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C,
                                                                   }));
-        Assert.AreEqual(0x10, (int)result.test.c);
-        Assert.AreEqual(0x18, (long)result.test.d);
-        Assert.AreEqual(0x02, (byte)result.test.e);
+        Assert.AreEqual(0x10, (int)result.c);
+        Assert.AreEqual(0x18, (long)result.d);
+        Assert.AreEqual(0x02, (byte)result.e);
         Assert.IsTrue(
-                      ((List<object>)result.test.f).Select(o => (uint)o).
+                      ((List<object>)result.f).Select(o => (uint)o).
                                                     ToArray().
                                                     SequenceEqual(new uint[] { 0x24, 0x28, }));
-        Assert.AreEqual(0x30, (long)result.test.g);
+        Assert.AreEqual(0x30, (long)result.g);
     }
 
     /// <summary>
@@ -221,14 +221,14 @@ public class TestAlign
         var c = new CStruct(d, aligned: true);
         byte[]? bufBytes = buf.ParseHexDataContent();
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "test");
+        (dynamic obj, IReadOnlyList<DebugData> debug) = c.ParseWithDebug(str, "test");
 
         dynamic result = obj;
 
-        Assert.AreEqual(0x00, (int)result.test.a);
-        Assert.AreEqual(0x08, (byte)result.test.nested.b);
-        Assert.AreEqual(0x10, (byte)result.test.nested.c);
-        Assert.AreEqual(0x18, (byte)result.test.d);
+        Assert.AreEqual(0x00, (int)result.a);
+        Assert.AreEqual(0x08, (byte)result.nested.b);
+        Assert.AreEqual(0x10, (byte)result.nested.c);
+        Assert.AreEqual(0x18, (byte)result.d);
     }
 
     /// <summary>
@@ -258,17 +258,17 @@ public class TestAlign
         var c = new CStruct(d, aligned: true);
         byte[]? bufBytes = buf.ParseHexDataContent();
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "test");
+        (dynamic obj, IReadOnlyList<DebugData> debug) = c.ParseWithDebug(str, "test");
 
         dynamic result = obj;
 
-        Pointer ptr = result.test.b;
+        Pointer ptr = result.b;
 
-        Assert.AreEqual(0x00U, (uint)result.test.a);
+        Assert.AreEqual(0x00U, (uint)result.a);
         Assert.AreEqual(0x18U, (uint)ptr.Address);
         Assert.AreEqual(0x18U, (uint)ptr.Value!);
-        Assert.AreEqual((ushort)0x10, (ushort)result.test.c);
-        Assert.AreEqual((ushort)0x12, (ushort)result.test.d);
+        Assert.AreEqual((ushort)0x10, (ushort)result.c);
+        Assert.AreEqual((ushort)0x12, (ushort)result.d);
     }
 
     /// <summary>
@@ -301,7 +301,7 @@ public class TestAlign
         var c = new CStruct(d, aligned: true);
         byte[]? bufBytes = buf.ParseHexDataContent();
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "test");
+        (dynamic obj, IReadOnlyList<DebugData> debug) = c.ParseWithDebug(str, "test");
 
         Assert.AreEqual(32, str.Position);
         Assert.AreEqual(8, c.GetStructAlignmentInBytes("test"));
@@ -345,18 +345,18 @@ public class TestAlign
         var c = new CStruct(d, aligned: true);
         byte[]? bufBytes = buf.ParseHexDataContent();
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "array");
+        (dynamic obj, IReadOnlyList<DebugData> debug) = c.ParseWithDebug(str, "array");
 
         dynamic result = obj;
 
-        Assert.AreEqual(0x00, (int)result.array.a[0].a);
-        Assert.AreEqual(0x08, (long)result.array.a[0].b);
-        Assert.AreEqual(0x10, (int)result.array.a[1].a);
-        Assert.AreEqual(0x18, (long)result.array.a[1].b);
-        Assert.AreEqual(0x20, (int)result.array.a[2].a);
-        Assert.AreEqual(0x28, (long)result.array.a[2].b);
-        Assert.AreEqual(0x30, (int)result.array.a[3].a);
-        Assert.AreEqual(0x38, (long)result.array.a[3].b);
+        Assert.AreEqual(0x00, (int)result.a[0].a);
+        Assert.AreEqual(0x08, (long)result.a[0].b);
+        Assert.AreEqual(0x10, (int)result.a[1].a);
+        Assert.AreEqual(0x18, (long)result.a[1].b);
+        Assert.AreEqual(0x20, (int)result.a[2].a);
+        Assert.AreEqual(0x28, (long)result.a[2].b);
+        Assert.AreEqual(0x30, (int)result.a[3].a);
+        Assert.AreEqual(0x38, (long)result.a[3].b);
     }
 
     /// <summary>
@@ -383,9 +383,9 @@ public class TestAlign
         var c = new CStruct(d, aligned: true);
         byte[]? bufBytes = buf.ParseHexDataContent();
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "test");
+        (object? obj, IReadOnlyList<DebugData> debug) = c.ReadValueWithDebug(str, "test");
 
-        dynamic result = obj;
+        dynamic result = obj!;
 
         Assert.AreEqual(16, str.Position);
         Assert.AreEqual(8, c.GetStructAlignmentInBytes("test"));

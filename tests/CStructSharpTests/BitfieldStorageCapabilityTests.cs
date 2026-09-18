@@ -167,12 +167,12 @@ public class BitfieldStorageCapabilityTests
                     isLittleEndian: layoutIsLittleEndian);
                 using var stream = new MemoryStream((byte[])bytes.Clone());
 
-                dynamic parsed = cstruct.ParseStream(stream, "root");
+                dynamic parsed = cstruct.Parse(stream, "root");
                 Assert.AreEqual(rawValue & 0xFUL, Convert.ToUInt64(parsed.low), typeName);
                 Assert.AreEqual(rawValue >> 4, Convert.ToUInt64(parsed.high), typeName);
 
                 stream.Position = 0;
-                (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
+                (dynamic _, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root");
                 foreach (string fieldName in new[] { "low", "high", })
                 {
                     DebugData item = debug.Single(entry => entry.Path == "root." + fieldName);
@@ -186,12 +186,12 @@ public class BitfieldStorageCapabilityTests
 
                 using (var writeStream = new MemoryStream())
                 {
-                    cstruct.WriteStream(writeStream, "root", parsed);
+                    cstruct.Write(writeStream, "root", parsed);
                     CollectionAssert.AreEqual(bytes, writeStream.ToArray(), typeName + " write");
                 }
 
                 stream.Position = 0;
-                cstruct.UpdateStream(stream, "root.low", 3);
+                cstruct.Update(stream, "root.low", 3);
                 ulong updatedRawValue = (rawValue & ~0xFUL) | 3UL;
                 CollectionAssert.AreEqual(
                     RegressionTestSupport.EncodeUnsigned(updatedRawValue, size, storageIsLittleEndian),
@@ -219,19 +219,19 @@ public class BitfieldStorageCapabilityTests
         var cstruct = new CStruct(layout, pointerSize: 1, isLittleEndian: true);
         using var stream = new MemoryStream([0x03, 0xEE, 0xEE, 0xAB, 0xCD,]);
 
-        dynamic root = cstruct.ParseStream(stream, "root");
+        dynamic root = cstruct.Parse(stream, "root");
         var pointer = (Pointer)root.selected;
         dynamic target = pointer.Value!;
         Assert.AreEqual(0xD, (int)target.low);
         Assert.AreEqual(0xABC, (int)target.high);
 
         stream.Position = 0;
-        dynamic selected = cstruct.ParseStream(stream, "root.selected.value");
+        dynamic selected = cstruct.Parse(stream, "root.selected.value");
         Assert.AreEqual(0xD, (int)selected.low);
         Assert.AreEqual(0xABC, (int)selected.high);
 
         stream.Position = 0;
-        (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root.selected.value");
+        (dynamic _, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root.selected.value");
         Assert.IsTrue(debug.Any(item => item.Start == 3 && item.Path == "root.selected.low"));
         Assert.IsTrue(debug.Any(item => item.Start == 3 && item.Path == "root.selected.high"));
 
@@ -239,7 +239,7 @@ public class BitfieldStorageCapabilityTests
         Assert.AreEqual(3L, cstruct.ResolveAddress(stream, "root.selected.value.high"));
 
         stream.Position = 0;
-        cstruct.UpdateStream(stream, "root.selected.value.high", 0x123);
+        cstruct.Update(stream, "root.selected.value.high", 0x123);
         CollectionAssert.AreEqual(new byte[] { 0x03, 0xEE, 0xEE, 0x12, 0x3D, }, stream.ToArray());
         Assert.AreEqual(0L, stream.Position);
     }

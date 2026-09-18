@@ -3,6 +3,7 @@ namespace CStructSharp;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Syntax;
+using CStructSharp.Values;
 
 /// <summary>Keeps parser-expression fixtures behind the test assembly's internal-access boundary.</summary>
 internal static class CStructExpressionTestExtensions
@@ -14,7 +15,7 @@ internal static class CStructExpressionTestExtensions
     /// <param name="variables">The internal expression variables.</param>
     /// <param name="options">Optional read policy.</param>
     /// <returns>The resolved array or string length.</returns>
-    public static int GetDynamicArrayLength(
+    public static int GetArrayLength(
         this CStruct cstruct,
         Stream stream,
         string elementNameOrPath,
@@ -35,7 +36,7 @@ internal static class CStructExpressionTestExtensions
     /// <param name="variables">The internal expression variables.</param>
     /// <param name="options">Optional read policy.</param>
     /// <returns>The parsed value.</returns>
-    public static dynamic ParseStream(
+    public static dynamic Parse(
         this CStruct cstruct,
         Stream stream,
         string elementNameOrPath,
@@ -56,18 +57,19 @@ internal static class CStructExpressionTestExtensions
     /// <param name="variables">The internal expression variables.</param>
     /// <param name="options">Optional read policy.</param>
     /// <returns>The captured ranges and parsed value.</returns>
-    public static (List<DebugData> DebugData, dynamic Result) ParseStreamWithDebug(
+    public static ParseResult ParseWithDebug(
         this CStruct cstruct,
         Stream stream,
         string elementNameOrPath,
         IReadOnlyDictionary<string, Expr>? variables,
         ReadOptions? options = null)
     {
-        return cstruct.ParseStreamWithDebugCore(
+        (List<DebugData> debug, object value) = cstruct.ParseStreamWithDebugCore(
             stream,
             elementNameOrPath,
             LayoutVariableInput.FromExpressions(variables),
             options);
+        return new ParseResult((StructValue)value, debug);
     }
 
     /// <summary>Runs the internal expression-variable address path for compiler-domain tests.</summary>
@@ -119,7 +121,7 @@ internal static class CStructExpressionTestExtensions
     /// <param name="value">The replacement value.</param>
     /// <param name="variables">The internal expression variables.</param>
     /// <param name="options">Optional update policy.</param>
-    public static void UpdateStream(
+    public static void Update(
         this CStruct cstruct,
         Stream stream,
         string elementNameOrPath,
@@ -142,7 +144,7 @@ internal static class CStructExpressionTestExtensions
     /// <param name="data">The value to encode.</param>
     /// <param name="variables">The internal expression variables.</param>
     /// <param name="options">Optional write policy.</param>
-    public static void WriteStream(
+    public static void Write(
         this CStruct cstruct,
         Stream stream,
         string elementNameOrPath,

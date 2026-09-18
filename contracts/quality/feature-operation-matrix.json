@@ -4,12 +4,12 @@
   "operations": [
     {
       "id": "parse",
-      "api": "CStruct.ParseStream / CStruct.Parse",
+      "api": "CStruct.Parse / CStruct.ReadValue",
       "contract": "Read a root or selected struct object from a stream, span, or read-only memory region."
     },
     {
       "id": "debug",
-      "api": "CStruct.ParseStreamWithDebug",
+      "api": "CStruct.ParseWithDebug",
       "contract": "Read values and exact source byte ranges."
     },
     {
@@ -19,7 +19,7 @@
     },
     {
       "id": "length",
-      "api": "CStruct.GetDynamicArrayLength",
+      "api": "CStruct.GetArrayLength",
       "contract": "Return a fixed/runtime array count or terminated-string character count."
     },
     {
@@ -29,12 +29,12 @@
     },
     {
       "id": "write",
-      "api": "CStruct.WriteStream",
+      "api": "CStruct.Write",
       "contract": "Write a root or selected value at the caller's current position."
     },
     {
       "id": "update",
-      "api": "CStruct.UpdateStream",
+      "api": "CStruct.Update",
       "contract": "Locate and replace an existing root or selected value while restoring the caller's position."
     },
     {
@@ -1558,14 +1558,6 @@
     }
   ],
   "knownContractLimits": [
-    {
-      "id": "debug-root-wrapper",
-      "summary": "Root ParseStream returns the selected struct, while root ParseStreamWithDebug retains the declaration-name wrapper used by the legacy debug API.",
-      "workItems": [
-        "API-04",
-        "QA-07"
-      ]
-    },
     {
       "id": "primitive-pointer-target-debug-range",
       "summary": "Debug parsing records pointer storage and fields inside composite targets, but not the final primitive target range of a pointer or multi-pointer chain.",

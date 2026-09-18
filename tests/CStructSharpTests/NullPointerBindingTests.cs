@@ -27,7 +27,7 @@ public class NullPointerBindingTests
             CollectionAssert.AreEqual(new byte[] { 0, 0, 0xA5, }, serialized, name + "/serialize");
 
             using var stream = new MemoryStream();
-            cstruct.WriteStream(stream, "root", value);
+            cstruct.Write(stream, "root", value);
             CollectionAssert.AreEqual(new byte[] { 0, 0, 0xA5, }, stream.ToArray(), name + "/write");
         }
 
@@ -62,12 +62,12 @@ public class NullPointerBindingTests
         var data = new NullablePointerProperty { Ptr = null, Tail = 0xA5, };
         using var selected = new MemoryStream();
 
-        cstruct.WriteStream(selected, "root.ptr", data);
+        cstruct.Write(selected, "root.ptr", data);
 
         CollectionAssert.AreEqual(new byte[] { 0, }, selected.ToArray());
 
         using var update = new MemoryStream([0x04, 0xA5, 0, 0, 0, 0x2A,]);
-        cstruct.UpdateStream(update, "root.ptr.address", null!);
+        cstruct.Update(update, "root.ptr.address", null!);
         CollectionAssert.AreEqual(new byte[] { 0, 0xA5, 0, 0, 0, 0x2A, }, update.ToArray());
         Assert.AreEqual(0L, update.Position);
 
@@ -117,18 +117,18 @@ public class NullPointerBindingTests
             Assert.Throws<CStructWriteException>(() => cstruct.Serialize("root", value), name + "/serialize");
 
             using var stream = new MemoryStream();
-            Assert.Throws<CStructWriteException>(() => cstruct.WriteStream(stream, "root", value), name + "/write");
+            Assert.Throws<CStructWriteException>(() => cstruct.Write(stream, "root", value), name + "/write");
             CollectionAssert.AreEqual(Array.Empty<byte>(), stream.ToArray(), name + "/unchanged");
 
             using var selected = new MemoryStream();
             Assert.Throws<CStructWriteException>(
-                () => cstruct.WriteStream(selected, "root.value", value),
+                () => cstruct.Write(selected, "root.value", value),
                 name + "/selected");
             CollectionAssert.AreEqual(Array.Empty<byte>(), selected.ToArray(), name + "/selected-unchanged");
         }
 
         using var update = new MemoryStream([0xA5,]) { Position = 1, };
-        Assert.Throws<CStructWriteException>(() => cstruct.UpdateStream(update, "root.value", null!));
+        Assert.Throws<CStructWriteException>(() => cstruct.Update(update, "root.value", null!));
         CollectionAssert.AreEqual(new byte[] { 0xA5, }, update.ToArray());
         Assert.AreEqual(1L, update.Position);
 

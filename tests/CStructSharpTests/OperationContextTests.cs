@@ -27,7 +27,7 @@ public class OperationContextTests
             options =>
             {
                 using var stream = new MemoryStream(bytes);
-                dynamic parsed = cstruct.ParseStream(
+                dynamic parsed = cstruct.Parse(
                     stream,
                     "root",
                     MutateDuringEnumeration(options, nameof(ReadOptions.MaxTotalBytesRead), 0L),
@@ -40,13 +40,13 @@ public class OperationContextTests
             options =>
             {
                 using var stream = new MemoryStream(bytes);
-                (List<DebugData> debug, dynamic parsed) = cstruct.ParseStreamWithDebug(
+                (dynamic parsed, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(
                     stream,
                     "root",
                     MutateDuringEnumeration(options, nameof(ReadOptions.MaxTotalBytesRead), 0L),
                     options);
                 Assert.IsNotEmpty(debug);
-                Assert.AreEqual((byte)0x2A, (byte)parsed.root.values[0]);
+                Assert.AreEqual((byte)0x2A, (byte)parsed.values[0]);
             },
             maxBytes: 4);
 
@@ -84,7 +84,7 @@ public class OperationContextTests
                 using var stream = new MemoryStream(bytes);
                 Assert.AreEqual(
                     1,
-                    cstruct.GetDynamicArrayLength(
+                    cstruct.GetArrayLength(
                         stream,
                         "root.values",
                         MutateDuringEnumeration(options, nameof(ReadOptions.MaxTotalBytesRead), 0L),
@@ -111,7 +111,7 @@ public class OperationContextTests
             [0x11, 0x22,]);
 
         using var stream = new MemoryStream();
-        cstruct.WriteStream(
+        cstruct.Write(
             stream,
             "root",
             payload,
@@ -135,7 +135,7 @@ public class OperationContextTests
         var options = new UpdateOptions { MaxTraversalBytesRead = 1, };
         using var stream = new MemoryStream([0x01, 0x2A,]);
 
-        cstruct.UpdateStream(
+        cstruct.Update(
             stream,
             "root.values[0]",
             (byte)0x5A,

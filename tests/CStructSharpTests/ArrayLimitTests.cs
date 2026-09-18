@@ -34,7 +34,7 @@ public class ArrayLimitTests
 
         using var readStream = new MemoryStream([0x2A,]);
         Assert.Throws<CStructReadLimitException>(
-            () => cstruct.ParseStream(
+            () => cstruct.Parse(
                 readStream,
                 "root",
                 new Dictionary<string, Expr>(),

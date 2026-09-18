@@ -300,7 +300,7 @@ public class ReadValueTests
         var singleRoot = new CStruct("struct root { uint16 value; };");
         using (var stream = new MemoryStream([0xCD, 0xAB,]))
         {
-            Assert.IsTrue(singleRoot.TryReadValue(stream, out ItemFields? root));
+            Assert.IsTrue(singleRoot.TryReadValue(stream, null, out ItemFields? root));
             Assert.IsNotNull(root);
             Assert.AreEqual(0xABCD, root.Value);
         }

@@ -85,9 +85,9 @@ internal static partial class Program
         Equal((ushort)2, (ushort)header.kind);
         Equal(6U, (uint)header.length);
 
-        bool read = layout.TryReadValue<Header>(bytes, out Header? typed, "header");
+        bool read = layout.TryReadValue<Header>(bytes, "header", out Header? typed);
         True(read && typed is { Kind: 2, Length: 6 }, "Typed header result differed.");
-        True(!layout.TryReadValue<Header>(bytes[..1], out _, "header"), "Truncated TryReadValue should fail.");
+        True(!layout.TryReadValue<Header>(bytes[..1], "header", out _), "Truncated TryReadValue should fail.");
     }
     #endregion
 
@@ -132,7 +132,7 @@ internal static partial class Program
 
         using var stream = new MemoryStream(bytes);
         stream.Position = 1;
-        Equal(3, layout.GetDynamicArrayLength(stream, "packet.payload", variables));
+        Equal(3, layout.GetArrayLength(stream, "packet.payload", variables));
         Equal(1L, stream.Position);
     }
     #endregion
@@ -152,8 +152,8 @@ internal static partial class Program
     {
         var layout = new CStruct("struct sample { uint8 tag; uint16 value; };");
         using var stream = new MemoryStream([0xA1, 0x34, 0x12]);
-        (List<DebugData> ranges, dynamic result) = layout.ParseStreamWithDebug(stream, "sample");
-        Equal((byte)0xA1, (byte)result.sample.tag);
+        (dynamic result, IReadOnlyList<DebugData> ranges) = layout.ParseWithDebug(stream, "sample");
+        Equal((byte)0xA1, (byte)result.tag);
         True(ranges.Any(item => item.Start == 1 && item.End == 3), "Value range was not reported.");
 
         stream.Position = 0;
@@ -167,7 +167,7 @@ internal static partial class Program
     {
         var layout = new CStruct("struct root { uint8 *target; };", pointerSize: 1);
         using var stream = new MemoryStream([0x01, 0x2A]);
-        dynamic root = layout.ParseStream(stream, "root");
+        dynamic root = layout.Parse(stream, "root");
         var pointer = (Pointer)root.target;
         Equal(1L, pointer.Address);
         True(pointer.IsDereferenced, "Pointer should be followed by default.");
@@ -240,12 +240,12 @@ internal static partial class Program
         var layout = new CStruct("struct item { uint16 id; uint8 flags; }; struct root { item value; };");
         using var stream = new MemoryStream([0xEE, 0xEE, 0x34, 0x12, 0x01]);
         stream.Position = 2;
-        layout.UpdateStream(stream, "root.value.flags", (byte)0xA5);
+        layout.Update(stream, "root.value.flags", (byte)0xA5);
         SequenceEqual([0xEE, 0xEE, 0x34, 0x12, 0xA5], stream.ToArray());
         Equal(2L, stream.Position);
 
         byte[] before = stream.ToArray();
-        Throws<CStructWriteException>(() => layout.UpdateStream(stream, "root.value.flags", 999));
+        Throws<CStructWriteException>(() => layout.Update(stream, "root.value.flags", 999));
         SequenceEqual(before, stream.ToArray());
         Equal(2L, stream.Position);
     }

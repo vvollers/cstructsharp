@@ -21,7 +21,7 @@ public class FloatingPointPrimitiveTests
         float nan = BitConverter.Int32BitsToSingle(0x7FC00123);
 
         byte[] bytes = cstruct.Serialize("root", new { value = nan, });
-        dynamic parsed = cstruct.ParseStream(new MemoryStream(bytes), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream(bytes), "root");
 
         Assert.AreEqual(0x7FC00123, BitConverter.SingleToInt32Bits((float)parsed.value));
     }
@@ -34,7 +34,7 @@ public class FloatingPointPrimitiveTests
         double nan = BitConverter.Int64BitsToDouble(0x7FF8000000ABCDEF);
 
         byte[] bytes = cstruct.Serialize("root", new { value = nan, });
-        dynamic parsed = cstruct.ParseStream(new MemoryStream(bytes), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream(bytes), "root");
 
         Assert.AreEqual(0x7FF8000000ABCDEF, BitConverter.DoubleToInt64Bits((double)parsed.value));
     }
@@ -46,7 +46,7 @@ public class FloatingPointPrimitiveTests
         var cstruct = new CStruct("struct root { float32 value; };", pointerSize: 1);
 
         byte[] bytes = cstruct.Serialize("root", new { value = -0.0f, });
-        dynamic parsed = cstruct.ParseStream(new MemoryStream(bytes), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream(bytes), "root");
 
         float result = (float)parsed.value;
         Assert.IsTrue(result == 0.0f);
@@ -60,7 +60,7 @@ public class FloatingPointPrimitiveTests
         var cstruct = new CStruct("struct root { float64 value; };", pointerSize: 1);
 
         byte[] bytes = cstruct.Serialize("root", new { value = -0.0, });
-        dynamic parsed = cstruct.ParseStream(new MemoryStream(bytes), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream(bytes), "root");
 
         double result = (double)parsed.value;
         Assert.IsTrue(result == 0.0);
@@ -75,7 +75,7 @@ public class FloatingPointPrimitiveTests
         float subnormal = BitConverter.Int32BitsToSingle(0x00000001);
 
         byte[] bytes = cstruct.Serialize("root", new { value = subnormal, });
-        dynamic parsed = cstruct.ParseStream(new MemoryStream(bytes), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream(bytes), "root");
 
         Assert.AreEqual(0x00000001, BitConverter.SingleToInt32Bits((float)parsed.value));
     }
@@ -88,7 +88,7 @@ public class FloatingPointPrimitiveTests
         double subnormal = BitConverter.Int64BitsToDouble(0x0000000000000001);
 
         byte[] bytes = cstruct.Serialize("root", new { value = subnormal, });
-        dynamic parsed = cstruct.ParseStream(new MemoryStream(bytes), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream(bytes), "root");
 
         Assert.AreEqual(0x0000000000000001, BitConverter.DoubleToInt64Bits((double)parsed.value));
     }
@@ -119,7 +119,7 @@ public class FloatingPointPrimitiveTests
         var cstruct = new CStruct("struct root { float32 a; float64 b; };", pointerSize: 1);
 
         using var writeStream = new MemoryStream();
-        cstruct.WriteStream(writeStream, "root", new { a = 1.5f, b = 2.5, });
+        cstruct.Write(writeStream, "root", new { a = 1.5f, b = 2.5, });
         byte[] expected = cstruct.Serialize("root", new { a = 1.5f, b = 2.5, });
         CollectionAssert.AreEqual(expected, writeStream.ToArray());
 
@@ -127,8 +127,8 @@ public class FloatingPointPrimitiveTests
         Assert.AreEqual(1.5f, Convert.ToSingle(cstruct.ReadValue(readStream, "root.a")));
 
         using var updateStream = new MemoryStream(expected);
-        cstruct.UpdateStream(updateStream, "root.a", 9.5f);
-        dynamic updated = cstruct.ParseStream(new MemoryStream(updateStream.ToArray()), "root");
+        cstruct.Update(updateStream, "root.a", 9.5f);
+        dynamic updated = cstruct.Parse(new MemoryStream(updateStream.ToArray()), "root");
         Assert.AreEqual(9.5f, (float)updated.a);
         Assert.AreEqual(2.5, (double)updated.b);
     }
@@ -140,7 +140,7 @@ public class FloatingPointPrimitiveTests
         var cstruct = new CStruct("struct root { float32 values[2]; };", pointerSize: 1);
 
         byte[] bytes = cstruct.Serialize("root", new { values = new[] { 1.5f, -2.5f, }, });
-        dynamic parsed = cstruct.ParseStream(new MemoryStream(bytes), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream(bytes), "root");
 
         Assert.AreEqual(1.5f, (float)parsed.values[0]);
         Assert.AreEqual(-2.5f, (float)parsed.values[1]);
@@ -156,7 +156,7 @@ public class FloatingPointPrimitiveTests
         Assert.AreEqual(canonical.GetStructSizeInBytes("root"), alias.GetStructSizeInBytes("root"));
         Assert.AreEqual(canonical.GetStructAlignmentInBytes("root"), alias.GetStructAlignmentInBytes("root"));
 
-        dynamic parsed = alias.ParseStream(new MemoryStream(BitConverter.GetBytes(1.5f)), "root");
+        dynamic parsed = alias.Parse(new MemoryStream(BitConverter.GetBytes(1.5f)), "root");
         Assert.AreEqual(1.5f, (float)parsed.value);
     }
 
@@ -170,7 +170,7 @@ public class FloatingPointPrimitiveTests
         Assert.AreEqual(canonical.GetStructSizeInBytes("root"), alias.GetStructSizeInBytes("root"));
         Assert.AreEqual(canonical.GetStructAlignmentInBytes("root"), alias.GetStructAlignmentInBytes("root"));
 
-        dynamic parsed = alias.ParseStream(new MemoryStream(BitConverter.GetBytes(2.5)), "root");
+        dynamic parsed = alias.Parse(new MemoryStream(BitConverter.GetBytes(2.5)), "root");
         Assert.AreEqual(2.5, (double)parsed.value);
     }
 
@@ -199,7 +199,7 @@ public class FloatingPointPrimitiveTests
         var cstruct = new CStruct("struct root { float32 value; };", pointerSize: 1);
 
         byte[] bytes = cstruct.Serialize("root", new { value = 1.5, });
-        dynamic parsed = cstruct.ParseStream(new MemoryStream(bytes), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream(bytes), "root");
 
         Assert.AreEqual(1.5f, (float)parsed.value);
     }

@@ -227,7 +227,7 @@ See [Enums](structs-unions-enums-typedefs.md#enums).
 - Supply values inside the declared range; writers do not perform unchecked narrowing.
 
 Fixed primitives work with parse, debug, address, serialize, stream write, update, and selected reads. A scalar has no
-dynamic length. Terminated types also support `GetDynamicArrayLength`.
+dynamic length. Terminated types also support `GetArrayLength`.
 
 Three-byte integers use alignment 1 even in aligned layouts, and arrays have a three-byte stride.
 They support ordinary numeric fields and scalar typedefs, but cannot back enums or bitfields.

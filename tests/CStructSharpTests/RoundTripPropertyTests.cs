@@ -255,7 +255,7 @@ public class RoundTripPropertyTests
 
         byte[] first = cstruct.Serialize("root", values);
         using var stream = new MemoryStream(first);
-        IDictionary<string, object?> parsed = cstruct.ParseStream(stream, "root");
+        IDictionary<string, object?> parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual(cstruct.GetStructSizeInBytes("root"), first.Length);
         for (int index = 0; index < item.Fields.Count; index++)
@@ -357,7 +357,7 @@ public class RoundTripPropertyTests
 
         byte[] first = cstruct.Serialize("root", data, variables);
         using var stream = new MemoryStream(first);
-        dynamic parsed = cstruct.ParseStream(stream, "root", variables);
+        dynamic parsed = cstruct.Parse(stream, "root", variables);
 
         Assert.AreEqual(item.Head, (byte)parsed.head);
         Assert.AreEqual(item.InlineCode, (uint)parsed.inlineValue.code);
@@ -456,7 +456,7 @@ public class RoundTripPropertyTests
 
         byte[] first = cstruct.Serialize("root", data);
         using var stream = new MemoryStream(first);
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual(item.Prefix, (byte)parsed.prefix);
         Assert.AreEqual(item.EnumValue, (ushort)((EnumValueResult)parsed.state).Value);
@@ -513,7 +513,7 @@ public class RoundTripPropertyTests
 
         byte[] first = cstruct.Serialize("root", data);
         using var stream = new MemoryStream(first);
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual(item.Value, (string)parsed.value);
         Assert.AreEqual(item.Tail, (byte)parsed.tail);
@@ -580,7 +580,7 @@ public class RoundTripPropertyTests
         }
 
         using var stream = new MemoryStream(bytes);
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
         var pointer = (Pointer)parsed.ptr;
         Assert.AreEqual(firstTarget, pointer.Address);
         Assert.AreEqual(item.Depth, pointer.Depth);
@@ -600,7 +600,7 @@ public class RoundTripPropertyTests
         byte[] rootBytes = cstruct.Serialize("root", parsed);
         CollectionAssert.AreEqual(bytes.Take(item.PointerSize + 1).ToArray(), rootBytes);
         using var rootStream = new MemoryStream(rootBytes);
-        dynamic reparsed = cstruct.ParseStream(
+        dynamic reparsed = cstruct.Parse(
             rootStream,
             "root",
             new Dictionary<string, Expr>(),

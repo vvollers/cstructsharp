@@ -121,7 +121,7 @@ public class LayoutSafetyTests
         using var stream = new MemoryStream(bytes);
         var cstruct = new CStruct(layout, aligned: true);
 
-        dynamic result = cstruct.ParseStream(stream, "root");
+        dynamic result = cstruct.Parse(stream, "root");
 
         Assert.AreEqual(3UL, (ulong)result.items[1].a);
         Assert.AreEqual(4U, (uint)result.items[1].b);
@@ -142,7 +142,7 @@ public class LayoutSafetyTests
         using var stream = new MemoryStream([1, 0, 0, 0, 2, 0, 0, 0, 0xA5,]);
         var cstruct = new CStruct(layout);
 
-        dynamic result = cstruct.ParseStream(stream, "root");
+        dynamic result = cstruct.Parse(stream, "root");
 
         Assert.AreEqual(8, cstruct.GetStructSizeInBytes("choice"));
         Assert.AreEqual(9, cstruct.GetStructSizeInBytes("root"));
@@ -207,7 +207,7 @@ public class LayoutSafetyTests
         var cstruct = new CStruct(layout);
 
         Assert.Throws<CStructReadException>(
-                                             () => cstruct.ParseStream(
+                                             () => cstruct.Parse(
                                                  stream,
                                                  "root",
                                                  new Dictionary<string, Expr>(),
@@ -228,7 +228,7 @@ public class LayoutSafetyTests
         using var stream = new MemoryStream([0xFF,]);
         var cstruct = new CStruct(layout);
 
-        Assert.Throws<CStructReadException>(() => cstruct.ParseStream(stream, "root"));
+        Assert.Throws<CStructReadException>(() => cstruct.Parse(stream, "root"));
     }
 
     /// <summary>
@@ -246,7 +246,7 @@ public class LayoutSafetyTests
         var cstruct = new CStruct(layout, 2);
 
         Assert.Throws<CStructReadException>(
-                                             () => cstruct.ParseStream(
+                                             () => cstruct.Parse(
                                                  stream,
                                                  "root",
                                                  new Dictionary<string, Expr>(),
@@ -269,7 +269,7 @@ public class LayoutSafetyTests
         var cstruct = new CStruct(layout);
 
         Assert.Throws<CStructReadException>(
-                                             () => cstruct.ParseStream(
+                                             () => cstruct.Parse(
                                                  stream,
                                                  "root",
                                                  new Dictionary<string, Expr>(),
@@ -292,7 +292,7 @@ public class LayoutSafetyTests
         var cstruct = new CStruct(layout);
 
         Assert.Throws<CStructReadException>(
-                                             () => cstruct.ParseStream(
+                                             () => cstruct.Parse(
                                                  stream,
                                                  "root",
                                                  new Dictionary<string, Expr>(),
@@ -314,7 +314,7 @@ public class LayoutSafetyTests
         var cstruct = new CStruct(layout);
 
         Assert.Throws<CStructReadException>(
-                                             () => cstruct.ParseStream(
+                                             () => cstruct.Parse(
                                                  stream,
                                                  "a",
                                                  new Dictionary<string, Expr>(),
@@ -378,7 +378,7 @@ public class LayoutSafetyTests
 
             byte[] bytes = cstruct.Serialize("root", data);
             using var stream = new MemoryStream(bytes);
-            dynamic parsed = cstruct.ParseStream(stream, "root");
+            dynamic parsed = cstruct.Parse(stream, "root");
 
             Assert.AreEqual(a, (byte)parsed.a);
             Assert.AreEqual(b, (ushort)parsed.b);
@@ -418,7 +418,7 @@ public class LayoutSafetyTests
             var cstruct = new CStruct("struct root { " + string.Join(' ', declarations) + " };", aligned: layoutNumber % 2 == 0);
             byte[] bytes = cstruct.Serialize("root", values);
             using var stream = new MemoryStream(bytes);
-            IDictionary<string, object?> parsed = cstruct.ParseStream(stream, "root");
+            IDictionary<string, object?> parsed = cstruct.Parse(stream, "root");
 
             Assert.AreEqual(cstruct.GetStructSizeInBytes("root"), bytes.Length, "Layout " + layoutNumber);
             foreach (KeyValuePair<string, object?> expected in values)
@@ -468,7 +468,7 @@ public class LayoutSafetyTests
             using var stream = new MemoryStream(bytes);
             try
             {
-                Assert.IsNotNull(cstruct.ParseStream(stream, "root", new Dictionary<string, Expr>(), options));
+                Assert.IsNotNull(cstruct.Parse(stream, "root", new Dictionary<string, Expr>(), options));
                 successfulParses++;
             }
             catch (CStructReadException)
@@ -486,7 +486,7 @@ public class LayoutSafetyTests
     ///     The supplied destination accepts writes but cannot seek or report normal positioning.
     /// </summary>
     /// <remarks>
-    ///     WriteStream must reject it at the public boundary even for a one-byte struct. The writer's layout and
+    ///     Write must reject it at the public boundary even for a one-byte struct. The writer's layout and
     ///     alignment logic requires positioning support, so failure should be clear before writing begins.
     /// </remarks>
     [TestMethod]
@@ -496,7 +496,7 @@ public class LayoutSafetyTests
         var cstruct = new CStruct(layout);
         using var stream = new WriteOnlyNonSeekableStream();
 
-        Assert.Throws<ArgumentException>(() => cstruct.WriteStream(stream, "root", new { value = (byte)0xA5, }));
+        Assert.Throws<ArgumentException>(() => cstruct.Write(stream, "root", new { value = (byte)0xA5, }));
     }
 
     /// <summary>
@@ -526,7 +526,7 @@ public class LayoutSafetyTests
             writable: true);
         var cstruct = new CStruct(layout);
 
-        cstruct.UpdateStream(stream, path, value);
+        cstruct.Update(stream, path, value);
 
         CollectionAssert.AreEqual(new byte[] { expectedFirst, expectedSecond, }, stream.ToArray());
     }
@@ -546,7 +546,7 @@ public class LayoutSafetyTests
         using var stream = new MemoryStream([0xA5,]);
         var cstruct = new CStruct(layout);
 
-        Assert.Throws<CStructReadException>(() => cstruct.UpdateStream(stream, "root.low", 0x3));
+        Assert.Throws<CStructReadException>(() => cstruct.Update(stream, "root.low", 0x3));
         CollectionAssert.AreEqual(new byte[] { 0xA5, }, stream.ToArray());
     }
 
@@ -560,7 +560,7 @@ public class LayoutSafetyTests
     {
         var cstruct = new CStruct("struct root { uint8 first, second; };");
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([1, 2,]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([1, 2,]), "root");
 
         Assert.AreEqual((byte)1, (byte)parsed.first);
         Assert.AreEqual((byte)2, (byte)parsed.second);
@@ -578,7 +578,7 @@ public class LayoutSafetyTests
         var cstruct = new CStruct("struct root { uint8 first, second; };");
 
         using var writeStream = new MemoryStream();
-        cstruct.WriteStream(writeStream, "root", new { first = (byte)1, second = (byte)2, });
+        cstruct.Write(writeStream, "root", new { first = (byte)1, second = (byte)2, });
         CollectionAssert.AreEqual(new byte[] { 1, 2, }, writeStream.ToArray());
 
         byte[] bytes = cstruct.Serialize("root", new { first = (byte)1, second = (byte)2, });
@@ -588,7 +588,7 @@ public class LayoutSafetyTests
         Assert.AreEqual((byte)2, Convert.ToByte(cstruct.ReadValue(readStream, "root.second")));
 
         using var updateStream = new MemoryStream(bytes);
-        cstruct.UpdateStream(updateStream, "root.second", (byte)9);
+        cstruct.Update(updateStream, "root.second", (byte)9);
         CollectionAssert.AreEqual(new byte[] { 1, 9, }, updateStream.ToArray());
     }
 
@@ -613,12 +613,12 @@ public class LayoutSafetyTests
     public void MultipleDeclarators_EachDeclaratorHasItsOwnArrayAndBitWidth()
     {
         var arrayCstruct = new CStruct("struct root { uint8 a, b[4]; };");
-        dynamic arrayParsed = arrayCstruct.ParseStream(new MemoryStream([9, 1, 2, 3, 4,]), "root");
+        dynamic arrayParsed = arrayCstruct.Parse(new MemoryStream([9, 1, 2, 3, 4,]), "root");
         Assert.AreEqual((byte)9, (byte)arrayParsed.a);
         Assert.AreEqual(4, arrayParsed.b.Count);
 
         var bitfieldCstruct = new CStruct("struct root { uint8 low:4, high:4; };");
-        dynamic bitfieldParsed = bitfieldCstruct.ParseStream(new MemoryStream([0xAB,]), "root");
+        dynamic bitfieldParsed = bitfieldCstruct.Parse(new MemoryStream([0xAB,]), "root");
         Assert.AreEqual(0xB, (int)bitfieldParsed.low);
         Assert.AreEqual(0xA, (int)bitfieldParsed.high);
     }
@@ -649,7 +649,7 @@ public class LayoutSafetyTests
     {
         var cstruct = new CStruct("struct root { const uint8 value; };");
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([5,]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([5,]), "root");
 
         Assert.AreEqual((byte)5, (byte)parsed.value);
         Assert.AreEqual(1, cstruct.GetStructSizeInBytes("root"));
@@ -696,7 +696,7 @@ public class LayoutSafetyTests
     {
         var cstruct = new CStruct("struct child { uint8 value; }; struct root { struct child value; };");
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([42,]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([42,]), "root");
 
         Assert.AreEqual((byte)42, (byte)parsed.value.value);
         Assert.AreEqual(1, cstruct.GetStructSizeInBytes("root"));
@@ -727,7 +727,7 @@ public class LayoutSafetyTests
         var cstruct = new CStruct(
             "struct child { uint8 value; }; typedef child ChildAlias; struct root { struct ChildAlias value; };");
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([9,]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([9,]), "root");
 
         Assert.AreEqual((byte)9, (byte)parsed.value.value);
     }
@@ -738,7 +738,7 @@ public class LayoutSafetyTests
     {
         var cstruct = new CStruct("struct child { uint8 value; }; struct root { child value; };");
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([7,]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([7,]), "root");
 
         Assert.AreEqual((byte)7, (byte)parsed.value.value);
     }
@@ -778,7 +778,7 @@ public class LayoutSafetyTests
         var cstruct = new CStruct("struct child { uint8 value; }; struct root { struct child value; };");
 
         using var writeStream = new MemoryStream();
-        cstruct.WriteStream(writeStream, "root", new { value = new { value = (byte)1, }, });
+        cstruct.Write(writeStream, "root", new { value = new { value = (byte)1, }, });
         CollectionAssert.AreEqual(new byte[] { 1, }, writeStream.ToArray());
 
         byte[] bytes = cstruct.Serialize("root", new { value = new { value = (byte)1, }, });
@@ -788,7 +788,7 @@ public class LayoutSafetyTests
         Assert.AreEqual((byte)1, Convert.ToByte(cstruct.ReadValue(readStream, "root.value.value")));
 
         using var updateStream = new MemoryStream(bytes);
-        cstruct.UpdateStream(updateStream, "root.value.value", (byte)9);
+        cstruct.Update(updateStream, "root.value.value", (byte)9);
         CollectionAssert.AreEqual(new byte[] { 9, }, updateStream.ToArray());
     }
 

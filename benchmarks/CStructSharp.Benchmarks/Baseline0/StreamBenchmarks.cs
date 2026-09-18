@@ -38,18 +38,18 @@ public class StreamBenchmarks
     [Benchmark(Baseline = true)]
     public object Parse_MemoryStream()
     {
-        return this.fixture.ParseStream(this.memoryStream);
+        return this.fixture.Parse(this.memoryStream);
     }
 
     [Benchmark]
     public object Parse_FileStream_Unbuffered()
     {
-        return this.fixture.ParseStream(this.fileStream);
+        return this.fixture.Parse(this.fileStream);
     }
 
     [Benchmark]
     public object Parse_BufferedFileStream_64K()
     {
-        return this.fixture.ParseStream(this.bufferedStream);
+        return this.fixture.Parse(this.bufferedStream);
     }
 }

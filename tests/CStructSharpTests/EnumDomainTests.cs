@@ -91,7 +91,7 @@ public class EnumDomainTests
         {
             byte[] expected = Encode(candidate, size, isLittleEndian);
             using var readStream = new MemoryStream(expected);
-            dynamic parsed = cstruct.ParseStream(readStream, "root");
+            dynamic parsed = cstruct.Parse(readStream, "root");
             var parsedValue = (EnumValueResult)parsed.value;
             string? expectedName = candidate == minimum
                                        ? "Minimum"
@@ -123,10 +123,9 @@ public class EnumDomainTests
             }
 
             using var debugStream = new MemoryStream(expected);
-            (List<DebugData> debug, dynamic debugWrapper) =
-                cstruct.ParseStreamWithDebug(debugStream, "root");
-            var debugValues = (IDictionary<string, object?>)(StructValue)debugWrapper;
-            dynamic debugParsed = (StructValue)debugValues["root"]!;
+            (dynamic debugWrapper, IReadOnlyList<DebugData> debug) =
+                cstruct.ParseWithDebug(debugStream, "root");
+            dynamic debugParsed = debugWrapper;
             Assert.AreEqual(candidate, ((EnumValueResult)debugParsed.value).Value);
             Assert.AreEqual(candidate, (BigInteger)debug.Single().Value!);
 
@@ -134,14 +133,14 @@ public class EnumDomainTests
             Assert.AreEqual(0L, cstruct.ResolveAddress(addressStream, "root.value"));
 
             using var writeStream = new MemoryStream();
-            cstruct.WriteStream(
+            cstruct.Write(
                 writeStream,
                 "root",
                 new Dictionary<string, object> { ["value"] = candidate, });
             CollectionAssert.AreEqual(expected, writeStream.ToArray());
 
             using var updateStream = new MemoryStream(new byte[size]);
-            cstruct.UpdateStream(updateStream, "root.value", candidate);
+            cstruct.Update(updateStream, "root.value", candidate);
             CollectionAssert.AreEqual(expected, updateStream.ToArray());
         }
     }
@@ -163,7 +162,7 @@ public class EnumDomainTests
             prefix + $" enum state : {backingType} {{ Known = 1 }}; struct root {{ state value; }};");
         using var stream = new MemoryStream(new byte[cstruct.GetStructSizeInBytes("root")]);
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
         var result = (EnumValueResult)parsed.value;
 
         Assert.AreEqual(BigInteger.Zero, result.Value);
@@ -446,7 +445,7 @@ public class EnumDomainTests
         bytes[8] = 0x5A;
         using var stream = new MemoryStream(bytes);
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual("Known", ((EnumValueResult)parsed.value).Name);
         Assert.AreEqual((byte)0x5A, (byte)parsed.tail);
@@ -536,7 +535,7 @@ public class EnumDomainTests
             isLittleEndian: isLittleEndian);
         using (var rootStream = new MemoryStream(encoded))
         {
-            var parsed = (EnumValueResult)rootEnum.ParseStream(rootStream, "state");
+            var parsed = (EnumValueResult)rootEnum.ReadValue(rootStream, "state")!;
             Assert.AreEqual(maximum, parsed.Value);
             CollectionAssert.AreEqual(encoded, rootEnum.Serialize("state", parsed));
         }
@@ -558,7 +557,7 @@ public class EnumDomainTests
         Encode(BigInteger.One, 8, isLittleEndian).CopyTo(compositeBytes, 25);
         using (var stream = new MemoryStream(compositeBytes))
         {
-            dynamic parsed = composite.ParseStream(stream, "root");
+            dynamic parsed = composite.Parse(stream, "root");
             Assert.AreEqual(maximum, ((EnumValueResult)((IList<object>)parsed.values)[0]).Value);
             Assert.AreEqual("Known", ((EnumValueResult)((IList<object>)parsed.values)[1]).Name);
             Assert.AreEqual(maximum, ((EnumValueResult)parsed.child.value).Value);
@@ -567,7 +566,7 @@ public class EnumDomainTests
                 ((EnumValueResult)((Pointer)parsed.target).Value!).Value);
 
             stream.Position = 0;
-            composite.UpdateStream(stream, "root.target.value", maximum);
+            composite.Update(stream, "root.target.value", maximum);
             CollectionAssert.AreEqual(encoded, stream.ToArray()[25..]);
         }
 
@@ -577,7 +576,7 @@ public class EnumDomainTests
             isLittleEndian: isLittleEndian);
         using (var stream = new MemoryStream(encoded))
         {
-            var parsed = (UnionValue)union.ParseStream(stream, "choice");
+            var parsed = (UnionValue)union.ReadValue(stream, "choice")!;
             Assert.AreEqual(maximum, ((EnumValueResult)parsed.Members["value"]!).Value);
             CollectionAssert.AreEqual(encoded, union.Serialize("choice", parsed));
             CollectionAssert.AreEqual(
@@ -604,7 +603,7 @@ public class EnumDomainTests
         byte[] bytes = [2, 0xA5, 0x5A, 0x7E,];
         using var stream = new MemoryStream(bytes);
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual("Two", ((EnumValueResult)parsed.count).Name);
         CollectionAssert.AreEqual(
@@ -644,7 +643,7 @@ public class EnumDomainTests
         var variables = new Dictionary<string, Expr> { ["count"] = new Literal(1), };
 
         Assert.Throws<CStructReadException>(
-            () => cstruct.ParseStream(new MemoryStream(bytes), "root", variables));
+            () => cstruct.Parse(new MemoryStream(bytes), "root", variables));
         Assert.Throws<CStructReadException>(
             () => cstruct.ResolveAddress(new MemoryStream(bytes), "root.values[0]", variables));
         Assert.Throws<CStructWriteException>(
@@ -755,7 +754,7 @@ public class EnumDomainTests
         using var stream = new MemoryStream((byte[])original.Clone()) { Position = 2, };
 
         Assert.Throws<CStructWriteException>(
-            () => cstruct.UpdateStream(stream, "root.value", 65_536));
+            () => cstruct.Update(stream, "root.value", 65_536));
 
         CollectionAssert.AreEqual(original, stream.ToArray());
         Assert.AreEqual(2L, stream.Position);
@@ -776,7 +775,7 @@ public class EnumDomainTests
         var signedLayout = new CStruct(
             "enum state : int16 { Known = 1 }; struct root { state value; };");
         using var stream = new MemoryStream([1, 0,]);
-        dynamic parsed = unsignedLayout.ParseStream(stream, "root");
+        dynamic parsed = unsignedLayout.Parse(stream, "root");
 
         Assert.Throws<CStructWriteException>(() => signedLayout.Serialize("root", parsed));
 
@@ -813,8 +812,8 @@ public class EnumDomainTests
         using var knownStream = new MemoryStream(Encode(7, 8, true));
         using var unknownStream = new MemoryStream(Encode(ulong.MaxValue, 8, true));
 
-        dynamic known = cstruct.ParseStream(knownStream, "root");
-        dynamic unknown = cstruct.ParseStream(unknownStream, "root");
+        dynamic known = cstruct.Parse(knownStream, "root");
+        dynamic unknown = cstruct.Parse(unknownStream, "root");
 
         Assert.AreEqual("First", ((EnumValueResult)known.value).Name);
         Assert.AreEqual("First", ((EnumValueResult)known.value).ToString());

@@ -316,7 +316,7 @@ public class CompiledIntermediateRepresentationTests
 
         using (var parseStream = new MemoryStream(bytes))
         {
-            dynamic parsed = cstruct.ParseStream(parseStream, "root");
+            dynamic parsed = cstruct.Parse(parseStream, "root");
             Assert.AreEqual((ushort)0x1234, (ushort)parsed.count);
             Assert.AreEqual((ushort)0x5678, (ushort)parsed.values[0]);
             Assert.AreEqual((ushort)0x9ABC, (ushort)parsed.values[1]);
@@ -327,8 +327,8 @@ public class CompiledIntermediateRepresentationTests
 
         using (var debugStream = new MemoryStream(bytes))
         {
-            (List<DebugData> debug, dynamic result) = cstruct.ParseStreamWithDebug(debugStream, "root");
-            dynamic parsed = ((IDictionary<string, object?>)result)["root"]!;
+            (dynamic result, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(debugStream, "root");
+            dynamic parsed = result;
             Assert.AreEqual((ushort)0x1234, (ushort)parsed.count);
             Assert.IsTrue(debug.Any(item => item.TypeName == "uint16"));
             Assert.AreEqual(8L, debugStream.Position);
@@ -337,7 +337,7 @@ public class CompiledIntermediateRepresentationTests
         using (var queryStream = new MemoryStream(bytes) { Position = 1, })
         {
             Assert.AreEqual(5L, cstruct.ResolveAddress(queryStream, "root.values[1]"));
-            Assert.AreEqual(2, cstruct.GetDynamicArrayLength(queryStream, "root.values"));
+            Assert.AreEqual(2, cstruct.GetArrayLength(queryStream, "root.values"));
             Assert.AreEqual(1L, queryStream.Position);
         }
 
@@ -351,14 +351,14 @@ public class CompiledIntermediateRepresentationTests
 
         using (var writeStream = new MemoryStream())
         {
-            cstruct.WriteStream(writeStream, "root", value);
+            cstruct.Write(writeStream, "root", value);
             CollectionAssert.AreEqual(bytes[..8], writeStream.ToArray());
         }
 
         using (var updateStream = new MemoryStream((byte[])bytes.Clone()))
         {
-            cstruct.UpdateStream(updateStream, "root.values[1]", (ushort)0x1357);
-            cstruct.UpdateStream(updateStream, "root.link.value", (ushort)0x2468);
+            cstruct.Update(updateStream, "root.values[1]", (ushort)0x1357);
+            cstruct.Update(updateStream, "root.link.value", (ushort)0x2468);
             CollectionAssert.AreEqual(
                 new byte[] { 0x34, 0x12, 0x78, 0x56, 0x57, 0x13, 0x08, 0x00, 0x68, 0x24, },
                 updateStream.ToArray());

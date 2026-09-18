@@ -40,14 +40,14 @@ public class StringReadBenchmarks
     public StructValue ParseLargeTerminatedStringFromMemoryStream()
     {
         this.bufferedStream.Position = 0;
-        return this.terminatedStringLayout.ParseStream(this.bufferedStream, "root");
+        return this.terminatedStringLayout.Parse(this.bufferedStream, "root");
     }
 
     [Benchmark]
     public StructValue ParseLargeTerminatedStringFromNonBufferingStream()
     {
         this.nonBufferingStream.Position = 0;
-        return this.terminatedStringLayout.ParseStream(this.nonBufferingStream, "root");
+        return this.terminatedStringLayout.Parse(this.nonBufferingStream, "root");
     }
 
     /// <summary>

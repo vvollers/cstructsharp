@@ -29,13 +29,13 @@ public class ReadOnlyVariableInputTests
 
         using (var stream = new MemoryStream(original))
         {
-            dynamic parsed = cstruct.ParseStream(stream, "root", variables);
+            dynamic parsed = cstruct.Parse(stream, "root", variables);
             Assert.AreEqual(2, ((IList<object>)parsed.values).Count);
         }
 
         using (var stream = new MemoryStream(original))
         {
-            dynamic parsed = cstruct.ParseStream(stream, "root", variables, new ReadOptions());
+            dynamic parsed = cstruct.Parse(stream, "root", variables, new ReadOptions());
             Assert.AreEqual(0x5678, Convert.ToInt32(((IList<object>)parsed.values)[1]));
         }
 
@@ -64,16 +64,16 @@ public class ReadOnlyVariableInputTests
 
         using (var stream = new MemoryStream(original))
         {
-            (List<DebugData> debug, dynamic parsed) =
-                cstruct.ParseStreamWithDebug(stream, "root", variables);
+            (dynamic parsed, IReadOnlyList<DebugData> debug) =
+                cstruct.ParseWithDebug(stream, "root", variables);
             Assert.IsNotEmpty(debug);
             Assert.IsNotNull(parsed);
         }
 
         using (var stream = new MemoryStream(original))
         {
-            (List<DebugData> debug, dynamic parsed) =
-                cstruct.ParseStreamWithDebug(stream, "root", variables, new ReadOptions());
+            (dynamic parsed, IReadOnlyList<DebugData> debug) =
+                cstruct.ParseWithDebug(stream, "root", variables, new ReadOptions());
             Assert.IsNotEmpty(debug);
             Assert.IsNotNull(parsed);
         }
@@ -82,7 +82,7 @@ public class ReadOnlyVariableInputTests
         {
             Assert.AreEqual(
                 2,
-                cstruct.GetDynamicArrayLength(stream, "root.values", variables, new ReadOptions()));
+                cstruct.GetArrayLength(stream, "root.values", variables, new ReadOptions()));
             Assert.AreEqual(0L, stream.Position);
         }
 
@@ -105,13 +105,13 @@ public class ReadOnlyVariableInputTests
 
         using (var stream = new MemoryStream())
         {
-            cstruct.WriteStream(stream, "root", data, variables, new WriteOptions());
+            cstruct.Write(stream, "root", data, variables, new WriteOptions());
             CollectionAssert.AreEqual(original, stream.ToArray());
         }
 
         using (var stream = new MemoryStream(original))
         {
-            cstruct.UpdateStream(
+            cstruct.Update(
                 stream,
                 "root.values[1]",
                 (ushort)0xBEEF,

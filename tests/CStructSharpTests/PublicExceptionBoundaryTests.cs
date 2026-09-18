@@ -76,16 +76,16 @@ public class PublicExceptionBoundaryTests
         foreach (string path in new[] { string.Empty, "missing", "root.missing", "root.scalar.value", })
         {
             Assert.Throws<CStructPathException>(
-                () => cstruct.ParseStream(new MemoryStream(new byte[8]), path),
+                () => cstruct.Parse(new MemoryStream(new byte[8]), path),
                 "parse/" + path);
             Assert.Throws<CStructPathException>(
-                () => cstruct.ParseStreamWithDebug(new MemoryStream(new byte[8]), path),
+                () => cstruct.ParseWithDebug(new MemoryStream(new byte[8]), path),
                 "debug/" + path);
             Assert.Throws<CStructPathException>(
                 () => cstruct.ResolveAddress(new MemoryStream(new byte[8]), path),
                 "address/" + path);
             Assert.Throws<CStructPathException>(
-                () => cstruct.GetDynamicArrayLength(new MemoryStream(new byte[8]), path),
+                () => cstruct.GetArrayLength(new MemoryStream(new byte[8]), path),
                 "length/" + path);
             Assert.Throws<CStructPathException>(
                 () => cstruct.ReadValue(new MemoryStream(new byte[8]), path),
@@ -96,7 +96,7 @@ public class PublicExceptionBoundaryTests
         }
 
         Assert.Throws<CStructPathException>(
-            () => cstruct.GetDynamicArrayLength(new MemoryStream(new byte[8]), "root.scalar"));
+            () => cstruct.GetArrayLength(new MemoryStream(new byte[8]), "root.scalar"));
     }
 
     /// <summary>
@@ -116,19 +116,19 @@ public class PublicExceptionBoundaryTests
         foreach (string path in new[] { string.Empty, "missing", "root.missing", })
         {
             using var direct = new MemoryStream();
-            Assert.Throws<CStructPathException>(() => cstruct.WriteStream(direct, path, value), "write/" + path);
+            Assert.Throws<CStructPathException>(() => cstruct.Write(direct, path, value), "write/" + path);
             Assert.AreEqual(0L, direct.Length, "write-length/" + path);
 
             byte[] original = new byte[8];
             using var update = new MemoryStream((byte[])original.Clone()) { Position = 3, };
-            Assert.Throws<CStructPathException>(() => cstruct.UpdateStream(update, path, (byte)1), "update/" + path);
+            Assert.Throws<CStructPathException>(() => cstruct.Update(update, path, (byte)1), "update/" + path);
             CollectionAssert.AreEqual(original, update.ToArray(), "update-bytes/" + path);
             Assert.AreEqual(3L, update.Position, "update-position/" + path);
         }
 
         using var pointerUpdate = new MemoryStream(new byte[8]) { Position = 2, };
         Assert.Throws<CStructPathException>(
-            () => cstruct.UpdateStream(
+            () => cstruct.Update(
                 pointerUpdate,
                 "root.link.value.value",
                 (byte)1,
@@ -150,42 +150,42 @@ public class PublicExceptionBoundaryTests
         var cstruct = CreateLayout();
         ExpandoObject value = CreateValue();
 
-        Assert.Throws<ArgumentNullException>(() => cstruct.ParseStream(null!, "root"));
-        Assert.Throws<ArgumentNullException>(() => cstruct.ParseStreamWithDebug(null!, "root"));
-        Assert.Throws<ArgumentNullException>(() => cstruct.ResolveAddress(null!, "root.scalar"));
-        Assert.Throws<ArgumentNullException>(() => cstruct.GetDynamicArrayLength(null!, "root.values"));
+        Assert.Throws<ArgumentNullException>(() => cstruct.Parse((Stream)null!, "root"));
+        Assert.Throws<ArgumentNullException>(() => cstruct.ParseWithDebug((Stream)null!, "root"));
+        Assert.Throws<ArgumentNullException>(() => cstruct.ResolveAddress((Stream)null!, "root.scalar"));
+        Assert.Throws<ArgumentNullException>(() => cstruct.GetArrayLength((Stream)null!, "root.values"));
         Assert.Throws<ArgumentNullException>(() => cstruct.ReadValue((Stream)null!, "root.scalar"));
-        Assert.Throws<ArgumentNullException>(() => cstruct.TryReadValue<int>(null!, "root.scalar", out _));
-        Assert.Throws<ArgumentNullException>(() => cstruct.WriteStream(null!, "root", value));
-        Assert.Throws<ArgumentNullException>(() => cstruct.UpdateStream(null!, "root.scalar", (byte)1));
+        Assert.Throws<ArgumentNullException>(() => cstruct.TryReadValue<int>((Stream)null!, "root.scalar", out _));
+        Assert.Throws<ArgumentNullException>(() => cstruct.Write(null!, "root", value));
+        Assert.Throws<ArgumentNullException>(() => cstruct.Update((Stream)null!, "root.scalar", (byte)1));
         Assert.Throws<ArgumentNullException>(
             () => cstruct.Serialize((IBufferWriter<byte>)null!, "root", value));
-        Assert.Throws<ArgumentException>(() => cstruct.ParseStream(new WriteOnlySeekableStream(), "root"));
-        Assert.Throws<ArgumentException>(() => cstruct.ParseStreamWithDebug(new NonSeekableReadStream(), "root"));
+        Assert.Throws<ArgumentException>(() => cstruct.Parse(new WriteOnlySeekableStream(), "root"));
+        Assert.Throws<ArgumentException>(() => cstruct.ParseWithDebug(new NonSeekableReadStream(), "root"));
         Assert.Throws<ArgumentException>(() => cstruct.ResolveAddress(new NonSeekableReadStream(), "root.scalar"));
-        Assert.Throws<ArgumentException>(() => cstruct.GetDynamicArrayLength(new NonSeekableReadStream(), "root.values"));
+        Assert.Throws<ArgumentException>(() => cstruct.GetArrayLength(new NonSeekableReadStream(), "root.values"));
         Assert.Throws<ArgumentException>(() => cstruct.ReadValue(new NonSeekableReadStream(), "root.scalar"));
         Assert.Throws<ArgumentException>(
             () => cstruct.TryReadValue<int>(new NonSeekableReadStream(), "root.scalar", out _));
-        Assert.Throws<ArgumentException>(() => cstruct.WriteStream(new NonSeekableReadStream(), "root", value));
-        Assert.Throws<ArgumentException>(() => cstruct.UpdateStream(new NonSeekableReadStream(), "root.scalar", (byte)1));
+        Assert.Throws<ArgumentException>(() => cstruct.Write(new NonSeekableReadStream(), "root", value));
+        Assert.Throws<ArgumentException>(() => cstruct.Update(new NonSeekableReadStream(), "root.scalar", (byte)1));
         Assert.Throws<ArgumentException>(
-            () => cstruct.UpdateStream(
+            () => cstruct.Update(
                 new CapabilityStream(canRead: false, canSeek: true, canWrite: true),
                 "root.scalar",
                 (byte)1));
         Assert.Throws<ArgumentException>(
-            () => cstruct.UpdateStream(
+            () => cstruct.Update(
                 new CapabilityStream(canRead: true, canSeek: false, canWrite: true),
                 "root.scalar",
                 (byte)1));
         Assert.Throws<ArgumentException>(
-            () => cstruct.UpdateStream(
+            () => cstruct.Update(
                 new CapabilityStream(canRead: true, canSeek: true, canWrite: false),
                 "root.scalar",
                 (byte)1));
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => cstruct.ParseStream(
+            () => cstruct.Parse(
                 new MemoryStream(new byte[8]),
                 "root",
                 new Dictionary<string, Expr>(),
@@ -196,7 +196,7 @@ public class PublicExceptionBoundaryTests
                 "root",
                 options: new ReadOptions { MaxArrayElements = -1, }));
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => cstruct.WriteStream(
+            () => cstruct.Write(
                 new MemoryStream(),
                 "root",
                 value,
@@ -219,13 +219,13 @@ public class PublicExceptionBoundaryTests
 
         var readCause = new IOException("injected read");
         var read = Assert.Throws<CStructReadException>(
-            () => cstruct.ParseStream(new FaultingStream(readException: readCause), "root"));
+            () => cstruct.Parse(new FaultingStream(readException: readCause), "root"));
         Assert.AreSame(readCause, read.InnerException);
         Assert.AreEqual(0L, read.Offset);
 
         var debugCause = new IOException("injected debug read");
         var debug = Assert.Throws<CStructReadException>(
-            () => cstruct.ParseStreamWithDebug(new FaultingStream(readException: debugCause), "root"));
+            () => cstruct.ParseWithDebug(new FaultingStream(readException: debugCause), "root"));
         Assert.AreSame(debugCause, debug.InnerException);
 
         var valueCause = new IOException("injected value read");
@@ -236,7 +236,7 @@ public class PublicExceptionBoundaryTests
 
         var writeCause = new IOException("injected write");
         var write = Assert.Throws<CStructWriteException>(
-            () => cstruct.WriteStream(new FaultingStream(writeException: writeCause), "root", value));
+            () => cstruct.Write(new FaultingStream(writeException: writeCause), "root", value));
         Assert.AreSame(writeCause, write.InnerException);
         Assert.AreEqual(0L, write.Offset);
 
@@ -272,7 +272,7 @@ public class PublicExceptionBoundaryTests
             () => cstruct.ResolveAddress(new MemoryStream(new byte[8]), "root.values[2]"));
         Assert.AreEqual("root.values[2]", indexedPath.Path);
         CStructReadException selectedRead = Assert.Throws<CStructReadException>(
-            () => cstruct.ParseStream(new MemoryStream(new byte[3]), "root.nested"));
+            () => cstruct.Parse(new MemoryStream(new byte[3]), "root.nested"));
         Assert.AreEqual("root.nested", selectedRead.Path);
         Assert.AreEqual(3L, selectedRead.Offset);
         CStructReadException selectedValue = Assert.Throws<CStructReadException>(
@@ -285,16 +285,16 @@ public class PublicExceptionBoundaryTests
         Assert.AreEqual("root.scalar", conversion.Path);
         var stringLayout = new CStruct("struct string_root { cstring value; };", pointerSize: 1);
         CStructReadException lengthRead = Assert.Throws<CStructReadException>(
-            () => stringLayout.GetDynamicArrayLength(new MemoryStream(), "string_root.value"));
+            () => stringLayout.GetArrayLength(new MemoryStream(), "string_root.value"));
         Assert.AreEqual("string_root.value", lengthRead.Path);
         Assert.AreEqual(0L, lengthRead.Offset);
         AssertCode(
             Assert.Throws<CStructReadException>(
-                () => cstruct.ParseStream(new MemoryStream(), "root")),
+                () => cstruct.Parse(new MemoryStream(), "root")),
             CStructErrorCode.ReadFailed);
         AssertCode(
             Assert.Throws<CStructReadLimitException>(
-                () => cstruct.ParseStream(
+                () => cstruct.Parse(
                     new MemoryStream(new byte[8]),
                     "root",
                     new Dictionary<string, Expr>(),
@@ -306,7 +306,7 @@ public class PublicExceptionBoundaryTests
         using (var updateStream = new MemoryStream(new byte[8]) { Position = 4, })
         {
             CStructWriteException update = Assert.Throws<CStructWriteException>(
-                () => cstruct.UpdateStream(updateStream, "root.scalar", "not-a-byte"));
+                () => cstruct.Update(updateStream, "root.scalar", "not-a-byte"));
             Assert.AreEqual("root.scalar", update.Path);
             Assert.AreEqual(4L, update.Offset);
             Assert.AreEqual(4L, updateStream.Position);
@@ -315,7 +315,7 @@ public class PublicExceptionBoundaryTests
         using (var missingStream = new MemoryStream(new byte[8]))
         {
             CStructPathException missing = Assert.Throws<CStructPathException>(
-                () => cstruct.UpdateStream(missingStream, "missing", (byte)1));
+                () => cstruct.Update(missingStream, "missing", (byte)1));
             Assert.AreEqual("missing", missing.Path);
             Assert.AreEqual(0L, missing.Offset);
         }
@@ -348,7 +348,7 @@ public class PublicExceptionBoundaryTests
         Assert.AreSame(
             defect,
             Assert.Throws<InvalidOperationException>(
-                () => cstruct.ParseStream(new FaultingStream(readException: defect), "root")));
+                () => cstruct.Parse(new FaultingStream(readException: defect), "root")));
         Assert.AreSame(
             defect,
             Assert.Throws<InvalidOperationException>(
@@ -356,10 +356,10 @@ public class PublicExceptionBoundaryTests
         Assert.AreSame(
             cancellation,
             Assert.Throws<OperationCanceledException>(
-                () => cstruct.WriteStream(new FaultingStream(writeException: cancellation), "root", value)));
+                () => cstruct.Write(new FaultingStream(writeException: cancellation), "root", value)));
 
         CStructPathException primary = Assert.Throws<CStructPathException>(
-            () => cstruct.WriteStream(
+            () => cstruct.Write(
                 new FaultingStream(positionException: defect),
                 "missing",
                 value));

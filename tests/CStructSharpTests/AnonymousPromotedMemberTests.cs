@@ -121,7 +121,7 @@ public class AnonymousPromotedMemberTests
         var cstruct = new CStruct("struct root { uint8 a; struct { uint8 x; uint8 y; }; uint8 b; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 1, 2, 3, 4, });
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual((byte)1, (byte)parsed.a);
         Assert.AreEqual((byte)2, (byte)parsed.x);
@@ -139,7 +139,7 @@ public class AnonymousPromotedMemberTests
         var cstruct = new CStruct("struct root { struct { struct { uint8 x; }; }; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 7, });
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual((byte)7, (byte)parsed.x);
         Assert.AreEqual(1, ((IDictionary<string, object?>)parsed).Count);
@@ -157,7 +157,7 @@ public class AnonymousPromotedMemberTests
             pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 2, 10, 20, });
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
 
         Assert.AreEqual((byte)2, (byte)parsed.count);
         IList<object?> values = (IList<object?>)parsed.values;
@@ -176,12 +176,12 @@ public class AnonymousPromotedMemberTests
         var cstruct = new CStruct("struct root { struct { uint8 x; }; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[] { 9, });
 
-        (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
+        (dynamic _, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root");
 
         DebugData entry = debug.Single(item => item.Path == "root.x");
         Assert.AreEqual(0L, entry.Start);
         Assert.AreEqual(1L, entry.End);
-        Assert.IsFalse(debug.Exists(item => item.Path.Contains("..")));
+        Assert.IsFalse(debug.Any(item => item.Path.Contains("..")));
     }
 
     /// <summary>
@@ -204,7 +204,7 @@ public class AnonymousPromotedMemberTests
         CollectionAssert.AreEqual(namedBytes, anonBytes);
 
         using var writeStream = new MemoryStream();
-        anon.WriteStream(writeStream, "root", new { a = (byte)1, x = (byte)2, y = (byte)3, b = (byte)4, });
+        anon.Write(writeStream, "root", new { a = (byte)1, x = (byte)2, y = (byte)3, b = (byte)4, });
         CollectionAssert.AreEqual(namedBytes, writeStream.ToArray());
     }
 
@@ -224,7 +224,7 @@ public class AnonymousPromotedMemberTests
     }
 
     /// <summary>
-    ///     ResolveAddress, UpdateStream, and ReadValue can all resolve a path segment naming a promoted member's
+    ///     ResolveAddress, Update, and ReadValue can all resolve a path segment naming a promoted member's
     ///     own field directly - the same segment/pathIndex retried against the promoted member's fields without
     ///     ever consuming a segment for the promoted member itself.
     /// </summary>
@@ -239,11 +239,11 @@ public class AnonymousPromotedMemberTests
         Assert.AreEqual((byte)2, Convert.ToByte(cstruct.ReadValue(stream, "root.x")));
 
         using var updateStream = new MemoryStream(new byte[] { 1, 2, });
-        cstruct.UpdateStream(updateStream, "root.x", (byte)9);
+        cstruct.Update(updateStream, "root.x", (byte)9);
         CollectionAssert.AreEqual(new byte[] { 1, 9, }, updateStream.ToArray());
 
         using var writeStream = new MemoryStream(new byte[2]);
-        cstruct.WriteStream(writeStream, "root.x", (byte)7);
+        cstruct.Write(writeStream, "root.x", (byte)7);
         CollectionAssert.AreEqual(new byte[] { 7, 0, }, writeStream.ToArray());
     }
 
@@ -304,7 +304,7 @@ public class AnonymousPromotedMemberTests
         var cstruct = new CStruct("struct root { struct { struct { uint8 x; }; } inner; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[1]);
 
-        cstruct.WriteStream(stream, "root.inner.x", new { inner = new { x = (byte)9, }, });
+        cstruct.Write(stream, "root.inner.x", new { inner = new { x = (byte)9, }, });
 
         CollectionAssert.AreEqual(new byte[] { 9, }, stream.ToArray());
     }
@@ -339,7 +339,7 @@ public class AnonymousPromotedMemberTests
         byte[] bytes = { 1, 2, 3, 0, 10, 20, };
         using var stream = new MemoryStream(bytes);
 
-        dynamic parsed = cstruct.ParseStream(stream, "root", null, new ReadOptions { DereferencePointers = false, });
+        dynamic parsed = cstruct.Parse(stream, "root", null, new ReadOptions { DereferencePointers = false, });
 
         Assert.AreEqual((byte)1, (byte)parsed.a);
         Assert.AreEqual((byte)2, (byte)parsed.x);

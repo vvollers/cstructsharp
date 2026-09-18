@@ -22,10 +22,10 @@ public class BoundedEncodingTests
             var parser = new CStruct($"typedef {type} text; struct root {{ uint8 length; text name[length]; uint8 tail; }};", aligned: false);
             byte[] bytes = [(byte)payload.Length, .. payload, 99];
             using var stream = new MemoryStream(bytes);
-            (List<DebugData> debug, dynamic parsed) = parser.ParseStreamWithDebug(stream, "root");
-            Assert.AreEqual(text, (string)parsed.root.name);
-            Assert.AreEqual((byte)99, (byte)parsed.root.tail);
-            CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed.root));
+            (dynamic parsed, IReadOnlyList<DebugData> debug) = parser.ParseWithDebug(stream, "root");
+            Assert.AreEqual(text, (string)parsed.name);
+            Assert.AreEqual((byte)99, (byte)parsed.tail);
+            CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed));
             DebugData entry = debug.Single(item => item.Path == "root.name");
             Assert.AreEqual(1L, entry.Start);
             Assert.AreEqual(1L + payload.Length, entry.End);
@@ -34,9 +34,9 @@ public class BoundedEncodingTests
             stream.Position = 0;
             Assert.AreEqual(1L + payload.Length, parser.ResolveAddress(stream, "root.tail"));
             stream.Position = 0;
-            Assert.AreEqual(payload.Length, parser.GetDynamicArrayLength(stream, "root.name"));
+            Assert.AreEqual(payload.Length, parser.GetArrayLength(stream, "root.name"));
             stream.Position = 0;
-            parser.UpdateStream(stream, "root.name", string.Empty);
+            parser.Update(stream, "root.name", string.Empty);
             CollectionAssert.AreEqual(new byte[payload.Length], stream.ToArray()[1..^1]);
         }
     }
@@ -50,9 +50,9 @@ public class BoundedEncodingTests
             var parser = new CStruct($"struct root {{ {type} name[2]; uint8 tail; }};", aligned: false);
             using var stream = new MemoryStream(new byte[] { 0, 0, 99 });
             byte[] before = stream.ToArray();
-            Assert.Throws<CStructWriteException>(() => parser.UpdateStream(stream, "root.name", "\ud800"));
+            Assert.Throws<CStructWriteException>(() => parser.Update(stream, "root.name", "\ud800"));
             CollectionAssert.AreEqual(before, stream.ToArray());
-            Assert.Throws<CStructWriteException>(() => parser.UpdateStream(stream, "root.name", "abcdef"));
+            Assert.Throws<CStructWriteException>(() => parser.Update(stream, "root.name", "abcdef"));
             CollectionAssert.AreEqual(before, stream.ToArray());
             Assert.Throws<CStructLayoutException>(() => new CStruct($"struct root {{ {type} name[]; }};"));
             Assert.Throws<CStructLayoutException>(() => new CStruct($"struct root {{ {type} name[2][2]; }};"));
@@ -62,7 +62,7 @@ public class BoundedEncodingTests
         {
             var odd = new CStruct($"struct root {{ {type} name[1]; uint8 tail; }};", aligned: false);
             using var stream = new MemoryStream(new byte[] { 0, 99 });
-            Assert.Throws<CStructReadException>(() => odd.ParseStream(stream, "root"));
+            Assert.Throws<CStructReadException>(() => odd.Parse(stream, "root"));
             Assert.AreEqual(1L, stream.Position);
             Assert.Throws<CStructWriteException>(() => odd.Serialize("root", new { name = string.Empty, tail = 99 }));
         }
@@ -74,7 +74,7 @@ public class BoundedEncodingTests
     {
         var parser = new CStruct("struct root { cp437 text[256]; };", aligned: false);
         byte[] bytes = Enumerable.Range(0, 256).Select(value => (byte)value).ToArray();
-        dynamic parsed = parser.ParseStream(new MemoryStream(bytes), "root");
+        dynamic parsed = parser.Parse(new MemoryStream(bytes), "root");
         Assert.AreEqual('é', ((string)parsed.text)[0x82]);
         Assert.AreEqual('─', ((string)parsed.text)[0xc4]);
         CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed));

@@ -110,7 +110,7 @@ public class PrimitiveSpellingTests
         byte[] bytes = [0xFF, 0xFF, 0xFF, 0xFF, 2, 0, 0, 0, 7,];
         using var stream = new MemoryStream((byte[])bytes.Clone());
 
-        List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
+        IReadOnlyList<DebugData> debug = layout.ParseWithDebug(stream, "root").Debug;
         Assert.IsTrue(debug.Any(item => item.Path == "root.b" && item.Start == 4 && item.End == 8));
         stream.Position = 0;
         Assert.AreEqual(8, layout.ResolveAddress(stream, "root.tail"));
@@ -119,9 +119,9 @@ public class PrimitiveSpellingTests
         byte[] written = layout.Serialize("root", new Dictionary<string, object?> { ["a"] = -1, ["b"] = 2U, ["tail"] = (byte)7, });
         CollectionAssert.AreEqual(bytes, written);
         using var target = new MemoryStream();
-        layout.WriteStream(target, "root", new Dictionary<string, object?> { ["a"] = -1, ["b"] = 2U, ["tail"] = (byte)7, });
+        layout.Write(target, "root", new Dictionary<string, object?> { ["a"] = -1, ["b"] = 2U, ["tail"] = (byte)7, });
         CollectionAssert.AreEqual(bytes, target.ToArray());
-        layout.UpdateStream(stream, "root.b", 9U);
+        layout.Update(stream, "root.b", 9U);
         CollectionAssert.AreEqual(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 9, 0, 0, 0, 7, }, stream.ToArray());
     }
 

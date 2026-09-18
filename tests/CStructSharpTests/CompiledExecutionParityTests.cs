@@ -68,11 +68,11 @@ public class CompiledExecutionParityTests
         foreach ((string name, CStruct layout, byte[] input, string path, long expectedPosition) in cases)
         {
             using var parseStream = new MemoryStream(input, writable: false);
-            _ = layout.ParseStream(parseStream, path);
+            _ = layout.ReadValue(parseStream, path);
             Assert.AreEqual(expectedPosition, parseStream.Position, name + "/parse");
 
             using var debugStream = new MemoryStream(input, writable: false);
-            _ = layout.ParseStreamWithDebug(debugStream, path);
+            _ = layout.ReadValueWithDebug(debugStream, path);
             Assert.AreEqual(expectedPosition, debugStream.Position, name + "/debug");
 
             using var valueStream = new MemoryStream(input, writable: false);
@@ -100,13 +100,13 @@ public class CompiledExecutionParityTests
         byte[] input = [0x78, 0x56, 0x34, 0x12, 0xA5, 0, 0, 0,];
 
         using var parseStream = new MemoryStream(input, writable: false);
-        var parsed = (UnionValue)layout.ParseStream(parseStream, "choice");
+        var parsed = (UnionValue)layout.ReadValue(parseStream, "choice")!;
         AssertUnionChild(parsed, "parse");
         Assert.AreEqual(8L, parseStream.Position);
 
         using var debugStream = new MemoryStream(input, writable: false);
-        (List<DebugData> _, dynamic debugResult) = layout.ParseStreamWithDebug(debugStream, "choice");
-        AssertUnionChild((UnionValue)debugResult, "debug");
+        (object? debugResult, IReadOnlyList<DebugData> _) = layout.ReadValueWithDebug(debugStream, "choice");
+        AssertUnionChild((UnionValue)debugResult!, "debug");
         Assert.AreEqual(8L, debugStream.Position);
 
         using var valueStream = new MemoryStream(input, writable: false);

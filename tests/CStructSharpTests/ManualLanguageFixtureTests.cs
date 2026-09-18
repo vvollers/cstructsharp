@@ -54,11 +54,11 @@ public class ManualLanguageFixtureTests
             }
 
             using var parseInput = new MemoryStream(bytes);
-            object parsed = cstruct.ParseStream(
+            object parsed = cstruct.ReadValue(
                 parseInput,
                 fixture.Root,
                 fixture.Variables,
-                readOptions);
+                readOptions)!;
             foreach (KeyValuePair<string, string> expected in fixture.Values)
             {
                 object? actual = SelectPath(parsed, fixture.Root, expected.Key);
@@ -109,7 +109,7 @@ public class ManualLanguageFixtureTests
                 fixture.LittleEndian);
             using var input = new MemoryStream(Convert.FromHexString(fixture.Bytes));
             CStructException readFailure = Assert.Throws<CStructException>(
-                () => cstruct.ParseStream(
+                () => cstruct.Parse(
                     input,
                     fixture.Root,
                     null,

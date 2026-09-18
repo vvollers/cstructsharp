@@ -46,7 +46,7 @@ own metadata is unchanged), roots nothing, and suppresses trim-analysis warnings
   `System.Linq.Expressions` is trimmed to the `DynamicObject` surface the value types derive from. This avoids
   loading and initializing the runtime binder for a parse.
 - The library's reflection paths (`CStruct.TryGetMemberValue`'s POCO-property fallback and `TypedValueConverter`'s
-  object conversion) are statically reachable from `Serialize`/`UpdateStream` but never executed from JavaScript:
+  object conversion) are statically reachable from `Serialize`/`Update` but never executed from JavaScript:
   `ParseJsonValue` in `CStructJsonConversion.cs` always produces dictionary/list shapes. The trimmer keeps the
   reflection calls themselves; it can only remove members nothing references, and no browser-reachable code
   depends on members that are reached only through reflection. One consequence stands: the `bindingMode` interop

@@ -18,19 +18,19 @@ public class BinaryTypePropertyTests
         {
             byte[] bytes = [(byte)tag, 52, 18, 99];
             using var stream = new MemoryStream(bytes);
-            (List<DebugData> debug, dynamic parsed) = parser.ParseStreamWithDebug(stream, "root");
-            var members = (IDictionary<string, object>)parsed.root;
+            (dynamic parsed, IReadOnlyList<DebugData> debug) = parser.ParseWithDebug(stream, "root");
+            var members = (IDictionary<string, object>)parsed;
             string active = tag == 1 ? "first" : tag == 2 ? "second" : "raw";
             Assert.AreEqual(3, members.Count);
             Assert.IsTrue(members.ContainsKey(active));
-            CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed.root));
+            CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed));
             (long, long)[] expectedRanges = active == "raw" ? [(1L, 2L), (2L, 3L)] : [(1L, 3L)];
             CollectionAssert.AreEqual(
                 expectedRanges,
                 debug.Where(item => item.Path == "root." + active)
                     .Select(item => (item.Start, item.End)).ToArray());
             stream.Position = 0;
-            Assert.Throws<CStructWriteException>(() => parser.UpdateStream(stream, "root.tag", tag == 1 ? 2 : 1));
+            Assert.Throws<CStructWriteException>(() => parser.Update(stream, "root.tag", tag == 1 ? 2 : 1));
             CollectionAssert.AreEqual(bytes, stream.ToArray());
             Assert.AreEqual(0L, stream.Position);
         }
@@ -80,12 +80,12 @@ public class BinaryTypePropertyTests
                     using var stream = new MemoryStream([7, .. prefix, 99]);
                     if (expected is null)
                     {
-                        Assert.Throws<CStructReadException>(() => parser.ParseStream(stream, "root"));
+                        Assert.Throws<CStructReadException>(() => parser.Parse(stream, "root"));
                         Assert.AreEqual(count + 1L, stream.Position);
                     }
                     else
                     {
-                        dynamic parsed = parser.ParseStream(stream, "root");
+                        dynamic parsed = parser.Parse(stream, "root");
                         Assert.AreEqual(expected, (string)parsed.text);
                         Assert.AreEqual((byte)99, (byte)parsed.tail);
                         CollectionAssert.AreEqual(stream.ToArray(), parser.Serialize("root", parsed));

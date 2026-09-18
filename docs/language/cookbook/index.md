@@ -174,7 +174,7 @@ an array count:
 
 ## Patch one field in existing data
 
-Use a path and `UpdateStream` when surrounding bytes and positions must stay fixed:
+Use a path and `Update` when surrounding bytes and positions must stay fixed:
 
 [!code-csharp[Patch a field after staged validation](../../examples/Program.cs#api-reference-update-options)]
 

@@ -21,7 +21,7 @@ public class PathGrammarTests
     {
         var cstruct = new CStruct("struct root { byte value; };");
 
-        dynamic parsed = cstruct.ParseStream(new MemoryStream([0x2A,]), "root");
+        dynamic parsed = cstruct.Parse(new MemoryStream([0x2A,]), "root");
 
         Assert.AreEqual((byte)0x2A, (byte)parsed.value);
         Assert.IsFalse(((IDictionary<string, object?>)parsed).ContainsKey("root"));

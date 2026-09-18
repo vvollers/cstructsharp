@@ -17,12 +17,12 @@ public class ConditionalFieldTests
         Assert.AreEqual(4, parser.GetStructAlignmentInBytes("entry"));
         Assert.AreEqual(4, parser.GetStructAlignmentInBytes("root"));
         using var stream = new MemoryStream(bytes);
-        (List<DebugData> debug, dynamic parsed) = parser.ParseStreamWithDebug(stream, "root");
+        (dynamic parsed, IReadOnlyList<DebugData> debug) = parser.ParseWithDebug(stream, "root");
         Assert.AreEqual(24L, stream.Position);
-        Assert.AreEqual((byte)42, (byte)parsed.root.items[0].small);
-        Assert.AreEqual(43U, (uint)parsed.root.items[1].wide);
-        Assert.AreEqual((byte)77, (byte)parsed.root.end);
-        CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed.root));
+        Assert.AreEqual((byte)42, (byte)parsed.items[0].small);
+        Assert.AreEqual(43U, (uint)parsed.items[1].wide);
+        Assert.AreEqual((byte)77, (byte)parsed.end);
+        CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed));
         foreach ((string path, long start, long end) in new[]
         {
             ("root.items[0].small", 5L, 6L),
@@ -37,12 +37,12 @@ public class ConditionalFieldTests
         }
 
         stream.Position = 0;
-        parser.UpdateStream(stream, "root.items[1].wide", 44U);
+        parser.Update(stream, "root.items[1].wide", 44U);
         Assert.AreEqual(0L, stream.Position);
         Assert.AreEqual(44U, parser.ReadValue<uint>(stream, "root.items[1].wide"));
         byte[] before = (byte[])bytes.Clone();
         stream.Position = 0;
-        Assert.Throws<CStructWriteException>(() => parser.UpdateStream(stream, "root.items[1].tag", 0));
+        Assert.Throws<CStructWriteException>(() => parser.Update(stream, "root.items[1].tag", 0));
         CollectionAssert.AreEqual(before, bytes);
     }
 
@@ -53,7 +53,7 @@ public class ConditionalFieldTests
         const string layout = "struct entry { uint8 tag; if (tag) { struct { struct { uint8 count; }; }; } if (count) { uint8 value; } }; struct root { entry items[2]; };";
         var parser = new CStruct(layout, aligned: false);
         byte[] bytes = [1, 1, 42, 0, 99];
-        Assert.Throws<CStructReadException>(() => parser.ParseStream(new MemoryStream(bytes), "root"));
+        Assert.Throws<CStructReadException>(() => parser.Parse(new MemoryStream(bytes), "root"));
         Assert.Throws<CStructReadException>(() => parser.ResolveAddress(new MemoryStream(bytes), "root.items[1].value"));
         Assert.Throws<CStructWriteException>(() => parser.Serialize("entry", new { tag = 0, count = 1, value = 42 }));
 
@@ -61,8 +61,8 @@ public class ConditionalFieldTests
         var valid = new CStruct(validLayout, aligned: false);
         byte[] active = [1, 2, 42, 43, 99];
         using var stream = new MemoryStream(active);
-        (List<DebugData> debug, dynamic parsed) = valid.ParseStreamWithDebug(stream, "root");
-        CollectionAssert.AreEqual(active, valid.Serialize("root", parsed.root));
+        (dynamic parsed, IReadOnlyList<DebugData> debug) = valid.ParseWithDebug(stream, "root");
+        CollectionAssert.AreEqual(active, valid.Serialize("root", parsed));
         Assert.IsTrue(debug.Any(item => item.Path == "root.count" && item.Start == 1 && item.End == 2));
         stream.Position = 0;
         Assert.AreEqual(4L, valid.ResolveAddress(stream, "root.tail"));
@@ -81,7 +81,7 @@ public class ConditionalFieldTests
             var parser = new CStruct(layout, aligned: false);
             byte[] bytes = [1, 255];
             using var stream = new MemoryStream(bytes);
-            parser.UpdateStream(stream, "root.value", 42);
+            parser.Update(stream, "root.value", 42);
             CollectionAssert.AreEqual(new byte[] { 42, 255 }, bytes);
             Assert.AreEqual(0L, stream.Position);
         }
@@ -100,7 +100,7 @@ public class ConditionalFieldTests
             byte[] original = (byte[])bytes.Clone();
             using var stream = new MemoryStream(bytes);
             string path = pointer ? "root.entry.value.tag" : "root.entry.tag";
-            Assert.Throws<CStructWriteException>(() => parser.UpdateStream(stream, path, 0));
+            Assert.Throws<CStructWriteException>(() => parser.Update(stream, path, 0));
             CollectionAssert.AreEqual(original, bytes);
             Assert.AreEqual(0L, stream.Position);
         }
@@ -121,12 +121,12 @@ public class ConditionalFieldTests
             var parser = new CStruct(layout, aligned: false);
             byte[] bytes = [1, 0, 1, 42, 77, 88, 0, 0x34, 0x12];
             using var stream = new MemoryStream(bytes);
-            (List<DebugData> debug, dynamic parsed) = parser.ParseStreamWithDebug(stream, "root");
-            Assert.AreEqual((byte)42, (byte)parsed.root.items[0].value);
-            Assert.AreEqual((byte)77, (byte)parsed.root.items[0].end);
-            Assert.AreEqual((byte)88, (byte)parsed.root.items[0].trailer);
-            Assert.AreEqual((ushort)0x1234, (ushort)parsed.root.items[1].absent);
-            CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed.root));
+            (dynamic parsed, IReadOnlyList<DebugData> debug) = parser.ParseWithDebug(stream, "root");
+            Assert.AreEqual((byte)42, (byte)parsed.items[0].value);
+            Assert.AreEqual((byte)77, (byte)parsed.items[0].end);
+            Assert.AreEqual((byte)88, (byte)parsed.items[0].trailer);
+            Assert.AreEqual((ushort)0x1234, (ushort)parsed.items[1].absent);
+            CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed));
             DebugData value = debug.Single(item => item.Path == "root.items[0].value");
             Assert.AreEqual(3L, value.Start);
             Assert.AreEqual(4L, value.End);
@@ -135,7 +135,7 @@ public class ConditionalFieldTests
             stream.Position = 0;
             Assert.AreEqual(7L, parser.ResolveAddress(stream, "root.items[1].absent"));
             stream.Position = 0;
-            parser.UpdateStream(stream, "root.items[0].child.tag", 2);
+            parser.Update(stream, "root.items[0].child.tag", 2);
             stream.Position = 0;
             Assert.AreEqual((byte)77, parser.ReadValue<byte>(stream, "root.items[0].end"));
             stream.Position = 0;
@@ -150,7 +150,7 @@ public class ConditionalFieldTests
         const string layout = "struct entry { uint8 tag; if (tag) { uint8 count; } if (count) { uint8 value; } }; struct root { entry items[2]; };";
         var parser = new CStruct(layout, aligned: false);
         byte[] bytes = [1, 1, 42, 0, 99];
-        Assert.Throws<CStructReadException>(() => parser.ParseStream(new MemoryStream(bytes), "root"));
+        Assert.Throws<CStructReadException>(() => parser.Parse(new MemoryStream(bytes), "root"));
         Assert.Throws<CStructReadException>(() => parser.ResolveAddress(new MemoryStream(bytes), "root.items[1].value"));
         Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new
         {
@@ -159,7 +159,7 @@ public class ConditionalFieldTests
 
         var forward = new CStruct("struct root { if (later) { uint8 first; } uint8 later; };", aligned: false);
         var variables = new Dictionary<string, int> { ["later"] = 1 };
-        Assert.Throws<CStructReadException>(() => forward.ParseStream(new MemoryStream(new byte[] { 42, 1 }), "root", variables: variables));
+        Assert.Throws<CStructReadException>(() => forward.Parse(new MemoryStream(new byte[] { 42, 1 }), "root", variables: variables));
     }
 
     /// <summary>Case labels are distinct compile-time values even when their arms are empty.</summary>
@@ -181,7 +181,7 @@ public class ConditionalFieldTests
             "#define TAG 1\nstruct root { uint8 tag; switch (tag) { case TAG: { struct { uint8 value; } selected; } default: { uint16 fallback; } } };",
             aligned: false);
         var variables = new Dictionary<string, int> { ["TAG"] = 2 };
-        dynamic parsed = parser.ParseStream(new MemoryStream(new byte[] { 1, 42 }), "root", variables: variables);
+        dynamic parsed = parser.Parse(new MemoryStream(new byte[] { 1, 42 }), "root", variables: variables);
         Assert.AreEqual((byte)42, (byte)parsed.selected.value);
         CollectionAssert.AreEqual(new byte[] { 1, 42 }, parser.Serialize("root", parsed, variables: variables));
     }
@@ -193,10 +193,10 @@ public class ConditionalFieldTests
         var parser = new CStruct("struct root { uint8 tag; if (tag == 1) { uint16 first; } else { uint16 second; } uint8 tail; };", aligned: false);
         using var stream = new MemoryStream(new byte[] { 1, 42, 0, 99 });
         byte[] before = stream.ToArray();
-        Assert.Throws<CStructWriteException>(() => parser.UpdateStream(stream, "root.tag", 2));
+        Assert.Throws<CStructWriteException>(() => parser.Update(stream, "root.tag", 2));
         CollectionAssert.AreEqual(before, stream.ToArray());
         Assert.AreEqual(0L, stream.Position);
-        parser.UpdateStream(stream, "root.first", 43);
+        parser.Update(stream, "root.first", 43);
         Assert.AreEqual((ushort)43, parser.ReadValue<ushort>(stream, "root.first"));
     }
 
@@ -206,7 +206,7 @@ public class ConditionalFieldTests
     {
         var parser = new CStruct("struct root { uint8 tag; if (tag) { uint8 empty[0]; } uint8 tail; };", aligned: false);
         using var stream = new MemoryStream(new byte[] { 0, 99 });
-        Assert.Throws<CStructWriteException>(() => parser.UpdateStream(stream, "root.tag", 1));
+        Assert.Throws<CStructWriteException>(() => parser.Update(stream, "root.tag", 1));
         CollectionAssert.AreEqual(new byte[] { 0, 99 }, stream.ToArray());
     }
 
@@ -217,7 +217,7 @@ public class ConditionalFieldTests
         var parser = new CStruct("struct root { uint8 tag; switch (tag) { case 1: { uint16 first; } case 2: { uint32 second; } default: { uint8 unknown; } } uint8 tail; };", aligned: false);
         foreach (byte[] bytes in new byte[][] { [1, 42, 0, 99], [2, 42, 0, 0, 0, 99], [3, 42, 99] })
         {
-            dynamic parsed = parser.ParseStream(new MemoryStream(bytes), "root");
+            dynamic parsed = parser.Parse(new MemoryStream(bytes), "root");
             Assert.AreEqual((byte)99, (byte)parsed.tail);
             CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed));
             using var stream = new MemoryStream(bytes);
@@ -235,11 +235,11 @@ public class ConditionalFieldTests
         {
             byte[] bytes = kind == 1 ? [1, 42, 0, 99] : [2, 42, 0, 0, 0, 99];
             using var stream = new MemoryStream(bytes);
-            (List<DebugData> debug, dynamic parsed) = parser.ParseStreamWithDebug(stream, "root");
-            var root = (IDictionary<string, object>)parsed.root;
+            (dynamic parsed, IReadOnlyList<DebugData> debug) = parser.ParseWithDebug(stream, "root");
+            var root = (IDictionary<string, object>)parsed;
             Assert.IsTrue(root.ContainsKey(kind == 1 ? "first" : "second"));
             Assert.IsFalse(root.ContainsKey(kind == 1 ? "second" : "first"));
-            CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed.root));
+            CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed));
             stream.Position = 0;
             Assert.AreEqual(bytes.Length - 1L, parser.ResolveAddress(stream, "root.tail"));
             stream.Position = 0;
@@ -256,7 +256,7 @@ public class ConditionalFieldTests
     {
         var parser = new CStruct("struct root { uint8 kind; if (kind) { if (missing) { uint32 value; } } uint8 tail; };", aligned: false);
         using var stream = new MemoryStream(new byte[] { 0, 99 });
-        dynamic value = parser.ParseStream(stream, "root");
+        dynamic value = parser.Parse(stream, "root");
         Assert.AreEqual((byte)99, (byte)value.tail);
         CollectionAssert.AreEqual(new byte[] { 0, 99 }, parser.Serialize("root", value));
     }

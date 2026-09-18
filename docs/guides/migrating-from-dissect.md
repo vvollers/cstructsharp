@@ -49,15 +49,15 @@ X, *PX;` lists - and the API calls its users make have direct equivalents. This 
 | `cs.load(a); cs.load(b)` | one string, or `CStructCompilationOptions { Prelude = a }` with `b` |
 | `cs.copy().load(more)` (ELF 32/64) | the same prelude with two bodies |
 | `cs.endian = ">"` after reading a header | `layout.WithEndianness(false)` |
-| `cs.header(fh)` | `layout.ParseStream(stream, "header")` - the stream advances |
-| `cs.uint32(fh)`, `cs.uint64[n] (fh)`, `cs.char[None] (fh)` | `layout.ParseStream(stream, "uint32")`, `"uint64[N]"` with `variables`, `"char[]"` |
+| `cs.header(fh)` | `layout.Parse(stream, "header")` - the stream advances |
+| `cs.uint32(fh)`, `cs.uint64[n] (fh)`, `cs.char[None] (fh)` | `layout.Parse(stream, "uint32")`, `"uint64[N]"` with `variables`, `"char[]"` |
 | `obj.dumps()` | `layout.Serialize("header", obj)` |
 | `cs.header(a=1, b=2).dumps()` | `layout.Serialize("header", new Dictionary<string, object?> { ... })` |
 | `len(cs.header)` | `layout.GetStructSizeInBytes("header")` |
 | `cs.add_custom_type("varint", MyType)` | `CStructCompilationOptions { Codecs = [new MyVarint()] }` implementing `ICustomCodec` |
 | `cs.typedefs`, `struct.fields` | `layout.Layout.Declarations` |
 | `cs.cdef()` | `layout.ToDefinition()` |
-| `dumpstruct(obj)` | `ParseStreamWithDebug` byte ranges |
+| `dumpstruct(obj)` | `ParseWithDebug` byte ranges |
 | `obj.field.dereference()` | `Pointer.Value` (dereferenced during the read by default) |
 
 ## A custom codec

@@ -30,16 +30,16 @@ public class TestPointer
         var c = new CStruct(d, 2);
         byte[] bufBytes = buf.Select(o => (byte)o).ToArray();
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "mainargs");
+        (dynamic obj, IReadOnlyList<DebugData> debug) = c.ParseWithDebug(str, "mainargs");
 
-        dynamic result = obj;
+        dynamic result = obj!;
 
-        Assert.AreEqual(2, result.mainargs.argc);
+        Assert.AreEqual(2, result.argc);
 
-        Pointer arg0 = result.mainargs.args[0];
-        Pointer arg1 = result.mainargs.args[1];
-        Pointer arg2 = result.mainargs.args[2];
-        Pointer arg3 = result.mainargs.args[3];
+        Pointer arg0 = result.args[0];
+        Pointer arg1 = result.args[1];
+        Pointer arg2 = result.args[2];
+        Pointer arg3 = result.args[3];
 
         Assert.AreEqual(9, arg0.Address);
         Assert.AreEqual("argument one", (string)arg0.Value!);
@@ -84,12 +84,12 @@ public class TestPointer
         var c = new CStruct(d, 2);
         byte[]? bufBytes = buf.ParseHexDataContent();
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "ptrtest");
+        (dynamic obj, IReadOnlyList<DebugData> debug) = c.ParseWithDebug(str, "ptrtest");
 
-        dynamic result = obj;
+        dynamic result = obj!;
 
-        Pointer ptr1 = result.ptrtest.ptr1;
-        Pointer ptr2 = result.ptrtest.ptr2;
+        Pointer ptr1 = result.ptr1;
+        Pointer ptr2 = result.ptr2;
 
         Assert.AreEqual(4, ptr1.Address);
         Assert.AreEqual(8, ptr2.Address);
@@ -119,11 +119,11 @@ public class TestPointer
         var c = new CStruct(d, 2);
         byte[]? bufBytes = buf.ParseHexDataContent();
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "ptrtest");
+        (dynamic obj, IReadOnlyList<DebugData> debug) = c.ParseWithDebug(str, "ptrtest");
 
-        dynamic result = obj;
+        dynamic result = obj!;
 
-        Pointer level1 = result.ptrtest.ptr;
+        Pointer level1 = result.ptr;
         var level2 = (Pointer)level1.Value!;
         var level3 = (Pointer)level2.Value!;
 
@@ -155,11 +155,11 @@ public class TestPointer
         var c = new CStruct(d, 1);
 
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "test");
+        (object? obj, IReadOnlyList<DebugData> debug) = c.ReadValueWithDebug(str, "test");
 
-        dynamic result = obj;
+        dynamic result = obj!;
 
-        Pointer level1 = result.test.ptr;
+        Pointer level1 = result.ptr;
         var level2 = (Pointer)level1.Dereference()!;
 
         Assert.AreEqual(1, level1.Address);
@@ -211,11 +211,11 @@ public class TestPointer
         var c = new CStruct(d, 2);
         byte[] bufBytes = buf.Select(o => (byte)o).ToArray();
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "ptrtest");
+        (dynamic obj, IReadOnlyList<DebugData> debug) = c.ParseWithDebug(str, "ptrtest");
 
-        dynamic result = obj;
+        dynamic result = obj!;
 
-        Pointer level1 = result.ptrtest.ptr;
+        Pointer level1 = result.ptr;
         var level2 = (Pointer)level1.Value!;
         dynamic deref = level2.Value!;
 
@@ -265,11 +265,11 @@ public class TestPointer
         var c = new CStruct(d, 2);
         byte[] bufBytes = buf.Select(o => (byte)o).ToArray();
         var str = new MemoryStream(bufBytes);
-        (List<DebugData>? debug, dynamic obj) = c.ParseStreamWithDebug(str, "ptrtest");
+        (dynamic obj, IReadOnlyList<DebugData> debug) = c.ParseWithDebug(str, "ptrtest");
 
-        dynamic result = obj;
+        dynamic result = obj!;
 
-        Pointer ptr = result.ptrtest.ptr;
+        Pointer ptr = result.ptr;
         dynamic deref = ptr.Value!;
 
         Assert.AreEqual("test", deref.magic);

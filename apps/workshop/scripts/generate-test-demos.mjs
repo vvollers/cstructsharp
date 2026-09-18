@@ -591,9 +591,18 @@ function extractCStructOptions(body) {
   return { aligned, littleEndian, pointerSize };
 }
 
+// A layout read is `<layout>.Parse(...)` / `<layout>.ParseWithDebug(...)`, or `<layout>.ReadValue(...)` /
+// `<layout>.ReadValueWithDebug(...)` selecting a bare root name (a union root, which Parse rejects). The lookbehind
+// skips the BCL parsers (`long.Parse`, `JsonDocument.Parse`, ...) that tests also call.
+const bclParsers = String.raw`(?<!\b(?:long|ulong|int|uint|short|ushort|byte|sbyte|double|float|decimal|BigInteger|Guid|DateTime|JsonDocument|JsonNode|JsonSerializer|Enum|Version|TimeSpan|Uri))`;
+const parseCallPattern = String.raw`${bclParsers}\.Parse(?:WithDebug)?\s*\(`;
+const rootReadCallPattern = String.raw`\.ReadValue(?:WithDebug)?\s*\([^)]*,\s*"(?<name>[A-Za-z_]\w*)"`;
+
 function extractParseRootType(body) {
-  const withRoot = body.match(/ParseStream(?:WithDebug)?\s*\([^)]*,\s*"(?<name>[^"]+)"/m);
+  const withRoot = body.match(new RegExp(`${parseCallPattern}[^)]*,\\s*"(?<name>[^"]+)"`, "m"));
   if (withRoot?.groups?.name) return withRoot.groups.name;
+  const rootRead = body.match(new RegExp(rootReadCallPattern, "m"));
+  if (rootRead?.groups?.name) return rootRead.groups.name;
   return null;
 }
 
@@ -648,11 +657,13 @@ function extractDemoData(body, stringMap) {
 }
 
 function hasParseCall(body) {
-  return /ParseStream(?:WithDebug)?\s*\(/.test(body);
+  return new RegExp(parseCallPattern).test(body) || new RegExp(rootReadCallPattern).test(body);
 }
 
 function hasExpectedParseFailure(body) {
-  return /Assert\.(?:Throws|ThrowsExactly)[\s\S]*?ParseStream(?:WithDebug)?\s*\(/.test(body);
+  return new RegExp(
+    String.raw`Assert\.(?:Throws|ThrowsExactly)[\s\S]*?(?:${parseCallPattern}|${rootReadCallPattern})`,
+  ).test(body);
 }
 
 function extractMethods(filePath) {
@@ -714,7 +725,7 @@ function extractMethods(filePath) {
         line,
         documentation,
         runnable: false,
-        reason: "No ParseStream/ParseStreamWithDebug call in this test.",
+        reason: "No Parse/ParseWithDebug (or root ReadValue) call in this test.",
       });
       continue;
     }

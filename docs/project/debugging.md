@@ -62,7 +62,7 @@ For a wrong value or offset:
 2. Draw the expected offset and width of each field.
 3. Confirm little/big byte order and packed/aligned placement.
 4. Check the stream's position before the operation.
-5. Use `ParseStreamWithDebug` or `ResolveAddress` only after the simple calculation is explicit.
+5. Use `ParseWithDebug` or `ResolveAddress` only after the simple calculation is explicit.
 
 For a typed-mapping failure, read the path without `<T>` first. If the direct value is wrong, debug binary decoding.
 If it is right, inspect the POCO constructor, member names, writable members, nullability, and numeric ranges.

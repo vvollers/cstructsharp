@@ -134,7 +134,7 @@ public class MemoryAnalysisTests
         using (Stream view = new MemoryRegion(source, 1, 4).OpenRead())
         {
             var layout = new CStruct("struct root { uint16 values[EOF]; };");
-            dynamic result = layout.ParseStream(view, "root");
+            dynamic result = layout.Parse(view, "root");
             Assert.AreEqual((ushort)2, (ushort)result.values[1]);
         }
 

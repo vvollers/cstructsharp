@@ -53,14 +53,14 @@ contains helper declarations.
 ## Stream requirements
 
 Read, debug, address, and length operations need a readable, seekable stream because they record and may revisit
-positions. `WriteStream` needs a writable, seekable stream. `UpdateStream` needs all three capabilities: readable,
+positions. `Write` needs a writable, seekable stream. `Update` needs all three capabilities: readable,
 writable, and seekable.
 
 Reads use exact-read behavior: a temporarily short stream read is retried, while a true end of stream becomes
 `CStructReadException`.
 
 Successful parse/read/write calls advance the stream according to the consumed value. Failed `TryReadValue`,
-`ResolveAddress`, dynamic-length lookup, and `UpdateStream` restore the original position under their documented
+`ResolveAddress`, dynamic-length lookup, and `Update` restore the original position under their documented
 conditions.
 
 ## Span and memory input

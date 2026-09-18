@@ -32,7 +32,7 @@ public class MultidimensionalArrayTests
         StringAssert.Contains(exception.Message, "Too many array indices");
     }
 
-    /// <summary>The same over-indexing rejection applies to a selected-path write (<c>WriteStream</c>/<c>UpdateStream</c>).</summary>
+    /// <summary>The same over-indexing rejection applies to a selected-path write (<c>Write</c>/<c>Update</c>).</summary>
     [TestMethod]
     public void TooManyIndicesInOneSegment_IsRejectedForSelectedPathWrites()
     {
@@ -40,7 +40,7 @@ public class MultidimensionalArrayTests
         using var stream = new MemoryStream(new byte[4]);
 
         Assert.Throws<CStructPathException>(
-            () => cstruct.UpdateStream(stream, "root.values[0][1]", (byte)9));
+            () => cstruct.Update(stream, "root.values[0][1]", (byte)9));
     }
 
     /// <summary>
@@ -146,7 +146,7 @@ public class MultidimensionalArrayTests
         byte[] bytes = [.. Enumerable.Range(0, 12).Select(i => (byte)i),];
         using var stream = new MemoryStream(bytes);
 
-        dynamic result = cstruct.ParseStream(stream, "root");
+        dynamic result = cstruct.Parse(stream, "root");
         List<object?> matrix = (List<object?>)result.matrix;
 
         Assert.AreEqual(3, matrix.Count);
@@ -169,7 +169,7 @@ public class MultidimensionalArrayTests
         byte[] bytes = [.. Enumerable.Range(0, 24).Select(i => (byte)i),];
         using var stream = new MemoryStream(bytes);
 
-        dynamic result = cstruct.ParseStream(stream, "root");
+        dynamic result = cstruct.Parse(stream, "root");
         List<object?> cube = (List<object?>)result.cube;
 
         Assert.AreEqual(2, cube.Count);
@@ -203,7 +203,7 @@ public class MultidimensionalArrayTests
         byte[] bytes = [.. Enumerable.Range(0, 12).Select(i => (byte)i),];
         using var stream = new MemoryStream(bytes);
 
-        dynamic result = cstruct.ParseStream(stream, "root");
+        dynamic result = cstruct.Parse(stream, "root");
         List<object?> grid = (List<object?>)result.grid;
 
         Assert.AreEqual(2, grid.Count);
@@ -235,7 +235,7 @@ public class MultidimensionalArrayTests
         byte[] bytes = "abc\0defgijkl"u8.ToArray();
         using var stream = new MemoryStream(bytes);
 
-        dynamic result = cstruct.ParseStream(stream, "root");
+        dynamic result = cstruct.Parse(stream, "root");
         List<object?> names = (List<object?>)result.names;
 
         Assert.AreEqual(3, names.Count);
@@ -266,7 +266,7 @@ public class MultidimensionalArrayTests
         CollectionAssert.AreEqual(Enumerable.Range(0, 12).Select(i => (byte)i).ToArray(), bytes);
 
         using var stream = new MemoryStream(bytes);
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
         List<object?> roundTripped = (List<object?>)parsed.matrix;
         Assert.AreEqual(3, roundTripped.Count);
         for (int row = 0; row < 3; row++)
@@ -319,7 +319,7 @@ public class MultidimensionalArrayTests
 
         Assert.AreEqual(12, bytes.Length);
         using var stream = new MemoryStream(bytes);
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
         List<object?> roundTripped = (List<object?>)parsed.names;
         Assert.AreEqual(3, roundTripped.Count);
         Assert.AreEqual("abc\0", roundTripped[0]);
@@ -373,7 +373,7 @@ public class MultidimensionalArrayTests
     }
 
     /// <summary>
-    ///     GetDynamicArrayLength reports the outer dimension's own count for the whole array, and the selected
+    ///     GetArrayLength reports the outer dimension's own count for the whole array, and the selected
     ///     row's own (inner dimension's) count for a partially indexed sub-array - the ADR's own worked example.
     /// </summary>
     [TestMethod]
@@ -382,8 +382,8 @@ public class MultidimensionalArrayTests
         var cstruct = new CStruct("struct root { uint8 matrix[3][4]; };", pointerSize: 1, aligned: false);
         using var stream = new MemoryStream(new byte[12]);
 
-        Assert.AreEqual(3, cstruct.GetDynamicArrayLength(stream, "root.matrix"));
-        Assert.AreEqual(4, cstruct.GetDynamicArrayLength(stream, "root.matrix[2]"));
+        Assert.AreEqual(3, cstruct.GetArrayLength(stream, "root.matrix"));
+        Assert.AreEqual(4, cstruct.GetArrayLength(stream, "root.matrix[2]"));
     }
 
     /// <summary>A fully indexed scalar leaf has no array length of its own to report.</summary>
@@ -393,7 +393,7 @@ public class MultidimensionalArrayTests
         var cstruct = new CStruct("struct root { uint8 matrix[3][4]; };", pointerSize: 1, aligned: false);
         using var stream = new MemoryStream(new byte[12]);
 
-        Assert.Throws<CStructPathException>(() => cstruct.GetDynamicArrayLength(stream, "root.matrix[2][3]"));
+        Assert.Throws<CStructPathException>(() => cstruct.GetArrayLength(stream, "root.matrix[2][3]"));
     }
 
     /// <summary>ReadValue on a partially indexed path returns just the selected row, as a nested list.</summary>
@@ -422,7 +422,7 @@ public class MultidimensionalArrayTests
         Assert.AreEqual((byte)6, value);
     }
 
-    /// <summary>UpdateStream to a partially indexed path replaces just the selected row from a nested-list value.</summary>
+    /// <summary>Update to a partially indexed path replaces just the selected row from a nested-list value.</summary>
     [TestMethod]
     public void UpdateStream_PartialIndex_ReplacesTheSelectedSubArray()
     {
@@ -430,14 +430,14 @@ public class MultidimensionalArrayTests
         byte[] bytes = [.. Enumerable.Range(0, 12).Select(i => (byte)i),];
         using var stream = new MemoryStream(bytes);
 
-        cstruct.UpdateStream(stream, "root.matrix[1]", new List<object> { 9, 9, 9, 9, });
+        cstruct.Update(stream, "root.matrix[1]", new List<object> { 9, 9, 9, 9, });
 
         CollectionAssert.AreEqual(
             new byte[] { 0, 1, 2, 3, 9, 9, 9, 9, 8, 9, 10, 11, },
             stream.ToArray());
     }
 
-    /// <summary>UpdateStream to a fully indexed path replaces just the selected scalar element.</summary>
+    /// <summary>Update to a fully indexed path replaces just the selected scalar element.</summary>
     [TestMethod]
     public void UpdateStream_FullIndex_ReplacesTheSelectedScalar()
     {
@@ -445,7 +445,7 @@ public class MultidimensionalArrayTests
         byte[] bytes = [.. Enumerable.Range(0, 12).Select(i => (byte)i),];
         using var stream = new MemoryStream(bytes);
 
-        cstruct.UpdateStream(stream, "root.matrix[1][2]", (byte)99);
+        cstruct.Update(stream, "root.matrix[1][2]", (byte)99);
 
         CollectionAssert.AreEqual(
             new byte[] { 0, 1, 2, 3, 4, 5, 99, 7, 8, 9, 10, 11, },
@@ -507,7 +507,7 @@ public class MultidimensionalArrayTests
         byte[] bytes = [.. Enumerable.Range(0, 12).Select(i => (byte)i),];
         using var stream = new MemoryStream(bytes);
 
-        (List<DebugData>? debug, dynamic cell) = cstruct.ParseStreamWithDebug(stream, "root.grid[1][2]");
+        (dynamic cell, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root.grid[1][2]");
 
         Assert.AreEqual((byte)10, cell.a);
         Assert.AreEqual((byte)11, cell.b);

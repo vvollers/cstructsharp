@@ -145,7 +145,7 @@ a missing terminator can trigger a long scan, and pointers can form cycles. Boun
 nesting, pointer traversal, and total bytes read. The [options guide](variables-options-and-limits.md) explains
 which limit controls each kind of work.
 
-Finally, changing bytes is different from safely storing them. `UpdateStream` validates a replacement before
+Finally, changing bytes is different from safely storing them. `Update` validates a replacement before
 committing it, but a physical write can fail partway through. It is not a filesystem transaction or a guarantee
 that data has reached durable storage. If an application needs durable whole-file replacement, it must implement
 that policy around serialization using the guarantees of its filesystem and operating system.

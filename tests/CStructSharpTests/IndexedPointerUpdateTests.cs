@@ -41,14 +41,14 @@ public class IndexedPointerUpdateTests
         bytes[tailAddress] = 0x7E;
         using var stream = new MemoryStream(bytes);
 
-        dynamic parsed = cstruct.ParseStream(stream, "root");
+        dynamic parsed = cstruct.Parse(stream, "root");
         Assert.AreEqual((ushort)0x2222, (ushort)parsed.items[1]);
         Assert.AreEqual((byte)0x7E, (byte)parsed.tail);
 
         stream.Position = 0;
         Assert.AreEqual(itemsStart + 2, cstruct.ResolveAddress(stream, "root.items[1]"));
         stream.Position = 0;
-        (List<DebugData> debug, _) = cstruct.ParseStreamWithDebug(stream, "root");
+        (_, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(stream, "root");
         Assert.IsTrue(debug.Any(item => item.Start == itemsStart + 2 && item.End == itemsStart + 4));
 
         byte[] selected = cstruct.Serialize("root.items[1]", (ushort)0xABCD);
@@ -63,7 +63,7 @@ public class IndexedPointerUpdateTests
         CollectionAssert.AreEqual(bytes, cstruct.Serialize("root", parsed));
 
         stream.Position = 0;
-        cstruct.UpdateStream(stream, "root.items[1]", (ushort)0xABCD);
+        cstruct.Update(stream, "root.items[1]", (ushort)0xABCD);
 
         byte[] expected = (byte[])bytes.Clone();
         WriteUnsigned(expected, itemsStart + 2, 2, 0xABCD, isLittleEndian);
@@ -120,7 +120,7 @@ public class IndexedPointerUpdateTests
             aligned: true);
         using var stream = new MemoryStream(new byte[] { 0x03, 0xEE, 0xA5, 0x34, 0x12, 0x7E, });
 
-        cstruct.UpdateStream(stream, "root.ptr.value", (ushort)0xBEEF);
+        cstruct.Update(stream, "root.ptr.value", (ushort)0xBEEF);
 
         CollectionAssert.AreEqual(new byte[] { 0x03, 0xEE, 0xA5, 0xEF, 0xBE, 0x7E, }, stream.ToArray());
         Assert.AreEqual(0, stream.Position);
@@ -146,9 +146,9 @@ public class IndexedPointerUpdateTests
         };
 
         Assert.Throws<CStructWriteException>(
-            () => cstruct.UpdateStream(stream, "root.ptr.address", long.MinValue, options: options));
+            () => cstruct.Update(stream, "root.ptr.address", long.MinValue, options: options));
         Assert.Throws<CStructWriteException>(
-            () => cstruct.UpdateStream(stream, "root.ptr.address", 1, options: options));
+            () => cstruct.Update(stream, "root.ptr.address", 1, options: options));
 
         CollectionAssert.AreEqual(original, stream.ToArray());
         Assert.AreEqual(0, stream.Position);
@@ -171,7 +171,7 @@ public class IndexedPointerUpdateTests
         var enumStruct = new CStruct(enumLayout, pointerSize: 1, isLittleEndian: false);
         using var enumStream = new MemoryStream(new byte[] { 0x00, 0x01, 0x00, 0x01, 0x7E, });
 
-        enumStruct.UpdateStream(enumStream, "root.values[1]", "Two");
+        enumStruct.Update(enumStream, "root.values[1]", "Two");
 
         CollectionAssert.AreEqual(new byte[] { 0x00, 0x01, 0x00, 0x02, 0x7E, }, enumStream.ToArray());
         CollectionAssert.AreEqual(
@@ -181,14 +181,14 @@ public class IndexedPointerUpdateTests
         var characters = new CStruct("struct root { char values[3]; uint8 tail; };", pointerSize: 1);
         using var characterStream = new MemoryStream(new byte[] { (byte)'A', (byte)'B', (byte)'C', 0x7E, });
 
-        characters.UpdateStream(characterStream, "root.values[1]", 'Z');
+        characters.Update(characterStream, "root.values[1]", 'Z');
 
         CollectionAssert.AreEqual(
             new byte[] { (byte)'A', (byte)'Z', (byte)'C', 0x7E, },
             characterStream.ToArray());
         CollectionAssert.AreEqual(new byte[] { (byte)'Q', }, characters.Serialize("root.values[0]", 'Q'));
         characterStream.Position = 0;
-        dynamic parsedCharacters = characters.ParseStream(characterStream, "root");
+        dynamic parsedCharacters = characters.Parse(characterStream, "root");
         Assert.AreEqual("AZC", (string)parsedCharacters.values);
     }
 
@@ -222,14 +222,14 @@ public class IndexedPointerUpdateTests
         long nestedAddress = nested.ResolveAddress(nestedStream, "root.items[1]");
 
         nestedStream.Position = 0;
-        dynamic selected = nested.ParseStream(nestedStream, "root.items[1]");
+        dynamic selected = nested.Parse(nestedStream, "root.items[1]");
         Assert.AreEqual((byte)0x22, (byte)selected.code);
         nestedStream.Position = 0;
-        (List<DebugData> nestedDebug, _) = nested.ParseStreamWithDebug(nestedStream, "root.items[1]");
+        (_, IReadOnlyList<DebugData> nestedDebug) = nested.ParseWithDebug(nestedStream, "root.items[1]");
         Assert.IsTrue(nestedDebug.Any(item => item.Start == nestedAddress));
 
         nestedStream.Position = 0;
-        nested.UpdateStream(nestedStream, "root.items[1]", replacement);
+        nested.Update(nestedStream, "root.items[1]", replacement);
 
         byte[] expectedNested = (byte[])nestedBytes.Clone();
         byte[] serializedReplacement = nested.Serialize("item", replacement);
@@ -244,7 +244,7 @@ public class IndexedPointerUpdateTests
         using var unionStream = new MemoryStream(new byte[] { 0x11, 0x11, 0x22, 0x22, 0x7E, });
         UnionValue unionValue = UnionValue.FromMember("choice", "small", (byte)0xA5);
 
-        unions.UpdateStream(unionStream, "root.values[1]", unionValue);
+        unions.Update(unionStream, "root.values[1]", unionValue);
 
         CollectionAssert.AreEqual(new byte[] { 0x11, 0x11, 0xA5, 0x00, 0x7E, }, unionStream.ToArray());
     }
@@ -264,15 +264,15 @@ public class IndexedPointerUpdateTests
         byte[] original = new byte[] { 0x11, 0x11, 0x22, 0x22, 0x7E, };
         using var stream = new MemoryStream((byte[])original.Clone());
 
-        cstruct.UpdateStream(stream, "root.items", new ushort[] { 0xAAAA, 0xBBBB, });
+        cstruct.Update(stream, "root.items", new ushort[] { 0xAAAA, 0xBBBB, });
 
         CollectionAssert.AreEqual(new byte[] { 0xAA, 0xAA, 0xBB, 0xBB, 0x7E, }, stream.ToArray());
         Assert.Throws<CStructWriteException>(
-            () => cstruct.UpdateStream(stream, "root.items", new ushort[] { 0x1111, }));
+            () => cstruct.Update(stream, "root.items", new ushort[] { 0x1111, }));
         CollectionAssert.AreEqual(new byte[] { 0xAA, 0xAA, 0xBB, 0xBB, 0x7E, }, stream.ToArray());
 
         Assert.Throws<CStructPathException>(
-            () => cstruct.UpdateStream(stream, "root.items[2]", (ushort)0x1234));
+            () => cstruct.Update(stream, "root.items[2]", (ushort)0x1234));
         Assert.Throws<CStructPathException>(
             () => cstruct.Serialize("root.items[2]", (ushort)0x1234));
         Assert.AreEqual(0, stream.Position);
@@ -301,7 +301,7 @@ public class IndexedPointerUpdateTests
         WriteUnsigned(bytes, 10, 2, 0x2222, false);
 
         using var storage = new MemoryStream((byte[])bytes.Clone());
-        cstruct.UpdateStream(storage, "root.values[1]", 12);
+        cstruct.Update(storage, "root.values[1]", 12);
         byte[] expectedStorage = (byte[])bytes.Clone();
         WriteUnsigned(expectedStorage, 2, 2, 12, false);
         CollectionAssert.AreEqual(expectedStorage, storage.ToArray());
@@ -310,7 +310,7 @@ public class IndexedPointerUpdateTests
         using var target = new MemoryStream((byte[])bytes.Clone());
         Assert.AreEqual(10L, cstruct.ResolveAddress(target, "root.values[1].value"));
         target.Position = 0;
-        cstruct.UpdateStream(target, "root.values[1].value", (ushort)0xBEEF);
+        cstruct.Update(target, "root.values[1].value", (ushort)0xBEEF);
         byte[] expectedTarget = (byte[])bytes.Clone();
         WriteUnsigned(expectedTarget, 10, 2, 0xBEEF, false);
         CollectionAssert.AreEqual(expectedTarget, target.ToArray());
@@ -332,12 +332,12 @@ public class IndexedPointerUpdateTests
         using var stream = new MemoryStream(new byte[] { 0x11, 0x11, 0x7E, });
 
         Assert.AreEqual(0L, cstruct.ResolveAddress(stream, "root.one[0]"));
-        cstruct.UpdateStream(stream, "root.one[0]", (ushort)0xBEEF);
+        cstruct.Update(stream, "root.one[0]", (ushort)0xBEEF);
         CollectionAssert.AreEqual(new byte[] { 0xEF, 0xBE, 0x7E, }, stream.ToArray());
         CollectionAssert.AreEqual(new byte[] { 0x34, 0x12, }, cstruct.Serialize("root.one[0]", (ushort)0x1234));
 
         Assert.Throws<CStructPathException>(
-            () => cstruct.UpdateStream(stream, "root.empty[0]", (ushort)0x1234));
+            () => cstruct.Update(stream, "root.empty[0]", (ushort)0x1234));
         Assert.Throws<CStructPathException>(
             () => cstruct.Serialize("root.empty[0]", (ushort)0x1234));
         CollectionAssert.AreEqual(new byte[] { 0xEF, 0xBE, 0x7E, }, stream.ToArray());
@@ -379,7 +379,7 @@ public class IndexedPointerUpdateTests
             isLittleEndian: isLittleEndian);
         using var parseStream = new MemoryStream((byte[])bytes.Clone()) { Position = rootStart, };
 
-        dynamic parsed = cstruct.ParseStream(parseStream, "root");
+        dynamic parsed = cstruct.Parse(parseStream, "root");
         var outer = (Pointer)parsed.ptr;
         Assert.AreEqual(firstTarget, outer.Address);
         Assert.AreEqual(finalTarget, outer.Next!.Address);
@@ -387,7 +387,7 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual((byte)0x7E, (byte)parsed.tail);
 
         parseStream.Position = rootStart;
-        (List<DebugData> debug, _) = cstruct.ParseStreamWithDebug(parseStream, "root");
+        (_, IReadOnlyList<DebugData> debug) = cstruct.ParseWithDebug(parseStream, "root");
         Assert.IsTrue(debug.Any(item => item.Start == rootStart && item.End == rootStart + pointerSize));
         foreach ((string path, long address) in new[]
                  {
@@ -403,25 +403,25 @@ public class IndexedPointerUpdateTests
         }
 
         using var implicitIntermediate = new MemoryStream((byte[])bytes.Clone()) { Position = rootStart, };
-        cstruct.UpdateStream(implicitIntermediate, "root.ptr.value", alternateTarget);
+        cstruct.Update(implicitIntermediate, "root.ptr.value", alternateTarget);
         byte[] expectedIntermediate = (byte[])bytes.Clone();
         WriteUnsigned(expectedIntermediate, firstTarget, pointerSize, (ulong)alternateTarget, isLittleEndian);
         CollectionAssert.AreEqual(expectedIntermediate, implicitIntermediate.ToArray());
         Assert.AreEqual(rootStart, implicitIntermediate.Position);
 
         using var explicitIntermediate = new MemoryStream((byte[])bytes.Clone()) { Position = rootStart, };
-        cstruct.UpdateStream(explicitIntermediate, "root.ptr.value.address", alternateTarget);
+        cstruct.Update(explicitIntermediate, "root.ptr.value.address", alternateTarget);
         CollectionAssert.AreEqual(expectedIntermediate, explicitIntermediate.ToArray());
 
         using var finalValue = new MemoryStream((byte[])bytes.Clone()) { Position = rootStart, };
-        cstruct.UpdateStream(finalValue, "root.ptr.value.value", (ushort)0xBEEF);
+        cstruct.Update(finalValue, "root.ptr.value.value", (ushort)0xBEEF);
         byte[] expectedFinal = (byte[])bytes.Clone();
         WriteUnsigned(expectedFinal, finalTarget, 2, 0xBEEF, isLittleEndian);
         CollectionAssert.AreEqual(expectedFinal, finalValue.ToArray());
         Assert.AreEqual(rootStart, finalValue.Position);
 
         finalValue.Position = rootStart;
-        dynamic reparsed = cstruct.ParseStream(finalValue, "root");
+        dynamic reparsed = cstruct.Parse(finalValue, "root");
         Assert.AreEqual((ushort)0xBEEF, (ushort)((Pointer)reparsed.ptr).Next!.Value!);
     }
 
@@ -468,7 +468,7 @@ public class IndexedPointerUpdateTests
             cstruct.ResolveAddress(stream, "root.ptr.value.value", options: readOptions));
         Assert.AreEqual(rootStart, stream.Position);
 
-        cstruct.UpdateStream(stream, "root.ptr.value", alternateTarget, options: updateOptions);
+        cstruct.Update(stream, "root.ptr.value", alternateTarget, options: updateOptions);
 
         byte[] expected = (byte[])bytes.Clone();
         WriteUnsigned(expected, firstTarget, 2, alternateTarget - origin, isLittleEndian);
@@ -476,7 +476,7 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual(rootStart, stream.Position);
 
         using var rootAddress = new MemoryStream((byte[])bytes.Clone()) { Position = rootStart, };
-        cstruct.UpdateStream(rootAddress, "root.ptr.address", alternateTarget, options: updateOptions);
+        cstruct.Update(rootAddress, "root.ptr.address", alternateTarget, options: updateOptions);
         byte[] expectedRoot = (byte[])bytes.Clone();
         WriteUnsigned(expectedRoot, rootStart, 2, alternateTarget - origin, isLittleEndian);
         CollectionAssert.AreEqual(expectedRoot, rootAddress.ToArray());
@@ -498,10 +498,10 @@ public class IndexedPointerUpdateTests
                                   """;
         var enumStruct = new CStruct(enumLayout, pointerSize: 1, isLittleEndian: false);
         using var enumStream = new MemoryStream(new byte[] { 0x03, 0x7E, 0xA5, 0x00, 0x01, });
-        enumStruct.UpdateStream(enumStream, "root.ptr.value", "Two");
+        enumStruct.Update(enumStream, "root.ptr.value", "Two");
         CollectionAssert.AreEqual(new byte[] { 0x03, 0x7E, 0xA5, 0x00, 0x02, }, enumStream.ToArray());
         enumStream.Position = 0;
-        dynamic parsedEnum = enumStruct.ParseStream(enumStream, "root");
+        dynamic parsedEnum = enumStruct.Parse(enumStream, "root");
         Assert.AreEqual(2, ((EnumValueResult)((Pointer)parsedEnum.ptr).Value!).Value);
 
         const string structLayout = """
@@ -511,13 +511,13 @@ public class IndexedPointerUpdateTests
         var structs = new CStruct(structLayout, pointerSize: 1);
         using var structStream = new MemoryStream(new byte[] { 0x03, 0x7E, 0xA5, 0x11, 0x22, 0x22, });
         dynamic structReplacement = CreateItem(0xAA, 0xBEEF);
-        dynamic selectedStruct = structs.ParseStream(structStream, "root.ptr.value");
+        dynamic selectedStruct = structs.Parse(structStream, "root.ptr.value");
         Assert.AreEqual((byte)0x11, (byte)selectedStruct.code);
         structStream.Position = 0;
-        (List<DebugData> structDebug, _) = structs.ParseStreamWithDebug(structStream, "root.ptr.value");
+        (_, IReadOnlyList<DebugData> structDebug) = structs.ReadValueWithDebug(structStream, "root.ptr.value");
         Assert.IsTrue(structDebug.Any(item => item.Start == 3));
         structStream.Position = 0;
-        structs.UpdateStream(structStream, "root.ptr.value", structReplacement);
+        structs.Update(structStream, "root.ptr.value", structReplacement);
         CollectionAssert.AreEqual(
             new byte[] { 0x03, 0x7E, 0xA5, 0xAA, 0xEF, 0xBE, },
             structStream.ToArray());
@@ -528,25 +528,25 @@ public class IndexedPointerUpdateTests
                                    """;
         var unions = new CStruct(unionLayout, pointerSize: 1);
         using var unionStream = new MemoryStream(new byte[] { 0x03, 0x7E, 0xA5, 0x34, 0x12, });
-        dynamic selectedUnion = unions.ParseStream(unionStream, "root.ptr.value");
+        dynamic selectedUnion = unions.ReadValue(unionStream, "root.ptr.value")!;
         Assert.AreEqual((ushort)0x1234, (ushort)selectedUnion.wide);
         unionStream.Position = 0;
-        (List<DebugData> unionDebug, _) = unions.ParseStreamWithDebug(unionStream, "root.ptr.value");
+        (_, IReadOnlyList<DebugData> unionDebug) = unions.ReadValueWithDebug(unionStream, "root.ptr.value");
         Assert.IsTrue(unionDebug.All(item => item.Start == 3));
         UnionValue unionReplacement = UnionValue.FromMember("choice", "small", (byte)0x11);
         unionStream.Position = 0;
-        unions.UpdateStream(unionStream, "root.ptr.value", unionReplacement);
+        unions.Update(unionStream, "root.ptr.value", unionReplacement);
         CollectionAssert.AreEqual(new byte[] { 0x03, 0x7E, 0xA5, 0x11, 0x00, }, unionStream.ToArray());
 
         var strings = new CStruct("struct root { char **name; uint8 tail; };", pointerSize: 1);
         using var stringStream = new MemoryStream(
             new byte[] { 0x03, 0x7E, 0xA5, 0x05, 0xA5, (byte)'o', (byte)'l', (byte)'d', 0x00, });
-        strings.UpdateStream(stringStream, "root.name.value.value", "hi");
+        strings.Update(stringStream, "root.name.value.value", "hi");
         CollectionAssert.AreEqual(
             new byte[] { 0x03, 0x7E, 0xA5, 0x05, 0xA5, (byte)'h', (byte)'i', 0x00, 0x00, },
             stringStream.ToArray());
         stringStream.Position = 0;
-        dynamic parsedString = strings.ParseStream(stringStream, "root");
+        dynamic parsedString = strings.Parse(stringStream, "root");
         Assert.AreEqual("hi", (string)((Pointer)parsedString.name).Next!.Value!);
     }
 
@@ -564,10 +564,10 @@ public class IndexedPointerUpdateTests
         var oneLevel = new CStruct("struct root { uint8 *ptr; };", pointerSize: 1);
         using var finalNull = new MemoryStream(new byte[] { 0x00, 0xA5, });
         Assert.Throws<CStructReadException>(
-            () => oneLevel.UpdateStream(finalNull, "root.ptr.value", (byte)0x11));
+            () => oneLevel.Update(finalNull, "root.ptr.value", (byte)0x11));
         CollectionAssert.AreEqual(new byte[] { 0x00, 0xA5, }, finalNull.ToArray());
 
-        oneLevel.UpdateStream(
+        oneLevel.Update(
             finalNull,
             "root.ptr.value",
             (byte)0x11,
@@ -577,15 +577,15 @@ public class IndexedPointerUpdateTests
         var twoLevels = new CStruct("struct root { uint8 **ptr; };", pointerSize: 1);
         using var secondNull = new MemoryStream(new byte[] { 0x02, 0xA5, 0x00, 0xA5, });
         Assert.Throws<CStructReadException>(
-            () => twoLevels.UpdateStream(secondNull, "root.ptr.value.value", (byte)0x11));
+            () => twoLevels.Update(secondNull, "root.ptr.value.value", (byte)0x11));
         CollectionAssert.AreEqual(new byte[] { 0x02, 0xA5, 0x00, 0xA5, }, secondNull.ToArray());
 
-        twoLevels.UpdateStream(secondNull, "root.ptr.value", 3);
+        twoLevels.Update(secondNull, "root.ptr.value", 3);
         CollectionAssert.AreEqual(new byte[] { 0x02, 0xA5, 0x03, 0xA5, }, secondNull.ToArray());
 
         using var firstNull = new MemoryStream(new byte[] { 0x00, 0xA5, 0xA5, });
         Assert.Throws<CStructPathException>(
-            () => twoLevels.UpdateStream(
+            () => twoLevels.Update(
                 firstNull,
                 "root.ptr.value.value",
                 (byte)0x11,
@@ -599,7 +599,7 @@ public class IndexedPointerUpdateTests
         };
         using var relativeNull = new MemoryStream(new byte[] { 0x00, 0xA5, });
         Assert.Throws<CStructReadException>(
-            () => oneLevel.UpdateStream(
+            () => oneLevel.Update(
                 relativeNull,
                 "root.ptr.value",
                 (byte)0x11,
@@ -622,12 +622,12 @@ public class IndexedPointerUpdateTests
         byte[] bytes = new byte[] { 0x02, 0xA5, 0x04, 0xA5, 0x11, };
 
         using var rootStorage = new MemoryStream((byte[])bytes.Clone());
-        cstruct.UpdateStream(rootStorage, "root.ptr.address", 0);
+        cstruct.Update(rootStorage, "root.ptr.address", 0);
         CollectionAssert.AreEqual(new byte[] { 0x00, 0xA5, 0x04, 0xA5, 0x11, }, rootStorage.ToArray());
         Assert.AreEqual(0, rootStorage.Position);
 
         using var intermediateStorage = new MemoryStream((byte[])bytes.Clone());
-        cstruct.UpdateStream(intermediateStorage, "root.ptr.value.address", 0);
+        cstruct.Update(intermediateStorage, "root.ptr.value.address", 0);
         CollectionAssert.AreEqual(new byte[] { 0x02, 0xA5, 0x00, 0xA5, 0x11, }, intermediateStorage.ToArray());
         Assert.AreEqual(0, intermediateStorage.Position);
 
@@ -637,7 +637,7 @@ public class IndexedPointerUpdateTests
             Origin = 10,
         };
         using var relativeStorage = new MemoryStream((byte[])bytes.Clone());
-        cstruct.UpdateStream(relativeStorage, "root.ptr.address", 0, options: relativeOptions);
+        cstruct.Update(relativeStorage, "root.ptr.address", 0, options: relativeOptions);
         CollectionAssert.AreEqual(new byte[] { 0x00, 0xA5, 0x04, 0xA5, 0x11, }, relativeStorage.ToArray());
         Assert.AreEqual(0, relativeStorage.Position);
     }
@@ -657,7 +657,7 @@ public class IndexedPointerUpdateTests
         byte[] arrayBytes = new byte[] { 0x11, 0x11, 0x22, 0x22, };
         using var arrayStream = new MemoryStream((byte[])arrayBytes.Clone()) { Position = 1, };
         CStructWriteException conversion = Assert.Throws<CStructWriteException>(
-            () => array.UpdateStream(arrayStream, "root.values[1]", -1));
+            () => array.Update(arrayStream, "root.values[1]", -1));
         Assert.IsInstanceOfType<OverflowException>(conversion.InnerException);
         CollectionAssert.AreEqual(arrayBytes, arrayStream.ToArray());
         Assert.AreEqual(1, arrayStream.Position);
@@ -666,14 +666,14 @@ public class IndexedPointerUpdateTests
         byte[] pointerBytes = new byte[] { 0x02, 0xA5, 0x04, 0xA5, 0x34, 0x12, };
         using var oversizedAddress = new MemoryStream((byte[])pointerBytes.Clone());
         Assert.Throws<CStructWriteException>(
-            () => pointer.UpdateStream(oversizedAddress, "root.ptr.value", 256));
+            () => pointer.Update(oversizedAddress, "root.ptr.value", 256));
         CollectionAssert.AreEqual(pointerBytes, oversizedAddress.ToArray());
         Assert.AreEqual(0, oversizedAddress.Position);
 
         using var invalidTarget = new MemoryStream(
             new byte[] { 0x7F, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, });
         Assert.Throws<CStructReadException>(
-            () => pointer.UpdateStream(invalidTarget, "root.ptr.value.value", (ushort)0xBEEF));
+            () => pointer.Update(invalidTarget, "root.ptr.value.value", (ushort)0xBEEF));
         CollectionAssert.AreEqual(
             new byte[] { 0x7F, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, },
             invalidTarget.ToArray());
@@ -695,7 +695,7 @@ public class IndexedPointerUpdateTests
         var cstruct = new CStruct(layout, pointerSize: 1);
         using var stream = new TrackingStream(bytes);
 
-        cstruct.UpdateStream(stream, "root.selected.value.value", (ushort)0xBEEF);
+        cstruct.Update(stream, "root.selected.value.value", (ushort)0xBEEF);
 
         CollectionAssert.AreEqual(new long[] { 0, 4, }, stream.ReadStarts.ToArray());
         CollectionAssert.AreEqual(

@@ -34,7 +34,7 @@ public class UpdateAtomicityTests
             AssertValidationFailureLeavesDestinationUnchanged(
                 new byte[] { 0x11, 0x22, 0x33, 0x44, },
                 1,
-                stream => cstruct.UpdateStream(stream, "root", value));
+                stream => cstruct.Update(stream, "root", value));
         }
     }
 
@@ -53,7 +53,7 @@ public class UpdateAtomicityTests
         AssertValidationFailureLeavesDestinationUnchanged(
             new byte[] { 0x11, 0x22, 0x33, },
             0,
-            stream => cstruct.UpdateStream(
+            stream => cstruct.Update(
                 stream,
                 "root.values",
                 new object[] { (byte)1, (byte)2, "not-a-byte", }));
@@ -63,7 +63,7 @@ public class UpdateAtomicityTests
     ///     Three byte fields are supplied, but the total write budget is insufficient for the complete replacement.
     /// </summary>
     /// <remarks>
-    ///     UpdateStream must preserve the old record even if earlier fields could fit. Its staged validation behavior
+    ///     Update must preserve the old record even if earlier fields could fit. Its staged validation behavior
     ///     differs from a direct stream write that may leave an accepted prefix.
     /// </remarks>
     [TestMethod]
@@ -77,7 +77,7 @@ public class UpdateAtomicityTests
         AssertValidationFailureLeavesDestinationUnchanged(
             new byte[] { 0x11, 0x22, 0x33, },
             0,
-            stream => cstruct.UpdateStream(
+            stream => cstruct.Update(
                 stream,
                 "root",
                 value,
@@ -100,7 +100,7 @@ public class UpdateAtomicityTests
         AssertValidationFailureLeavesDestinationUnchanged(
             new byte[] { 0x11, (byte)'o', (byte)'l', (byte)'d', 0, 0, 0, 0, 0, 0, },
             0,
-            stream => cstruct.UpdateStream(
+            stream => cstruct.Update(
                 stream,
                 "root",
                 value,
@@ -130,7 +130,7 @@ public class UpdateAtomicityTests
         AssertValidationFailureLeavesDestinationUnchanged(
             new byte[] { 0x11, 0x02, 0x22, 0x33, },
             0,
-            stream => cstruct.UpdateStream(stream, "root", value));
+            stream => cstruct.Update(stream, "root", value));
     }
 
     /// <summary>
@@ -149,7 +149,7 @@ public class UpdateAtomicityTests
         AssertValidationFailureLeavesDestinationUnchanged(
             new byte[] { 0x11, 0x02, 0x33, },
             0,
-            stream => cstruct.UpdateStream(stream, "root", value));
+            stream => cstruct.Update(stream, "root", value));
     }
 
     /// <summary>
@@ -195,7 +195,7 @@ public class UpdateAtomicityTests
             AssertValidationFailureLeavesDestinationUnchanged(
                 new byte[] { 0x11, 0x22, 0x33, 0x44, 0x55, },
                 0,
-                stream => layout.UpdateStream(stream, "root", value));
+                stream => layout.Update(stream, "root", value));
         }
     }
 
@@ -213,7 +213,7 @@ public class UpdateAtomicityTests
         using var stream = new TrackingStream(new byte[] { 0xA5, });
 
         Assert.Throws<CStructReadLimitException>(
-            () => cstruct.UpdateStream(
+            () => cstruct.Update(
                 stream,
                 "root.high",
                 3,
@@ -230,7 +230,7 @@ public class UpdateAtomicityTests
         foreach (long budget in new long[] { 0, 1, 2 })
         {
             using var conditionalStream = new TrackingStream(new byte[] { 0xEE, 1, 42 }) { Position = 1 };
-            Assert.Throws<CStructReadLimitException>(() => conditional.UpdateStream(
+            Assert.Throws<CStructReadLimitException>(() => conditional.Update(
                 conditionalStream, "root.tag", 1, options: new UpdateOptions { MaxTraversalBytesRead = budget }));
             CollectionAssert.AreEqual(new byte[] { 0xEE, 1, 42 }, conditionalStream.Snapshot());
             Assert.AreEqual(0, conditionalStream.WriteCalls);
@@ -238,7 +238,7 @@ public class UpdateAtomicityTests
         }
 
         using var permitted = new TrackingStream(new byte[] { 0xEE, 1, 42 }) { Position = 1 };
-        conditional.UpdateStream(permitted, "root.tag", 1, options: new UpdateOptions { MaxTraversalBytesRead = 3 });
+        conditional.Update(permitted, "root.tag", 1, options: new UpdateOptions { MaxTraversalBytesRead = 3 });
         CollectionAssert.AreEqual(new byte[] { 0xEE, 1, 42 }, permitted.Snapshot());
         Assert.IsTrue(permitted.WriteCalls > 0);
         Assert.AreEqual(1L, permitted.Position);
@@ -263,7 +263,7 @@ public class UpdateAtomicityTests
         AssertValidationFailureLeavesDestinationUnchanged(
             new byte[] { 0x34, 0x12, },
             0,
-            stream => cstruct.UpdateStream(
+            stream => cstruct.Update(
                 stream,
                 "choice",
                 invalid,
@@ -285,7 +285,7 @@ public class UpdateAtomicityTests
         AssertValidationFailureLeavesDestinationUnchanged(
             new byte[] { 0xA5, },
             0,
-            stream => cstruct.UpdateStream(stream, "root.low", 3));
+            stream => cstruct.Update(stream, "root.low", 3));
     }
 
     /// <summary>
@@ -310,7 +310,7 @@ public class UpdateAtomicityTests
         using var stream = new TrackingStream(new byte[] { storedAddress, 0, 0, 0, });
 
         CStructReadException failure = Assert.Throws<CStructReadException>(
-            () => cstruct.UpdateStream(
+            () => cstruct.Update(
                 stream,
                 "root.target.value",
                 (byte)0xA5,
@@ -331,7 +331,7 @@ public class UpdateAtomicityTests
     ///     The cases select storage in an empty stream or start a one-byte replacement at the end of a one-byte stream.
     /// </summary>
     /// <remarks>
-    ///     Both would append data rather than replace it. UpdateStream must reject them and preserve the original
+    ///     Both would append data rather than replace it. Update must reject them and preserve the original
     ///     length, bytes, and position.
     /// </remarks>
     [TestMethod]
@@ -348,7 +348,7 @@ public class UpdateAtomicityTests
             AssertValidationFailureLeavesDestinationUnchanged(
                 bytes,
                 position,
-                stream => cstruct.UpdateStream(stream, "root.value", (byte)0xA5));
+                stream => cstruct.Update(stream, "root.value", (byte)0xA5));
         }
     }
 
@@ -366,7 +366,7 @@ public class UpdateAtomicityTests
         var values = new SinglePassEnumerable((byte)1, (byte)2, (byte)3);
         using var stream = new TrackingStream(new byte[3]);
 
-        cstruct.UpdateStream(stream, "root.values", values);
+        cstruct.Update(stream, "root.values", values);
 
         CollectionAssert.AreEqual(new byte[] { 1, 2, 3, }, stream.Snapshot());
         Assert.AreEqual(1, values.EnumerationCount);
@@ -396,7 +396,7 @@ public class UpdateAtomicityTests
             isLittleEndian: isLittleEndian);
         using var stream = new TrackingStream(new byte[8]);
 
-        cstruct.UpdateStream(
+        cstruct.Update(
             stream,
             "root",
             new { prefix = (byte)1, value = 0x11223344U, },
@@ -431,7 +431,7 @@ public class UpdateAtomicityTests
             partialBytes);
 
         CStructWriteException failure = Assert.Throws<CStructWriteException>(
-            () => cstruct.UpdateStream(
+            () => cstruct.Update(
                 stream,
                 "root.values",
                 new byte[] { 1, 2, 3, }));
@@ -468,7 +468,7 @@ public class UpdateAtomicityTests
             0);
 
         CStructReadException failure = Assert.Throws<CStructReadException>(
-            () => cstruct.UpdateStream(
+            () => cstruct.Update(
                 stream,
                 "root.values",
                 new byte[] { 1, 2, 3, }));

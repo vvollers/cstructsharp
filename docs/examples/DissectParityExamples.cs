@@ -135,7 +135,7 @@ internal static partial class Program
         Equal(7, new CStruct(definition).GetStructSizeInBytes("root"));
 
         byte[] bigEndian = [2, 0x01, 0x02, (byte)'a', (byte)'b', 0, 0];
-        Equal((ushort)0x0102, (ushort)layout.WithEndianness(isLittleEndian: false).Parse(bigEndian, "root").length);
+        Equal((ushort)0x0102, (ushort)((dynamic)layout.WithEndianness(isLittleEndian: false).Parse(bigEndian, "root")).length);
         True(ReferenceEquals(layout, layout.WithEndianness(isLittleEndian: true)), "the same byte order returns the same instance");
     }
     #endregion

@@ -6,6 +6,30 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- **Breaking (API):** one operation vocabulary for every input kind. Each operation takes the input first
+  (`Stream`, `ReadOnlySpan<byte>`, `ReadOnlyMemory<byte>`, or `byte[]`), then the path, then optional `variables`
+  and options, and has the same name for every input:
+
+  | Was | Now |
+  | --- | --- |
+  | `ParseStream`, `ParseMemory`, `Parse` (returning `dynamic`) | `StructValue Parse(input, string? path = null, ...)` - struct roots only; a union or scalar path throws `CStructPathException` pointing to `ReadValue` |
+  | `ParseStreamWithDebug` (returning `(List<DebugData>, dynamic)` with a root wrapper) | `ParseResult ParseWithDebug(...)` - `Value` is the same `StructValue` that `Parse` returns, `Debug` the records; deconstructs as `(value, debug)` |
+  | - | `ReadResult ReadValueWithDebug(...)` - any selection (union, array, scalar) plus its debug records |
+  | `ReadMemoryValue`, `ReadStreamValue`, `ReadValue` | `ReadValue(input, string? path = null, ...)` and `ReadValue<T>` |
+  | `TryReadValue(input, out T, path, ...)` | `TryReadValue<T>(input, string? path, out T value, ...)` |
+  | `GetDynamicArrayLength` | `GetArrayLength(input, path, ...)` |
+  | `ResolveAddress`, `ResolveMemoryAddress` | `ResolveAddress(input, path, ...)` |
+  | `SerializeToMemory`, `SerializeToBufferWriter` | `Serialize(Span<byte>, path, value, ...)`, `Serialize(IBufferWriter<byte>, path, value, ...)` |
+  | `WriteStream` | `Write(Stream, path, value, ...)` |
+  | `UpdateStream` | `Update(Stream, path, value, ...)` and `Update(Span<byte>, path, value, ...)` |
+
+  `CStruct.DefaultRoot` names the first declared struct - the root every read selects when `path` is `null`
+  and the name to pass to `Serialize` for a whole record. Debug and non-debug results now have the same shape
+  (the declaration-name wrapper around debug results is gone). The generated C# in the Explorer and the docs use
+  the new names.
+- Browser/WASM: the bridge's curated diagnostics match the library's messages by prefix again, so a truncated
+  input reports `Unexpected end of binary input ...` and an oversized array `The array length exceeds
+  MaxArrayElements ...` instead of the generic category text.
 - Diagnostics: read, write, and path failures now say what failed and where in the message itself -
   `Not enough bytes: needed 4, available 1 (field 'length' (uint32), in 'header', offset 3).`,
   `Value 70000 does not fit: uint16 accepts 0 to 65535 (...)`, `No value was supplied for 'length' (...)`,

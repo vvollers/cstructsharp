@@ -4,7 +4,7 @@ using System;
 
 /// <summary>Describes the byte range, path, type, and decoded value of one item read in debug mode.</summary>
 /// <remarks>
-///     Records are produced by <see cref="CStruct.ParseStreamWithDebug(System.IO.Stream)"/> and its overloads.
+///     Records are produced by <see cref="CStruct.ParseWithDebug(System.IO.Stream, string?, System.Collections.Generic.IReadOnlyDictionary{string, int}?, ReadOptions?)"/>, its overloads, and <c>ReadValueWithDebug</c>.
 ///     <see cref="Start"/> is inclusive and <see cref="End"/> exclusive, both relative to the operation's origin
 ///     (the stream position or region start when the operation began). The record is immutable; a caller that
 ///     needs the bytes selects <c>Start..End</c> from its own input, except for a union read as raw storage, whose

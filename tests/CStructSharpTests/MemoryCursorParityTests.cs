@@ -43,14 +43,14 @@ public class MemoryCursorParityTests
 
             (object? spanResult, string? spanError) = Try(() => layout.Parse(bytes.AsSpan(), rootName, options: readOptions));
             using var memoryStream = new MemoryStream(bytes, writable: false);
-            (object? memoryResult, string? memoryError) = Try(() => layout.ParseStream(memoryStream, rootName, options: readOptions));
+            (object? memoryResult, string? memoryError) = Try(() => layout.Parse(memoryStream, rootName, options: readOptions));
             using var chunked = new ChunkedMemoryStream(bytes, 7, writable: false);
-            (object? chunkedResult, string? chunkedError) = Try(() => layout.ParseStream(chunked, rootName, options: readOptions));
+            (object? chunkedResult, string? chunkedError) = Try(() => layout.Parse(chunked, rootName, options: readOptions));
 
             // The same memory-backed source through the general reader only (static read plans disabled, E2.5).
             using var unplanned = new MemoryStream(bytes, writable: false);
             StaticReadPlan.DisabledForTesting = true;
-            (object? unplannedResult, string? unplannedError) = Try(() => layout.ParseStream(unplanned, rootName, options: readOptions));
+            (object? unplannedResult, string? unplannedError) = Try(() => layout.Parse(unplanned, rootName, options: readOptions));
             StaticReadPlan.DisabledForTesting = false;
 
             Assert.AreEqual(spanError, memoryError, id);
@@ -78,11 +78,11 @@ public class MemoryCursorParityTests
         var layout = new CStruct("struct root { uint16 a; uint32 b; uint8 tail[count]; }; #define count 3");
         using var success = new MemoryStream(new byte[] { 1, 0, 2, 0, 0, 0, 7, 8, 9, 0xFF }, writable: false);
         success.Position = 0;
-        _ = layout.ParseStream(success, "root");
+        _ = layout.Parse(success, "root");
         Assert.AreEqual(9L, success.Position);
 
         using var failure = new MemoryStream(new byte[] { 1, 0, 2, 0, 0, 0, 7 }, writable: false);
-        Assert.ThrowsExactly<CStructReadException>(() => layout.ParseStream(failure, "root"));
+        Assert.ThrowsExactly<CStructReadException>(() => layout.Parse(failure, "root"));
         Assert.IsTrue(failure.Position >= 6, $"position after failure was {failure.Position}");
 
         using var resolve = new MemoryStream(new byte[] { 1, 0, 2, 0, 0, 0, 7, 8, 9 }, writable: false);

@@ -42,7 +42,7 @@ field   values[0] values[1] tail
 Even counts zero and one produce collection-shaped results. A zero-length array consumes no element bytes; the next
 field may begin at the same packed offset or at its own aligned offset.
 
-`GetDynamicArrayLength` returns the evaluated count. Serialization needs exactly that many items, including zero or
+`GetArrayLength` returns the evaluated count. Serialization needs exactly that many items, including zero or
 one. The `fixed-arrays` fixture checks values `17`, `34`, and `126` at offsets `0`, `1`, and `2`.
 
 ## Runtime expression arrays
@@ -85,7 +85,7 @@ a non-seekable stream is a read error, and `EOF` keeps its ordinary meaning if t
 non-character type reads elements until an element whose bytes are all zero; that terminator is consumed and does not
 appear in the value (an element type with padding bytes must have those bytes zero too). Writing a data-sized array
 writes exactly the elements supplied (plus one zero element for the terminated form); updating an element changes it
-in place; the count cannot be changed by an update; `GetDynamicArrayLength` reports the count; and the containing
+in place; the count cannot be changed by an update; `GetArrayLength` reports the count; and the containing
 struct has no fixed size. `char name[]` and `wchar name[]` remain terminated strings. The `data-sized-arrays` fixture
 checks both forms.
 
@@ -132,7 +132,7 @@ shorter text to fill that capacity. Invalid UTF-16 input (such as an unpaired su
 Read and write string-byte limits apply to the full declared capacity, alongside ordinary array
 and total-byte limits. Reads preserve padding as NUL characters; they do not trim it.
 
-`GetDynamicArrayLength` reports the byte capacity. An indexed read such as `root.name[1]` returns
+`GetArrayLength` reports the byte capacity. An indexed read such as `root.name[1]` returns
 the raw byte at that position; individual indexed updates can make the full string invalid.
 A scalar `utf8` is likewise a one-byte code unit, returned as `Byte`. It has no endian suffix.
 `utf8[]` and multidimensional `utf8` declarations are unsupported: use `utf8_string_zero` for
@@ -207,7 +207,7 @@ malformed UTF-8, odd-byte UTF-16, and unpaired surrogates. There is no replaceme
 detection mode.
 
 `MaxStringBytes` includes the complete encoded terminator. A limit of 2 rejects `41 42 00` with
-`ReadLimitExceeded`. `GetDynamicArrayLength` returns the decoded character/code-unit count without the terminator.
+`ReadLimitExceeded`. `GetArrayLength` returns the decoded character/code-unit count without the terminator.
 
 A selected update may replace a terminated value only inside the existing storage plan; it does not relocate later
 fields. A value containing its own terminator is invalid.

@@ -81,7 +81,7 @@ public class ReadBenchmarks
     public StructValue ParsePrimitiveArray1KiB()
     {
         this.array1KiBStream.Position = 0;
-        return this.array1KiBLayout.ParseStream(this.array1KiBStream, "root");
+        return this.array1KiBLayout.Parse(this.array1KiBStream, "root");
     }
 
     [Benchmark]
@@ -89,7 +89,7 @@ public class ReadBenchmarks
     public StructValue ParsePrimitiveArray1MiB()
     {
         this.array1MiBStream.Position = 0;
-        return this.array1MiBLayout.ParseStream(
+        return this.array1MiBLayout.Parse(
             this.array1MiBStream,
             "root",
             new Dictionary<string, int>(),
@@ -100,21 +100,21 @@ public class ReadBenchmarks
     public StructValue ParseNestedUnaligned()
     {
         this.nestedUnalignedStream.Position = 0;
-        return this.nestedUnalignedLayout.ParseStream(this.nestedUnalignedStream, "root");
+        return this.nestedUnalignedLayout.Parse(this.nestedUnalignedStream, "root");
     }
 
     [Benchmark]
     public StructValue ParseNestedAligned()
     {
         this.nestedAlignedStream.Position = 0;
-        return this.nestedAlignedLayout.ParseStream(this.nestedAlignedStream, "root");
+        return this.nestedAlignedLayout.Parse(this.nestedAlignedStream, "root");
     }
 
     [Benchmark]
     public StructValue ParseBoundedPointerGraph()
     {
         this.pointerGraphStream.Position = 0;
-        return this.pointerGraphLayout.ParseStream(
+        return this.pointerGraphLayout.Parse(
             this.pointerGraphStream,
             "root",
             new Dictionary<string, int>(),
@@ -122,10 +122,10 @@ public class ReadBenchmarks
     }
 
     [Benchmark]
-    public (List<DebugData> DebugData, dynamic Result) ParseWithDebug()
+    public ParseResult ParseWithDebug()
     {
         this.array1KiBStream.Position = 0;
-        return this.array1KiBLayout.ParseStreamWithDebug(this.array1KiBStream, "root");
+        return this.array1KiBLayout.ParseWithDebug(this.array1KiBStream, "root");
     }
 
     [Benchmark]
@@ -133,7 +133,7 @@ public class ReadBenchmarks
     public StructValue ParseSmallRoot()
     {
         this.typedStream.Position = 0;
-        return this.typedLayout.ParseStream(this.typedStream, "root");
+        return this.typedLayout.Parse(this.typedStream, "root");
     }
 
     [Benchmark]
@@ -141,7 +141,7 @@ public class ReadBenchmarks
     public StructValue ParseSmallRootNewMemoryStream()
     {
         using var stream = new MemoryStream(this.typedBytes, writable: false);
-        return this.typedLayout.ParseStream(stream, "root");
+        return this.typedLayout.Parse(stream, "root");
     }
 
     [Benchmark]

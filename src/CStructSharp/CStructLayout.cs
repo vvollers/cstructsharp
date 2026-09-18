@@ -77,7 +77,7 @@ public partial class CStruct
             if (writableField.PointerDepth > 0)
             {
                 throw new CStructPathException(
-                    "WriteStream cannot dereference pointer targets; use UpdateStream with an existing stream.");
+                    "Write cannot dereference pointer targets; use Update with an existing stream.");
             }
 
             current = RequirePathStruct(

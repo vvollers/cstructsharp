@@ -13,13 +13,13 @@ public partial class CStructExports
     public static string BenchmarkParse(byte[] bytes)
     {
         using var stream = new MemoryStream(bytes, writable: false);
-        return SerializeParsedValue(benchmarkLayout!.ParseStream(stream, "root"));
+        return SerializeParsedValue(benchmarkLayout!.Parse(stream, "root"));
     }
     [JSExport]
     public static int BenchmarkParseCore(byte[] bytes)
     {
         using var stream = new MemoryStream(bytes, writable: false);
-        object result = benchmarkLayout!.ParseStream(stream, "root");
+        object result = benchmarkLayout!.Parse(stream, "root");
         System.GC.KeepAlive(result);
         return checked((int)stream.Position);
     }
