@@ -6,6 +6,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- Five inline byte-grid diagrams in the docs: packed versus aligned placement (layout page), union overlap, bitfield
+  allocation (`LowBitFirst`/`HighBitFirst`) and packing (`SysV`/`Msvc` units), and pointer `Absolute` versus
+  `Relative` with an `Origin`. They are plain SVG that follows the site theme (`currentColor` and the accent
+  variables) and scales to narrow screens.
 - A [learning path](docs/guides/learning-path.md) page (nine steps, one page each, and the three examples to read
   first: `starter/Program.cs`, `starter/Next.cs`, the runtime-payload recipe, and `app.js` for JavaScript) linked
   from the README, the docs home, and the guides index; the guides TOC follows that order with the background

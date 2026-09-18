@@ -19,6 +19,25 @@ For little-endian bytes `34 12`, `small` reads the first byte as `52`, while `la
 The stored data does not say which interpretation is “active.” That meaning must come from another field or from the
 application's format rules.
 
+<svg class="byte-grid" role="img" viewBox="0 0 514 162" width="514" height="162" xmlns="http://www.w3.org/2000/svg" font-size="12">
+  <title>Both members of union choice read the same two bytes</title>
+  <text x="116" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">0</text>
+  <text x="150" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">1</text>
+  <text x="6" y="43" fill="currentColor">bytes</text>
+  <rect x="99" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="133" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <text x="116" y="43" text-anchor="middle" fill="currentColor">34</text>
+  <text x="150" y="43" text-anchor="middle" fill="currentColor">12</text>
+  <text x="6" y="81" fill="currentColor">uint8 small</text>
+  <rect x="133" y="62" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="100" y="63" width="32" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="116" y="81" text-anchor="middle" fill="currentColor">52</text>
+  <text x="6" y="119" fill="currentColor">uint16 large</text>
+  <rect x="100" y="101" width="66" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="133" y="119" text-anchor="middle" fill="currentColor">4660</text>
+  <text x="6" y="150" fill="currentColor" opacity="0.7" font-size="11">every member starts at offset 0; the union is as large as its widest member</text>
+</svg>
+
 ## Preserve what was read
 
 Parsing a union returns `UnionValue` (from `CStructSharp.Values`). It contains:

@@ -92,3 +92,11 @@ article table {
 .CAUTION {
   border-radius: 0.45rem;
 }
+
+article svg.byte-grid {
+  display: block;
+  font-family: var(--bs-font-monospace, ui-monospace, monospace);
+  max-width: 100%;
+  height: auto;
+  margin: 1rem 0;
+}

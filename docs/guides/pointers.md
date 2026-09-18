@@ -71,6 +71,66 @@ base, such as the beginning of a record.
 Zero remains null in both modes; the origin is not added to it. Effective targets must be non-negative, fit the
 stream coordinate range, and stay within the supplied memory region or readable stream.
 
+<svg class="byte-grid" role="img" viewBox="0 0 668 162" width="668" height="162" xmlns="http://www.w3.org/2000/svg" font-size="12">
+  <title>A stored address of 4 targets offset 4 in Absolute mode and offset 12 in Relative mode with Origin 8</title>
+  <text x="87" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">0</text>
+  <text x="223" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">4</text>
+  <text x="359" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">8</text>
+  <text x="495" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">12</text>
+  <text x="6" y="43" fill="currentColor">bytes</text>
+  <rect x="70" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="104" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="138" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="172" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="206" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="240" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="274" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="308" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="342" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="376" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="410" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="444" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="478" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="512" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <text x="104" y="43" text-anchor="middle" fill="currentColor">04 00</text>
+  <text x="223" y="43" text-anchor="middle" fill="currentColor">2A</text>
+  <text x="495" y="43" text-anchor="middle" fill="currentColor">2A</text>
+  <text x="6" y="81" fill="currentColor">Absolute</text>
+  <rect x="138" y="62" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="172" y="62" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="240" y="62" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="274" y="62" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="308" y="62" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="342" y="62" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="376" y="62" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="410" y="62" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="444" y="62" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="478" y="62" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="512" y="62" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="71" y="63" width="66" height="28" fill="none" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="104" y="81" text-anchor="middle" fill="currentColor">ptr</text>
+  <rect x="207" y="63" width="32" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="223" y="81" text-anchor="middle" fill="currentColor">*</text>
+  <text x="6" y="119" fill="currentColor">Relative</text>
+  <rect x="138" y="100" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="172" y="100" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="206" y="100" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="240" y="100" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="274" y="100" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="308" y="100" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="376" y="100" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="410" y="100" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="444" y="100" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="512" y="100" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="71" y="101" width="66" height="28" fill="none" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="104" y="119" text-anchor="middle" fill="currentColor">ptr</text>
+  <rect x="343" y="101" width="32" height="28" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="3 2"/>
+  <text x="359" y="119" text-anchor="middle" fill="currentColor">O</text>
+  <rect x="479" y="101" width="32" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="495" y="119" text-anchor="middle" fill="currentColor">*</text>
+  <text x="6" y="150" fill="currentColor" opacity="0.7" font-size="11">Absolute: target = address. Relative: target = Origin (O, here 8) + address. Address 0 stays null.</text>
+</svg>
+
 ## Paths and multiple levels
 
 After a pointer field:

@@ -46,6 +46,46 @@ bytes 11 55 44 33 22 77 66     bytes 11 00 00 00 55 44 33 22 77 66 00 00
 In aligned mode, `b` moves from offset 1 to 4. `c` begins at 8. After `c`, two tail-padding bytes make the complete
 size divisible by the struct alignment of 4.
 
+<svg class="byte-grid" role="img" viewBox="0 0 628 124" width="628" height="124" xmlns="http://www.w3.org/2000/svg" font-size="12">
+  <title>Member placement for struct sample in packed and aligned mode</title>
+  <text x="153" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">0</text>
+  <text x="187" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">1</text>
+  <text x="221" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">2</text>
+  <text x="255" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">3</text>
+  <text x="289" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">4</text>
+  <text x="323" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">5</text>
+  <text x="357" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">6</text>
+  <text x="391" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">7</text>
+  <text x="425" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">8</text>
+  <text x="459" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">9</text>
+  <text x="493" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">10</text>
+  <text x="527" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">11</text>
+  <text x="6" y="43" fill="currentColor">packed (size 7)</text>
+  <rect x="374" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="408" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="442" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="476" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="510" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="137" y="25" width="32" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="153" y="43" text-anchor="middle" fill="currentColor">a</text>
+  <rect x="171" y="25" width="134" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="238" y="43" text-anchor="middle" fill="currentColor">b</text>
+  <rect x="307" y="25" width="66" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="340" y="43" text-anchor="middle" fill="currentColor">c</text>
+  <text x="6" y="81" fill="currentColor">aligned (size 12)</text>
+  <rect x="137" y="63" width="32" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="153" y="81" text-anchor="middle" fill="currentColor">a</text>
+  <rect x="171" y="63" width="100" height="28" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="3 2"/>
+  <text x="221" y="81" text-anchor="middle" fill="currentColor">pad</text>
+  <rect x="273" y="63" width="134" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="340" y="81" text-anchor="middle" fill="currentColor">b</text>
+  <rect x="409" y="63" width="66" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="442" y="81" text-anchor="middle" fill="currentColor">c</text>
+  <rect x="477" y="63" width="66" height="28" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="3 2"/>
+  <text x="510" y="81" text-anchor="middle" fill="currentColor">pad</text>
+  <text x="6" y="112" fill="currentColor" opacity="0.7" font-size="11">aligned mode moves b to offset 4 and pads the size to a multiple of the struct alignment (4)</text>
+</svg>
+
 Neutral multi-byte fields follow `isLittleEndian`. `<` forces little-endian for one supported primitive and `>`
 forces big-endian:
 

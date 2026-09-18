@@ -37,6 +37,29 @@ fields  low/high─────────  next────────
 offset 0 and the same one-byte debug range. In packed little-endian placement, `next` starts at offset 1 and reads
 `34 12` as 4660.
 
+<svg class="byte-grid" role="img" viewBox="0 0 588 124" width="588" height="124" xmlns="http://www.w3.org/2000/svg" font-size="12">
+  <title>Bit allocation inside storage byte 0x8D for uint8 low:3 and uint8 high:5</title>
+  <text x="116" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">bit 7</text>
+  <text x="150" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">6</text>
+  <text x="184" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">5</text>
+  <text x="218" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">4</text>
+  <text x="252" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">3</text>
+  <text x="286" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">2</text>
+  <text x="320" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">1</text>
+  <text x="354" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">0</text>
+  <text x="6" y="43" fill="currentColor">LowBitFirst</text>
+  <rect x="100" y="25" width="168" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="184" y="43" text-anchor="middle" fill="currentColor">high = 17</text>
+  <rect x="270" y="25" width="100" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="320" y="43" text-anchor="middle" fill="currentColor">low = 5</text>
+  <text x="6" y="81" fill="currentColor">HighBitFirst</text>
+  <rect x="100" y="63" width="100" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="150" y="81" text-anchor="middle" fill="currentColor">low</text>
+  <rect x="202" y="63" width="168" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="286" y="81" text-anchor="middle" fill="currentColor">high</text>
+  <text x="6" y="112" fill="currentColor" opacity="0.7" font-size="11">the first declared field takes the low bits (the default) or the high bits of the unit</text>
+</svg>
+
 Adjacent bitfields of the *same* declared size share one storage unit while the next field fits and no ordinary
 field interrupts the run; an ordinary field begins after the storage the run used. What happens when the declared
 size changes is where C compilers disagree, and `CStructCompilationOptions.BitfieldPacking` picks the rule:
@@ -45,6 +68,29 @@ size changes is where C compilers disagree, and `CStructCompilationOptions.Bitfi
 | --- | --- | --- | --- |
 | `SysV` (default) | Bits are allocated contiguously from the struct start. With aligned placement a field joins the run while it stays inside one type-aligned cell of its own declared size (it moves to the next cell otherwise); packed placement never moves it. The storage unit is the cell that holds the bits, trimmed to the bytes the run actually uses. | `AF 00` aligned, `AF` packed | GCC and Clang on every System V target (x86-64, ARM64, RISC-V, ...), the Itanium C++ ABI |
 | `Msvc` | A new unit of the declared size starts whenever the declared size changes or the field no longer fits; whole units are kept. | `0F 00 0A 00` aligned, `0F 0A 00` packed | Microsoft Visual C++, and dissect.cstruct |
+
+<svg class="byte-grid" role="img" viewBox="0 0 615 124" width="615" height="124" xmlns="http://www.w3.org/2000/svg" font-size="12">
+  <title>Storage units for uint8 a:4 followed by uint16 b:4 under the two packing rules, aligned placement</title>
+  <text x="153" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">0</text>
+  <text x="187" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">1</text>
+  <text x="221" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">2</text>
+  <text x="255" y="18" text-anchor="middle" fill="currentColor" opacity="0.7" font-size="11">3</text>
+  <text x="6" y="43" fill="currentColor">SysV: AF 00</text>
+  <rect x="204" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="238" y="24" width="34" height="30" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <rect x="137" y="25" width="32" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="153" y="43" text-anchor="middle" fill="currentColor">a|b</text>
+  <rect x="171" y="25" width="32" height="28" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="3 2"/>
+  <text x="187" y="43" text-anchor="middle" fill="currentColor">pad</text>
+  <text x="6" y="81" fill="currentColor">Msvc: 0F 00 0A 00</text>
+  <rect x="137" y="63" width="32" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="153" y="81" text-anchor="middle" fill="currentColor">a</text>
+  <rect x="171" y="63" width="32" height="28" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="3 2"/>
+  <text x="187" y="81" text-anchor="middle" fill="currentColor">pad</text>
+  <rect x="205" y="63" width="66" height="28" fill="var(--cstruct-accent-soft, #dbeafe)" stroke="var(--cstruct-accent, #2563eb)" stroke-width="1.5"/>
+  <text x="238" y="81" text-anchor="middle" fill="currentColor">b (16)</text>
+  <text x="6" y="112" fill="currentColor" opacity="0.7" font-size="11">SysV packs b into the byte a started; Msvc opens a new unit when the declared size changes</text>
+</svg>
 
 Both rules are part of the compiled-layout cache key. A field that would need a packed SysV window wider than eight
 bytes (a 64-bit field starting mid-byte) is rejected at compile time with the remedies; aligned placement never
