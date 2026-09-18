@@ -77,9 +77,12 @@ public partial class CStruct
                                rootField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
             int? rootArrayLength = rootIsArray ? this.GetBoundedArrayCount(rootField!, state, rootStart) : null;
 
+            // The compiled symbol already knows whether the root has a static extent (null for a runtime-sized
+            // struct); asking the size query and catching its layout exception cost three exceptions on every
+            // read of the common runtime-sized root.
             int? fixedSize = rootTargetStruct is null
                                  ? rootField?.FixedStorageSize
-                                 : this.TryGetStructFixedSize(rootTargetStruct, state.Variables);
+                                 : rootTargetStruct.Symbol.FixedSize;
             int alignment = rootTargetStruct is null
                                 ? rootField?.Alignment ?? 1
                                 : rootTargetStruct.Symbol.Alignment;
@@ -673,22 +676,6 @@ public partial class CStruct
             field.TerminatedReader,
             field.TerminatedWriter,
             this.PointerSize);
-    }
-
-    /// <summary>Returns a struct's fixed extent, or null when a runtime-sized member prevents compilation of one.</summary>
-    private int? TryGetStructFixedSize(CompiledCompositeType strct, IReadOnlyDictionary<string, Expr> variables)
-    {
-        try
-        {
-            return this.compiledSizeQueries.GetCompiledStructSizeInBytes(
-                strct,
-                variables,
-                true);
-        }
-        catch (CStructLayoutException)
-        {
-            return null;
-        }
     }
 
     /// <summary>Reads one encoded pointer address and applies the selected absolute/relative addressing mode.</summary>

@@ -44,6 +44,12 @@ node tools/quality/non-web-release-budgets.mjs --benchmark-summary-path artifact
 
 `convert-benchmark-baseline.mjs` is the only converter.
 
+The "Typical costs" table in `docs/guides/performance.md` is rendered from a converted summary (plus the JS
+harness's `node-latest.json` and the web artifact measurement) by
+`node tools/quality/render-performance-table.mjs --summary <summary.json> --js <node-latest.json> --web artifacts/performance/web.json`;
+`--check` reports whether the page still matches the inputs. Re-render it when a release re-baselines the
+performance contracts.
+
 ## Memory analysis workloads
 
 `MemoryAnalysisBenchmarks` measures cross-page selected reads, cached reads, ISF import, bounded traversal,

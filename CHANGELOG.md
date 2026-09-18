@@ -6,6 +6,14 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- Performance: `ReadValue`/`ReadValue<T>` of a runtime-sized root (a struct with a `count`-sized or otherwise
+  data-dependent member) no longer throws and catches three layout exceptions per call while resolving the root's
+  extent: the compiled type already knows it has none. The typed read into a POCO drops from about 8 µs to about
+  1.3 µs and allocates 45 % less; the untyped `ReadValue(bytes, "root")` gains the same. The performance guide
+  has a "Typical costs" section with measured medians and allocations for thirteen managed operations, the
+  JavaScript fast path against a WebAssembly call, and the runtime size, rendered by
+  `tools/quality/render-performance-table.mjs` from the benchmark summaries with machine, runtime, date, and
+  revision in the caption.
 - Five inline byte-grid diagrams in the docs: packed versus aligned placement (layout page), union overlap, bitfield
   allocation (`LowBitFirst`/`HighBitFirst`) and packing (`SysV`/`Msvc` units), and pointer `Absolute` versus
   `Relative` with an `Origin`. They are plain SVG that follows the site theme (`currentColor` and the accent
@@ -44,7 +52,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   workflow, Pages artifact, source snapshot, and the `validate-documentation.mjs` gate). Shared helpers live in
   `tools/lib/` (assertions, a logged `dotnet` runner, argument parsing, and small XML, ZIP, and NuGet readers), so
   the tools need no dependencies beyond Node. PowerShell 7 and `ripgrep` are no longer prerequisites; the workflows
-  and guides run the Node commands. The historical `benchmarks/ConditionalComparison` harness is retired (its case
+  and guides run the Node commands. The managed API baseline tool builds the generator's scratch project outside
+  the repository, so the repository's analyzers and warnings-as-errors do not apply to generated code. The historical `benchmarks/ConditionalComparison` harness is retired (its case
   definitions moved to `benchmarks/fixtures/conditional-cases.json`), and the fixture generator reads the inspector's
   format registry again.
 - The npm package owns the JavaScript it ships: the adapter sources (`main.js`, `bootstrap.js`,

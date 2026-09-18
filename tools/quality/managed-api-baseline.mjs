@@ -10,6 +10,7 @@
 import crypto from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -67,16 +68,21 @@ function generatorCommand() {
 
 const [executable, prefix] = generatorCommand();
 const run = path.join(outputRoot, `run-${crypto.randomUUID().replaceAll("-", "")}`);
-const work = path.join(run, "work");
+// The generator's scratch project must build outside the repository: under it, Directory.Build.props would
+// apply the analyzers and warnings-as-errors to the generated Program.cs and fail the build.
+const work = fs.mkdtempSync(path.join(os.tmpdir(), "cstructsharp-api-"));
 const generated = path.join(run, "generated");
-fs.mkdirSync(work, { recursive: true });
 fs.mkdirSync(generated, { recursive: true });
 const generation = spawnSync(
   executable,
   [...prefix, "--target-frameworks", ...frameworks, "--project-path", projectPath, "--assembly", manifest.assembly, "--generator-version", manifest.generator.version, "--working-directory", work, "--output-directory", generated],
   { stdio: "inherit", env: { ...process.env, DOTNET_ROLL_FORWARD: process.env.DOTNET_ROLL_FORWARD ?? "LatestMajor" } },
 );
+fs.rmSync(work, { recursive: true, force: true });
 if (generation.status !== 0) fail(`Managed API generation failed with exit code ${generation.status}.`);
+for (const tfm of frameworks) {
+  if (!fs.existsSync(path.join(generated, `CStructSharp.${tfm}.received.txt`))) fail(`Managed API generation produced no ${tfm} surface; see the generator output above.`);
+}
 
 const actual = Object.fromEntries(frameworks.map((tfm) => [tfm, normalize(fs.readFileSync(path.join(generated, `CStructSharp.${tfm}.received.txt`), "utf8"))]));
 
