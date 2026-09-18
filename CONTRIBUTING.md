@@ -84,15 +84,15 @@ while a round-trip test may require the exact original bytes. The
 
 The public .NET API is compared with the files in `contracts/api/managed-rc1/`. Run:
 
-```powershell
-.\tools\quality\Compare-ManagedApiBaseline.ps1
+```sh
+node tools/quality/managed-api-baseline.mjs compare
 ```
 
 If the comparison fails, check whether a public type, member, parameter, return type, or exception has changed. Do
 not replace the baseline simply to make the check green. For an intentional public change:
 
 1. Decide whether the package version or release plan must change.
-2. Update the baseline revision and its reason and hash history.
+2. Refresh the baseline with `node tools/quality/managed-api-baseline.mjs update --kind additive|breaking|correction --rationale "..." --impact "..."`, which rewrites the canonical surface, its hashes, and the review history.
 3. Add or update behavior tests and package-consumer tests.
 4. Put migration notes in `CHANGELOG.md` and update guides and API documentation to describe the current behavior.
 

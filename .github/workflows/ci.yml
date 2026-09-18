@@ -34,12 +34,16 @@ jobs:
       - name: Restore .NET tools
         run: dotnet tool restore
 
+      - name: Set up Node.js for repository tooling
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.5.0
+
       - name: Verify managed API baseline
-        shell: pwsh
         env:
           # PublicApiGenerator.Tool targets net6.0; the runner only has 8.x/9.x/10.x shared runtimes installed.
           DOTNET_ROLL_FORWARD: LatestMajor
-        run: ./tools/quality/Compare-ManagedApiBaseline.ps1
+        run: node tools/quality/managed-api-baseline.mjs compare
 
       - name: Restore dependencies
         run: dotnet restore ./CStructSharp.NonWeb.sln
@@ -91,10 +95,6 @@ jobs:
           name: readme-badges
           path: artifacts/readme-badges
 
-      - name: Set up Node for documentation recipe export
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 26.5.0
       - name: Verify quality contracts
         shell: pwsh
         run: |

@@ -40,7 +40,7 @@ related to your change:
 .\tools\documentation\Validate-CanonicalReference.ps1
 .\tools\quality\Validate-CompilerFixture.ps1
 .\tools\quality\Validate-FuzzCorpus.ps1
-.\tools\quality\Compare-ManagedApiBaseline.ps1
+node tools/quality/managed-api-baseline.mjs compare
 ```
 
 These commands check, respectively, language operations, the Portable data tables, compiler
