@@ -37,20 +37,19 @@ Open the address printed by Vite. Changes to Vue update during development; chan
 ## Managed bridge trimming
 
 `src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj` builds with `PublishTrimmed` and `TrimMode=full`, declares the
-`CStructSharp` and bridge assemblies trimmable for this publish (`TrimmableAssembly` items, so the NuGet library's
-own metadata is unchanged), roots nothing, and suppresses trim-analysis warnings. The browser value-conversion rules make these settings possible:
+bridge assembly trimmable for this publish (the library itself ships as `IsTrimmable`/`IsAotCompatible`), roots
+nothing, and publishes with trim analysis on: the library carries `[DynamicallyAccessedMembers]` annotations on
+its typed-read and POCO-binding paths, so the linker has nothing to warn about. The browser value-conversion rules
+make these settings possible:
 
 - No C# runtime-binder call site executes in the browser build. Parsed values are `StructValue` objects, and the
-  bridge and the benchmark exports handle every `dynamic`-typed library result as `object` (an explicit cast at
-  each parse call site keeps it that way). `Microsoft.CSharp` is not part of the publication, and
-  `System.Linq.Expressions` is trimmed to the `DynamicObject` surface the value types derive from. This avoids
-  loading and initializing the runtime binder for a parse.
-- The library's reflection paths (`CStruct.TryGetMemberValue`'s POCO-property fallback and `TypedValueConverter`'s
-  object conversion) are statically reachable from `Serialize`/`Update` but never executed from JavaScript:
-  `ParseJsonValue` in `CStructJsonConversion.cs` always produces dictionary/list shapes. The trimmer keeps the
-  reflection calls themselves; it can only remove members nothing references, and no browser-reachable code
-  depends on members that are reached only through reflection. One consequence stands: the `bindingMode` interop
-  option (`WriteOptions.BindingMode`) has no observable effect through the JS API.
+  bridge and the benchmark exports handle every library result as `object`. `Microsoft.CSharp` is not part of the
+  publication, and `System.Linq.Expressions` is trimmed to the `IDynamicMetaObjectProvider` surface the value
+  types implement. This avoids loading and initializing the runtime binder for a parse.
+- The library's reflection paths (`PocoDataBinding`'s POCO-member fallback and `TypedValueConverter`'s object
+  conversion) are statically reachable from `Serialize`/`Update` but never executed from JavaScript:
+  `ParseJsonValue` in `CStructJsonConversion.cs` always produces dictionary/list shapes. One consequence stands:
+  the `bindingMode` interop option (`WriteOptions.BindingMode`) has no observable effect through the JS API.
 - The project switches the library's `CStructSharp.CompiledAccessors` feature off (a
   `RuntimeHostConfigurationOption` with `Trim="true"`). The compiled POCO accessors (`PocoCompiledAccessors`)
   are behind that switch, so the trimmer removes them - and `System.Linq.Expressions` with them - from the

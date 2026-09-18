@@ -6,6 +6,16 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- Trimming and Native AOT: the package declares `IsTrimmable` (both targets) and `IsAotCompatible` (.NET 10),
+  and publishes with zero trim/AOT warnings. `StructValue` and `UnionValue` implement `IDynamicMetaObjectProvider`
+  directly instead of deriving from `DynamicObject` (which requires dynamic code); `dynamic` member access works as
+  before, `GetDynamicMemberNames`/`TryGetMember` overrides are gone. Typed reads and POCO writes carry
+  `[DynamicallyAccessedMembers]` annotations; nested mapped classes and objects handed to a write are preserved
+  by the application (one attribute on the class - see the typed-values guide, "Trimming and Native AOT"). A
+  collection-interface member (`IList<T>`) needs a run-time `List<T>` and fails under Native AOT with a message
+  naming the `List<T>`/`T[]` declaration to use. `tests/CStructSharp.AotConsumer` publishes with
+  `PublishAot=true` and runs the starter, nested POCO reads, `Get<T>`, writes, and diagnostics in CI. The WASM
+  bridge no longer suppresses trim-analysis warnings.
 - `ReadOptions.TrimFixedText` (default `false`) drops the trailing NUL padding from fixed-capacity text - `char[N]`,
   `wchar[N]`, bounded `utf8 name[N]` buffers, and string tables - so `61 62 00 00` reads as `"ab"`; embedded NULs
   stay and writing still zero-pads. `WriteOptions.UnknownMembers` (`UnknownMemberPolicy.Ignore`, the default, or

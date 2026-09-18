@@ -113,6 +113,11 @@ jobs:
           ./tools/packaging/Test-OnboardingPackage.ps1 -PackageDirectory artifacts/package
           ./tools/packaging/Test-MemoryPackageConsumer.ps1 -PackageDirectory artifacts/package
 
+      - name: Publish and run the Native AOT consumer
+        run: |
+          dotnet publish tests/CStructSharp.AotConsumer/CStructSharp.AotConsumer.csproj -c Release -r linux-x64 -p:CppCompilerAndLinker=clang
+          ./tests/CStructSharp.AotConsumer/bin/Release/net10.0/linux-x64/publish/CStructSharp.AotConsumer
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

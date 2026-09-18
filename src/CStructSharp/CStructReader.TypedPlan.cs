@@ -45,7 +45,7 @@ public partial class CStruct
             return null;
         }
 
-        TypedReadPlan? typedPlan = composite.GetOrAddTypedReadPlan(targetType, static (target, staticPlan) => TypedReadPlan.TryBuild(staticPlan, target));
+        TypedReadPlan? typedPlan = composite.GetOrAddTypedReadPlan(targetType);
         if (typedPlan is null || !state.Stream.TryReadSpanWithinBudget(plan.Size, out ReadOnlySpan<byte> bytes))
         {
             return null;
@@ -134,7 +134,7 @@ public partial class CStruct
                         }
                         else
                         {
-                            Array array = Array.CreateInstance(member.ElementType!, operation.Count);
+                            Array array = TypedValueConverter.CreateArray(member.ArrayType!, member.ElementType!, operation.Count);
                             for (int element = 0; element < operation.Count; element++)
                             {
                                 path.Push(member.SourceName, element);

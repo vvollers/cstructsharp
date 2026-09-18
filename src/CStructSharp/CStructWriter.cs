@@ -487,7 +487,7 @@ public partial class CStruct
 
                 break;
             default:
-                foreach (string member in PocoDataBinding.EnumerateMemberNames(data.GetType(), bindingMode))
+                foreach (string member in PocoDataBinding.EnumerateMemberNames(TypedValueConverter.DeclaredMappedType(data.GetType()), bindingMode))
                 {
                     if (!shape.TryGetIndex(member, out _) &&
                         !shape.Names.Any(name => string.Equals(name, member, StringComparison.OrdinalIgnoreCase)))

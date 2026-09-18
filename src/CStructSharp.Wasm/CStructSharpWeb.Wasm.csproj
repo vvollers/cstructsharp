@@ -17,13 +17,6 @@
     <!-- The browser bridge uses source-generated JSON metadata and explicit value projection. -->
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
-    <!--
-      Suppresses IL2026/IL2075/IL2067/IL2072/IL2111 warnings from CStruct.TryGetMemberValue's and
-      TypedValueConverter's unannotated reflection (the POCO fallback used by Serialize/UpdateStream when a value
-      is not dictionary-shaped). Statically reachable, never executed from the browser: CStructJsonConversion
-      always produces dictionary/list shapes. See docs/project/web-development.md ("Managed bridge trimming").
-    -->
-    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
     
     <!-- Nothing is loaded dynamically; the full trim needs the static closure only. -->
     <EnableDynamicLoading>false</EnableDynamicLoading>
@@ -43,10 +36,9 @@
       handles them as object), so Microsoft.CSharp is no longer rooted and the trimmer drops it (E3.10).
     -->
     <!--
-      Member-trim the library and the bridge for this publish only (the library's NuGet metadata does not claim
-      IsTrimmable). Measured (E3.10): the publication shrank from 5.35 MB / 2.05 MB gzip to 4.36 MB / 1.66 MB gzip.
+      The library declares itself trimmable (IsTrimmable in its own project); the bridge is member-trimmed for
+      this publish only. Measured (E3.10): the publication shrank from 5.35 MB / 2.05 MB gzip to 4.36 MB / 1.66 MB gzip.
     -->
-    <TrimmableAssembly Include="CStructSharp" />
     <TrimmableAssembly Include="CStructSharpWeb.Wasm" />
     <!--
       The bridge never binds POCOs through compiled accessors (its values are dictionary/list shaped). Switching the

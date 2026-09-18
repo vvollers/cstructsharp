@@ -10,6 +10,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using CStructSharp.Diagnostics;
 
 /// <summary>Maps natural reader results to caller-selected CLR types with cached POCO metadata.</summary>
@@ -71,7 +72,13 @@ internal static class TypedValueConverter
     /// <summary>The cached member map of a POCO type; throws the read-domain failure the general path throws for an unmappable type.</summary>
     public static ObjectMap GetObjectMap([DynamicallyAccessedMembers(MappedMembers)] Type targetType)
     {
-        return ObjectMaps.GetOrAdd(targetType, CreateObjectMap);
+        if (ObjectMaps.TryGetValue(targetType, out ObjectMap? map))
+        {
+            return map;
+        }
+
+        map = CreateObjectMap(targetType);
+        return ObjectMaps.TryAdd(targetType, map) ? map : ObjectMaps[targetType];
     }
 
     /// <summary>The list shapes <see cref="ConvertCore"/> materializes as <see cref="List{T}"/>, with their element type.</summary>
@@ -142,12 +149,12 @@ internal static class TypedValueConverter
         {
             Type elementType = effectiveTarget.GetElementType() ??
                                throw new InvalidOperationException("Array target has no element type.");
-            return ConvertArray(value, elementType, path);
+            return ConvertArray(value, effectiveTarget, DeclaredMappedType(elementType), path);
         }
 
         if (TryGetListElementType(effectiveTarget, out Type? listElementType))
         {
-            return ConvertList(value, effectiveTarget, listElementType, path);
+            return ConvertList(value, effectiveTarget, DeclaredMappedType(listElementType), path);
         }
 
         if (TryGetStringObjectDictionary(value, out IReadOnlyDictionary<string, object?>? source))
@@ -276,10 +283,10 @@ internal static class TypedValueConverter
     }
 
     /// <summary>Maps one enumerable source to an array of the requested element type.</summary>
-    private static Array ConvertArray(object value, Type elementType, string path)
+    private static Array ConvertArray(object value, Type arrayType, [DynamicallyAccessedMembers(MappedMembers)] Type elementType, string path)
     {
         IReadOnlyList<object?> items = MaterializeItems(value, path);
-        Array result = Array.CreateInstance(elementType, items.Count);
+        Array result = CreateArray(arrayType, elementType, items.Count);
         for (int index = 0; index < items.Count; index++)
         {
             result.SetValue(
@@ -291,12 +298,10 @@ internal static class TypedValueConverter
     }
 
     /// <summary>Maps one enumerable source to a common generic list abstraction.</summary>
-    private static object ConvertList(object value, Type targetType, Type elementType, string path)
+    private static object ConvertList(object value, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type targetType, [DynamicallyAccessedMembers(MappedMembers)] Type elementType, string path)
     {
         IReadOnlyList<object?> items = MaterializeItems(value, path);
-        Type concreteType = typeof(List<>).MakeGenericType(elementType);
-        var result = (IList)(Activator.CreateInstance(concreteType) ??
-                             throw new InvalidOperationException("Could not create typed list."));
+        var result = (IList)CreateList(targetType, elementType, path);
         for (int index = 0; index < items.Count; index++)
         {
             result.Add(
@@ -329,7 +334,7 @@ internal static class TypedValueConverter
         [DynamicallyAccessedMembers(MappedMembers)] Type targetType,
         string path)
     {
-        ObjectMap map = ObjectMaps.GetOrAdd(targetType, CreateObjectMap);
+        ObjectMap map = GetObjectMap(targetType);
         object target = map.Create();
         foreach (MappedMember member in map.Members)
         {
@@ -520,7 +525,7 @@ internal static class TypedValueConverter
         {
             if (property.SetMethod is { IsPublic: true, } && property.GetIndexParameters().Length == 0)
             {
-                members.Add(new MappedMember(property.Name, property.PropertyType, BuildPropertySetter(property)));
+                members.Add(new MappedMember(property.Name, DeclaredMappedType(property.PropertyType), BuildPropertySetter(property)));
             }
         }
 
@@ -528,7 +533,7 @@ internal static class TypedValueConverter
         {
             if (!field.IsInitOnly && !field.IsStatic)
             {
-                members.Add(new MappedMember(field.Name, field.FieldType, BuildFieldSetter(field)));
+                members.Add(new MappedMember(field.Name, DeclaredMappedType(field.FieldType), BuildFieldSetter(field)));
             }
         }
 
@@ -551,6 +556,55 @@ internal static class TypedValueConverter
         // own exception instead of a TargetInvocationException wrapper.
         Func<object> create = Expression.Lambda<Func<object>>(Expression.New(constructor)).Compile();
         return new ObjectMap(create, members.ToArray());
+    }
+
+    /// <summary>
+    ///     Creates the array a member declares. The declared array type is part of the compiled program, so on
+    ///     .NET 9+ it is created from that type without dynamic code; .NET 8 has only the element-type overload.
+    /// </summary>
+    internal static Array CreateArray(Type arrayType, Type elementType, int length)
+    {
+#if NET9_0_OR_GREATER
+        return Array.CreateInstanceFromArrayType(arrayType, length);
+#else
+        return Array.CreateInstance(elementType, length);
+#endif
+    }
+
+    /// <summary>
+    ///     Creates the list a member declares: a concrete <see cref="List{T}"/> through its own constructor, or, for a
+    ///     collection interface, a <see cref="List{T}"/> instantiated at run time - which needs dynamic code, so a
+    ///     Native AOT application declares the member as <c>List&lt;T&gt;</c> or <c>T[]</c> instead.
+    /// </summary>
+    internal static object CreateList([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type targetType, Type elementType, string path)
+    {
+        if (!targetType.IsInterface)
+        {
+            return Activator.CreateInstance(targetType) ?? throw new InvalidOperationException("Could not create typed list.");
+        }
+
+        if (RuntimeFeature.IsDynamicCodeSupported)
+        {
+            return CreateListOf(elementType);
+        }
+
+        throw new CStructReadException(
+            $"Cannot map '{path}' to '{targetType.FullName}' without dynamic code: declare the member as List<{elementType.Name}> or {elementType.Name}[] when publishing with Native AOT.");
+    }
+
+    /// <summary>The run-time <see cref="List{T}"/> instantiation behind a collection-interface member; JIT only.</summary>
+    [RequiresDynamicCode("Instantiates List<T> for an element type known only at run time.")]
+    internal static object CreateListOf(Type elementType)
+    {
+        return Activator.CreateInstance(ListTypeOf(elementType)) ?? throw new InvalidOperationException("Could not create typed list.");
+    }
+
+    /// <summary>The <see cref="List{T}"/> type for a run-time element type; JIT only.</summary>
+    [RequiresDynamicCode("Instantiates List<T> for an element type known only at run time.")]
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+    internal static Type ListTypeOf(Type elementType)
+    {
+        return typeof(List<>).MakeGenericType(elementType);
     }
 
     /// <summary>Creates a consistent conversion failure with source and target type information.</summary>
@@ -579,8 +633,23 @@ internal static class TypedValueConverter
         return exception;
     }
 
+    /// <summary>
+    ///     The trimming boundary of POCO mapping. The root type of a typed read is annotated, so the trimmer keeps
+    ///     its public members and constructor; the types of those members (a nested class, an array or list element)
+    ///     and the runtime type of an object handed to a write are reached only through reflection metadata, which
+    ///     the trimmer cannot follow. The documented contract (typed-values guide, "Trimming and Native AOT") is that
+    ///     an application preserves those classes itself - <c>[DynamicallyAccessedMembers]</c> on the class, or a
+    ///     trimmer root descriptor - so this is the one place the analysis is told to trust the declared type.
+    /// </summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2068:Return value does not satisfy DynamicallyAccessedMembersAttribute", Justification = "Nested mapped types are preserved by the application per the documented contract; the root type is annotated.")]
+    [return: DynamicallyAccessedMembers(MappedMembers)]
+    internal static Type DeclaredMappedType(Type declared)
+    {
+        return declared;
+    }
+
     /// <summary>Stores one target member's type and cached setter.</summary>
-    internal sealed record MappedMember(string Name, Type ValueType, Action<object, object?> Set);
+    internal sealed record MappedMember(string Name, [property: DynamicallyAccessedMembers(MappedMembers)][param: DynamicallyAccessedMembers(MappedMembers)] Type ValueType, Action<object, object?> Set);
 
     /// <summary>Stores cached construction and member metadata for one POCO type, in reflection order (properties, then fields).</summary>
     internal sealed record ObjectMap(Func<object> Create, IReadOnlyList<MappedMember> Members);

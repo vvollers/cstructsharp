@@ -3,6 +3,7 @@ namespace CStructSharp.Tests;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
+using System.Linq.Expressions;
 using CStructSharp.Values;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -70,7 +71,7 @@ public class StructValueTests
         parsed["late"] = 1;
         parsed["kind"] = (ushort)5;
         CollectionAssert.AreEqual(new[] { "nested", "tail", "late", "kind" }, parsed.Keys.ToArray());
-        CollectionAssert.AreEqual(new[] { "nested", "tail", "late", "kind" }, ((StructValue)parsed).GetDynamicMemberNames().ToArray());
+        CollectionAssert.AreEqual(new[] { "nested", "tail", "late", "kind" }, ((IDynamicMetaObjectProvider)parsed).GetMetaObject(Expression.Parameter(typeof(object))).GetDynamicMemberNames().ToArray());
 
         var empty = new StructValue();
         empty.Add("z", 1);

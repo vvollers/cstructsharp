@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Publishes a Native AOT executable against the library source and runs it: the starter parse, typed reads into
+    a POCO with a nested class and arrays, Get<T>, a POCO write, and the documented List<T>-over-IList<T> rule.
+    `dotnet publish -c Release -r linux-x64` (or the host RID) must complete with zero IL warnings.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PublishAot>true</PublishAot>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- The GNU toolchain is enough for this program; CI runners have clang, developer machines may only have gcc. -->
+    <CppCompilerAndLinker Condition="'$(CppCompilerAndLinker)' == ''">gcc</CppCompilerAndLinker>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/CStructSharp/CStructSharp.csproj" />
+  </ItemGroup>
+
+</Project>

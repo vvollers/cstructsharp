@@ -3,6 +3,7 @@ namespace CStructSharp.Compilation;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using CStructSharp.Reading;
 using CStructSharp.Syntax;
@@ -208,11 +209,18 @@ internal sealed class CompiledCompositeType : CompiledType
     ///     Typed read plans (E2.7) bound to this composite's static plan, one per target type, created on the first
     ///     typed read so a layout never read into a POCO does not pay for the table.
     /// </summary>
-    public TypedReadPlan? GetOrAddTypedReadPlan(Type targetType, Func<Type, StaticReadPlan, TypedReadPlan?> build)
+    public TypedReadPlan? GetOrAddTypedReadPlan([DynamicallyAccessedMembers(TypedValueConverter.MappedMembers)] Type targetType)
     {
         System.Collections.Concurrent.ConcurrentDictionary<Type, TypedReadPlan?> plans = this.typedReadPlans ??
             System.Threading.Interlocked.CompareExchange(ref this.typedReadPlans, new System.Collections.Concurrent.ConcurrentDictionary<Type, TypedReadPlan?>(), null) ??
             this.typedReadPlans;
-        return plans.GetOrAdd(targetType, key => build(key, this.StaticPlan!));
+        if (plans.TryGetValue(targetType, out TypedReadPlan? plan))
+        {
+            return plan;
+        }
+
+        // Built with the annotated type in hand (a delegate would lose the annotation); a benign race builds twice.
+        plan = TypedReadPlan.TryBuild(this.StaticPlan!, targetType);
+        return plans.TryAdd(targetType, plan) ? plan : plans[targetType];
     }
 }

@@ -2,6 +2,7 @@ namespace CStructSharp.Reading;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
@@ -20,7 +21,11 @@ internal sealed class TypedMember
 
     public Type? ElementType { get; init; }
 
+    /// <summary>The declared array type to build when the member is an array of nested structs; null for a list.</summary>
+    public Type? ArrayType { get; init; }
+
     /// <summary>The concrete <see cref="List{T}"/> type to build when the member is a list shape; null for an array.</summary>
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
     public Type? ElementList { get; init; }
 
     public Func<string, CStructReadException>? Failure { get; init; }

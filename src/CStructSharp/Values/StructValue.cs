@@ -21,7 +21,7 @@ using CStructSharp.Diagnostics;
 ///     <see cref="EnumValueResult"/>). Instances are mutable, so a parsed
 ///     value can be edited and handed back to <c>Serialize</c>/<c>Update</c>.
 /// </summary>
-public sealed class StructValue : DynamicObject, IDictionary<string, object?>, IReadOnlyDictionary<string, object?>
+public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string, object?>, IReadOnlyDictionary<string, object?>
 {
     private static readonly object Unset = new();
 
@@ -248,58 +248,15 @@ public sealed class StructValue : DynamicObject, IDictionary<string, object?>, I
     }
 
     /// <summary>
-    ///     Binds <see langword="dynamic"/> member access to a slot index resolved once per call site and shape, the
-    ///     way <c>ExpandoObject</c> binds to its class version - a member read is then a type/shape check plus an
-    ///     array index instead of a virtual <see cref="TryGetMember"/> call through a binder object.
+    ///     Binds <see langword="dynamic"/> member access (<c>parsed.length</c>) directly to this value's shape, so a
+    ///     call site compiled once serves every struct of the same shape. Names outside the shape fall back to the
+    ///     runtime lookup; anything else (methods, conversions, indexers) binds to the ordinary members of this class.
     /// </summary>
     /// <param name="parameter">The expression representing this value at the call site.</param>
     /// <returns>The meta-object that binds member reads and writes to this value's shape.</returns>
-    public override DynamicMetaObject GetMetaObject(Expression parameter)
+    DynamicMetaObject IDynamicMetaObjectProvider.GetMetaObject(Expression parameter)
     {
-        return new MetaStructValue(parameter, this, base.GetMetaObject(parameter));
-    }
-
-    /// <summary>Reads a member for <see langword="dynamic"/> access; an absent member reports false so the binder throws.</summary>
-    /// <param name="binder">The binder carrying the member name.</param>
-    /// <param name="result">The member value when present; otherwise <see langword="null"/>.</param>
-    /// <returns><see langword="true"/> when the member is present.</returns>
-    public override bool TryGetMember(GetMemberBinder binder, out object? result)
-    {
-        ArgumentNullException.ThrowIfNull(binder);
-        if (this.TryGetValue(binder.Name, out result))
-        {
-            return true;
-        }
-
-        result = null;
-        return false;
-    }
-
-    /// <summary>Sets or adds a member through <see langword="dynamic"/> assignment.</summary>
-    /// <param name="binder">The binder carrying the member name.</param>
-    /// <param name="value">The value to store.</param>
-    /// <returns>Always <see langword="true"/>; any member name is accepted.</returns>
-    public override bool TrySetMember(SetMemberBinder binder, object? value)
-    {
-        ArgumentNullException.ThrowIfNull(binder);
-        this.Set(binder.Name, value);
-        return true;
-    }
-
-    /// <summary>Removes a member through a dynamic delete; returns whether it was present.</summary>
-    /// <param name="binder">The binder carrying the member name.</param>
-    /// <returns><see langword="true"/> when the member was present and has been removed.</returns>
-    public override bool TryDeleteMember(DeleteMemberBinder binder)
-    {
-        ArgumentNullException.ThrowIfNull(binder);
-        return this.Remove(binder.Name);
-    }
-
-    /// <summary>Lists the member names present, in insertion order (used by debuggers and dynamic tooling).</summary>
-    /// <returns>The member names.</returns>
-    public override IEnumerable<string> GetDynamicMemberNames()
-    {
-        return this.EnumerateKeys();
+        return new MetaStructValue(parameter, this);
     }
 
     /// <summary>Lists the members present, for debugging.</summary>
@@ -522,14 +479,14 @@ public sealed class StructValue : DynamicObject, IDictionary<string, object?>, I
     {
         private static readonly MethodInfo TryGetSlotMethod = typeof(StructValue).GetMethod(nameof(TryGetSlot), BindingFlags.Instance | BindingFlags.NonPublic)!;
         private static readonly MethodInfo SetSlotMethod = typeof(StructValue).GetMethod(nameof(SetSlot), BindingFlags.Instance | BindingFlags.NonPublic)!;
+        private static readonly MethodInfo TryGetValueMethod = typeof(StructValue).GetMethod(nameof(TryGetValue), BindingFlags.Instance | BindingFlags.Public)!;
+        private static readonly MethodInfo SetMethod = typeof(StructValue).GetMethod(nameof(Set), BindingFlags.Instance | BindingFlags.NonPublic)!;
+        private static readonly MethodInfo RemoveMethod = typeof(StructValue).GetMethod(nameof(Remove), BindingFlags.Instance | BindingFlags.Public, [typeof(string)])!;
         private static readonly FieldInfo ShapeField = typeof(StructValue).GetField(nameof(shape), BindingFlags.Instance | BindingFlags.NonPublic)!;
 
-        private readonly DynamicMetaObject fallback;
-
-        public MetaStructValue(Expression expression, StructValue value, DynamicMetaObject fallback)
+        public MetaStructValue(Expression expression, StructValue value)
             : base(expression, BindingRestrictions.Empty, value)
         {
-            this.fallback = fallback;
         }
 
         private StructValue Target => (StructValue)this.Value!;
@@ -538,60 +495,36 @@ public sealed class StructValue : DynamicObject, IDictionary<string, object?>, I
 
         public override DynamicMetaObject BindGetMember(GetMemberBinder binder)
         {
-            if (!this.Target.shape.TryGetIndex(binder.Name, out int index))
-            {
-                return this.fallback.BindGetMember(binder);
-            }
-
             ParameterExpression value = Expression.Variable(typeof(object), "value");
             DynamicMetaObject missing = binder.FallbackGetMember(this);
+            Expression found = this.Target.shape.TryGetIndex(binder.Name, out int index)
+                ? Expression.Call(this.Self, TryGetSlotMethod, Expression.Constant(index), value)
+                : Expression.Call(this.Self, TryGetValueMethod, Expression.Constant(binder.Name), value);
             Expression body = Expression.Block(
                 [value],
-                Expression.Condition(
-                    Expression.Call(this.Self, TryGetSlotMethod, Expression.Constant(index), value),
-                    value,
-                    Expression.Convert(missing.Expression, typeof(object))));
+                Expression.Condition(found, value, Expression.Convert(missing.Expression, typeof(object))));
             return new DynamicMetaObject(body, this.ShapeRestrictions().Merge(missing.Restrictions));
         }
 
         public override DynamicMetaObject BindSetMember(SetMemberBinder binder, DynamicMetaObject value)
         {
-            if (!this.Target.shape.TryGetIndex(binder.Name, out int index))
-            {
-                return this.fallback.BindSetMember(binder, value);
-            }
-
-            Expression body = Expression.Call(
-                this.Self,
-                SetSlotMethod,
-                Expression.Constant(index),
-                Expression.Convert(value.Expression, typeof(object)));
+            Expression converted = Expression.Convert(value.Expression, typeof(object));
+            Expression body = this.Target.shape.TryGetIndex(binder.Name, out int index)
+                ? Expression.Call(this.Self, SetSlotMethod, Expression.Constant(index), converted)
+                : Expression.Block(
+                    Expression.Call(this.Self, SetMethod, Expression.Constant(binder.Name), converted),
+                    converted);
             return new DynamicMetaObject(body, this.ShapeRestrictions().Merge(value.Restrictions));
         }
 
         public override DynamicMetaObject BindDeleteMember(DeleteMemberBinder binder)
         {
-            return this.fallback.BindDeleteMember(binder);
-        }
-
-        public override DynamicMetaObject BindInvokeMember(InvokeMemberBinder binder, DynamicMetaObject[] args)
-        {
-            return this.fallback.BindInvokeMember(binder, args);
-        }
-
-        public override DynamicMetaObject BindConvert(ConvertBinder binder)
-        {
-            return this.fallback.BindConvert(binder);
-        }
-
-        public override DynamicMetaObject BindGetIndex(GetIndexBinder binder, DynamicMetaObject[] indexes)
-        {
-            return this.fallback.BindGetIndex(binder, indexes);
-        }
-
-        public override DynamicMetaObject BindSetIndex(SetIndexBinder binder, DynamicMetaObject[] indexes, DynamicMetaObject value)
-        {
-            return this.fallback.BindSetIndex(binder, indexes, value);
+            DynamicMetaObject missing = binder.FallbackDeleteMember(this);
+            Expression body = Expression.Condition(
+                Expression.Call(this.Self, RemoveMethod, Expression.Constant(binder.Name)),
+                Expression.Empty(),
+                missing.Expression);
+            return new DynamicMetaObject(body, this.ShapeRestrictions().Merge(missing.Restrictions));
         }
 
         public override IEnumerable<string> GetDynamicMemberNames()

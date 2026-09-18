@@ -3,6 +3,7 @@ namespace CStructSharp.Reading;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
@@ -53,7 +54,7 @@ internal sealed class TypedReadPlan
     ///     Whether the general converter would map a parsed struct to this type through its member map, rather
     ///     than return the <see cref="StructValue"/> itself, treat it as a collection, or fail on the type.
     /// </summary>
-    private static bool IsPocoTarget(Type type)
+    private static bool IsPocoTarget([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type)
     {
         Type effective = Nullable.GetUnderlyingType(type) ?? type;
         return effective.IsClass && !effective.IsAbstract && effective != typeof(object) && effective != typeof(string) &&
@@ -120,18 +121,31 @@ internal sealed class TypedReadPlan
                 Type? listType = null;
                 if (valueType.IsArray)
                 {
-                    elementType = valueType.GetElementType();
+                    elementType = TypedValueConverter.DeclaredMappedType(valueType.GetElementType()!);
                 }
                 else if (TypedValueConverter.TryGetListElementTypeOf(valueType, out Type? listElement))
                 {
-                    elementType = listElement;
-                    listType = typeof(List<>).MakeGenericType(listElement);
+                    elementType = TypedValueConverter.DeclaredMappedType(listElement);
+                    if (!valueType.IsInterface)
+                    {
+                        listType = valueType;
+                    }
+                    else if (RuntimeFeature.IsDynamicCodeSupported)
+                    {
+                        listType = TypedValueConverter.ListTypeOf(listElement);
+                    }
+                    else
+                    {
+                        // Without dynamic code a List<T> for a run-time element type cannot be instantiated; the
+                        // general converter reports the Native AOT guidance for this member.
+                        elementType = null;
+                    }
                 }
 
                 TypedReadPlan? nested = elementType is not null && IsPocoTarget(elementType) ? TryBuild(resolved.NestedPlan!, elementType) : null;
                 return nested is null
                            ? new TypedMember { Member = member, SourceName = sourceName, Operation = resolved, Mode = TypedMemberMode.Materialize }
-                           : new TypedMember { Member = member, SourceName = sourceName, Operation = resolved, Mode = TypedMemberMode.TypedNestedArray, Nested = nested, ElementType = elementType, ElementList = listType };
+                           : new TypedMember { Member = member, SourceName = sourceName, Operation = resolved, Mode = TypedMemberMode.TypedNestedArray, Nested = nested, ElementType = elementType, ArrayType = valueType.IsArray ? valueType : null, ElementList = listType };
             }
 
         default:

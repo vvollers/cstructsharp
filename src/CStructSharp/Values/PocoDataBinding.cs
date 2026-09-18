@@ -3,6 +3,7 @@ namespace CStructSharp.Values;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using CStructSharp.Addressing;
 using CStructSharp.Diagnostics;
@@ -82,7 +83,11 @@ internal static class PocoDataBinding
 
         // Match the dynamic API first, then let ordinary objects participate through simple public members.
         Type type = data.GetType();
-        CachedMember cached = MemberCache.GetOrAdd((type, name), static key => ResolveMember(key.Type, key.Name));
+        if (!MemberCache.TryGetValue((type, name), out CachedMember cached))
+        {
+            cached = ResolveMember(TypedValueConverter.DeclaredMappedType(type), name);
+            MemberCache.TryAdd((type, name), cached);
+        }
 
         if (cached.Property is PropertyInfo property && property.CanRead)
         {
@@ -110,7 +115,7 @@ internal static class PocoDataBinding
     }
 
     /// <summary>The names of the public members a value of <paramref name="type"/> can supply under <paramref name="bindingMode"/>.</summary>
-    public static IEnumerable<string> EnumerateMemberNames(Type type, PocoBindingMode bindingMode)
+    public static IEnumerable<string> EnumerateMemberNames([DynamicallyAccessedMembers(TypedValueConverter.MappedMembers)] Type type, PocoBindingMode bindingMode)
     {
         foreach (PropertyInfo property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
@@ -134,12 +139,12 @@ internal static class PocoDataBinding
     ///     resolved property exists but is not readable (a write-only property), not only when no property was
     ///     found at all - resolving both up front lets one cached result serve every future call correctly.
     /// </summary>
-    private static CachedMember ResolveMember(Type type, string name)
+    private static CachedMember ResolveMember([DynamicallyAccessedMembers(TypedValueConverter.MappedMembers)] Type type, string name)
     {
         PropertyInfo? property = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance) ??
-                                 type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+                                 FirstIgnoringCase(type.GetProperties(BindingFlags.Public | BindingFlags.Instance), name);
         FieldInfo? field = type.GetField(name, BindingFlags.Public | BindingFlags.Instance) ??
-                           type.GetField(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+                           FirstIgnoringCase(type.GetFields(BindingFlags.Public | BindingFlags.Instance), name);
 
         // A compiled accessor replaces reflection's per-call invoke (E2.10); it is built once per (type, name).
         // A publication that switches compiled accessors off (the trimmed browser bundle, which never binds POCOs)
@@ -159,6 +164,21 @@ internal static class PocoDataBinding
         }
 
         return new CachedMember(property, field, getter);
+    }
+
+    /// <summary>The case-insensitive fallback of member resolution, spelled without <see cref="BindingFlags.IgnoreCase"/> so the trimmer sees a plain public-member lookup.</summary>
+    private static TMember? FirstIgnoringCase<TMember>(TMember[] members, string name)
+        where TMember : MemberInfo
+    {
+        foreach (TMember member in members)
+        {
+            if (string.Equals(member.Name, name, StringComparison.OrdinalIgnoreCase))
+            {
+                return member;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>Gets one item from an array-like value and reports a clear error for an invalid index.</summary>

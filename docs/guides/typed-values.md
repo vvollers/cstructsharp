@@ -101,6 +101,33 @@ When mapping fails, inspect the exception path and then check:
 If the failure is unclear, first read the same path without `<T>`. Seeing the direct result and its runtime type
 usually reveals whether the problem is binary decoding or C# mapping.
 
+## Trimming and Native AOT
+
+The library ships as `IsTrimmable` and (for .NET 10) `IsAotCompatible`, and a published Native AOT program runs
+every operation, including typed reads and POCO writes. Mapping uses reflection, so the trimmer needs to know
+which members to keep:
+
+- The type you name in `ReadValue<T>`, `TryReadValue<T>`, `Get<T>`, or `TryGet<T>` is annotated on the method
+  itself: its public parameterless constructor, public properties, and public fields are preserved automatically.
+- Classes reached *through* that type - a nested class used as a member type, the element type of an array or
+  list member - and any object you hand to `Serialize`, `Write`, or `Update` are only known at run time. Keep
+  their members explicitly by marking the class:
+
+  ```csharp
+  [DynamicallyAccessedMembers(
+      DynamicallyAccessedMemberTypes.PublicParameterlessConstructor |
+      DynamicallyAccessedMemberTypes.PublicProperties |
+      DynamicallyAccessedMemberTypes.PublicFields)]
+  public sealed class Point { public short X { get; set; } public short Y { get; set; } }
+  ```
+
+  (or list them in a trimmer root descriptor). A member the trimmer removed shows up as a
+  `CStructReadException` saying the source member is missing.
+- Declare collection members as `List<T>` or `T[]`. An interface such as `IList<T>` needs a `List<T>` created
+  at run time, which Native AOT cannot do; the failure message says which declaration to use instead.
+
+`tests/CStructSharp.AotConsumer` publishes with `PublishAot=true` and runs these cases in CI.
+
 Next, read [Write and serialize values](writing-and-serialization.md) to use POCOs and dynamic objects as output.
 The generated [`ReadValue<T>` reference](xref:CStructSharp.CStruct.ReadValue``1(System.IO.Stream,System.String,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Int32},CStructSharp.ReadOptions))
 lists the exact overload and exceptions.

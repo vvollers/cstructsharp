@@ -25,6 +25,10 @@
     <VersionPrefix>0.5.0</VersionPrefix>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <Deterministic>true</Deterministic>
+    <!-- Trim-safe on both targets. The Native AOT claim is made for net10.0, where Array.CreateInstanceFromArrayType
+         exists and the AOT analyzer understands RuntimeFeature.IsDynamicCodeSupported guards. -->
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0'">true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>

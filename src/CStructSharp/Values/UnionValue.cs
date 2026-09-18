@@ -7,6 +7,8 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using CStructSharp.Diagnostics;
 
@@ -17,7 +19,7 @@ using CStructSharp.Diagnostics;
 ///     Instances are shallowly immutable. Parsed values snapshot the complete raw storage and expose every decoded
 ///     member view; callers must explicitly select a member before changing what a writer encodes.
 /// </remarks>
-public sealed class UnionValue : DynamicObject, IReadOnlyDictionary<string, object?>
+public sealed class UnionValue : IDynamicMetaObjectProvider, IReadOnlyDictionary<string, object?>
 {
     private readonly byte[]? rawStorage;
     private readonly IReadOnlyDictionary<string, object?> members;
@@ -264,13 +266,15 @@ public sealed class UnionValue : DynamicObject, IReadOnlyDictionary<string, obje
         return text.Append(" }").ToString();
     }
 
-    /// <summary>Attempts dynamic lookup using an exact declared member name.</summary>
-    /// <param name="binder">The dynamic member request, whose <see cref="GetMemberBinder.Name"/> is matched case-sensitively.</param>
-    /// <param name="result">Receives the decoded member view when found; otherwise, <see langword="null"/>.</param>
-    /// <returns><see langword="true"/> when the requested member has a decoded view; otherwise, <see langword="false"/>.</returns>
-    public override bool TryGetMember(GetMemberBinder binder, out object? result)
+    /// <summary>
+    ///     Binds <see langword="dynamic"/> member reads (<c>choice.wide</c>) to the decoded member views by exact
+    ///     name; everything else binds to the ordinary members of this class.
+    /// </summary>
+    /// <param name="parameter">The expression representing this value at the call site.</param>
+    /// <returns>The meta-object that binds member reads to the decoded views.</returns>
+    DynamicMetaObject IDynamicMetaObjectProvider.GetMetaObject(Expression parameter)
     {
-        return this.members.TryGetValue(binder.Name, out result);
+        return new MetaUnionValue(parameter, this);
     }
 
     /// <summary>Creates the lossless result returned by the compiled union reader.</summary>
@@ -297,6 +301,30 @@ public sealed class UnionValue : DynamicObject, IReadOnlyDictionary<string, obje
         if (string.IsNullOrWhiteSpace(memberName))
         {
             throw new ArgumentException("A union member name is required.", nameof(memberName));
+        }
+    }
+
+    private sealed class MetaUnionValue(Expression expression, UnionValue value)
+        : DynamicMetaObject(expression, BindingRestrictions.Empty, value)
+    {
+        private static readonly MethodInfo TryGetValueMethod = typeof(UnionValue).GetMethod(nameof(TryGetValue), BindingFlags.Instance | BindingFlags.Public)!;
+
+        public override DynamicMetaObject BindGetMember(GetMemberBinder binder)
+        {
+            ParameterExpression result = Expression.Variable(typeof(object), "result");
+            DynamicMetaObject missing = binder.FallbackGetMember(this);
+            Expression body = Expression.Block(
+                [result],
+                Expression.Condition(
+                    Expression.Call(Expression.Convert(this.Expression, typeof(UnionValue)), TryGetValueMethod, Expression.Constant(binder.Name), result),
+                    result,
+                    Expression.Convert(missing.Expression, typeof(object))));
+            return new DynamicMetaObject(body, BindingRestrictions.GetTypeRestriction(this.Expression, typeof(UnionValue)).Merge(missing.Restrictions));
+        }
+
+        public override IEnumerable<string> GetDynamicMemberNames()
+        {
+            return ((UnionValue)this.Value!).members.Keys;
         }
     }
 }

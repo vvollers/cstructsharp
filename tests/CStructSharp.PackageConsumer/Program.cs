@@ -29,10 +29,9 @@ using (var stream = new MemoryStream(input))
     AssertEqual((byte)0x7E, pointer.Value, "parsed pointer target");
 
     stream.Position = 0;
-    (List<DebugData> debugData, object debugResult) = cstruct.ParseWithDebug(stream, "root");
-    var debugRoot = ((IDictionary<string, object?>)debugResult)["root"] as IDictionary<string, object?> ??
-                     throw new InvalidOperationException("Debug parsing did not return the named root object.");
+    (StructValue debugRoot, IReadOnlyList<DebugData> debugData) = cstruct.ParseWithDebug(stream, "root");
     AssertEqual((byte)0xA5, debugRoot["marker"], "debug parse marker");
+    AssertEqual((byte)0xA5, debugRoot.Get<byte>("marker"), "debug parse typed member");
     foreach (string expectedPath in new[] { "root.marker", "root.value", "root.target", })
     {
         if (!debugData.Any(item => item.Path == expectedPath))
@@ -90,7 +89,7 @@ IDictionary<string, object?> memoryParsed = cstruct.Parse(input.AsSpan(), "root"
 AssertEqual((ushort)0x1234, memoryParsed["value"], "span parse");
 PackageRoot memoryTyped = cstruct.ReadValue<PackageRoot>((ReadOnlyMemory<byte>)input, "root");
 AssertEqual((byte)0x7E, memoryTyped.Target.Value, "memory typed pointer target");
-if (!cstruct.TryReadValue((ReadOnlyMemory<byte>)input, out ushort memoryScalar, "root.value"))
+if (!cstruct.TryReadValue((ReadOnlyMemory<byte>)input, "root.value", out ushort memoryScalar))
 {
     throw new InvalidOperationException("Memory typed scalar read unexpectedly failed.");
 }
@@ -191,7 +190,7 @@ const string UnionDefinition = "union choice { uint8 small; uint16 large; };";
 var unionLayout = new CStruct(UnionDefinition, pointerSize: 1);
 using (var stream = new MemoryStream([0x34, 0x12,]))
 {
-    object parsedValue = unionLayout.Parse(stream, "choice");
+    object? parsedValue = unionLayout.ReadValue(stream, "choice");
     var parsedUnion = parsedValue as UnionValue ??
                       throw new InvalidOperationException("Union parsing did not return a package UnionValue.");
     AssertBytes([0x34, 0x12,], parsedUnion.RawStorage!.Value.ToArray(), "union raw storage");
