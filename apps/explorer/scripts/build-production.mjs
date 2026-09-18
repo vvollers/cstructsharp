@@ -13,7 +13,7 @@ const npmCli = process.env.npm_execpath;
 function runScript(name) {
   const result = npmCli
     ? spawnSync(process.execPath, [npmCli, "run", name], {
-    cwd: webRoot,
+        cwd: webRoot,
         stdio: "inherit",
         shell: false,
       })

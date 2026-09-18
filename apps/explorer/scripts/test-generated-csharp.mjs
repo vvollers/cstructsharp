@@ -50,6 +50,9 @@ static void Check(string id, Action run, bool expectError, string? expectedHex)
     [...imports].join("\n") + runner + classes.join("\n"),
   );
   const project = resolve("../../src/CStructSharp/CStructSharp.csproj").replaceAll("&", "&amp;");
+  // An empty Directory.Build.props stops MSBuild's upward search, so the repository's analyzers and
+  // warnings-as-errors do not apply to the generated program (it is user-facing sample code, not library code).
+  await writeFile(resolve(directory, "Directory.Build.props"), "<Project />\n");
   await writeFile(
     resolve(directory, "Generated.csproj"),
     `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable></PropertyGroup><ItemGroup><ProjectReference Include="${project}" /></ItemGroup></Project>`,
