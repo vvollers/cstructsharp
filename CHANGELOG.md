@@ -6,6 +6,12 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- A [learning path](docs/guides/learning-path.md) page (nine steps, one page each, and the three examples to read
+  first: `starter/Program.cs`, `starter/Next.cs`, the runtime-payload recipe, and `app.js` for JavaScript) linked
+  from the README, the docs home, and the guides index; the guides TOC follows that order with the background
+  primers and the memory-image series grouped at the end; the "common mistakes" checklist moved into the errors
+  guide and "reuse layouts safely" into the performance guide (the two standalone pages are gone); the repository
+  map lists every project of the current tree.
 - Documentation correctness sweep: the README and AGENTS.md no longer call the project pre-publication (both
   packages are on their registries), the README links are absolute for nuget.org, memory images are a feature
   bullet, a "Why CStructSharp instead of …" table positions the library, and a "Versioning and support" section

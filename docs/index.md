@@ -36,6 +36,8 @@ the library API.
 - [Try a browser lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=header) with no installation.
 - [Install the JavaScript/WASM npm package](guides/browser/index.md) with `npm install cstructsharp` for Node.js or a browser application.
 
+- To learn in order, follow the [learning path](guides/learning-path.md): nine steps from what a layout is to the
+  reference material, and the three examples to read first.
 - To read your first value, follow [Install and make a first parse](guides/install-and-first-parse.md).
 - To decide between a stream, a byte array, a typed C# object, or a dynamic result, see
   [Choose an API](guides/choosing-an-api.md).

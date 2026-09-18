@@ -164,7 +164,7 @@ JavaScript API, result conversion, and common loading errors.
 
 ## Continue learning
 
-- [Learn step by step](https://vvollers.github.io/cstructsharp/docs/guides/index.html)
+- [Follow the learning path](https://vvollers.github.io/cstructsharp/docs/guides/learning-path.html)
 - [Find an executable recipe](https://vvollers.github.io/cstructsharp/docs/guides/recipes/index.html)
 - [Learn the layout language](https://vvollers.github.io/cstructsharp/docs/language/tutorial/index.html)
 - [Look up the C# API](https://vvollers.github.io/cstructsharp/docs/api/CStructSharp.html)

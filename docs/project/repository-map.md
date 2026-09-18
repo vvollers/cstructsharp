@@ -14,14 +14,17 @@ and which direction their dependencies point.
 | `tests/CStructSharpTests/` | Unit, integration, regression, property, limit, concurrency, and compatibility tests; `Reference/` holds the frozen Pidgin grammar used only by the parser differential tests | References core and fuzz support, plus Pidgin (test-only) |
 | `tests/CStructSharp.Fuzz/` | Bounded fuzz targets and replay corpus | References core |
 | `benchmarks/CStructSharp.Benchmarks/` | BenchmarkDotNet timing and allocation scenarios | References core |
-| `tests/CStructSharp.PackageConsumer/` | A small external-style app that installs a built package | Uses the packed NuGet file, not the core project |
+| `benchmarks/CStructSharp.FixtureTool/` and `benchmarks/fixtures/` | The seeded fixture corpus shared by the .NET, Node, and browser harnesses, and the tool that records its managed expectations | References core |
+| `benchmarks/js/` | Node and headless-Chromium harness for the WASM bridge | Loads its own staged bundle |
+| `tests/CStructSharp.PackageConsumer/` and `tests/CStructSharp.Memory.PackageConsumer/` | Small external-style apps that install a built package (the second uses only the memory namespace) | Use the packed NuGet file, not the core project |
+| `tests/CStructSharp.AotConsumer/` | A Native AOT publication of the starter, typed reads, writes, and diagnostics | References core, published with `PublishAot` in CI |
 | `docs/` | DocFX pages, examples, site assets, browser checks, and machine-readable reference data | Reads a prebuilt core net10 assembly |
 | `src/CStructSharp.Wasm/` | Managed WebAssembly bridge (exports, DTOs, JSON projection) | References core |
 | `packages/cstructsharp/` | Public npm package: loaders, Vite plugin, README, declarations, the JavaScript adapter sources (`src/`), and the standalone bundle pieces (`standalone/`) | Packages the prebuilt WASM bridge for Node.js and browsers |
 | `apps/explorer/` | Independent test/lesson explorer | Loads the published WASM adapter output |
 | `apps/inspector/` | Independent binary inspector UI, format examples, and browser checks | Stages the repository WASM publication |
 | `contracts/` | Reviewed compatibility, fixture, quality, and documentation inputs | Read by managed tests, validators, and DocFX |
-| `tools/` | Validation, measurement, package, and documentation scripts | Takes explicit files/projects as inputs |
+| `tools/` | Node validation, measurement, packaging, release, and documentation scripts; `lib/` holds their shared helpers | Takes explicit files/projects as inputs |
 | `.github/workflows/` | Continuous integration, scheduled mutation, docs, and release-candidate automation | Runs pinned actions and repository scripts |
 
 `CStructSharp.NonWeb.sln` contains core, tests, fuzz, and benchmarks. Use it for routine development.
