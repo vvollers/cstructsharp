@@ -6,143 +6,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
-- Performance: `ReadValue`/`ReadValue<T>` of a runtime-sized root (a struct with a `count`-sized or otherwise
-  data-dependent member) no longer throws and catches three layout exceptions per call while resolving the root's
-  extent: the compiled type already knows it has none. The typed read into a POCO drops from about 8 µs to about
-  1.3 µs and allocates 45 % less; the untyped `ReadValue(bytes, "root")` gains the same. The performance guide
-  has a "Typical costs" section with measured medians and allocations for thirteen managed operations, the
-  JavaScript fast path against a WebAssembly call, and the runtime size, rendered by
-  `tools/quality/render-performance-table.mjs` from the benchmark summaries with machine, runtime, date, and
-  revision in the caption.
-- Five inline byte-grid diagrams in the docs: packed versus aligned placement (layout page), union overlap, bitfield
-  allocation (`LowBitFirst`/`HighBitFirst`) and packing (`SysV`/`Msvc` units), and pointer `Absolute` versus
-  `Relative` with an `Origin`. They are plain SVG that follows the site theme (`currentColor` and the accent
-  variables) and scales to narrow screens.
-- A [learning path](docs/guides/learning-path.md) page (nine steps, one page each, and the three examples to read
-  first: `starter/Program.cs`, `starter/Next.cs`, the runtime-payload recipe, and `app.js` for JavaScript) linked
-  from the README, the docs home, and the guides index; the guides TOC follows that order with the background
-  primers and the memory-image series grouped at the end; the "common mistakes" checklist moved into the errors
-  guide and "reuse layouts safely" into the performance guide (the two standalone pages are gone); the repository
-  map lists every project of the current tree.
-- Documentation correctness sweep: the README and AGENTS.md no longer call the project pre-publication (both
-  packages are on their registries), the README links are absolute for nuget.org, memory images are a feature
-  bullet, a "Why CStructSharp instead of …" table positions the library, and a "Versioning and support" section
-  states the 0.x semantics, the browser contract policy, and the .NET/Node support windows; the language landing
-  page describes the directives, header vocabulary, and function-pointer support 0.5 added instead of listing
-  them as unsupported; every quick start leads with `parse`/`Parse(bytes, "header")` (the starter continuation
-  and two guides drop `AsSpan()`); the npm README states the NaN/Infinity convention and the error location
-  fields; `MUTATION_TESTING.md` is no longer packed into the NuGet package.
-- CI runs the managed test suite on Windows and macOS as well as Linux (build and `dotnet test` only; Linux stays
-  the full gate), and a weekly `dependency-check` workflow reports known vulnerabilities in the locked managed
-  and Node dependency graphs (`dotnet list package --vulnerable`, `npm audit --audit-level=high`).
-- Hygiene: `TreatWarningsAsErrors` in every project and a `dotnet format --verify-no-changes --severity warn` CI
-  step (the `.editorconfig` now mirrors the library's documentation-rule exclusions so build and format agree);
-  the dissect corpus sweep is an `OptIn` test category excluded by `tests/CStructSharpTests/default.runsettings`
-  (run it with `opt-in.runsettings`), so the default run has no skipped tests; the stale performance contracts
-  are re-baselined (`web-rc1.json` without its old package version and with the explorer's real dist size,
-  `non-web-rc1.json` with the 0.5 package sizes); work-item codes are gone from source comments and guides
-  (the contracts keep them, explained on the new "Traceability codes" project page) and project-history
-  narrative in the library comments is trimmed to the invariant.
-- **Tooling is Node only.** The 29 PowerShell scripts, the shared module, and the Python corpus extractor are
-  replaced by Node scripts under `tools/` with the same checks, messages, and exit codes (`node tools/<area>/<name>.mjs
-  --option value`; `--self-test` where a tool has fail-first fixtures): the quality validators (solution parity,
-  README badges, coverage risk, fuzz corpus, mutation report, release budgets, artifact baseline, feature matrix,
-  dissect corpus), the packaging checks (package validation, package/memory/onboarding consumers, browser
-  onboarding), and the documentation family (build, API, language, canonical reference, quality, external links,
-  workflow, Pages artifact, source snapshot, and the `validate-documentation.mjs` gate). Shared helpers live in
-  `tools/lib/` (assertions, a logged `dotnet` runner, argument parsing, and small XML, ZIP, and NuGet readers), so
-  the tools need no dependencies beyond Node. PowerShell 7 and `ripgrep` are no longer prerequisites; the workflows
-  and guides run the Node commands. The managed API baseline tool builds the generator's scratch project outside
-  the repository, so the repository's analyzers and warnings-as-errors do not apply to generated code. The historical `benchmarks/ConditionalComparison` harness is retired (its case
-  definitions moved to `benchmarks/fixtures/conditional-cases.json`), and the fixture generator reads the inspector's
-  format registry again.
-- The npm package owns the JavaScript it ships: the adapter sources (`main.js`, `bootstrap.js`,
-  `large-source.js`, `source-worker.js`, `cstructsharp-api.js`, the ZIP entry `cstructsharp-wasm.js`) and their
-  unit tests live in `packages/cstructsharp/src/`, the standalone bundle's README, starter pages, and `serve.mjs`
-  in `packages/cstructsharp/standalone/`, and a root `package.json` carries `build:wasm`, `pack:npm`, `pack:zip`,
-  `test:npm`, `test:bootstrap`, `test:parity`, `bench:js`, and the other packaging checks (the explorer keeps only
-  its own scripts). The packaging tools locate npm from PATH when not started through `npm run`, and a successful
-  pack or tarball test removes its staging directory.
-- **Breaking (repository layout):** the lesson app is the **Explorer** everywhere: `apps/workshop` is now
-  `apps/explorer` (package `cstructsharp-explorer`; the inspector package is `cstructsharp-inspector`), its
-  operation form is the "Operation panel" (`OperationPanel.vue`, "Operation settings"), and every workflow,
-  script, contract, and guide points at the new path.
-- The release workflow smokes the packaged starter page and one inspector flow in Firefox and WebKit
-  (`CSTRUCT_BROWSERS` selects the Playwright engines); PR CI stays Chromium-only.
-- npm package polish: the README lists every public function, states the 4 MiB in-memory limit of `update` and
-  the raw byte-array exports (parse and resolveAddress page larger sources through the worker), and gives the
-  package and runtime sizes with how a browser caches the runtime; both apps require Node 22.14 like the package.
-- The browser large-data guide documents parsing many records in one call (`record records[EOF]` or a fixed
-  count, which keeps the JavaScript fast path) with measured per-record costs against one call per record; the
-  layout is the batch, so no separate batch API was added.
-- **Breaking (JavaScript, contract v8):** every operation returns one camelCase envelope - `contractVersion` (8),
-  `operation`, `success`, `root`, `data`, `debug`, `error` - and a parse's `data` is the selected value itself
-  (`result.data.kind`, no `Data.header` wrapper), exactly what C# `Parse` returns; `root` names the root or path
-  the operation selected. Debug items are `{ start, end, path, type, value }`, errors are `{ code, message, path,
-  offset, member, memberType, line, column }`, and `error.message` is the library's own diagnostic verbatim; the
-  new `redactDiagnostics` option keeps only the category text. Tagged values carry a `kind`: `{ kind: "enum",
-  enum, name, value, names?, remainder? }`, `{ kind: "union", union, rawStorage, members, selectedMember }`, and
-  `{ kind: "pointer", address, depth, dereferenced, value }`. Options are one camelCase object per call: `root`
-  replaces `rootTypeName`, and `bitfieldPacking`, `bitfieldAllocation`, `cLongWidth`, `trimFixedText`, and
-  `unknownMembers` are exposed. New `resolveAddress(definition, source, path, options)`; `update` accepts any
-  binary source; a compiled layout reports its `root` and gains `serialize`, `update`, and `resolveAddress`. The
-  canonical TypeScript declarations live in `packages/cstructsharp/index.d.ts` (the ZIP and both apps re-export
-  them), `node tools/quality/browser-contract.mjs` replaces `Validate-BrowserContract.ps1`, and the benchmark
-  fixture tool writes the same tagged shapes (fixtures re-recorded; the primitive-root fixture now reads through
-  `ReadValue`). The Explorer and Inspector apps, the starters, the npm/ZIP consumer checks, and the browser guides
-  use the new envelope. The JavaScript fast path formats a float32 with a bisection over the decimal precision
-  (2.6-3.6x faster than the exact formatter introduced with the parity fix, same output).
-- Compiler comparison fixture: `tools/compiler-fixtures/portable-host-facts.c` now records twenty-two layout shapes
-  (the bitfield shapes where compiler families diverge, zero-width separators, a signed bitfield, `uint64`/`double`
-  after a byte, native `long`, a large enum, `_Bool`, `#pragma pack(2)` with an array, nested-struct alignment, union
-  size, and `#pragma pack(1)` bitfields). `node tools/quality/compiler-fixture.mjs record|validate|table` replaces
-  the two PowerShell scripts and also drives `cl`/`clang-cl`; the new `compiler-fixtures` workflow (weekly, manual)
-  records GCC and Clang on Linux (x64 and 32-bit), Clang on macOS, and MSVC and clang-cl on Windows. The checked-in
-  baseline is GCC 15.2 on Linux x64; `CompilerDifferentialFixtureTests` verifies, for every baseline, that the
-  library in the `BitfieldPacking` mode of the baseline's ABI family reproduces every shape byte for byte, and
-  `differences-from-c.md` carries a generated "Portable versus real compilers" table.
-- **Breaking (behaviour):** `CStructCompilationOptions.BitfieldPacking` chooses how adjacent bitfields of
-  different declared sizes share storage, and the default is now the GCC/Clang rule. `BitfieldPacking.SysV` (the
-  default) allocates bits contiguously from the struct start - with aligned placement a field joins the run while
-  it stays inside one type-aligned cell of its own size, packed placement never splits - so `uint8 a:4; uint16
-  b:4;` is two bytes aligned and one byte packed, exactly as `gcc` lays it out. `BitfieldPacking.Msvc` starts a
-  new unit of the declared size on every size change and keeps whole units (Visual C++ and dissect.cstruct).
-  Previously the library always kept whole units and additionally split on a *type* change, which matched neither
-  compiler (`uint16 a:4; int16 b:4;` took two units). An unnamed zero-width declarator, `uint16 : 0;`, is now
-  accepted as a storage-unit separator. The bitfields reference documents both rules; `BitfieldPackingTests`
-  checks twenty-three shapes against bytes recorded from GCC in both placements. The option is part of the
-  compiled-layout cache key; the JavaScript API keeps the default until contract v8 exposes the option.
-- **Breaking (API):** `ICustomCodec` is span-based. `OperationStatus Read(ReadOnlySpan<byte> source, out object?
-  value, out int bytesConsumed)` sees the bytes from the value's start (the whole remaining input for memory
-  sources; a window that grows on `NeedMoreData` for other streams, bounded by `MaxStringBytes`) and reports the
-  encoded length; `OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)` fills a
-  window and answers `DestinationTooSmall` for a larger one. `InvalidData`, a thrown exception, or an impossible
-  byte count become the operation's read or write error naming the codec and the field. The custom-codec recipe
-  and the dissect migration guide show the new shape.
-- Trimming and Native AOT: the package declares `IsTrimmable` (both targets) and `IsAotCompatible` (.NET 10),
-  and publishes with zero trim/AOT warnings. `StructValue` and `UnionValue` implement `IDynamicMetaObjectProvider`
-  directly instead of deriving from `DynamicObject` (which requires dynamic code); `dynamic` member access works as
-  before, `GetDynamicMemberNames`/`TryGetMember` overrides are gone. Typed reads and POCO writes carry
-  `[DynamicallyAccessedMembers]` annotations; nested mapped classes and objects handed to a write are preserved
-  by the application (one attribute on the class - see the typed-values guide, "Trimming and Native AOT"). A
-  collection-interface member (`IList<T>`) needs a run-time `List<T>` and fails under Native AOT with a message
-  naming the `List<T>`/`T[]` declaration to use. `tests/CStructSharp.AotConsumer` publishes with
-  `PublishAot=true` and runs the starter, nested POCO reads, `Get<T>`, writes, and diagnostics in CI. The WASM
-  bridge no longer suppresses trim-analysis warnings.
-- `ReadOptions.TrimFixedText` (default `false`) drops the trailing NUL padding from fixed-capacity text - `char[N]`,
-  `wchar[N]`, bounded `utf8 name[N]` buffers, and string tables - so `61 62 00 00` reads as `"ab"`; embedded NULs
-  stay and writing still zero-pads. `WriteOptions.UnknownMembers` (`UnknownMemberPolicy.Ignore`, the default, or
-  `Reject`) makes a supplied member the struct does not declare fail the write before any byte is written, naming
-  the member and the declared ones; it checks dictionaries, `StructValue`s, and .NET objects, nested structs
-  included, and applies to `UpdateOptions`. The errors guide gained a "What is not an error" table listing the
-  quiet behaviours (trailing bytes, unknown members, NUL padding, unnamed enum values, undereferenced pointers)
-  and how to opt into strictness for each.
-- `StructValue.Get<T>(path)` / `TryGet<T>(path, out value)` (and the same on `UnionValue`) read one member - or a
-  nested value through a dotted, indexed, or pointer path such as `"items[2].tag"` or `"next.value.id"` - with the
-  checked conversion `ReadValue<T>` uses, so a parsed struct can stay typed without `dynamic`:
-  `header.Get<ushort>("kind")`. A path that selects nothing throws `CStructPathException` naming the failing segment
-  and the members that exist. `UnionValue.ToString()` now prints the union name, the selected member, every decoded
-  member, and the raw storage length. The README and starters use `StructValue` with `Get<T>`.
+### Breaking changes
+
 - **Breaking (API):** one operation vocabulary for every input kind. Each operation takes the input first
   (`Stream`, `ReadOnlySpan<byte>`, `ReadOnlyMemory<byte>`, or `byte[]`), then the path, then optional `variables`
   and options, and has the same name for every input:
@@ -164,33 +29,6 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   and the name to pass to `Serialize` for a whole record. Debug and non-debug results now have the same shape
   (the declaration-name wrapper around debug results is gone). The generated C# in the Explorer and the docs use
   the new names.
-- Browser/WASM: the bridge's curated diagnostics match the library's messages by prefix again, so a truncated
-  input reports `Unexpected end of binary input ...` and an oversized array `The array length exceeds
-  MaxArrayElements ...` instead of the generic category text.
-- Diagnostics: read, write, and path failures now say what failed and where in the message itself -
-  `Not enough bytes: needed 4, available 1 (field 'length' (uint32), in 'header', offset 3).`,
-  `Value 70000 does not fit: uint16 accepts 0 to 65535 (...)`, `No value was supplied for 'length' (...)`,
-  `Unknown root 'Header'. Names are case-sensitive; did you mean 'header'?`,
-  `Array length 2147483647 exceeds MaxArrayElements (1000000) (...)`. `CStructException` exposes the innermost
-  field as `Member`/`MemberType` next to `Path` and `Offset`; the message is composed from them, so a caller that
-  only logs the message sees the same facts.
-- Diagnostics: a layout error about a declaration now names the field and its struct and reports the source
-  position - `Unknown type 'foo' for field 'z' in struct 'c'. (line 3, column 12)` - through the new
-  `CStructLayoutException.Line`/`Column` properties and the message. A multi-word type spelling that starts with a
-  known type is reported as a probable missing `;` (`a ';' may be missing after 'kind'`). Duplicate names,
-  built-in name collisions, and by-value recursion carry positions as well; parser errors keep their own text.
-- Browser/WASM: a float that is NaN or infinite no longer fails the whole parse with `invalid-input`; it arrives
-  as the string `"NaN"`, `"Infinity"`, or `"-Infinity"` (the convention already used for integers beyond
-  `Number`'s exact range), and `serialize`/`update` accept those strings for float fields.
-- Browser/WASM: the JavaScript static plan formats `float32` values with the same tie-to-even shortest round-trip
-  rule as the managed projection, so the fast path and the WASM path return identical numbers for every input. A
-  differential test in the npm package checks (benchmark fixtures plus seeded random inputs) now guards the two paths.
-- Fix: a count, offset, or conditional selector that cannot be evaluated because of the *data* now fails as that
-  operation - `CStructReadException` for reads (`CStructWriteException` for writes) - and names the value:
-  `Cannot evaluate array length for data: 'n' is 4294967295, which is outside the 32-bit range that layout
-  expressions support.` Previously a decoded `uint32` at or above 2^31, any wide `uint64`, or an overflowing
-  `a * b` surfaced as `CStructLayoutException` with "Undefined expression identifier" or a bare overflow message.
-  `CStructLayoutException` is now raised only for the layout text itself.
 - **Breaking (API):** the library source is organized into folders whose names match their namespaces, and the
   public types outside the `CStruct` facade moved with their folders. `CStruct`, `CStructCompilationOptions`,
   `ReadOptions`, `WriteOptions`, `UpdateOptions`, `BitfieldAllocation`, and `StaticHelpers` stay in `CStructSharp`;
@@ -205,6 +43,176 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
   Internal code moved into `Syntax` (formerly `Structure`), `Parsing`, `Expressions`, `Compilation`, `Codecs`,
   `Streams`, `Addressing`, `Reading`, and `Writing`; `src/CStructSharp/README.md` maps every folder to its role.
+- **Breaking (API):** `ICustomCodec` is span-based. `OperationStatus Read(ReadOnlySpan<byte> source, out object?
+  value, out int bytesConsumed)` sees the bytes from the value's start (the whole remaining input for memory
+  sources; a window that grows on `NeedMoreData` for other streams, bounded by `MaxStringBytes`) and reports the
+  encoded length; `OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)` fills a
+  window and answers `DestinationTooSmall` for a larger one. `InvalidData`, a thrown exception, or an impossible
+  byte count become the operation's read or write error naming the codec and the field. The custom-codec recipe
+  and the dissect migration guide show the new shape.
+- **Breaking (behaviour):** `CStructCompilationOptions.BitfieldPacking` chooses how adjacent bitfields of
+  different declared sizes share storage, and the default is now the GCC/Clang rule. `BitfieldPacking.SysV` (the
+  default) allocates bits contiguously from the struct start - with aligned placement a field joins the run while
+  it stays inside one type-aligned cell of its own size, packed placement never splits - so `uint8 a:4; uint16
+  b:4;` is two bytes aligned and one byte packed, exactly as `gcc` lays it out. `BitfieldPacking.Msvc` starts a
+  new unit of the declared size on every size change and keeps whole units (Visual C++ and dissect.cstruct).
+  Previously the library always kept whole units and additionally split on a *type* change, which matched neither
+  compiler (`uint16 a:4; int16 b:4;` took two units). An unnamed zero-width declarator, `uint16 : 0;`, is now
+  accepted as a storage-unit separator. The bitfields reference documents both rules; `BitfieldPackingTests`
+  checks twenty-three shapes against bytes recorded from GCC in both placements. The option is part of the
+  compiled-layout cache key and is exposed to JavaScript as `bitfieldPacking`.
+- **Breaking (JavaScript, contract v8):** every operation returns one camelCase envelope - `contractVersion` (8),
+  `operation`, `success`, `root`, `data`, `debug`, `error` - and a parse's `data` is the selected value itself
+  (`result.data.kind`, no `Data.header` wrapper), exactly what C# `Parse` returns; `root` names the root or path
+  the operation selected. Debug items are `{ start, end, path, type, value }`, errors are `{ code, message, path,
+  offset, member, memberType, line, column }`, and `error.message` is the library's own diagnostic verbatim; the
+  new `redactDiagnostics` option keeps only the category text. Tagged values carry a `kind`: `{ kind: "enum",
+  enum, name, value, names?, remainder? }`, `{ kind: "union", union, rawStorage, members, selectedMember }`, and
+  `{ kind: "pointer", address, depth, dereferenced, value }`. Options are one camelCase object per call: `root`
+  replaces `rootTypeName`, and `bitfieldPacking`, `bitfieldAllocation`, `cLongWidth`, `trimFixedText`, and
+  `unknownMembers` are exposed. New `resolveAddress(definition, source, path, options)`; `update` accepts any
+  binary source; a compiled layout reports its `root` and gains `serialize`, `update`, and `resolveAddress`. The
+  canonical TypeScript declarations live in `packages/cstructsharp/index.d.ts` (the ZIP and both apps re-export
+  them), `node tools/quality/browser-contract.mjs` replaces `Validate-BrowserContract.ps1`, and the benchmark
+  fixture tool writes the same tagged shapes (fixtures re-recorded; the primitive-root fixture now reads through
+  `ReadValue`). The Explorer and Inspector apps, the starters, the npm/ZIP consumer checks, and the browser guides
+  use the new envelope. The JavaScript fast path formats a float32 with a bisection over the decimal precision
+  (2.6-3.6x faster than the exact formatter introduced with the parity fix, same output).
+- **Breaking (repository layout):** the lesson app is the **Explorer** everywhere: `apps/workshop` is now
+  `apps/explorer` (package `cstructsharp-explorer`; the inspector package is `cstructsharp-inspector`), its
+  operation form is the "Operation panel" (`OperationPanel.vue`, "Operation settings"), and every workflow,
+  script, contract, and guide points at the new path.
+
+### Added and improved
+
+- `StructValue.Get<T>(path)` / `TryGet<T>(path, out value)` (and the same on `UnionValue`) read one member - or a
+  nested value through a dotted, indexed, or pointer path such as `"items[2].tag"` or `"next.value.id"` - with the
+  checked conversion `ReadValue<T>` uses, so a parsed struct can stay typed without `dynamic`:
+  `header.Get<ushort>("kind")`. A path that selects nothing throws `CStructPathException` naming the failing segment
+  and the members that exist. `UnionValue.ToString()` now prints the union name, the selected member, every decoded
+  member, and the raw storage length. The README and starters use `StructValue` with `Get<T>`.
+- `ReadOptions.TrimFixedText` (default `false`) drops the trailing NUL padding from fixed-capacity text - `char[N]`,
+  `wchar[N]`, bounded `utf8 name[N]` buffers, and string tables - so `61 62 00 00` reads as `"ab"`; embedded NULs
+  stay and writing still zero-pads. `WriteOptions.UnknownMembers` (`UnknownMemberPolicy.Ignore`, the default, or
+  `Reject`) makes a supplied member the struct does not declare fail the write before any byte is written, naming
+  the member and the declared ones; it checks dictionaries, `StructValue`s, and .NET objects, nested structs
+  included, and applies to `UpdateOptions`. The errors guide gained a "What is not an error" table listing the
+  quiet behaviours (trailing bytes, unknown members, NUL padding, unnamed enum values, undereferenced pointers)
+  and how to opt into strictness for each.
+- Diagnostics: read, write, and path failures now say what failed and where in the message itself -
+  `Not enough bytes: needed 4, available 1 (field 'length' (uint32), in 'header', offset 3).`,
+  `Value 70000 does not fit: uint16 accepts 0 to 65535 (...)`, `No value was supplied for 'length' (...)`,
+  `Unknown root 'Header'. Names are case-sensitive; did you mean 'header'?`,
+  `Array length 2147483647 exceeds MaxArrayElements (1000000) (...)`. `CStructException` exposes the innermost
+  field as `Member`/`MemberType` next to `Path` and `Offset`; the message is composed from them, so a caller that
+  only logs the message sees the same facts.
+- Diagnostics: a layout error about a declaration now names the field and its struct and reports the source
+  position - `Unknown type 'foo' for field 'z' in struct 'c'. (line 3, column 12)` - through the new
+  `CStructLayoutException.Line`/`Column` properties and the message. A multi-word type spelling that starts with a
+  known type is reported as a probable missing `;` (`a ';' may be missing after 'kind'`). Duplicate names,
+  built-in name collisions, and by-value recursion carry positions as well; parser errors keep their own text.
+- Trimming and Native AOT: the package declares `IsTrimmable` (both targets) and `IsAotCompatible` (.NET 10),
+  and publishes with zero trim/AOT warnings. `StructValue` and `UnionValue` implement `IDynamicMetaObjectProvider`
+  directly instead of deriving from `DynamicObject` (which requires dynamic code); `dynamic` member access works as
+  before, `GetDynamicMemberNames`/`TryGetMember` overrides are gone. Typed reads and POCO writes carry
+  `[DynamicallyAccessedMembers]` annotations; nested mapped classes and objects handed to a write are preserved
+  by the application (one attribute on the class - see the typed-values guide, "Trimming and Native AOT"). A
+  collection-interface member (`IList<T>`) needs a run-time `List<T>` and fails under Native AOT with a message
+  naming the `List<T>`/`T[]` declaration to use. `tests/CStructSharp.AotConsumer` publishes with
+  `PublishAot=true` and runs the starter, nested POCO reads, `Get<T>`, writes, and diagnostics in CI. The WASM
+  bridge no longer suppresses trim-analysis warnings.
+- Performance: `ReadValue`/`ReadValue<T>` of a runtime-sized root (a struct with a `count`-sized or otherwise
+  data-dependent member) no longer throws and catches three layout exceptions per call while resolving the root's
+  extent: the compiled type already knows it has none. The typed read into a POCO drops from about 8 µs to about
+  1.3 µs and allocates 45 % less; the untyped `ReadValue(bytes, "root")` gains the same. The performance guide
+  has a "Typical costs" section with measured medians and allocations for thirteen managed operations, the
+  JavaScript fast path against a WebAssembly call, and the runtime size, rendered by
+  `tools/quality/render-performance-table.mjs` from the benchmark summaries with machine, runtime, date, and
+  revision in the caption.
+- Compiler comparison fixture: `tools/compiler-fixtures/portable-host-facts.c` now records twenty-two layout shapes
+  (the bitfield shapes where compiler families diverge, zero-width separators, a signed bitfield, `uint64`/`double`
+  after a byte, native `long`, a large enum, `_Bool`, `#pragma pack(2)` with an array, nested-struct alignment, union
+  size, and `#pragma pack(1)` bitfields). `node tools/quality/compiler-fixture.mjs record|validate|table` replaces
+  the two PowerShell scripts and also drives `cl`/`clang-cl`; the new `compiler-fixtures` workflow (weekly, manual)
+  records GCC and Clang on Linux (x64 and 32-bit), Clang on macOS, and MSVC and clang-cl on Windows. The checked-in
+  baseline is GCC 15.2 on Linux x64; `CompilerDifferentialFixtureTests` verifies, for every baseline, that the
+  library in the `BitfieldPacking` mode of the baseline's ABI family reproduces every shape byte for byte, and
+  `differences-from-c.md` carries a generated "Portable versus real compilers" table.
+- The browser large-data guide documents parsing many records in one call (`record records[EOF]` or a fixed
+  count, which keeps the JavaScript fast path) with measured per-record costs against one call per record; the
+  layout is the batch, so no separate batch API was added.
+- npm package polish: the README lists every public function, states the 4 MiB in-memory limit of `update` and
+  the raw byte-array exports (parse and resolveAddress page larger sources through the worker), and gives the
+  package and runtime sizes with how a browser caches the runtime; both apps require Node 22.14 like the package.
+- A [learning path](docs/guides/learning-path.md) page (nine steps, one page each, and the three examples to read
+  first: `starter/Program.cs`, `starter/Next.cs`, the runtime-payload recipe, and `app.js` for JavaScript) linked
+  from the README, the docs home, and the guides index; the guides TOC follows that order with the background
+  primers and the memory-image series grouped at the end; the "common mistakes" checklist moved into the errors
+  guide and "reuse layouts safely" into the performance guide (the two standalone pages are gone); the repository
+  map lists every project of the current tree.
+- Five inline byte-grid diagrams in the docs: packed versus aligned placement (layout page), union overlap, bitfield
+  allocation (`LowBitFirst`/`HighBitFirst`) and packing (`SysV`/`Msvc` units), and pointer `Absolute` versus
+  `Relative` with an `Origin`. They are plain SVG that follows the site theme (`currentColor` and the accent
+  variables) and scales to narrow screens.
+- Documentation correctness sweep: the README and AGENTS.md no longer call the project pre-publication (both
+  packages are on their registries), the README links are absolute for nuget.org, memory images are a feature
+  bullet, a "Why CStructSharp instead of …" table positions the library, and a "Versioning and support" section
+  states the 0.x semantics, the browser contract policy, and the .NET/Node support windows; the language landing
+  page describes the directives, header vocabulary, and function-pointer support 0.5 added instead of listing
+  them as unsupported; every quick start leads with `parse`/`Parse(bytes, "header")` (the starter continuation
+  and two guides drop `AsSpan()`); the npm README states the NaN/Infinity convention and the error location
+  fields; `MUTATION_TESTING.md` is no longer packed into the NuGet package.
+
+### Fixed
+
+- Fix: a count, offset, or conditional selector that cannot be evaluated because of the *data* now fails as that
+  operation - `CStructReadException` for reads (`CStructWriteException` for writes) - and names the value:
+  `Cannot evaluate array length for data: 'n' is 4294967295, which is outside the 32-bit range that layout
+  expressions support.` Previously a decoded `uint32` at or above 2^31, any wide `uint64`, or an overflowing
+  `a * b` surfaced as `CStructLayoutException` with "Undefined expression identifier" or a bare overflow message.
+  `CStructLayoutException` is now raised only for the layout text itself.
+- Browser/WASM: a float that is NaN or infinite no longer fails the whole parse with `invalid-input`; it arrives
+  as the string `"NaN"`, `"Infinity"`, or `"-Infinity"` (the convention already used for integers beyond
+  `Number`'s exact range), and `serialize`/`update` accept those strings for float fields.
+- Browser/WASM: the JavaScript static plan formats `float32` values with the same tie-to-even shortest round-trip
+  rule as the managed projection, so the fast path and the WASM path return identical numbers for every input. A
+  differential test in the npm package checks (benchmark fixtures plus seeded random inputs) now guards the two paths.
+
+### Tooling, CI, and repository
+
+- **Tooling is Node only.** The 29 PowerShell scripts, the shared module, and the Python corpus extractor are
+  replaced by Node scripts under `tools/` with the same checks, messages, and exit codes (`node tools/<area>/<name>.mjs
+  --option value`; `--self-test` where a tool has fail-first fixtures): the quality validators (solution parity,
+  README badges, coverage risk, fuzz corpus, mutation report, release budgets, artifact baseline, feature matrix,
+  dissect corpus), the packaging checks (package validation, package/memory/onboarding consumers, browser
+  onboarding), and the documentation family (build, API, language, canonical reference, quality, external links,
+  workflow, Pages artifact, source snapshot, and the `validate-documentation.mjs` gate). Shared helpers live in
+  `tools/lib/` (assertions, a logged `dotnet` runner, argument parsing, and small XML, ZIP, and NuGet readers), so
+  the tools need no dependencies beyond Node. PowerShell 7 and `ripgrep` are no longer prerequisites; the workflows
+  and guides run the Node commands. The managed API baseline tool builds the generator's scratch project outside
+  the repository, so the repository's analyzers and warnings-as-errors do not apply to generated code. The historical `benchmarks/ConditionalComparison` harness is retired (its case
+  definitions moved to `benchmarks/fixtures/conditional-cases.json`), and the fixture generator reads the inspector's
+  format registry again.
+- The npm package owns the JavaScript it ships: the adapter sources (`main.js`, `bootstrap.js`,
+  `large-source.js`, `source-worker.js`, `cstructsharp-api.js`, the ZIP entry `cstructsharp-wasm.js`) and their
+  unit tests live in `packages/cstructsharp/src/`, the standalone bundle's README, starter pages, and `serve.mjs`
+  in `packages/cstructsharp/standalone/`, and a root `package.json` carries `build:wasm`, `pack:npm`, `pack:zip`,
+  `test:npm`, `test:bootstrap`, `test:parity`, `bench:js`, and the other packaging checks (the explorer keeps only
+  its own scripts). The packaging tools locate npm from PATH when not started through `npm run`, and a successful
+  pack or tarball test removes its staging directory.
+- Hygiene: `TreatWarningsAsErrors` in every project and a `dotnet format --verify-no-changes --severity warn` CI
+  step (the `.editorconfig` now mirrors the library's documentation-rule exclusions so build and format agree);
+  the dissect corpus sweep is an `OptIn` test category excluded by `tests/CStructSharpTests/default.runsettings`
+  (run it with `opt-in.runsettings`), so the default run has no skipped tests; the stale performance contracts
+  are re-baselined (`web-rc1.json` without its old package version and with the explorer's real dist size,
+  `non-web-rc1.json` with the 0.5 package sizes); work-item codes are gone from source comments and guides
+  (the contracts keep them, explained on the new "Traceability codes" project page) and project-history
+  narrative in the library comments is trimmed to the invariant.
+- CI runs the managed test suite on Windows and macOS as well as Linux (build and `dotnet test` only; Linux stays
+  the full gate), and a weekly `dependency-check` workflow reports known vulnerabilities in the locked managed
+  and Node dependency graphs (`dotnet list package --vulnerable`, `npm audit --audit-level=high`).
+- The release workflow smokes the packaged starter page and one inspector flow in Firefox and WebKit
+  (`CSTRUCT_BROWSERS` selects the Playwright engines); PR CI stays Chromium-only.
 
 ## 0.5.0 — 2026-09-17
 
