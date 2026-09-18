@@ -2,6 +2,7 @@ namespace CStructSharp;
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -238,11 +239,19 @@ public partial class CStruct
                 }
 
                 // Require every ordinary struct field. Missing values would make the byte layout ambiguous.
-                object fieldValue = PocoDataBinding.GetMemberValueOrThrow(
-                    data,
-                    field.Name,
-                    state.BindingMode);
-                this.WriteFieldValue(field, fieldValue, state, -1, cursor);
+                try
+                {
+                    object fieldValue = PocoDataBinding.GetMemberValueOrThrow(
+                        data,
+                        field.Name,
+                        state.BindingMode);
+                    this.WriteFieldValue(field, fieldValue, state, -1, cursor);
+                }
+                catch (CStructException exception) when (exception.NoteMember(field.Name, field.DisplayTypeSpelling))
+                {
+                    throw;
+                }
+
                 variableScope?.CompleteField(field, state.Variables);
             }
 
@@ -1037,10 +1046,43 @@ public partial class CStruct
         catch (Exception exception) when (exception is ArgumentException or ArithmeticException or
                                           FormatException or InvalidCastException)
         {
-            throw new CStructWriteException(
-                "Cannot convert the supplied value for field: " + fieldName,
-                exception);
+            throw new CStructWriteException(DescribeUnwritableValue(value, field), exception);
         }
+    }
+
+    /// <summary>
+    ///     Says what was supplied and what the field accepts: the value as text, its CLR type when that is the
+    ///     problem, and the integer range of a fixed-width codec when the value is a number outside it.
+    /// </summary>
+    private static string DescribeUnwritableValue(object? value, CompiledField field)
+    {
+        string shown = value switch
+        {
+            null => "null",
+            string text => "\"" + text + "\"",
+            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+            _ => value.GetType().Name,
+        };
+        string range = field.Codec.Kind switch
+        {
+            PrimitiveCodecKind.UInt8 => "0 to 255",
+            PrimitiveCodecKind.Int8 => "-128 to 127",
+            PrimitiveCodecKind.UInt16 => "0 to 65535",
+            PrimitiveCodecKind.Int16 => "-32768 to 32767",
+            PrimitiveCodecKind.UInt24 => "0 to 16777215",
+            PrimitiveCodecKind.Int24 => "-8388608 to 8388607",
+            PrimitiveCodecKind.UInt32 => "0 to 4294967295",
+            PrimitiveCodecKind.Int32 => "-2147483648 to 2147483647",
+            PrimitiveCodecKind.UInt48 => "0 to 281474976710655",
+            PrimitiveCodecKind.Int48 => "-140737488355328 to 140737488355327",
+            PrimitiveCodecKind.UInt64 => "0 to 18446744073709551615",
+            PrimitiveCodecKind.Int64 => "-9223372036854775808 to 9223372036854775807",
+            _ => string.Empty,
+        };
+        string accepts = range.Length > 0 ? $"{field.TypeSpelling} accepts {range}" : field.TypeSpelling;
+        return value is string or null || value is not IFormattable
+                   ? $"Value {shown} cannot be written as {field.TypeSpelling}."
+                   : $"Value {shown} does not fit: {accepts}.";
     }
 
     /// <summary>
@@ -1150,7 +1192,7 @@ public partial class CStruct
         string rootName = segments[0].Name;
         if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out CStructElement? rootElement))
         {
-            var exception = new CStructPathException("Unknown root element: " + rootName);
+            CStructPathException exception = this.compiledModelQueries.UnknownRoot(rootName);
             ExceptionContext.Attach(exception, segments, stream);
             throw exception;
         }
@@ -1334,7 +1376,7 @@ public partial class CStruct
         string rootName = segments[0].Name;
         if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out CStructElement? rootElement))
         {
-            var exception = new CStructPathException("Unknown root element: " + rootName);
+            CStructPathException exception = this.compiledModelQueries.UnknownRoot(rootName);
             ExceptionContext.Attach(exception, segments, stream);
             throw exception;
         }

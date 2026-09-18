@@ -366,7 +366,7 @@ public sealed partial class CStruct
     {
         if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out CStructElement? declaration))
         {
-            throw new CStructPathException("Unknown root element: " + rootName);
+            throw this.compiledModelQueries.UnknownRoot(rootName);
         }
 
         var container = new StructValue(this.compiledModelQueries.GetRootShape(rootName));

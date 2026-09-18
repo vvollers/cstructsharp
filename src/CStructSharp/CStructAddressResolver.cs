@@ -53,7 +53,7 @@ public partial class CStruct
 
         if (!this.compiledModelQueries.TryGetCompiledDeclaration(segments[0].Name, out CStructElement? root))
         {
-            throw new CStructPathException("Unknown root element: " + segments[0].Name);
+            throw this.compiledModelQueries.UnknownRoot(segments[0].Name);
         }
 
         long rootStart = stream.Position;
@@ -800,7 +800,7 @@ public partial class CStruct
         if (count > state.MaxArrayElements)
         {
             throw new CStructReadLimitException(
-                "Array length exceeds the configured limit: " + field.Name);
+                $"Array length {count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
         }
 
         return count;
@@ -824,7 +824,7 @@ public partial class CStruct
         if (count > state.MaxArrayElements)
         {
             throw new CStructReadLimitException(
-                "Array length exceeds the configured limit: " + field.Name);
+                $"Array length {count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
         }
 
         return count;

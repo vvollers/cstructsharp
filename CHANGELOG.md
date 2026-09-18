@@ -6,6 +6,13 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- Diagnostics: read, write, and path failures now say what failed and where in the message itself -
+  `Not enough bytes: needed 4, available 1 (field 'length' (uint32), in 'header', offset 3).`,
+  `Value 70000 does not fit: uint16 accepts 0 to 65535 (...)`, `No value was supplied for 'length' (...)`,
+  `Unknown root 'Header'. Names are case-sensitive; did you mean 'header'?`,
+  `Array length 2147483647 exceeds MaxArrayElements (1000000) (...)`. `CStructException` exposes the innermost
+  field as `Member`/`MemberType` next to `Path` and `Offset`; the message is composed from them, so a caller that
+  only logs the message sees the same facts.
 - Diagnostics: a layout error about a declaration now names the field and its struct and reports the source
   position - `Unknown type 'foo' for field 'z' in struct 'c'. (line 3, column 12)` - through the new
   `CStructLayoutException.Line`/`Column` properties and the message. A multi-word type spelling that starts with a

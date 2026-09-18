@@ -24,7 +24,7 @@ internal static class DynamicArrayExtent
         long remaining = stream.Length - start;
         if (remaining < 0)
         {
-            throw new CStructReadException("Not enough bytes in stream.");
+            throw new CStructReadException("Not enough bytes: the array starts beyond the end of the input.");
         }
 
         if (elementSize == 0)
@@ -41,7 +41,7 @@ internal static class DynamicArrayExtent
         long count = remaining / elementSize;
         if (count > maximumElements)
         {
-            throw new CStructReadLimitException("Array length exceeds the configured limit: " + fieldName);
+            throw new CStructReadLimitException($"Array length {count} exceeds MaxArrayElements ({maximumElements}).");
         }
 
         return (int)count;
@@ -84,7 +84,7 @@ internal static class DynamicArrayExtent
 
                 if (++count > maximumElements)
                 {
-                    throw new CStructReadLimitException("Array length exceeds the configured limit: " + fieldName);
+                    throw new CStructReadLimitException($"Array length {count} exceeds MaxArrayElements ({maximumElements}).");
                 }
             }
         }

@@ -116,7 +116,7 @@ public partial class CStruct
                     {
                         if (operation.Count > state.MaxArrayElements)
                         {
-                            throw new CStructReadLimitException("Array length exceeds the configured limit: " + field.Declaration.Name.Name);
+                            throw new CStructReadLimitException($"Array length {operation.Count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
                         }
 
                         StaticReadPlan nestedPlan = operation.NestedPlan!;
@@ -191,7 +191,7 @@ public partial class CStruct
         default:
             if (operation.Count > state.MaxArrayElements)
             {
-                throw new CStructReadLimitException("Array length exceeds the configured limit: " + field.Declaration.Name.Name);
+                throw new CStructReadLimitException($"Array length {operation.Count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
             }
 
             return ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count));
@@ -203,7 +203,7 @@ public partial class CStruct
         CompiledField field = operation.Field;
         if (operation.Count > state.MaxArrayElements)
         {
-            throw new CStructReadLimitException("Array length exceeds the configured limit: " + field.Declaration.Name.Name);
+            throw new CStructReadLimitException($"Array length {operation.Count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
         }
 
         return operation.Count == 0
@@ -229,7 +229,7 @@ public partial class CStruct
             {
                 if (operation.Count > state.MaxArrayElements)
                 {
-                    throw new CStructReadLimitException("Array length exceeds the configured limit: " + operation.Field.Declaration.Name.Name);
+                    throw new CStructReadLimitException($"Array length {operation.Count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
                 }
 
                 var elements = new List<object?>(operation.Count);

@@ -174,10 +174,34 @@ internal static class BinaryPrimitiveIO
         int value = stream.ReadByte();
         if (value < 0)
         {
-            throw new CStructReadException("Not enough bytes in stream.");
+            throw new CStructReadException("Not enough bytes: needed 1, available 0.");
         }
 
         return (byte)value;
+    }
+
+    /// <summary>
+    ///     Describes a short read: how many bytes the item needed and how many the source still had (when the
+    ///     source can tell), so the caller knows whether the input is truncated or the layout is wrong.
+    /// </summary>
+    internal static string DescribeShortRead(Stream stream, int needed)
+    {
+        long? available = null;
+        try
+        {
+            if (stream.CanSeek)
+            {
+                available = Math.Max(0, stream.Length - stream.Position);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or NotSupportedException or ObjectDisposedException)
+        {
+            available = null;
+        }
+
+        return available is { } remaining
+                   ? $"Not enough bytes: needed {needed}, available {remaining}."
+                   : $"Not enough bytes: needed {needed}.";
     }
 
     /// <summary>Reads a two-byte UTF-16 code unit in the requested byte order.</summary>
@@ -482,6 +506,7 @@ internal static class BinaryPrimitiveIO
     /// <summary>Reads exactly the requested number of bytes, translating a short read into a layout-specific error.</summary>
     internal static void ReadExactlyOrThrow(Stream stream, Span<byte> buffer)
     {
+        long start = stream.CanSeek ? stream.Position : -1;
         try
         {
             // ReadExactly handles throttled and network-like streams that return fewer bytes per Read call.
@@ -489,7 +514,16 @@ internal static class BinaryPrimitiveIO
         }
         catch (EndOfStreamException exception)
         {
-            throw new CStructReadException("Not enough bytes in stream.", exception);
+            if (start >= 0)
+            {
+                // ReadExactly leaves the position at the end; report what was available at the item's start.
+                stream.Position = start;
+                string message = DescribeShortRead(stream, buffer.Length);
+                stream.Position = stream.Length;
+                throw new CStructReadException(message, exception);
+            }
+
+            throw new CStructReadException(DescribeShortRead(stream, buffer.Length), exception);
         }
     }
 }

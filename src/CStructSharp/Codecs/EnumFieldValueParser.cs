@@ -71,7 +71,7 @@ internal static class EnumFieldValueParser
                                           FormatException or InvalidCastException or InvalidOperationException)
         {
             throw new CStructWriteException(
-                $"Cannot convert the supplied value for enum '{compiled.Name}'.",
+                $"Cannot write the supplied value as enum '{compiled.Name}': {exception.Message.TrimEnd('.')}.",
                 exception);
         }
     }

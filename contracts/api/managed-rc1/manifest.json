@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 12,
+  "baselineRevision": 13,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.5.0",
@@ -14,21 +14,21 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 653,
-    "normalizedSha256": "562AB13D618FEE2FE1FE05D870FED721C949F202E1C451D276E2F48A13466796"
+    "lines": 656,
+    "normalizedSha256": "ACF262D29C71C987583A42D93893E8665FAEAB845353197D47F3EFDC924C891F"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "02E953919006E19D86D2279C1604EB5B487BC0CC9B3FD9366326FEEC1258D82C"
+      "normalizedSha256": "A12E38AB9FE4D6594CDDF705D1EE7640B7A0F39FF5B56F93D75EDF1FC83FF0DE"
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "95721ED2ABE4D4D00D75CC676AADB0612346F3339A46F9E15A0B121CFAEA1C51"
+      "normalizedSha256": "7CFEE85E5751607CB9223148B713AECDB5F8FEFE6183CBABE0B0B97B0007DE22"
     }
   ],
   "history": [
@@ -139,6 +139,15 @@
       "combinedSha256": "D23765D99C515B24DE83E696BDAA99862AE596F03F9F7C41095764AAD4496693",
       "rationale": "CStructLayoutException gains Line and Column (one-based source position of the failing declaration) and its Message ends with the position when known.",
       "releaseImpact": "Additive; consumers may read Line/Column to place editor markers."
+    },
+    {
+      "revision": 13,
+      "kind": "additive",
+      "date": "2026-09-18",
+      "packageVersion": "0.5.0",
+      "combinedSha256": "B5BD3C904170C079A88547E458A1C3D0FA278FE0AB7DCC84A5F5AB5D88931903",
+      "rationale": "CStructException gains Member and MemberType (the innermost field a read/write failure belongs to and its layout type); Message is composed from the known facts.",
+      "releaseImpact": "Additive; messages now end with a parenthesized context clause."
     }
   ]
 }

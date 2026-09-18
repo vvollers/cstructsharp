@@ -111,48 +111,95 @@ public partial class CStruct
         StaticReadOperation[] operations = plan.Operations;
         for (int index = 0; index < operations.Length; index++)
         {
-            StaticReadOperation operation = operations[index];
-            CompiledField field = operation.Field;
-            string name = field.Declaration.Name.Name;
-            object value = GetMemberValue(sameShape, data, operation.Slot, name, state.BindingMode);
-            if (value is null)
+            try
             {
-                throw new CStructWriteException("Null is valid only for a scalar pointer field: " + name);
-            }
-
-            bool capture = field.CapturesLayoutVariable || state.CaptureAllLayoutVariables;
-            switch (operation.Kind)
-            {
-            case StaticReadKind.Numeric:
-                WriteNumericValue(field, bytes.Slice(operation.Offset, field.Codec.Size), value, name);
-                if (capture)
+                StaticReadOperation operation = operations[index];
+                CompiledField field = operation.Field;
+                string name = field.Declaration.Name.Name;
+                object value = GetMemberValue(sameShape, data, operation.Slot, name, state.BindingMode);
+                if (value is null)
                 {
-                    WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
-                    state.PublishQualified(name);
+                    throw new CStructWriteException("Null is valid only for a scalar pointer field: " + name);
                 }
 
-                break;
-
-            case StaticReadKind.Enum:
+                bool capture = field.CapturesLayoutVariable || state.CaptureAllLayoutVariables;
+                switch (operation.Kind)
                 {
-                    CompiledEnumType compiledEnum = field.Enum!;
-                    BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, value, state.BindingMode);
-                    field.Codec.WriteNumeric(bytes.Slice(operation.Offset, field.Codec.Size), compiledEnum.Integer.ToStorageValue(enumValue));
+                case StaticReadKind.Numeric:
+                    WriteNumericValue(field, bytes.Slice(operation.Offset, field.Codec.Size), value, name);
                     if (capture)
                     {
-                        this.UpdateExactLayoutVariable(state.Variables, name, enumValue);
+                        WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
                         state.PublishQualified(name);
                     }
 
                     break;
-                }
 
-            case StaticReadKind.NumericArray:
-                {
-                    int size = field.Codec.Size;
-                    Span<byte> target = bytes.Slice(operation.Offset, size * operation.Count);
-                    if (!TryWriteTypedArray(field, target, value, operation.Count))
+                case StaticReadKind.Enum:
                     {
+                        CompiledEnumType compiledEnum = field.Enum!;
+                        BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, value, state.BindingMode);
+                        field.Codec.WriteNumeric(bytes.Slice(operation.Offset, field.Codec.Size), compiledEnum.Integer.ToStorageValue(enumValue));
+                        if (capture)
+                        {
+                            this.UpdateExactLayoutVariable(state.Variables, name, enumValue);
+                            state.PublishQualified(name);
+                        }
+
+                        break;
+                    }
+
+                case StaticReadKind.NumericArray:
+                    {
+                        int size = field.Codec.Size;
+                        Span<byte> target = bytes.Slice(operation.Offset, size * operation.Count);
+                        if (!TryWriteTypedArray(field, target, value, operation.Count))
+                        {
+                            IList<object> items = WriteValueMaterialization.ConvertToObjectList(value, operation.Count, name);
+                            if (items.Count != operation.Count)
+                            {
+                                throw new CStructWriteException(
+                                    $"Array length mismatch for {name}: expected {operation.Count}, got {items.Count}.");
+                            }
+
+                            for (int element = 0; element < operation.Count; element++)
+                            {
+                                WriteNumericValue(field, target.Slice(element * size, size), items[element], name);
+                            }
+                        }
+
+                        if (capture)
+                        {
+                            WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
+                            state.PublishQualified(name);
+                        }
+
+                        break;
+                    }
+
+                case StaticReadKind.Nested:
+                    {
+                        string? outerPrefix = state.QualifiedPrefix;
+                        if (field.HasQualifiedPrefix)
+                        {
+                            state.QualifiedPrefix = outerPrefix is null ? field.QualifiedPrefix : outerPrefix + field.QualifiedPrefix;
+                        }
+
+                        this.ExecuteStaticWritePlan(operation.NestedPlan!, operation.NestedComposite!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), value, state);
+                        state.QualifiedPrefix = outerPrefix;
+                    }
+
+                    if (capture)
+                    {
+                        WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
+                        state.PublishQualified(name);
+                    }
+
+                    break;
+
+                case StaticReadKind.NestedArray:
+                    {
+                        StaticReadPlan nestedPlan = operation.NestedPlan!;
                         IList<object> items = WriteValueMaterialization.ConvertToObjectList(value, operation.Count, name);
                         if (items.Count != operation.Count)
                         {
@@ -162,68 +209,29 @@ public partial class CStruct
 
                         for (int element = 0; element < operation.Count; element++)
                         {
-                            WriteNumericValue(field, target.Slice(element * size, size), items[element], name);
+                            object item = items[element] ??
+                                          throw new CStructWriteException(
+                                              "Null is not valid for struct or union value: " + operation.NestedDeclaration!.Name.Name);
+                            this.ExecuteStaticWritePlan(nestedPlan, operation.NestedComposite!, bytes.Slice(operation.Offset + (element * nestedPlan.Size), nestedPlan.Size), item, state);
                         }
+
+                        if (capture)
+                        {
+                            WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
+                            state.PublishQualified(name);
+                        }
+
+                        break;
                     }
 
-                    if (capture)
-                    {
-                        WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
-                        state.PublishQualified(name);
-                    }
-
-                    break;
+                default:
+                    throw new InvalidOperationException("Static write plan cannot encode operation kind " + operation.Kind);
                 }
-
-            case StaticReadKind.Nested:
-                {
-                    string? outerPrefix = state.QualifiedPrefix;
-                    if (field.HasQualifiedPrefix)
-                    {
-                        state.QualifiedPrefix = outerPrefix is null ? field.QualifiedPrefix : outerPrefix + field.QualifiedPrefix;
-                    }
-
-                    this.ExecuteStaticWritePlan(operation.NestedPlan!, operation.NestedComposite!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), value, state);
-                    state.QualifiedPrefix = outerPrefix;
-                }
-
-                if (capture)
-                {
-                    WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
-                    state.PublishQualified(name);
-                }
-
-                break;
-
-            case StaticReadKind.NestedArray:
-                {
-                    StaticReadPlan nestedPlan = operation.NestedPlan!;
-                    IList<object> items = WriteValueMaterialization.ConvertToObjectList(value, operation.Count, name);
-                    if (items.Count != operation.Count)
-                    {
-                        throw new CStructWriteException(
-                            $"Array length mismatch for {name}: expected {operation.Count}, got {items.Count}.");
-                    }
-
-                    for (int element = 0; element < operation.Count; element++)
-                    {
-                        object item = items[element] ??
-                                      throw new CStructWriteException(
-                                          "Null is not valid for struct or union value: " + operation.NestedDeclaration!.Name.Name);
-                        this.ExecuteStaticWritePlan(nestedPlan, operation.NestedComposite!, bytes.Slice(operation.Offset + (element * nestedPlan.Size), nestedPlan.Size), item, state);
-                    }
-
-                    if (capture)
-                    {
-                        WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
-                        state.PublishQualified(name);
-                    }
-
-                    break;
-                }
-
-            default:
-                throw new InvalidOperationException("Static write plan cannot encode operation kind " + operation.Kind);
+            }
+            catch (CStructException exception) when (exception.NoteMember(operations[index].Field.Name, operations[index].Field.DisplayTypeSpelling))
+            {
+                // Never entered: the filter records the innermost field, as the field-by-field writer does.
+                throw;
             }
         }
     }
@@ -235,7 +243,7 @@ public partial class CStruct
         {
             return sameShape.TryGetSlot(slot, out object? slotValue)
                        ? slotValue!
-                       : throw new CStructWriteException("Field not found in data: " + name);
+                       : throw new CStructWriteException($"No value was supplied for '{name}'.");
         }
 
         return PocoDataBinding.GetMemberValueOrThrow(data, name, bindingMode);
@@ -251,7 +259,7 @@ public partial class CStruct
         catch (Exception exception) when (exception is ArgumentException or ArithmeticException or
                                           FormatException or InvalidCastException)
         {
-            throw new CStructWriteException("Cannot convert the supplied value for field: " + name, exception);
+            throw new CStructWriteException(DescribeUnwritableValue(value, field), exception);
         }
     }
 

@@ -53,6 +53,29 @@ bug in application code into `false`.
 
 This distinction is why the choice between owned output, direct output, and an update matters.
 
+## Read a message
+
+Every message names what failed first and then, in parentheses, every fact the library knows: the field being
+read or written and its layout type, the requested path, and the position at which the operation stopped. The
+same facts are available as properties, so an application can format them its own way:
+
+```text
+Not enough bytes: needed 4, available 1 (field 'length' (uint32), in 'header', offset 3).
+Value 70000 does not fit: uint16 accepts 0 to 65535 (field 'kind' (uint16), in 'header', offset 0).
+Unknown root 'Header'. Names are case-sensitive; did you mean 'header'?
+Unknown field 'nope' in 'header' (path 'header.nope', offset 6).
+Array length 2147483647 exceeds MaxArrayElements (1000000) (field 'data' (uint8), in 'p', offset 4).
+```
+
+| Property | Meaning |
+| --- | --- |
+| `Member`, `MemberType` | The innermost field the failure belongs to and its layout type spelling. |
+| `Path` | The path the operation was asked for (`header`, `header.nope`, `packet.items[2]`). |
+| `Offset` | Where the operation stopped: the absolute stream position, or the offset within the supplied region. It is at or after the failing item, not necessarily its start. |
+| `Code` | The stable category (`ReadFailed`, `WriteFailed`, `InvalidPath`, ...) for `switch` statements and logs. |
+
+A layout error carries `Line` and `Column` instead; see [Limits and diagnostics](../language/limits-and-diagnostics.md).
+
 ## Record useful diagnostic context
 
 When reporting a failure, keep:

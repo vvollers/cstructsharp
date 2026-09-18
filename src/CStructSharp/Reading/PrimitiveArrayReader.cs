@@ -32,8 +32,9 @@ internal static class PrimitiveArrayReader
         // array is allocated, with the same failure and final position a full short read would produce.
         if (stream.IsShortBy((long)count * codec.Size))
         {
+            string message = $"Not enough bytes: {count} elements of {codec.Size} bytes need {(long)count * codec.Size}, available {Math.Max(0, stream.Length - stream.Position)}.";
             stream.Position = stream.Length;
-            throw new CStructReadException("Not enough bytes in stream.");
+            throw new CStructReadException(message);
         }
 
         bool le = codec.LittleEndian;

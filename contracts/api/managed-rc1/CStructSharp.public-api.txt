@@ -164,6 +164,9 @@ namespace CStructSharp.Diagnostics
     {
         protected CStructException(CStructSharp.Diagnostics.CStructErrorCode code, string? message, System.Exception? innerException = null) { }
         public CStructSharp.Diagnostics.CStructErrorCode Code { get; }
+        public string? Member { get; }
+        public string? MemberType { get; }
+        public override string Message { get; }
         public long? Offset { get; }
         public string? Path { get; }
     }

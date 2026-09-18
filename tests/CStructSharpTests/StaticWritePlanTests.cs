@@ -231,7 +231,7 @@ public class StaticWritePlanTests
             StaticReadPlan.DisabledForTesting = true;
             (byte[]? general, Exception? generalError) = Try(() => layout.Serialize(rootName, parsed));
             StaticReadPlan.DisabledForTesting = false;
-            Assert.AreEqual(generalError?.Message, plannedError?.Message, id);
+            Assert.AreEqual(WithoutOffset(generalError?.Message), WithoutOffset(plannedError?.Message), id);
             if (general is not null)
             {
                 CollectionAssert.AreEqual(general, planned, id);
@@ -274,7 +274,7 @@ public class StaticWritePlanTests
             StaticReadPlan.DisabledForTesting = false;
             string caseLabel = label + " / " + destination;
             Assert.AreEqual(generalError?.GetType(), plannedError?.GetType(), caseLabel);
-            Assert.AreEqual(generalError?.Message, plannedError?.Message, caseLabel);
+            Assert.AreEqual(WithoutOffset(generalError?.Message), WithoutOffset(plannedError?.Message), caseLabel);
             if (general is not null)
             {
                 CollectionAssert.AreEqual(general, planned, caseLabel);
@@ -383,6 +383,15 @@ public class StaticWritePlanTests
         }
 
         throw new DirectoryNotFoundException("benchmarks/fixtures/manifest.json not found");
+    }
+
+    /// <summary>
+    ///     The plan validates every value before it writes anything while the general writer stops mid-struct, so
+    ///     the reported stop offset legitimately differs; everything else in the message must agree.
+    /// </summary>
+    private static string? WithoutOffset(string? message)
+    {
+        return message is null ? null : System.Text.RegularExpressions.Regex.Replace(message, @",? ?offset \d+", string.Empty);
     }
 
     public sealed class LeafPoco

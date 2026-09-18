@@ -163,7 +163,7 @@ internal static class PocoDataBinding
             return value;
         }
 
-        throw new CStructWriteException("Field not found in data: " + name);
+        throw new CStructWriteException($"No value was supplied for '{name}'.");
     }
 
     /// <summary>One cached member-resolution outcome; both members are null when the name resolves to neither.</summary>

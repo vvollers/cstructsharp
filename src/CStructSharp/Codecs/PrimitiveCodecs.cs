@@ -94,7 +94,7 @@ internal static class PrimitiveCodecs
                 int bytesRead = stream.Read(chunk, 0, TerminatedStringReadChunkSize);
                 if (bytesRead == 0)
                 {
-                    throw new CStructReadException("Not enough bytes in stream.");
+                    throw new CStructReadException("Not enough bytes: the terminated string has no terminator before the end of the input.");
                 }
 
                 // Search from the first position that starts an encoding unit relative to the string's own start.

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CStructSharp.Addressing;
+using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
@@ -135,15 +136,24 @@ public partial class CStruct
                     continue;
                 }
 
-                this.HandleCStructElement(
-                    field.Declaration,
-                    destination,
-                    state,
-                    debugStack,
-                    -1,
-                    field.Declaration is Struct,
-                    field,
-                    cursor);
+                try
+                {
+                    this.HandleCStructElement(
+                        field.Declaration,
+                        destination,
+                        state,
+                        debugStack,
+                        -1,
+                        field.Declaration is Struct,
+                        field,
+                        cursor);
+                }
+                catch (CStructException exception) when (exception.NoteMember(field.Name, field.DisplayTypeSpelling))
+                {
+                    // Never entered: the filter records the innermost field and lets the exception propagate.
+                    throw;
+                }
+
                 variableScope?.CompleteField(field, state.Variables);
             }
         }
@@ -204,7 +214,7 @@ public partial class CStruct
                     {
                         if (operation.Count > state.MaxArrayElements)
                         {
-                            throw new CStructReadLimitException("Array length exceeds the configured limit: " + field.Declaration.Name.Name);
+                            throw new CStructReadLimitException($"Array length {operation.Count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
                         }
 
                         string text = ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count));
@@ -222,7 +232,7 @@ public partial class CStruct
                     {
                         if (operation.Count > state.MaxArrayElements)
                         {
-                            throw new CStructReadLimitException("Array length exceeds the configured limit: " + field.Declaration.Name.Name);
+                            throw new CStructReadLimitException($"Array length {operation.Count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
                         }
 
                         if (operation.Count == 0)
@@ -261,7 +271,7 @@ public partial class CStruct
                     {
                         if (operation.Count > state.MaxArrayElements)
                         {
-                            throw new CStructReadLimitException("Array length exceeds the configured limit: " + field.Declaration.Name.Name);
+                            throw new CStructReadLimitException($"Array length {operation.Count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
                         }
 
                         var elements = new List<object?>(operation.Count);
@@ -325,15 +335,7 @@ public partial class CStruct
         int unionSize = this.compiledSizeQueries.GetCompiledStructSizeInBytes(union, state.Variables, false);
         long unionEnd = checked(unionPosition + unionSize);
         byte[] rawStorage = new byte[unionSize];
-
-        try
-        {
-            state.Stream.ReadExactly(rawStorage);
-        }
-        catch (EndOfStreamException exception)
-        {
-            throw new CStructReadException("Not enough bytes in stream.", exception);
-        }
+        BinaryPrimitiveIO.ReadExactlyOrThrow(state.Stream, rawStorage);
 
         state.Stream.Position = unionPosition;
         var decodedMembers = new StructValue(union.Shape);
@@ -349,14 +351,21 @@ public partial class CStruct
             foreach (CompiledField field in union.Fields)
             {
                 RestoreVariables(state.Variables, unionInputVariables);
-                this.HandleCStructElement(
-                    field.Declaration,
-                    decodedMembers,
-                    state,
-                    debugStack,
-                    unionPosition,
-                    field.Declaration is Struct,
-                    field);
+                try
+                {
+                    this.HandleCStructElement(
+                        field.Declaration,
+                        decodedMembers,
+                        state,
+                        debugStack,
+                        unionPosition,
+                        field.Declaration is Struct,
+                        field);
+                }
+                catch (CStructException exception) when (exception.NoteMember(field.Name, field.DisplayTypeSpelling))
+                {
+                    throw;
+                }
             }
         }
         finally

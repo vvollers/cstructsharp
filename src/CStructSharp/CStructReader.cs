@@ -298,7 +298,7 @@ public partial class CStruct
                             if (numFieldValues > state.MaxArrayElements)
                             {
                                 throw new CStructReadLimitException(
-                                    "Array length exceeds the configured limit: " + compiledField.Name);
+                                    $"Array length {numFieldValues} exceeds MaxArrayElements ({state.MaxArrayElements}).");
                             }
                         }
                         else
@@ -319,7 +319,7 @@ public partial class CStruct
                             if (numFieldValues > state.MaxArrayElements)
                             {
                                 throw new CStructReadLimitException(
-                                    "Array length exceeds the configured limit: " + compiledField.Name);
+                                    $"Array length {numFieldValues} exceeds MaxArrayElements ({state.MaxArrayElements}).");
                             }
                         }
                     }
@@ -927,7 +927,7 @@ public partial class CStruct
         string rootName = segments[0].Name;
         if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out _))
         {
-            throw new CStructPathException("Unknown root element: " + rootName);
+            throw this.compiledModelQueries.UnknownRoot(rootName);
         }
 
         StructValue root;
@@ -970,7 +970,7 @@ public partial class CStruct
 
         if (!this.compiledModelQueries.TryGetCompiledDeclaration(elementName, out CStructElement? cstructElement))
         {
-            throw new CStructPathException("Unknown root element: " + elementName);
+            throw this.compiledModelQueries.UnknownRoot(elementName);
         }
 
         // The state captures stream progress, variables, alignment, and pointer policy for this one parse operation.
@@ -1005,7 +1005,7 @@ public partial class CStruct
 
         if (!this.compiledModelQueries.TryGetCompiledDeclaration(elementName, out CStructElement? cstructElement))
         {
-            throw new CStructPathException("Unknown root element: " + elementName);
+            throw this.compiledModelQueries.UnknownRoot(elementName);
         }
 
         var state = new CStructOperationContext(

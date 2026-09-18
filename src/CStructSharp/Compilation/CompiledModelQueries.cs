@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Threading;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
@@ -104,6 +105,34 @@ internal sealed class CompiledModelQueries
         [NotNullWhen(true)] out CStructElement? declaration)
     {
         return this.compiledLayout.Declarations.TryGetValue(name, out declaration) || this.TryGetSyntheticRoot(name, out declaration);
+    }
+
+    /// <summary>
+    ///     Builds the diagnostic for a root name the layout does not declare. It lists the declared roots, and
+    ///     points out a name that differs only in case, because a capitalized spelling is the usual mistake.
+    /// </summary>
+    public CStructPathException UnknownRoot(string requested)
+    {
+        var names = new List<string>();
+        string? caseMatch = null;
+        foreach (KeyValuePair<string, CStructElement> declaration in this.compiledLayout.OrderedDeclarations)
+        {
+            if (declaration.Value is Struct or Typedef or CstructEnum)
+            {
+                names.Add(declaration.Key);
+                if (caseMatch is null && string.Equals(declaration.Key, requested, StringComparison.OrdinalIgnoreCase))
+                {
+                    caseMatch = declaration.Key;
+                }
+            }
+        }
+
+        string hint = caseMatch is not null
+                          ? $" Names are case-sensitive; did you mean '{caseMatch}'?"
+                          : names.Count == 0
+                              ? string.Empty
+                              : " The layout declares: " + string.Join(", ", names.Take(8)) + (names.Count > 8 ? ", ..." : ".");
+        return new CStructPathException($"Unknown root '{requested}'.{hint}");
     }
 
     /// <summary>Returns the first exported struct or union name in source order for convenience overloads.</summary>
