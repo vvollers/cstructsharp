@@ -72,6 +72,11 @@ bounded cache within each runtime.
 
 ## JavaScript compiled reuse
 
+The record idiom above applies to JavaScript with larger stakes, because a WebAssembly crossing costs tens of
+microseconds: 1,000 seven-byte records parse in one `records[1000]` call at 0.06 µs per record on the JavaScript
+fast path, or 2.6 µs per record as `records[EOF]`, against 2.4-37 µs per record when each record is its own call
+(see [many records in one call](browser/large-data.md#many-records-in-one-call)).
+
 For repeated reads of the same schema, use `compile` from the npm package or standalone browser bundle:
 
 ```js

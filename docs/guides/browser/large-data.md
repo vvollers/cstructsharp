@@ -146,6 +146,31 @@ The [binary inspector](inspector.md) parses against the full source and loads a 
 Use **Go to byte** with a decimal or `0x` hexadecimal offset to inspect a distant location. Scrolling, searching,
 and session edits do not require a full-file `Uint8Array`.
 
+## Many records in one call
+
+Each JavaScript call pays a fixed cost before any byte is decoded: a fully fixed layout runs in JavaScript for a
+few microseconds, and anything else crosses into WebAssembly, where the options JSON, the layout lookup, and the
+result envelope cost tens of microseconds. When a source is a run of records, let the layout express the repetition
+and parse them in one call:
+
+```c
+struct record { uint8 tag; uint16 id; uint32 value; };
+struct file { record records[EOF]; };
+```
+
+```js
+const result = await parse(definition, bytes, { root: "file" });
+for (const record of result.data.records) consume(record);
+```
+
+`records[EOF]` reads whole records to the end of the input; `records[1000]` (a fixed count) keeps the whole layout
+fixed, so the JavaScript fast path reads it without a WebAssembly call. Measured in Node on the repository
+benchmark machine for 1,000 seven-byte records: 0.06 µs per record through `records[1000]` and 2.6 µs per record
+through `records[EOF]`, against 2.4 µs per record calling `parse` once per fixed record and 37 µs per record
+calling it once per record through WebAssembly (any read option, a pointer, or a variable-length member takes that
+path). A count field or an earlier length works the same way (`record records[count]`). There is no separate
+batch API: the layout is the batch, and `compile` covers the case where the same layout is parsed repeatedly.
+
 ## Scattered pointers and read budgets
 
 A distant pointer does not consume a budget equal to its address. The budget counts bytes read at the target;

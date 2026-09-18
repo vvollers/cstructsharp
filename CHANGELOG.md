@@ -6,6 +6,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- The browser large-data guide documents parsing many records in one call (`record records[EOF]` or a fixed
+  count, which keeps the JavaScript fast path) with measured per-record costs against one call per record; the
+  layout is the batch, so no separate batch API was added.
 - **Breaking (JavaScript, contract v8):** every operation returns one camelCase envelope - `contractVersion` (8),
   `operation`, `success`, `root`, `data`, `debug`, `error` - and a parse's `data` is the selected value itself
   (`result.data.kind`, no `Data.header` wrapper), exactly what C# `Parse` returns; `root` names the root or path
