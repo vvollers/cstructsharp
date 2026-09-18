@@ -115,7 +115,7 @@ function recordObservation(compiler, extraFlags) {
     try {
       facts = JSON.parse(execution.stdout.trim());
     } catch (error) {
-      throw new Error(`Fixture output was not valid JSON: ${error.message}\n${execution.stdout}`);
+      throw new Error(`Fixture output was not valid JSON: ${error.message}\n${execution.stdout}`, { cause: error });
     }
     return {
       schemaVersion: 2,

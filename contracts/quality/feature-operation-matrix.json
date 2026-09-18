@@ -180,7 +180,7 @@
     "policy": "docs/api/index.md",
     "evidence": [
       "apps/explorer/src/wasm/cstruct-wasm.test.ts",
-      "src/CStructSharp.Wasm/bootstrap.test.js",
+      "packages/cstructsharp/src/bootstrap.test.js",
       "apps/explorer/tests/e2e/wasm-boundary.spec.ts",
       "apps/explorer/tests/e2e/operations.spec.ts"
     ],

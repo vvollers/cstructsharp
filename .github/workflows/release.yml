@@ -196,14 +196,13 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Pack and verify the npm consumer artifact
-        working-directory: apps/explorer
         run: |
           npm run pack:npm
           npm run test:npm
           npm run test:bootstrap
           npm run test:wasm-publication
           npm run test:npm-release
-          node ../../tools/release/npm-release.mjs --require-missing
+          node tools/release/npm-release.mjs --require-missing
 
       - name: Verify explorer lessons
         working-directory: apps/explorer
@@ -339,7 +338,6 @@ jobs:
           name: npm-package
           path: artifacts/npm
       - name: Test the installed tarball without the SDK or browser
-        working-directory: apps/explorer
         run: npm run test:npm:node
 
   publish:

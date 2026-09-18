@@ -7,18 +7,21 @@ import { validateWasmPublication } from "../../../tools/packaging/wasm-publicati
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const webRoot = path.resolve(scriptDirectory, "..");
+// The npm CLI that started this script when run through `npm run`, otherwise the `npm` on PATH.
 const npmCli = process.env.npm_execpath;
 
-if (!npmCli) {
-  throw new Error("The production build must be started through npm.");
-}
-
 function runScript(name) {
-  const result = spawnSync(process.execPath, [npmCli, "run", name], {
+  const result = npmCli
+    ? spawnSync(process.execPath, [npmCli, "run", name], {
     cwd: webRoot,
-    stdio: "inherit",
-    shell: false,
-  });
+        stdio: "inherit",
+        shell: false,
+      })
+    : spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", name], {
+        cwd: webRoot,
+        stdio: "inherit",
+        shell: process.platform === "win32",
+      });
   if (result.error) {
     throw result.error;
   }

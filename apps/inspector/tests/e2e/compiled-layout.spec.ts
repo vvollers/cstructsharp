@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import type { RawWasmAdapter } from "../../../../src/CStructSharp.Wasm/cstructsharp-wasm.js";
+import type { RawWasmAdapter } from "../../../../packages/cstructsharp/src/cstructsharp-wasm.js";
 
 test("compiled browser layouts retain decisions per read and recover after cancellation", async ({
   page,

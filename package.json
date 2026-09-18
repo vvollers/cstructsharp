@@ -1,0 +1,25 @@
+{
+  "name": "cstructsharp-repository",
+  "private": true,
+  "type": "module",
+  "description": "Repository-level scripts for the cstructsharp npm package and the standalone WASM bundle; the apps in apps/ own their own manifests.",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "scripts": {
+    "build:wasm": "node tools/packaging/publish-wasm.mjs",
+    "verify:wasm": "node tools/packaging/verify-wasm-publication.mjs",
+    "pack:npm": "node tools/packaging/create-wasm-npm-package.mjs",
+    "pack:zip": "node tools/packaging/create-wasm-package.mjs",
+    "test:npm": "node tools/packaging/test-npm-package.mjs",
+    "test:npm:node": "node tools/packaging/test-npm-package.mjs --node-only",
+    "test:npm-release": "node --test tools/release/npm-release.test.mjs tools/release/release-state.test.mjs",
+    "test:parity": "node tools/packaging/test-native-parity.mjs",
+    "test:bootstrap": "node --test packages/cstructsharp/src/bootstrap.test.js packages/cstructsharp/src/cstructsharp-wasm.test.js packages/cstructsharp/src/native-plan.test.js packages/cstructsharp/src/large-source.test.js",
+    "test:compiled-layout": "node tools/packaging/test-compiled-layout.mjs",
+    "test:public-types": "node tools/packaging/test-public-types.mjs",
+    "test:wasm-publication": "node --test tools/packaging/wasm-publication.test.mjs",
+    "test:wasm-reproducibility": "node tools/packaging/test-wasm-reproducibility.mjs",
+    "bench:js": "npm --prefix benchmarks/js run bench:node"
+  }
+}

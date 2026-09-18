@@ -106,10 +106,10 @@ Do not start another normal patch release to complete a partly published version
 
 ## Build and test npm locally
 
-From `apps/explorer`:
+From the repository root (the explorer's dependencies supply Vite, Playwright, and tsc for the consumer checks):
 
 ```sh
-npm ci
+npm --prefix apps/explorer ci
 npm run build:wasm
 npm run pack:npm
 npm run test:npm

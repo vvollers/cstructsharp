@@ -11,12 +11,13 @@ import {
 } from "./wasm-publication.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const webRoot = path.resolve(scriptDirectory, "../../apps/explorer");
-const repositoryRoot = path.resolve(webRoot, "../..");
-const projectPath = path.join(webRoot, "../../src/CStructSharp.Wasm", "CStructSharpWeb.Wasm.csproj");
+const repositoryRoot = path.resolve(scriptDirectory, "../..");
+const projectPath = path.join(repositoryRoot, "src/CStructSharp.Wasm", "CStructSharpWeb.Wasm.csproj");
+// The JavaScript adapter sources are owned by the npm package; the WASM project only builds the managed bridge.
+const adapterSource = path.join(repositoryRoot, "packages/cstructsharp/src");
 const appBundle = path.join(
-  webRoot,
-  "../../src/CStructSharp.Wasm",
+  repositoryRoot,
+  "src/CStructSharp.Wasm",
   "bin",
   "Release",
   "net10.0",
@@ -109,10 +110,8 @@ function stagePublication(stagingDirectory) {
     copyFile(path.join(sourceFramework, fileName), path.join(stagedFramework, fileName));
   }
 
-  copyFile(path.join(webRoot, "../../src/CStructSharp.Wasm", "main.js"), path.join(stagingDirectory, "main.js"));
-  copyFile(path.join(webRoot, "../../src/CStructSharp.Wasm", "bootstrap.js"), path.join(stagingDirectory, "bootstrap.js"));
-  for (const name of ["large-source.js", "source-worker.js"]) {
-    copyFile(path.join(repositoryRoot, "src/CStructSharp.Wasm", name), path.join(stagingDirectory, name));
+  for (const name of ["main.js", "bootstrap.js", "large-source.js", "source-worker.js"]) {
+    copyFile(path.join(adapterSource, name), path.join(stagingDirectory, name));
   }
   copyFile(path.join(appBundle, runtimeConfigName), path.join(stagingDirectory, runtimeConfigName));
   return validateWasmPublication(stagingDirectory);

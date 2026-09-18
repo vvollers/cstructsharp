@@ -4,11 +4,13 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { validateWasmPublication } from "./wasm-publication.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const webRoot = path.resolve(scriptDirectory, "../../apps/explorer");
-const source = path.resolve(webRoot, "../../artifacts/wasm");
-const destination = path.resolve(webRoot, "../../artifacts/wasm-package");
-const libraryEntry = path.join(webRoot, "../../src/CStructSharp.Wasm", "cstructsharp-wasm.js");
-const readme = path.join(webRoot, "../../src/CStructSharp.Wasm", "README.md");
+const root = path.resolve(scriptDirectory, "../..");
+const source = path.join(root, "artifacts/wasm");
+const destination = path.join(root, "artifacts/wasm-package");
+const adapterSource = path.join(root, "packages/cstructsharp/src");
+const standaloneSource = path.join(root, "packages/cstructsharp/standalone");
+const libraryEntry = path.join(adapterSource, "cstructsharp-wasm.js");
+const readme = path.join(standaloneSource, "README.md");
 
 function copyDirectory(sourceDirectory, destinationDirectory) {
   fs.mkdirSync(destinationDirectory, { recursive: true });
@@ -37,21 +39,12 @@ export function createWasmPackage(sourceDirectory = source, destinationDirectory
   const manifest = validateWasmPublication(sourceDirectory);
   copyDirectory(sourceDirectory, destinationDirectory);
   fs.copyFileSync(libraryEntry, path.join(destinationDirectory, "cstructsharp-wasm.js"));
-  fs.copyFileSync(
-    path.join(webRoot, "../../src/CStructSharp.Wasm", "cstructsharp-api.js"),
-    path.join(destinationDirectory, "cstructsharp-api.js"),
-  );
+  fs.copyFileSync(path.join(adapterSource, "cstructsharp-api.js"), path.join(destinationDirectory, "cstructsharp-api.js"));
   // The ZIP bundle ships the package's declarations under the bundle entry's name.
-  fs.copyFileSync(
-    path.join(webRoot, "../../packages/cstructsharp/index.d.ts"),
-    path.join(destinationDirectory, "cstructsharp-wasm.d.ts"),
-  );
+  fs.copyFileSync(path.join(root, "packages/cstructsharp/index.d.ts"), path.join(destinationDirectory, "cstructsharp-wasm.d.ts"));
   fs.copyFileSync(readme, path.join(destinationDirectory, "README.md"));
-  copyDirectory(path.join(webRoot, "../../src/CStructSharp.Wasm", "starter"), path.join(destinationDirectory, "starter"));
-  fs.copyFileSync(
-    path.join(webRoot, "../../src/CStructSharp.Wasm", "serve.mjs"),
-    path.join(destinationDirectory, "serve.mjs"),
-  );
+  copyDirectory(path.join(standaloneSource, "starter"), path.join(destinationDirectory, "starter"));
+  fs.copyFileSync(path.join(standaloneSource, "serve.mjs"), path.join(destinationDirectory, "serve.mjs"));
   return {
     directory: destinationDirectory,
     manifest,
@@ -61,7 +54,7 @@ export function createWasmPackage(sourceDirectory = source, destinationDirectory
       "cstructsharp-api.js",
       "cstructsharp-wasm.d.ts",
       "serve.mjs",
-      ...fs.readdirSync(path.join(webRoot, "../../src/CStructSharp.Wasm", "starter")).map((name) => `starter/${name}`),
+      ...fs.readdirSync(path.join(standaloneSource, "starter")).map((name) => `starter/${name}`),
       ...manifest.files.map((entry) => entry.path),
     ],
   };

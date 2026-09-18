@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 const [root,label,out] = process.argv.slice(2);
 const bundle = path.join(root,'src/CStructSharp.Wasm/bin/Release/net10.0/browser-wasm/AppBundle');
-for (const file of ['bootstrap.js','large-source.js','source-worker.js','cstructsharp-api.js']) fs.copyFileSync(path.join(root,'src/CStructSharp.Wasm',file),path.join(bundle,file));
+for (const file of ['bootstrap.js','large-source.js','source-worker.js','cstructsharp-api.js']) fs.copyFileSync(path.join(root,'packages/cstructsharp/src',file),path.join(bundle,file));
 fs.writeFileSync(out.replace(/\.json$/, '.environment.json'), JSON.stringify({bridgeHashes:Object.fromEntries(['bootstrap.js','large-source.js','source-worker.js','cstructsharp-api.js'].map(file=>[file,crypto.createHash('sha256').update(fs.readFileSync(path.join(bundle,file))).digest('hex')]))},null,2));
 const {dotnet} = await import(pathToFileURL(path.join(bundle,'_framework/dotnet.js')));
 const runtime = await dotnet.create();

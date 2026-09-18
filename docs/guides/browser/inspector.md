@@ -28,9 +28,9 @@ Select **Download updated file** to save the result. The other nine bytes must r
 
 ## Complete implementation
 
-[!code-html[Inspector page](../../../src/CStructSharp.Wasm/starter/inspector.html)]
+[!code-html[Inspector page](../../../packages/cstructsharp/standalone/starter/inspector.html)]
 
-[!code-javascript[Inspector logic](../../../src/CStructSharp.Wasm/starter/inspector.js)]
+[!code-javascript[Inspector logic](../../../packages/cstructsharp/standalone/starter/inspector.js)]
 
 The application checks file size before reading the file into memory, then validates signature, version, and count.
 It passes explicit read limits. The `debug` list provides field positions with an exclusive end offset, so a range

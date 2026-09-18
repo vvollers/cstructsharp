@@ -89,9 +89,9 @@ The parsed JSON contains a root object named `header` with `kind` and `length` f
 These are the actual files included in the bundle. You can copy them into a `starter` directory beside the runtime.
 The script import uses `../` to reach its parent directory.
 
-[!code-html[Starter HTML](../../../src/CStructSharp.Wasm/starter/index.html)]
+[!code-html[Starter HTML](../../../packages/cstructsharp/standalone/starter/index.html)]
 
-[!code-javascript[Starter JavaScript](../../../src/CStructSharp.Wasm/starter/app.js)]
+[!code-javascript[Starter JavaScript](../../../packages/cstructsharp/standalone/starter/app.js)]
 
 `type="module"` allows JavaScript imports. `await` waits for the runtime and the operation to finish.
 The result's `success` field tells you whether the operation worked. Parse `data` is the selected value; write and

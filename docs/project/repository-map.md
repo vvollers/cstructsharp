@@ -16,8 +16,8 @@ and which direction their dependencies point.
 | `benchmarks/CStructSharp.Benchmarks/` | BenchmarkDotNet timing and allocation scenarios | References core |
 | `tests/CStructSharp.PackageConsumer/` | A small external-style app that installs a built package | Uses the packed NuGet file, not the core project |
 | `docs/` | DocFX pages, examples, site assets, browser checks, and machine-readable reference data | Reads a prebuilt core net10 assembly |
-| `src/CStructSharp.Wasm/` | Managed WebAssembly adapter and standalone package source | References core |
-| `packages/cstructsharp/` | Public npm package loaders, Vite plugin, and package README | Packages the prebuilt WASM adapter for Node.js and browsers |
+| `src/CStructSharp.Wasm/` | Managed WebAssembly bridge (exports, DTOs, JSON projection) | References core |
+| `packages/cstructsharp/` | Public npm package: loaders, Vite plugin, README, declarations, the JavaScript adapter sources (`src/`), and the standalone bundle pieces (`standalone/`) | Packages the prebuilt WASM bridge for Node.js and browsers |
 | `apps/explorer/` | Independent test/lesson explorer | Loads the published WASM adapter output |
 | `apps/inspector/` | Independent binary inspector UI, format examples, and browser checks | Stages the repository WASM publication |
 | `contracts/` | Reviewed compatibility, fixture, quality, and documentation inputs | Read by managed tests, validators, and DocFX |

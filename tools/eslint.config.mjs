@@ -11,7 +11,7 @@ export default [
   js.configs.recommended,
   { languageOptions: { globals: { ...globals.node, ...globals.browser }, sourceType: "module" } },
   {
-    files: ["src/CStructSharp.Wasm/source-worker.js"],
+    files: ["packages/cstructsharp/src/source-worker.js"],
     languageOptions: { globals: globals.worker },
   },
 ];

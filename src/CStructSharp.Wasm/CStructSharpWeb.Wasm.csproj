@@ -22,7 +22,7 @@
     <EnableDynamicLoading>false</EnableDynamicLoading>
     
     <!-- Browser JavaScript entry point -->
-    <WasmMainJSPath>main.js</WasmMainJSPath>
+    <WasmMainJSPath>../../packages/cstructsharp/src/main.js</WasmMainJSPath>
     
   </PropertyGroup>
 

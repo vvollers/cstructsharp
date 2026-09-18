@@ -44,7 +44,7 @@ for (const file of fs.readdirSync(appBundle)) {
 }
 
 for (const file of ["bootstrap.js", "large-source.js", "source-worker.js", "cstructsharp-api.js", "main.js"]) {
-  fs.copyFileSync(path.join(repositoryRoot, "src/CStructSharp.Wasm", file), path.join(bundle, file));
+  fs.copyFileSync(path.join(repositoryRoot, "packages/cstructsharp/src", file), path.join(bundle, file));
 }
 
 const hashes = {};

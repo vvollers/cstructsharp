@@ -7,16 +7,20 @@ import { validateWasmPublication } from "./wasm-publication.mjs";
 import { root, npmArtifacts, npm, run, releaseVersion } from "./npm-package-utils.mjs";
 
 const source = path.join(root, "packages", "cstructsharp");
-const wasmSource = path.join(root, "src/CStructSharp.Wasm");
+const adapterSource = path.join(source, "src");
+const wasmProject = path.join(root, "src/CStructSharp.Wasm");
 const runtime = path.join(root, "artifacts", "wasm");
 const version = releaseVersion();
 const manifest = validateWasmPublication(runtime);
 fs.mkdirSync(npmArtifacts, { recursive: true });
 // A fresh staging directory prevents stale files entering a release and needs no recursive deletion.
 const stage = fs.mkdtempSync(path.join(npmArtifacts, "stage-"));
-fs.cpSync(source, stage, { recursive: true });
+// Only the authored package files are staged; src/ (adapter sources) and standalone/ (ZIP bundle pieces) stay out.
+const pkg = JSON.parse(fs.readFileSync(path.join(source, "package.json"), "utf8"));
+for (const name of ["package.json", "README.md", ...pkg.files.filter((entry) => !entry.endsWith("/") && fs.existsSync(path.join(source, entry)))]) {
+  fs.copyFileSync(path.join(source, name), path.join(stage, name));
+}
 fs.cpSync(runtime, path.join(stage, "runtime"), { recursive: true });
-const pkg = JSON.parse(fs.readFileSync(path.join(stage, "package.json"), "utf8"));
 assert.equal(
   pkg.version,
   version,
@@ -28,7 +32,7 @@ delete pkg.private;
 fs.writeFileSync(path.join(stage, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
 // The API module's JSDoc names the ZIP bundle's declaration file; the package publishes the same declarations
 // as index.d.ts, which is the one source of truth (packages/cstructsharp/index.d.ts).
-const apiSource = fs.readFileSync(path.join(wasmSource, "cstructsharp-api.js"), "utf8");
+const apiSource = fs.readFileSync(path.join(adapterSource, "cstructsharp-api.js"), "utf8");
 assert.ok(apiSource.includes("./cstructsharp-wasm.js"), "cstructsharp-api.js no longer references its declaration module; update the packaging rewrite.");
 fs.writeFileSync(path.join(stage, "cstructsharp-api.js"), apiSource.replaceAll("./cstructsharp-wasm.js", "./index.d.ts"));
 fs.copyFileSync(path.join(root, "packages/cstructsharp/index.d.ts"), path.join(stage, "index.d.ts"));
@@ -41,7 +45,7 @@ fs.writeFileSync(
 const packs = JSON.parse(
   run("dotnet", [
     "msbuild",
-    path.join(wasmSource, "CStructSharpWeb.Wasm.csproj"),
+    path.join(wasmProject, "CStructSharpWeb.Wasm.csproj"),
     "-t:ResolveFrameworkReferences",
     "-getItem:ResolvedRuntimePack",
   ]),
@@ -98,6 +102,8 @@ fs.writeFileSync(
   path.join(npmArtifacts, "package-info.json"),
   `${JSON.stringify(metadata, null, 2)}\n`,
 );
+// The staged copy served its purpose once the tarball exists; a failed run keeps it for inspection.
+fs.rmSync(stage, { recursive: true, force: true });
 console.log(
   `Packed ${packed.filename}: ${packed.size} compressed / ${packed.unpackedSize} unpacked bytes.\n${packed.integrity}`,
 );

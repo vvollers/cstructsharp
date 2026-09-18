@@ -82,7 +82,7 @@ in Markdown.
 npm --prefix ./apps/explorer run lint
 npm --prefix ./apps/explorer run test:unit
 npm --prefix ./apps/explorer run test:demos
-npm --prefix ./apps/explorer run test:bootstrap
+npm run test:bootstrap
 npm --prefix ./apps/explorer run build
 npm --prefix ./apps/explorer run test:e2e
 ```

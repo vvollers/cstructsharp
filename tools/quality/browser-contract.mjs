@@ -22,7 +22,7 @@ const declarations = read("packages/cstructsharp/index.d.ts");
 const contract = read("apps/explorer/src/wasm/cstruct-contract.ts") + "\n" + declarations;
 const boundary = read("src/CStructSharp.Wasm/CStructInteropBoundary.cs");
 const exports = read("src/CStructSharp.Wasm/CStructExports.cs") + "\n" + read("src/CStructSharp.Wasm/StaticPlanExport.cs");
-const bootstrap = read("src/CStructSharp.Wasm/bootstrap.js");
+const bootstrap = read("packages/cstructsharp/src/bootstrap.js");
 const dtoSource = [
   "src/CStructSharp.Wasm/InteropOptionsDto.cs",
   "src/CStructSharp.Wasm/InteropResultDto.cs",
@@ -34,7 +34,6 @@ const dtoSource = [
   .join("\n");
 const managedSources = exports + boundary + dtoSource;
 
-const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const fail = (message) => {
   throw new Error(message);
 };

@@ -165,3 +165,5 @@ if (!process.argv.includes("--node-only")) {
   await testBrowserConsumer(consumer, installed, info);
 }
 console.log(`Verified installed tarball ${info.filename} in ${consumer}`);
+// Every check passed; the throwaway consumer is removed (a failed run keeps it for inspection).
+fs.rmSync(consumer, { recursive: true, force: true });

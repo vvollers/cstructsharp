@@ -14,10 +14,10 @@ export function run(command, args, options = {}) {
     );
   return result.stdout;
 }
+/** The npm CLI: the one that started this script when run through `npm run`, otherwise the `npm` on PATH. */
 export function npm(args, options = {}) {
-  if (!process.env.npm_execpath)
-    throw new Error("Start this command through npm run so the pinned npm CLI can be located.");
-  return run(process.execPath, [process.env.npm_execpath, ...args], options);
+  if (process.env.npm_execpath) return run(process.execPath, [process.env.npm_execpath, ...args], options);
+  return run(process.platform === "win32" ? "npm.cmd" : "npm", args, { ...options, shell: process.platform === "win32" });
 }
 export function releaseVersion() {
   const project = fs.readFileSync(path.join(root, "src/CStructSharp", "CStructSharp.csproj"), "utf8");

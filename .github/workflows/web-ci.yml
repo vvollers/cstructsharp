@@ -40,7 +40,7 @@ jobs:
 
       - name: Lint relocated WASM and repository scripts
         working-directory: .
-        run: node apps/explorer/node_modules/eslint/bin/eslint.js --config tools/eslint.config.mjs "tools/**/*.mjs" "src/CStructSharp.Wasm/**/*.js" --max-warnings 0
+        run: node apps/explorer/node_modules/eslint/bin/eslint.js --config tools/eslint.config.mjs "tools/**/*.mjs" "packages/cstructsharp/src/**/*.js" --max-warnings 0
 
       - name: Check formatting
         run: npm run format:check
@@ -49,7 +49,9 @@ jobs:
         run: npm run test:unit
 
       - name: Run WASM bridge interop tests
+        working-directory: .
         run: npm run test:bootstrap
 
       - name: Run WASM publication manifest tests
+        working-directory: .
         run: npm run test:wasm-publication

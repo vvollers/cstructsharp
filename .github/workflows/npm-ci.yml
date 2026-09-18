@@ -29,8 +29,9 @@ jobs:
         working-directory: apps/explorer
       - run: npx playwright install --with-deps chromium
         working-directory: apps/explorer
+      # The package scripts live in the repository root; the browser and TypeScript consumer checks resolve
+      # Vite, Playwright, and tsc from the explorer's pinned dependencies installed above.
       - name: Build once and test the actual tarball
-        working-directory: apps/explorer
         run: |
           npm run build:wasm
           npm run pack:npm
@@ -47,7 +48,7 @@ jobs:
           npm run test:unit
           npm run test:e2e
           npm run test:generated-csharp
-          npm run test:wasm-reproducibility
+          npm run --prefix ../.. test:wasm-reproducibility
       - name: Verify independent inspector against the same WASM
         working-directory: apps/inspector
         run: |
@@ -87,4 +88,3 @@ jobs:
           name: npm-package
           path: artifacts/npm
       - run: npm run test:npm:node
-        working-directory: apps/explorer

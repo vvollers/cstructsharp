@@ -6,6 +6,13 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- The npm package owns the JavaScript it ships: the adapter sources (`main.js`, `bootstrap.js`,
+  `large-source.js`, `source-worker.js`, `cstructsharp-api.js`, the ZIP entry `cstructsharp-wasm.js`) and their
+  unit tests live in `packages/cstructsharp/src/`, the standalone bundle's README, starter pages, and `serve.mjs`
+  in `packages/cstructsharp/standalone/`, and a root `package.json` carries `build:wasm`, `pack:npm`, `pack:zip`,
+  `test:npm`, `test:bootstrap`, `test:parity`, `bench:js`, and the other packaging checks (the explorer keeps only
+  its own scripts). The packaging tools locate npm from PATH when not started through `npm run`, and a successful
+  pack or tarball test removes its staging directory.
 - **Breaking (repository layout):** the lesson app is the **Explorer** everywhere: `apps/workshop` is now
   `apps/explorer` (package `cstructsharp-explorer`; the inspector package is `cstructsharp-inspector`), its
   operation form is the "Operation panel" (`OperationPanel.vue`, "Operation settings"), and every workflow,

@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 const root = process.cwd();
 const bundle = path.join(root, 'src/CStructSharp.Wasm/bin/Release/net10.0/browser-wasm/AppBundle');
 for (const file of ['bootstrap.js', 'large-source.js', 'source-worker.js', 'cstructsharp-api.js'])
-  fs.copyFileSync(path.join(root, 'src/CStructSharp.Wasm', file), path.join(bundle, file));
+  fs.copyFileSync(path.join(root, 'packages/cstructsharp/src', file), path.join(bundle, file));
 const { compileLargeSource, parseLargeSource } = await import(pathToFileURL(path.join(bundle, 'large-source.js')));
 const definition = 'struct root { uint8 tag; if (tag == 1) { uint32 value; } else { uint16 small; } uint8 tail; };';
 const options = { aligned: false };
