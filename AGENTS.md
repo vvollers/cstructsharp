@@ -3,8 +3,9 @@
 These instructions apply across the repository. Keep changes small, focused, and easy to explain.
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for the checks specific to the area you change.
 
-The project is pre-publication and has one maintainer. APIs and project boundaries may change freely;
-update the current contracts, tests, and documentation without retaining unused compatibility layers.
+The project is published on NuGet and npm at major version 0 and has one maintainer. A minor release may change
+public APIs and project boundaries; record every such change as **Breaking** in the CHANGELOG with its migration,
+and update the current contracts, tests, and documentation without retaining unused compatibility layers.
 
 ## Project boundaries
 

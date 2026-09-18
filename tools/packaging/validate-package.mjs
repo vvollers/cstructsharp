@@ -53,7 +53,6 @@ await main(() => {
     readme.text.trim(),
     "CHANGELOG.md",
     "LICENSE.txt",
-    "MUTATION_TESTING.md",
     "lib/net8.0/CStructSharp.dll",
     "lib/net8.0/CStructSharp.xml",
     "lib/net10.0/CStructSharp.dll",

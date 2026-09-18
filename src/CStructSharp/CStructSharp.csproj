@@ -35,7 +35,6 @@
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     <None Include="..\..\CHANGELOG.md" Pack="true" PackagePath="\" />
     <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="\" />
-    <None Include="..\..\MUTATION_TESTING.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>

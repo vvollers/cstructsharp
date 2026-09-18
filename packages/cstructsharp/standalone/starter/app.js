@@ -20,7 +20,7 @@ function hex(bytes) {
 
 try {
   // A dynamic import lets us display a useful error even if the bundle is missing.
-  const { loadCStructSharpWasm, parseWithDebug, serialize, update } =
+  const { loadCStructSharpWasm, parse, serialize, update } =
     await import("../cstructsharp-wasm.js");
   await loadCStructSharpWasm();
   status.textContent = "Ready";
@@ -32,7 +32,7 @@ try {
     output.textContent = "";
     try {
       const input = new Uint8Array([2, 0, 6, 0, 0, 0]);
-      const parsed = requireData(await parseWithDebug(definition, input, options));
+      const parsed = requireData(await parse(definition, input, options));
       if (parsed === null) return;
       const values = parsed;
       const written = requireData(await serialize(definition, { kind: 3, length: 6 }, options));
@@ -41,7 +41,7 @@ try {
       const changed = requireData(await update(definition, bytes, "header.kind", 4, options));
       if (changed === null) return;
       const updatedBytes = changed;
-      const reread = requireData(await parseWithDebug(definition, updatedBytes, options));
+      const reread = requireData(await parse(definition, updatedBytes, options));
       if (reread === null) return;
       output.textContent = [
         `Read: ${JSON.stringify(values)}`,

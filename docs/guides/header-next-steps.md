@@ -33,8 +33,8 @@ in memory and lets the library move to the selected position. An update cannot i
 
 ## Read into a class and handle missing bytes
 
-`ReadValue<Header>` gives application code typed properties. `AsSpan()` chooses a view over the byte array without
-copying it. It also selects the same overload on .NET 8 and .NET 10.
+`ReadValue<Header>` gives application code typed properties. The byte array is read in place; a
+`ReadOnlySpan<byte>` or `ReadOnlyMemory<byte>` slice of a larger buffer works the same way.
 
 The last read has only one byte. `TryReadValue` returns `false` for this expected library failure. Invalid method
 arguments can still throw; it is not a way to suppress every programming error.

@@ -6,6 +6,14 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- Documentation correctness sweep: the README and AGENTS.md no longer call the project pre-publication (both
+  packages are on their registries), the README links are absolute for nuget.org, memory images are a feature
+  bullet, a "Why CStructSharp instead of …" table positions the library, and a "Versioning and support" section
+  states the 0.x semantics, the browser contract policy, and the .NET/Node support windows; the language landing
+  page describes the directives, header vocabulary, and function-pointer support 0.5 added instead of listing
+  them as unsupported; every quick start leads with `parse`/`Parse(bytes, "header")` (the starter continuation
+  and two guides drop `AsSpan()`); the npm README states the NaN/Infinity convention and the error location
+  fields; `MUTATION_TESTING.md` is no longer packed into the NuGet package.
 - CI runs the managed test suite on Windows and macOS as well as Linux (build and `dotnet test` only; Linux stays
   the full gate), and a weekly `dependency-check` workflow reports known vulnerabilities in the locked managed
   and Node dependency graphs (`dotnet list package --vulnerable`, `npm audit --audit-level=high`).

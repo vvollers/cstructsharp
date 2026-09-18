@@ -15,15 +15,18 @@ npm install cstructsharp
 Save this as `example.mjs`, then run `node example.mjs`:
 
 ```js
-import { parseWithDebug, serialize, update } from "cstructsharp";
+import { parse, parseWithDebug, serialize, update } from "cstructsharp";
 
 const definition = "struct header { uint16 kind; uint32 length; };";
 const options = { root: "header" };
 const bytes = new Uint8Array([2, 0, 6, 0, 0, 0]);
-const read = await parseWithDebug(definition, bytes, options);
+const read = await parse(definition, bytes, options);
 if (!read.success) throw new Error(read.error.message);
 console.log(read.data.kind); // 2
-console.log(read.debug[1]); // { start: 2, end: 6, path: "header.length", type: "uint32", value: "6" }
+
+// parseWithDebug also records every field's byte range, for a hex viewer.
+const inspected = await parseWithDebug(definition, bytes, options);
+console.log(inspected.debug[1]); // { start: 2, end: 6, path: "header.length", type: "uint32", value: "6" }
 
 const written = await serialize(definition, { kind: 3, length: 6 }, options);
 if (!written.success) throw new Error(written.error.message);
@@ -126,7 +129,10 @@ results carry the selected value in `data` (the root struct's members by name); 
 `message`, `path`, `offset`, `member`, `memberType`, `line`, and `column`, with the library's message verbatim
 unless `redactDiagnostics` is set. Loading and argument failures reject the promise, so use `try/catch` at the
 application boundary as well. BigInt input is preserved as decimal text; large integers in read results may be
-strings and should not be coerced to Number.
+strings and should not be coerced to Number. A float that is NaN or infinite arrives as the string `"NaN"`,
+`"Infinity"`, or `"-Infinity"` (JSON has no such numbers), and `serialize`/`update` accept those strings for a
+float field. A layout error carries the offending `line` and `column`; a read or write error carries the `path`,
+`offset`, `member`, and `memberType` it stopped at.
 
 Imports are lazy and safe during SSR. Node conditions select the Node loader; explicit `cstructsharp/node` and
 `cstructsharp/browser` imports resolve ambiguous host configurations. Concurrent operations share initialization.

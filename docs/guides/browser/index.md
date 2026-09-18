@@ -17,10 +17,10 @@ npm install cstructsharp
 On Node.js 22.14 or later, save this as `example.mjs` and run `node example.mjs`:
 
 ```js
-import { parseWithDebug } from "cstructsharp";
+import { parse } from "cstructsharp";
 
 try {
-  const result = await parseWithDebug(
+  const result = await parse(
     "struct header { uint16 kind; uint32 length; };",
     new Uint8Array([2, 0, 6, 0, 0, 0]),
     { root: "header" },

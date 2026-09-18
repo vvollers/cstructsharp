@@ -76,9 +76,9 @@ stream failure during the final commit may still leave a written prefix.
 
 For a small file already loaded into a `byte[]`:
 
-1. Start with `Parse(bytes.AsSpan(), "root")` while learning the format.
-2. Change to `ReadValue<MyType>(bytes.AsSpan(), "root")` when the C# shape is stable.
-3. Use `ReadValue(bytes.AsSpan(), "root.header.flags")` when only one field is needed.
+1. Start with `Parse(bytes, "root")` while learning the format.
+2. Change to `ReadValue<MyType>(bytes, "root")` when the C# shape is stable.
+3. Use `ReadValue(bytes, "root.header.flags")` when only one field is needed.
 4. Start writes with `Serialize("root", value)`.
 5. Consider spans or `IBufferWriter<byte>` only after measuring allocation in the real workload.
 

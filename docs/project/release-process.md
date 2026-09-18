@@ -55,34 +55,16 @@ Check that the release tag points to the release commit, package versions agree,
 NuGet package, symbols, npm tarball, WASM ZIP, and release manifest. A successful build alone does not mean all
 services have been published.
 
-## First npm publication: maintainer steps
+## npm trusted publishing
 
-Account login and 2FA are one-time prerequisites. Confirm your email is verified and that `cstructsharp` is
-available to your publishing account. Then:
-
-1. Merge the implementation and wait for CI to pass on `main`.
-2. In GitHub Actions select **Release**, **Run workflow**, branch `main`, mode `prepare`, and the desired bump.
-   Wait for verification and all six Node jobs to succeed. The publish job is intentionally skipped.
-3. Record the run ID from the Actions URL (`/actions/runs/NUMBER`). Download its **npm-package** artifact and
-   extract the downloaded ZIP. It contains `cstructsharp-VERSION.tgz` and `package-info.json`. Keep the `.tgz` intact.
-4. Run `npm login --registry=https://registry.npmjs.org/`, complete authentication, and confirm
-   your account with `npm whoami --registry=https://registry.npmjs.org/`.
-5. Publish the downloaded file with
-   `npm publish "FULL-PATH/cstructsharp-VERSION.tgz" --access public --registry=https://registry.npmjs.org/`.
-   Substitute the actual path and version. Complete npm's authentication prompt. Do not publish the repository
-   or private explorer directory. A first package must exist before trust can be configured.
-6. On the [npm website](https://www.npmjs.com/) open the package's **Settings**, then **Trusted Publisher**, and select **GitHub Actions**.
-   Enter user `vvollers`, repository `cstructsharp`, workflow `release.yml`, and environment `github-pages`.
-   Enable direct `npm publish` and save. A staged-only publisher requires manual approval of every npm release.
-7. Run **Release** again with mode `recover` and `recovery_run_id` set to the prepared run's number. The bump
-   input is ignored. Recovery compares the manually published npm integrity, skips uploading it again,
-   and completes the version commit/tag, NuGet, Pages, and GitHub Release.
-8. Verify installation of the explicit registry version in a clean Node and browser consumer. Subsequent
-   normal releases use mode `release` and require no interactive npm login or npm token secret.
-
-The first interactive publication has no CI-generated provenance. Subsequent direct OIDC publications from the
-public repository generate provenance. The publishing job pins Node 26.5.0 and npm 12.0.2, satisfying npm's OIDC
-minimums. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) and
+The npm package is published by the release workflow through GitHub Actions trusted publishing (OIDC): the
+package's **Trusted Publisher** setting names user `vvollers`, repository `cstructsharp`, workflow `release.yml`,
+and environment `github-pages`, with direct `npm publish` enabled, so a normal release needs no interactive npm
+login and no npm token secret and every publication carries CI-generated provenance. The publishing job pins
+Node 26.5.0 and npm 12.0.2, satisfying npm's OIDC minimums. If the trusted publisher ever has to be re-created
+(a renamed workflow or environment), publish one release manually with `npm login` / `npm publish` of the
+verified `.tgz` from a `prepare` run, then restore the setting; see
+[npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) and
 [npm trust prerequisites](https://docs.npmjs.com/cli/v11/commands/npm-trust/).
 
 ## Recover a partial release

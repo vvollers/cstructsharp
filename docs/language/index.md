@@ -26,18 +26,24 @@ constructor choice.
 
 ## It looks like C, but it is not a C compiler
 
-Portable accepts structs, unions, enums, aliases, arrays, strings, bitfields, pointers, integer expressions, and a
-small `#define` form. It does not import arbitrary headers or implement:
+Portable accepts structs, unions, enums, aliases, arrays, strings, bitfields, pointers, integer expressions, and the
+directives a header needs: `#define` constants, `#ifdef`/`#ifndef`/`#else`/`#endif` selection, `#pragma pack`
+as a composite alignment clamp, and `#include` lines that are recorded rather than resolved. The vocabulary of
+Windows SDK and Linux kernel headers (`DWORD`, `__u32`, `typedef struct _X { ... } X, *PX;`) is built in, and a
+function-pointer declarator is stored as an opaque address. What it does not do:
 
-- `#include`, `#pragma`, or general preprocessing;
-- platform-dependent primitive widths;
-- compiler-specific packing, attributes, or bitfield allocation;
-- functions or function pointers; or
-- automatic host ABI detection.
+- resolve `#include` paths, expand function-like macros, or run any other preprocessing beyond the directives
+  above;
+- give a primitive a platform-dependent width - `long` is `CLongWidth`'s explicit choice, `uint32` is always four
+  bytes, and pointer width is a constructor argument;
+- honor compiler attributes such as `__attribute__((packed))` or `alignas` - placement is chosen by the
+  constructor's `aligned` flag, `#pragma pack`, `@align(N)`, and `BitfieldPacking` (`SysV` or `Msvc`);
+- declare functions, or dereference a function pointer; or
+- detect the host ABI - every rule is an explicit option, so a layout means the same thing on every machine.
 
 If you are translating a C header, first find the actual on-disk or on-wire format. Then express those fixed widths
 and positions in Portable syntax. [Differences from C](differences-from-c.md) lists every intentionally unsupported
-family.
+family and compares Portable placement with real compilers.
 
 ## Learn in this order
 
