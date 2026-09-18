@@ -231,7 +231,7 @@ public class ExpressionSafetyTests
     /// </summary>
     /// <remarks>
     ///     Supplying BASE = 1 must read two bytes into values. The variable dictionary must remain unchanged, and
-    ///     operations that lack the required external name must report a layout error rather than guess a count.
+    ///     operations that lack the required external name must fail as that operation rather than guess a count.
     /// </remarks>
     [TestMethod]
     public void RuntimeVariables_ResolveDefinitionsThatDependOnExternalNames()
@@ -248,7 +248,7 @@ public class ExpressionSafetyTests
         Assert.AreEqual(2, parsed.values.Count);
         Assert.AreEqual(1, variables.Count);
         Assert.AreEqual(1, variables["BASE"].Value);
-        Assert.Throws<CStructLayoutException>(
+        Assert.Throws<CStructReadException>(
             () => cstruct.ParseStream(new MemoryStream([0x2A, 0xA5,]), "root"));
     }
 
@@ -286,7 +286,7 @@ public class ExpressionSafetyTests
     ///     must preserve the original bytes and caller position instead of wrapping the count and proceeding.
     /// </remarks>
     [TestMethod]
-    public void RuntimeArrayOverflow_UsesLayoutExceptionAcrossOperationsWithoutMutation()
+    public void RuntimeArrayOverflow_FailsAsTheOperationWithoutMutation()
     {
         const string layout = "struct root { byte values[COUNT + 1]; byte tail; };";
         var cstruct = new CStruct(layout, pointerSize: 1);
@@ -297,24 +297,24 @@ public class ExpressionSafetyTests
             ["tail"] = (byte)2,
         };
 
-        Assert.Throws<CStructLayoutException>(
+        Assert.Throws<CStructReadException>(
             () => cstruct.ParseStream(new MemoryStream([1, 2,]), "root", variables));
-        Assert.Throws<CStructLayoutException>(
+        Assert.Throws<CStructReadException>(
             () => cstruct.ParseStreamWithDebug(new MemoryStream([1, 2,]), "root", variables));
-        Assert.Throws<CStructLayoutException>(
+        Assert.Throws<CStructReadException>(
             () => cstruct.ResolveAddress(new MemoryStream([1, 2,]), "root.tail", variables));
-        Assert.Throws<CStructLayoutException>(
+        Assert.Throws<CStructReadException>(
             () => cstruct.GetDynamicArrayLength(new MemoryStream([1, 2,]), "root.values", variables));
-        Assert.Throws<CStructLayoutException>(() => cstruct.Serialize("root", data, variables));
+        Assert.Throws<CStructWriteException>(() => cstruct.Serialize("root", data, variables));
 
         using var writeStream = new MemoryStream([0xA5, 0xA5,]);
-        Assert.Throws<CStructLayoutException>(
+        Assert.Throws<CStructWriteException>(
             () => cstruct.WriteStream(writeStream, "root", data, variables));
         CollectionAssert.AreEqual(new byte[] { 0xA5, 0xA5, }, writeStream.ToArray());
         Assert.AreEqual(0L, writeStream.Position);
 
         using var updateStream = new MemoryStream([0xA5, 0xA5,]) { Position = 1, };
-        Assert.Throws<CStructLayoutException>(
+        Assert.Throws<CStructReadException>(
             () => cstruct.UpdateStream(updateStream, "root.tail", (byte)3, variables));
         CollectionAssert.AreEqual(new byte[] { 0xA5, 0xA5, }, updateStream.ToArray());
         Assert.AreEqual(1L, updateStream.Position);
@@ -646,8 +646,8 @@ public class ExpressionSafetyTests
 
         using var debugStream = new MemoryStream((byte[])bytes.Clone());
         (List<DebugData> debug, _) = cstruct.ParseStreamWithDebug(debugStream, "root", variables);
-        Assert.IsTrue(debug.Any(item => item.CurPos == 1 && item.EndPos == 3));
-        Assert.IsTrue(debug.Any(item => item.CurPos == 3 && item.EndPos == 4));
+        Assert.IsTrue(debug.Any(item => item.Start == 1 && item.End == 3));
+        Assert.IsTrue(debug.Any(item => item.Start == 3 && item.End == 4));
 
         using var addressStream = new MemoryStream((byte[])bytes.Clone());
         Assert.AreEqual(1L, cstruct.ResolveAddress(addressStream, "root.ptr.value.values[0]", variables));

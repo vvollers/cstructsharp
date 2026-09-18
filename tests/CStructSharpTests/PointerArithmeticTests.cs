@@ -308,11 +308,11 @@ public class PointerArithmeticTests
             ["ptr"] = new Syntax.Literal(1),
         };
         using var dependentParse = new MemoryStream((byte[])dependentBytes.Clone());
-        _ = Assert.Throws<CStructLayoutException>(
+        _ = Assert.Throws<CStructReadException>(
             () => dependent.ParseStream(dependentParse, "root", staleOverride, noDereference));
 
         using var dependentAddress = new MemoryStream((byte[])dependentBytes.Clone());
-        _ = Assert.Throws<CStructLayoutException>(
+        _ = Assert.Throws<CStructReadException>(
             () => dependent.ResolveAddress(
                 dependentAddress,
                 "root.values[0]",

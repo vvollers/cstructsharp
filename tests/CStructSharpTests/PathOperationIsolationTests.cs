@@ -150,7 +150,7 @@ public class PathOperationIsolationTests
             = objectStruct.ParseStreamWithDebug(objectStream, "root.selected");
         dynamic selectedWithDebug = debugResult;
         Assert.AreEqual((byte)0x2A, (byte)selectedWithDebug.value);
-        Assert.IsTrue(debug.All(item => item.DebugStackString.StartsWith("root.selected", StringComparison.Ordinal)));
+        Assert.IsTrue(debug.All(item => item.Path.StartsWith("root.selected", StringComparison.Ordinal)));
 
         const string arrayLayout = "struct root { byte* bad; byte count; byte values[count]; byte later; };";
         var arrayStruct = new CStruct(arrayLayout, pointerSize: 2);

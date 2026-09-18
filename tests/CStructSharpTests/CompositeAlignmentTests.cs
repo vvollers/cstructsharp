@@ -54,9 +54,9 @@ public class CompositeAlignmentTests
 
         stream.Position = 0;
         (List<DebugData> debug, _) = cstruct.ParseStreamWithDebug(stream, "outer");
-        DebugData nestedFirstField = debug.Single(item => item.DebugStackString == "outer.item.a");
-        Assert.AreEqual(8L, nestedFirstField.CurPos);
-        Assert.AreEqual(9L, nestedFirstField.EndPos);
+        DebugData nestedFirstField = debug.Single(item => item.Path == "outer.item.a");
+        Assert.AreEqual(8L, nestedFirstField.Start);
+        Assert.AreEqual(9L, nestedFirstField.End);
     }
 
     /// <summary>

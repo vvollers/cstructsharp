@@ -35,7 +35,7 @@ using (var stream = new MemoryStream(input))
     AssertEqual((byte)0xA5, debugRoot["marker"], "debug parse marker");
     foreach (string expectedPath in new[] { "root.marker", "root.value", "root.target", })
     {
-        if (!debugData.Any(item => item.DebugStackString == expectedPath))
+        if (!debugData.Any(item => item.Path == expectedPath))
         {
             throw new InvalidOperationException($"Debug parsing did not report '{expectedPath}'.");
         }

@@ -76,7 +76,7 @@ public class WidePrimitiveTests
         using var stream = new MemoryStream((byte[])bytes.Clone());
         (List<DebugData> debug, dynamic _) = layout.ParseStreamWithDebug(stream, "root");
         stream.Position = 0;
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.c" && item.CurPos == 8 && item.EndPos == 24));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.c" && item.Start == 8 && item.End == 24));
         Assert.AreEqual(6, layout.ResolveAddress(stream, "root.b"));
         layout.UpdateStream(stream, "root.a", 0x0102UL);
         Assert.AreEqual(0x0102UL, layout.ReadValue<ulong>(stream.ToArray().AsSpan(), "root.a"));

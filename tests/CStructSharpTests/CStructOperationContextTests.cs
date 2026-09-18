@@ -128,16 +128,16 @@ public class CStructOperationContextTests
 
         Assert.HasCount(1, context.DebugMapping);
         DebugData entry = context.DebugMapping[0];
-        Assert.AreEqual(1L, entry.CurPos);
-        Assert.AreEqual(3L, entry.EndPos);
+        Assert.AreEqual(1L, entry.Start);
+        Assert.AreEqual(3L, entry.End);
         Assert.AreEqual("uint16", entry.TypeName);
-        CollectionAssert.AreEqual(new byte[] { 0x22, 0x33, }, entry.Buffer);
-        Assert.AreEqual(3L, context.Stream.Position);
+        Assert.IsTrue(entry.Bytes.IsEmpty, "a field record carries its range, not a copy of its bytes");
+        Assert.AreEqual(4L, context.Stream.Position, "registering a record does not move the stream");
     }
 
-    /// <summary>A zero-width value still gets a one-byte debug buffer so consumers always receive inspectable data.</summary>
+    /// <summary>A zero-width value produces an empty range and carries no bytes.</summary>
     [TestMethod]
-    public void RegisterDebugData_ZeroWidthValue_StillCapturesOneByte()
+    public void RegisterDebugData_ZeroWidthValue_HasEmptyRange()
     {
         using var stream = new MemoryStream([0xAA, 0xBB,]);
         var context = new CStructOperationContext(
@@ -148,7 +148,8 @@ public class CStructOperationContextTests
 
         context.RegisterDebugData(curPos: 0, endPos: 0, debugStack: null, value: 0, fieldTypeName: "none");
 
-        Assert.HasCount(1, context.DebugMapping[0].Buffer);
+        Assert.AreEqual(0L, context.DebugMapping[0].Length);
+        Assert.IsTrue(context.DebugMapping[0].Bytes.IsEmpty);
     }
 
     /// <summary>A minimal stream that reports itself as write-only, for exercising the readable-stream guard.</summary>

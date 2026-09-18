@@ -242,8 +242,9 @@ public class TraversalLimitTests
     ///     bytes.
     /// </summary>
     /// <remarks>
-    ///     Both phases must spend one shared budget, and debug rereads count too. Resetting accounting at the selected
-    ///     object would let the operation exceed its configured limit.
+    ///     Both phases must spend one shared budget, and a debug read spends exactly the same bytes as a plain read
+    ///     (records carry ranges, not copies). Resetting accounting at the selected object would let the operation
+    ///     exceed its configured limit.
     /// </remarks>
     [TestMethod]
     public void SelectedRead_UsesOneTotalByteBudget()
@@ -272,7 +273,7 @@ public class TraversalLimitTests
                     stream,
                     "root.selected",
                     new Dictionary<string, Expr>(),
-                    new ReadOptions { MaxTotalBytesRead = 4, }));
+                    new ReadOptions { MaxTotalBytesRead = 2, }));
         }
     }
 

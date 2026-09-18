@@ -17,9 +17,9 @@ public class Int24Tests
         (List<DebugData> debug, dynamic parsed) = parser.ParseStreamWithDebug(stream, "root");
         Assert.AreEqual(8388607, (int)parsed.root.items[0].value);
         Assert.AreEqual(-1, (int)parsed.root.target.Value.value);
-        DebugData entry = debug.Single(item => item.DebugStackString == "root.target.value");
-        Assert.AreEqual(7L, entry.CurPos);
-        Assert.AreEqual(10L, entry.EndPos);
+        DebugData entry = debug.Single(item => item.Path == "root.target.value");
+        Assert.AreEqual(7L, entry.Start);
+        Assert.AreEqual(10L, entry.End);
         stream.Position = 0;
         Assert.AreEqual(1, parser.GetDynamicArrayLength(stream, "root.items"));
         stream.Position = 0;
@@ -42,9 +42,9 @@ public class Int24Tests
         using var written = new MemoryStream();
         parser.WriteStream(written, "root", parsed.root);
         CollectionAssert.AreEqual(bytes, written.ToArray());
-        DebugData entry = debug.Single(item => item.DebugStackString == "root.low");
-        Assert.AreEqual(1L, entry.CurPos);
-        Assert.AreEqual(4L, entry.EndPos);
+        DebugData entry = debug.Single(item => item.Path == "root.low");
+        Assert.AreEqual(1L, entry.Start);
+        Assert.AreEqual(4L, entry.End);
         stream.Position = 0;
         Assert.AreEqual(7L, parser.ResolveAddress(stream, "root.values[1]"));
         stream.Position = 0;

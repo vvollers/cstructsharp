@@ -21,7 +21,12 @@ public abstract class CStructException : Exception
     /// <summary>Gets the stable machine-readable failure category.</summary>
     public CStructErrorCode Code { get; }
 
-    /// <summary>Gets the zero-based stream offset associated with the failure, when it is safe and known.</summary>
+    /// <summary>
+    ///     Gets the position at which the operation stopped, when known: the absolute stream position for a stream
+    ///     operation, or the zero-based offset within the supplied region for a span, memory, or array operation.
+    ///     It is where the reader or writer was when the failure surfaced, which is at or after the item that
+    ///     failed, not necessarily its start.
+    /// </summary>
     public long? Offset { get; private set; }
 
     /// <summary>Gets the normalized semantic path associated with the failure, when it is safe and known.</summary>

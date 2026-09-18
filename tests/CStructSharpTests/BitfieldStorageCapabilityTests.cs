@@ -175,9 +175,9 @@ public class BitfieldStorageCapabilityTests
                 (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
                 foreach (string fieldName in new[] { "low", "high", })
                 {
-                    DebugData item = debug.Single(entry => entry.DebugStackString == "root." + fieldName);
-                    Assert.AreEqual(0L, item.CurPos, typeName + "." + fieldName);
-                    Assert.AreEqual(size, item.EndPos, typeName + "." + fieldName);
+                    DebugData item = debug.Single(entry => entry.Path == "root." + fieldName);
+                    Assert.AreEqual(0L, item.Start, typeName + "." + fieldName);
+                    Assert.AreEqual(size, item.End, typeName + "." + fieldName);
                     stream.Position = 0;
                     Assert.AreEqual(0L, cstruct.ResolveAddress(stream, "root." + fieldName));
                 }
@@ -232,8 +232,8 @@ public class BitfieldStorageCapabilityTests
 
         stream.Position = 0;
         (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root.selected.value");
-        Assert.IsTrue(debug.Any(item => item.CurPos == 3 && item.DebugStackString == "root.selected.low"));
-        Assert.IsTrue(debug.Any(item => item.CurPos == 3 && item.DebugStackString == "root.selected.high"));
+        Assert.IsTrue(debug.Any(item => item.Start == 3 && item.Path == "root.selected.low"));
+        Assert.IsTrue(debug.Any(item => item.Start == 3 && item.Path == "root.selected.high"));
 
         stream.Position = 0;
         Assert.AreEqual(3L, cstruct.ResolveAddress(stream, "root.selected.value.high"));

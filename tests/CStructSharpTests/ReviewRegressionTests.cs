@@ -88,7 +88,7 @@ public class ReviewRegressionTests
         fixture.Stream.Position = 0;
         (List<DebugData> debug, _) = fixture.Layout.ParseStreamWithDebug(fixture.Stream, "root");
         Assert.IsTrue(
-            debug.Count(item => item.CurPos == fixture.TargetAddress) >= 2,
+            debug.Count(item => item.Start == fixture.TargetAddress) >= 2,
             "Every pointer-target union member must start at the overlapping target address.");
         RegressionTestSupport.AssertPositionRestored(fixture.Stream, 1);
 

@@ -101,7 +101,7 @@ public class FixedArrayShapeTests
             Assert.AreEqual(count, primitives.ResolveAddress(primitiveStream, "root.tail"));
             primitiveStream.Position = 0;
             (List<DebugData> primitiveDebug, _) = primitives.ParseStreamWithDebug(primitiveStream, "root");
-            Assert.AreEqual(count, primitiveDebug.Single(item => item.DebugStackString == "root.tail").CurPos);
+            Assert.AreEqual(count, primitiveDebug.Single(item => item.Path == "root.tail").Start);
             CollectionAssert.AreEqual(primitiveBytes, primitives.Serialize("root", primitiveResult));
 
             var characters = new CStruct($"struct root {{ char values[{count}]; byte tail; }};");
@@ -115,7 +115,7 @@ public class FixedArrayShapeTests
             Assert.AreEqual(count, characters.ResolveAddress(characterStream, "root.tail"));
             characterStream.Position = 0;
             (List<DebugData> characterDebug, _) = characters.ParseStreamWithDebug(characterStream, "root");
-            Assert.AreEqual(count, characterDebug.Single(item => item.DebugStackString == "root.tail").CurPos);
+            Assert.AreEqual(count, characterDebug.Single(item => item.Path == "root.tail").Start);
             CollectionAssert.AreEqual(characterBytes, characters.Serialize("root", characterResult));
 
             const string enumPrefix = "enum kind : byte { Zero, One, Two };";
@@ -133,7 +133,7 @@ public class FixedArrayShapeTests
             Assert.AreEqual(count, enums.ResolveAddress(enumStream, "root.tail"));
             enumStream.Position = 0;
             (List<DebugData> enumDebug, _) = enums.ParseStreamWithDebug(enumStream, "root");
-            Assert.AreEqual(count, enumDebug.Single(item => item.DebugStackString == "root.tail").CurPos);
+            Assert.AreEqual(count, enumDebug.Single(item => item.Path == "root.tail").Start);
             CollectionAssert.AreEqual(enumBytes, enums.Serialize("root", enumResult));
 
             var nested = new CStruct(
@@ -152,7 +152,7 @@ public class FixedArrayShapeTests
             Assert.AreEqual(count, nested.ResolveAddress(nestedStream, "root.tail"));
             nestedStream.Position = 0;
             (List<DebugData> nestedDebug, _) = nested.ParseStreamWithDebug(nestedStream, "root");
-            Assert.AreEqual(count, nestedDebug.Single(item => item.DebugStackString == "root.tail").CurPos);
+            Assert.AreEqual(count, nestedDebug.Single(item => item.Path == "root.tail").Start);
             CollectionAssert.AreEqual(nestedBytes, nested.Serialize("root", nestedResult));
         }
     }

@@ -129,7 +129,7 @@ public class PreprocessorTests
 
         // With N removed, `v[N]` is an ordinary caller variable again.
         var undefined = new CStruct("#define N 4\n#undef N\nstruct root { uint8 v[N]; };");
-        Assert.Throws<CStructLayoutException>(() => undefined.Parse(new byte[4].AsSpan(), "root"));
+        Assert.Throws<CStructReadException>(() => undefined.Parse(new byte[4].AsSpan(), "root"));
         Assert.AreEqual(3, ((IEnumerable<object?>)((dynamic)undefined.Parse(new byte[4].AsSpan(), "root", new Dictionary<string, int> { ["N"] = 3, })).v).Count());
     }
 
@@ -191,7 +191,7 @@ public class PreprocessorTests
         stream.Position = 0;
         dynamic parsed = layout.ParseStream(stream, "root");
         stream.Position = 0;
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.b" && item.CurPos == 1 && item.EndPos == 5));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.b" && item.Start == 1 && item.End == 5));
         Assert.AreEqual(1, layout.ResolveAddress(stream, "root.b"));
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", parsed));
 

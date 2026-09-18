@@ -107,6 +107,10 @@ A written sign is applied with checked arithmetic, so `-0xFFFFFFFF` is `1`, whil
 Array counts must resolve to a non-negative `Int32`. Bit widths have the additional requirement that they fit the
 chosen storage unit.
 
+A decoded field wider than that domain (`uint32` above `2147483647`, any `uint64` or `int64` beyond the range, a
+128-bit integer) is still read normally. It only fails when an expression selects it, and then the failure names the
+field and its value: `'n' is 4294967295, which is outside the 32-bit range that layout expressions support.`
+
 ## Enum expressions use the full backing range
 
 An enum may use signed or unsigned 8-, 16-, 32-, or 64-bit backing storage. Its member expressions therefore use
@@ -148,8 +152,10 @@ runtime variables. A caller override recalculates only definitions that depend o
 unbounded preparation. Public callers supply only `IReadOnlyDictionary<string, int>` values; parser and expression
 tree types remain internal.
 
-Expression failures encountered while preparing or applying a layout become `CStructLayoutException`. If a runtime
-array unexpectedly becomes huge or negative, check the supplied variable, byte order of any upstream count, and the
+Expression failures encountered while preparing a layout become `CStructLayoutException`. The same expression
+evaluated against decoded or supplied values during an operation fails as that operation: `CStructReadException`
+for reads, address lookups, and lengths; `CStructWriteException` for serialization and updates. If a runtime array
+unexpectedly becomes huge or negative, check the supplied variable, byte order of any upstream count, and the
 expression before increasing a safety limit.
 
 ## Comparisons and short-circuit predicates

@@ -97,7 +97,7 @@ public class FlagDeclarationTests
         using var stream = new MemoryStream((byte[])bytes.Clone());
         (List<DebugData> debug, dynamic _) = layout.ParseStreamWithDebug(stream, "root");
         stream.Position = 0;
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.mode" && item.CurPos == 0 && item.EndPos == 2));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.mode" && item.Start == 0 && item.End == 2));
         Assert.AreEqual(2, layout.ResolveAddress(stream, "root.modes[0]"));
         layout.UpdateStream(stream, "root.modes[1]", "EXEC|HIDDEN");
         CollectionAssert.AreEqual(new byte[] { 0x05, 0x01, 0x03, 0x00, 0x04, 0x01, }, stream.ToArray());
@@ -151,7 +151,7 @@ public class FlagDeclarationTests
         Assert.AreEqual("CONST", layout.ReadValue<EnumValueResult>(stream.ToArray().AsSpan(), "root.type").Name);
 
         (List<DebugData> debug, dynamic _) = layout.ParseStreamWithDebug(new MemoryStream(bytes), "root");
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.type"));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.type"));
     }
 
     /// <summary>An enum bitfield resolves to its storage unit's address like any other bitfield.</summary>

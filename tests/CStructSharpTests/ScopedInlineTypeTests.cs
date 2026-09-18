@@ -102,9 +102,9 @@ public class ScopedInlineTypeTests
         (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
         Assert.IsTrue(
             debug.Any(item =>
-                item.DebugStackString == "root.value.value.payload" &&
-                item.CurPos == 8 &&
-                item.EndPos == 12));
+                item.Path == "root.value.value.payload" &&
+                item.Start == 8 &&
+                item.End == 12));
 
         stream.Position = 0;
         Assert.AreEqual(6L, cstruct.ResolveAddress(stream, "root.value.values[1]"));
@@ -190,9 +190,9 @@ public class ScopedInlineTypeTests
         (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
         Assert.IsTrue(
             debug.Any(item =>
-                item.DebugStackString == "root.second.large" &&
-                item.CurPos == 4 &&
-                item.EndPos == 8));
+                item.Path == "root.second.large" &&
+                item.Start == 4 &&
+                item.End == 8));
     }
 
     /// <summary>

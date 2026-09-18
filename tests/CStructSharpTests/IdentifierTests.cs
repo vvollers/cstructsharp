@@ -15,10 +15,10 @@ public class IdentifierTests
         {
             var parser = new CStruct($"struct root {{ {type} id; uint8 bytes[id]; }};", aligned: false);
             var variables = new Dictionary<string, int> { ["id"] = 1 };
-            Assert.Throws<CStructLayoutException>(() => parser.ParseStream(new MemoryStream(new byte[17]), "root", variables: variables));
-            Assert.Throws<CStructLayoutException>(() => parser.ResolveAddress(new MemoryStream(new byte[17]), "root.bytes[0]", variables: variables));
-            Assert.Throws<CStructLayoutException>(() => parser.Serialize("root", new { id = Guid.Empty, bytes = new byte[] { 0 } }, variables: variables));
-            Assert.Throws<CStructLayoutException>(() => parser.Serialize("root", new { id = Guid.Empty.ToString("D"), bytes = new byte[] { 0 } }, variables: variables));
+            Assert.Throws<CStructReadException>(() => parser.ParseStream(new MemoryStream(new byte[17]), "root", variables: variables));
+            Assert.Throws<CStructReadException>(() => parser.ResolveAddress(new MemoryStream(new byte[17]), "root.bytes[0]", variables: variables));
+            Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new { id = Guid.Empty, bytes = new byte[] { 0 } }, variables: variables));
+            Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new { id = Guid.Empty.ToString("D"), bytes = new byte[] { 0 } }, variables: variables));
         }
     }
 
@@ -44,9 +44,9 @@ public class IdentifierTests
                 stream.Position = 0;
                 (List<DebugData> debug, dynamic parsed) = parser.ParseStreamWithDebug(stream, "root");
                 CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed.root));
-                DebugData entry = debug.Single(item => item.DebugStackString == "root.id");
-                Assert.AreEqual(1L, entry.CurPos);
-                Assert.AreEqual(17L, entry.EndPos);
+                DebugData entry = debug.Single(item => item.Path == "root.id");
+                Assert.AreEqual(1L, entry.Start);
+                Assert.AreEqual(17L, entry.End);
                 stream.Position = 0;
                 Assert.Throws<CStructWriteException>(() => parser.UpdateStream(stream, "root.id", "invalid"));
                 CollectionAssert.AreEqual(bytes, stream.ToArray());

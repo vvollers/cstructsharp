@@ -19,9 +19,9 @@ public class BoundedUtf8Tests
         (List<DebugData> debug, dynamic parsed) = parser.ParseStreamWithDebug(stream, "root");
         Assert.AreEqual(text, (string)parsed.root.name);
         Assert.AreEqual((ushort)0x1234, (ushort)parsed.root.tail);
-        DebugData entry = debug.Single(item => item.DebugStackString == "root.name");
-        Assert.AreEqual(1L, entry.CurPos);
-        Assert.AreEqual(8L, entry.EndPos);
+        DebugData entry = debug.Single(item => item.Path == "root.name");
+        Assert.AreEqual(1L, entry.Start);
+        Assert.AreEqual(8L, entry.End);
         CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed.root));
         stream.Position = 0;
         Assert.AreEqual(text, parser.ReadValue<string>(stream, "root.name"));

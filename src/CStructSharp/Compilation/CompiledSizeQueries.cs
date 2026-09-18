@@ -66,7 +66,7 @@ internal sealed class CompiledSizeQueries
         // extent from pure arithmetic (GetCompiledFieldStorageSize) rather than a stream - this method must stay
         // callable with no Stream/operation context, both mid-compilation and from variables-only callers.
         var cursor = new CompositeFieldPlacementCursor(0, this.aligned);
-        var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.expressionEvaluator, composite.ConditionalGroupCount) : null;
+        var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.expressionEvaluator, composite.ConditionalGroupCount, requireFixedSize ? ExpressionFailureDomain.Layout : ExpressionFailureDomain.Read) : null;
         foreach (CompiledField field in composite.Fields)
         {
             if (selection?.IsActive(field, variables) == false)
@@ -190,10 +190,16 @@ internal sealed class CompiledSizeQueries
         IReadOnlyDictionary<string, Expr> variables,
         bool requireFixedSize)
     {
+        // A fixed-size query has no data, so any failure is the layout's; a variables-driven query runs inside a
+        // read or address operation and its failure belongs to that data.
         int count;
         try
         {
-            count = this.expressionEvaluator.Evaluate(expression, variables, "array length for " + fieldName);
+            count = this.expressionEvaluator.Evaluate(
+                expression,
+                variables,
+                "array length for " + fieldName,
+                requireFixedSize ? ExpressionFailureDomain.Layout : ExpressionFailureDomain.Read);
         }
         catch (Exception exception) when (requireFixedSize)
         {
@@ -202,7 +208,9 @@ internal sealed class CompiledSizeQueries
 
         if (count < 0)
         {
-            throw new CStructLayoutException("Array length cannot be negative: " + fieldName);
+            throw requireFixedSize
+                      ? new CStructLayoutException("Array length cannot be negative: " + fieldName)
+                      : new CStructReadException("Array length cannot be negative: " + fieldName);
         }
 
         return count;

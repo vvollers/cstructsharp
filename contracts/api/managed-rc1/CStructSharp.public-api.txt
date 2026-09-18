@@ -188,6 +188,7 @@ namespace CStructSharp.Diagnostics
     }
     public sealed class CStructReadLimitException : CStructSharp.Diagnostics.CStructReadException
     {
+        public CStructReadLimitException() { }
         public CStructReadLimitException(string message) { }
         public CStructReadLimitException(string message, System.Exception innerException) { }
     }
@@ -200,24 +201,20 @@ namespace CStructSharp.Diagnostics
     }
     public sealed class CStructWriteLimitException : CStructSharp.Diagnostics.CStructWriteException
     {
+        public CStructWriteLimitException() { }
         public CStructWriteLimitException(string message) { }
         public CStructWriteLimitException(string message, System.Exception innerException) { }
     }
-    public struct DebugData
+    public readonly struct DebugData : System.IEquatable<CStructSharp.Diagnostics.DebugData>
     {
-        public DebugData() { }
-        [System.Text.Json.Serialization.JsonPropertyName("buffer")]
-        public byte[] Buffer { get; set; }
-        [System.Text.Json.Serialization.JsonPropertyName("curPos")]
-        public long CurPos { get; set; }
-        [System.Text.Json.Serialization.JsonPropertyName("debugStackString")]
-        public string DebugStackString { get; }
-        [System.Text.Json.Serialization.JsonPropertyName("endPos")]
-        public long EndPos { get; set; }
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        public string? TypeName { get; set; }
-        [System.Text.Json.Serialization.JsonPropertyName("value")]
-        public object? Value { get; set; }
+        public System.ReadOnlyMemory<byte> Bytes { get; init; }
+        public long End { get; init; }
+        public long Length { get; }
+        public string Path { get; }
+        public long Start { get; init; }
+        public string? TypeName { get; init; }
+        public object? Value { get; init; }
+        public override string ToString() { }
     }
 }
 namespace CStructSharp.Introspection

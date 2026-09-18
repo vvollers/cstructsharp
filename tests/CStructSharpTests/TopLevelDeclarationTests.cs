@@ -43,7 +43,7 @@ public class TopLevelDeclarationTests
         stream.Position = 0;
         dynamic parsed = layout.ParseStream(stream, "root");
         stream.Position = 0;
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.stamp.usec" && item.CurPos == 2 && item.EndPos == 4));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.stamp.usec" && item.Start == 2 && item.End == 4));
         Assert.AreEqual(2, layout.ResolveAddress(stream, "root.stamp.usec"));
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", parsed));
 

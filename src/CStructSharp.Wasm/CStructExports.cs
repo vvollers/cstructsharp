@@ -218,9 +218,9 @@ public partial class CStructExports
             debugDataDtos.Add(
                 new DebugDataDto
                 {
-                    CurPos = item.CurPos,
-                    EndPos = item.EndPos,
-                    DebugStackString = item.DebugStackString,
+                    CurPos = item.Start,
+                    EndPos = item.End,
+                    DebugStackString = item.Path,
                     Type = item.TypeName ?? "unknown",
                     Value = item.Value is IFormattable formattable
                                 ? formattable.ToString(null, CultureInfo.InvariantCulture)

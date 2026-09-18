@@ -45,8 +45,8 @@ public class ConditionalExecutionOptimizationTests
     {
         var layout = new CStruct("struct child { uint8 count; }; struct root { if (0) { uint8 count; } child nested; if (count) { uint8 payload; } };", aligned: false);
         byte[] bytes = [1, 42];
-        Assert.Throws<CStructLayoutException>(() => layout.ParseStream(new MemoryStream(bytes), "root"));
-        Assert.Throws<CStructLayoutException>(() => layout.ResolveAddress(new MemoryStream(bytes), "root.payload"));
+        Assert.Throws<CStructReadException>(() => layout.ParseStream(new MemoryStream(bytes), "root"));
+        Assert.Throws<CStructReadException>(() => layout.ResolveAddress(new MemoryStream(bytes), "root.payload"));
         Assert.Throws<CStructException>(() => layout.Serialize("root", new { nested = new { count = 1 }, payload = 42 }));
     }
 
@@ -55,7 +55,7 @@ public class ConditionalExecutionOptimizationTests
     public void MissingSelector_IdentifiesConditionalEvaluation()
     {
         var layout = new CStruct("struct root { if (missing) { uint8 value; } };", aligned: false);
-        CStructLayoutException error = Assert.Throws<CStructLayoutException>(() => layout.ParseStream(new MemoryStream([42]), "root"));
+        CStructReadException error = Assert.Throws<CStructReadException>(() => layout.ParseStream(new MemoryStream([42]), "root"));
         StringAssert.Contains(error.Message, "conditional selector");
     }
 

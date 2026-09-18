@@ -17,17 +17,10 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 /// <summary>Reads a selected nested object without materializing unrelated siblings.</summary>
 public partial class CStruct
 {
-    /// <summary>The general reader's scalar capture rule (E2.6a/E2.6): in-range values become literals, others shadow stale entries.</summary>
+    /// <summary>The general reader's scalar capture rule; see <see cref="LayoutVariableCapture"/>.</summary>
     private static void CaptureScalar(CStructOperationContext state, string name, object? value)
     {
-        if (Int32Capture.TryConvert(value, out int captured))
-        {
-            state.Variables[name] = new Literal(captured);
-        }
-        else
-        {
-            state.Variables.Remove(name);
-        }
+        LayoutVariableCapture.Capture(state.Variables, name, value);
     }
 
     /// <summary>A <c>char[N]</c> buffer is one Latin-1 character per byte, exactly as the per-element <c>char</c> reader produces.</summary>
@@ -392,11 +385,11 @@ public partial class CStruct
             state.DebugMapping.Add(
                 new DebugData
                 {
-                    CurPos = unionPosition,
-                    EndPos = unionEnd,
+                    Start = unionPosition,
+                    End = unionEnd,
                     DebugStack = debugStack,
                     Value = result,
-                    Buffer = rawStorage.ToArray(),
+                    Bytes = rawStorage.ToArray(),
                     TypeName = union.Name.Name,
                 });
         }

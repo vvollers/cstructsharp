@@ -27,8 +27,8 @@ public class BinaryTypePropertyTests
             (long, long)[] expectedRanges = active == "raw" ? [(1L, 2L), (2L, 3L)] : [(1L, 3L)];
             CollectionAssert.AreEqual(
                 expectedRanges,
-                debug.Where(item => item.DebugStackString == "root." + active)
-                    .Select(item => (item.CurPos, item.EndPos)).ToArray());
+                debug.Where(item => item.Path == "root." + active)
+                    .Select(item => (item.Start, item.End)).ToArray());
             stream.Position = 0;
             Assert.Throws<CStructWriteException>(() => parser.UpdateStream(stream, "root.tag", tag == 1 ? 2 : 1));
             CollectionAssert.AreEqual(bytes, stream.ToArray());

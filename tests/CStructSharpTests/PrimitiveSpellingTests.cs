@@ -111,7 +111,7 @@ public class PrimitiveSpellingTests
         using var stream = new MemoryStream((byte[])bytes.Clone());
 
         List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.b" && item.CurPos == 4 && item.EndPos == 8));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.b" && item.Start == 4 && item.End == 8));
         stream.Position = 0;
         Assert.AreEqual(8, layout.ResolveAddress(stream, "root.tail"));
         Assert.AreEqual(-1, layout.ReadValue<int>(bytes.AsSpan(), "root.a"));

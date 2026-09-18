@@ -60,9 +60,9 @@ public class BitfieldSemanticsTests
         Assert.AreEqual(0x1A, (int)debugParsed.center);
         foreach (string name in new[] { "first", "center", "last", })
         {
-            DebugData item = debug.Single(entry => entry.DebugStackString == "root." + name);
-            Assert.AreEqual(unitStart, item.CurPos, name);
-            Assert.AreEqual(unitStart + 2, item.EndPos, name);
+            DebugData item = debug.Single(entry => entry.Path == "root." + name);
+            Assert.AreEqual(unitStart, item.Start, name);
+            Assert.AreEqual(unitStart + 2, item.End, name);
         }
 
         CollectionAssert.AreEqual(bytes, cstruct.Serialize("root", parsed));
@@ -138,12 +138,12 @@ public class BitfieldSemanticsTests
 
         stream.Position = 0;
         (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
-        DebugData narrow = debug.Single(entry => entry.DebugStackString == "root.b");
-        DebugData wide = debug.Single(entry => entry.DebugStackString == "root.d");
-        Assert.AreEqual(0L, narrow.CurPos);
-        Assert.AreEqual(1L, narrow.EndPos);
-        Assert.AreEqual(wideUnitStart, wide.CurPos);
-        Assert.AreEqual(wideUnitStart + 2, wide.EndPos);
+        DebugData narrow = debug.Single(entry => entry.Path == "root.b");
+        DebugData wide = debug.Single(entry => entry.Path == "root.d");
+        Assert.AreEqual(0L, narrow.Start);
+        Assert.AreEqual(1L, narrow.End);
+        Assert.AreEqual(wideUnitStart, wide.Start);
+        Assert.AreEqual(wideUnitStart + 2, wide.End);
         CollectionAssert.AreEqual(bytes, cstruct.Serialize("root", parsed));
 
         stream.Position = 0;

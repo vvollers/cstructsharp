@@ -115,7 +115,7 @@ public class AnonymousBitfieldTests
 
         (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
 
-        Assert.IsTrue(debug.Exists(entry => entry.DebugStackString == "root."));
+        Assert.IsTrue(debug.Exists(entry => entry.Path == "root."));
     }
 
     /// <summary>An anonymous declarator can never be addressed by path, since a requested path segment can never be empty.</summary>

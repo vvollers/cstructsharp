@@ -49,7 +49,7 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual(itemsStart + 2, cstruct.ResolveAddress(stream, "root.items[1]"));
         stream.Position = 0;
         (List<DebugData> debug, _) = cstruct.ParseStreamWithDebug(stream, "root");
-        Assert.IsTrue(debug.Any(item => item.CurPos == itemsStart + 2 && item.EndPos == itemsStart + 4));
+        Assert.IsTrue(debug.Any(item => item.Start == itemsStart + 2 && item.End == itemsStart + 4));
 
         byte[] selected = cstruct.Serialize("root.items[1]", (ushort)0xABCD);
         byte[] expectedSelected = new byte[2];
@@ -226,7 +226,7 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual((byte)0x22, (byte)selected.code);
         nestedStream.Position = 0;
         (List<DebugData> nestedDebug, _) = nested.ParseStreamWithDebug(nestedStream, "root.items[1]");
-        Assert.IsTrue(nestedDebug.Any(item => item.CurPos == nestedAddress));
+        Assert.IsTrue(nestedDebug.Any(item => item.Start == nestedAddress));
 
         nestedStream.Position = 0;
         nested.UpdateStream(nestedStream, "root.items[1]", replacement);
@@ -388,7 +388,7 @@ public class IndexedPointerUpdateTests
 
         parseStream.Position = rootStart;
         (List<DebugData> debug, _) = cstruct.ParseStreamWithDebug(parseStream, "root");
-        Assert.IsTrue(debug.Any(item => item.CurPos == rootStart && item.EndPos == rootStart + pointerSize));
+        Assert.IsTrue(debug.Any(item => item.Start == rootStart && item.End == rootStart + pointerSize));
         foreach ((string path, long address) in new[]
                  {
                      ("root.ptr.address", (long)rootStart),
@@ -515,7 +515,7 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual((byte)0x11, (byte)selectedStruct.code);
         structStream.Position = 0;
         (List<DebugData> structDebug, _) = structs.ParseStreamWithDebug(structStream, "root.ptr.value");
-        Assert.IsTrue(structDebug.Any(item => item.CurPos == 3));
+        Assert.IsTrue(structDebug.Any(item => item.Start == 3));
         structStream.Position = 0;
         structs.UpdateStream(structStream, "root.ptr.value", structReplacement);
         CollectionAssert.AreEqual(
@@ -532,7 +532,7 @@ public class IndexedPointerUpdateTests
         Assert.AreEqual((ushort)0x1234, (ushort)selectedUnion.wide);
         unionStream.Position = 0;
         (List<DebugData> unionDebug, _) = unions.ParseStreamWithDebug(unionStream, "root.ptr.value");
-        Assert.IsTrue(unionDebug.All(item => item.CurPos == 3));
+        Assert.IsTrue(unionDebug.All(item => item.Start == 3));
         UnionValue unionReplacement = UnionValue.FromMember("choice", "small", (byte)0x11);
         unionStream.Position = 0;
         unions.UpdateStream(unionStream, "root.ptr.value", unionReplacement);

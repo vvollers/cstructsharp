@@ -6,6 +6,12 @@ using System;
 /// <summary>Represents a read stopped by an explicit caller-configurable safety or work budget.</summary>
 public sealed class CStructReadLimitException : CStructReadException
 {
+    /// <summary>Creates an empty read-limit error.</summary>
+    public CStructReadLimitException()
+        : base(CStructErrorCode.ReadLimitExceeded, null)
+    {
+    }
+
     /// <summary>Creates a read-limit error with an actionable diagnostic.</summary>
     /// <param name="message">The diagnostic identifying the exceeded read budget.</param>
     public CStructReadLimitException(string message)

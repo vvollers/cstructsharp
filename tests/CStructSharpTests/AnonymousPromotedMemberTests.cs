@@ -178,10 +178,10 @@ public class AnonymousPromotedMemberTests
 
         (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
 
-        DebugData entry = debug.Single(item => item.DebugStackString == "root.x");
-        Assert.AreEqual(0L, entry.CurPos);
-        Assert.AreEqual(1L, entry.EndPos);
-        Assert.IsFalse(debug.Exists(item => item.DebugStackString.Contains("..")));
+        DebugData entry = debug.Single(item => item.Path == "root.x");
+        Assert.AreEqual(0L, entry.Start);
+        Assert.AreEqual(1L, entry.End);
+        Assert.IsFalse(debug.Exists(item => item.Path.Contains("..")));
     }
 
     /// <summary>

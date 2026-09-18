@@ -74,7 +74,7 @@ public class ExpressionExtensionTests
         stream.Position = 0;
         dynamic parsed = layout.ParseStream(stream, "root");
         stream.Position = 0;
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.y" && item.CurPos == 4 && item.EndPos == 5));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.y" && item.Start == 4 && item.End == 5));
         Assert.AreEqual(1, layout.ResolveAddress(stream, "root.y"));
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", parsed));
         using var written = new MemoryStream();
@@ -94,7 +94,7 @@ public class ExpressionExtensionTests
         Assert.AreEqual(4, ((IEnumerable<object?>)value.w).Count());
         Assert.AreEqual((byte)9, (byte)value.extra);
 
-        Assert.Throws<CStructLayoutException>(() => new CStruct("enum e : uint8 { A = 1 }; struct root { uint8 v[A]; };").Parse(new byte[4].AsSpan(), "root"));
-        Assert.Throws<CStructLayoutException>(() => new CStruct("enum e : uint8 { A = 1 }; struct root { uint8 v[e.Missing]; };").Parse(new byte[4].AsSpan(), "root"));
+        Assert.Throws<CStructReadException>(() => new CStruct("enum e : uint8 { A = 1 }; struct root { uint8 v[A]; };").Parse(new byte[4].AsSpan(), "root"));
+        Assert.Throws<CStructReadException>(() => new CStruct("enum e : uint8 { A = 1 }; struct root { uint8 v[e.Missing]; };").Parse(new byte[4].AsSpan(), "root"));
     }
 }

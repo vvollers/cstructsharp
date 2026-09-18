@@ -34,16 +34,7 @@ internal static class WriterVariableProjection
 
         // Normal scalar values become literal expressions for following array counts and calculations. The field
         // still shadows a caller/definition value even when it cannot feed the Int32 expression language: this method
-        // receives arbitrary caller-supplied POCO/dynamic values (byte arrays, nested objects, out-of-range numbers),
-        // and the former Convert.ToInt32 try/catch threw for each of them on every write (E2.6a). Int32Capture keeps
-        // the same accept/reject decision without raising.
-        if (Int32Capture.TryConvert(value, out int captured))
-        {
-            state.Variables[name] = new Literal(captured);
-        }
-        else
-        {
-            state.Variables.Remove(name);
-        }
+        // receives arbitrary caller-supplied POCO/dynamic values (byte arrays, nested objects, out-of-range numbers).
+        LayoutVariableCapture.Capture(state.Variables, name, value);
     }
 }

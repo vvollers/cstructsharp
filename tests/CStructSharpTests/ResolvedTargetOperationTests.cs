@@ -55,7 +55,7 @@ public class ResolvedTargetOperationTests
         stream.Position = 0;
         (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root.items[1]");
         Assert.IsTrue(
-            debug.Any(item => item.CurPos == 8 && item.EndPos == 10 && item.DebugStackString == "root.items.value"));
+            debug.Any(item => item.Start == 8 && item.End == 10 && item.Path == "root.items.value"));
 
         stream.Position = 0;
         cstruct.UpdateStream(stream, "root.items[1].value", (ushort)0xABCD);
@@ -182,7 +182,7 @@ public class ResolvedTargetOperationTests
 
         stream.Position = 0;
         (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root.ptr.value");
-        Assert.IsTrue(debug.Any(item => item.CurPos == 4 && item.DebugStackString == "root.ptr.value"));
+        Assert.IsTrue(debug.Any(item => item.Start == 4 && item.Path == "root.ptr.value"));
 
         stream.Position = 0;
         cstruct.UpdateStream(stream, "root.ptr.value.value", (byte)0xA5);
@@ -321,7 +321,7 @@ public class ResolvedTargetOperationTests
 
         stream.Position = 0;
         (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root.value");
-        Assert.IsTrue(debug.Any(item => item.CurPos == 1 && item.EndPos == 3));
+        Assert.IsTrue(debug.Any(item => item.Start == 1 && item.End == 3));
 
         stream.Position = 0;
         cstruct.UpdateStream(stream, "root.value.large", (ushort)0xABCD);

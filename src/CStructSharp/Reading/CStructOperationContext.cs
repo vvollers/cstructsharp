@@ -199,27 +199,15 @@ internal sealed class CStructOperationContext
         object value,
         string fieldTypeName)
     {
-        // Move back to the value's start because normal parsing has already advanced past it.
-        this.Stream.Position = curPos;
-
-        // Even a zero-width layout gets a one-byte debug buffer so consumers always receive inspectable data.
-        long bufferLen = Math.Max(endPos - curPos, 1);
-        byte[] buffer = new byte[bufferLen];
-        this.Stream.ReadExactly(buffer);
-
-        // Restore the post-value position before adding metadata; debug collection must not change parsing behavior.
-        this.Stream.Position = endPos;
-
-        // The captured bytes are kept as they were read (E2.8): the former int[] widening copy doubled the work and
-        // quadrupled the retained memory of every debug record for no additional information.
+        // The record carries the range only; the caller owns the input and can select Start..End from it, so no
+        // bytes are re-read or copied per field.
         this.DebugMapping.Add(
                               new DebugData
                               {
-                                  CurPos = curPos,
-                                  EndPos = endPos,
+                                  Start = curPos,
+                                  End = endPos,
                                   DebugStack = debugStack,
                                   Value = value,
-                                  Buffer = buffer,
                                   TypeName = fieldTypeName,
                               });
     }

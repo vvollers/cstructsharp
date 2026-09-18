@@ -1,41 +1,44 @@
 namespace CStructSharp.Diagnostics;
 
-using System.Text.Json.Serialization;
+using System;
 
-/// <summary>Describes the bytes, path, type, and parsed value for one item read in debug mode.</summary>
+/// <summary>Describes the byte range, path, type, and decoded value of one item read in debug mode.</summary>
 /// <remarks>
 ///     Records are produced by <see cref="CStruct.ParseStreamWithDebug(System.IO.Stream)"/> and its overloads.
-///     <see cref="CurPos"/> is inclusive, <see cref="EndPos"/> is exclusive, and <see cref="Buffer"/> is a snapshot.
+///     <see cref="Start"/> is inclusive and <see cref="End"/> exclusive, both relative to the operation's origin
+///     (the stream position or region start when the operation began). The record is immutable; a caller that
+///     needs the bytes selects <c>Start..End</c> from its own input, except for a union read as raw storage, whose
+///     bytes <see cref="Bytes"/> carries because they are not addressable through a single field.
 /// </remarks>
-public struct DebugData()
+public readonly record struct DebugData
 {
-    /// <summary>Gets or sets the inclusive zero-based start offset of the captured field.</summary>
-    [JsonPropertyName("curPos")]
-    public long CurPos { get; set; } = 0;
+    /// <summary>Gets the inclusive zero-based start offset of the captured item.</summary>
+    public long Start { get; init; }
 
-    /// <summary>Gets or sets the exclusive zero-based end offset of the captured field.</summary>
-    [JsonPropertyName("endPos")]
-    public long EndPos { get; set; } = 0;
+    /// <summary>Gets the exclusive zero-based end offset of the captured item.</summary>
+    public long End { get; init; }
 
-    [JsonIgnore]
-    internal DebugPath? DebugStack { get; set; } = null;
+    /// <summary>Gets the declaration path of the item, such as <c>header.samples[2].value</c>.</summary>
+    public string Path => this.DebugStack?.ToString() ?? string.Empty;
 
-    /// <summary>Gets the dot-separated declaration path used while reading the field.</summary>
-    [JsonPropertyName("debugStackString")]
-    public string DebugStackString
+    /// <summary>Gets the layout type spelling of the captured item, or <see langword="null"/> for a composite.</summary>
+    public string? TypeName { get; init; }
+
+    /// <summary>Gets the decoded value of the captured item.</summary>
+    public object? Value { get; init; }
+
+    /// <summary>Gets the raw bytes of a union captured as storage; empty for every other item.</summary>
+    public ReadOnlyMemory<byte> Bytes { get; init; }
+
+    /// <summary>Gets the linked path segments behind <see cref="Path"/>.</summary>
+    internal DebugPath? DebugStack { get; init; }
+
+    /// <summary>Gets the number of bytes the item occupies.</summary>
+    public long Length => this.End - this.Start;
+
+    /// <inheritdoc/>
+    public override string ToString()
     {
-        get => this.DebugStack?.ToString() ?? string.Empty;
+        return $"{this.Path} [{this.Start}, {this.End}) {this.TypeName} = {this.Value}";
     }
-
-    /// <summary>Gets or sets the layout type spelling associated with the captured field.</summary>
-    [JsonPropertyName("type")]
-    public string? TypeName { get; set; } = null;
-
-    /// <summary>Gets or sets the parsed semantic value associated with the captured field.</summary>
-    [JsonPropertyName("value")]
-    public object? Value { get; set; } = null;
-
-    /// <summary>Gets or sets the exact captured bytes as unsigned integer values suitable for JSON.</summary>
-    [JsonPropertyName("buffer")]
-    public byte[] Buffer { get; set; } = [];
 }

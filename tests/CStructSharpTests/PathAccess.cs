@@ -161,7 +161,7 @@ public class PathAccess
 
         Assert.AreEqual(0x02, inner.x);
         Assert.IsNotNull(debug);
-        Assert.IsTrue(debug.All(dbg => dbg.DebugStackString.StartsWith("outer.i", StringComparison.Ordinal)));
+        Assert.IsTrue(debug.All(dbg => dbg.Path.StartsWith("outer.i", StringComparison.Ordinal)));
     }
 
     /// <summary>

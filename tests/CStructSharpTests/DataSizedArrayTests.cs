@@ -54,7 +54,7 @@ public class DataSizedArrayTests
         dynamic parsed = layout.ParseStream(stream, "root");
         stream.Position = 0;
         Assert.AreEqual((byte)20, (byte)parsed.entries[1].size);
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.entries[1].size" && item.CurPos == 5));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.entries[1].size" && item.Start == 5));
         Assert.AreEqual(2, layout.GetDynamicArrayLength(stream, "root.entries"));
         Assert.AreEqual(4, layout.ResolveAddress(stream, "root.entries[1]"));
         Assert.Throws<CStructPathException>(() => layout.ResolveAddress(stream, "root.entries[2]"));
@@ -116,7 +116,7 @@ public class DataSizedArrayTests
         dynamic parsed = layout.ParseStream(stream, "root");
         stream.Position = 0;
         Assert.AreEqual((byte)9, (byte)parsed.tail);
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.tail" && item.CurPos == 6));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.tail" && item.Start == 6));
         Assert.AreEqual(2, layout.GetDynamicArrayLength(stream, "root.entries"));
         Assert.AreEqual(2, layout.ResolveAddress(stream, "root.entries[1]"));
         Assert.AreEqual(6, layout.ResolveAddress(stream, "root.tail"));

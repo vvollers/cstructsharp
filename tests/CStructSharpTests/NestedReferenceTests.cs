@@ -24,7 +24,7 @@ public class NestedReferenceTests
         Assert.AreEqual((byte)9, (byte)parsed.tail);
 
         List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.tail" && item.CurPos == 4));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.tail" && item.Start == 4));
         stream.Position = 0;
         Assert.AreEqual(4, layout.ResolveAddress(stream, "root.tail"));
         Assert.AreEqual(2, layout.GetDynamicArrayLength(stream, "root.v"));
@@ -77,6 +77,6 @@ public class NestedReferenceTests
     public void DottedReference_ToNothing_FailsAtUse()
     {
         var layout = new CStruct("struct h { uint8 n; }; struct root { h hdr; uint8 v[other.n]; };");
-        Assert.Throws<CStructLayoutException>(() => layout.Parse(new byte[] { 1, 2, }.AsSpan(), "root"));
+        Assert.Throws<CStructReadException>(() => layout.Parse(new byte[] { 1, 2, }.AsSpan(), "root"));
     }
 }

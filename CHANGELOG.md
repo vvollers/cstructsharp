@@ -6,6 +6,18 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- Browser/WASM: a float that is NaN or infinite no longer fails the whole parse with `invalid-input`; it arrives
+  as the string `"NaN"`, `"Infinity"`, or `"-Infinity"` (the convention already used for integers beyond
+  `Number`'s exact range), and `serialize`/`update` accept those strings for float fields.
+- Browser/WASM: the JavaScript static plan formats `float32` values with the same tie-to-even shortest round-trip
+  rule as the managed projection, so the fast path and the WASM path return identical numbers for every input. A
+  differential test in the npm package checks (benchmark fixtures plus seeded random inputs) now guards the two paths.
+- Fix: a count, offset, or conditional selector that cannot be evaluated because of the *data* now fails as that
+  operation - `CStructReadException` for reads (`CStructWriteException` for writes) - and names the value:
+  `Cannot evaluate array length for data: 'n' is 4294967295, which is outside the 32-bit range that layout
+  expressions support.` Previously a decoded `uint32` at or above 2^31, any wide `uint64`, or an overflowing
+  `a * b` surfaced as `CStructLayoutException` with "Undefined expression identifier" or a bare overflow message.
+  `CStructLayoutException` is now raised only for the layout text itself.
 - **Breaking (API):** the library source is organized into folders whose names match their namespaces, and the
   public types outside the `CStruct` facade moved with their folders. `CStruct`, `CStructCompilationOptions`,
   `ReadOptions`, `WriteOptions`, `UpdateOptions`, `BitfieldAllocation`, and `StaticHelpers` stay in `CStructSharp`;

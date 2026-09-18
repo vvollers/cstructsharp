@@ -111,7 +111,7 @@ public partial class CStruct
             state.Complete();
         }
 
-        return state.DebugMapping.Select(item => (item.DebugStackString, item.CurPos, item.EndPos))
+        return state.DebugMapping.Select(item => (item.Path, item.Start, item.End))
             .Concat(state.ConditionalLayoutTrace).ToArray();
     }
 }

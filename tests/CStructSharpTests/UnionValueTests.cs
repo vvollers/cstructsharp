@@ -413,19 +413,19 @@ public class UnionValueTests
         (List<DebugData> debug, dynamic _) = cstruct.ParseStreamWithDebug(stream, "root");
         DebugData storage = debug.Single(item => item.Value is UnionValue);
 
-        Assert.AreEqual(0L, storage.CurPos);
-        Assert.AreEqual(2L, storage.EndPos);
+        Assert.AreEqual(0L, storage.Start);
+        Assert.AreEqual(2L, storage.End);
         Assert.AreEqual("choice", storage.TypeName);
-        Assert.AreEqual("root.value", storage.DebugStackString);
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.value.small" && item.CurPos == 0 && item.EndPos == 1));
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.value.large" && item.CurPos == 0 && item.EndPos == 2));
-        CollectionAssert.AreEqual(new byte[] { 0x34, 0x12, }, storage.Buffer);
-        Assert.IsTrue(debug.Count(item => item.CurPos == 0) >= 3);
+        Assert.AreEqual("root.value", storage.Path);
+        Assert.IsTrue(debug.Any(item => item.Path == "root.value.small" && item.Start == 0 && item.End == 1));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.value.large" && item.Start == 0 && item.End == 2));
+        CollectionAssert.AreEqual(new byte[] { 0x34, 0x12, }, storage.Bytes.ToArray());
+        Assert.IsTrue(debug.Count(item => item.Start == 0) >= 3);
 
         stream.Position = 0;
         (List<DebugData> rootDebug, _) = cstruct.ParseStreamWithDebug(stream, "choice");
-        Assert.AreEqual("choice", rootDebug.Single(item => item.Value is UnionValue).DebugStackString);
-        Assert.IsTrue(rootDebug.Any(item => item.DebugStackString == "choice.small" && item.CurPos == 0 && item.EndPos == 1));
+        Assert.AreEqual("choice", rootDebug.Single(item => item.Value is UnionValue).Path);
+        Assert.IsTrue(rootDebug.Any(item => item.Path == "choice.small" && item.Start == 0 && item.End == 1));
     }
 
     /// <summary>

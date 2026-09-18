@@ -24,9 +24,9 @@ public class StructArrayDebugTests
         for (int i = 0; i < 8; i++)
         {
             string path = $"root.data[{i / 4}].cells[{(i % 4) / 2}][{i % 2}].val";
-            DebugData entry = debug.Single(item => item.DebugStackString == path);
-            Assert.AreEqual(1L + (i * 2), entry.CurPos);
-            Assert.AreEqual(3L + (i * 2), entry.EndPos);
+            DebugData entry = debug.Single(item => item.Path == path);
+            Assert.AreEqual(1L + (i * 2), entry.Start);
+            Assert.AreEqual(3L + (i * 2), entry.End);
         }
     }
 
@@ -39,7 +39,7 @@ public class StructArrayDebugTests
         Parallel.For(0, 32, _ =>
         {
             parser.ParseStreamWithDebug(new MemoryStream(new byte[4]), "root");
-            string[] paths = retained.Select(item => item.DebugStackString).ToArray();
+            string[] paths = retained.Select(item => item.Path).ToArray();
             CollectionAssert.AreEqual(
                 new[] { "root.cells[0][0].value", "root.cells[0][1].value", "root.cells[1][0].value", "root.cells[1][1].value" },
                 paths);
@@ -57,9 +57,9 @@ public class StructArrayDebugTests
         var parser = new CStruct(layout, pointerSize: 1, aligned: false);
         using var stream = new MemoryStream(new byte[] { 2, 4, 11, 0, 22, 0 });
         (List<DebugData> debug, _) = parser.ParseStreamWithDebug(stream, "root");
-        Assert.AreEqual(2L, debug.Single(item => item.DebugStackString == "root.data[0].val").CurPos);
-        Assert.AreEqual(4L, debug.Single(item => item.DebugStackString == "root.data[1].val").CurPos);
-        Assert.AreEqual(0L, debug.Single(item => item.DebugStackString == "root.data[0]").CurPos);
-        Assert.AreEqual(1L, debug.Single(item => item.DebugStackString == "root.data[1]").CurPos);
+        Assert.AreEqual(2L, debug.Single(item => item.Path == "root.data[0].val").Start);
+        Assert.AreEqual(4L, debug.Single(item => item.Path == "root.data[1].val").Start);
+        Assert.AreEqual(0L, debug.Single(item => item.Path == "root.data[0]").Start);
+        Assert.AreEqual(1L, debug.Single(item => item.Path == "root.data[1]").Start);
     }
 }

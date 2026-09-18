@@ -131,7 +131,7 @@ public class Int32CaptureTests
         byte[] bytes = [0xFF, 0xFF, 0xFF, 0xFF, 1, 2, 3];
 
         // The out-of-range value removes the #define, so the array length has no usable variable any more.
-        CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => layout.Parse(bytes, "root"));
+        CStructReadException failure = Assert.ThrowsExactly<CStructReadException>(() => layout.Parse(bytes, "root"));
         StringAssert.Contains(failure.Message, "count");
 
         byte[] inRange = [3, 0, 0, 0, 1, 2, 3];

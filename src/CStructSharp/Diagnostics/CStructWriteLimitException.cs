@@ -6,6 +6,12 @@ using System;
 /// <summary>Represents a write stopped by an explicit caller-configurable output or encoded-string budget.</summary>
 public sealed class CStructWriteLimitException : CStructWriteException
 {
+    /// <summary>Creates an empty write-limit error.</summary>
+    public CStructWriteLimitException()
+        : base(CStructErrorCode.WriteLimitExceeded, null)
+    {
+    }
+
     /// <summary>Creates a write-limit error with an actionable diagnostic.</summary>
     /// <param name="message">The diagnostic identifying the exceeded write budget.</param>
     public CStructWriteLimitException(string message)

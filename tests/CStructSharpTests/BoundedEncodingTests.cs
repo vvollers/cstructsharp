@@ -26,9 +26,9 @@ public class BoundedEncodingTests
             Assert.AreEqual(text, (string)parsed.root.name);
             Assert.AreEqual((byte)99, (byte)parsed.root.tail);
             CollectionAssert.AreEqual(bytes, parser.Serialize("root", parsed.root));
-            DebugData entry = debug.Single(item => item.DebugStackString == "root.name");
-            Assert.AreEqual(1L, entry.CurPos);
-            Assert.AreEqual(1L + payload.Length, entry.EndPos);
+            DebugData entry = debug.Single(item => item.Path == "root.name");
+            Assert.AreEqual(1L, entry.Start);
+            Assert.AreEqual(1L + payload.Length, entry.End);
             stream.Position = 0;
             Assert.AreEqual(text, parser.ReadValue<string>(stream, "root.name"));
             stream.Position = 0;

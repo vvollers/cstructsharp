@@ -306,12 +306,12 @@ public class TestAlign
         Assert.AreEqual(32, str.Position);
         Assert.AreEqual(8, c.GetStructAlignmentInBytes("test"));
         Assert.AreEqual(32, c.GetStructSizeInBytes("test"));
-        Assert.AreEqual(0x00, debug[0].CurPos);
-        Assert.AreEqual(0x08, debug[1].CurPos);
-        Assert.AreEqual(0x10, debug[2].CurPos);
-        Assert.AreEqual(0x14, debug[3].CurPos);
-        Assert.AreEqual(0x18, debug[4].CurPos);
-        Assert.AreEqual(0x1A, debug[5].CurPos);
+        Assert.AreEqual(0x00, debug[0].Start);
+        Assert.AreEqual(0x08, debug[1].Start);
+        Assert.AreEqual(0x10, debug[2].Start);
+        Assert.AreEqual(0x14, debug[3].Start);
+        Assert.AreEqual(0x18, debug[4].Start);
+        Assert.AreEqual(0x1A, debug[5].Start);
     }
 
     /// <summary>

@@ -52,6 +52,23 @@ internal sealed class ExpressionEvaluator
     }
 
     /// <summary>Executes a scalar or one operator without session allocation when every dependency is a literal.</summary>
+    /// <summary>
+    ///     A variable that holds an integer outside the Int32 expression domain (a decoded <c>uint32</c> above
+    ///     2^31-1, a <c>uint64</c>, a wide <c>#define</c>) is reported with its value rather than as an overflow or an
+    ///     undefined name, because the layout is valid and only this data cannot select a count or offset.
+    /// </summary>
+    private static BigInteger RequireInt32Domain(string name, Literal literal)
+    {
+        BigInteger value = literal.Int32Projection;
+        if (value < int.MinValue || value > int.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"'{name}' is {value}, which is outside the 32-bit range that layout expressions support.");
+        }
+
+        return value;
+    }
+
     private bool TryEvaluateSimple(CompiledExpression program, IReadOnlyDictionary<string, Expr> variables, out int result)
     {
         result = 0;
@@ -91,7 +108,7 @@ internal sealed class ExpressionEvaluator
                 }
 
                 firstDependency = instruction.Name;
-                value = literal.Int32Projection;
+                value = RequireInt32Domain(instruction.Name!, literal);
             }
             else
             {
@@ -443,6 +460,11 @@ internal sealed class ExpressionEvaluator
                     throw new KeyNotFoundException("Undefined expression identifier: " + reference.Name);
                 }
 
+                if (expression is Literal wide)
+                {
+                    RequireInt32Domain(reference.Name, wide);
+                }
+
                 CompiledExpression dependency = this.evaluator.GetProgram(expression);
                 if (dependencyDepth + dependency.MaximumDepth > this.limits.MaximumDepth)
                 {
@@ -576,6 +598,11 @@ internal sealed class ExpressionEvaluator
             if (!this.variables.TryGetValue(name, out Expr? expression))
             {
                 throw new KeyNotFoundException("Undefined expression identifier: " + name);
+            }
+
+            if (expression is Literal wide)
+            {
+                RequireInt32Domain(name, wide);
             }
 
             if (!this.activeIdentifiers.Add(name))

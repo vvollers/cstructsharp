@@ -230,7 +230,8 @@ public partial class CStruct
                     this.layoutExpressionEvaluator.Evaluate(
                         d.Value,
                         state.Variables,
-                        "definition " + d.Name.Name));
+                        "definition " + d.Name.Name,
+                        ExpressionFailureDomain.Read));
                 break;
             case Field f:
                 {
@@ -301,7 +302,8 @@ public partial class CStruct
                                 throw new InvalidOperationException(
                                     "Compiled array has no count expression: " + f.Name.Name),
                                 state.Variables,
-                                "array length for " + f.Name.Name);
+                                "array length for " + f.Name.Name,
+                                ExpressionFailureDomain.Read);
                             if (numFieldValues < 0)
                             {
                                 throw new CStructReadException("Array length cannot be negative: " + f.Name.Name);
@@ -449,14 +451,7 @@ public partial class CStruct
                         // survives is the last one; reproduce exactly that.
                         if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
                         {
-                            if (Int32Capture.TryConvert(lastElement, out int lastCaptured))
-                            {
-                                state.Variables[f.Name.Name] = new Literal(lastCaptured);
-                            }
-                            else
-                            {
-                                state.Variables.Remove(f.Name.Name);
-                            }
+                            LayoutVariableCapture.Capture(state.Variables, f.Name.Name, lastElement);
 
                             state.PublishQualified(f.Name.Name);
                         }
@@ -789,18 +784,9 @@ public partial class CStruct
                                 else if (content is IConvertible)
                                 {
                                     // Scalars become literals so following array counts and expressions can use their name.
-                                    // Values outside the layout expression's Int32 range cannot become variables; retain the
-                                    // parsed field, but remove any stale caller/definition value shadowed by this field. The
-                                    // exception-free conversion matters: a former try/catch around Convert.ToInt32 threw once
-                                    // per out-of-range element and dominated wide-integer array parsing (E2.6a).
-                                    if (Int32Capture.TryConvert(content, out int captured))
-                                    {
-                                        state.Variables[f.Name.Name] = new Literal(captured);
-                                    }
-                                    else
-                                    {
-                                        state.Variables.Remove(f.Name.Name);
-                                    }
+                                    // The capture is exception-free: an out-of-range integer becomes an exact literal that
+                                    // fails with its value only when an expression selects it.
+                                    LayoutVariableCapture.Capture(state.Variables, f.Name.Name, content);
                                 }
 
                                 if (state.HasQualifiedPrefix && (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables))

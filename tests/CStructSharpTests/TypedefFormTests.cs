@@ -101,7 +101,7 @@ public class TypedefFormTests
         stream.Position = 0;
         dynamic parsed = layout.ParseStream(stream, "root");
         stream.Position = 0;
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.p" && item.CurPos == 3 && item.EndPos == 5));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.p" && item.Start == 3 && item.End == 5));
         Assert.AreEqual(1, layout.ResolveAddress(stream, "root.p"));
         Assert.AreEqual(3, layout.ResolveAddress(stream, "root.p[1]"));
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", parsed));

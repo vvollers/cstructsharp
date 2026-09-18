@@ -39,7 +39,7 @@ public class DefaultEnumStorageTests
         byte[] bytes = [2, 7,];
         using var stream = new MemoryStream((byte[])bytes.Clone());
         List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.type" && item.CurPos == 0 && item.EndPos == 1));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.type" && item.Start == 0 && item.End == 1));
         stream.Position = 0;
         Assert.AreEqual(1, layout.ResolveAddress(stream, "root.tail"));
         Assert.AreEqual("DATA", layout.ReadValue<EnumValueResult>(bytes.AsSpan(), "root.type").Name);

@@ -117,9 +117,9 @@ public class InlineUnionTests
     {
         var layout = new CStruct(FileNameLayout);
         (List<DebugData> debug, dynamic _) = layout.ParseStreamWithDebug(new MemoryStream(FileNameBytes), "file_name");
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "file_name.EaSize" && item.CurPos == 4 && item.EndPos == 6));
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "file_name.ReparseTag" && item.CurPos == 4 && item.EndPos == 8));
-        Assert.IsFalse(debug.Any(item => item.DebugStackString.Contains("..")));
+        Assert.IsTrue(debug.Any(item => item.Path == "file_name.EaSize" && item.Start == 4 && item.End == 6));
+        Assert.IsTrue(debug.Any(item => item.Path == "file_name.ReparseTag" && item.Start == 4 && item.End == 8));
+        Assert.IsFalse(debug.Any(item => item.Path.Contains("..")));
     }
 
     /// <summary>A union may hold inline structs and unions, named or anonymous, and the layout rules follow the members.</summary>

@@ -513,8 +513,8 @@ public class MultidimensionalArrayTests
         Assert.AreEqual((byte)11, cell.b);
         Assert.IsNotNull(debug);
         Assert.HasCount(2, debug);
-        Assert.IsTrue(debug.All(dbg => dbg.DebugStackString.StartsWith("root.grid", StringComparison.Ordinal)));
-        Assert.AreEqual(10L, debug[0].CurPos);
-        Assert.AreEqual(12L, debug[^1].EndPos);
+        Assert.IsTrue(debug.All(dbg => dbg.Path.StartsWith("root.grid", StringComparison.Ordinal)));
+        Assert.AreEqual(10L, debug[0].Start);
+        Assert.AreEqual(12L, debug[^1].End);
     }
 }

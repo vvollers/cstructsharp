@@ -160,7 +160,8 @@ public partial class CStruct
                     this.layoutExpressionEvaluator.Evaluate(
                         d.Value,
                         state.Variables,
-                        "definition " + d.Name.Name));
+                        "definition " + d.Name.Name,
+                        ExpressionFailureDomain.Write));
                 return;
             case Field f:
                 throw new InvalidOperationException(
@@ -197,7 +198,7 @@ public partial class CStruct
 
             CompiledCompositeType composite = this.compiledSizeQueries.GetCompiledComposite(strct);
             var variableScope = composite.HasDirectConditionalFields ? new ConditionalVariableScope(composite, state.Variables) : null;
-            var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) : null;
+            var selection = composite.HasDirectConditionalFields ? new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount, ExpressionFailureDomain.Write) : null;
             var cursor = new CompositeFieldPlacementCursor(state.Stream.Position, state.Aligned);
 
             foreach (CompiledField field in composite.Fields)
@@ -560,7 +561,8 @@ public partial class CStruct
                     throw new InvalidOperationException(
                         "Compiled array has no count expression: " + effectiveField.Name.Name),
                     state.Variables,
-                    "array length for " + effectiveField.Name.Name);
+                    "array length for " + effectiveField.Name.Name,
+                    ExpressionFailureDomain.Write);
                 if (numFieldValues < 0)
                 {
                     throw new CStructWriteException("Array length cannot be negative: " + effectiveField.Name.Name);

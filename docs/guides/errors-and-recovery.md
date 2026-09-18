@@ -16,11 +16,11 @@ diagnostics; do not parse message wording as a program protocol.
 
 | Code | Exception | Typical cause |
 | --- | --- | --- |
-| `InvalidLayout` | `CStructLayoutException` | Unsupported syntax, duplicate or unknown type, invalid expression, recursive by-value storage |
+| `InvalidLayout` | `CStructLayoutException` | Unsupported syntax, duplicate or unknown type, invalid constant expression, recursive by-value storage. Never raised for a problem in the data. |
 | `InvalidPath` | `CStructPathException` | Unknown root/member, bad array index, or invalid pointer accessor |
-| `ReadFailed` | `CStructReadException` | Truncated bytes, malformed encoding, invalid pointer target, typed-mapping failure |
+| `ReadFailed` | `CStructReadException` | Truncated bytes, malformed encoding, invalid pointer target, a decoded count or selector that cannot be evaluated, typed-mapping failure |
 | `ReadLimitExceeded` | `CStructReadLimitException` | Read array, string, byte, nesting, or pointer limit reached |
-| `WriteFailed` | `CStructWriteException` | Missing field, wrong shape, out-of-range value, encoding, pointer, union, or physical output failure |
+| `WriteFailed` | `CStructWriteException` | Missing field, wrong shape, out-of-range value, a supplied count that cannot be evaluated, encoding, pointer, union, or physical output failure |
 | `WriteLimitExceeded` | `CStructWriteLimitException` | Write array, string, byte, or nesting limit reached |
 
 Null arguments, unsupported stream capabilities, and invalid option values remain ordinary argument exceptions.

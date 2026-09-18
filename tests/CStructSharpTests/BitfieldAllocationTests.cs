@@ -53,8 +53,8 @@ public class BitfieldAllocationTests
         using var stream = new MemoryStream(bytes);
 
         List<DebugData> debug = layout.ParseStreamWithDebug(stream, "root").DebugData;
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.b" && item.CurPos == 0 && item.EndPos == 2));
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.d" && item.CurPos == 2 && item.EndPos == 3));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.b" && item.Start == 0 && item.End == 2));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.d" && item.Start == 2 && item.End == 3));
         stream.Position = 0;
         Assert.AreEqual(0, layout.ResolveAddress(stream, "root.b"));
         Assert.AreEqual(2, layout.ResolveAddress(stream, "root.c"));

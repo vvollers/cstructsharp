@@ -154,7 +154,7 @@ internal static partial class Program
         using var stream = new MemoryStream([0xA1, 0x34, 0x12]);
         (List<DebugData> ranges, dynamic result) = layout.ParseStreamWithDebug(stream, "sample");
         Equal((byte)0xA1, (byte)result.sample.tag);
-        True(ranges.Any(item => item.CurPos == 1 && item.EndPos == 3), "Value range was not reported.");
+        True(ranges.Any(item => item.Start == 1 && item.End == 3), "Value range was not reported.");
 
         stream.Position = 0;
         Equal(1L, layout.ResolveAddress(stream, "sample.value"));

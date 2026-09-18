@@ -643,11 +643,11 @@ public class EnumDomainTests
         byte[] bytes = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xA5,];
         var variables = new Dictionary<string, Expr> { ["count"] = new Literal(1), };
 
-        Assert.Throws<CStructLayoutException>(
+        Assert.Throws<CStructReadException>(
             () => cstruct.ParseStream(new MemoryStream(bytes), "root", variables));
-        Assert.Throws<CStructLayoutException>(
+        Assert.Throws<CStructReadException>(
             () => cstruct.ResolveAddress(new MemoryStream(bytes), "root.values[0]", variables));
-        Assert.Throws<CStructLayoutException>(
+        Assert.Throws<CStructWriteException>(
             () => cstruct.Serialize(
                 "root",
                 new Dictionary<string, object>

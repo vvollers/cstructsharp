@@ -70,10 +70,10 @@ Default limits are intentionally finite:
 - read or write nesting depth: 256.
 
 `MaxTotalBytesRead` counts every byte read from the stream, including rereads. It is not a limit on the input's
-file size. Debug parsing rereads field bytes to include them in its result. For example, a packed header with a
-`uint16` and a `uint32` needs a budget of 6 for a plain parse, but 12 for `ParseStreamWithDebug` or the workbench.
-Other layouts may require additional reads for traversal or overlapping fields, so doubling the input size is
-not a general rule.
+file size. Debug parsing spends the same budget as a plain parse: a packed header with a `uint16` and a `uint32`
+needs a budget of 6 either way, because debug records carry byte ranges rather than copies. Layouts with unions,
+pointers, or selected reads may reread bytes for traversal or overlapping fields, so the input size is a lower
+bound, not the exact cost.
 
 `UpdateOptions` has separate `MaxTraversal*` values for bytes read while finding the destination. After the target is
 found, its inherited write limits apply to the replacement.

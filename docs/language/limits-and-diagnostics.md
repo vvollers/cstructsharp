@@ -21,8 +21,14 @@ Examples that produce `CStructLayoutException` with `InvalidLayout` include:
 - recursive by-value storage;
 - invalid enum backing/range;
 - bitfield widths outside their storage;
-- negative/overflowing array counts; and
+- negative or overflowing array counts computed from constants alone; and
 - source, nesting, dependency, or expression work above compilation limits.
+
+A count or selector that fails only because of the *data* is not a layout error. When a decoded `uint32` of
+`4294967295` selects an array count, or `a * b` overflows for the decoded values of `a` and `b`, the operation
+fails with `CStructReadException` (`ReadFailed`) and a message such as
+`Cannot evaluate array length for data: 'n' is 4294967295, which is outside the 32-bit range that layout
+expressions support.` A write that receives such a value fails with `CStructWriteException`.
 
 A syntax error's message starts with `Layout definition contains invalid syntax:` and names the line and column of
 the first unexpected character (or the end of the text) together with what the parser expected there.

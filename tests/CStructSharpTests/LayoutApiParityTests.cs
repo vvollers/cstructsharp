@@ -91,7 +91,7 @@ public class LayoutApiParityTests
         Assert.AreEqual(300UL, (ulong)layout.Parse(new byte[] { 0xAC, 0x02, }.AsSpan(), "varint"));
 
         (List<DebugData> debug, dynamic _) = layout.ParseStreamWithDebug(new MemoryStream(bytes), "root");
-        Assert.IsTrue(debug.Any(item => item.DebugStackString == "root.owner" && item.CurPos == 4 && item.EndPos == 8));
+        Assert.IsTrue(debug.Any(item => item.Path == "root.owner" && item.Start == 4 && item.End == 8));
         Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { varint v; };"));
         Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { varint v : 3; };", compilationOptions: options));
         Assert.Throws<ArgumentException>(() => new CStruct("struct root { uint8 v; };", compilationOptions: new CStructCompilationOptions { Codecs = [new NamedCodec("uint8"),], }));
@@ -220,8 +220,8 @@ public class LayoutApiParityTests
         (List<DebugData> before, dynamic _) = original.ParseStreamWithDebug(new MemoryStream(bytes), "root");
         (List<DebugData> after, dynamic _) = roundTrip.ParseStreamWithDebug(new MemoryStream(bytes), "root");
         CollectionAssert.AreEqual(
-            before.Select(item => (item.DebugStackString, item.CurPos, item.EndPos)).ToArray(),
-            after.Select(item => (item.DebugStackString, item.CurPos, item.EndPos)).ToArray());
+            before.Select(item => (item.Path, item.Start, item.End)).ToArray(),
+            after.Select(item => (item.Path, item.Start, item.End)).ToArray());
         Assert.AreEqual(original.GetStructSizeInBytes("pt"), roundTrip.GetStructSizeInBytes("pt"));
         Assert.AreEqual(original.GetStructSizeInBytes("_pt"), roundTrip.GetStructSizeInBytes("_pt"));
         Assert.AreEqual("CD001", roundTrip.Constants["MAGIC"].Value);

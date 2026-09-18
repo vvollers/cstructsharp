@@ -49,7 +49,7 @@ public class PrimitiveArrayReaderTests
     public void LastElement_IsTheCapturedLayoutVariable()
     {
         var layout = new CStruct("struct root { uint8 counts[3]; uint8 values[counts]; uint32 wide[2]; uint8 more[wide]; };");
-        Assert.ThrowsExactly<CStructLayoutException>(
+        Assert.ThrowsExactly<CStructReadException>(
             () => layout.Parse(new byte[] { 9, 9, 2, 1, 2, 0, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF, 1 }, "root"),
             "an out-of-range last element removes the variable so the count cannot be evaluated");
 

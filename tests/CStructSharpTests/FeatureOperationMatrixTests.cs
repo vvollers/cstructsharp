@@ -149,7 +149,7 @@ public class FeatureOperationMatrixTests
                     JsonSerializer.Serialize(debugRoot),
                     caseName + "/debug-value");
                 Assert.IsTrue(
-                    debug.Any(item => item.CurPos == 0 && item.EndPos == width),
+                    debug.Any(item => item.Start == 0 && item.End == width),
                     caseName + "/debug-range");
 
                 using var addressStream = new MemoryStream(original);
@@ -244,7 +244,7 @@ public class FeatureOperationMatrixTests
             if (item.RequireDebugRange)
             {
                 Assert.IsTrue(
-                    debug.Any(entry => entry.CurPos <= item.UpdateAddress && entry.EndPos > item.UpdateAddress),
+                    debug.Any(entry => entry.Start <= item.UpdateAddress && entry.End > item.UpdateAddress),
                     item.Id + "/debug-range");
             }
 
@@ -329,7 +329,7 @@ public class FeatureOperationMatrixTests
             cstruct.ParseStreamWithDebug(debugStream, "root");
         dynamic debugRoot = GetDebugRoot(debugWrapper);
         Assert.AreEqual((ushort)0x1234, (ushort)debugRoot.value.wide);
-        Assert.IsTrue(debug.Any(item => item.CurPos == 1 && item.EndPos == 3));
+        Assert.IsTrue(debug.Any(item => item.Start == 1 && item.End == 3));
 
         using var addressStream = new MemoryStream(original);
         Assert.AreEqual(1L, cstruct.ResolveAddress(addressStream, "root.value.wide"));

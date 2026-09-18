@@ -57,9 +57,9 @@ public class StringEncodingTests
 
             parseStream.Position = 0;
             (List<DebugData> debug, _) = cstruct.ParseStreamWithDebug(parseStream, "root");
-            DebugData stringDebug = debug.Single(item => item.DebugStackString == "root.name");
-            Assert.AreEqual(0, stringDebug.CurPos);
-            Assert.AreEqual(originalString.Length, stringDebug.EndPos);
+            DebugData stringDebug = debug.Single(item => item.Path == "root.name");
+            Assert.AreEqual(0, stringDebug.Start);
+            Assert.AreEqual(originalString.Length, stringDebug.End);
 
             parseStream.Position = 0;
             Assert.AreEqual(original.Length, cstruct.GetDynamicArrayLength(parseStream, "root.name"));
