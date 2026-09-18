@@ -447,11 +447,17 @@ internal sealed class ParsedJsonWriter
         this.length += written;
     }
 
+    /// <summary>
+    ///     JSON has no NaN or infinity, so a non-finite float is projected as the strings <c>"NaN"</c>,
+    ///     <c>"Infinity"</c>, or <c>"-Infinity"</c> - the same convention the projection already uses for integers
+    ///     that do not fit a JavaScript number, and the text the write path accepts back for a float field.
+    /// </summary>
     private void WriteNumber(float value)
     {
         if (!float.IsFinite(value))
         {
-            throw new ArgumentException("A non-finite floating-point value cannot be written as JSON.");
+            this.WriteNonFinite(float.IsNaN(value), value > 0);
+            return;
         }
 
         this.Ensure(32);
@@ -463,12 +469,18 @@ internal sealed class ParsedJsonWriter
     {
         if (!double.IsFinite(value))
         {
-            throw new ArgumentException("A non-finite floating-point value cannot be written as JSON.");
+            this.WriteNonFinite(double.IsNaN(value), value > 0);
+            return;
         }
 
         this.Ensure(32);
         Utf8Formatter.TryFormat(value, this.buffer.AsSpan(this.length), out int written);
         this.length += written;
+    }
+
+    private void WriteNonFinite(bool isNaN, bool isPositive)
+    {
+        this.WriteString(isNaN ? "NaN" : isPositive ? "Infinity" : "-Infinity");
     }
 
     private void WriteNumber(decimal value)

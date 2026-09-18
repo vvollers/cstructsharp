@@ -73,6 +73,11 @@
   "history": [
     {
       "contractVersion": 7,
+      "date": "2026-09-18",
+      "change": "Non-finite floats no longer fail a parse: a float32/float64 NaN, +Infinity, or -Infinity is projected as the string \"NaN\", \"Infinity\", or \"-Infinity\" (the convention already used for integers beyond Number's exact range), and the write path accepts those strings for float fields. The JavaScript static plan formats float32 values with the same tie-to-even shortest round-trip rule as the managed projection, so both parse paths return identical numbers."
+    },
+    {
+      "contractVersion": 7,
       "date": "2026-09-14",
       "change": "Performance plan E3.3(b): a successful parse envelope carries Data as the parsed JSON value itself (an object with the selected root wrapper, e.g. Data.header.kind), no longer as JSON text to JSON.parse. Failure envelopes keep Data null; serialize/update keep returning bytes. Every value, option, error code and DebugData item is unchanged."
     },

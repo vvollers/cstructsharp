@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { root, npmArtifacts, npm, run } from "./npm-package-utils.mjs";
 import { validateWasmPublication } from "./wasm-publication.mjs";
 
@@ -70,6 +71,13 @@ fs.copyFileSync(
 );
 console.log(
   run(process.execPath, [path.join(consumer, "check.mjs")], { cwd: root, env, timeout: 30000 }),
+);
+// The JavaScript static plan and the WASM parser must agree byte for byte (fixtures + seeded random inputs).
+console.log(
+  run(process.execPath, [fileURLToPath(new URL("./test-native-parity.mjs", import.meta.url)), consumer], {
+    cwd: root,
+    timeout: 300000,
+  }),
 );
 fs.writeFileSync(
   path.join(consumer, "check.cjs"),

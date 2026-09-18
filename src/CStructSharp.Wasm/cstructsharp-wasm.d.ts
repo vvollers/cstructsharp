@@ -76,7 +76,8 @@ export interface DebugDataItem {
 export type Operation = "parse" | "serialize" | "update";
 /**
  * A parsed value as JavaScript data (contract v7): numbers, booleans, strings (fixed text keeps its
- * padding characters; integers beyond Number's exact range and 64-bit enum values arrive as decimal strings),
+ * padding characters; integers beyond Number's exact range and 64-bit enum values arrive as decimal strings; a
+ * float that is NaN or infinite arrives as the string "NaN", "Infinity", or "-Infinity"),
  * nested objects for structs, arrays, and the tagged shapes for enums ({ Enum, Name, Value }; a flag adds
  * Names, the set members, and Remainder, the bits no member covers), unions
  * ({ $kind: "union", Union, RawStorage, Members, SelectedMember }) and pointers ({ Address, Depth, IsDereferenced, Value }).

@@ -228,7 +228,6 @@ const NATIVE_PLAN_OPTION_KEYS = new Set([
 ]);
 const NATIVE_PLAN_CACHE_LIMIT = 64;
 const nativePlanCache = new Map();
-const NON_FINITE = Symbol("non-finite");
 
 function tryParseNative(api, definition, bytes, options) {
   if (typeof api.getStaticPlan !== "function" || !nativePlanOptionsEligible(options)) {
@@ -239,13 +238,7 @@ function tryParseNative(api, definition, bytes, options) {
     return null;
   }
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  let value;
-  try {
-    value = executeNativePlan(view, 0, plan.plan);
-  } catch (error) {
-    if (error === NON_FINITE) return null;
-    throw error;
-  }
+  const value = executeNativePlan(view, 0, plan.plan);
   return {
     ContractVersion: INTEROP_CONTRACT_VERSION,
     Operation: "parse",
@@ -382,8 +375,7 @@ function readNativeNumber(view, at, op) {
       return float32AsProjected(view.getFloat32(at, op.le));
     case "f64": {
       const value = view.getFloat64(at, op.le);
-      if (!Number.isFinite(value)) throw NON_FINITE;
-      return value;
+      return Number.isFinite(value) ? value : nonFiniteText(value);
     }
     default:
       throw new TypeError(`Unknown static plan codec '${op.t}'.`);
@@ -394,18 +386,73 @@ function safeInteger(value) {
   return value >= -SAFE_INTEGER_BIG && value <= SAFE_INTEGER_BIG ? Number(value) : value.toString(10);
 }
 
+/** JSON has no NaN or infinities; the projection and the write path use these strings for them. */
+function nonFiniteText(value) {
+  return Number.isNaN(value) ? "NaN" : value > 0 ? "Infinity" : "-Infinity";
+}
+
 /**
  * The JSON projection writes a float32 as the shortest decimal that round-trips to the same float32, and JSON.parse
- * turns that decimal into the nearest double - which is not always the float32 widened. Find that decimal here.
+ * turns that decimal into the nearest double - which is not always the float32 widened. Find that decimal here,
+ * with the same tie rule as the managed formatter: when two shortest decimals are equally close to the exact
+ * binary value, the one whose last digit is even wins. `toPrecision` alone rounds such ties away from zero, which
+ * made ~0.3 % of float32 values differ between this path and the WASM path.
  */
 function float32AsProjected(value) {
-  if (!Number.isFinite(value)) throw NON_FINITE;
+  if (!Number.isFinite(value)) return nonFiniteText(value);
   if (value === 0) return value;
+  const magnitude = Math.abs(value);
   for (let precision = 1; precision <= 9; precision++) {
-    const candidate = Number(value.toPrecision(precision));
-    if (Math.fround(candidate) === value) return candidate;
+    const upperText = magnitude.toExponential(precision - 1);
+    const upper = Number(upperText);
+    const upperFits = Math.fround(upper) === magnitude;
+    // toExponential rounds a tie away from zero, so the other candidate at this precision is one unit down.
+    const [mantissa, exponent] = upperText.split("e");
+    const digits = BigInt(mantissa.replace(".", ""));
+    const scale = Number(exponent) - (precision - 1);
+    const lowerDigits = digits - 1n;
+    const lower = lowerDigits > 0n ? Number(`${lowerDigits}e${scale}`) : NaN;
+    const lowerFits = Number.isFinite(lower) && Math.fround(lower) === magnitude;
+    if (!upperFits && !lowerFits) continue;
+    let chosen;
+    if (upperFits && lowerFits) {
+      const comparison = compareDecimalDistances(magnitude, digits, lowerDigits, scale);
+      chosen = comparison < 0 ? upper : comparison > 0 ? lower : digits % 2n === 0n ? upper : lower;
+    } else {
+      chosen = upperFits ? upper : lower;
+    }
+    return value < 0 ? -chosen : chosen;
   }
   return value;
+}
+
+/**
+ * Compares |value - upper·10^scale| with |value - lower·10^scale| exactly (BigInt arithmetic on the float32's
+ * binary mantissa and exponent): negative when the upper decimal is closer, positive when the lower one is, zero on
+ * an exact tie.
+ */
+function compareDecimalDistances(value, upperDigits, lowerDigits, scale) {
+  const view = new DataView(new ArrayBuffer(4));
+  view.setFloat32(0, value);
+  const bits = view.getUint32(0);
+  const exponentBits = (bits >>> 23) & 0xff;
+  let mantissa = BigInt(bits & 0x7fffff);
+  let exponent;
+  if (exponentBits === 0) {
+    exponent = -149;
+  } else {
+    mantissa |= 0x800000n;
+    exponent = exponentBits - 150;
+  }
+  // Bring value = mantissa·2^exponent and candidate = digits·10^scale to a common integer scale.
+  const twoShift = exponent < 0 ? -exponent : 0;
+  const tenShift = scale < 0 ? -scale : 0;
+  const exact = mantissa * 2n ** BigInt(exponent + twoShift) * 10n ** BigInt(tenShift);
+  const toInteger = (digits) => digits * 10n ** BigInt(scale + tenShift) * 2n ** BigInt(twoShift);
+  const abs = (n) => (n < 0n ? -n : n);
+  const upperDistance = abs(exact - toInteger(upperDigits));
+  const lowerDistance = abs(exact - toInteger(lowerDigits));
+  return upperDistance < lowerDistance ? -1 : upperDistance > lowerDistance ? 1 : 0;
 }
 
 const LATIN1_CHUNK = 4096;

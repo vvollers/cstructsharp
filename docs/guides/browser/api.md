@@ -103,6 +103,8 @@ need an equivalent source field or constant when adapting a recipe to JavaScript
 - Write/update `Data` is already a `Uint8Array`. Use it directly for reading, saving, or sending bytes.
 - Large integers can arrive as decimal strings. Keep them as strings or convert them to `BigInt`; converting to
   JavaScript `Number` can lose precision. The public wrapper converts BigInt values to decimal strings when writing.
+- A float that is not a number or is infinite arrives as the string `"NaN"`, `"Infinity"`, or `"-Infinity"`,
+  because JSON has no such numbers. `serialize` and `update` accept the same strings for a float field.
 - Enums include their enum name, optional member name, and numeric value. An unknown member name can be `null`.
   A `flag` adds `Names` (the members whose bits are set) and `Remainder` (the bits no member covers); serialize
   accepts `"READ|HIDDEN"`, one name, or a number for it.
