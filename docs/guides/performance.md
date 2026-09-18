@@ -36,6 +36,24 @@ See [Spans, memory, and buffer writers](spans-and-memory.md) for ownership detai
 [project testing guide](../project/testing.md#performance-packages-and-release-checks) for repository benchmark
 expectations.
 
+## Many records of one shape
+
+Every operation sets up its own bounded context (budget stream, variables, result container) before it decodes a
+byte. That fixed cost is small in absolute terms - a few hundred nanoseconds and well under a kilobyte - but it
+dominates when the record itself is tiny. Let the layout express the repetition instead of calling `Parse` per
+record:
+
+```c
+struct record { uint16 kind; uint32 length; uint8 flags; };
+struct file { record records[EOF]; };
+```
+
+`layout.Parse(bytes, "file")` reads every whole record to the end of the input in one operation, and a fixed
+record shape takes the span-based array path. Measured on the repository benchmark machine for 1,000 such
+records: 60 ns and 184 bytes per record through `records[EOF]`, against 203 ns and 680 bytes per record for one
+`Parse` call each - the single operation is 3.4× faster and allocates 3.7× less. Use `records[count]` when a
+header supplies the count, and `ReadValue(bytes, "file.records[7]")` when only one record is needed.
+
 ## Managed layout caching
 
 When you already retain a `CStruct`, keep using it. When a call site repeatedly receives the same layout text,
