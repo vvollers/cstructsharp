@@ -9,10 +9,10 @@ test("the extracted package starter reads, writes, updates, and rereads under a 
   await page.locator("#run").click();
   await expect(page.locator("#output")).toHaveText(
     [
-      'Read: {"header":{"kind":2,"length":6}}',
+      'Read: {"kind":2,"length":6}',
       "Created: 03 00 06 00 00 00",
       "Updated: 04 00 06 00 00 00",
-      'Read again: {"header":{"kind":4,"length":6}}',
+      'Read again: {"kind":4,"length":6}',
     ].join("\n"),
   );
 });

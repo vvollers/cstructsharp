@@ -88,6 +88,9 @@ npm --prefix ./apps/workshop run test:e2e
 ```
 
 Install Playwright Chromium from the web directory with `npx playwright install chromium` if it is missing.
+The suites run in Chromium by default; `CSTRUCT_BROWSERS=firefox,webkit` (comma-separated engine names) selects
+other engines for any Playwright config, and the release workflow smokes the packaged starter page and one
+inspector flow in Firefox and WebKit that way. PR CI stays Chromium-only.
 For the exact released bundle, create and test an archive:
 
 ```powershell

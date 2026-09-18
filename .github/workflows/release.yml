@@ -231,6 +231,22 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: ./tools/packaging/Test-OnboardingBrowser.ps1 -ArchivePath "./artifacts/cstructsharp-wasm-v$env:VERSION.zip"
 
+      # Release-only cross-engine smoke: the packaged starter page and one inspector flow in Firefox and WebKit.
+      # PR CI stays Chromium-only; the full suites above already ran there. The starter host staged by the
+      # onboarding check is reused.
+      - name: Install Firefox and WebKit for the cross-engine smoke
+        working-directory: apps/workshop
+        run: |
+          npx playwright install --with-deps firefox webkit
+          (cd ../inspector && npx playwright install --with-deps firefox webkit)
+
+      - name: Smoke the starter page and the inspector in Firefox and WebKit
+        env:
+          CSTRUCT_BROWSERS: firefox,webkit
+        run: |
+          (cd apps/workshop && npx playwright test --config playwright.starter.config.ts)
+          (cd apps/inspector && npx playwright test tests/e2e/inspector.spec.ts)
+
       - name: Prepare README badges
         env:
           GH_TOKEN: ${{ github.token }}
