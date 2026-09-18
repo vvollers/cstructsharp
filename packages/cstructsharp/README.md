@@ -73,7 +73,10 @@ temporary directory and also stages Blob inputs. Normal completion, failures, an
 Large-source parsing runs in a worker and passes 64 KiB pages to WASM. Browser files are read on demand regardless
 of full-file size. `parse` avoids debug byte copies; `parseWithDebug` also returns field ranges. Small Uint8Array
 debug calls retain the direct path unless `signal` is supplied. Decoded results still use memory, and read limits
-still apply. `serialize`/`update` remain in-memory APIs. See the
+still apply. `serialize` and `update` are in-memory operations: `update` reads any binary source completely and
+hands at most 4 MiB to the runtime (larger inputs fail with `invalid-input`), and the raw adapter's byte-array
+exports share that 4 MiB limit; `parse`, `parseWithDebug`, and `resolveAddress` page larger sources through the
+worker. See the
 [large-data guide](https://vvollers.github.io/cstructsharp/docs/guides/browser/large-data.html)
 for complete examples, memory behavior, cancellation, and storage limits.
 
@@ -131,8 +134,11 @@ The runtime lives for the process/page lifetime and normal Node processes exit w
 runtime startup remains failed for that instance; restart the process/page after fixing missing assets. A browser
 instance cannot be reconfigured to a different runtime URL after initialization starts.
 
-The tarball includes the runtime and third-party license notices; check the release assets for current sizes. No Vue,
-Monaco, or other UI dependencies are installed. The library manages workers for large or cancellable reads;
+The tarball includes the runtime and third-party license notices: the 0.5 package is about 1.9 MB compressed and
+5.0 MB unpacked, of which the runtime is 26 files and 4.8 MB (about 1.7 MB over gzip). A browser downloads the
+runtime on the first page load and keeps it in the HTTP cache afterwards, so deploy each release under its own
+versioned URL (the copy command refuses to overwrite) and let the static host send cache headers for that path;
+Node loads the runtime from disk. No Vue, Monaco, or other UI dependencies are installed. The library manages workers for large or cancellable reads;
 loading the public entry point inside an application-created web worker is not a supported deployment target.
 Other JS runtimes and server bundling of the Node entry point are not currently supported. Keep `cstructsharp` external in server bundles (the Vite plugin does this).
 

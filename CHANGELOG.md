@@ -6,6 +6,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- npm package polish: the README lists every public function, states the 4 MiB in-memory limit of `update` and
+  the raw byte-array exports (parse and resolveAddress page larger sources through the worker), and gives the
+  package and runtime sizes with how a browser caches the runtime; both apps require Node 22.14 like the package.
 - The browser large-data guide documents parsing many records in one call (`record records[EOF]` or a fixed
   count, which keeps the JavaScript fast path) with measured per-record costs against one call per record; the
   layout is the batch, so no separate batch API was added.
