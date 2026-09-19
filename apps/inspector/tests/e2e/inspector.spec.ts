@@ -84,7 +84,12 @@ test("schema settings dialog opens and closes", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Schema settings" })).toBeHidden();
 });
 
-test("editing the schema or parser settings clears the previous result", async ({ page }) => {
+test("editing the schema or parser settings clears the previous result", async ({
+  page,
+  browserName,
+}) => {
+  // Playwright's WebKit does not deliver Monaco's Ctrl+End, so the edit would land mid-document.
+  test.skip(browserName === "webkit", "Monaco keyboard chords are not delivered in WebKit");
   await page.getByRole("button", { name: /^Run$/ }).click();
   await expect(page.locator(".result-status")).toHaveText("Parse completed");
   await page.getByTestId("definition-editor").locator(".monaco-editor").click();
@@ -209,7 +214,10 @@ test("the schema editor completes primitive types and previously declared type n
 
 test("hovering a keyword or a declared type name in the schema editor shows its documentation", async ({
   page,
+  browserName,
 }) => {
+  // The Ctrl+K Ctrl+I hover chord is not delivered by Playwright's WebKit either.
+  test.skip(browserName === "webkit", "Monaco keyboard chords are not delivered in WebKit");
   const editor = page.locator('[data-testid="definition-editor"] .monaco-editor').first();
   await editor.click();
   await page.keyboard.press("Control+F");

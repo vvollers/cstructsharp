@@ -214,7 +214,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   the full gate), and a weekly `dependency-check` workflow reports known vulnerabilities in the locked managed
   and Node dependency graphs (`dotnet list package --vulnerable`, `npm audit --audit-level=high`).
 - The release workflow smokes the packaged starter page and one inspector flow in Firefox and WebKit
-  (`CSTRUCT_BROWSERS` selects the Playwright engines); PR CI stays Chromium-only.
+  (`CSTRUCT_BROWSERS` selects the Playwright engines); PR CI stays Chromium-only. Two inspector tests that drive
+  Monaco through keyboard chords (`Ctrl+End`, `Ctrl+K Ctrl+I`) skip themselves in WebKit, where Playwright does
+  not deliver the chords.
 
 ## 0.5.0 — 2026-09-17
 
