@@ -74,10 +74,11 @@ version has different integrity, any artifact changed, required tests did not pa
 changes. It accepts an existing matching tag or a matching version commit pushed before a previous tag push
 failed. A bad immutable package needs a new version; it must not be overwritten.
 
-npm can accept a publication before the version becomes readable through its registry API. The current workflow
-checks immediately, so a processing delay can fail **Confirm npm publication integrity** after the version commit
-and tag already exist. Check `npm view cstructsharp@VERSION version`, replacing VERSION with the accepted version.
-Once it is available, recover from the original verified run:
+npm can accept a publication before the version becomes readable through its registry API ("your package is
+being processed"). **Confirm npm publication integrity** therefore polls the registry every 10 seconds for up to
+five minutes; a version that is still invisible after that fails the step after the version commit and tag already
+exist. Check `npm view cstructsharp@VERSION version`, replacing VERSION with the accepted version. Once it is
+available, recover from the original verified run:
 
 ```sh
 gh workflow run release.yml --ref main -f mode=recover -f recovery_run_id=ORIGINAL_RUN_ID
