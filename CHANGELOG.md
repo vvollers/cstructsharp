@@ -180,6 +180,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Tooling, CI, and repository
 
+- `Microsoft.SourceLink.GitHub` 8.0.0 → 10.0.401 (CI builds only): its `Microsoft.Build.Tasks.Git` 8.0.0 carries
+  the CVE-2026-62900 advisory, which the warnings-as-errors restore rejects.
 - **Tooling is Node only.** The 29 PowerShell scripts, the shared module, and the Python corpus extractor are
   replaced by Node scripts under `tools/` with the same checks, messages, and exit codes (`node tools/<area>/<name>.mjs
   --option value`; `--self-test` where a tool has fail-first fixtures): the quality validators (solution parity,

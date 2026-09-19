@@ -40,7 +40,7 @@
   <ItemGroup>
     <!-- Local copies may intentionally have no Git remote. Release/CI checkouts do, so enable Source Link there and
          avoid emitting misleading local-build warnings while still validating every publishable symbol package. -->
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" Condition="'$(CI)' == 'true'">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.401" Condition="'$(CI)' == 'true'">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
