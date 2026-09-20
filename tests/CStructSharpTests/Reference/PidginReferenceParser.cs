@@ -321,7 +321,16 @@ internal static class PidginReferenceParser
                 Select<CStructElement>(o => CStructSharpEnum.CreateUnevaluated(
                     id,
                     [.. o,],
-                    type.HasValue ? type.Value : Syntax.Identifier.UINT32))));
+                    type.HasValue ? type.Value : DefaultEnumStorage(o)))));
+
+    /// <summary>
+    ///     The documented storage of an enum without a backing type: 32 bits, unsigned unless a member is written as
+    ///     a negative number (the rule the manual states and the hand-written parser applies).
+    /// </summary>
+    private static Identifier DefaultEnumStorage(IEnumerable<EnumValue> values)
+        => values.Any(member => member.Value is Syntax.UnaryOp { Type: UnaryOperatorType.Neg, Expr: Syntax.Literal, } or Syntax.Literal { ExactValue.Sign: < 0, })
+               ? Syntax.Identifier.INT32
+               : Syntax.Identifier.UINT32;
 
     public static readonly Parser<char, Maybe<Expr>> Array = Map(
         (_, expr, _) => expr,
