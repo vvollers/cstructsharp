@@ -326,6 +326,7 @@ namespace CStructSharp.Generated
         public static ulong ReadUnsigned(System.ReadOnlySpan<byte> source, bool littleEndian) { }
         public static ulong ToBitfieldValue(string name, int bitSize, object? value) { }
         public static System.Guid ToGuid(object value) { }
+        public static byte ToNarrowCharacter(char value) { }
         public static byte ToNarrowCharacter(object value) { }
         public static void WriteChar(System.Span<byte> destination, char value, bool littleEndian) { }
         public static void WriteDouble(System.Span<byte> destination, double value, bool littleEndian) { }
@@ -465,25 +466,41 @@ namespace CStructSharp.Generated
     }
     public ref struct WriteCursor
     {
+        public WriteCursor(CStructSharp.WriteOptions? options, string? path) { }
         public WriteCursor(System.Span<byte> destination, CStructSharp.WriteOptions? options = null, string? path = null) { }
         public CStructSharp.PointerAddressingMode AddressingMode { get; }
+        public bool IsGrowable { get; }
         public int Length { get; }
         public int MaxArrayElements { get; }
         public long MaxStringBytes { get; }
         public long Origin { get; }
         public string? Path { get; }
         public int Position { get; set; }
+        public System.ReadOnlySpan<byte> Written { get; }
         public void Align(int alignment, long origin, string member, string? memberType) { }
+        public void Complete(CStructSharp.Diagnostics.CStructException exception) { }
+        public void Dispose() { }
         public void EnterComposite(string member, string? memberType) { }
         public void ExitComposite() { }
         public CStructSharp.Diagnostics.CStructWriteException Fail(string message, string? member, string? memberType) { }
         public System.Exception FailExpression(System.Exception exception, string context, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructWriteLimitException FailLimit(string message, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructWriteException FailUnwritable(object? value, string typeSpelling, string? acceptedRange, string member, System.Exception? cause = null) { }
-        public void Pad(int count, string member, string? memberType) { }
+        public void Pad(int count, string? member, string? memberType) { }
         public void RequireArrayLength(long count, string member, string? memberType) { }
         public void RequireStringBytes(long count, string member, string? memberType) { }
-        public System.Span<byte> Reserve(int count, string member, string? memberType) { }
+        public System.Span<byte> Reserve(int count, string? member, string? memberType) { }
+        public void Seek(long position, string? member, string? memberType) { }
+        public byte[] ToArray() { }
+        public System.Span<byte> Unit(long unitStart, int unitSize, string member, string? memberType) { }
+        public CStructSharp.Diagnostics.CStructException WithMember(CStructSharp.Diagnostics.CStructException exception, string member, string? memberType) { }
+        public void WriteBits(CStructSharp.Generated.BitfieldSlot slot, int bitSize, object? value, bool littleEndian, bool highBitFirst, string member, string? memberType) { }
+        public void WriteBoundedText(int count, string encoding, string value, string member, string? memberType) { }
+        public void WriteCustom(CStructSharp.Codecs.ICustomCodec codec, object? value, string member, string? memberType) { }
+        public void WriteFixedText(int count, string value, bool wide, bool littleEndian, string member, string? memberType) { }
+        public void WritePointerAddress(long address, int pointerSize, bool littleEndian, string member, string? memberType) { }
+        public void WriteTerminatedString(CStructSharp.Generated.TerminatedTextEncoding encoding, char terminator, string value, string member, string? memberType) { }
+        public static CStructSharp.Generated.WriteCursor ForUpdate(System.Span<byte> target, CStructSharp.WriteOptions? options = null, string? path = null) { }
     }
 }
 namespace CStructSharp.Introspection

@@ -129,5 +129,243 @@ namespace Demo
             }
             return rows;
         }
+
+        /// <summary>Writes one <c>root</c> into a new array with the generated writer; the same bytes, and the same failures, as the runtime's <c>Serialize</c>.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The serialized bytes.</returns>
+        public static byte[] SerializeRoot(Root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
+        {
+            var cursor = new global::CStructSharp.Generated.WriteCursor(options, "root");
+            try
+            {
+                EncodeRoot(ref cursor, value, variables, null, null);
+                return cursor.ToArray();
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
+            finally
+            {
+                cursor.Dispose();
+            }
+        }
+
+        /// <summary>Writes one <c>root</c> into <paramref name="destination"/>; a value that does not fit fails with the runtime's capacity message.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="destination">The bytes to write into.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The number of bytes written.</returns>
+        public static int SerializeRoot(Root value, global::System.Span<byte> destination, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
+        {
+            var cursor = new global::CStructSharp.Generated.WriteCursor(destination, options, "root");
+            try
+            {
+                EncodeRoot(ref cursor, value, variables, null, null);
+                return cursor.Length;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
+        }
+
+        /// <summary>Writes one <c>root</c> to <paramref name="stream"/> at its current position.</summary>
+        /// <param name="stream">The destination stream.</param>
+        /// <param name="value">The value to write.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        public static void WriteRoot(global::System.IO.Stream stream, Root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
+        {
+            global::System.ArgumentNullException.ThrowIfNull(stream);
+            if (!stream.CanWrite)
+            {
+                throw new global::System.ArgumentException("Writing requires a writable stream.", nameof(stream));
+            }
+            byte[] bytes = SerializeRoot(value, variables, options);
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        /// <summary>Writes the root declaration (<c>root</c>) into a new array; see <see cref="SerializeRoot(Root, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.WriteOptions)"/>.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The serialized bytes.</returns>
+        public static byte[] Serialize(Root value, global::CStructSharp.WriteOptions? options = null) => SerializeRoot(value, null, options);
+
+        /// <summary>Writes the root declaration (<c>root</c>) into <paramref name="destination"/>.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="destination">The bytes to write into.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The number of bytes written.</returns>
+        public static int Serialize(Root value, global::System.Span<byte> destination, global::CStructSharp.WriteOptions? options = null) => SerializeRoot(value, destination, null, options);
+
+        /// <summary>Writes the root declaration (<c>root</c>) to <paramref name="stream"/>.</summary>
+        /// <param name="stream">The destination stream.</param>
+        /// <param name="value">The value to write.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        public static void Write(global::System.IO.Stream stream, Root value, global::CStructSharp.WriteOptions? options = null) => WriteRoot(stream, value, null, options);
+
+        /// <summary>Writes one <c>root</c> at the cursor's position.</summary>
+        private static void EncodeRoot(ref global::CStructSharp.Generated.WriteCursor cursor, Root? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            if (value is null)
+            {
+                throw cursor.Fail("Null is not valid for struct or union value: root", member, memberType);
+            }
+            cursor.EnterComposite(member ?? "root", memberType);
+            var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
+            // uint8 values[2]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "values", "uint8");
+                if (value.Values is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: values", "values", "uint8");
+                }
+                int count;
+                count = 2;
+                cursor.RequireArrayLength(count, "values", "uint8");
+                if (value.Values.Length > count)
+                {
+                    throw cursor.Fail("Array value for values exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "values", "uint8");
+                }
+                if (value.Values.Length != count)
+                {
+                    throw cursor.Fail("Array length mismatch for values: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Values.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "values", "uint8");
+                }
+                if (count > 0)
+                {
+                    global::System.Span<byte> bytes = cursor.Reserve(count * 1, "values", "uint8");
+                    new global::System.ReadOnlySpan<byte>(value.Values).CopyTo(bytes);
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // byte tail
+            {
+                cursor.Seek(placement.AdvanceToField(1), "tail", "byte");
+                cursor.Reserve(1, "tail", "byte")[0] = value.Tail;
+                placement.CompleteField(cursor.Position);
+            }
+            cursor.Seek(placement.Current, member, memberType);
+            cursor.Pad((int)(placement.Finish(1) - placement.Current), member, memberType);
+            cursor.ExitComposite();
+        }
+
+        /// <summary>The root declaration as <see cref="global::CStructSharp.ICStructGenerated{Root}"/>.</summary>
+        public sealed partial class Root : global::CStructSharp.ICStructGenerated<Root>
+        {
+            /// <inheritdoc/>
+            static global::CStructSharp.CStruct global::CStructSharp.ICStructGenerated<Root>.Layout => FixtureFixedArrays.Layout;
+
+            /// <inheritdoc/>
+            static string global::CStructSharp.ICStructGenerated<Root>.RootName => FixtureFixedArrays.RootName;
+
+            /// <inheritdoc/>
+            static Root global::CStructSharp.ICStructGenerated<Root>.Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options) => FixtureFixedArrays.Parse(source, options);
+
+            /// <inheritdoc/>
+            static int global::CStructSharp.ICStructGenerated<Root>.Serialize(Root value, global::System.Span<byte> destination, global::CStructSharp.WriteOptions? options) => FixtureFixedArrays.Serialize(value, destination, options);
+        }
+
+        /// <summary>Reads the root declaration with the generated reader and the runtime's debug ranges (the runtime reads the same bytes once more to produce them).</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value and one <see cref="global::CStructSharp.Diagnostics.DebugData"/> per value read, in read order.</returns>
+        public static (Root Value, global::System.Collections.Generic.IReadOnlyList<global::CStructSharp.Diagnostics.DebugData> Debug) ParseWithDebug(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            Root value = ParseRoot(source, variables, options);
+            return (value, Layout.ParseWithDebug(source, "root", variables, options).Debug);
+        }
+
+        /// <summary>Resolves a path (<c>root.field</c>, <c>items[2].value</c>, ...) to its byte address with the runtime layout.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="path">The path, in the runtime's path grammar.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The address of the selected value.</returns>
+        public static long ResolveAddress(global::System.ReadOnlySpan<byte> source, string path, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.ResolveAddress(source, path, variables, options);
+
+        /// <summary>The element count of an array or string selected by a path, with the runtime layout.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="path">The path, in the runtime's path grammar.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The element count.</returns>
+        public static int GetArrayLength(global::System.ReadOnlySpan<byte> source, string path, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.GetArrayLength(source, path, variables, options);
+
+        /// <summary>Replaces one value in place by path with the runtime layout; statically placed members also have typed setters in <see cref="Update"/>.</summary>
+        /// <param name="target">The bytes holding the value.</param>
+        /// <param name="path">The path, in the runtime's path grammar.</param>
+        /// <param name="value">The new value.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The update options; <see langword="null"/> uses the documented defaults.</param>
+        public static void UpdatePath(global::System.Span<byte> target, string path, object value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.UpdateOptions? options = null) => Layout.Update(target, path, value, variables, options);
+
+        /// <summary>The size in bytes of every composite with a static size (<c>sizeof</c>); a runtime-sized composite has none.</summary>
+        public static class Sizes
+        {
+            /// <summary><c>sizeof(root)</c>.</summary>
+            public const int Root = 3;
+        }
+
+        /// <summary>The offset from the root's first byte of every statically placed scalar (<c>offsetof</c>), nested by struct member.</summary>
+        public static class Offsets
+        {
+            /// <summary><c>offsetof(root, values)</c>.</summary>
+            public const int Values = 0;
+
+            /// <summary><c>offsetof(root, tail)</c>.</summary>
+            public const int Tail = 2;
+        }
+
+        /// <summary>Typed in-place setters for the statically placed scalars, nested by struct member; a fixed array takes the element index.</summary>
+        public static class Update
+        {
+            /// <summary>Stores <c>values</c>[<paramref name="index"/>] into <paramref name="target"/> at offset 0 plus the element's, leaving every other byte alone.</summary>
+            /// <param name="target">The bytes holding the value.</param>
+            /// <param name="index">The element index.</param>
+            /// <param name="value">The new value.</param>
+            public static void Values(global::System.Span<byte> target, int index, byte value)
+            {
+                if ((uint)index >= 2u)
+                {
+                    throw new global::System.ArgumentOutOfRangeException(nameof(index));
+                }
+                var cursor = global::CStructSharp.Generated.WriteCursor.ForUpdate(target, null, "root.values");
+                try
+                {
+                    cursor.Position = 0 + index * 1;
+                    cursor.Reserve(1, "values", "uint8")[0] = value;
+                }
+                catch (global::CStructSharp.Diagnostics.CStructException exception)
+                {
+                    cursor.Complete(exception);
+                    throw;
+                }
+            }
+
+            /// <summary>Stores <c>tail</c> into <paramref name="target"/> at offset 2, leaving every other byte alone.</summary>
+            /// <param name="target">The bytes holding the value.</param>
+            /// <param name="value">The new value.</param>
+            public static void Tail(global::System.Span<byte> target, byte value)
+            {
+                var cursor = global::CStructSharp.Generated.WriteCursor.ForUpdate(target, null, "root.tail");
+                try
+                {
+                    cursor.Position = 2;
+                    cursor.Reserve(1, "tail", "byte")[0] = value;
+                }
+                catch (global::CStructSharp.Diagnostics.CStructException exception)
+                {
+                    cursor.Complete(exception);
+                    throw;
+                }
+            }
+        }
     }
 }

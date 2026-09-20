@@ -67,6 +67,28 @@ public class MemoryIoTests
     ///     original array. Out-of-region targets fail when followed, while address-only reads can retain an unresolved
     ///     address.
     /// </remarks>
+    /// <summary>An in-place update over a span changes the selected bytes and keeps every other byte of the region.</summary>
+    [TestMethod]
+    public void SpanUpdate_KeepsTheOtherBytesOfTheRegion()
+    {
+        var cstruct = new CStruct("struct root { uint8 a; uint16 b; uint8 c:3; uint8 d:5; uint8 tail[2]; };");
+        byte[] data = [1, 2, 3, 0b0001_0101, 9, 8];
+        cstruct.Update(data.AsSpan(), "root.b", 0x0405);
+        CollectionAssert.AreEqual(new byte[] { 1, 5, 4, 0b0001_0101, 9, 8 }, data);
+        cstruct.Update(data.AsSpan(), "root.d", 3);
+        CollectionAssert.AreEqual(new byte[] { 1, 5, 4, 0b0001_1101, 9, 8 }, data);
+        cstruct.Update(data.AsSpan(), "root.tail[1]", 7);
+        CollectionAssert.AreEqual(new byte[] { 1, 5, 4, 0b0001_1101, 9, 7 }, data);
+
+        // The stream and span forms leave the same bytes.
+        byte[] viaStream = [1, 2, 3, 0b0001_0101, 9, 8];
+        using var stream = new System.IO.MemoryStream(viaStream);
+        cstruct.Update(stream, "root.b", 0x0405);
+        cstruct.Update(stream, "root.d", 3);
+        cstruct.Update(stream, "root.tail[1]", 7);
+        CollectionAssert.AreEqual(data, viaStream);
+    }
+
     [TestMethod]
     public void MemoryInput_PointersStayInsideTheSuppliedRegion()
     {

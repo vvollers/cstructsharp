@@ -111,38 +111,65 @@ internal static class CustomCodecAdapter
     public static void Write(ICustomCodec codec, Stream stream, object value)
     {
         long limit = (stream as WriteBudgetStream)?.MaxStringBytes ?? int.MaxValue;
+        byte[] rented = EncodeToRented(codec, value, limit, out int written);
+        try
+        {
+            stream.Write(rented, 0, written);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(rented);
+        }
+    }
+
+    /// <summary>
+    ///     Encodes one value into a pooled window that grows while the codec asks for more room, up to
+    ///     <paramref name="limit"/> (the runtime's rule for every destination); the caller copies
+    ///     <paramref name="written"/> bytes out and returns the array to <see cref="ArrayPool{T}.Shared"/>.
+    /// </summary>
+    /// <param name="codec">The codec.</param>
+    /// <param name="value">The value to encode.</param>
+    /// <param name="limit">The largest window (the operation's <c>MaxStringBytes</c>).</param>
+    /// <param name="written">The encoded length.</param>
+    /// <returns>The rented array holding the encoded bytes.</returns>
+    public static byte[] EncodeToRented(ICustomCodec codec, object value, long limit, out int written)
+    {
         int window = codec.FixedSize ?? InitialWindow;
         byte[] rented = ArrayPool<byte>.Shared.Rent(window);
         try
         {
             while (true)
             {
-                OperationStatus status = Encode(codec, rented.AsSpan(0, window), value, out int written);
+                OperationStatus status = Encode(codec, rented.AsSpan(0, window), value, out written);
                 switch (status)
                 {
                 case OperationStatus.Done:
                     if (written < 0 || written > window)
                     {
-                        throw new CStructWriteException($"Custom codec '{codec.Name}' reported {written} bytes written into a {window}-byte window.");
+                        throw new CStructWriteException(WriteFailures.CustomCodecWritten(codec.Name, written, window));
                     }
 
-                    stream.Write(rented, 0, written);
-                    return;
+                    byte[] result = rented;
+                    rented = null!;
+                    return result;
                 case OperationStatus.DestinationTooSmall when window >= limit:
-                    throw new CStructWriteLimitException($"Custom codec '{codec.Name}' needs more than MaxStringBytes ({limit}) for one value.");
+                    throw new CStructWriteLimitException(WriteFailures.CustomCodecLimit(codec.Name, limit));
                 case OperationStatus.DestinationTooSmall:
                     window = (int)Math.Min((long)window * 2, limit);
                     ArrayPool<byte>.Shared.Return(rented);
                     rented = ArrayPool<byte>.Shared.Rent(window);
                     continue;
                 default:
-                    throw new CStructWriteException($"Custom codec '{codec.Name}' cannot encode the value {value ?? "null"}.");
+                    throw new CStructWriteException(WriteFailures.CustomCodecCannotEncode(codec.Name, value));
                 }
             }
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(rented);
+            if (rented is not null)
+            {
+                ArrayPool<byte>.Shared.Return(rented);
+            }
         }
     }
 
@@ -166,7 +193,7 @@ internal static class CustomCodecAdapter
         }
         catch (Exception exception) when (exception is not CStructException)
         {
-            throw new CStructWriteException($"Custom codec '{codec.Name}' failed to encode {value ?? "null"}: {exception.Message}", exception);
+            throw new CStructWriteException(WriteFailures.CustomCodecFailed(codec.Name, value, exception.Message), exception);
         }
     }
 

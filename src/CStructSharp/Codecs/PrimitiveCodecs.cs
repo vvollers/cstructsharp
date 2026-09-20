@@ -139,7 +139,7 @@ internal static partial class PrimitiveCodecs
     {
         if (value.Contains(terminator, StringComparison.Ordinal))
         {
-            throw new CStructWriteException("String value contains its encoded terminator.");
+            throw new CStructWriteException(WriteFailures.TerminatorInValue);
         }
 
         // Encode into a pooled buffer instead of concatenating the terminator and allocating a fresh byte[].
@@ -161,7 +161,7 @@ internal static partial class PrimitiveCodecs
         }
         catch (EncoderFallbackException exception)
         {
-            throw new CStructWriteException("String value contains characters that are invalid for its encoding.", exception);
+            throw new CStructWriteException(WriteFailures.InvalidForEncoding, exception);
         }
         finally
         {
@@ -178,9 +178,7 @@ internal static partial class PrimitiveCodecs
         char character = Convert.ToChar(value);
         if (character > byte.MaxValue)
         {
-            throw new CStructWriteException(
-                "Character value U+" + ((int)character).ToString("X4", System.Globalization.CultureInfo.InvariantCulture) +
-                " does not fit the one-byte char type.");
+            throw new CStructWriteException(WriteFailures.NarrowCharacter(character));
         }
 
         return (byte)character;

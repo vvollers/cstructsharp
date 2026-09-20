@@ -845,8 +845,7 @@ public partial class CStruct
 
                 if (!unknownArray && items.Count != count)
                 {
-                    throw new CStructWriteException(
-                        $"Array length mismatch for {compiledField.Name}: expected {count}, got {items.Count}.");
+                    throw new CStructWriteException(WriteFailures.ArrayLengthMismatch(compiledField.Name, count, items.Count));
                 }
 
                 for (int i = 0; i < count; i++)
@@ -914,8 +913,7 @@ public partial class CStruct
         IList<object> level = WriteValueMaterialization.ConvertToObjectList(value, dimensionSizes[0], fieldName);
         if (level.Count != dimensionSizes[0])
         {
-            throw new CStructWriteException(
-                $"Array length mismatch for {fieldName}: expected {dimensionSizes[0]}, got {level.Count}.");
+            throw new CStructWriteException(WriteFailures.ArrayLengthMismatch(fieldName, dimensionSizes[0], level.Count));
         }
 
         if (dimensionSizes.Count == 1)
@@ -945,7 +943,7 @@ public partial class CStruct
             state.EnsureStringBytes(count);
             if (BoundedTextCodec.IsUtf16(compiledField.TypeSpelling) && (count & 1) != 0)
             {
-                throw new CStructWriteException("UTF-16 byte capacity must be even.");
+                throw new CStructWriteException(WriteFailures.Utf16CapacityOdd);
             }
 
             byte[] encoded;
@@ -954,14 +952,14 @@ public partial class CStruct
                 int length = BoundedTextCodec.GetByteCount(compiledField.TypeSpelling, value);
                 if (length > count)
                 {
-                    throw new CStructWriteException($"Encoded string is too long for {compiledField.Name}: {length} encoded bytes > {count}.");
+                    throw new CStructWriteException(WriteFailures.BoundedTextTooLong(compiledField.Name, length, count));
                 }
 
                 encoded = BoundedTextCodec.Encode(compiledField.TypeSpelling, value);
             }
             catch (EncoderFallbackException exception)
             {
-                throw new CStructWriteException("String cannot be represented in the selected encoding.", exception);
+                throw new CStructWriteException(WriteFailures.EncodingUnrepresentable, exception);
             }
 
             state.Stream.Write(encoded, 0, encoded.Length);
@@ -972,7 +970,7 @@ public partial class CStruct
         // Fixed arrays must consume their declared byte count. Reject too much input instead of silently truncating it.
         if (value.Length > count)
         {
-            throw new CStructWriteException($"String is too long for {compiledField.Name}: {value.Length} > {count}.");
+            throw new CStructWriteException(WriteFailures.FixedTextTooLong(compiledField.Name, value.Length, count));
         }
 
         long encodedByteCount = checked((long)count * (compiledField.IsWideCharElement ? 2 : 1));
@@ -989,9 +987,7 @@ public partial class CStruct
             }
             catch (EncoderFallbackException exception)
             {
-                throw new CStructWriteException(
-                    "Wide-character buffer contains an invalid UTF-16 code-unit sequence.",
-                    exception);
+                throw new CStructWriteException(WriteFailures.InvalidWideText, exception);
             }
 
             state.Stream.Write(encoded, 0, encoded.Length);

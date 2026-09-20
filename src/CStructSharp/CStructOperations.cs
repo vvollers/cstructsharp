@@ -701,8 +701,8 @@ public sealed partial class CStruct
     {
         fixed (byte* buffer = data)
         {
-            using var stream = new FixedBufferStream(buffer, data.Length, writable: true);
-            stream.SetLength(data.Length);
+            // The region already holds the value: an update reads around the field and keeps every other byte.
+            using var stream = new FixedBufferStream(buffer, data.Length, writable: true, initialized: true);
             this.UpdateStreamCore(stream, path, value, LayoutVariableInput.FromIntegers(variables), options);
         }
     }

@@ -849,6 +849,13 @@ public static class Codec
     public static byte ToNarrowCharacter(object value)
         => PrimitiveCodecs.ConvertToNarrowCharacter(value);
 
+    /// <summary>Converts one character to the one-byte domain of the layout's <c>char</c> type.</summary>
+    /// <param name="value">The character.</param>
+    /// <returns>The byte.</returns>
+    /// <exception cref="CStructWriteException">The character is above U+00FF.</exception>
+    public static byte ToNarrowCharacter(char value)
+        => value > byte.MaxValue ? throw new CStructWriteException(WriteFailures.NarrowCharacter(value)) : (byte)value;
+
     private static void WriteUInt24Unchecked(Span<byte> destination, uint value, bool littleEndian)
     {
         destination[1] = (byte)(value >> 8);

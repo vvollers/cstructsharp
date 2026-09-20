@@ -60,8 +60,7 @@ internal static class WriteValueMaterialization
             {
                 if (result.Count >= maximumCount)
                 {
-                    throw new CStructWriteException(
-                        $"Array value for {fieldName} exceeds its permitted element count of {maximumCount}.");
+                    throw new CStructWriteException(WriteFailures.ArrayTooMany(fieldName, maximumCount));
                 }
 
                 result.Add(item);
@@ -78,8 +77,7 @@ internal static class WriteValueMaterialization
     {
         if (count > maximumCount)
         {
-            throw new CStructWriteException(
-                $"Array value for {fieldName} exceeds its permitted element count of {maximumCount}.");
+            throw new CStructWriteException(WriteFailures.ArrayTooMany(fieldName, maximumCount));
         }
     }
 }

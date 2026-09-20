@@ -869,5 +869,844 @@ namespace Demo
             }
             return rows;
         }
+
+        /// <summary>Writes one <c>inner</c> into a new array with the generated writer; the same bytes, and the same failures, as the runtime's <c>Serialize</c>.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The serialized bytes.</returns>
+        public static byte[] SerializeInner(Inner value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
+        {
+            var cursor = new global::CStructSharp.Generated.WriteCursor(options, "inner");
+            try
+            {
+                EncodeInner(ref cursor, value, variables, null, null);
+                return cursor.ToArray();
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
+            finally
+            {
+                cursor.Dispose();
+            }
+        }
+
+        /// <summary>Writes one <c>inner</c> into <paramref name="destination"/>; a value that does not fit fails with the runtime's capacity message.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="destination">The bytes to write into.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The number of bytes written.</returns>
+        public static int SerializeInner(Inner value, global::System.Span<byte> destination, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
+        {
+            var cursor = new global::CStructSharp.Generated.WriteCursor(destination, options, "inner");
+            try
+            {
+                EncodeInner(ref cursor, value, variables, null, null);
+                return cursor.Length;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
+        }
+
+        /// <summary>Writes one <c>inner</c> to <paramref name="stream"/> at its current position.</summary>
+        /// <param name="stream">The destination stream.</param>
+        /// <param name="value">The value to write.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        public static void WriteInner(global::System.IO.Stream stream, Inner value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
+        {
+            global::System.ArgumentNullException.ThrowIfNull(stream);
+            if (!stream.CanWrite)
+            {
+                throw new global::System.ArgumentException("Writing requires a writable stream.", nameof(stream));
+            }
+            byte[] bytes = SerializeInner(value, variables, options);
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        /// <summary>Writes the root declaration (<c>inner</c>) into a new array; see <see cref="SerializeInner(Inner, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.WriteOptions)"/>.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The serialized bytes.</returns>
+        public static byte[] Serialize(Inner value, global::CStructSharp.WriteOptions? options = null) => SerializeInner(value, null, options);
+
+        /// <summary>Writes the root declaration (<c>inner</c>) into <paramref name="destination"/>.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="destination">The bytes to write into.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The number of bytes written.</returns>
+        public static int Serialize(Inner value, global::System.Span<byte> destination, global::CStructSharp.WriteOptions? options = null) => SerializeInner(value, destination, null, options);
+
+        /// <summary>Writes the root declaration (<c>inner</c>) to <paramref name="stream"/>.</summary>
+        /// <param name="stream">The destination stream.</param>
+        /// <param name="value">The value to write.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        public static void Write(global::System.IO.Stream stream, Inner value, global::CStructSharp.WriteOptions? options = null) => WriteInner(stream, value, null, options);
+
+        /// <summary>Writes one <c>root</c> into a new array with the generated writer; the same bytes, and the same failures, as the runtime's <c>Serialize</c>.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The serialized bytes.</returns>
+        public static byte[] SerializeRoot(Root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
+        {
+            var cursor = new global::CStructSharp.Generated.WriteCursor(options, "root");
+            try
+            {
+                EncodeRoot(ref cursor, value, variables, null, null);
+                return cursor.ToArray();
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
+            finally
+            {
+                cursor.Dispose();
+            }
+        }
+
+        /// <summary>Writes one <c>root</c> into <paramref name="destination"/>; a value that does not fit fails with the runtime's capacity message.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="destination">The bytes to write into.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The number of bytes written.</returns>
+        public static int SerializeRoot(Root value, global::System.Span<byte> destination, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
+        {
+            var cursor = new global::CStructSharp.Generated.WriteCursor(destination, options, "root");
+            try
+            {
+                EncodeRoot(ref cursor, value, variables, null, null);
+                return cursor.Length;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
+        }
+
+        /// <summary>Writes one <c>root</c> to <paramref name="stream"/> at its current position.</summary>
+        /// <param name="stream">The destination stream.</param>
+        /// <param name="value">The value to write.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        public static void WriteRoot(global::System.IO.Stream stream, Root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
+        {
+            global::System.ArgumentNullException.ThrowIfNull(stream);
+            if (!stream.CanWrite)
+            {
+                throw new global::System.ArgumentException("Writing requires a writable stream.", nameof(stream));
+            }
+            byte[] bytes = SerializeRoot(value, variables, options);
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        /// <summary>Writes one <c>inner</c> at the cursor's position.</summary>
+        private static void EncodeInner(ref global::CStructSharp.Generated.WriteCursor cursor, Inner? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            if (value is null)
+            {
+                throw cursor.Fail("Null is not valid for struct or union value: inner", member, memberType);
+            }
+            cursor.EnterComposite(member ?? "inner", memberType);
+            var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
+            // uint8 z
+            {
+                cursor.Seek(placement.AdvanceToField(1), "z", "uint8");
+                cursor.Reserve(1, "z", "uint8")[0] = value.Z;
+                placement.CompleteField(cursor.Position);
+            }
+            cursor.Seek(placement.Current, member, memberType);
+            cursor.Pad((int)(placement.Finish(1) - placement.Current), member, memberType);
+            cursor.ExitComposite();
+        }
+
+        /// <summary>Writes one <c>root</c> at the cursor's position.</summary>
+        private static void EncodeRoot(ref global::CStructSharp.Generated.WriteCursor cursor, Root? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            if (value is null)
+            {
+                throw cursor.Fail("Null is not valid for struct or union value: root", member, memberType);
+            }
+            cursor.EnterComposite(member ?? "root", memberType);
+            var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
+            // uint8 a
+            {
+                cursor.Seek(placement.AdvanceToField(1), "a", "uint8");
+                cursor.Reserve(1, "a", "uint8")[0] = value.A;
+                placement.CompleteField(cursor.Position);
+            }
+            // int8 b
+            {
+                cursor.Seek(placement.AdvanceToField(1), "b", "int8");
+                cursor.Reserve(1, "b", "int8")[0] = unchecked((byte)value.B);
+                placement.CompleteField(cursor.Position);
+            }
+            // bool c
+            {
+                cursor.Seek(placement.AdvanceToField(1), "c", "bool");
+                cursor.Reserve(1, "c", "bool")[0] = (byte)(value.C ? 1 : 0);
+                placement.CompleteField(cursor.Position);
+            }
+            // char d
+            {
+                cursor.Seek(placement.AdvanceToField(1), "d", "char");
+                try
+                {
+                    cursor.Reserve(1, "d", "char")[0] = global::CStructSharp.Generated.Codec.ToNarrowCharacter(value.D);
+                }
+                catch (global::CStructSharp.Diagnostics.CStructWriteException exception)
+                {
+                    throw cursor.WithMember(exception, "d", "char");
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // wchar e
+            {
+                cursor.Seek(placement.AdvanceToField(2), "e", "wchar");
+                global::CStructSharp.Generated.Codec.WriteChar(cursor.Reserve(2, "e", "wchar"), value.E, true);
+                placement.CompleteField(cursor.Position);
+            }
+            // int16 f
+            {
+                cursor.Seek(placement.AdvanceToField(2), "f", "int16");
+                global::CStructSharp.Generated.Codec.WriteInt16(cursor.Reserve(2, "f", "int16"), value.F, true);
+                placement.CompleteField(cursor.Position);
+            }
+            // uint16 g
+            {
+                cursor.Seek(placement.AdvanceToField(2), "g", "uint16");
+                global::CStructSharp.Generated.Codec.WriteUInt16(cursor.Reserve(2, "g", "uint16"), value.G, true);
+                placement.CompleteField(cursor.Position);
+            }
+            // int24 h
+            {
+                cursor.Seek(placement.AdvanceToField(1), "h", "int24");
+                {
+                    global::System.Span<byte> encoded = stackalloc byte[3];
+                    try
+                    {
+                        global::CStructSharp.Generated.Codec.WriteInt24(encoded, value.H, true);
+                    }
+                    catch (global::CStructSharp.Diagnostics.CStructWriteException exception)
+                    {
+                        throw cursor.WithMember(exception, "h", "int24");
+                    }
+                    encoded.CopyTo(cursor.Reserve(3, "h", "int24"));
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // uint24 i
+            {
+                cursor.Seek(placement.AdvanceToField(1), "i", "uint24");
+                {
+                    global::System.Span<byte> encoded = stackalloc byte[3];
+                    try
+                    {
+                        global::CStructSharp.Generated.Codec.WriteUInt24(encoded, value.I, true);
+                    }
+                    catch (global::CStructSharp.Diagnostics.CStructWriteException exception)
+                    {
+                        throw cursor.WithMember(exception, "i", "uint24");
+                    }
+                    encoded.CopyTo(cursor.Reserve(3, "i", "uint24"));
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // int32 j
+            {
+                cursor.Seek(placement.AdvanceToField(4), "j", "int32");
+                global::CStructSharp.Generated.Codec.WriteInt32(cursor.Reserve(4, "j", "int32"), value.J, true);
+                placement.CompleteField(cursor.Position);
+            }
+            // uint32 k
+            {
+                cursor.Seek(placement.AdvanceToField(4), "k", "uint32");
+                global::CStructSharp.Generated.Codec.WriteUInt32(cursor.Reserve(4, "k", "uint32"), value.K, true);
+                placement.CompleteField(cursor.Position);
+            }
+            // int48 l
+            {
+                cursor.Seek(placement.AdvanceToField(1), "l", "int48");
+                {
+                    global::System.Span<byte> encoded = stackalloc byte[6];
+                    try
+                    {
+                        global::CStructSharp.Generated.Codec.WriteInt48(encoded, value.L, true);
+                    }
+                    catch (global::CStructSharp.Diagnostics.CStructWriteException exception)
+                    {
+                        throw cursor.WithMember(exception, "l", "int48");
+                    }
+                    encoded.CopyTo(cursor.Reserve(6, "l", "int48"));
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // uint48 m
+            {
+                cursor.Seek(placement.AdvanceToField(1), "m", "uint48");
+                {
+                    global::System.Span<byte> encoded = stackalloc byte[6];
+                    try
+                    {
+                        global::CStructSharp.Generated.Codec.WriteUInt48(encoded, value.M, true);
+                    }
+                    catch (global::CStructSharp.Diagnostics.CStructWriteException exception)
+                    {
+                        throw cursor.WithMember(exception, "m", "uint48");
+                    }
+                    encoded.CopyTo(cursor.Reserve(6, "m", "uint48"));
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // int64 n
+            {
+                cursor.Seek(placement.AdvanceToField(8), "n", "int64");
+                global::CStructSharp.Generated.Codec.WriteInt64(cursor.Reserve(8, "n", "int64"), value.N, true);
+                placement.CompleteField(cursor.Position);
+            }
+            // uint64 o
+            {
+                cursor.Seek(placement.AdvanceToField(8), "o", "uint64");
+                global::CStructSharp.Generated.Codec.WriteUInt64(cursor.Reserve(8, "o", "uint64"), value.O, true);
+                placement.CompleteField(cursor.Position);
+            }
+            // int128 p
+            {
+                cursor.Seek(placement.AdvanceToField(16), "p", "int128");
+                global::CStructSharp.Generated.Codec.WriteInt128(cursor.Reserve(16, "p", "int128"), value.P, true);
+                placement.CompleteField(cursor.Position);
+            }
+            // uint128 q
+            {
+                cursor.Seek(placement.AdvanceToField(16), "q", "uint128");
+                global::CStructSharp.Generated.Codec.WriteUInt128(cursor.Reserve(16, "q", "uint128"), value.Q, true);
+                placement.CompleteField(cursor.Position);
+            }
+            // float16 r
+            {
+                cursor.Seek(placement.AdvanceToField(2), "r", "float16");
+                global::CStructSharp.Generated.Codec.WriteHalf(cursor.Reserve(2, "r", "float16"), value.R, true);
+                placement.CompleteField(cursor.Position);
+            }
+            // float32 s
+            {
+                cursor.Seek(placement.AdvanceToField(4), "s", "float32");
+                global::CStructSharp.Generated.Codec.WriteSingle(cursor.Reserve(4, "s", "float32"), value.S, true);
+                placement.CompleteField(cursor.Position);
+            }
+            // float64 t
+            {
+                cursor.Seek(placement.AdvanceToField(8), "t", "float64");
+                global::CStructSharp.Generated.Codec.WriteDouble(cursor.Reserve(8, "t", "float64"), value.T, true);
+                placement.CompleteField(cursor.Position);
+            }
+            // uleb128_32 u
+            {
+                cursor.Seek(placement.AdvanceToField(1), "u", "uleb128_32");
+                {
+                    global::System.Span<byte> encoded = stackalloc byte[10];
+                    int written = global::CStructSharp.Generated.Codec.WriteULeb128(encoded, value.U);
+                    encoded.Slice(0, written).CopyTo(cursor.Reserve(written, "u", "uleb128_32"));
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // uleb128_64 v
+            {
+                cursor.Seek(placement.AdvanceToField(1), "v", "uleb128_64");
+                {
+                    global::System.Span<byte> encoded = stackalloc byte[10];
+                    int written = global::CStructSharp.Generated.Codec.WriteULeb128(encoded, value.V);
+                    encoded.Slice(0, written).CopyTo(cursor.Reserve(written, "v", "uleb128_64"));
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // sleb128_32 w
+            {
+                cursor.Seek(placement.AdvanceToField(1), "w", "sleb128_32");
+                {
+                    global::System.Span<byte> encoded = stackalloc byte[10];
+                    int written = global::CStructSharp.Generated.Codec.WriteSLeb128(encoded, value.W);
+                    encoded.Slice(0, written).CopyTo(cursor.Reserve(written, "w", "sleb128_32"));
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // sleb128_64 x
+            {
+                cursor.Seek(placement.AdvanceToField(1), "x", "sleb128_64");
+                {
+                    global::System.Span<byte> encoded = stackalloc byte[10];
+                    int written = global::CStructSharp.Generated.Codec.WriteSLeb128(encoded, value.X);
+                    encoded.Slice(0, written).CopyTo(cursor.Reserve(written, "x", "sleb128_64"));
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // fixed16_16 y
+            {
+                cursor.Seek(placement.AdvanceToField(4), "y", "fixed16_16");
+                {
+                    long raw;
+                    try
+                    {
+                        raw = global::CStructSharp.Generated.Codec.EncodeFixedPoint(value.Y, 32, 16, true);
+                    }
+                    catch (global::CStructSharp.Diagnostics.CStructWriteException exception)
+                    {
+                        throw cursor.WithMember(exception, "y", "fixed16_16");
+                    }
+                    global::CStructSharp.Generated.Codec.WriteUInt32(cursor.Reserve(4, "y", "fixed16_16"), unchecked((uint)raw), true);
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // uuid z1
+            {
+                cursor.Seek(placement.AdvanceToField(1), "z1", "uuid");
+                global::CStructSharp.Generated.Codec.WriteGuid(cursor.Reserve(16, "z1", "uuid"), value.Z1, true);
+                placement.CompleteField(cursor.Position);
+            }
+            // guid z2
+            {
+                cursor.Seek(placement.AdvanceToField(1), "z2", "guid");
+                global::CStructSharp.Generated.Codec.WriteGuid(cursor.Reserve(16, "z2", "guid"), value.Z2, false);
+                placement.CompleteField(cursor.Position);
+            }
+            // ascii_string_zero z3
+            {
+                cursor.Seek(placement.AdvanceToField(1), "z3", "ascii_string_zero");
+                if (value.Z3 is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: z3", "z3", "ascii_string_zero");
+                }
+                cursor.WriteTerminatedString(global::CStructSharp.Generated.TerminatedTextEncoding.Ascii, '\0', value.Z3, "z3", "ascii_string_zero");
+                placement.CompleteField(cursor.Position);
+            }
+            // utf8_string_zero z4
+            {
+                cursor.Seek(placement.AdvanceToField(1), "z4", "utf8_string_zero");
+                if (value.Z4 is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: z4", "z4", "utf8_string_zero");
+                }
+                cursor.WriteTerminatedString(global::CStructSharp.Generated.TerminatedTextEncoding.Utf8, '\0', value.Z4, "z4", "utf8_string_zero");
+                placement.CompleteField(cursor.Position);
+            }
+            // unicode_string_zero z5
+            {
+                cursor.Seek(placement.AdvanceToField(1), "z5", "unicode_string_zero");
+                if (value.Z5 is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: z5", "z5", "unicode_string_zero");
+                }
+                cursor.WriteTerminatedString(global::CStructSharp.Generated.TerminatedTextEncoding.Utf16LittleEndian, '\0', value.Z5, "z5", "unicode_string_zero");
+                placement.CompleteField(cursor.Position);
+            }
+            // char name[8]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "name", "char");
+                if (value.Name is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: name", "name", "char");
+                }
+                int count;
+                count = 8;
+                cursor.RequireArrayLength(count, "name", "char");
+                cursor.WriteFixedText(count, value.Name, false, true, "name", "char");
+                placement.CompleteField(cursor.Position);
+            }
+            // wchar wide[4]
+            {
+                cursor.Seek(placement.AdvanceToField(2), "wide", "wchar");
+                if (value.Wide is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: wide", "wide", "wchar");
+                }
+                int count;
+                count = 4;
+                cursor.RequireArrayLength(count, "wide", "wchar");
+                cursor.WriteFixedText(count, value.Wide, true, true, "wide", "wchar");
+                placement.CompleteField(cursor.Position);
+            }
+            // utf8 label[3]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "label", "utf8");
+                if (value.Label is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: label", "label", "utf8");
+                }
+                int count;
+                count = 3;
+                cursor.RequireArrayLength(count, "label", "utf8");
+                cursor.WriteBoundedText(count, "utf8", value.Label, "label", "utf8");
+                placement.CompleteField(cursor.Position);
+            }
+            // char table[2][3]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "table", "char");
+                if (value.Table is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: table", "table", "char");
+                }
+                int count = 6;
+                cursor.RequireArrayLength(count, "table", "char");
+                if (value.Table.Length > 2)
+                {
+                    throw cursor.Fail("Array value for table exceeds its permitted element count of " + 2.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "table", "char");
+                }
+                if (value.Table.Length != 2)
+                {
+                    throw cursor.Fail("Array length mismatch for table: expected " + 2.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Table.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "table", "char");
+                }
+                for (int i0 = 0; i0 < 2; i0++)
+                {
+                    if (value.Table[i0] is null)
+                    {
+                        throw cursor.Fail("Null is valid only for a scalar pointer field: table", "table", "char");
+                    }
+                    cursor.WriteFixedText(3, value.Table[i0], false, true, "table", "char");
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // uint8 bytes[4]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "bytes", "uint8");
+                if (value.Bytes is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: bytes", "bytes", "uint8");
+                }
+                int count;
+                count = 4;
+                cursor.RequireArrayLength(count, "bytes", "uint8");
+                if (value.Bytes.Length > count)
+                {
+                    throw cursor.Fail("Array value for bytes exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "bytes", "uint8");
+                }
+                if (value.Bytes.Length != count)
+                {
+                    throw cursor.Fail("Array length mismatch for bytes: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Bytes.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "bytes", "uint8");
+                }
+                if (count > 0)
+                {
+                    global::System.Span<byte> bytes = cursor.Reserve(count * 1, "bytes", "uint8");
+                    new global::System.ReadOnlySpan<byte>(value.Bytes).CopyTo(bytes);
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // uint16 words[2][2]
+            {
+                cursor.Seek(placement.AdvanceToField(2), "words", "uint16");
+                if (value.Words is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: words", "words", "uint16");
+                }
+                int count = 4;
+                cursor.RequireArrayLength(count, "words", "uint16");
+                if (value.Words.Length > 2)
+                {
+                    throw cursor.Fail("Array value for words exceeds its permitted element count of " + 2.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "words", "uint16");
+                }
+                if (value.Words.Length != 2)
+                {
+                    throw cursor.Fail("Array length mismatch for words: expected " + 2.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Words.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "words", "uint16");
+                }
+                for (int i0 = 0; i0 < 2; i0++)
+                {
+                    if (value.Words[i0] is null)
+                    {
+                        throw cursor.Fail("Null is valid only for a scalar pointer field: words", "words", "uint16");
+                    }
+                    if (value.Words[i0].Length > 2)
+                    {
+                        throw cursor.Fail("Array value for words exceeds its permitted element count of " + 2.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "words", "uint16");
+                    }
+                    if (value.Words[i0].Length != 2)
+                    {
+                        throw cursor.Fail("Array length mismatch for words: expected " + 2.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Words[i0].Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "words", "uint16");
+                    }
+                    for (int i1 = 0; i1 < value.Words[i0].Length; i1++)
+                    {
+                        global::CStructSharp.Generated.Codec.WriteUInt16(cursor.Reserve(2, "words", "uint16"), value.Words[i0][i1], true);
+                    }
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // uint8 count
+            {
+                cursor.Seek(placement.AdvanceToField(1), "count", "uint8");
+                cursor.Reserve(1, "count", "uint8")[0] = value.Count;
+                placement.CompleteField(cursor.Position);
+            }
+            // uint8 items[...]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "items", "uint8");
+                if (value.Items is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: items", "items", "uint8");
+                }
+                int count;
+                try
+                {
+                    count = global::CStructSharp.Generated.Expressions.RequireInt32((long)value.Count, "count");
+                }
+                catch (global::System.Exception expressionFailure)
+                {
+                    throw cursor.FailExpression(expressionFailure, "array length for items", "items", "uint8");
+                }
+                if (count < 0)
+                {
+                    throw cursor.Fail("Array length cannot be negative: items", "items", "uint8");
+                }
+                cursor.RequireArrayLength(count, "items", "uint8");
+                if (value.Items.Length > count)
+                {
+                    throw cursor.Fail("Array value for items exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "items", "uint8");
+                }
+                if (value.Items.Length != count)
+                {
+                    throw cursor.Fail("Array length mismatch for items: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Items.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "items", "uint8");
+                }
+                if (count > 0)
+                {
+                    global::System.Span<byte> bytes = cursor.Reserve(count * 1, "items", "uint8");
+                    new global::System.ReadOnlySpan<byte>(value.Items).CopyTo(bytes);
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // uint8 tail[...]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
+                if (value.Tail is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: tail", "tail", "uint8");
+                }
+                int count = value.Tail.Length;
+                if (count > cursor.MaxArrayElements)
+                {
+                    throw cursor.Fail("Array value for tail exceeds its permitted element count of " + cursor.MaxArrayElements.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "tail", "uint8");
+                }
+                if (count > 0)
+                {
+                    global::System.Span<byte> bytes = cursor.Reserve(count * 1, "tail", "uint8");
+                    new global::System.ReadOnlySpan<byte>(value.Tail).CopyTo(bytes);
+                }
+                cursor.Pad(1, "tail", "uint8");
+                placement.CompleteField(cursor.Position);
+            }
+            // uint16 rest[...][EOF]
+            {
+                cursor.Seek(placement.AdvanceToField(2), "rest", "uint16");
+                if (value.Rest is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: rest", "rest", "uint16");
+                }
+                int count = value.Rest.Length;
+                if (count > cursor.MaxArrayElements)
+                {
+                    throw cursor.Fail("Array value for rest exceeds its permitted element count of " + cursor.MaxArrayElements.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "rest", "uint16");
+                }
+                if (count > 0)
+                {
+                    global::System.Span<byte> bytes = cursor.Reserve(count * 2, "rest", "uint16");
+                    global::CStructSharp.Generated.Codec.EncodeIntegers<ushort>(value.Rest, bytes, true);
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // color colour
+            {
+                cursor.Seek(placement.AdvanceToField(1), "colour", "color");
+                cursor.Reserve(1, "colour", "color")[0] = (byte)value.Colour;
+                placement.CompleteField(cursor.Position);
+            }
+            // perms mode
+            {
+                cursor.Seek(placement.AdvanceToField(2), "mode", "perms");
+                global::CStructSharp.Generated.Codec.WriteUInt16(cursor.Reserve(2, "mode", "perms"), (ushort)value.Mode, true);
+                placement.CompleteField(cursor.Position);
+            }
+            // inner child
+            {
+                cursor.Seek(placement.AdvanceToField(1), "child", "inner");
+                if (value.Child is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: child", "child", "inner");
+                }
+                EncodeInner(ref cursor, value.Child, variables, "child", "inner");
+                placement.CompleteField(cursor.Position);
+            }
+            // inner children[2]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "children", "inner");
+                if (value.Children is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: children", "children", "inner");
+                }
+                int count;
+                count = 2;
+                cursor.RequireArrayLength(count, "children", "inner");
+                if (value.Children.Length > count)
+                {
+                    throw cursor.Fail("Array value for children exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "children", "inner");
+                }
+                if (value.Children.Length != count)
+                {
+                    throw cursor.Fail("Array length mismatch for children: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Children.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "children", "inner");
+                }
+                for (int index = 0; index < count; index++)
+                {
+                    EncodeInner(ref cursor, value.Children[index], variables, "children", "inner");
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // uint8 bits : 3
+            {
+                var slot = placement.AdvanceToBitfield(1, 1, 3, 17, true, "bits");
+                cursor.WriteBits(slot, 3, value.Bits, true, HighBitFirst, "bits", "uint8");
+            }
+            // color cbits : 2
+            {
+                var slot = placement.AdvanceToBitfield(1, 1, 2, 17, true, "cbits");
+                cursor.WriteBits(slot, 2, (ulong)(byte)(byte)value.Cbits, true, HighBitFirst, "cbits", "color");
+            }
+            // uint16 wbits : 12
+            {
+                var slot = placement.AdvanceToBitfield(2, 2, 12, 17, true, "wbits");
+                cursor.WriteBits(slot, 12, value.Wbits, true, HighBitFirst, "wbits", "uint16");
+            }
+            // uint8 *ptr
+            {
+                cursor.Seek(placement.AdvanceToField(8), "ptr", "uint8");
+                cursor.WritePointerAddress(value.Ptr.Address, PointerSize, LittleEndian, "ptr", "uint8");
+                placement.CompleteField(cursor.Position);
+            }
+            // uint16 **pp
+            {
+                cursor.Seek(placement.AdvanceToField(8), "pp", "uint16");
+                cursor.WritePointerAddress(value.Pp.Address, PointerSize, LittleEndian, "pp", "uint16");
+                placement.CompleteField(cursor.Position);
+            }
+            // char *text
+            {
+                cursor.Seek(placement.AdvanceToField(8), "text", "char");
+                cursor.WritePointerAddress(value.Text.Address, PointerSize, LittleEndian, "text", "char");
+                placement.CompleteField(cursor.Position);
+            }
+            // void *raw
+            {
+                cursor.Seek(placement.AdvanceToField(8), "raw", "void");
+                cursor.WritePointerAddress(value.Raw.Address, PointerSize, LittleEndian, "raw", "void");
+                placement.CompleteField(cursor.Position);
+            }
+            // inner *link
+            {
+                cursor.Seek(placement.AdvanceToField(8), "link", "inner");
+                cursor.WritePointerAddress(value.Link.Address, PointerSize, LittleEndian, "link", "inner");
+                placement.CompleteField(cursor.Position);
+            }
+            // color *pc
+            {
+                cursor.Seek(placement.AdvanceToField(8), "pc", "color");
+                cursor.WritePointerAddress(value.Pc.Address, PointerSize, LittleEndian, "pc", "color");
+                placement.CompleteField(cursor.Position);
+            }
+            cursor.Seek(placement.Current, member, memberType);
+            cursor.Pad((int)(placement.Finish(16) - placement.Current), member, memberType);
+            cursor.ExitComposite();
+        }
+
+        /// <summary>The root declaration as <see cref="global::CStructSharp.ICStructGenerated{Inner}"/>.</summary>
+        public sealed partial class Inner : global::CStructSharp.ICStructGenerated<Inner>
+        {
+            /// <inheritdoc/>
+            static global::CStructSharp.CStruct global::CStructSharp.ICStructGenerated<Inner>.Layout => Types.Layout;
+
+            /// <inheritdoc/>
+            static string global::CStructSharp.ICStructGenerated<Inner>.RootName => Types.RootName;
+
+            /// <inheritdoc/>
+            static Inner global::CStructSharp.ICStructGenerated<Inner>.Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options) => Types.Parse(source, options);
+
+            /// <inheritdoc/>
+            static int global::CStructSharp.ICStructGenerated<Inner>.Serialize(Inner value, global::System.Span<byte> destination, global::CStructSharp.WriteOptions? options) => Types.Serialize(value, destination, options);
+        }
+
+        /// <summary>Reads the root declaration with the generated reader and the runtime's debug ranges (the runtime reads the same bytes once more to produce them).</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value and one <see cref="global::CStructSharp.Diagnostics.DebugData"/> per value read, in read order.</returns>
+        public static (Inner Value, global::System.Collections.Generic.IReadOnlyList<global::CStructSharp.Diagnostics.DebugData> Debug) ParseWithDebug(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            Inner value = ParseInner(source, variables, options);
+            return (value, Layout.ParseWithDebug(source, "inner", variables, options).Debug);
+        }
+
+        /// <summary>Resolves a path (<c>inner.field</c>, <c>items[2].value</c>, ...) to its byte address with the runtime layout.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="path">The path, in the runtime's path grammar.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The address of the selected value.</returns>
+        public static long ResolveAddress(global::System.ReadOnlySpan<byte> source, string path, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.ResolveAddress(source, path, variables, options);
+
+        /// <summary>The element count of an array or string selected by a path, with the runtime layout.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="path">The path, in the runtime's path grammar.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The element count.</returns>
+        public static int GetArrayLength(global::System.ReadOnlySpan<byte> source, string path, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.GetArrayLength(source, path, variables, options);
+
+        /// <summary>Replaces one value in place by path with the runtime layout; statically placed members also have typed setters in <see cref="Update"/>.</summary>
+        /// <param name="target">The bytes holding the value.</param>
+        /// <param name="path">The path, in the runtime's path grammar.</param>
+        /// <param name="value">The new value.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The update options; <see langword="null"/> uses the documented defaults.</param>
+        public static void UpdatePath(global::System.Span<byte> target, string path, object value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.UpdateOptions? options = null) => Layout.Update(target, path, value, variables, options);
+
+        /// <summary>The size in bytes of every composite with a static size (<c>sizeof</c>); a runtime-sized composite has none.</summary>
+        public static class Sizes
+        {
+            /// <summary><c>sizeof(inner)</c>.</summary>
+            public const int Inner = 1;
+        }
+
+        /// <summary>The offset from the root's first byte of every statically placed scalar (<c>offsetof</c>), nested by struct member.</summary>
+        public static class Offsets
+        {
+            /// <summary><c>offsetof(inner, z)</c>.</summary>
+            public const int Z = 0;
+        }
+
+        /// <summary>Typed in-place setters for the statically placed scalars, nested by struct member; a fixed array takes the element index.</summary>
+        public static class Update
+        {
+            /// <summary>Stores <c>z</c> into <paramref name="target"/> at offset 0, leaving every other byte alone.</summary>
+            /// <param name="target">The bytes holding the value.</param>
+            /// <param name="value">The new value.</param>
+            public static void Z(global::System.Span<byte> target, byte value)
+            {
+                var cursor = global::CStructSharp.Generated.WriteCursor.ForUpdate(target, null, "inner.z");
+                try
+                {
+                    cursor.Position = 0;
+                    cursor.Reserve(1, "z", "uint8")[0] = value;
+                }
+                catch (global::CStructSharp.Diagnostics.CStructException exception)
+                {
+                    cursor.Complete(exception);
+                    throw;
+                }
+            }
+        }
     }
 }

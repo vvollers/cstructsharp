@@ -64,6 +64,22 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   the declaration on first use. The generated reader hands each value to the codec as the runtime's memory path
   does (`ReadCursor.TakeCustom`): the whole remaining input as the window, the consumed bytes charged to the
   budget, and the runtime's texts for a short read, a rejected value, a codec that throws, or an impossible length.
+- Generated writers and operations: `Serialize<Name>(value)` → `byte[]`, `Serialize<Name>(value, Span<byte>)`,
+  and `Write<Name>(Stream, value)` per composite plus the root's plain `Serialize`/`Write`, at parity with the
+  runtime writer on every fixture (the same bytes for a value both readers produced; the same validation texts
+  for a fixed array of the wrong length, a string past its buffer, a value outside its type's range, a bitfield
+  past its width, a terminator inside a string, an inactive conditional arm supplied, a union without
+  `SelectedMember` or `RawStorage`; and a destination too small fails with the runtime's capacity text). The root
+  class implements `ICStructGenerated<Root>`; `Sizes.<Composite>` and `Offsets.<Member>` constants and typed
+  `Update.<Member>(Span<byte>, value)` setters (nested by struct member; fixed arrays take an index) cover every
+  statically placed scalar; `ParseWithDebug`, `ResolveAddress`, `GetArrayLength`, and `UpdatePath` run on the
+  runtime layout with its path grammar. `WriteCursor` gains a growable mode and the per-kind `Write*` helpers.
+
+### Fixed
+
+- `CStruct.Update(Span<byte>, path, value)` zeroed every byte of the region except the updated field: the fixed
+  buffer stream it wrote through started with a zero length and cleared the rest when its length was set. The
+  span form now keeps the region's bytes, like the stream form (`MemoryIoTests.SpanUpdate_KeepsTheOtherBytesOfTheRegion`).
 
 ### Internal
 

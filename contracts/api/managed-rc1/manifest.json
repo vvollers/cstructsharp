@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 27,
+  "baselineRevision": 28,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.6.0",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 932,
-    "normalizedSha256": "4E93EE6BC2B3A6D81D86BE38922D332405686D4F77AA45D87401569F93073FF9"
+    "lines": 949,
+    "normalizedSha256": "C823F78816DCE3E1E8307583C69CBE4FA232E62A79168899B0E49DA4612A023A"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "B49DE168AC036CA1DFBEFC84F4722EB13E3137E303685130DF852C768F4CB33D",
+      "normalizedSha256": "DAB6E6180D422C759C998C796EBB7E38F42612AAD9FF37ACA16271C959C9313C",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "58E589A2A19D53B9459688FC4480D513DC38296FA52F30C301AFA68F0045FF0C",
+      "normalizedSha256": "33A190BECB09784A3F640BCA1163F578766F3FB7905E0A080F510E7A42C7E8B4",
       "aotCompatible": true
     }
   ],
@@ -276,6 +276,15 @@
       "combinedSha256": "6A5ED34AE083F40DE603FE656FEDE2EB009BF1450F539DDB08D41E254306C897",
       "rationale": "Generated custom codecs (plan 3.7): CStructLayoutAttribute.Codecs declares each codec's name, fixed size, and alignment for build-time placement; ReadCursor.TakeCustom runs an ICustomCodec on the remaining bytes as the runtime's memory path does.",
       "releaseImpact": "Additive to the released 0.6.0 surface; the attribute and the Generated namespace have not shipped yet."
+    },
+    {
+      "revision": 28,
+      "kind": "additive",
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "5AE54C74F3C6D7527D67BE04ABC2E936AAFDB37BB9D983ECD9DD17C58D6AF93E",
+      "rationale": "Generated writers (plan 3.8): WriteCursor gains a growable constructor, ToArray/Written/Dispose, Seek, Unit, WithMember, Complete, ForUpdate, and the per-kind Write* helpers (terminated, fixed and bounded text, pointer addresses, custom codecs, bitfields); Reserve/Pad take a nullable member; Codec.ToNarrowCharacter(char).",
+      "releaseImpact": "Additive to the released 0.6.0 surface; the CStructSharp.Generated namespace has not shipped yet."
     }
   ]
 }

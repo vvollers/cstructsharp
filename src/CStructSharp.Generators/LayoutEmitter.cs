@@ -104,6 +104,8 @@ internal sealed partial class LayoutEmitter
         this.EmitFrame(writer);
         this.EmitTypes(writer);
         this.EmitReaders(writer);
+        this.EmitWriters(writer);
+        this.EmitOperations(writer);
         writer.Close();
 
         for (int index = 0; index < this.request.ContainingTypes.Count; index++)

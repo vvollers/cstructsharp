@@ -105,6 +105,7 @@ public class ReaderParityTests
             object runtimeValue = runtime.ReadValue(bytes, root, variables, options)!;
             object generatedValue = Invoke(parse, bytes, variables, options);
             ParityComparer.AssertSame(runtimeValue, generatedValue, root);
+            WriteParity.AssertRoundTrip(id, generated, runtime, root, runtimeValue, generatedValue, variables);
         }
 
         // The truncation sweep: every prefix (every prefix of a small input; a spread of prefixes of a large one)
@@ -188,7 +189,7 @@ public class ReaderParityTests
         return root;
     }
 
-    private static string Literal(string definition)
+    internal static string Literal(string definition)
     {
         return "\"" + definition.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r") + "\"";
     }

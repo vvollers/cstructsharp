@@ -18,6 +18,19 @@ internal sealed unsafe class FixedBufferStream : Stream
 
     /// <summary>Creates a read-only initialized region or an empty writable region over fixed caller storage.</summary>
     public FixedBufferStream(byte* buffer, int capacity, bool writable)
+        : this(buffer, capacity, writable, initialized: !writable)
+    {
+    }
+
+    /// <summary>
+    ///     Creates a stream over caller storage; <paramref name="initialized"/> says whether the whole region already
+    ///     holds data (an in-place update reads and keeps it) or only what the stream writes counts as its length.
+    /// </summary>
+    /// <param name="buffer">The region's first byte.</param>
+    /// <param name="capacity">The region's size.</param>
+    /// <param name="writable">Whether the stream may write.</param>
+    /// <param name="initialized">Whether the region's bytes are the stream's initial contents.</param>
+    public FixedBufferStream(byte* buffer, int capacity, bool writable, bool initialized)
     {
         if (capacity < 0)
         {
@@ -27,7 +40,7 @@ internal sealed unsafe class FixedBufferStream : Stream
         this.buffer = buffer;
         this.capacity = capacity;
         this.writable = writable;
-        this.length = writable ? 0 : capacity;
+        this.length = initialized ? capacity : 0;
     }
 
     internal int Capacity => this.capacity;
