@@ -65,6 +65,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         int cLongWidth = 0;
         string[]? defined = null;
         string? defaultEnumStorage = null;
+        string[]? codecs = null;
         bool keepNames = false;
         bool views = true;
         foreach (KeyValuePair<string, TypedConstant> named in attribute.NamedArguments)
@@ -100,6 +101,9 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                 break;
             case "DefaultEnumStorage":
                 defaultEnumStorage = named.Value.Value as string;
+                break;
+            case "Codecs":
+                codecs = named.Value.Values.Select(value => value.Value as string ?? string.Empty).ToArray();
                 break;
             case "KeepNames":
                 keepNames = named.Value.Value is true;
@@ -148,6 +152,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             cLongWidth,
             new EquatableArray<string>(defined),
             defaultEnumStorage,
+            new EquatableArray<string>(codecs),
             keepNames,
             views,
             SourceSpan.From(attributeLocation),
@@ -229,10 +234,29 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             }
         }
 
+        var codecs = new List<CustomCodecDescriptor>();
+        foreach (string declaration in request.Codecs)
+        {
+            if (CustomCodecDeclaration.TryParse(declaration, out CustomCodecDescriptor descriptor))
+            {
+                codecs.Add(descriptor);
+            }
+            else
+            {
+                context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.CodecDeclarationInvalid, request.AttributeSpan.ToLocation(), declaration));
+                return;
+            }
+        }
+
         LayoutCompilation compilation;
         try
         {
-            compilation = Compile(definition, request);
+            compilation = Compile(definition, request, codecs);
+        }
+        catch (ArgumentException exception) when (codecs.Count > 0 && exception.Message.StartsWith("Custom codec", StringComparison.Ordinal))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.CodecDeclarationInvalid, request.AttributeSpan.ToLocation(), exception.Message));
+            return;
         }
         catch (Exception exception) when (exception is CStructException or ArgumentException)
         {
@@ -268,7 +292,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
     }
 
     /// <summary>The compilation the runtime's <c>CStruct</c> constructor performs, minus its codec delegate table.</summary>
-    private static LayoutCompilation Compile(string definition, LayoutRequest request)
+    private static LayoutCompilation Compile(string definition, LayoutRequest request, IReadOnlyList<CustomCodecDescriptor> codecs)
     {
         var options = new CStructCompilationOptions
         {
@@ -284,7 +308,14 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             throw new ArgumentOutOfRangeException(nameof(request), "Pointer size must be 1, 2, 4, or 8 bytes.");
         }
 
-        PrimitiveCatalog catalog = PrimitiveCatalog.For(request.LittleEndian, options.CLongWidth);
+        // As the runtime's CStruct constructor: the custom codecs become primitive symbols of the catalog.
+        PrimitiveCatalog catalog = PrimitiveCatalog.For(request.LittleEndian, options.CLongWidth).WithCustomCodecs(codecs);
+        ImmutableDictionary<string, CompiledTypeReference>.Builder symbols = ImmutableDictionary.CreateBuilder<string, CompiledTypeReference>(StringComparer.Ordinal);
+        foreach (CustomCodecDescriptor descriptor in catalog.CustomCodecs)
+        {
+            symbols.Add(descriptor.Name, catalog.Symbols[descriptor.Name]);
+        }
+
         return new LayoutCompilation(
             definition,
             (byte)request.PointerSize,
@@ -292,7 +323,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             request.LittleEndian,
             options,
             catalog,
-            ImmutableDictionary<string, CompiledTypeReference>.Empty);
+            symbols.ToImmutable());
     }
 
     private static IReadOnlySet<string> DefinedSet(EquatableArray<string> defined)

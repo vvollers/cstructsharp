@@ -25,6 +25,7 @@ internal sealed record LayoutRequest(
     int CLongWidth,
     EquatableArray<string> Defined,
     string? DefaultEnumStorage,
+    EquatableArray<string> Codecs,
     bool KeepNames,
     bool Views,
     SourceSpan AttributeSpan,

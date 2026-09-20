@@ -29,7 +29,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The golden files live beside the tests; UPDATE_SNAPSHOTS=1 rewrites them in place. -->
+    <!-- The golden files live beside the tests; UPDATE_SNAPSHOTS=1 rewrites them in place. They are text the tests
+         compare, not sources of this project: each one is compiled by the test that produced it. -->
+    <Compile Remove="Snapshots/**" />
     <AssemblyMetadata Include="SnapshotDirectory" Value="$(MSBuildProjectDirectory)/Snapshots" />
   </ItemGroup>
 

@@ -49,6 +49,12 @@ internal static class ReadFailures
     /// <summary>A bitfield placed past the end of its storage unit.</summary>
     public static string BitfieldExceedsUnit(string fieldName) => "Bitfield exceeds its storage unit: " + fieldName;
 
+    /// <summary>A custom codec that rejected its input.</summary>
+    public static string CustomCodecRejected(string codecName) => "Custom codec '" + codecName + "' rejected the input bytes.";
+
+    /// <summary>A custom codec that threw while decoding.</summary>
+    public static string CustomCodecFailed(string codecName, string reason) => "Custom codec '" + codecName + "' failed to decode a value: " + reason;
+
     /// <summary>A pointer whose target lies outside the input.</summary>
     public static string PointerTargetOutside(long targetAddress) => "Pointer target is outside the readable stream range: " + targetAddress.ToString(CultureInfo.InvariantCulture);
 
@@ -79,6 +85,18 @@ internal static class ReadFailures
     /// <summary>A read-to-end array whose remaining bytes are not whole elements.</summary>
     public static string ToEndRemainder(long remaining, int elementSize, string fieldName)
         => "The remaining " + remaining.ToString(CultureInfo.InvariantCulture) + " bytes are not a whole number of " + elementSize.ToString(CultureInfo.InvariantCulture) + "-byte elements: " + fieldName;
+
+    /// <summary>A custom codec that reported more bytes consumed than it was given.</summary>
+    public static string CustomCodecConsumed(string codecName, int consumed, int available)
+        => "Custom codec '" + codecName + "' reported " + consumed.ToString(CultureInfo.InvariantCulture) + " bytes consumed, but " + available.ToString(CultureInfo.InvariantCulture) + " were available.";
+
+    /// <summary>A custom codec that needs more bytes than the input has.</summary>
+    public static string CustomCodecShortRead(string codecName, int available)
+        => "Not enough bytes: custom codec '" + codecName + "' needs more than the " + available.ToString(CultureInfo.InvariantCulture) + " available.";
+
+    /// <summary>A custom codec that needs a window past the string byte limit.</summary>
+    public static string CustomCodecLimit(string codecName, long limit)
+        => "Custom codec '" + codecName + "' needs more than MaxStringBytes (" + limit.ToString(CultureInfo.InvariantCulture) + ") for one value.";
 #else
 
     /// <summary>A short read: how many bytes the item needed and how many the source still had.</summary>
@@ -100,5 +118,17 @@ internal static class ReadFailures
     /// <summary>A read-to-end array whose remaining bytes are not whole elements.</summary>
     public static string ToEndRemainder(long remaining, int elementSize, string fieldName)
         => string.Create(CultureInfo.InvariantCulture, $"The remaining {remaining} bytes are not a whole number of {elementSize}-byte elements: {fieldName}");
+
+    /// <summary>A custom codec that reported more bytes consumed than it was given.</summary>
+    public static string CustomCodecConsumed(string codecName, int consumed, int available)
+        => string.Create(CultureInfo.InvariantCulture, $"Custom codec '{codecName}' reported {consumed} bytes consumed, but {available} were available.");
+
+    /// <summary>A custom codec that needs more bytes than the input has.</summary>
+    public static string CustomCodecShortRead(string codecName, int available)
+        => string.Create(CultureInfo.InvariantCulture, $"Not enough bytes: custom codec '{codecName}' needs more than the {available} available.");
+
+    /// <summary>A custom codec that needs a window past the string byte limit.</summary>
+    public static string CustomCodecLimit(string codecName, long limit)
+        => string.Create(CultureInfo.InvariantCulture, $"Custom codec '{codecName}' needs more than MaxStringBytes ({limit}) for one value.");
 #endif
 }

@@ -15,29 +15,53 @@ internal static class CustomCodecAdapter
 {
     private const int InitialWindow = 256;
 
+    /// <summary>
+    ///     Decodes one value from memory-backed input (the whole remaining input is the codec's window), as the
+    ///     runtime's memory path and the generated code's <c>ReadCursor.TakeCustom</c> both do: the value and the
+    ///     bytes it took, or the failure to raise after the caller moved past the bytes the codec looked at.
+    /// </summary>
+    /// <param name="codec">The codec.</param>
+    /// <param name="remaining">The bytes from the value's start to the end of the input.</param>
+    /// <param name="value">The decoded value when there is no failure.</param>
+    /// <param name="consumed">The bytes to advance by: the value's length, or the whole window on a short read.</param>
+    /// <returns>The failure to throw, or <see langword="null"/>.</returns>
+    public static CStructReadException? DecodeFromMemory(ICustomCodec codec, ReadOnlySpan<byte> remaining, out object? value, out int consumed)
+    {
+        OperationStatus status = Decode(codec, remaining, out value, out consumed);
+        switch (status)
+        {
+        case OperationStatus.Done:
+            if (consumed < 0 || consumed > remaining.Length)
+            {
+                int reported = consumed;
+                consumed = 0;
+                return new CStructReadException(ReadFailures.CustomCodecConsumed(codec.Name, reported, remaining.Length));
+            }
+
+            return null;
+        case OperationStatus.NeedMoreData:
+            consumed = remaining.Length;
+            return new CStructReadException(ReadFailures.CustomCodecShortRead(codec.Name, remaining.Length));
+        default:
+            consumed = 0;
+            return new CStructReadException(ReadFailures.CustomCodecRejected(codec.Name));
+        }
+    }
+
     /// <summary>Reads one value at the stream position and leaves the stream after it.</summary>
     public static object Read(ICustomCodec codec, Stream stream)
     {
         var budget = stream as ReadBudgetStream;
         if (budget is not null && budget.TryPeekRemaining(out ReadOnlySpan<byte> remaining))
         {
-            OperationStatus status = Decode(codec, remaining, out object? value, out int consumed);
-            switch (status)
+            CStructReadException? failure = DecodeFromMemory(codec, remaining, out object? value, out int consumed);
+            budget.Advance(consumed);
+            if (failure is not null)
             {
-            case OperationStatus.Done:
-                if (consumed < 0 || consumed > remaining.Length)
-                {
-                    throw new CStructReadException($"Custom codec '{codec.Name}' reported {consumed} bytes consumed, but {remaining.Length} were available.");
-                }
-
-                budget.Advance(consumed);
-                return value!;
-            case OperationStatus.NeedMoreData:
-                budget.Advance(remaining.Length);
-                throw new CStructReadException($"Not enough bytes: custom codec '{codec.Name}' needs more than the {remaining.Length} available.");
-            default:
-                throw new CStructReadException($"Custom codec '{codec.Name}' rejected the input bytes.");
+                throw failure;
             }
+
+            return value!;
         }
 
         // A stream source: read a window at the value's position, widen it while the codec needs more, then leave
@@ -58,22 +82,22 @@ internal static class CustomCodecAdapter
                 case OperationStatus.Done:
                     if (consumed < 0 || consumed > read)
                     {
-                        throw new CStructReadException($"Custom codec '{codec.Name}' reported {consumed} bytes consumed, but {read} were available.");
+                        throw new CStructReadException(ReadFailures.CustomCodecConsumed(codec.Name, consumed, read));
                     }
 
                     stream.Position = start + consumed;
                     return value!;
                 case OperationStatus.NeedMoreData when read < window:
-                    throw new CStructReadException($"Not enough bytes: custom codec '{codec.Name}' needs more than the {read} available.");
+                    throw new CStructReadException(ReadFailures.CustomCodecShortRead(codec.Name, read));
                 case OperationStatus.NeedMoreData when window >= limit:
-                    throw new CStructReadLimitException($"Custom codec '{codec.Name}' needs more than MaxStringBytes ({limit}) for one value.");
+                    throw new CStructReadLimitException(ReadFailures.CustomCodecLimit(codec.Name, limit));
                 case OperationStatus.NeedMoreData:
                     window = (int)Math.Min((long)window * 2, limit);
                     ArrayPool<byte>.Shared.Return(rented);
                     rented = ArrayPool<byte>.Shared.Rent(window);
                     continue;
                 default:
-                    throw new CStructReadException($"Custom codec '{codec.Name}' rejected the input bytes.");
+                    throw new CStructReadException(ReadFailures.CustomCodecRejected(codec.Name));
                 }
             }
         }
@@ -130,7 +154,7 @@ internal static class CustomCodecAdapter
         }
         catch (Exception exception) when (exception is not CStructException)
         {
-            throw new CStructReadException($"Custom codec '{codec.Name}' failed to decode a value: {exception.Message}", exception);
+            throw new CStructReadException(ReadFailures.CustomCodecFailed(codec.Name, exception.Message), exception);
         }
     }
 

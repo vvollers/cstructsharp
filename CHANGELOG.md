@@ -27,10 +27,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - The `CStructSharp.Generators` source generator (shipped inside the package from 0.7.0): `[CStructLayout]` on a
   `static partial` class compiles the layout at build time with the same compiler the runtime uses and emits the
   layout's types and operations as C#; the runtime gains `CStructLayoutAttribute`, `CStructMappedAttribute`,
-  `CStructMemberAttribute`, and `ICStructGenerated<TSelf>`. Diagnostics CSG001-CSG005 and CSG010 report a layout
+  `CStructMemberAttribute`, and `ICStructGenerated<TSelf>`. Diagnostics CSG001-CSG006 and CSG010 report a layout
   that does not compile (located inside a raw string literal at the runtime's line and column), a missing
   `.cstruct` additional file, a name collision after PascalCase conversion, an unknown `Root`, a class that is not
-  `static partial`, and a C# language version below 12.
+  `static partial`, an invalid custom codec declaration, and a C# language version below 12.
 - `CStructSharp.Generated`, the runtime support the `[CStructLayout]` generator's output calls (an advanced
   surface; application code keeps using `CStruct` or a generated layout class): `Codec` - every byte-level rule
   as a span function (fixed-width integers in both byte orders, the 24- and 48-bit integers with their range
@@ -58,6 +58,12 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   `null` (reference types) or default. Caller variables override the layout's defines, and a define that depends
   on an overridden name is re-evaluated where it is used, as at runtime. `Expressions` gains `Variable(variables,
   name, value)`, `TryVariable`, `Undefined`, and `Overflow` for these rules.
+- Generated custom codecs: `[CStructLayout(Codecs = new[] { "blob", "rgb:3:1" })]` declares each `ICustomCodec`'s
+  name, fixed size (`*` for variable length), and alignment, which is what the compiler places fields with; the
+  class supplies the instances from `static partial IReadOnlyList<ICustomCodec> CreateCodecs()`, checked against
+  the declaration on first use. The generated reader hands each value to the codec as the runtime's memory path
+  does (`ReadCursor.TakeCustom`): the whole remaining input as the window, the consumed bytes charged to the
+  budget, and the runtime's texts for a short read, a rejected value, a codec that throws, or an impossible length.
 
 ### Internal
 

@@ -49,6 +49,15 @@ internal static class GeneratorDiagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    public static readonly DiagnosticDescriptor CodecDeclarationInvalid = new(
+        "CSG006",
+        "Custom codec declaration is invalid",
+        "{0}",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "An entry of [CStructLayout(Codecs = ...)] must be \"name\", \"name:size\", \"name:size:alignment\", or \"name:*:alignment\" with an identifier name, a non-negative size, and a power-of-two alignment, and must not repeat a built-in type.");
+
     public static readonly DiagnosticDescriptor LanguageVersion = new(
         "CSG010",
         "C# 12 or later is required",

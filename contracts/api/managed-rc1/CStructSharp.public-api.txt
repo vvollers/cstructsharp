@@ -98,6 +98,7 @@ namespace CStructSharp
         public CStructSharp.BitfieldAllocation BitfieldAllocation { get; set; }
         public CStructSharp.BitfieldPacking BitfieldPacking { get; set; }
         public int CLongWidth { get; set; }
+        public string[]? Codecs { get; set; }
         public string? DefaultEnumStorage { get; set; }
         public string[]? Defined { get; set; }
         public string? Definition { get; }
@@ -444,6 +445,7 @@ namespace CStructSharp.Generated
         public System.ReadOnlySpan<byte> Take(int count, string member, string? memberType) { }
         public System.ReadOnlySpan<byte> TakeArray(int count, int elementSize, string member, string? memberType) { }
         public System.ReadOnlySpan<byte> TakeBoundedText(int count, string member, string? memberType) { }
+        public object TakeCustom(CStructSharp.Codecs.ICustomCodec codec, string member, string? memberType) { }
         public System.ReadOnlySpan<byte> TakeElements(int count, int elementSize, string member, string? memberType) { }
         public string TakeEncodedText(int count, string encoding, string member, string? memberType) { }
         public string TakeFixedText(int count, string member, string? memberType) { }

@@ -2,6 +2,8 @@ namespace CStructSharp.Generators;
 
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using Microsoft.CodeAnalysis;
 
@@ -138,10 +140,20 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>The runtime <see cref=\"global::CStructSharp.CStruct\"/> for the same definition and options, built on first use: introspection, JSON, memory images, and the parity oracle.</summary>");
         writer.Line("public static global::CStructSharp.CStruct Layout => LayoutInstance.Value;");
         writer.Line();
+        if (this.request.Codecs.Count > 0)
+        {
+            this.EmitCodecInstances(writer);
+        }
+
         writer.Open("private static global::CStructSharp.CStruct CreateLayout()");
         writer.Line("var options = new global::CStructSharp.CStructCompilationOptions");
         writer.Line("{");
         writer.Indent();
+        if (this.request.Codecs.Count > 0)
+        {
+            writer.Line("Codecs = CodecInstances.Value,");
+        }
+
         writer.Line("CLongWidth = " + (this.request.CLongWidth == 0 ? 64 : this.request.CLongWidth).ToString(CultureInfo.InvariantCulture) + ",");
         writer.Line("BitfieldPacking = global::CStructSharp.BitfieldPacking." + this.request.BitfieldPacking + ",");
         writer.Line("BitfieldAllocation = global::CStructSharp.BitfieldAllocation." + this.request.BitfieldAllocation + ",");
@@ -168,5 +180,57 @@ internal sealed partial class LayoutEmitter
             ", aligned: " + (this.request.Aligned ? "true" : "false") +
             ", isLittleEndian: " + (this.request.LittleEndian ? "true" : "false") + ", compilationOptions: options);");
         writer.Close();
+    }
+
+    /// <summary>
+    ///     The custom codec instances: the class implements <c>CreateCodecs()</c>; the first use checks every instance
+    ///     against the attribute's declaration (name, fixed size, alignment) because the generated placement relied
+    ///     on those facts at build time.
+    /// </summary>
+    private void EmitCodecInstances(SourceWriter writer)
+    {
+        const string CodecType = "global::CStructSharp.Codecs.ICustomCodec";
+        writer.Line("/// <summary>Supplies the custom codec instances the layout declares (<c>" + string.Join(", ", this.request.Codecs) + "</c>), one per declaration and in that order.</summary>");
+        writer.Line("/// <returns>The codec instances.</returns>");
+        writer.Line("private static partial global::System.Collections.Generic.IReadOnlyList<" + CodecType + "> CreateCodecs();");
+        writer.Line();
+        writer.Line("private static readonly global::System.Lazy<" + CodecType + "[]> CodecInstances = new(ResolveCodecs, global::System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);");
+        writer.Line();
+        writer.Open("private static " + CodecType + "[] ResolveCodecs()");
+        writer.Line("global::System.Collections.Generic.IReadOnlyList<" + CodecType + "> supplied = CreateCodecs() ?? throw new global::System.InvalidOperationException(\"CreateCodecs() returned null; return one ICustomCodec per declared codec.\");");
+        writer.Line("string[] expected = { " + string.Join(", ", this.request.Codecs.Select(declaration => SourceWriter.Literal(Expected(declaration)))) + " };");
+        writer.Open("if (supplied.Count != expected.Length)");
+        writer.Line("throw new global::System.InvalidOperationException(\"CreateCodecs() returned \" + supplied.Count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \" codecs; the layout declares \" + expected.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
+        writer.Close();
+        writer.Line("var instances = new " + CodecType + "[expected.Length];");
+        writer.Open("for (int index = 0; index < expected.Length; index++)");
+        writer.Line(CodecType + " codec = supplied[index] ?? throw new global::System.InvalidOperationException(\"CreateCodecs() returned null for codec \" + expected[index] + \".\");");
+        writer.Line("string actual = codec.Name + \":\" + (codec.FixedSize is { } size ? size.ToString(global::System.Globalization.CultureInfo.InvariantCulture) : \"*\") + \":\" + codec.Alignment.ToString(global::System.Globalization.CultureInfo.InvariantCulture);");
+        writer.Open("if (actual != expected[index])");
+        writer.Line("throw new global::System.InvalidOperationException(\"Custom codec \" + expected[index] + \" is declared in [CStructLayout(Codecs = ...)] but the instance from CreateCodecs() reports \" + actual + \" (name:size:alignment); the generated placement depends on the declaration.\");");
+        writer.Close();
+        writer.Line("instances[index] = codec;");
+        writer.Close();
+        writer.Line("return instances;");
+        writer.Close();
+        writer.Line();
+    }
+
+    /// <summary>A declaration in its canonical <c>name:size:alignment</c> spelling (the generated check compares against it).</summary>
+    private static string Expected(string declaration)
+        => CustomCodecDeclaration.TryParse(declaration, out CustomCodecDescriptor descriptor) ? CustomCodecDeclaration.Describe(descriptor) : declaration;
+
+    /// <summary>The index of a custom codec's instance in <c>CodecInstances</c>: the position of its declaration.</summary>
+    private int CodecIndex(string typeName)
+    {
+        for (int index = 0; index < this.request.Codecs.Count; index++)
+        {
+            if (CustomCodecDeclaration.TryParse(this.request.Codecs[index], out CustomCodecDescriptor descriptor) && descriptor.Name == typeName)
+            {
+                return index;
+            }
+        }
+
+        throw new InvalidOperationException("No declared custom codec named " + typeName);
     }
 }

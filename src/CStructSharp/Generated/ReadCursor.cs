@@ -1,6 +1,7 @@
 namespace CStructSharp.Generated;
 
 using System;
+using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Reading;
@@ -228,6 +229,45 @@ public ref struct ReadCursor
         }
 
         return this.Take((int)total, member, memberType);
+    }
+
+    /// <summary>
+    ///     Reads one value of a caller-supplied <see cref="ICustomCodec"/> as the runtime's memory path does: the codec
+    ///     sees every remaining byte, the cursor moves past what it consumed (past the whole input on a short read),
+    ///     those bytes are charged to the budget, and a rejected or short read fails with the runtime's texts.
+    /// </summary>
+    /// <param name="codec">The codec, one of the instances the layout class provides.</param>
+    /// <param name="member">The field, for the diagnostics.</param>
+    /// <param name="memberType">The field's type spelling, for the diagnostics.</param>
+    /// <returns>The decoded value.</returns>
+    /// <exception cref="CStructReadException">The codec needs more bytes, rejected the input, threw, or reported an impossible length.</exception>
+    /// <exception cref="CStructReadLimitException">The consumed bytes exceed the read budget.</exception>
+    public object TakeCustom(ICustomCodec codec, string member, string? memberType)
+    {
+        ArgumentNullException.ThrowIfNull(codec);
+        CStructReadException? failure;
+        object? value;
+        int consumed;
+        try
+        {
+            failure = CustomCodecAdapter.DecodeFromMemory(codec, this.source.Slice(this.position), out value, out consumed);
+        }
+        catch (CStructReadException exception)
+        {
+            // The codec threw: the adapter wrapped it; nothing was consumed.
+            this.Attach(exception, member, memberType);
+            throw;
+        }
+
+        this.position += consumed;
+        this.Charge(consumed, member, memberType);
+        if (failure is not null)
+        {
+            this.Attach(failure, member, memberType);
+            throw failure;
+        }
+
+        return value!;
     }
 
     /// <summary>Consumes an encoded text buffer (<c>utf8[N]</c>, ...): the string byte limit, then the bytes, with the runtime's texts.</summary>

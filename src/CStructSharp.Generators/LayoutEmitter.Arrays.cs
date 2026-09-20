@@ -254,6 +254,11 @@ internal sealed partial class LayoutEmitter
             return this.TerminatedRead(field, member, memberType);
         }
 
+        if (field.Type.Symbol.IsCustomCodec)
+        {
+            return "cursor.TakeCustom(CodecInstances.Value[" + Int(this.CodecIndex(field.Type.Symbol.Name)) + "], " + member + ", " + memberType + ")";
+        }
+
         if (shape.Enum is not null)
         {
             // An enum target is stored as its integer type.

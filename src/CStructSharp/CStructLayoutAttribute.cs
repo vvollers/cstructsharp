@@ -61,6 +61,15 @@ public sealed class CStructLayoutAttribute : Attribute
     /// <summary>Gets or sets the storage type of an enum declared without one (<c>enum kind { ... }</c>); <see langword="null"/> means the library default.</summary>
     public string? DefaultEnumStorage { get; set; }
 
+    /// <summary>
+    ///     Gets or sets the custom codecs the layout uses, one declaration per codec: <c>"name"</c> for a
+    ///     variable-length codec, <c>"name:size"</c> for a fixed size in bytes, <c>"name:size:alignment"</c> to also
+    ///     give the alignment (<c>"name:*:alignment"</c> for a variable-length one). The generator places fields with
+    ///     these facts; the class supplies the matching <see cref="Codecs.ICustomCodec"/> instances, in the same order,
+    ///     from its <c>static partial IReadOnlyList&lt;ICustomCodec&gt; CreateCodecs()</c> method.
+    /// </summary>
+    public string[]? Codecs { get; set; }
+
     /// <summary>Gets or sets whether generated names keep the layout's spelling instead of becoming PascalCase.</summary>
     public bool KeepNames { get; set; }
 

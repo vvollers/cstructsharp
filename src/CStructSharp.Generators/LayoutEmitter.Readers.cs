@@ -513,7 +513,7 @@ internal sealed partial class LayoutEmitter
         case PrimitiveCodecKind.UFixed8_8:
             return CodecClass + ".DecodeFixedPoint(" + CodecClass + ".ReadUInt16(cursor.Take(2, " + member + ", " + memberType + "), " + le + "), 8)";
         case PrimitiveCodecKind.Custom:
-            return "ReadCustomCodecValue(ref cursor, " + SourceWriter.Literal(typeName) + ", " + member + ", " + memberType + ")";
+            return "cursor.TakeCustom(CodecInstances.Value[" + Int(this.CodecIndex(typeName)) + "], " + member + ", " + memberType + ")";
         default:
             return this.NumericRead(codec, member, memberType);
         }
