@@ -30,7 +30,8 @@ public class ResolvedTargetTests
     /// <summary>
     ///     The constructor must snapshot the debug-prefix and selected-index lists rather than retaining the
     ///     caller's own mutable collection, so a later mutation of the caller's list cannot change an already
-    ///     published, supposedly immutable target.
+    ///     published, supposedly immutable target. (An array is kept as it is: the traversal context builds a fresh
+    ///     one per step and never mutates it, which is what the address benchmarks pay for otherwise.)
     /// </summary>
     [TestMethod]
     public void Constructor_CopiesListsInsteadOfRetainingTheCallersMutableCollection()

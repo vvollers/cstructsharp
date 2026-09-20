@@ -37,6 +37,11 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Internal
 
+- Runtime allocation trims, each measured: a plain parse no longer allocates its unused debug list (−32 B per
+  operation); an address resolution keeps the traversal's own arrays instead of copying them twice (−150…−180 B,
+  `ResolveFixedNestedArray` −9 %); `Get<T>` of a `T[]` copies a parsed primitive array's typed storage directly
+  and formats an element's path only when a conversion fails, and a parsed list is converted in place instead of
+  being copied first (`ReadValue<T>` of a small root −36 % allocations, −27 % time against 0.6.0).
 - The primitive vocabulary is split into a compile-time catalog (`PrimitiveCatalog`: names, aliases, alignments,
   sizes, symbols, and a codec id per readable name) and a runtime delegate table (`CodecTable`, indexed by codec
   id). The compiled model carries ids instead of reader/writer delegates, so it can compile without any I/O - the

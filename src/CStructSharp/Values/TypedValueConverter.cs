@@ -19,7 +19,7 @@ internal static class TypedValueConverter
     {
         try
         {
-            return ConvertCore(value, targetType, path ?? "<root>");
+            return ConvertCore(value, targetType, new ElementPath(path ?? "<root>"));
         }
         catch (CStructReadException exception)
         {
@@ -37,7 +37,7 @@ internal static class TypedValueConverter
     private static object? ConvertCore(
         object? value,
         Type targetType,
-        string path)
+        in ElementPath path)
     {
         Type? nullableType = Nullable.GetUnderlyingType(targetType);
         Type effectiveTarget = nullableType ?? targetType;
@@ -48,7 +48,7 @@ internal static class TypedValueConverter
                 return null;
             }
 
-            throw ConversionFailure(value, targetType, path);
+            throw ConversionFailure(value, targetType, path.ToString());
         }
 
         if (effectiveTarget.IsInstanceOfType(value))
@@ -92,7 +92,7 @@ internal static class TypedValueConverter
             catch (CStructException exception)
             {
                 // A mapper reads members relative to its struct; report where that struct sits in the caller's read.
-                exception.PrefixPath(path);
+                exception.PrefixPath(path.ToString());
                 throw;
             }
         }
@@ -103,11 +103,11 @@ internal static class TypedValueConverter
                 $"Cannot map '{path}' to '{effectiveTarget.FullName}': the value is a {value.GetType().Name}, not a struct.");
         }
 
-        throw ConversionFailure(value, targetType, path);
+        throw ConversionFailure(value, targetType, path.ToString());
     }
 
     /// <summary>Maps a self-describing or primitive numeric value to one CLR enum.</summary>
-    private static object ConvertEnum(object value, Type enumType, string path)
+    private static object ConvertEnum(object value, Type enumType, in ElementPath path)
     {
         Type underlyingType = Enum.GetUnderlyingType(enumType);
         object numeric = ConvertNumeric(UnwrapEnumValue(value), underlyingType, path);
@@ -121,11 +121,11 @@ internal static class TypedValueConverter
     }
 
     /// <summary>Performs checked, culture-independent numeric conversions.</summary>
-    private static object ConvertNumeric(object value, Type targetType, string path)
+    private static object ConvertNumeric(object value, Type targetType, in ElementPath path)
     {
         if (!IsNumericValue(value))
         {
-            throw ConversionFailure(value, targetType, path);
+            throw ConversionFailure(value, targetType, path.ToString());
         }
 
         try
@@ -199,10 +199,10 @@ internal static class TypedValueConverter
         }
         catch (OverflowException exception)
         {
-            throw ConversionFailure(value, targetType, path, exception);
+            throw ConversionFailure(value, targetType, path.ToString(), exception);
         }
 
-        throw ConversionFailure(value, targetType, path);
+        throw ConversionFailure(value, targetType, path.ToString());
     }
 
     /// <summary>Requires an integral numeric source before converting it to <see cref="BigInteger"/>.</summary>
@@ -224,23 +224,34 @@ internal static class TypedValueConverter
     }
 
     /// <summary>Maps one enumerable source to an array of the requested element type.</summary>
-    private static Array ConvertArray(object value, Type arrayType, Type elementType, string path)
+    private static Array ConvertArray(object value, Type arrayType, Type elementType, in ElementPath path)
     {
-        IReadOnlyList<object?> items = MaterializeItems(value, path);
+        // A parsed primitive array whose element type is the requested one copies its typed storage: no boxing.
+        if (value is IPrimitiveArray primitive && primitive.ElementType == elementType)
+        {
+            return primitive.ToArray();
+        }
+
+        string basePath = path.ToString();
+        IReadOnlyList<object?> items = MaterializeItems(value, basePath);
         Array result = CreateArray(arrayType, elementType, items.Count);
         for (int index = 0; index < items.Count; index++)
         {
-            result.SetValue(
-                ConvertCore(items[index], elementType, path + "[" + index.ToString(CultureInfo.InvariantCulture) + "]"),
-                index);
+            // The element path is formatted only by a failure.
+            result.SetValue(ConvertCore(items[index], elementType, new ElementPath(basePath, index)), index);
         }
 
         return result;
     }
 
-    /// <summary>Snapshots a non-string enumerable so recursive mapping has stable indexes.</summary>
+    /// <summary>Takes a parsed list as it is, or snapshots any other non-string enumerable so recursive mapping has stable indexes.</summary>
     private static IReadOnlyList<object?> MaterializeItems(object value, string path)
     {
+        if (value is IReadOnlyList<object?> list)
+        {
+            return list;
+        }
+
         if (value is string || value is not IEnumerable enumerable)
         {
             throw ConversionFailure(value, typeof(IEnumerable), path);
@@ -316,5 +327,30 @@ internal static class TypedValueConverter
                                              : new CStructReadException(message, innerException);
         exception.AttachContext(path);
         return exception;
+    }
+
+    /// <summary>
+    ///     A value path whose element index is appended only when a diagnostic needs the text, so converting an
+    ///     array's elements does not build one string per element.
+    /// </summary>
+    private readonly struct ElementPath
+    {
+        private readonly string basePath;
+        private readonly int index;
+
+        public ElementPath(string basePath)
+        {
+            this.basePath = basePath;
+            this.index = -1;
+        }
+
+        public ElementPath(string basePath, int index)
+        {
+            this.basePath = basePath;
+            this.index = index;
+        }
+
+        public override string ToString()
+            => this.index < 0 ? this.basePath : this.basePath + "[" + this.index.ToString(CultureInfo.InvariantCulture) + "]";
     }
 }

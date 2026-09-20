@@ -22,6 +22,8 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 /// </summary>
 public partial class CStruct
 {
+    private static readonly List<DebugData> NoDebugData = new(0);
+
     /// <summary>
     ///     Groups a flat, row-major list of leaf values into nested lists matching every dimension but the
     ///     outermost one, which the caller's own loop already accounted for by producing this flat list in the
@@ -959,8 +961,9 @@ public partial class CStruct
             }
             else
             {
-                // Keep a non-null empty list so callers can handle both modes through the same return shape.
-                debugData = new List<DebugData>();
+                // Keep a non-null empty list so callers can handle both modes through the same return shape; the
+                // non-debug callers discard it, so one shared empty instance serves every plain parse.
+                debugData = NoDebugData;
                 root = this.ParseStreamRoot(stream, rootName, effectiveVariables, effectiveOptions);
             }
         }

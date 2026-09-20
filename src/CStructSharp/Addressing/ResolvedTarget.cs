@@ -37,12 +37,12 @@ internal sealed class ResolvedTarget
         this.Address = address;
         this.Kind = kind;
         this.TargetComposite = targetComposite;
-        this.DebugPrefix = Array.AsReadOnly(Copy(debugPrefix));
+        this.DebugPrefix = Snapshot(debugPrefix);
         this.CodecName = codecName;
         this.IsArray = isArray;
         this.ArrayLength = arrayLength;
         this.SelectedArrayIndex = selectedArrayIndex;
-        this.SelectedIndexes = Array.AsReadOnly(Copy(selectedIndexes));
+        this.SelectedIndexes = Snapshot(selectedIndexes);
         this.BitOffset = bitOffset;
         this.BitStorageSize = bitStorageSize;
         this.UnionStorageAddress = unionStorageAddress;
@@ -111,6 +111,15 @@ internal sealed class ResolvedTarget
     public bool TraversesPointer => this.PointerAccessorsConsumed > 0;
 
     /// <summary>Copies a read-only list without retaining a caller-owned mutable collection.</summary>
+    /// <summary>
+    ///     An array the target owns: the traversal context builds a fresh array at every step and never mutates
+    ///     it, so its arrays are kept as they are; any other list (a caller's own collection) is copied.
+    /// </summary>
+    private static IReadOnlyList<T> Snapshot<T>(IReadOnlyList<T> values)
+    {
+        return values is T[] array ? array : Copy(values);
+    }
+
     private static T[] Copy<T>(IReadOnlyList<T> values)
     {
         var result = new T[values.Count];
