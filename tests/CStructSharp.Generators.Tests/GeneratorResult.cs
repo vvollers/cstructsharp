@@ -44,8 +44,28 @@ internal sealed class GeneratorResult
     {
         Assert.IsEmpty(this.GeneratorDiagnostics, "Generator diagnostics: " + string.Join("\n", this.GeneratorDiagnostics.Select(diagnostic => diagnostic.ToString())));
         ImmutableArray<Diagnostic> errors = this.Output.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToImmutableArray();
-        Assert.IsEmpty(errors, "Output compilation errors:\n" + string.Join("\n", errors.Select(diagnostic => diagnostic.ToString())) + "\n\nGenerated:\n" + string.Join("\n", this.GeneratedSources.Select(source => source.Source)));
+        Assert.IsEmpty(errors, "Output compilation errors:\n" + string.Join("\n", errors.Select(diagnostic => diagnostic.ToString())) + "\n\nGenerated:\n" + string.Join("\n", this.GeneratedSources.Select(source => Excerpt(source.Source, errors))));
         return this;
+    }
+
+    /// <summary>The generated lines around each error (with line numbers), so a failure message stays readable.</summary>
+    private static string Excerpt(string source, ImmutableArray<Diagnostic> errors)
+    {
+        string[] lines = source.Split('\n');
+        var wanted = new SortedSet<int>();
+        foreach (Diagnostic error in errors)
+        {
+            int line = error.Location.GetLineSpan().StartLinePosition.Line;
+            for (int offset = -6; offset <= 6; offset++)
+            {
+                if (line + offset >= 0 && line + offset < lines.Length)
+                {
+                    wanted.Add(line + offset);
+                }
+            }
+        }
+
+        return string.Join("\n", wanted.Select(index => (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture).PadLeft(5) + ": " + lines[index]));
     }
 
     /// <summary>Compiles the consumer plus the generated code to an in-memory assembly and loads it, so tests can run the generated members.</summary>

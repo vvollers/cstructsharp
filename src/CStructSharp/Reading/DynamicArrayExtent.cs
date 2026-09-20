@@ -34,8 +34,7 @@ internal static class DynamicArrayExtent
 
         if (remaining % elementSize != 0)
         {
-            throw new CStructReadException(
-                $"The remaining {remaining} bytes are not a whole number of {elementSize}-byte elements: {fieldName}");
+            throw new CStructReadException(ReadFailures.ToEndRemainder(remaining, elementSize, fieldName));
         }
 
         long count = remaining / elementSize;
@@ -71,7 +70,7 @@ internal static class DynamicArrayExtent
                     int chunk = stream.Read(buffer, read, elementSize - read);
                     if (chunk <= 0)
                     {
-                        throw new CStructReadException("Terminated array has no terminating zero element: " + fieldName);
+                        throw new CStructReadException(ReadFailures.TerminatedArrayUnterminated(fieldName));
                     }
 
                     read += chunk;

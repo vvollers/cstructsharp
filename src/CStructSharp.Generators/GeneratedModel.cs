@@ -218,17 +218,27 @@ internal sealed class GeneratedModel
             }
 
             memberNames[propertyName] = field.Name;
-            GeneratedComposite? memberComposite = null;
             CompiledCompositeType? target = field.TargetComposite ?? inline;
-            if (target is not null)
+            if (target is not null && this.Find(target) is null)
             {
-                memberComposite = this.Find(target) ?? this.AddComposite(target.Name.Length == 0 ? field.Name : target.Name, target, isDeclared: false, preferredName: owner.Name + propertyName);
+                this.AddComposite(target.Name.Length == 0 ? field.Name : target.Name, target, isDeclared: false, preferredName: owner.Name + propertyName);
             }
 
-            GeneratedEnum? memberEnum = field.Type.Symbol.Definition is CompiledEnumType compiledEnum ? this.Find(compiledEnum) : null;
-            owner.Members.Add(new GeneratedMember(field, propertyName, memberComposite, memberEnum, this.TypeNameOf(field, memberComposite, memberEnum)));
+            owner.Members.Add(this.Describe(field, propertyName));
         }
     }
+
+    /// <summary>The C# shape of a field (its class, enum, and property type); the composites it refers to must already exist.</summary>
+    public GeneratedMember Describe(CompiledField field, string propertyName)
+    {
+        CompiledCompositeType? target = field.TargetComposite;
+        GeneratedComposite? memberComposite = target is null ? null : this.Find(target);
+        GeneratedEnum? memberEnum = field.Type.Symbol.Definition is CompiledEnumType compiledEnum ? this.Find(compiledEnum) : null;
+        return new GeneratedMember(field, propertyName, memberComposite, memberEnum, this.TypeNameOf(field, memberComposite, memberEnum));
+    }
+
+    /// <summary>The shape of a pointer field's value, for the pointer readers.</summary>
+    public GeneratedMember DescribePointer(CompiledField field) => this.Describe(field, Naming.ToCSharp(field.Name.Length == 0 ? "target" : field.Name, this.keepNames));
 
     /// <summary>The C# property type per plan §1.4: pointers are <c>Pointer&lt;T&gt;</c>, arrays <c>T[]</c> (jagged for several dimensions), character arrays <c>string</c>, bitfields their declared integer type.</summary>
     private string TypeNameOf(CompiledField field, GeneratedComposite? composite, GeneratedEnum? memberEnum)

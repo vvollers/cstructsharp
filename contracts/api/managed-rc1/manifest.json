@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 24,
+  "baselineRevision": 25,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.6.0",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 77,
+  "exportedTypes": 80,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 881,
-    "normalizedSha256": "8C36D043B580789457F08299048830F06D258EB90D4F6E7A68CC92EF193D6953"
+    "lines": 926,
+    "normalizedSha256": "AD55E1A76C9571BACEA2CD4EDA262D34C55E6653CAD1312105AB7AEB8A5369CD"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "984E304EDDAF3B839C0B7CCA13B9C244692A4D33B930D531ACC39343D8642D4A",
+      "normalizedSha256": "B04487A22F208774B40607B49FB3289E4F3CE66B86BF5FE821B4165405DEDBA8",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "FD747161E21E883652CCE5F87AFF41B2241823DA1A861E00486DB838E0F2F050",
+      "normalizedSha256": "92724A60A4B2E9704A56357BBEF7D8158CFB040DDF21266F9FEBCB1445018BA9",
       "aotCompatible": true
     }
   ],
@@ -249,6 +249,15 @@
       "combinedSha256": "F86FA97A71954FF63A2A5089F942D7D277BFACEF8E13390A0B9CE29F794F66C6",
       "rationale": "CStructLayoutAttribute.DefaultEnumStorage mirrors CStructCompilationOptions.DefaultEnumStorage for generated layouts.",
       "releaseImpact": "Additive."
+    },
+    {
+      "revision": 25,
+      "kind": "additive",
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "66F163D48516349B1EB064C46572CF483667AFFB642678E1BE5877D552ABA896",
+      "rationale": "Generated readers (plan 3.3/3.4/3.6): ReadCursor gains the per-kind Take methods, union/pointer bookkeeping, Seek, Complete, and Fail overloads; CompositeCursor/BitfieldSlot and TerminatedTextEncoding are new. EnterPointer, unreleased since revision 24, takes the depth, target size, and target type the cycle check keys on.",
+      "releaseImpact": "Additive to the released 0.6.0 surface; the CStructSharp.Generated namespace has not shipped yet."
     }
   ]
 }

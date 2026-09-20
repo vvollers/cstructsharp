@@ -330,7 +330,7 @@ public partial class CStruct
                                 ExpressionFailureDomain.Read);
                             if (numFieldValues < 0)
                             {
-                                throw new CStructReadException("Array length cannot be negative: " + compiledField.Name);
+                                throw new CStructReadException(ReadFailures.NegativeArrayLength(compiledField.Name));
                             }
 
                             if (numFieldValues > state.MaxArrayElements)
@@ -714,7 +714,7 @@ public partial class CStruct
                                 int elementBitSize = checked(state.CurrentBitfieldSize * 8);
                                 if (state.CurrentBitOffset + compiledField.BitSize > elementBitSize)
                                 {
-                                    throw new CStructReadException("Bitfield exceeds its storage unit: " + compiledField.Name);
+                                    throw new CStructReadException(ReadFailures.BitfieldExceedsUnit(compiledField.Name));
                                 }
 
                                 ulong extracted = BitfieldCodecTable.ExtractBitfieldValue(
@@ -863,9 +863,7 @@ public partial class CStruct
                                         }
                                         catch (EncoderFallbackException exception)
                                         {
-                                            throw new CStructReadException(
-                                                "Wide-character buffer contains an invalid UTF-16 code-unit sequence.",
-                                                exception);
+                                            throw new CStructReadException(ReadFailures.WideTextInvalid, exception);
                                         }
                                     }
 
@@ -892,9 +890,7 @@ public partial class CStruct
                                 }
                                 catch (EncoderFallbackException exception)
                                 {
-                                    throw new CStructReadException(
-                                        "Wide-character buffer contains an invalid UTF-16 code-unit sequence.",
-                                        exception);
+                                    throw new CStructReadException(ReadFailures.WideTextInvalid, exception);
                                 }
                             }
 
@@ -1063,9 +1059,7 @@ public partial class CStruct
         catch (OverflowException exception)
         {
             // Stream positions use signed long values, so reject an otherwise valid unsigned address before any seek.
-            throw new CStructReadException(
-                "Pointer address exceeds the supported stream address range.",
-                exception);
+            throw new CStructReadException(ReadFailures.PointerAddressRange, exception);
         }
     }
 
@@ -1197,12 +1191,12 @@ public partial class CStruct
         }
         catch (OverflowException exception)
         {
-            throw new CStructReadException("Relative pointer address overflowed the supported stream address range.", exception);
+            throw new CStructReadException(ReadFailures.RelativePointerOverflow, exception);
         }
 
         if (targetAddress < 0 || targetAddress >= state.Stream.Length)
         {
-            throw new CStructReadException("Pointer target is outside the readable stream range: " + targetAddress);
+            throw new CStructReadException(ReadFailures.PointerTargetOutside(targetAddress));
         }
 
         // Apply the optional fixed-target budget before seeking, preventing unexpectedly large referenced reads.
@@ -1214,7 +1208,7 @@ public partial class CStruct
         // The same target on the active path means a cycle. Detect it before recursive reads can loop forever.
         if (!state.ActivePointerTargets.Add(targetKey))
         {
-            throw new CStructReadException("Cyclic pointer target detected at stream address " + targetAddress + ".");
+            throw new CStructReadException(ReadFailures.CyclicPointer(targetAddress));
         }
 
         state.PointerDereferenceDepth++;
@@ -1258,8 +1252,7 @@ public partial class CStruct
         if (!targetSize.HasValue)
         {
             // A fixed budget cannot safely approve a string or an unsized structure whose eventual length is unknown.
-            throw new CStructReadLimitException(
-                "The configured pointer target limit does not allow a variable-length target.");
+            throw new CStructReadLimitException(ReadFailures.PointerTargetVariableLength);
         }
 
         if (targetSize.Value > state.MaxPointerTargetBytes.Value)

@@ -39,5 +39,109 @@ namespace Demo
             /// <summary><c>uint8 other : 4</c>.</summary>
             public byte Other { get; set; }
         }
+
+        private const bool Aligned = false;
+        private const bool LittleEndian = true;
+        private const int PointerSize = 4;
+        private const bool HighBitFirst = false;
+        private const global::CStructSharp.BitfieldPacking Packing = global::CStructSharp.BitfieldPacking.SysV;
+        private const global::CStructSharp.BitfieldAllocation Allocation = global::CStructSharp.BitfieldAllocation.LowBitFirst;
+
+        /// <summary>Reads one <c>root</c> from the start of <paramref name="source"/> with the generated reader; the same value, and the same failures, as the runtime's <c>Parse</c>.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value.</returns>
+        public static Root ParseRoot(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "root");
+            try
+            {
+                return ReadRoot(ref cursor, variables, null, null);
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
+        }
+
+        /// <inheritdoc cref="ParseRoot(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static Root ParseRoot(byte[] source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            => ParseRoot(new global::System.ReadOnlySpan<byte>(source ?? throw new global::System.ArgumentNullException(nameof(source))), variables, options);
+
+        /// <inheritdoc cref="ParseRoot(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static Root ParseRoot(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            => ParseRoot(source.Span, variables, options);
+
+        /// <summary>Reads the root declaration (<c>root</c>); see <see cref="ParseRoot(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value.</returns>
+        public static Root Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => ParseRoot(source, null, options);
+
+        /// <inheritdoc cref="Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)"/>
+        public static Root Parse(byte[] source, global::CStructSharp.ReadOptions? options = null) => ParseRoot(source, null, options);
+
+        /// <inheritdoc cref="Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)"/>
+        public static Root Parse(global::System.ReadOnlyMemory<byte> source, global::CStructSharp.ReadOptions? options = null) => ParseRoot(source.Span, null, options);
+
+        /// <summary>Reads one <c>root</c> at the cursor's position.</summary>
+        private static Root ReadRoot(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            cursor.EnterComposite(member ?? "root", memberType);
+            var value = new Root();
+            var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
+            // uint8 flag : 1
+            {
+                var slot = placement.AdvanceToBitfield(1, 1, 1, 8, true, "flag");
+                cursor.Seek(slot.UnitStart, "flag", "uint8");
+                ulong unit = global::CStructSharp.Generated.Codec.ReadUnsigned(cursor.Take(slot.UnitSize, "flag", "uint8"), true);
+                if (slot.BitOffset + 1 > slot.UnitSize * 8)
+                {
+                    throw cursor.Fail("Bitfield exceeds its storage unit: flag", "flag", "uint8");
+                }
+                ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 1, slot.UnitSize * 8, HighBitFirst), 1);
+                value.Flag = (byte)bits;
+            }
+            // uint8  : 3
+            {
+                var slot = placement.AdvanceToBitfield(1, 1, 3, 8, true, "");
+                cursor.Seek(slot.UnitStart, "", "uint8");
+                ulong unit = global::CStructSharp.Generated.Codec.ReadUnsigned(cursor.Take(slot.UnitSize, "", "uint8"), true);
+                if (slot.BitOffset + 3 > slot.UnitSize * 8)
+                {
+                    throw cursor.Fail("Bitfield exceeds its storage unit: ", "", "uint8");
+                }
+                ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 3, slot.UnitSize * 8, HighBitFirst), 3);
+            }
+            // uint8 other : 4
+            {
+                var slot = placement.AdvanceToBitfield(1, 1, 4, 8, true, "other");
+                cursor.Seek(slot.UnitStart, "other", "uint8");
+                ulong unit = global::CStructSharp.Generated.Codec.ReadUnsigned(cursor.Take(slot.UnitSize, "other", "uint8"), true);
+                if (slot.BitOffset + 4 > slot.UnitSize * 8)
+                {
+                    throw cursor.Fail("Bitfield exceeds its storage unit: other", "other", "uint8");
+                }
+                ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 4, slot.UnitSize * 8, HighBitFirst), 4);
+                value.Other = (byte)bits;
+            }
+            cursor.Seek(placement.Finish(1), member, memberType);
+            cursor.ExitComposite();
+            return value;
+        }
+
+        /// <summary>Groups a flat element array into rows of <paramref name="inner"/> elements (one nesting level of a multidimensional array).</summary>
+        private static T[][] Split<T>(T[] flat, int inner)
+        {
+            var rows = new T[inner == 0 ? 0 : flat.Length / inner][];
+            for (int row = 0; row < rows.Length; row++)
+            {
+                rows[row] = new T[inner];
+                global::System.Array.Copy(flat, row * inner, rows[row], 0, inner);
+            }
+            return rows;
+        }
     }
 }

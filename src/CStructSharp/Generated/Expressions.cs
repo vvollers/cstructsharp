@@ -173,6 +173,24 @@ public static class Expressions
         return (int)value;
     }
 
+    /// <summary>
+    ///     A caller-supplied variable (<c>ReadOptions</c>'s <c>variables</c> argument) as an expression operand,
+    ///     failing as the runtime evaluator does when the name was not supplied.
+    /// </summary>
+    /// <param name="variables">The caller's variables, or <see langword="null"/>.</param>
+    /// <param name="name">The variable name.</param>
+    /// <returns>The value.</returns>
+    /// <exception cref="System.Collections.Generic.KeyNotFoundException">The variable was not supplied.</exception>
+    public static int Variable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name)
+    {
+        if (variables is not null && variables.TryGetValue(name, out int value))
+        {
+            return value;
+        }
+
+        throw new System.Collections.Generic.KeyNotFoundException("Undefined expression identifier: " + name);
+    }
+
     private static InvalidOperationException OutOfRange(IFormattable value, string name)
         => new(WideValueVariable.DescribeOutOfRange(name, value));
 }

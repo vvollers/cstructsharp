@@ -28,7 +28,16 @@ public class ReadCursorTests
         CStructReadException error = Assert.Throws<CStructReadException>(() =>
         {
             var failing = new ReadCursor(bytes, path: "root") { Position = 2, };
-            failing.Take(4, "b", "uint32");
+            try
+            {
+                failing.Take(4, "b", "uint32");
+            }
+            catch (CStructException exception)
+            {
+                // The offset is attached where the exception leaves the operation, as generated Parse methods do.
+                failing.Complete(exception);
+                throw;
+            }
         });
 
         // The runtime reports the same text, field, path, and offset (the end of the input) for the same bytes.
@@ -50,9 +59,17 @@ public class ReadCursorTests
         CStructReadLimitException budget = Assert.Throws<CStructReadLimitException>(() =>
         {
             var cursor = new ReadCursor(bytes, options, "root");
-            cursor.Take(4, "a", "uint32");
-            cursor.Skip(4, "pad", "uint32");
-            cursor.Take(4, "b", "uint32");
+            try
+            {
+                cursor.Take(4, "a", "uint32");
+                cursor.Skip(4, "pad", "uint32");
+                cursor.Take(4, "b", "uint32");
+            }
+            catch (CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
         });
         var layout = new CStruct("struct root { uint32 a; uint32 pad; uint32 b; };");
         CStructReadLimitException runtime = Assert.Throws<CStructReadLimitException>(() => layout.Parse(bytes, "root", options: options));
@@ -65,8 +82,16 @@ public class ReadCursorTests
         CStructReadLimitException tooMany = Assert.Throws<CStructReadLimitException>(() =>
         {
             var cursor = new ReadCursor([4, 0, 0, 0, 0], arrayOptions, "root");
-            cursor.Take(1, "count", "uint8");
-            cursor.RequireArrayLength(4, "items", "uint8");
+            try
+            {
+                cursor.Take(1, "count", "uint8");
+                cursor.RequireArrayLength(4, "items", "uint8");
+            }
+            catch (CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
         });
         var countLayout = new CStruct("struct root { uint8 count; uint8 items[count]; };");
         CStructReadLimitException runtimeArray = Assert.Throws<CStructReadLimitException>(
@@ -99,7 +124,7 @@ public class ReadCursorTests
         Assert.AreEqual("root", depth.Path);
 
         var absolute = new ReadCursor(bytes);
-        int resume = absolute.EnterPointer(4, "ptr", "uint8*");
+        int resume = absolute.EnterPointer(4, 1, 1, "uint8", "ptr", "uint8*");
         Assert.AreEqual(0, resume);
         Assert.AreEqual(4, absolute.Position);
         Assert.AreEqual(0x2A, absolute.Take(1, "ptr", "uint8*")[0]);
@@ -107,21 +132,21 @@ public class ReadCursorTests
         Assert.AreEqual(0, absolute.Position);
 
         var relative = new ReadCursor(bytes, new ReadOptions { AddressingMode = PointerAddressingMode.Relative, Origin = 3, });
-        relative.EnterPointer(1, "ptr", "uint8*");
+        relative.EnterPointer(1, 1, 1, "uint8", "ptr", "uint8*");
         Assert.AreEqual(4, relative.Position);
 
         CStructReadException outside = Assert.Throws<CStructReadException>(() =>
         {
             var cursor = new ReadCursor(bytes);
-            cursor.EnterPointer(6, "ptr", "uint8*");
+            cursor.EnterPointer(6, 1, 1, "uint8", "ptr", "uint8*");
         });
-        StringAssert.StartsWith(outside.Message, "The requested position is outside the supplied memory region");
+        StringAssert.StartsWith(outside.Message, "Pointer target is outside the readable stream range: 6");
 
         CStructReadLimitException pointerDepth = Assert.Throws<CStructReadLimitException>(() =>
         {
             var cursor = new ReadCursor(bytes, new ReadOptions { MaxPointerDepth = 1, });
-            cursor.EnterPointer(1, "ptr", "uint8**");
-            cursor.EnterPointer(2, "ptr", "uint8**");
+            cursor.EnterPointer(1, 2, 1, "uint8", "ptr", "uint8**");
+            cursor.EnterPointer(2, 1, 1, "uint8", "ptr", "uint8**");
         });
         StringAssert.StartsWith(pointerDepth.Message, "Maximum pointer dereference depth exceeded");
 
@@ -175,6 +200,7 @@ public class ReadCursorTests
         catch (Exception exception)
         {
             generated = cursor.FailExpression(exception, "array length for items", "items", "uint8");
+            cursor.Complete((CStructException)generated);
         }
 
         Assert.IsInstanceOfType<CStructReadException>(generated);

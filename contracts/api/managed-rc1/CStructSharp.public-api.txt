@@ -280,6 +280,13 @@ namespace CStructSharp.Diagnostics
 }
 namespace CStructSharp.Generated
 {
+    public readonly struct BitfieldSlot : System.IEquatable<CStructSharp.Generated.BitfieldSlot>
+    {
+        public BitfieldSlot(long UnitStart, int UnitSize, int BitOffset) { }
+        public int BitOffset { get; init; }
+        public int UnitSize { get; init; }
+        public long UnitStart { get; init; }
+    }
     public static class Codec
     {
         public static int BitfieldShift(int bitOffset, int bitSize, int unitBits, bool highBitFirst) { }
@@ -340,6 +347,16 @@ namespace CStructSharp.Generated
         public static int WriteULeb128(System.Span<byte> destination, ulong value) { }
         public static void WriteUnsigned(System.Span<byte> destination, ulong value, bool littleEndian) { }
     }
+    public struct CompositeCursor
+    {
+        public long Current { get; }
+        public CStructSharp.Generated.BitfieldSlot AdvanceToBitfield(int declaredSize, int alignment, int width, int runBits, bool littleEndian, string member) { }
+        public long AdvanceToField(int alignment) { }
+        public long AdvanceToSeparator(int declaredSize, int alignment, int runBits) { }
+        public void CompleteField(long fieldEnd) { }
+        public long Finish(int structAlignment) { }
+        public static CStructSharp.Generated.CompositeCursor Start(long start, bool aligned, CStructSharp.BitfieldPacking packing, CStructSharp.BitfieldAllocation allocation) { }
+    }
     public static class Expressions
     {
         public static int Add(int left, int right) { }
@@ -364,6 +381,7 @@ namespace CStructSharp.Generated
         public static int ShiftLeft(int value, int count) { }
         public static int ShiftRight(int value, int count) { }
         public static int Subtract(int left, int right) { }
+        public static int Variable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name) { }
         public static int Xor(int left, int right) { }
     }
     public readonly struct Pointer<T> : System.IEquatable<CStructSharp.Generated.Pointer<T>>
@@ -388,6 +406,7 @@ namespace CStructSharp.Generated
         public ReadCursor(System.ReadOnlySpan<byte> source, CStructSharp.ReadOptions? options = null, string? path = null) { }
         public CStructSharp.PointerAddressingMode AddressingMode { get; }
         public bool DereferencePointers { get; }
+        public bool FollowsPointers { get; }
         public int MaxArrayElements { get; }
         public long? MaxPointerTargetBytes { get; }
         public long MaxStringBytes { get; }
@@ -398,19 +417,45 @@ namespace CStructSharp.Generated
         public System.ReadOnlySpan<byte> Source { get; }
         public bool TrimFixedText { get; }
         public void Align(int alignment, long origin, string member, string? memberType) { }
+        public void Complete(CStructSharp.Diagnostics.CStructException exception) { }
+        public int CountTerminated(int elementSize, string fieldName, string member, string? memberType) { }
+        public int CountToEnd(int elementSize, string fieldName, string member, string? memberType) { }
         public void EnterComposite(string member, string? memberType) { }
-        public int EnterPointer(long address, string member, string? memberType) { }
+        public int EnterPointer(long address, int depth, long? targetSize, string targetType, string member, string? memberType) { }
+        public void EnterUnion() { }
         public void ExitComposite() { }
         public void ExitPointer(int resume) { }
+        public void ExitUnion() { }
         public CStructSharp.Diagnostics.CStructReadException Fail(string message, string? member, string? memberType) { }
+        public CStructSharp.Diagnostics.CStructReadException Fail(string message, string? member, string? memberType, System.Exception? cause) { }
         public System.Exception FailExpression(System.Exception exception, string context, string? member, string? memberType) { }
+        public CStructSharp.Diagnostics.CStructLayoutException FailLayout(string message, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructReadLimitException FailLimit(string message, string? member, string? memberType) { }
         public System.ReadOnlySpan<byte> Peek(int count, string member, string? memberType) { }
         public int RequireArrayLength(long count, string member, string? memberType) { }
         public void RequireBoundedTextBytes(long count, string member, string? memberType) { }
         public void RequireTerminatedStringBytes(long count, string member, string? memberType) { }
+        public void Seek(long position, string? member, string? memberType) { }
         public void Skip(int count, string member, string? memberType) { }
         public System.ReadOnlySpan<byte> Take(int count, string member, string? memberType) { }
+        public System.ReadOnlySpan<byte> TakeArray(int count, int elementSize, string member, string? memberType) { }
+        public System.ReadOnlySpan<byte> TakeBoundedText(int count, string member, string? memberType) { }
+        public System.ReadOnlySpan<byte> TakeElements(int count, int elementSize, string member, string? memberType) { }
+        public string TakeEncodedText(int count, string encoding, string member, string? memberType) { }
+        public string TakeFixedText(int count, string member, string? memberType) { }
+        public System.Guid TakeGuid(bool networkOrder, string member, string? memberType) { }
+        public System.ReadOnlySpan<byte> TakeInBlocks(int count, int elementSize, string member, string? memberType) { }
+        public ulong TakeLeb128(int width, bool signed, string member, string? memberType) { }
+        public long TakePointerAddress(int pointerSize, bool littleEndian, string member, string? memberType) { }
+        public string TakeTerminatedString(CStructSharp.Generated.TerminatedTextEncoding encoding, char terminator, string member, string? memberType) { }
+        public string TakeWideText(int count, bool littleEndian, string member, string? memberType) { }
+    }
+    public enum TerminatedTextEncoding
+    {
+        Ascii = 0,
+        Utf8 = 1,
+        Utf16LittleEndian = 2,
+        Utf16BigEndian = 3,
     }
     public ref struct WriteCursor
     {

@@ -88,7 +88,11 @@ internal sealed class SourceWriter
     /// <summary>Opens a brace block: writes <paramref name="header"/>, then <c>{</c>, and indents.</summary>
     public SourceWriter Open(string header)
     {
-        this.Line(header);
+        if (header.Length > 0)
+        {
+            this.Line(header);
+        }
+
         this.Line("{");
         this.indentation++;
         return this;

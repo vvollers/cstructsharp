@@ -41,6 +41,16 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   diagnostic texts (`ReadFailures`/`WriteFailures`), so the two paths cannot drift; a cursor failure carries the
   runtime's context (the innermost field and its type, the operation path, the offset), and `FailExpression`/
   `FailUnwritable` reproduce the `Cannot evaluate ...` and `Value ... does not fit` texts.
+- Generated readers: a `[CStructLayout]` class gets `Parse<Name>(ReadOnlySpan<byte> | byte[] | ReadOnlyMemory<byte>,
+  variables, options)` for every named struct and union plus the root's plain `Parse`, reading straight into the
+  generated classes with no `StructValue` in between - fixed and runtime-sized arrays (`[n]`, `[expr]`, `[]`,
+  `[EOF]`, terminated), character arrays and tables, bounded and terminated text, bitfields with both packing
+  rules, unions, promoted composites, offset assertions, and pointers to any depth with the runtime's addressing
+  modes, cycle check, and target budget. Every failure carries the runtime's message, field, path, and offset:
+  a parity suite in the generator tests parses every language-contract and benchmark fixture through both paths
+  and compares the values member by member and every truncated prefix's exception. `ReadCursor` gains the
+  per-kind `Take*` methods, `Seek`, union and composite bookkeeping, and `Complete`; `CompositeCursor` is the
+  field placement rule (alignment, bitfield packing and allocation) as a struct the generated code drives.
 
 ### Internal
 

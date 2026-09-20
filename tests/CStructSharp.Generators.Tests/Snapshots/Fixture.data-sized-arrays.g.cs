@@ -49,5 +49,152 @@ namespace Demo
             /// <summary><c>uint16 values[...][EOF]</c>.</summary>
             public ushort[] Values { get; set; } = global::System.Array.Empty<ushort>();
         }
+
+        private const bool Aligned = false;
+        private const bool LittleEndian = true;
+        private const int PointerSize = 4;
+        private const bool HighBitFirst = false;
+        private const global::CStructSharp.BitfieldPacking Packing = global::CStructSharp.BitfieldPacking.SysV;
+        private const global::CStructSharp.BitfieldAllocation Allocation = global::CStructSharp.BitfieldAllocation.LowBitFirst;
+
+        /// <summary>Reads one <c>entry</c> from the start of <paramref name="source"/> with the generated reader; the same value, and the same failures, as the runtime's <c>Parse</c>.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value.</returns>
+        public static Entry ParseEntry(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "entry");
+            try
+            {
+                return ReadEntry(ref cursor, variables, null, null);
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
+        }
+
+        /// <inheritdoc cref="ParseEntry(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static Entry ParseEntry(byte[] source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            => ParseEntry(new global::System.ReadOnlySpan<byte>(source ?? throw new global::System.ArgumentNullException(nameof(source))), variables, options);
+
+        /// <inheritdoc cref="ParseEntry(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static Entry ParseEntry(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            => ParseEntry(source.Span, variables, options);
+
+        /// <summary>Reads one <c>root</c> from the start of <paramref name="source"/> with the generated reader; the same value, and the same failures, as the runtime's <c>Parse</c>.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value.</returns>
+        public static Root ParseRoot(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "root");
+            try
+            {
+                return ReadRoot(ref cursor, variables, null, null);
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
+        }
+
+        /// <inheritdoc cref="ParseRoot(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static Root ParseRoot(byte[] source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            => ParseRoot(new global::System.ReadOnlySpan<byte>(source ?? throw new global::System.ArgumentNullException(nameof(source))), variables, options);
+
+        /// <inheritdoc cref="ParseRoot(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static Root ParseRoot(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            => ParseRoot(source.Span, variables, options);
+
+        /// <summary>Reads the root declaration (<c>root</c>); see <see cref="ParseRoot(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value.</returns>
+        public static Root Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => ParseRoot(source, null, options);
+
+        /// <inheritdoc cref="Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)"/>
+        public static Root Parse(byte[] source, global::CStructSharp.ReadOptions? options = null) => ParseRoot(source, null, options);
+
+        /// <inheritdoc cref="Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)"/>
+        public static Root Parse(global::System.ReadOnlyMemory<byte> source, global::CStructSharp.ReadOptions? options = null) => ParseRoot(source.Span, null, options);
+
+        /// <summary>Reads one <c>entry</c> at the cursor's position.</summary>
+        private static Entry ReadEntry(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            cursor.EnterComposite(member ?? "entry", memberType);
+            var value = new Entry();
+            var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
+            // uint8 kind
+            {
+                cursor.Seek(placement.AdvanceToField(1), "kind", "uint8");
+                value.Kind = cursor.Take(1, "kind", "uint8")[0];
+                placement.CompleteField(cursor.Position);
+            }
+            // uint8 size
+            {
+                cursor.Seek(placement.AdvanceToField(1), "size", "uint8");
+                value.Size = cursor.Take(1, "size", "uint8")[0];
+                placement.CompleteField(cursor.Position);
+            }
+            cursor.Seek(placement.Finish(1), member, memberType);
+            cursor.ExitComposite();
+            return value;
+        }
+
+        /// <summary>Reads one <c>root</c> at the cursor's position.</summary>
+        private static Root ReadRoot(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            cursor.EnterComposite(member ?? "root", memberType);
+            var value = new Root();
+            var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
+            // entry entries[...]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "entries", "entry");
+                int count;
+                count = cursor.CountTerminated(2, "entries", "entries", "entry");
+                var elements = new Entry[count];
+                for (int index = 0; index < count; index++)
+                {
+                    elements[index] = ReadEntry(ref cursor, variables, "entries", "entry");
+                }
+                value.Entries = elements;
+                cursor.Skip(2, "entries", "entry");
+                placement.CompleteField(cursor.Position);
+            }
+            // uint16 values[...][EOF]
+            {
+                cursor.Seek(placement.AdvanceToField(2), "values", "uint16");
+                int count;
+                count = cursor.CountToEnd(2, "values", "values", "uint16");
+                var elements = new ushort[count];
+                if (count > 0)
+                {
+                    global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 2, "values", "uint16");
+                    global::CStructSharp.Generated.Codec.DecodeIntegers<ushort>(bytes, elements, true);
+                }
+                value.Values = elements;
+                placement.CompleteField(cursor.Position);
+            }
+            cursor.Seek(placement.Finish(2), member, memberType);
+            cursor.ExitComposite();
+            return value;
+        }
+
+        /// <summary>Groups a flat element array into rows of <paramref name="inner"/> elements (one nesting level of a multidimensional array).</summary>
+        private static T[][] Split<T>(T[] flat, int inner)
+        {
+            var rows = new T[inner == 0 ? 0 : flat.Length / inner][];
+            for (int row = 0; row < rows.Length; row++)
+            {
+                rows[row] = new T[inner];
+                global::System.Array.Copy(flat, row * inner, rows[row], 0, inner);
+            }
+            return rows;
+        }
     }
 }

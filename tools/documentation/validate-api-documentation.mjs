@@ -127,7 +127,8 @@ await main(() => {
     const source = fs.readFileSync(sourceFile, "utf8");
     const sourceNamespace = /^namespace ([A-Za-z0-9_.]+);/m.exec(source)?.[1];
     if (!sourceNamespace) continue;
-    for (const declaration of source.matchAll(/\bpublic\s+(?:sealed\s+)?record\s+([A-Za-z0-9_]+)\s*\(/g)) positionalRecords.add(`${sourceNamespace}.${declaration[1]}`);
+    // Positional record classes (`public sealed record X(`) and record structs (`public readonly record struct X(`).
+    for (const declaration of source.matchAll(/\bpublic\s+(?:sealed\s+|readonly\s+)*record\s+(?:struct\s+)?([A-Za-z0-9_]+)\s*\(/g)) positionalRecords.add(`${sourceNamespace}.${declaration[1]}`);
   }
   const synthesized = new Set();
   for (const block of baseline.split(/(?=^namespace )/m)) {

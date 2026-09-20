@@ -216,5 +216,713 @@ namespace Demo
             /// <summary><c>color *pc</c>.</summary>
             public global::CStructSharp.Generated.Pointer<Color> Pc { get; set; }
         }
+
+        private const bool Aligned = false;
+        private const bool LittleEndian = true;
+        private const int PointerSize = 8;
+        private const bool HighBitFirst = false;
+        private const global::CStructSharp.BitfieldPacking Packing = global::CStructSharp.BitfieldPacking.SysV;
+        private const global::CStructSharp.BitfieldAllocation Allocation = global::CStructSharp.BitfieldAllocation.LowBitFirst;
+
+        /// <summary>Reads one <c>inner</c> from the start of <paramref name="source"/> with the generated reader; the same value, and the same failures, as the runtime's <c>Parse</c>.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value.</returns>
+        public static Inner ParseInner(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "inner");
+            try
+            {
+                return ReadInner(ref cursor, variables, null, null);
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
+        }
+
+        /// <inheritdoc cref="ParseInner(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static Inner ParseInner(byte[] source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            => ParseInner(new global::System.ReadOnlySpan<byte>(source ?? throw new global::System.ArgumentNullException(nameof(source))), variables, options);
+
+        /// <inheritdoc cref="ParseInner(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static Inner ParseInner(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            => ParseInner(source.Span, variables, options);
+
+        /// <summary>Reads the root declaration (<c>inner</c>); see <see cref="ParseInner(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value.</returns>
+        public static Inner Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => ParseInner(source, null, options);
+
+        /// <inheritdoc cref="Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)"/>
+        public static Inner Parse(byte[] source, global::CStructSharp.ReadOptions? options = null) => ParseInner(source, null, options);
+
+        /// <inheritdoc cref="Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)"/>
+        public static Inner Parse(global::System.ReadOnlyMemory<byte> source, global::CStructSharp.ReadOptions? options = null) => ParseInner(source.Span, null, options);
+
+        /// <summary>Reads one <c>root</c> from the start of <paramref name="source"/> with the generated reader; the same value, and the same failures, as the runtime's <c>Parse</c>.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value.</returns>
+        public static Root ParseRoot(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "root");
+            try
+            {
+                return ReadRoot(ref cursor, variables, null, null);
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                throw;
+            }
+        }
+
+        /// <inheritdoc cref="ParseRoot(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static Root ParseRoot(byte[] source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            => ParseRoot(new global::System.ReadOnlySpan<byte>(source ?? throw new global::System.ArgumentNullException(nameof(source))), variables, options);
+
+        /// <inheritdoc cref="ParseRoot(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static Root ParseRoot(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            => ParseRoot(source.Span, variables, options);
+
+        /// <summary>Reads one <c>inner</c> at the cursor's position.</summary>
+        private static Inner ReadInner(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            cursor.EnterComposite(member ?? "inner", memberType);
+            var value = new Inner();
+            var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
+            // uint8 z
+            {
+                cursor.Seek(placement.AdvanceToField(1), "z", "uint8");
+                value.Z = cursor.Take(1, "z", "uint8")[0];
+                placement.CompleteField(cursor.Position);
+            }
+            cursor.Seek(placement.Finish(1), member, memberType);
+            cursor.ExitComposite();
+            return value;
+        }
+
+        /// <summary>Reads one <c>root</c> at the cursor's position.</summary>
+        private static Root ReadRoot(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            cursor.EnterComposite(member ?? "root", memberType);
+            var value = new Root();
+            var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
+            // uint8 a
+            {
+                cursor.Seek(placement.AdvanceToField(1), "a", "uint8");
+                value.A = cursor.Take(1, "a", "uint8")[0];
+                placement.CompleteField(cursor.Position);
+            }
+            // int8 b
+            {
+                cursor.Seek(placement.AdvanceToField(1), "b", "int8");
+                value.B = unchecked((sbyte)cursor.Take(1, "b", "int8")[0]);
+                placement.CompleteField(cursor.Position);
+            }
+            // bool c
+            {
+                cursor.Seek(placement.AdvanceToField(1), "c", "bool");
+                value.C = cursor.Take(1, "c", "bool")[0] != 0;
+                placement.CompleteField(cursor.Position);
+            }
+            // char d
+            {
+                cursor.Seek(placement.AdvanceToField(1), "d", "char");
+                value.D = (char)cursor.Take(1, "d", "char")[0];
+                placement.CompleteField(cursor.Position);
+            }
+            // wchar e
+            {
+                cursor.Seek(placement.AdvanceToField(2), "e", "wchar");
+                value.E = global::CStructSharp.Generated.Codec.ReadChar(cursor.Take(2, "e", "wchar"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // int16 f
+            {
+                cursor.Seek(placement.AdvanceToField(2), "f", "int16");
+                value.F = global::CStructSharp.Generated.Codec.ReadInt16(cursor.Take(2, "f", "int16"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // uint16 g
+            {
+                cursor.Seek(placement.AdvanceToField(2), "g", "uint16");
+                value.G = global::CStructSharp.Generated.Codec.ReadUInt16(cursor.Take(2, "g", "uint16"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // int24 h
+            {
+                cursor.Seek(placement.AdvanceToField(1), "h", "int24");
+                value.H = global::CStructSharp.Generated.Codec.ReadInt24(cursor.Take(3, "h", "int24"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // uint24 i
+            {
+                cursor.Seek(placement.AdvanceToField(1), "i", "uint24");
+                value.I = global::CStructSharp.Generated.Codec.ReadUInt24(cursor.Take(3, "i", "uint24"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // int32 j
+            {
+                cursor.Seek(placement.AdvanceToField(4), "j", "int32");
+                value.J = global::CStructSharp.Generated.Codec.ReadInt32(cursor.Take(4, "j", "int32"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // uint32 k
+            {
+                cursor.Seek(placement.AdvanceToField(4), "k", "uint32");
+                value.K = global::CStructSharp.Generated.Codec.ReadUInt32(cursor.Take(4, "k", "uint32"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // int48 l
+            {
+                cursor.Seek(placement.AdvanceToField(1), "l", "int48");
+                value.L = global::CStructSharp.Generated.Codec.ReadInt48(cursor.Take(6, "l", "int48"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // uint48 m
+            {
+                cursor.Seek(placement.AdvanceToField(1), "m", "uint48");
+                value.M = global::CStructSharp.Generated.Codec.ReadUInt48(cursor.Take(6, "m", "uint48"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // int64 n
+            {
+                cursor.Seek(placement.AdvanceToField(8), "n", "int64");
+                value.N = global::CStructSharp.Generated.Codec.ReadInt64(cursor.Take(8, "n", "int64"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // uint64 o
+            {
+                cursor.Seek(placement.AdvanceToField(8), "o", "uint64");
+                value.O = global::CStructSharp.Generated.Codec.ReadUInt64(cursor.Take(8, "o", "uint64"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // int128 p
+            {
+                cursor.Seek(placement.AdvanceToField(16), "p", "int128");
+                value.P = global::CStructSharp.Generated.Codec.ReadInt128(cursor.Take(16, "p", "int128"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // uint128 q
+            {
+                cursor.Seek(placement.AdvanceToField(16), "q", "uint128");
+                value.Q = global::CStructSharp.Generated.Codec.ReadUInt128(cursor.Take(16, "q", "uint128"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // float16 r
+            {
+                cursor.Seek(placement.AdvanceToField(2), "r", "float16");
+                value.R = global::CStructSharp.Generated.Codec.ReadHalf(cursor.Take(2, "r", "float16"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // float32 s
+            {
+                cursor.Seek(placement.AdvanceToField(4), "s", "float32");
+                value.S = global::CStructSharp.Generated.Codec.ReadSingle(cursor.Take(4, "s", "float32"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // float64 t
+            {
+                cursor.Seek(placement.AdvanceToField(8), "t", "float64");
+                value.T = global::CStructSharp.Generated.Codec.ReadDouble(cursor.Take(8, "t", "float64"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // uleb128_32 u
+            {
+                cursor.Seek(placement.AdvanceToField(1), "u", "uleb128_32");
+                value.U = (uint)cursor.TakeLeb128(32, false, "u", "uleb128_32");
+                placement.CompleteField(cursor.Position);
+            }
+            // uleb128_64 v
+            {
+                cursor.Seek(placement.AdvanceToField(1), "v", "uleb128_64");
+                value.V = cursor.TakeLeb128(64, false, "v", "uleb128_64");
+                placement.CompleteField(cursor.Position);
+            }
+            // sleb128_32 w
+            {
+                cursor.Seek(placement.AdvanceToField(1), "w", "sleb128_32");
+                value.W = unchecked((int)cursor.TakeLeb128(32, true, "w", "sleb128_32"));
+                placement.CompleteField(cursor.Position);
+            }
+            // sleb128_64 x
+            {
+                cursor.Seek(placement.AdvanceToField(1), "x", "sleb128_64");
+                value.X = unchecked((long)cursor.TakeLeb128(64, true, "x", "sleb128_64"));
+                placement.CompleteField(cursor.Position);
+            }
+            // fixed16_16 y
+            {
+                cursor.Seek(placement.AdvanceToField(4), "y", "fixed16_16");
+                value.Y = global::CStructSharp.Generated.Codec.DecodeFixedPoint(global::CStructSharp.Generated.Codec.ReadInt32(cursor.Take(4, "y", "fixed16_16"), true), 16);
+                placement.CompleteField(cursor.Position);
+            }
+            // uuid z1
+            {
+                cursor.Seek(placement.AdvanceToField(1), "z1", "uuid");
+                value.Z1 = cursor.TakeGuid(true, "z1", "uuid");
+                placement.CompleteField(cursor.Position);
+            }
+            // guid z2
+            {
+                cursor.Seek(placement.AdvanceToField(1), "z2", "guid");
+                value.Z2 = cursor.TakeGuid(false, "z2", "guid");
+                placement.CompleteField(cursor.Position);
+            }
+            // ascii_string_zero z3
+            {
+                cursor.Seek(placement.AdvanceToField(1), "z3", "ascii_string_zero");
+                value.Z3 = cursor.TakeTerminatedString(global::CStructSharp.Generated.TerminatedTextEncoding.Ascii, '\0', "z3", "ascii_string_zero");
+                placement.CompleteField(cursor.Position);
+            }
+            // utf8_string_zero z4
+            {
+                cursor.Seek(placement.AdvanceToField(1), "z4", "utf8_string_zero");
+                value.Z4 = cursor.TakeTerminatedString(global::CStructSharp.Generated.TerminatedTextEncoding.Utf8, '\0', "z4", "utf8_string_zero");
+                placement.CompleteField(cursor.Position);
+            }
+            // unicode_string_zero z5
+            {
+                cursor.Seek(placement.AdvanceToField(1), "z5", "unicode_string_zero");
+                value.Z5 = cursor.TakeTerminatedString(global::CStructSharp.Generated.TerminatedTextEncoding.Utf16LittleEndian, '\0', "z5", "unicode_string_zero");
+                placement.CompleteField(cursor.Position);
+            }
+            // char name[8]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "name", "char");
+                int count;
+                try
+                {
+                    count = 8;
+                }
+                catch (global::System.Exception expressionFailure)
+                {
+                    throw cursor.FailExpression(expressionFailure, "array length for name", "name", "char");
+                }
+                if (count < 0)
+                {
+                    throw cursor.Fail("Array length cannot be negative: name", "name", "char");
+                }
+                cursor.RequireArrayLength(count, "name", "char");
+                int rowLength = count;
+                value.Name = cursor.TakeFixedText(rowLength, "name", "char");
+                placement.CompleteField(cursor.Position);
+            }
+            // wchar wide[4]
+            {
+                cursor.Seek(placement.AdvanceToField(2), "wide", "wchar");
+                int count;
+                try
+                {
+                    count = 4;
+                }
+                catch (global::System.Exception expressionFailure)
+                {
+                    throw cursor.FailExpression(expressionFailure, "array length for wide", "wide", "wchar");
+                }
+                if (count < 0)
+                {
+                    throw cursor.Fail("Array length cannot be negative: wide", "wide", "wchar");
+                }
+                cursor.RequireArrayLength(count, "wide", "wchar");
+                int rowLength = count;
+                value.Wide = cursor.TakeWideText(rowLength, true, "wide", "wchar");
+                placement.CompleteField(cursor.Position);
+            }
+            // utf8 label[3]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "label", "utf8");
+                int count;
+                try
+                {
+                    count = 3;
+                }
+                catch (global::System.Exception expressionFailure)
+                {
+                    throw cursor.FailExpression(expressionFailure, "array length for label", "label", "utf8");
+                }
+                if (count < 0)
+                {
+                    throw cursor.Fail("Array length cannot be negative: label", "label", "utf8");
+                }
+                cursor.RequireArrayLength(count, "label", "utf8");
+                value.Label = cursor.TakeEncodedText(count, "utf8", "label", "utf8");
+                placement.CompleteField(cursor.Position);
+            }
+            // char table[2][3]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "table", "char");
+                int count;
+                count = 6;
+                cursor.RequireArrayLength(count, "table", "char");
+                int rowLength = 3;
+                var rows = new string[count / rowLength];
+                for (int index = 0; index < rows.Length; index++)
+                {
+                    rows[index] = cursor.TakeFixedText(rowLength, "table", "char");
+                }
+                value.Table = rows;
+                placement.CompleteField(cursor.Position);
+            }
+            // uint8 bytes[4]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "bytes", "uint8");
+                int count;
+                try
+                {
+                    count = 4;
+                }
+                catch (global::System.Exception expressionFailure)
+                {
+                    throw cursor.FailExpression(expressionFailure, "array length for bytes", "bytes", "uint8");
+                }
+                if (count < 0)
+                {
+                    throw cursor.Fail("Array length cannot be negative: bytes", "bytes", "uint8");
+                }
+                cursor.RequireArrayLength(count, "bytes", "uint8");
+                var elements = new byte[count];
+                if (count > 0)
+                {
+                    global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 1, "bytes", "uint8");
+                    bytes.CopyTo(elements);
+                }
+                value.Bytes = elements;
+                placement.CompleteField(cursor.Position);
+            }
+            // uint16 words[2][2]
+            {
+                cursor.Seek(placement.AdvanceToField(2), "words", "uint16");
+                int count;
+                count = 4;
+                cursor.RequireArrayLength(count, "words", "uint16");
+                var elements = new ushort[count];
+                if (count > 0)
+                {
+                    global::System.ReadOnlySpan<byte> bytes = cursor.TakeInBlocks(count, 2, "words", "uint16");
+                    global::CStructSharp.Generated.Codec.DecodeIntegers<ushort>(bytes, elements, true);
+                }
+                value.Words = Split<ushort>(elements, 2);
+                placement.CompleteField(cursor.Position);
+            }
+            // uint8 count
+            {
+                cursor.Seek(placement.AdvanceToField(1), "count", "uint8");
+                value.Count = cursor.Take(1, "count", "uint8")[0];
+                placement.CompleteField(cursor.Position);
+            }
+            // uint8 items[...]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "items", "uint8");
+                int count;
+                try
+                {
+                    count = global::CStructSharp.Generated.Expressions.RequireInt32((long)value.Count, "count");
+                }
+                catch (global::System.Exception expressionFailure)
+                {
+                    throw cursor.FailExpression(expressionFailure, "array length for items", "items", "uint8");
+                }
+                if (count < 0)
+                {
+                    throw cursor.Fail("Array length cannot be negative: items", "items", "uint8");
+                }
+                cursor.RequireArrayLength(count, "items", "uint8");
+                var elements = new byte[count];
+                if (count > 0)
+                {
+                    global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 1, "items", "uint8");
+                    bytes.CopyTo(elements);
+                }
+                value.Items = elements;
+                placement.CompleteField(cursor.Position);
+            }
+            // uint8 tail[...]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
+                int count;
+                count = cursor.CountTerminated(1, "tail", "tail", "uint8");
+                var elements = new byte[count];
+                if (count > 0)
+                {
+                    global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 1, "tail", "uint8");
+                    bytes.CopyTo(elements);
+                }
+                value.Tail = elements;
+                cursor.Skip(1, "tail", "uint8");
+                placement.CompleteField(cursor.Position);
+            }
+            // uint16 rest[...][EOF]
+            {
+                cursor.Seek(placement.AdvanceToField(2), "rest", "uint16");
+                int count;
+                count = cursor.CountToEnd(2, "rest", "rest", "uint16");
+                var elements = new ushort[count];
+                if (count > 0)
+                {
+                    global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 2, "rest", "uint16");
+                    global::CStructSharp.Generated.Codec.DecodeIntegers<ushort>(bytes, elements, true);
+                }
+                value.Rest = elements;
+                placement.CompleteField(cursor.Position);
+            }
+            // color colour
+            {
+                cursor.Seek(placement.AdvanceToField(1), "colour", "color");
+                value.Colour = (Color)cursor.Take(1, "colour", "color")[0];
+                placement.CompleteField(cursor.Position);
+            }
+            // perms mode
+            {
+                cursor.Seek(placement.AdvanceToField(2), "mode", "perms");
+                value.Mode = (Perms)global::CStructSharp.Generated.Codec.ReadUInt16(cursor.Take(2, "mode", "perms"), true);
+                placement.CompleteField(cursor.Position);
+            }
+            // inner child
+            {
+                cursor.Seek(placement.AdvanceToField(1), "child", "inner");
+                value.Child = ReadInner(ref cursor, variables, "child", "inner");
+                placement.CompleteField(cursor.Position);
+            }
+            // inner children[2]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "children", "inner");
+                int count;
+                try
+                {
+                    count = 2;
+                }
+                catch (global::System.Exception expressionFailure)
+                {
+                    throw cursor.FailExpression(expressionFailure, "array length for children", "children", "inner");
+                }
+                if (count < 0)
+                {
+                    throw cursor.Fail("Array length cannot be negative: children", "children", "inner");
+                }
+                cursor.RequireArrayLength(count, "children", "inner");
+                var elements = new Inner[count];
+                for (int index = 0; index < count; index++)
+                {
+                    elements[index] = ReadInner(ref cursor, variables, "children", "inner");
+                }
+                value.Children = elements;
+                placement.CompleteField(cursor.Position);
+            }
+            // uint8 bits : 3
+            {
+                var slot = placement.AdvanceToBitfield(1, 1, 3, 17, true, "bits");
+                cursor.Seek(slot.UnitStart, "bits", "uint8");
+                ulong unit = global::CStructSharp.Generated.Codec.ReadUnsigned(cursor.Take(slot.UnitSize, "bits", "uint8"), true);
+                if (slot.BitOffset + 3 > slot.UnitSize * 8)
+                {
+                    throw cursor.Fail("Bitfield exceeds its storage unit: bits", "bits", "uint8");
+                }
+                ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 3, slot.UnitSize * 8, HighBitFirst), 3);
+                value.Bits = (byte)bits;
+            }
+            // color cbits : 2
+            {
+                var slot = placement.AdvanceToBitfield(1, 1, 2, 17, true, "cbits");
+                cursor.Seek(slot.UnitStart, "cbits", "color");
+                ulong unit = global::CStructSharp.Generated.Codec.ReadUnsigned(cursor.Take(slot.UnitSize, "cbits", "color"), true);
+                if (slot.BitOffset + 2 > slot.UnitSize * 8)
+                {
+                    throw cursor.Fail("Bitfield exceeds its storage unit: cbits", "cbits", "color");
+                }
+                ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 2, slot.UnitSize * 8, HighBitFirst), 2);
+                value.Cbits = (Color)(byte)bits;
+            }
+            // uint16 wbits : 12
+            {
+                var slot = placement.AdvanceToBitfield(2, 2, 12, 17, true, "wbits");
+                cursor.Seek(slot.UnitStart, "wbits", "uint16");
+                ulong unit = global::CStructSharp.Generated.Codec.ReadUnsigned(cursor.Take(slot.UnitSize, "wbits", "uint16"), true);
+                if (slot.BitOffset + 12 > slot.UnitSize * 8)
+                {
+                    throw cursor.Fail("Bitfield exceeds its storage unit: wbits", "wbits", "uint16");
+                }
+                ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 12, slot.UnitSize * 8, HighBitFirst), 12);
+                value.Wbits = (ushort)bits;
+            }
+            // uint8 *ptr
+            {
+                cursor.Seek(placement.AdvanceToField(8), "ptr", "uint8");
+                value.Ptr = ReadPointer_uint8_1(ref cursor, variables, "ptr", "uint8");
+                placement.CompleteField(cursor.Position);
+            }
+            // uint16 **pp
+            {
+                cursor.Seek(placement.AdvanceToField(8), "pp", "uint16");
+                value.Pp = ReadPointer_uint16_2(ref cursor, variables, "pp", "uint16");
+                placement.CompleteField(cursor.Position);
+            }
+            // char *text
+            {
+                cursor.Seek(placement.AdvanceToField(8), "text", "char");
+                value.Text = ReadPointer_char_1(ref cursor, variables, "text", "char");
+                placement.CompleteField(cursor.Position);
+            }
+            // void *raw
+            {
+                cursor.Seek(placement.AdvanceToField(8), "raw", "void");
+                value.Raw = ReadPointer_void_1(ref cursor, variables, "raw", "void");
+                placement.CompleteField(cursor.Position);
+            }
+            // inner *link
+            {
+                cursor.Seek(placement.AdvanceToField(8), "link", "inner");
+                value.Link = ReadPointer_inner_1(ref cursor, variables, "link", "inner");
+                placement.CompleteField(cursor.Position);
+            }
+            // color *pc
+            {
+                cursor.Seek(placement.AdvanceToField(8), "pc", "color");
+                value.Pc = ReadPointer_color_1(ref cursor, variables, "pc", "color");
+                placement.CompleteField(cursor.Position);
+            }
+            cursor.Seek(placement.Finish(16), member, memberType);
+            cursor.ExitComposite();
+            return value;
+        }
+
+        /// <summary>Reads a <c>uint8 *ptr</c> pointer: the address, then the target when pointers are followed.</summary>
+        private static global::CStructSharp.Generated.Pointer<byte> ReadPointer_uint8_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            long address = cursor.TakePointerAddress(PointerSize, LittleEndian, member ?? "ptr", memberType);
+            if (address == 0 || !cursor.FollowsPointers)
+            {
+                return new global::CStructSharp.Generated.Pointer<byte>(address, 1);
+            }
+            int resume = cursor.EnterPointer(address, 1, 1L, "uint8", member ?? "ptr", memberType);
+            try
+            {
+                return new global::CStructSharp.Generated.Pointer<byte>(address, 1, cursor.Take(1, member ?? "ptr", memberType)[0], true);
+            }
+            finally
+            {
+                cursor.ExitPointer(resume);
+            }
+        }
+
+        /// <summary>Reads a <c>uint16 **pp</c> pointer: the address, then the target when pointers are followed.</summary>
+        private static global::CStructSharp.Generated.Pointer<global::CStructSharp.Generated.Pointer<ushort>> ReadPointer_uint16_2(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            long address = cursor.TakePointerAddress(PointerSize, LittleEndian, member ?? "pp", memberType);
+            if (address == 0 || !cursor.FollowsPointers)
+            {
+                return new global::CStructSharp.Generated.Pointer<global::CStructSharp.Generated.Pointer<ushort>>(address, 2);
+            }
+            int resume = cursor.EnterPointer(address, 2, 8L, "uint16", member ?? "pp", memberType);
+            try
+            {
+                return new global::CStructSharp.Generated.Pointer<global::CStructSharp.Generated.Pointer<ushort>>(address, 2, ReadPointer_uint16_1(ref cursor, variables, member, memberType), true);
+            }
+            finally
+            {
+                cursor.ExitPointer(resume);
+            }
+        }
+
+        /// <summary>Reads a <c>char *text</c> pointer: the address, then the target when pointers are followed.</summary>
+        private static global::CStructSharp.Generated.Pointer<string> ReadPointer_char_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            long address = cursor.TakePointerAddress(PointerSize, LittleEndian, member ?? "text", memberType);
+            if (address == 0 || !cursor.FollowsPointers)
+            {
+                return new global::CStructSharp.Generated.Pointer<string>(address, 1);
+            }
+            int resume = cursor.EnterPointer(address, 1, null, "char", member ?? "text", memberType);
+            try
+            {
+                return new global::CStructSharp.Generated.Pointer<string>(address, 1, cursor.TakeTerminatedString(global::CStructSharp.Generated.TerminatedTextEncoding.Ascii, '\0', member ?? "text", memberType), true);
+            }
+            finally
+            {
+                cursor.ExitPointer(resume);
+            }
+        }
+
+        /// <summary>Reads a <c>void *raw</c> pointer: the address, then the target when pointers are followed.</summary>
+        private static global::CStructSharp.Generated.Pointer<object> ReadPointer_void_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            long address = cursor.TakePointerAddress(PointerSize, LittleEndian, member ?? "raw", memberType);
+            return new global::CStructSharp.Generated.Pointer<object>(address, 1);
+        }
+
+        /// <summary>Reads a <c>inner *link</c> pointer: the address, then the target when pointers are followed.</summary>
+        private static global::CStructSharp.Generated.Pointer<Inner> ReadPointer_inner_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            long address = cursor.TakePointerAddress(PointerSize, LittleEndian, member ?? "link", memberType);
+            if (address == 0 || !cursor.FollowsPointers)
+            {
+                return new global::CStructSharp.Generated.Pointer<Inner>(address, 1);
+            }
+            int resume = cursor.EnterPointer(address, 1, 1L, "inner", member ?? "link", memberType);
+            try
+            {
+                return new global::CStructSharp.Generated.Pointer<Inner>(address, 1, ReadInner(ref cursor, variables, member ?? "link", memberType), true);
+            }
+            finally
+            {
+                cursor.ExitPointer(resume);
+            }
+        }
+
+        /// <summary>Reads a <c>color *pc</c> pointer: the address, then the target when pointers are followed.</summary>
+        private static global::CStructSharp.Generated.Pointer<Color> ReadPointer_color_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            long address = cursor.TakePointerAddress(PointerSize, LittleEndian, member ?? "pc", memberType);
+            if (address == 0 || !cursor.FollowsPointers)
+            {
+                return new global::CStructSharp.Generated.Pointer<Color>(address, 1);
+            }
+            int resume = cursor.EnterPointer(address, 1, 1L, "color", member ?? "pc", memberType);
+            try
+            {
+                return new global::CStructSharp.Generated.Pointer<Color>(address, 1, (Color)cursor.Take(1, member ?? "pc", memberType)[0], true);
+            }
+            finally
+            {
+                cursor.ExitPointer(resume);
+            }
+        }
+
+        /// <summary>Reads a <c>uint16 *pp</c> pointer: the address, then the target when pointers are followed.</summary>
+        private static global::CStructSharp.Generated.Pointer<ushort> ReadPointer_uint16_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
+        {
+            long address = cursor.TakePointerAddress(PointerSize, LittleEndian, member ?? "pp", memberType);
+            if (address == 0 || !cursor.FollowsPointers)
+            {
+                return new global::CStructSharp.Generated.Pointer<ushort>(address, 1);
+            }
+            int resume = cursor.EnterPointer(address, 1, 2L, "uint16", member ?? "pp", memberType);
+            try
+            {
+                return new global::CStructSharp.Generated.Pointer<ushort>(address, 1, global::CStructSharp.Generated.Codec.ReadUInt16(cursor.Take(2, member ?? "pp", memberType), true), true);
+            }
+            finally
+            {
+                cursor.ExitPointer(resume);
+            }
+        }
+
+        /// <summary>Groups a flat element array into rows of <paramref name="inner"/> elements (one nesting level of a multidimensional array).</summary>
+        private static T[][] Split<T>(T[] flat, int inner)
+        {
+            var rows = new T[inner == 0 ? 0 : flat.Length / inner][];
+            for (int row = 0; row < rows.Length; row++)
+            {
+                rows[row] = new T[inner];
+                global::System.Array.Copy(flat, row * inner, rows[row], 0, inner);
+            }
+            return rows;
+        }
     }
 }

@@ -17,7 +17,7 @@ internal static class IdentifierCodec
         }
         catch (EndOfStreamException exception)
         {
-            throw new CStructReadException("Not enough bytes for a 16-byte identifier.", exception);
+            throw new CStructReadException(ReadFailures.IdentifierShortRead, exception);
         }
 
         return Codec.ReadGuid(bytes, networkOrder);

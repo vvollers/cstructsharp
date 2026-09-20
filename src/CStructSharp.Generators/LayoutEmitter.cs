@@ -31,6 +31,28 @@ internal sealed partial class LayoutEmitter
 
     public bool HasErrors => this.hasErrors;
 
+    /// <summary>The defines the compilation folded to values.</summary>
+    public IReadOnlyDictionary<string, Syntax.Expr> StaticVariables => this.compilation.StaticLayoutVariables;
+
+    /// <summary>The layout's <c>#define</c>s by name (for the ones that depend on caller variables).</summary>
+    public IReadOnlyDictionary<string, Syntax.Defines> Definitions => this.definitions ??= this.CollectDefinitions();
+
+    private Dictionary<string, Syntax.Defines>? definitions;
+
+    private Dictionary<string, Syntax.Defines> CollectDefinitions()
+    {
+        var result = new Dictionary<string, Syntax.Defines>(System.StringComparer.Ordinal);
+        foreach (KeyValuePair<string, Syntax.CStructElement> element in this.compilation.CStructElements)
+        {
+            if (element.Value is Syntax.Defines define)
+            {
+                result[element.Key] = define;
+            }
+        }
+
+        return result;
+    }
+
     private static string GeneratorVersion => typeof(LayoutEmitter).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
 
     /// <summary>Builds the type model, which assigns every generated name, and reports CSG003 for collisions.</summary>
@@ -79,6 +101,7 @@ internal sealed partial class LayoutEmitter
         writer.Open(this.request.Accessibility + " static partial class " + this.request.ClassName);
         this.EmitFrame(writer);
         this.EmitTypes(writer);
+        this.EmitReaders(writer);
         writer.Close();
 
         for (int index = 0; index < this.request.ContainingTypes.Count; index++)

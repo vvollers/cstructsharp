@@ -808,7 +808,7 @@ public static class Codec
         }
         catch (System.Text.DecoderFallbackException exception)
         {
-            throw new CStructReadException("Encoded text buffer contains an invalid byte sequence.", exception);
+            throw new CStructReadException(ReadFailures.BoundedTextInvalid, exception);
         }
 
         return trimTrailingNuls ? text.TrimEnd('\0') : text;

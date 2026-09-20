@@ -41,11 +41,11 @@ internal static partial class PrimitiveCodecs
         }
         catch (EndOfStreamException exception)
         {
-            throw new CStructReadException("Not enough bytes for the declared Encoded text buffer.", exception);
+            throw new CStructReadException(ReadFailures.BoundedTextShortRead, exception);
         }
         catch (DecoderFallbackException exception)
         {
-            throw new CStructReadException("Encoded text buffer contains an invalid byte sequence.", exception);
+            throw new CStructReadException(ReadFailures.BoundedTextInvalid, exception);
         }
     }
 
@@ -75,7 +75,7 @@ internal static partial class PrimitiveCodecs
                 int bytesRead = stream.Read(chunk, 0, TerminatedStringReadChunkSize);
                 if (bytesRead == 0)
                 {
-                    throw new CStructReadException("Not enough bytes: the terminated string has no terminator before the end of the input.");
+                    throw new CStructReadException(ReadFailures.TerminatedStringUnterminated);
                 }
 
                 // Search from the first position that starts an encoding unit relative to the string's own start.
@@ -106,9 +106,7 @@ internal static partial class PrimitiveCodecs
                 }
                 catch (DecoderFallbackException exception)
                 {
-                    throw new CStructReadException(
-                        "String field contains bytes that are invalid for its encoding.",
-                        exception);
+                    throw new CStructReadException(ReadFailures.TerminatedStringInvalid, exception);
                 }
 
                 if (terminatorIndex < 0)
