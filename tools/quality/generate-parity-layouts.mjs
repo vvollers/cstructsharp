@@ -7,6 +7,7 @@
 //
 // Usage: node tools/quality/generate-parity-layouts.mjs          # rewrite both files
 //        node tools/quality/generate-parity-layouts.mjs --check  # fail when the committed files are stale
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -87,7 +88,10 @@ for (const item of conditional) {
 }
 
 // docs/examples/recipes/*.cs: `new CStruct("literal" | identifier, named options)` where the identifier is a string
-// constant of the same file (a regular or raw literal); other forms are listed as skipped.
+// constant of the same file (a regular or raw literal); other forms are listed as skipped. The recipes are exported
+// (git-ignored) files, so they are regenerated first: a fresh checkout has only the recipe index, and the layouts
+// would silently be missing.
+execFileSync(process.execPath, [path.join(root, "tools/documentation/export-documentation-examples.mjs")], { stdio: "ignore" });
 const recipeDirectory = path.join(root, "docs/examples/recipes");
 for (const file of fs.readdirSync(recipeDirectory).filter((name) => name.endsWith(".cs")).sort()) {
   const text = fs.readFileSync(path.join(recipeDirectory, file), "utf8");
