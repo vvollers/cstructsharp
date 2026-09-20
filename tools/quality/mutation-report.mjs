@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Validates the permanent mutation gate: the Stryker configuration (project, thresholds, the 46-file allowlist)
+ * Validates the permanent mutation gate: the Stryker configuration (project, thresholds, the 64-file allowlist)
  * and a JSON report against it (every configured file mutated, no surviving/uncovered/runtime-error mutants,
  * score at or above 75 %).
  *
@@ -41,9 +41,9 @@ await main(() => {
   assertCondition(Number(config.thresholds.break) === 75, "The permanent mutation break threshold must be 75%.");
 
   const configuredFiles = (config.mutate ?? []).map((file) => String(file).replaceAll("\\", "/"));
-  assertCondition(configuredFiles.length === 46, `The permanent mutation allowlist must contain exactly 46 semantic files; found ${configuredFiles.length}.`);
+  assertCondition(configuredFiles.length === 64, `The permanent mutation allowlist must contain exactly 64 semantic files; found ${configuredFiles.length}.`);
   assertCondition(new Set(configuredFiles).size === configuredFiles.length, "The permanent mutation allowlist contains duplicate files.");
-  assertCondition(configuredFiles.includes("Parsing/LayoutParser.cs"), "The layout parser must remain in the permanent mutation allowlist.");
+  assertCondition(configuredFiles.includes("**/CStructSharp.Core/Parsing/LayoutParser.cs"), "The layout parser must remain in the permanent mutation allowlist.");
 
   assertCondition(String(report.schemaVersion) === "2", `Unsupported Stryker report schema '${report.schemaVersion}'.`);
   assertCondition(Number(report.thresholds.high) === 75 && Number(report.thresholds.low) === 75, "The report was not produced with the final 75% mutation thresholds.");
@@ -56,17 +56,19 @@ await main(() => {
   }
   assertCondition(testCount > 0, "The mutation report contains no tests.");
 
+  // A runtime entry is relative to src/CStructSharp; a shared compile-time source is named by its folder (`**/CStructSharp.Core/...`).
+  const suffixOf = (file) => (file.startsWith("**/") ? `/${file.slice(3)}` : `/cstructsharp/${file}`).toLowerCase();
   const allMutants = [];
   const reportFiles = Object.entries(report.files ?? {}).map(([name, value]) => [name.replaceAll("\\", "/"), value]);
   for (const [reportFile, value] of reportFiles) {
     const mutants = value.mutants ?? [];
     allMutants.push(...mutants);
     if (validCountOf(mutants) === 0) continue;
-    const matches = configuredFiles.filter((file) => reportFile.toLowerCase().endsWith(`/cstructsharp/${file}`.toLowerCase()));
+    const matches = configuredFiles.filter((file) => reportFile.toLowerCase().endsWith(suffixOf(file)));
     assertCondition(matches.length === 1, `Report file '${reportFile}' has tested mutants but is outside the reviewed permanent allowlist.`);
   }
   for (const configuredFile of configuredFiles) {
-    const suffix = `/cstructsharp/${configuredFile}`.toLowerCase();
+    const suffix = suffixOf(configuredFile);
     const matching = reportFiles.filter(([name]) => name.toLowerCase().endsWith(suffix));
     assertCondition(matching.length === 1, `The report is missing configured file '${configuredFile}'.`);
     assertCondition(validCountOf(matching[0][1].mutants ?? []) > 0, `Configured semantic file '${configuredFile}' produced no valid mutants.`);
@@ -91,6 +93,6 @@ await main(() => {
 
   const hash = crypto.createHash("sha256").update(fs.readFileSync(reportPath)).digest("hex").toUpperCase();
   console.log(
-    `Permanent mutation gate passed: ${detected}/${valid} detected (${scoreText}%), ${killed} killed, ${timedOut} timed out, ${survived} survived, ${noCoverage} uncovered, ${runtimeErrors} runtime errors; ${compileErrors} compile errors, ${ignored} ignored; ${testCount} tests; 46 configured files; SHA-256 ${hash}.`,
+    `Permanent mutation gate passed: ${detected}/${valid} detected (${scoreText}%), ${killed} killed, ${timedOut} timed out, ${survived} survived, ${noCoverage} uncovered, ${runtimeErrors} runtime errors; ${compileErrors} compile errors, ${ignored} ignored; ${testCount} tests; 64 configured files; SHA-256 ${hash}.`,
   );
 });

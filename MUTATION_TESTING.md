@@ -59,13 +59,36 @@ and tests the mutations. The last command checks that the report was made with t
 This can take much longer than an ordinary test run. Progress is shown in the terminal. The JSON and HTML reports
 are written below `artifacts/mutation/permanent/`. The `artifacts/` directory is ignored by Git.
 
+### Mutating only what changed
+
+A full run over the allowlist takes hours. To check the files a branch or a series of commits touched, add Stryker's
+`--since` flag with the commit the work started from; Stryker then mutates only the files that differ from that
+commit (and runs every test as usual):
+
+```sh
+timeout 90m dotnet stryker \
+  --config-file stryker-config.json \
+  --solution CStructSharp.NonWeb.sln \
+  --target-framework net10.0 \
+  --configuration Release \
+  --since:<start-commit> \
+  --output artifacts/mutation/<name> \
+  --skip-version-check
+```
+
+The `timeout` keeps an interactive run bounded; a run that is cut off has no report, so scope it down (a smaller
+`--since` range, or `--mutate` for a few files) rather than reading a partial one. The allowlist names the shared
+compile-time sources by their folder (`**/CStructSharp.Core/...`): they are compiled into `src/CStructSharp` as
+linked files, and Stryker matches a pattern against a file's full path or its path relative to the project.
+
 ## What the configuration does
 
 `stryker-config.json`:
 
 - mutates the main `src/CStructSharp` library;
 - uses `tests/CStructSharpTests` to test each mutation;
-- limits mutation to 46 files that contain the main parsing and binary-data logic;
+- limits mutation to 64 files that contain the main parsing and binary-data logic, including the compile-time core in
+  `src/CStructSharp.Core` and the `Generated` support types the source generator's output calls;
 - runs the complete test project instead of selecting tests from coverage data;
 - writes progress, JSON, and HTML reports; and
 - requires a mutation score of at least 75%.
