@@ -13,6 +13,7 @@ on:
   pull_request:
     paths:
       - "src/CStructSharp/**"
+      - "src/CStructSharp.Core/**"
       - "benchmarks/**"
       - "contracts/performance/**"
       - "tools/quality/convert-benchmark-baseline.mjs"

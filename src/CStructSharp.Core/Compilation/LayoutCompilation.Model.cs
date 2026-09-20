@@ -1,19 +1,19 @@
-namespace CStructSharp;
+namespace CStructSharp.Compilation;
 
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.IO;
+
 using System.Linq;
+using CStructSharp;
 using CStructSharp.Codecs;
-using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>Builds and queries the immutable compiled layout model from validated parsed declarations.</summary>
-public partial class CStruct
+internal sealed partial class LayoutCompilation
 {
     private readonly CompiledLayoutModel compiledLayout;
 
@@ -22,6 +22,21 @@ public partial class CStruct
 
     /// <summary>The operation-variable resolver, exposed for tests that exercise supplied-variable resolution directly.</summary>
     internal LayoutVariableResolver CompiledLayoutVariables => this.layoutVariableResolver;
+
+    /// <summary>The codec id a synthetic root of <paramref name="symbol"/> reads with (a primitive's own, an enum's underlying, else none).</summary>
+    internal static int CodecIdOf(CompiledTypeSymbol symbol)
+    {
+        return GetCompiledCodecId(symbol);
+    }
+
+    /// <summary>Compiles the array strategy of a synthetic root field spelled in a path (<c>uint16[EOF]</c>).</summary>
+    /// <param name="field">The parsed root field.</param>
+    /// <returns>The array shape.</returns>
+    /// <exception cref="CStructLayoutException">The count expression is invalid.</exception>
+    internal CompiledArrayShape CompileRootArrayShape(Field field)
+    {
+        return this.CompileArrayShape(field);
+    }
 
     private static bool MayCaptureText(CompiledField field)
     {
@@ -153,6 +168,91 @@ public partial class CStruct
                 break;
             }
         }
+    }
+
+    /// <summary>
+    ///     Records on every bitfield the bit length of its run of adjacent bitfields, measured with the packed SysV
+    ///     rule from the run's first bit: contiguous widths, a zero-width separator rounding up to its type's size.
+    ///     The value depends only on the run's declarations, so the runtime cursor can clamp packed units without
+    ///     looking ahead.
+    /// </summary>
+    private static void MeasureBitfieldRuns(ImmutableArray<CompiledField> fields)
+    {
+        int index = 0;
+        while (index < fields.Length)
+        {
+            if (!fields[index].BitStorageSize.HasValue || fields[index].Declaration.Condition is not null)
+            {
+                index++;
+                continue;
+            }
+
+            int start = index;
+            long bits = 0;
+            while (index < fields.Length && fields[index].BitStorageSize.HasValue && fields[index].Declaration.Condition is null)
+            {
+                CompiledField field = fields[index];
+                bits = field.IsZeroWidthBitfield
+                           ? LayoutMath.AlignUp(bits, field.BitStorageSize!.Value * 8L)
+                           : bits + field.EffectiveField.BitSize;
+                index++;
+            }
+
+            for (int member = start; member < index; member++)
+            {
+                fields[member].BitRunBits = checked((int)bits);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A dotted reference (<c>hdr.n</c>, <c>a.b.n</c>) names a field of a nested struct. Each head becomes a
+    ///     qualified-publishing field and each remainder joins the referenced set, so <c>n</c> is captured and the
+    ///     struct field <c>hdr</c> republishes it as <c>hdr.n</c>; a name that never matches a struct field stays an
+    ///     undefined identifier at evaluation time. Enum members (<c>E.N</c>) were already folded to constants.
+    /// </summary>
+    private static List<string>? ExpandQualifiedReferences(HashSet<string>? referenced)
+    {
+        if (referenced is null)
+        {
+            return null;
+        }
+
+        List<string>? heads = null;
+        var pending = new Stack<string>();
+        foreach (string name in referenced)
+        {
+            if (name.Contains('.'))
+            {
+                pending.Push(name);
+            }
+        }
+
+        while (pending.Count > 0)
+        {
+            string name = pending.Pop();
+            int dot = name.IndexOf('.');
+            string head = name[..dot];
+            string rest = name[(dot + 1)..];
+            (heads ??= []).Add(head);
+            if (referenced.Add(rest) && rest.Contains('.'))
+            {
+                pending.Push(rest);
+            }
+        }
+
+        return heads;
+    }
+
+    /// <summary>Returns a primitive's codec id directly or the compiled underlying primitive's id for an enum.</summary>
+    private static int GetCompiledCodecId(CompiledTypeSymbol symbol)
+    {
+        return symbol.Kind switch
+        {
+            CompiledTypeKind.Primitive => symbol.CodecId,
+            CompiledTypeKind.Enum when symbol.Definition is CompiledEnumType enm => enm.Underlying.Symbol.CodecId,
+            _ => PrimitiveCatalog.NoCodec,
+        };
     }
 
     /// <summary>Builds the operation-time model after parsed declarations have passed all layout validation.</summary>
@@ -1004,52 +1104,6 @@ public partial class CStruct
         return result.ToImmutable();
     }
 
-    /// <summary>
-    ///     Records on every bitfield the bit length of its run of adjacent bitfields, measured with the packed SysV
-    ///     rule from the run's first bit: contiguous widths, a zero-width separator rounding up to its type's size.
-    ///     The value depends only on the run's declarations, so the runtime cursor can clamp packed units without
-    ///     looking ahead.
-    /// </summary>
-    private static void MeasureBitfieldRuns(ImmutableArray<CompiledField> fields)
-    {
-        int index = 0;
-        while (index < fields.Length)
-        {
-            if (!fields[index].BitStorageSize.HasValue || fields[index].Declaration.Condition is not null)
-            {
-                index++;
-                continue;
-            }
-
-            int start = index;
-            long bits = 0;
-            while (index < fields.Length && fields[index].BitStorageSize.HasValue && fields[index].Declaration.Condition is null)
-            {
-                CompiledField field = fields[index];
-                bits = field.IsZeroWidthBitfield
-                           ? LayoutMath.AlignUp(bits, field.BitStorageSize!.Value * 8L)
-                           : bits + field.EffectiveField.BitSize;
-                index++;
-            }
-
-            for (int member = start; member < index; member++)
-            {
-                fields[member].BitRunBits = checked((int)bits);
-            }
-        }
-    }
-
-    /// <summary>Returns a primitive's codec id directly or the compiled underlying primitive's id for an enum.</summary>
-    private static int GetCompiledCodecId(CompiledTypeSymbol symbol)
-    {
-        return symbol.Kind switch
-        {
-            CompiledTypeKind.Primitive => symbol.CodecId,
-            CompiledTypeKind.Enum when symbol.Definition is CompiledEnumType enm => enm.Underlying.Symbol.CodecId,
-            _ => PrimitiveCatalog.NoCodec,
-        };
-    }
-
     /// <summary>Compiles one scalar, fixed, runtime-counted, or flexible array strategy.</summary>
     private CompiledArrayShape CompileArrayShape(Field field)
     {
@@ -1214,45 +1268,6 @@ public partial class CStruct
         {
             field.CapturesLayoutVariable = true;
         }
-    }
-
-    /// <summary>
-    ///     A dotted reference (<c>hdr.n</c>, <c>a.b.n</c>) names a field of a nested struct. Each head becomes a
-    ///     qualified-publishing field and each remainder joins the referenced set, so <c>n</c> is captured and the
-    ///     struct field <c>hdr</c> republishes it as <c>hdr.n</c>; a name that never matches a struct field stays an
-    ///     undefined identifier at evaluation time. Enum members (<c>E.N</c>) were already folded to constants.
-    /// </summary>
-    private static List<string>? ExpandQualifiedReferences(HashSet<string>? referenced)
-    {
-        if (referenced is null)
-        {
-            return null;
-        }
-
-        List<string>? heads = null;
-        var pending = new Stack<string>();
-        foreach (string name in referenced)
-        {
-            if (name.Contains('.'))
-            {
-                pending.Push(name);
-            }
-        }
-
-        while (pending.Count > 0)
-        {
-            string name = pending.Pop();
-            int dot = name.IndexOf('.');
-            string head = name[..dot];
-            string rest = name[(dot + 1)..];
-            (heads ??= []).Add(head);
-            if (referenced.Add(rest) && rest.Contains('.'))
-            {
-                pending.Push(rest);
-            }
-        }
-
-        return heads;
     }
 
     /// <summary>The compiled enum of a declaration, for the browser bridge's static plan description.</summary>

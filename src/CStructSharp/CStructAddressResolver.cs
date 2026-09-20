@@ -177,14 +177,14 @@ public partial class CStruct
                 // namespace; every member starts at the union's address.
                 foreach (CompiledField promoted in composite.PromotedFields)
                 {
-                    if (promoted.Composite is { } promotedMember && TryFindCompiledField(promotedMember, requested.Name, out _))
+                    if (promoted.Composite is { } promotedMember && promotedMember.TryFindField(requested.Name, out _))
                     {
                         return this.ResolveTargetInStruct(promotedMember, structStart, segments, pathIndex, state, context);
                     }
                 }
             }
 
-            CompiledField compiledUnionField = FindCompiledField(composite, requested.Name);
+            CompiledField compiledUnionField = composite.FindField(requested.Name);
             int bitStorageSize = compiledUnionField.BitSize > 0
                                      ? compiledUnionField.BitStorageSize ??
                                        throw new InvalidOperationException(
@@ -240,7 +240,7 @@ public partial class CStruct
             // downstream error inside the matched field can never be misreported as "unknown field" here.
             if (composite.PromotedFields.Contains(compiledField) &&
                 compiledField.Composite is { } promotedStruct &&
-                TryFindCompiledField(promotedStruct, requested.Name, out _))
+                promotedStruct.TryFindField(requested.Name, out _))
             {
                 return this.ResolveTargetInStruct(promotedStruct, fieldStart, segments, pathIndex, state, context);
             }
@@ -1121,39 +1121,5 @@ public partial class CStruct
         LayoutVariableCapture.Capture(state.Variables, compiledField.Name, value);
 
         state.PublishQualified(compiledField.Name);
-    }
-
-    /// <summary>Finds one exact compiled field name in a struct.</summary>
-    private static CompiledField FindCompiledField(CompiledCompositeType strct, string name)
-    {
-        return TryFindCompiledField(strct, name, out CompiledField? field)
-            ? field!
-            : throw new CStructPathException($"Unknown field '{name}' in '{strct.Name}'.");
-    }
-
-    /// <summary>
-    ///     Finds one exact compiled field name in a struct, recursing into every anonymous promoted member's own
-    ///     fields when the name isn't one of this level's own - never throws. Purely an in-memory,
-    ///     side-effect-free tree walk, so it is safe to call speculatively before attempting a real, I/O-touching
-    ///     resolution.
-    /// </summary>
-    private static bool TryFindCompiledField(CompiledCompositeType composite, string name, out CompiledField? field)
-    {
-        if (composite.FieldsByName.TryGetValue(name, out field))
-        {
-            return true;
-        }
-
-        foreach (CompiledField promoted in composite.PromotedFields)
-        {
-            if (promoted.Composite is { } promotedStruct &&
-                TryFindCompiledField(promotedStruct, name, out field))
-            {
-                return true;
-            }
-        }
-
-        field = null;
-        return false;
     }
 }

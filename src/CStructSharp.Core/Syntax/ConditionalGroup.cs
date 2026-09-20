@@ -1,7 +1,7 @@
 namespace CStructSharp.Syntax;
 
-using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 /// <summary>One syntactic decision, shared by its arms and frozen before a compiled layout is published.</summary>
 internal sealed class ConditionalGroup(Expr selector, IReadOnlyList<Expr>? caseLabels = null)
@@ -10,5 +10,5 @@ internal sealed class ConditionalGroup(Expr selector, IReadOnlyList<Expr>? caseL
 
     public IReadOnlyList<Expr>? CaseLabels { get; } = caseLabels;
 
-    public FrozenDictionary<int, int>? CaseArms { get; init; }
+    public ImmutableDictionary<int, int>? CaseArms { get; init; }
 }

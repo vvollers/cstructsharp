@@ -32,6 +32,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The compile-time core (parser, expressions, compiled model, placement, diagnostics, introspection) is a
+         shared source folder: it compiles into this assembly and into the source generator (netstandard2.0). -->
+    <Compile Include="..\CStructSharp.Core\**\*.cs" LinkBase="Core" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     <None Include="..\..\CHANGELOG.md" Pack="true" PackagePath="\" />
     <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="\" />

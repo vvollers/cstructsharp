@@ -1437,7 +1437,7 @@ public partial class CStruct
             }
 
             // Separately resolve the layout shape so the writer knows whether the selected target is a field, struct, or typedef.
-            CompiledField targetField = this.ResolveElementPath(rootElement, childSegments, effectiveVariables);
+            CompiledField targetField = this.compilation.ResolveElementPath(rootElement, childSegments, effectiveVariables);
             this.WriteFieldValue(targetField, subData, state, -1);
         }
         catch (CStructException exception)

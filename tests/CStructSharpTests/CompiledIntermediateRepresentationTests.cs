@@ -457,9 +457,10 @@ public class CompiledIntermediateRepresentationTests
         string key,
         TValue replacement)
     {
-        FieldInfo field = typeof(CStruct).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic) ??
+        // The construction tables live on the layout's compilation (the compile-time half of a CStruct).
+        FieldInfo field = typeof(LayoutCompilation).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic) ??
                           throw new AssertFailedException("Private compatibility table was not found: " + fieldName);
-        object table = field.GetValue(cstruct) ??
+        object table = field.GetValue(cstruct.Compilation) ??
                        throw new AssertFailedException("Private construction table was null: " + fieldName);
         if (table is FrozenDictionary<string, TValue> shared)
         {

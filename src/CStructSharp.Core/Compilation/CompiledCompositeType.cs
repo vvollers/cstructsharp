@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using CStructSharp.Diagnostics;
 using CStructSharp.Reading;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
@@ -222,5 +223,38 @@ internal sealed class CompiledCompositeType : CompiledType
         // Built with the annotated type in hand (a delegate would lose the annotation); a benign race builds twice.
         plan = TypedReadPlan.TryBuild(this.StaticPlan!, targetType);
         return plans.TryAdd(targetType, plan) ? plan : plans[targetType];
+    }
+
+    /// <summary>Finds one exact compiled field name in this composite, or throws a <see cref="CStructPathException"/> naming both.</summary>
+    public CompiledField FindField(string name)
+    {
+        return this.TryFindField(name, out CompiledField? field)
+            ? field!
+            : throw new CStructPathException($"Unknown field '{name}' in '{this.Name}'.");
+    }
+
+    /// <summary>
+    ///     Finds one exact compiled field name, recursing into every anonymous promoted member's own fields when the
+    ///     name isn't one of this level's own - never throws. Purely an in-memory, side-effect-free tree walk, so it
+    ///     is safe to call speculatively before attempting a real, I/O-touching resolution.
+    /// </summary>
+    public bool TryFindField(string name, out CompiledField? field)
+    {
+        if (this.FieldsByName.TryGetValue(name, out field))
+        {
+            return true;
+        }
+
+        foreach (CompiledField promoted in this.PromotedFields)
+        {
+            if (promoted.Composite is { } promotedStruct &&
+                promotedStruct.TryFindField(name, out field))
+            {
+                return true;
+            }
+        }
+
+        field = null;
+        return false;
     }
 }

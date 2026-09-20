@@ -120,7 +120,10 @@ await main(() => {
 
   // Positional record declarations generate Deconstruct members absent from the API snapshot.
   const positionalRecords = new Set();
-  for (const sourceFile of listFiles(path.join(repositoryRoot, "src/CStructSharp"), (file) => file.endsWith(".cs") && !/[/\\](?:obj|bin)[/\\]/.test(file))) {
+  const librarySources = ["src/CStructSharp", "src/CStructSharp.Core"].flatMap((directory) =>
+    listFiles(path.join(repositoryRoot, directory), (file) => file.endsWith(".cs") && !/[/\\](?:obj|bin)[/\\]/.test(file)),
+  );
+  for (const sourceFile of librarySources) {
     const source = fs.readFileSync(sourceFile, "utf8");
     const sourceNamespace = /^namespace ([A-Za-z0-9_.]+);/m.exec(source)?.[1];
     if (!sourceNamespace) continue;

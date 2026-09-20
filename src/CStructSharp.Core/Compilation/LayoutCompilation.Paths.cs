@@ -1,13 +1,13 @@
-namespace CStructSharp;
+namespace CStructSharp.Compilation;
 
 using System.Collections.Generic;
+using CStructSharp;
 using CStructSharp.Addressing;
-using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
 /// <summary>Contains the small lookup helpers that connect parsed layout declarations to public paths.</summary>
-public partial class CStruct
+internal sealed partial class LayoutCompilation
 {
     /// <summary>Returns a struct selected during path traversal or raises the caller's focused path error.</summary>
     private static CompiledCompositeType RequirePathStruct(CompiledCompositeType? composite, string error)
@@ -17,11 +17,11 @@ public partial class CStruct
 
     /// <summary>
     ///     Finds the exact writable layout shape selected by a direct, non-pointer path. An N-dimensional array
-    /// peels one dimension per supplied index, the same "repeat the existing single-dimension
-    ///     operation once per dimension" mechanism <see cref="ResolveTargetInField"/> uses;
-    ///     fewer indices than dimensions selects the corresponding lower-dimensional sub-array (decision 4).
+    ///     peels one dimension per supplied index - the same "repeat the single-dimension operation once per
+    ///     dimension" mechanism the runtime's address resolver uses; fewer indices than dimensions selects the
+    ///     corresponding lower-dimensional sub-array.
     /// </summary>
-    private CompiledField ResolveElementPath(
+    internal CompiledField ResolveElementPath(
         CStructElement root,
         IReadOnlyList<PathSegment> segments,
         IReadOnlyDictionary<string, Expr> variables)
@@ -32,7 +32,7 @@ public partial class CStruct
         {
             PathSegment segment = segments[segmentIndex];
             CompiledCompositeType strct = RequirePathStruct(current, "Cannot resolve path segment: " + segment.Name);
-            CompiledField compiledField = FindCompiledField(strct, segment.Name);
+            CompiledField compiledField = strct.FindField(segment.Name);
             bool declaredIsArray = compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or
                                    CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
 

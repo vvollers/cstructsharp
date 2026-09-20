@@ -9,67 +9,15 @@ using CStructSharp.Reading;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
 
-/// <summary>Shares runtime field activation across compiled operations.</summary>
+/// <summary>Conditional-field support for the runtime reader: detecting conditional layouts and tracing arm selection.</summary>
 public partial class CStruct
 {
-    /// <summary>Freezes case constants without recursive traversal or changing runtime selectors.</summary>
-    private static Expr? NormalizeCaseConstants(Expr? expression, Dictionary<Expr, Expr>? constants)
-    {
-        if (expression is null || constants is null || constants.Count == 0)
-        {
-            return expression;
-        }
-
-        var rewritten = new Dictionary<Expr, Expr>(constants, ReferenceEqualityComparer.Instance);
-        var pending = new Stack<(Expr Expression, bool Complete)>();
-        pending.Push((expression, false));
-        while (pending.Count > 0)
-        {
-            (Expr current, bool complete) = pending.Pop();
-            if (rewritten.ContainsKey(current))
-            {
-                continue;
-            }
-
-            if (complete)
-            {
-                rewritten[current] = current switch
-                {
-                    BinaryOp binary => new BinaryOp(binary.Type, rewritten[binary.Left], rewritten[binary.Right]),
-                    UnaryOp unary => new UnaryOp(unary.Type, rewritten[unary.Expr]),
-                    ConditionalExpr conditional => new ConditionalExpr(rewritten[conditional.Condition], rewritten[conditional.WhenTrue], rewritten[conditional.WhenFalse]),
-                    _ => current,
-                };
-                continue;
-            }
-
-            pending.Push((current, true));
-            if (current is BinaryOp operation)
-            {
-                pending.Push((operation.Right, false));
-                pending.Push((operation.Left, false));
-            }
-            else if (current is UnaryOp unary)
-            {
-                pending.Push((unary.Expr, false));
-            }
-            else if (current is ConditionalExpr conditional)
-            {
-                pending.Push((conditional.WhenFalse, false));
-                pending.Push((conditional.WhenTrue, false));
-                pending.Push((conditional.Condition, false));
-            }
-        }
-
-        return rewritten[expression];
-    }
-
     /// <summary>Checks only types reachable from the selected root, including aliases and pointer targets.</summary>
     private bool HasConditionalLayout(string rootName)
     {
         var pending = new Stack<CompiledTypeSymbol>();
         var visited = new HashSet<CompiledTypeSymbol>();
-        pending.Push(this.compiledLayout.Symbols[rootName].Symbol);
+        pending.Push(this.compilation.CompiledModel.Symbols[rootName].Symbol);
         while (pending.Count > 0)
         {
             CompiledTypeSymbol symbol = pending.Pop();

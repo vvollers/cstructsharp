@@ -49,7 +49,7 @@ public partial class CStruct
         // A root is never an array of itself, so `entry[2]` names two `entry` records; a bare declared name stays
         // the declaration.
         if (segments.Count == 1 &&
-            (segments[0].Indexes.Count > 0 || !this.compiledLayout.Declarations.ContainsKey(segments[0].Name)) &&
+            (segments[0].Indexes.Count > 0 || !this.compilation.CompiledModel.Declarations.ContainsKey(segments[0].Name)) &&
             this.TryCreateSyntheticRoot(elementNameOrPath!, out IReadOnlyList<PathSegment>? spelled))
         {
             segments = spelled;
@@ -82,7 +82,7 @@ public partial class CStruct
         int bracket = trimmed.IndexOf('[');
         string head = (bracket < 0 ? trimmed : trimmed[..bracket]).Trim();
         string dimensions = bracket < 0 ? string.Empty : trimmed[bracket..];
-        if (head.Length == 0 || (bracket < 0 && this.compiledLayout.Declarations.ContainsKey(head)))
+        if (head.Length == 0 || (bracket < 0 && this.compilation.CompiledModel.Declarations.ContainsKey(head)))
         {
             return false;
         }
@@ -103,7 +103,7 @@ public partial class CStruct
         }
 
         Field parsed = fields[0];
-        if (!this.compiledLayout.Symbols.TryGetValue(parsed.Type.Name, out CompiledTypeReference type))
+        if (!this.compilation.CompiledModel.Symbols.TryGetValue(parsed.Type.Name, out CompiledTypeReference type))
         {
             return false;
         }
@@ -154,7 +154,7 @@ public partial class CStruct
         CompiledArrayShape arrayShape;
         try
         {
-            arrayShape = this.CompileArrayShape(field);
+            arrayShape = this.compilation.CompileRootArrayShape(field);
         }
         catch (CStructLayoutException exception)
         {
@@ -173,7 +173,7 @@ public partial class CStruct
             field,
             field,
             type,
-            GetCompiledCodecId(type.Symbol),
+            LayoutCompilation.CodecIdOf(type.Symbol),
             terminatedCodecId,
             alignment,
             elementSize,

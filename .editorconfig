@@ -495,7 +495,7 @@ dotnet_diagnostic.SA1651.severity = warning
 # Documentation rules are enforced only where XML documentation is generated (the library), and there the same
 # rules are excluded from the build through the project's NoWarn; keeping the two lists identical lets
 # `dotnet format --verify-no-changes --severity warn` agree with `dotnet build`.
-[src/CStructSharp/**.cs]
+[src/{CStructSharp,CStructSharp.Core}/**.cs]
 dotnet_diagnostic.CS1591.severity = none
 dotnet_diagnostic.SA1600.severity = none
 dotnet_diagnostic.SA1602.severity = none
