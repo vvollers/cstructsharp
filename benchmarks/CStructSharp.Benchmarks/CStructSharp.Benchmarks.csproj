@@ -12,6 +12,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CStructSharp\CStructSharp.csproj" />
+    <!-- GeneratedBenchmarks: the fixture layouts as [CStructLayout] classes, generated at build time. -->
+    <ProjectReference Include="..\..\src\CStructSharp.Generators\CStructSharp.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <!-- Fixture loading (benchmarks/fixtures) is shared with the fixture tool so both read identical inputs. -->
     <ProjectReference Include="..\CStructSharp.FixtureTool\CStructSharp.FixtureTool.csproj" />
   </ItemGroup>
