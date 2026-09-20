@@ -18,7 +18,8 @@ steps are:
    Continue with [writing, updating, and a complete C# class](header-next-steps.md).
 3. [Read values and paths](reading-values.md) shows how to read either a whole object or one nested field;
    [typed values](typed-values.md) maps a layout to a C# class; [choose an API](choosing-an-api.md) compares
-   stream, span, memory, and output overloads.
+   stream, span, memory, and output overloads; [trimming and Native AOT](trimming-and-native-aot.md) covers a
+   trimmed or AOT-published application (two POCO conventions, and why `dynamic` is JIT-only).
 4. [Write and serialize values](writing-and-serialization.md) creates new binary data, and
    [update existing data](updating-existing-data.md) changes one field without rebuilding the surrounding object.
 

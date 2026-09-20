@@ -31,13 +31,13 @@ internal static partial class Program
             """;
         var layout = new CStruct(definition, pointerSize: 4, aligned: true);
         byte[] bytes = [0x4D, 0x5A, 0x00, 0x00, 0x02, 0x00, 0xFF, 0xFF, 0x0A, 0x00, 0x39, 0x30, 0xEE, 0xEE, 0xEE, 0xEE, 0x00, 0x00, 0x00, 0x00];
-        dynamic record = layout.Parse(bytes, "RECORD");
-        Equal(0x5A4DU, (uint)record.Magic);
-        Equal((ushort)2, (ushort)record.Version);
-        Equal((byte)10, (byte)record.Major);
-        Equal((ushort)12345, (ushort)record.Build);
-        Equal(0x3039000AU, (uint)record.Packed);
-        True(((IDictionary<string, object>)record).ContainsKey("_") == false, "padding is not a member");
+        StructValue record = layout.Parse(bytes, "RECORD");
+        Equal(0x5A4DU, record.Get<uint>("Magic"));
+        Equal((ushort)2, record.Get<ushort>("Version"));
+        Equal((byte)10, record.Get<byte>("Major"));
+        Equal((ushort)12345, record.Get<ushort>("Build"));
+        Equal(0x3039000AU, record.Get<uint>("Packed"));
+        True(!record.ContainsKey("_"), "padding is not a member");
 
         // The tag, the alias, and the pointer alias all name the same declaration; the promoted union writes
         // back through the member the data supplies and the padding as zeroes.
@@ -63,12 +63,12 @@ internal static partial class Program
             """;
         var layout = new CStruct(definition);
         byte[] bytes = [0x05, 0x01, 1, 10, 2, 20, 0, 0, 0x34, 0x12, 0x78, 0x56];
-        dynamic root = layout.Parse(bytes, "root");
-        var mode = (FlagValueResult)root.mode;
+        StructValue root = layout.Parse(bytes, "root");
+        FlagValueResult mode = root.Get<FlagValueResult>("mode");
         Equal("READ|EXEC|HIDDEN", string.Join("|", mode.Names));
         True(mode.Has("EXEC") && !mode.Has("WRITE"), "EXEC is set and WRITE is not");
-        Equal(2, ((IReadOnlyList<object?>)root.entries).Count);
-        Equal((ushort)0x5678, (ushort)root.trailer[1]);
+        Equal(2, root.Get<IReadOnlyList<object?>>("entries").Count);
+        Equal((ushort)0x5678, root.Get<ushort>("trailer[1]"));
 
         // Writing appends the terminator element and nothing after the read-to-end array; a flag accepts names.
         byte[] written = layout.Serialize(
@@ -107,10 +107,10 @@ internal static partial class Program
         Equal("CD001", narrow.Constants["MAGIC"].Value);
         Equal(BigInteger.One << 40, narrow.Constants["BLOCK_MASK"].Value);
         Equal(LayoutConstantKind.Integer, narrow.Constants["LEGACY_VERSION"].Kind);
-        dynamic aligned = narrow.Parse(new byte[] { 4, 0, 1, 2, 3, 4, 5 }, "root");
-        Equal(5, ((IReadOnlyList<object?>)aligned.payload).Count);
-        dynamic unaligned = narrow.Parse(new byte[] { 3, 0, 1 }, "root");
-        Equal(1, ((IReadOnlyList<object?>)unaligned.payload).Count);
+        StructValue aligned = narrow.Parse(new byte[] { 4, 0, 1, 2, 3, 4, 5 }, "root");
+        Equal(5, aligned.Get<byte[]>("payload").Length);
+        StructValue unaligned = narrow.Parse(new byte[] { 3, 0, 1 }, "root");
+        Equal(1, unaligned.Get<byte[]>("payload").Length);
 
         // The same source compiled with a -D style definition takes the other branch and is its own cache entry.
         var wide = CStruct.GetOrCompile(definition, compilationOptions: new CStructCompilationOptions { Defined = new HashSet<string> { "WIDE_COUNTS" } });
@@ -151,9 +151,9 @@ internal static partial class Program
             "struct entry { varint id; uint8 kind; }; struct root { varint count; entry items[count]; };",
             compilationOptions: new CStructCompilationOptions { Codecs = codecs });
         byte[] bytes = [2, 0x80, 0x01, 7, 0x05, 9];
-        dynamic root = layout.Parse(bytes, "root");
-        Equal(128UL, (ulong)root.items[0].id);
-        Equal((byte)9, (byte)root.items[1].kind);
+        StructValue root = layout.Parse(bytes, "root");
+        Equal(128UL, root.Get<ulong>("items[0].id"));
+        Equal((byte)9, root.Get<byte>("items[1].kind"));
         SequenceEqual(bytes, layout.Serialize("root", root));
         using var stream = new MemoryStream(bytes);
         Equal(4L, layout.ResolveAddress(stream, "root.items[1].id"));

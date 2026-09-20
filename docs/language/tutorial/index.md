@@ -12,7 +12,7 @@ You do not need assembly language, compiler implementation knowledge, or native-
 The lessons use exact byte arrays and C# examples from the documentation runner:
 
 1. [Your first fixed layout](01-first-layout.md) maps a six-byte header, explains little-endian order, and performs a
-   dynamic and typed read.
+   `StructValue` and typed read.
 2. [Composites and overlapping storage](02-composites-and-layout.md) adds an enum, a fixed text field, and a union.
 3. [Runtime data and safe traversal](03-runtime-data.md) supplies an array count, selects one element, follows a
    stored pointer, and sets resource limits.

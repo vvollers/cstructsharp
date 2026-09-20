@@ -39,7 +39,7 @@ the library API.
 - To learn in order, follow the [learning path](guides/learning-path.md): nine steps from what a layout is to the
   reference material, and the three examples to read first.
 - To read your first value, follow [Install and make a first parse](guides/install-and-first-parse.md).
-- To decide between a stream, a byte array, a typed C# object, or a dynamic result, see
+- To decide between a stream, a byte array, a typed C# object, or a `StructValue` result, see
   [Choose an API](guides/choosing-an-api.md).
 - To learn the C-like layout syntax, work through the [layout-language tutorial](language/tutorial/index.md).
 - To solve a specific task, browse the [library guides](guides/index.md) or

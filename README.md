@@ -60,7 +60,8 @@ length = 6
 ```
 
 The layout names the fields. The byte array supplies the data. The result is a `StructValue`: read a member typed
-with `header.Get<ushort>("kind")`, or declare it `dynamic` and write `header.kind`. The values:
+with `header.Get<ushort>("kind")`; `dynamic` field syntax (`header.kind`) also works on the JIT, at the cost of
+compile-time checking. The values:
 
 | Field | Byte offsets | Input bytes | Value |
 | --- | --- | --- | --- |
@@ -99,11 +100,11 @@ a browser to build protocol tools, file inspectors, and binary editors.
   [memory-analysis guide](https://vvollers.github.io/cstructsharp/docs/guides/memory-analysis.html) and the
   [runnable synthetic consumer](https://vvollers.github.io/cstructsharp/docs/examples/memory-analysis/index.html).
 
-Prepare a layout once and reuse it to read dynamic objects or C# classes, write new records, and update selected
-fields in existing data. The definition keeps the format's structure and byte-level rules together as your tools
-grow from a single header parser into a complete format explorer. The library is trim-safe and Native AOT
-compatible; see [typed values](https://vvollers.github.io/cstructsharp/docs/guides/typed-values.html#trimming-and-native-aot) for the one rule about
-nested classes.
+Prepare a layout once and reuse it to read `StructValue` results or C# classes, write new records, and update
+selected fields in existing data. The definition keeps the format's structure and byte-level rules together as your
+tools grow from a single header parser into a complete format explorer. The library is trim-safe and Native AOT
+compatible; see [trimming and Native AOT](https://vvollers.github.io/cstructsharp/docs/guides/trimming-and-native-aot.html)
+for the two conventions your own classes follow (and why `dynamic` stays on the JIT).
 
 Start with the [language tutorial](https://vvollers.github.io/cstructsharp/docs/language/tutorial/index.html),
 explore the [language reference](https://vvollers.github.io/cstructsharp/docs/language/index.html), or consult

@@ -81,9 +81,9 @@ internal static partial class Program
     {
         var layout = new CStruct("struct header { uint16 kind; uint32 length; };");
         ReadOnlySpan<byte> bytes = [0x02, 0x00, 0x06, 0x00, 0x00, 0x00];
-        dynamic header = layout.Parse(bytes, "header");
-        Equal((ushort)2, (ushort)header.kind);
-        Equal(6U, (uint)header.length);
+        StructValue header = layout.Parse(bytes, "header");
+        Equal((ushort)2, header.Get<ushort>("kind"));
+        Equal(6U, header.Get<uint>("length"));
 
         bool read = layout.TryReadValue<Header>(bytes, "header", out Header? typed);
         True(read && typed is { Kind: 2, Length: 6 }, "Typed header result differed.");
@@ -105,15 +105,15 @@ internal static partial class Program
             """;
         var layout = new CStruct(definition);
         byte[] bytes = [0x01, 0x41, 0x42, 0x00, 0x34, 0x12];
-        dynamic record = layout.Parse(bytes, "record");
+        StructValue record = layout.Parse(bytes, "record");
 
-        var type = (EnumValueResult)record.type;
+        EnumValueResult type = record.Get<EnumValueResult>("type");
         Equal("Text", type.Name);
-        Equal("AB\0", (string)record.label);
+        Equal("AB\0", record.Get<string>("label"));
 
-        var payload = (UnionValue)record.payload;
-        Equal((byte)0x34, (byte)payload.Members["small"]!);
-        Equal((ushort)0x1234, (ushort)payload.Members["large"]!);
+        UnionValue payload = record.Get<UnionValue>("payload");
+        Equal((byte)0x34, payload.Get<byte>("small"));
+        Equal((ushort)0x1234, payload.Get<ushort>("large"));
         SequenceEqual(bytes, layout.Serialize("record", record));
     }
     #endregion
@@ -124,9 +124,9 @@ internal static partial class Program
         var layout = new CStruct("struct packet { uint8 kind; uint8 payload[COUNT]; };");
         var variables = new Dictionary<string, int> { ["COUNT"] = 3 };
         byte[] bytes = [0x7F, 0x10, 0x20, 0x30];
-        dynamic packet = layout.Parse(bytes, "packet", variables);
-        Equal((byte)0x7F, (byte)packet.kind);
-        Equal(3, ((IList<object?>)packet.payload).Count);
+        StructValue packet = layout.Parse(bytes, "packet", variables);
+        Equal((byte)0x7F, packet.Get<byte>("kind"));
+        Equal(3, packet.Get<byte[]>("payload").Length);
         object? secondPayload = layout.ReadValue(bytes, "packet.payload[1]", variables);
         Equal((byte)0x20, (byte)secondPayload!);
 
@@ -152,8 +152,8 @@ internal static partial class Program
     {
         var layout = new CStruct("struct sample { uint8 tag; uint16 value; };");
         using var stream = new MemoryStream([0xA1, 0x34, 0x12]);
-        (dynamic result, IReadOnlyList<DebugData> ranges) = layout.ParseWithDebug(stream, "sample");
-        Equal((byte)0xA1, (byte)result.tag);
+        (StructValue result, IReadOnlyList<DebugData> ranges) = layout.ParseWithDebug(stream, "sample");
+        Equal((byte)0xA1, result.Get<byte>("tag"));
         True(ranges.Any(item => item.Start == 1 && item.End == 3), "Value range was not reported.");
 
         stream.Position = 0;
@@ -167,8 +167,8 @@ internal static partial class Program
     {
         var layout = new CStruct("struct root { uint8 *target; };", pointerSize: 1);
         using var stream = new MemoryStream([0x01, 0x2A]);
-        dynamic root = layout.Parse(stream, "root");
-        var pointer = (Pointer)root.target;
+        StructValue root = layout.Parse(stream, "root");
+        Pointer pointer = root.Get<Pointer>("target");
         Equal(1L, pointer.Address);
         True(pointer.IsDereferenced, "Pointer should be followed by default.");
         Equal((byte)0x2A, (byte)pointer.Value!);
@@ -205,8 +205,8 @@ internal static partial class Program
     private static void FixedText()
     {
         var layout = new CStruct("struct label { char text[4]; };");
-        dynamic value = layout.Parse(new byte[] { 0x41, 0x42, 0x43, 0x00 }, "label");
-        Equal("ABC\0", (string)value.text);
+        StructValue value = layout.Parse(new byte[] { 0x41, 0x42, 0x43, 0x00 }, "label");
+        Equal("ABC\0", value.Get<string>("text"));
         SequenceEqual(
             [0x58, 0x59, 0x00, 0x00],
             layout.Serialize("label", new Dictionary<string, object?> { ["text"] = "XY" }));

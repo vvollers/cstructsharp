@@ -23,7 +23,8 @@ reference to the input after the method returns.
 
 ```csharp
 ReadOnlySpan<byte> bytes = [0x02, 0x00, 0x06, 0x00, 0x00, 0x00];
-dynamic header = layout.Parse(bytes, "header");
+StructValue header = layout.Parse(bytes, "header");
+uint length = header.Get<uint>("length");
 ```
 
 The first-parse example compiles and executes this call. Because no stream object is created by your code, this is a

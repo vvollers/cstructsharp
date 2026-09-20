@@ -13,6 +13,8 @@ items:
   href: reading-values.md
 - name: Typed values
   href: typed-values.md
+- name: Trimming and Native AOT
+  href: trimming-and-native-aot.md
 - name: Choose an API
   href: choosing-an-api.md
 - name: Writing and serialization

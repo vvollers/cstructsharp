@@ -64,9 +64,9 @@ internal static partial class Program
     {
         var layout = new CStruct("struct flags { uint8 enabled : 1; uint8 mode : 3; uint8 reserved : 4; };");
         byte[] bytes = [0x0B];
-        dynamic flags = layout.Parse(bytes.AsSpan(), "flags");
-        Equal(1, Convert.ToInt32(flags.enabled));
-        Equal(5, Convert.ToInt32(flags.mode));
+        StructValue flags = layout.Parse(bytes.AsSpan(), "flags");
+        Equal(1, flags.Get<int>("enabled"));
+        Equal(5, flags.Get<int>("mode"));
         SequenceEqual(bytes, layout.Serialize("flags", flags));
     }
     #endregion
@@ -76,8 +76,8 @@ internal static partial class Program
     {
         var layout = new CStruct("struct label { char text[]; };");
         byte[] bytes = [0x41, 0x42, 0];
-        dynamic label = layout.Parse(bytes.AsSpan(), "label");
-        Equal("AB", (string)label.text);
+        StructValue label = layout.Parse(bytes.AsSpan(), "label");
+        Equal("AB", label.Get<string>("text"));
         SequenceEqual(bytes, layout.Serialize("label", label));
     }
     #endregion
@@ -98,8 +98,8 @@ internal static partial class Program
         var layout = new CStruct("struct header { uint16 kind; uint32 length; };");
         byte[] bytes = [2, 0, 6, 0, 0, 0];
         Throws<CStructReadLimitException>(() => layout.Parse(bytes.AsSpan(), "header", options: new ReadOptions { MaxTotalBytesRead = 3 }));
-        dynamic header = layout.Parse(bytes.AsSpan(), "header", options: new ReadOptions { MaxTotalBytesRead = 6 });
-        Equal(6U, (uint)header.length);
+        StructValue header = layout.Parse(bytes.AsSpan(), "header", options: new ReadOptions { MaxTotalBytesRead = 6 });
+        Equal(6U, header.Get<uint>("length"));
     }
     #endregion
 
@@ -110,14 +110,14 @@ internal static partial class Program
         byte[] bytes = [0xEE, 1, 42];
         using var stream = new MemoryStream(bytes);
         stream.Position = 1;
-        dynamic root = layout.Parse(stream, "root", options: new ReadOptions
+        StructValue root = layout.Parse(stream, "root", options: new ReadOptions
         {
             AddressingMode = PointerAddressingMode.Relative,
             Origin = 1,
             MaxPointerDepth = 1,
             MaxPointerTargetBytes = 1,
         });
-        var pointer = (Pointer)root.target;
+        Pointer pointer = root.Get<Pointer>("target");
         Equal(1L, pointer.Address);
         Equal((byte)42, (byte)pointer.Value!);
     }
@@ -131,8 +131,8 @@ internal static partial class Program
         stream.Position = 2;
         Equal(4L, layout.ResolveAddress(stream, "header.length"));
         Equal(2L, stream.Position);
-        dynamic header = layout.Parse(stream, "header");
-        Equal(6U, (uint)header.length);
+        StructValue header = layout.Parse(stream, "header");
+        Equal(6U, header.Get<uint>("length"));
     }
     #endregion
 

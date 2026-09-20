@@ -47,11 +47,11 @@ padding bytes after `kind`, and the struct would occupy eight bytes.
 
 The documentation runner compiles and executes this complete scenario:
 
-[!code-csharp[Read the header dynamically and as a C# class](../../examples/Program.cs#api-reference-cstruct)]
+[!code-csharp[Read the header as a StructValue and as a C# class](../../examples/Program.cs#api-reference-cstruct)]
 
-`new CStruct(...)` reads and prepares the layout once. `Parse(bytes, "header")` returns a dynamic object whose field
-names come from the layout. `TryReadValue<Header>` maps the same bytes to a C# class and returns `false` for the
-deliberately truncated one-byte input.
+`new CStruct(...)` reads and prepares the layout once. `Parse(bytes, "header")` returns a `StructValue` whose member
+names come from the layout; `Get<ushort>("kind")` reads one member with a checked conversion. `TryReadValue<Header>`
+maps the same bytes to a C# class and returns `false` for the deliberately truncated one-byte input.
 
 Expected results:
 

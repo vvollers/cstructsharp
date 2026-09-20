@@ -35,20 +35,49 @@ fit throws `CStructReadException`, and a name that does not exist throws `CStruc
 that do. The path form reaches nested values - `packet.Get<byte>("items[2].tag")`, `node.Get<uint>("next.value.id")`
 through a dereferenced pointer - and `TryGet<T>` returns `false` instead of throwing.
 
-The same object also works as `dynamic` (`header.kind`), as an `IDictionary<string, object?>` (`header["kind"]`),
-and by enumeration in declaration order. With `dynamic`, the C# compiler cannot catch a misspelling such as
-`header.lenght`; that error appears at runtime. Dynamic results are useful for exploratory tools and layouts that are
-not known when the application is compiled.
+The same object is also an `IDictionary<string, object?>` (`header["kind"]`, `header.ContainsKey("kind")`,
+enumeration in declaration order) and supports `dynamic` member access - see [Dynamic access](#dynamic-access)
+below for what that trades away.
 
 A stream works the same way. Reading starts at the stream's current position and a successful read advances past
 the selected data:
 
 ```csharp
 using var stream = new MemoryStream(bytes);
-dynamic header = layout.Parse(stream, "header");
+StructValue header = layout.Parse(stream, "header");
 ```
 
 The stream must be readable and seekable. Keep ownership of the stream; CStructSharp does not close it.
+
+## Dynamic access
+
+A `StructValue` (and a `UnionValue`) can be declared `dynamic`, and then `header.kind` reads the member by name:
+
+```csharp
+dynamic header = layout.Parse(bytes, "header");
+uint length = header.length;   // bound at run time; header.length is a uint
+```
+
+This is a convenience for exploratory tools, scripts, and layouts that are not known when the program is compiled.
+It is not the recommended style for application code, because everything the compiler would normally check moves
+to run time:
+
+- A misspelled or renamed member (`header.lenght`) compiles and fails when it runs, with the C# runtime binder's
+  `RuntimeBinderException` rather than a `CStructPathException` that lists the members the struct has.
+- Values keep their storage type: `header.length` is a `uint`, so `int total = header.length` throws at run time
+  instead of converting, and any arithmetic on a `dynamic` operand makes the whole expression `dynamic`.
+  `Get<int>("length")` performs the checked conversion instead.
+- A property read is resolved against the layout's members first, so a field named like a `StructValue` property
+  (`Count`, `Keys`) shadows it; methods such as `Get<T>` still bind normally. A nested path is a chain of run-time
+  binds (`root.items[2].tag`) where `Get<T>("items[2].tag")` is one call.
+- No IntelliSense, rename refactoring, or analyzer help; each call site pays the runtime binder's first-call cost,
+  which is far above a dictionary lookup in a loop over many records; and the binder (`Microsoft.CSharp`) is
+  linked into the program.
+
+- `dynamic` is JIT-only: the C# runtime binder behind it generates code at run time, so a trimmed or Native AOT
+  publish reports `IL2026`/`IL3050` for every `dynamic` operation and the program fails in the binder if they are
+  suppressed. `Get<T>`, dictionary indexing, and `ReadValue<T>` work everywhere; see
+  [Trimming and Native AOT](trimming-and-native-aot.md#dynamic-access-is-jit-only).
 
 ## Read one selected value
 

@@ -9,7 +9,7 @@ CStructSharp offers several entry points because binary data arrives in differen
 different results. Make the choice in three parts:
 
 1. Is the input in memory or in a stream?
-2. Do you want a whole dynamic object, one selected value, or a C# type?
+2. Do you want a whole `StructValue`, one selected value, or a C# type?
 3. Are you creating new bytes, writing to a destination, or changing bytes that already exist?
 
 Start with the simplest method that matches the job. A `byte[]` result is often easier to use than a custom buffer
@@ -91,7 +91,7 @@ For a large file:
 
 ## Common mistakes
 
-- Calling `Parse` for a scalar path and expecting every operation to return the same dynamic wrapper. Use
+- Calling `Parse` for a scalar path and expecting every operation to return the same `StructValue` wrapper. Use
   `ReadValue` for one scalar.
 - Omitting the root name in a layout with helper declarations. Pass the case-sensitive root explicitly.
 - Sharing one stream between concurrent calls. The compiled layout is reusable; the stream is mutable and needs

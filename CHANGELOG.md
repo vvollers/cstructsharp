@@ -6,6 +6,14 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+- Documentation: every C# example, recipe, and guide snippet reads results as `StructValue` with `Get<T>` instead
+  of `dynamic`; [Read values and paths](docs/guides/reading-values.md) gained a "Dynamic access" section that
+  states what `dynamic` trades away, and a new guide, [Trimming and Native AOT](docs/guides/trimming-and-native-aot.md),
+  covers a trimmed or AOT publish end to end: the package's claims per target, the two POCO conventions
+  (`[DynamicallyAccessedMembers]` on nested mapped classes, `List<T>`/`T[]` instead of collection interfaces) with
+  the messages a missed convention produces, and the fact that `dynamic` is JIT-only (the C# runtime binder needs
+  runtime code generation - `IL2026`/`IL3050` at publish, a binder failure if suppressed). The README and the
+  typed-values guide link to it.
 - The release workflow's npm publication check polls the registry (every 10 s, up to five minutes) instead of
   looking once: npm now processes an upload asynchronously, and the 0.6.0 release needed a recovery run because
   the version became visible about a minute after the publish.

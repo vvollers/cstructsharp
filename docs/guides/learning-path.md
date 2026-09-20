@@ -16,7 +16,7 @@ already answered for you.
    into a class, and what a short input does.
 4. **Read.** [Read values and paths](reading-values.md), then [typed values](typed-values.md) when application
    code wants a C# class or a checked scalar; [choose an API](choosing-an-api.md) when the input is a stream,
-   a span, or memory.
+   a span, or memory; [trimming and Native AOT](trimming-and-native-aot.md) before a trimmed or AOT publish.
 5. **Modify and write.** [Write and serialize values](writing-and-serialization.md) and
    [update existing data](updating-existing-data.md).
 6. **Layout features.** [Strings](strings-and-encodings.md), [enums](enums.md), [unions](unions.md),

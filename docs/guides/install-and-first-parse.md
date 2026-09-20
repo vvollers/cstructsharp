@@ -49,8 +49,8 @@ length = 6
 `new CStruct(...)` prepares the layout. Reuse that object when reading more data with the same format.
 `bytes` is the input; `header` is the resulting `StructValue`. The string `"header"` selects the declaration to
 read; names are case-sensitive, so `"Header"` is a different name. `header.Get<ushort>("kind")` reads one member
-with a checked conversion to the C# type you name. If you prefer field syntax, declare the result `dynamic` and
-write `header.kind`; the same object supports both.
+with a checked conversion to the C# type you name. The same object also supports `dynamic` field syntax
+(`header.kind`); [Read values and paths](reading-values.md#dynamic-access) explains what that trades away.
 
 | Field | Offset | Width | Bytes | Value |
 | --- | --- | --- | --- | --- |

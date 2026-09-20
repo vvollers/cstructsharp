@@ -2,6 +2,7 @@ namespace CStructSharp.Docs.Examples;
 
 using global::CStructSharp;
 using global::CStructSharp.Diagnostics;
+using global::CStructSharp.Values;
 
 internal static partial class Program
 {
@@ -28,12 +29,12 @@ internal static partial class Program
         var value = new { currency = "€", western = "é", dos = "é", little = "😀", big = "😀", tail = 99 };
         byte[] bytes = layout.Serialize("root", value);
         SequenceEqual(Convert.FromHexString("E282ACE9823DD800DED83DDE0063"), bytes);
-        dynamic parsed = layout.Parse(bytes, "root");
-        Equal("€", (string)parsed.currency);
-        Equal("é", (string)parsed.dos);
-        Equal("😀", (string)parsed.little);
-        Equal("😀", (string)parsed.big);
-        Equal((byte)99, (byte)parsed.tail);
+        StructValue parsed = layout.Parse(bytes, "root");
+        Equal("€", parsed.Get<string>("currency"));
+        Equal("é", parsed.Get<string>("dos"));
+        Equal("😀", parsed.Get<string>("little"));
+        Equal("😀", parsed.Get<string>("big"));
+        Equal((byte)99, parsed.Get<byte>("tail"));
         SequenceEqual(bytes, layout.Serialize("root", parsed));
         Throws<CStructWriteException>(() => layout.Serialize("root.currency", "€!"));
     }
@@ -101,9 +102,9 @@ internal static partial class Program
             """;
         var layout = new CStruct(definition, aligned: false);
         byte[] bytes = [2, 1, 226, 130, 172, 7, 2, 42, 0, 0];
-        dynamic parsed = layout.Parse(bytes, "root");
-        Equal("€", (string)parsed.items[0].label);
-        Equal(42U, (uint)parsed.items[1].number);
+        StructValue parsed = layout.Parse(bytes, "root");
+        Equal("€", parsed.Get<string>("items[0].label"));
+        Equal(42U, parsed.Get<uint>("items[1].number"));
         SequenceEqual(bytes, layout.Serialize("root", parsed));
         using var stream = new MemoryStream(bytes);
         Equal(7L, layout.ResolveAddress(stream, "root.items[1].number"));
@@ -114,10 +115,10 @@ internal static partial class Program
         const string decisions = "struct entry { uint8 tag; int8 some_parameter; if (some_parameter * 20 > 10) { uint8 high; } else { uint8 low; } switch (tag) { case 1: { uint8 first; } case 2: { uint8 second; } default: { uint8 other; } } }; struct root { entry items[3]; };";
         var decisionLayout = new CStruct(decisions, aligned: false);
         byte[] items = [1, 0, 10, 11, 2, 1, 20, 21, 3, 255, 30, 31];
-        dynamic selected = decisionLayout.Parse(items, "root");
-        Equal((byte)10, (byte)selected.items[0].low);
-        Equal((byte)21, (byte)selected.items[1].second);
-        Equal((byte)31, (byte)selected.items[2].other);
+        StructValue selected = decisionLayout.Parse(items, "root");
+        Equal((byte)10, selected.Get<byte>("items[0].low"));
+        Equal((byte)21, selected.Get<byte>("items[1].second"));
+        Equal((byte)31, selected.Get<byte>("items[2].other"));
         SequenceEqual(items, decisionLayout.Serialize("root", selected));
         items[0] = 2;
         Equal((byte)11, decisionLayout.Parse(items, "root").Get<byte>("items[0].second"));
@@ -132,8 +133,8 @@ internal static partial class Program
         var scopedLayout = new CStruct(scope, aligned: false);
         Throws<CStructReadException>(() => scopedLayout.Parse(scopedBytes, "root", variables: variables));
         var guarded = new CStruct(scope.Replace("if (count > 0)", "if (tag != 0 && count > 0)"), aligned: false);
-        dynamic scoped = guarded.Parse(scopedBytes, "root", variables: variables);
-        Equal(1, ((IDictionary<string, object>)scoped.items[1]).Count);
+        StructValue scoped = guarded.Parse(scopedBytes, "root", variables: variables);
+        Equal(1, scoped.Get<StructValue>("items[1]").Count);
         SequenceEqual(scopedBytes, guarded.Serialize("root", scoped, variables: variables));
 
         // Inactive nested expressions are skipped, but become errors when reached.
