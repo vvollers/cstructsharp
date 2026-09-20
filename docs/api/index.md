@@ -34,7 +34,7 @@ The namespaces group the public surface by role:
 
 | Namespace | Contents |
 | --- | --- |
-| `CStructSharp` | `CStruct` and the option types on its methods |
+| `CStructSharp` | `CStruct` and the option types on its methods; `CStructLayoutAttribute`/`CStructMappedAttribute` for the source generator, `ICStructMapped<T>` and `ICStructGenerated<T>` that mapped and generated classes implement, and `MappedTypes` |
 | `CStructSharp.Values` | What reads return and writes accept: `StructValue`, `UnionValue`, `EnumValueResult`, `FlagValueResult`, `Pointer`, `PrimitiveArray<T>` |
 | `CStructSharp.Introspection` | `LayoutInfo` and the records that describe a compiled layout's declarations, fields, and constants |
 | `CStructSharp.Diagnostics` | The exception family, `CStructErrorCode`, and `DebugData` |

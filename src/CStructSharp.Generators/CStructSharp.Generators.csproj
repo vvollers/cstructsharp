@@ -23,6 +23,10 @@
     <PackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- The compile-time core: the same sources CStructSharp.dll compiles (see src/CStructSharp.Core/README.md). -->
     <Compile Include="..\CStructSharp.Core\**\*.cs" LinkBase="Core" />
   </ItemGroup>

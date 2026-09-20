@@ -24,6 +24,13 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Added
 
+- The `CStructSharp.Generators` source generator (shipped inside the package from 0.7.0): `[CStructLayout]` on a
+  `static partial` class compiles the layout at build time with the same compiler the runtime uses and emits the
+  layout's types and operations as C#; the runtime gains `CStructLayoutAttribute`, `CStructMappedAttribute`,
+  `CStructMemberAttribute`, and `ICStructGenerated<TSelf>`. Diagnostics CSG001-CSG005 and CSG010 report a layout
+  that does not compile (located inside a raw string literal at the runtime's line and column), a missing
+  `.cstruct` additional file, a name collision after PascalCase conversion, an unknown `Root`, a class that is not
+  `static partial`, and a C# language version below 12.
 - `CStructSharp.Generated`, the runtime support the `[CStructLayout]` generator's output calls (an advanced
   surface; application code keeps using `CStruct` or a generated layout class): `Codec` - every byte-level rule
   as a span function (fixed-width integers in both byte orders, the 24- and 48-bit integers with their range

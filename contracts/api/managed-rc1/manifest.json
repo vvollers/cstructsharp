@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 22,
+  "baselineRevision": 23,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.6.0",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 73,
+  "exportedTypes": 77,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 842,
-    "normalizedSha256": "E3EBE17EF63B17498253BADE191C9E620160E3D4084D5E23C218E8CEFC88CC7E"
+    "lines": 880,
+    "normalizedSha256": "BDC51B590CC09CF07D90D228C5C00682698710E30F9947F0BC20F720E6AD9534"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "B06BD7E003EC69049484C7AA79C6DC4C27916325F3B06E5500C0432D4D1B0B41",
+      "normalizedSha256": "E996DBBF784A5F61FBDCC7BE7F3AAE2EBA7D7C54272269283EC9BAE14A87D707",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "07CFE99F00E1DC62DE0844E0FD83C7BB79FE05B364C39BFF08E3148207D181C6",
+      "normalizedSha256": "E3AC6F7EF388A34E288E7AE5FA94C73C24A8F89ACA4F668B26EE1F37D7CA38E4",
       "aotCompatible": true
     }
   ],
@@ -231,6 +231,15 @@
       "combinedSha256": "BE86561BD57C89CB2003CF1948181CD9BE2EC10D8EBD0A1EC1A363C97D56C5B3",
       "rationale": "CStructSharp.Generated cursors (added in the previous commit, unreleased) take the innermost field name and type spelling instead of a member path, carry the operation path from construction, and gain FailExpression/FailUnwritable so generated code reports the runtime's exact context; Expressions.RequireInt32 raises the evaluator's InvalidOperationException.",
       "releaseImpact": "Only the unreleased CStructSharp.Generated surface changes."
+    },
+    {
+      "revision": 23,
+      "kind": "additive",
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "861947875F69C7FAC6078110CAD1BA1519714548B170B5DB60BE3E5C97D32EA3",
+      "rationale": "CStructLayoutAttribute, CStructMappedAttribute, CStructMemberAttribute, and ICStructGenerated<TSelf>: the attributes the source generator recognizes and the interface generated root classes implement.",
+      "releaseImpact": "Additive."
     }
   ]
 }

@@ -89,6 +89,44 @@ namespace CStructSharp
         public int MaxLayoutNestingDepth { get; init; }
         public string? Prelude { get; init; }
     }
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
+    public sealed class CStructLayoutAttribute : System.Attribute
+    {
+        public CStructLayoutAttribute() { }
+        public CStructLayoutAttribute(string definition) { }
+        public bool Aligned { get; set; }
+        public CStructSharp.BitfieldAllocation BitfieldAllocation { get; set; }
+        public CStructSharp.BitfieldPacking BitfieldPacking { get; set; }
+        public int CLongWidth { get; set; }
+        public string[]? Defined { get; set; }
+        public string? Definition { get; }
+        public string? File { get; set; }
+        public bool KeepNames { get; set; }
+        public bool LittleEndian { get; set; }
+        public int PointerSize { get; set; }
+        public string? Root { get; set; }
+        public bool Views { get; set; }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Struct, AllowMultiple=false, Inherited=false)]
+    public sealed class CStructMappedAttribute : System.Attribute
+    {
+        public CStructMappedAttribute() { }
+        public string? Layout { get; set; }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Property | System.AttributeTargets.Field, AllowMultiple=false, Inherited=false)]
+    public sealed class CStructMemberAttribute : System.Attribute
+    {
+        public CStructMemberAttribute(string name) { }
+        public string Name { get; }
+    }
+    public interface ICStructGenerated<TSelf>
+        where TSelf : CStructSharp.ICStructGenerated<TSelf>
+    {
+        CStructSharp.CStruct Layout { get; }
+        string RootName { get; }
+        TSelf Parse(System.ReadOnlySpan<byte> source, CStructSharp.ReadOptions? options = null);
+        int Serialize(TSelf value, System.Span<byte> destination, CStructSharp.WriteOptions? options = null);
+    }
     public interface ICStructMapped<TSelf>
         where TSelf : CStructSharp.ICStructMapped<TSelf>
     {
