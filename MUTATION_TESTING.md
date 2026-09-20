@@ -76,6 +76,15 @@ timeout 90m dotnet stryker \
   --skip-version-check
 ```
 
+`<start-commit>` must be a full SHA (or a branch or tag name): Stryker resolves it with LibGit2Sharp, which does not
+expand an abbreviated SHA ("No branch or tag or commit found with given target"). Stryker still generates every
+mutant of the project first and reports the ones outside the diff and the allowlist as "Removed by mutate filter";
+the count on the "total mutants will be tested" line is what the run will take (the full 2025 run managed about
+18 mutants a minute; a 1,029-mutant `--since` run in September 2026 did not finish in 90 minutes at the default
+concurrency, so budget for 10 a minute and pass `--concurrency <cores>` on a machine with spare cores). `--mutate
+<glob>` on the command line narrows the allowlist further when that count is too large for the time available -
+the mutants of the files named this way, inside the diff, are the run.
+
 The `timeout` keeps an interactive run bounded; a run that is cut off has no report, so scope it down (a smaller
 `--since` range, or `--mutate` for a few files) rather than reading a partial one. The allowlist names the shared
 compile-time sources by their folder (`**/CStructSharp.Core/...`): they are compiled into `src/CStructSharp` as

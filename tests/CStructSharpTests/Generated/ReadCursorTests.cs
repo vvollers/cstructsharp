@@ -165,6 +165,42 @@ public class ReadCursorTests
         Assert.IsNull(defaults.Path);
     }
 
+    /// <summary>The inclusive boundaries of <c>Take</c>, <c>Peek</c>, the byte budget, and the string limit, and the shape of the failures the cursor builds.</summary>
+    [TestMethod]
+    public void Boundaries_AreInclusiveAndFailuresCarryTheirCauseAndMember()
+    {
+        byte[] bytes = [1, 2, 3, 4];
+        var cursor = new ReadCursor(bytes, new ReadOptions { MaxTotalBytesRead = 4, MaxStringBytes = 3, }, "root");
+        Assert.AreEqual(0, cursor.Take(0, "a", "uint8").Length, "a zero-length take is allowed and charges nothing");
+        Assert.AreEqual(4, cursor.Peek(4, "a", "uint8").Length, "peeking exactly the remaining bytes is allowed");
+        Assert.AreEqual(0, cursor.Peek(0, "a", "uint8").Length);
+        Assert.Throws<CStructReadException>(() => new ReadCursor(bytes).Peek(-1, "a", "uint8"));
+        CStructReadException peekPast = Assert.Throws<CStructReadException>(() => new ReadCursor(bytes).Peek(5, "a", "uint8"));
+        StringAssert.StartsWith(peekPast.Message, "Not enough bytes: needed 5, available 4");
+        Assert.Throws<CStructReadException>(() => new ReadCursor(bytes).Take(-1, "a", "uint8"));
+        Assert.AreEqual(4, cursor.Take(4, "a", "uint8").Length, "a take that reaches the byte budget exactly is allowed");
+        Assert.Throws<CStructReadLimitException>(() =>
+        {
+            var over = new ReadCursor(new byte[8], new ReadOptions { MaxTotalBytesRead = 4, });
+            over.Take(4, "a", "uint8");
+            over.Take(1, "b", "uint8");
+        });
+        cursor.RequireTerminatedStringBytes(3, "s", "cstring");
+        Assert.Throws<CStructReadLimitException>(() => new ReadCursor(bytes, new ReadOptions { MaxStringBytes = 3, }).RequireTerminatedStringBytes(4, "s", "cstring"));
+
+        var inner = new InvalidOperationException("why");
+        CStructReadException withCause = cursor.Fail("text", "m", "uint8", inner);
+        Assert.AreSame(inner, withCause.InnerException);
+        Assert.AreEqual("m", withCause.Member);
+        Assert.IsNull(cursor.Fail("text", "m", "uint8", null).InnerException);
+        Assert.IsNull(cursor.Fail("text", "m", "uint8").InnerException);
+        CStructLayoutException layoutFailure = cursor.FailLayout("bad", "m", "uint8");
+        Assert.AreEqual("m", layoutFailure.Member);
+        Assert.AreEqual("uint8", layoutFailure.MemberType);
+        Assert.Throws<ArgumentNullException>(() => new ReadCursor(bytes).FailExpression(null!, "array length", "m", "uint8"));
+        Assert.Throws<ArgumentNullException>(() => new ReadCursor(bytes).Complete(null!));
+    }
+
     /// <summary><c>Align</c> pads from the composite origin, not from the cursor's absolute position.</summary>
     [TestMethod]
     public void Align_PadsFromTheOrigin()
@@ -177,6 +213,10 @@ public class ReadCursorTests
         Assert.AreEqual(4, cursor.Position);
         cursor.Align(8, 2, "c", "uint64");
         Assert.AreEqual(10, cursor.Position);
+        cursor.Align(1, 0, "d", "uint8");
+        Assert.AreEqual(10, cursor.Position, "alignment 1 never pads");
+        cursor.Align(0, 0, "d", "uint8");
+        Assert.AreEqual(10, cursor.Position, "a packed field (alignment 0) never pads");
         Assert.Throws<CStructReadException>(() =>
         {
             var short1 = new ReadCursor(new byte[3]) { Position = 3, };

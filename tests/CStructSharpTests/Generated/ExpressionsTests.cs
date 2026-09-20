@@ -64,6 +64,15 @@ public class ExpressionsTests
         InvalidOperationException masked = Assert.Throws<InvalidOperationException>(() => Expressions.ShiftLeft(1, 32));
         Assert.AreEqual("Expression shift count must be between 0 and 31.", masked.Message);
         Assert.Throws<InvalidOperationException>(() => Expressions.ShiftRight(1, -1));
+        Assert.AreEqual("Arithmetic operation resulted in an overflow.", Assert.Throws<OverflowException>(() => Expressions.Overflow()).Message, "a wide layout constant selected by an expression fails as checked arithmetic does");
+        Assert.AreEqual("Undefined expression identifier: n", Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => Expressions.Undefined("n")).Message);
+
+        var variables = new System.Collections.Generic.Dictionary<string, int> { ["N"] = 7, };
+        Assert.IsTrue(Expressions.TryVariable(variables, "N", out int supplied));
+        Assert.AreEqual(7, supplied);
+        Assert.IsFalse(Expressions.TryVariable(variables, "M", out int missing));
+        Assert.AreEqual(0, missing);
+        Assert.IsFalse(Expressions.TryVariable(null, "N", out _));
 
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(64, 10_000));
         Assert.Throws<OverflowException>(() => evaluator.Evaluate(LayoutParser.ParseExpression("2147483647 + 1")));
@@ -76,6 +85,7 @@ public class ExpressionsTests
     {
         Assert.AreEqual(5, Expressions.RequireInt32(5L, "count"));
         Assert.AreEqual(int.MaxValue, Expressions.RequireInt32((ulong)int.MaxValue, "count"));
+        Assert.AreEqual(int.MinValue, Expressions.RequireInt32((long)int.MinValue, "count"), "the range is inclusive at both ends");
         InvalidOperationException wide = Assert.Throws<InvalidOperationException>(() => Expressions.RequireInt32(2147483648L, "count"));
         Assert.AreEqual("'count' is 2147483648, which is outside the 32-bit range that layout expressions support.", wide.Message);
         Assert.Throws<InvalidOperationException>(() => Expressions.RequireInt32(ulong.MaxValue, "count"));

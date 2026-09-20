@@ -149,6 +149,52 @@ public class WriteCursorTests
 
     private static string WithoutOffset(string message) => System.Text.RegularExpressions.Regex.Replace(message, @", offset \d+", string.Empty);
 
+    /// <summary>The inclusive boundaries of <c>Reserve</c> and the string limit, the option validation of the constructor, and the member and cause a failure carries.</summary>
+    [TestMethod]
+    public void Boundaries_AreInclusiveAndFailuresCarryTheirCauseAndMember()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new WriteCursor(new byte[4], new WriteOptions { MaxArrayElements = -1, }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new WriteCursor(new WriteOptions { MaxNestingDepth = 0, }, "root"));
+
+        var cursor = new WriteCursor(new byte[4], new WriteOptions { MaxTotalBytesWritten = 4, MaxStringBytes = 3, }, "root");
+        Assert.AreEqual(0, cursor.Reserve(0, "a", "uint8").Length, "a zero-length reservation is allowed");
+        Assert.AreEqual(4, cursor.Reserve(4, "a", "uint8").Length, "reaching the byte budget exactly is allowed");
+        Assert.AreEqual(4, cursor.Length);
+        cursor.Position = 2;
+        cursor.Reserve(1, "a", "uint8");
+        Assert.AreEqual(4, cursor.Length, "writing inside the written extent does not shorten it");
+        Assert.Throws<CStructWriteLimitException>(() =>
+        {
+            var over = new WriteCursor(new byte[8], new WriteOptions { MaxTotalBytesWritten = 4, });
+            over.Reserve(4, "a", "uint8");
+            over.Reserve(1, "b", "uint8");
+        });
+        Assert.Throws<CStructWriteLimitException>(() => new WriteCursor(new byte[8]).Reserve(-1, "a", "uint8"));
+        cursor.RequireStringBytes(0, "s", "cstring");
+        cursor.RequireStringBytes(3, "s", "cstring");
+        Assert.Throws<CStructWriteLimitException>(() => new WriteCursor(new byte[4], new WriteOptions { MaxStringBytes = 3, }).RequireStringBytes(4, "s", "cstring"));
+        Assert.Throws<CStructWriteLimitException>(() => new WriteCursor(new byte[4]).RequireStringBytes(-1, "s", "cstring"));
+
+        var inner = new FormatException("why");
+        CStructWriteException withCause = cursor.FailUnwritable(300, "uint8", "0 to 255", "m", inner);
+        Assert.AreSame(inner, withCause.InnerException);
+        Assert.AreEqual("m", withCause.Member);
+        Assert.AreEqual("uint8", withCause.MemberType);
+        Assert.AreEqual("root", withCause.Path);
+        Assert.IsNull(cursor.FailUnwritable(300, "uint8", "0 to 255", "m").InnerException);
+        Assert.Throws<ArgumentNullException>(() => new WriteCursor(new byte[4]).FailUnwritable(1, null!, null, "m"));
+
+        var arithmetic = new DivideByZeroException();
+        var expression = (CStructWriteException)cursor.FailExpression(arithmetic, "array length for items", "items", "uint8");
+        Assert.AreEqual("items", expression.Member);
+        Assert.AreEqual("root", expression.Path);
+        Assert.AreSame(arithmetic, expression.InnerException);
+        var unrelated = new InvalidCastException();
+        Assert.AreSame(unrelated, cursor.FailExpression(unrelated, "array length", "items", "uint8"), "a non-expression failure passes through untouched");
+        Assert.Throws<ArgumentNullException>(() => new WriteCursor(new byte[4]).FailExpression(null!, "array length", "m", "uint8"));
+        Assert.Throws<ArgumentNullException>(() => new WriteCursor(new byte[4]).Complete(null!));
+    }
+
     /// <summary><c>Align</c> writes zero bytes up to the next aligned position.</summary>
     [TestMethod]
     public void Align_PadsWithZeroes()
@@ -160,9 +206,15 @@ public class WriteCursorTests
         cursor.Align(4, 0, "b", "uint32");
         Assert.AreEqual(4, cursor.Position);
         cursor.Align(4, 0, "b", "uint32");
+        Assert.AreEqual(4, cursor.Position, "already aligned: nothing written");
+        cursor.Align(1, 0, "b", "uint8");
+        cursor.Align(0, 0, "b", "uint8");
+        Assert.AreEqual(4, cursor.Position, "alignment 1 or a packed field never pads");
+        cursor.Align(4, 2, "b", "uint32");
+        Assert.AreEqual(6, cursor.Position, "alignment is measured from the composite origin (2), not from offset 0");
         cursor.Position = 2;
-        Assert.AreEqual(4, cursor.Length);
-        CollectionAssert.AreEqual(new byte[] { 1, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF }, destination);
+        Assert.AreEqual(6, cursor.Length);
+        CollectionAssert.AreEqual(new byte[] { 1, 0, 0, 0, 0, 0, 0xFF, 0xFF }, destination);
 
         // The position stays within what was written; Seek pads forward with zeros, and a cursor over existing
         // bytes (an update) may move anywhere inside them.
