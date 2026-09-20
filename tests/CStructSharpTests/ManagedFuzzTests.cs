@@ -24,9 +24,9 @@ public class ManagedFuzzTests
         Assert.AreEqual(128, corpus.IterationsPerTarget);
         Assert.AreEqual(256, corpus.MaxInputBytes);
         CollectionAssert.AreEquivalent(
-            new[] { "binary-roundtrip", "definition", "expression", "path", "pointer-union", },
+            new[] { "binary-roundtrip", "definition", "expression", "generated-differential", "path", "pointer-union", },
             corpus.Targets.Select(target => target.Id).ToArray());
-        Assert.AreEqual(20, corpus.Targets.Sum(target => target.Seeds.Length));
+        Assert.AreEqual(24, corpus.Targets.Sum(target => target.Seeds.Length));
         Assert.IsTrue(corpus.Targets.All(target => target.Seeds.Length >= 4));
         Assert.IsTrue(corpus.Limits.MaxArrayElements <= 256);
         Assert.IsTrue(corpus.Limits.MaxTotalBytesRead <= 4096);
@@ -40,7 +40,9 @@ public class ManagedFuzzTests
     ///     Success counts, documented-failure counts, and digests must match the saved expectations for every target.
     ///     Stable results make unexpected behavior changes visible and let the same cases be reproduced across
     ///     supported .NET targets. The expression target was re-frozen for the dissect-parity operators (<c>%</c>,
-    ///     <c>^</c>, <c>?:</c>): one mutated expression that used to be a syntax error now evaluates.
+    ///     <c>^</c>, <c>?:</c>): one mutated expression that used to be a syntax error now evaluates. The
+    ///     generated-differential target (the generated readers and writers against the runtime) has no documented
+    ///     failures by construction: every input must produce the same outcome on both paths.
     /// </remarks>
     [TestMethod]
     public void ReviewedRun_MatchesTheFrozenReplayManifest()
@@ -60,6 +62,10 @@ public class ManagedFuzzTests
                 5,
                 127,
                 "048AB5601B50C06A5EEE44A4656A7502350FC64FFDDB2ABC681E19242891FE7C"),
+            ["generated-differential"] = (
+                132,
+                0,
+                "E72541BBAE27870AB51666E66F2090638C44148A4F29E4E1DA11A00BA608B0F0"),
             ["path"] = (
                 0,
                 132,
@@ -73,8 +79,8 @@ public class ManagedFuzzTests
         Assert.AreEqual(1, report.SchemaVersion);
         Assert.AreEqual("0x46555A5A51413034", report.Seed);
         Assert.AreEqual(128, report.IterationsPerTarget);
-        Assert.AreEqual(5, report.Targets.Length);
-        Assert.AreEqual(660, report.Targets.Sum(target => target.Successes + target.DocumentedFailures));
+        Assert.AreEqual(6, report.Targets.Length);
+        Assert.AreEqual(792, report.Targets.Sum(target => target.Successes + target.DocumentedFailures));
 
         foreach (FuzzTargetReport target in report.Targets)
         {

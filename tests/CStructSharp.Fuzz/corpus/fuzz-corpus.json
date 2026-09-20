@@ -141,6 +141,31 @@
           "data": "01A5"
         }
       ]
+    },
+    {
+      "id": "generated-differential",
+      "seeds": [
+        {
+          "id": "binary-complete",
+          "encoding": "hex",
+          "data": "020102030400"
+        },
+        {
+          "id": "path-with-pointer",
+          "encoding": "hex",
+          "data": "030100020003000400070A00140000000000000000000000"
+        },
+        {
+          "id": "pointer-union-chain",
+          "encoding": "hex",
+          "data": "01A50000000700025A0000000700"
+        },
+        {
+          "id": "truncated",
+          "encoding": "hex",
+          "data": "01A5"
+        }
+      ]
     }
   ]
 }

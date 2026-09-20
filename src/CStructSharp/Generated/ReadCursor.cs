@@ -538,6 +538,11 @@ public ref struct ReadCursor
     /// <returns>The text without its terminator.</returns>
     public string TakeTerminatedString(TerminatedTextEncoding encoding, char terminator, string member, string? memberType)
     {
+        // The runtime reads the string in 256-byte chunks and, per chunk, checks the string byte limit, decodes the
+        // bytes before the terminator (flushing only when the terminator is in the chunk), and stops at the
+        // terminator; the checks run in that order, and the position a failure reports is the end of the chunk
+        // being read (the limit failure: one byte past the limit).
+        const int Chunk = 256;
         System.Text.Encoding strict = encoding switch
         {
             TerminatedTextEncoding.Ascii => Codecs.PrimitiveCodecs.StrictAsciiEncoding,
@@ -548,30 +553,55 @@ public ref struct ReadCursor
         int unitSize = encoding is TerminatedTextEncoding.Utf16LittleEndian or TerminatedTextEncoding.Utf16BigEndian ? 2 : 1;
         Span<byte> terminatorBytes = stackalloc byte[4];
         int terminatorLength = strict.GetBytes(new ReadOnlySpan<char>(in terminator), terminatorBytes);
+        terminatorBytes = terminatorBytes.Slice(0, terminatorLength);
         ReadOnlySpan<byte> remaining = this.source.Slice(this.position);
-        int index = Codec.FindTerminator(remaining, terminatorBytes.Slice(0, terminatorLength), unitSize, 0);
-        long consumed = index < 0 ? remaining.Length : index + terminatorLength;
-        if (consumed > this.settings.MaxStringBytes)
+        int start = this.position;
+        System.Text.Decoder decoder = strict.GetDecoder();
+        char[]? decoded = null;
+        long encodedByteCount = 0;
+        int offset = 0;
+        while (true)
         {
-            this.position += (int)Math.Min(remaining.Length, this.settings.MaxStringBytes + 1);
-            throw this.FailLimit(ReadFailures.TerminatedStringLimit, member, memberType);
-        }
+            int bytesRead = Math.Min(Chunk, remaining.Length - offset);
+            if (bytesRead == 0)
+            {
+                throw this.Fail(ReadFailures.TerminatedStringUnterminated, member, memberType);
+            }
 
-        if (index < 0)
-        {
-            this.Charge(remaining.Length, member, memberType);
-            this.position = this.source.Length;
-            throw this.Fail(ReadFailures.TerminatedStringUnterminated, member, memberType);
-        }
+            ReadOnlySpan<byte> chunk = remaining.Slice(offset, bytesRead);
+            this.position = start + offset + bytesRead;
+            this.Charge(bytesRead, member, memberType);
+            int alignmentOffset = (int)((unitSize - (encodedByteCount % unitSize)) % unitSize);
+            int terminatorIndex = Codec.FindTerminator(chunk, terminatorBytes, unitSize, alignmentOffset);
+            long allowed = this.settings.MaxStringBytes - encodedByteCount;
+            long consumedIfFound = terminatorIndex < 0 ? bytesRead : terminatorIndex + terminatorLength;
+            if (consumedIfFound > allowed)
+            {
+                this.position = start + offset + (int)Math.Min(bytesRead, allowed + 1);
+                throw this.FailLimit(ReadFailures.TerminatedStringLimit, member, memberType);
+            }
 
-        ReadOnlySpan<byte> payload = this.Take((int)consumed, member, memberType).Slice(0, index);
-        try
-        {
-            return strict.GetString(payload);
-        }
-        catch (System.Text.DecoderFallbackException exception)
-        {
-            throw this.Fail(ReadFailures.TerminatedStringInvalid, member, memberType, exception);
+            int prefixLength = terminatorIndex < 0 ? bytesRead : terminatorIndex;
+            decoded ??= new char[Chunk + 2];
+            try
+            {
+                decoder.Convert(chunk.Slice(0, prefixLength), decoded, terminatorIndex >= 0, out _, out _, out _);
+            }
+            catch (System.Text.DecoderFallbackException exception)
+            {
+                throw this.Fail(ReadFailures.TerminatedStringInvalid, member, memberType, exception);
+            }
+
+            if (terminatorIndex < 0)
+            {
+                encodedByteCount += bytesRead;
+                offset += bytesRead;
+                continue;
+            }
+
+            int payloadLength = offset + terminatorIndex;
+            this.position = start + payloadLength + terminatorLength;
+            return strict.GetString(remaining.Slice(0, payloadLength));
         }
     }
 

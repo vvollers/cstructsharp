@@ -166,7 +166,7 @@ internal static class Program
             """
             CStructSharp bounded managed fuzz harness
 
-            --target <all|definition|expression|path|binary-roundtrip|pointer-union>
+            --target <all|definition|expression|path|binary-roundtrip|pointer-union|generated-differential>
             --corpus <fuzz-corpus.json>
             --iterations <mutations-per-target>
             --seed <hex-UInt64>

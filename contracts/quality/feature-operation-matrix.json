@@ -524,6 +524,7 @@
       "binary-roundtrip",
       "definition",
       "expression",
+      "generated-differential",
       "path",
       "pointer-union"
     ],

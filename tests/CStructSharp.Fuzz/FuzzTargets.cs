@@ -63,6 +63,7 @@ internal sealed class FuzzTargets
         "binary-roundtrip",
         "definition",
         "expression",
+        "generated-differential",
         "path",
         "pointer-union",
     ];
@@ -76,6 +77,7 @@ internal sealed class FuzzTargets
             "path" => new FuzzTarget(name, this.Path, IsPathFailure),
             "binary-roundtrip" => new FuzzTarget(name, this.BinaryRoundTrip, IsBinaryFailure),
             "pointer-union" => new FuzzTarget(name, this.PointerUnion, IsPointerUnionFailure),
+            "generated-differential" => new FuzzTarget(name, this.GeneratedDifferentialTarget, static _ => false),
             _ => throw new ArgumentException($"Unknown managed fuzz target '{name}'.", nameof(name)),
         };
     }
@@ -168,6 +170,12 @@ internal sealed class FuzzTargets
         {
             _ = this.pointerUnionLayout.Parse(stream, "node", options: this.readOptions);
         }
+    }
+
+    /// <summary>The generated readers and writers against the runtime over the harness's layouts; every outcome must agree, so no failure is a documented one.</summary>
+    private void GeneratedDifferentialTarget(byte[] input)
+    {
+        GeneratedDifferential.Run(input, this.readOptions, this.writeOptions);
     }
 
     private CStructCompilationOptions CreateCompilationOptions()

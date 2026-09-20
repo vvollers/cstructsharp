@@ -80,9 +80,12 @@ A property test checks a rule across many generated values rather than one examp
 meaningful value equality from identical bytes: padding can be normalized, pointers are not relocated, and a
 `UnionValue` explicitly retains raw storage.
 
-The managed fuzz harness feeds bounded generated/corpus inputs to five targets. It records a stable seed and minimizes
+The managed fuzz harness feeds bounded generated/corpus inputs to six targets. It records a stable seed and minimizes
 failures so they can be replayed. Add a minimized failure as a named regression; a random failure that cannot be
-reproduced is not enough.
+reproduced is not enough. The `generated-differential` target reads every input with the `[CStructLayout]`-generated
+readers of the harness's layouts and with the runtime, and writes both values back: the two paths must fail the same
+way (type and message) or produce the same bytes, so the target has no documented failures - any disagreement fails
+the run.
 
 The dissect corpus sweep (`DissectCorpusSweepTests.Corpus_NeverRegresses`) compiles every definition extracted
 from the dissect ecosystem and is in the `OptIn` test category, which `tests/CStructSharpTests/default.runsettings`

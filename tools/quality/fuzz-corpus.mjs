@@ -51,10 +51,10 @@ await main(() => {
   assertCondition(limits.maxTotalBytesRead <= 4096, "The fuzz read-byte limit must not exceed 4096.");
   assertCondition(limits.maxTotalBytesWritten <= 4096, "The fuzz write-byte limit must not exceed 4096.");
 
-  const expectedTargets = ["binary-roundtrip", "definition", "expression", "path", "pointer-union"];
+  const expectedTargets = ["binary-roundtrip", "definition", "expression", "generated-differential", "path", "pointer-union"];
   const targetIds = corpus.targets.map((target) => String(target.id));
   assertCondition(new Set(targetIds).size === targetIds.length, "The managed fuzz corpus contains duplicate target ids.");
-  assertCondition(sameSet(expectedTargets, targetIds), "The managed fuzz corpus does not contain exactly the five QA-04 targets.");
+  assertCondition(sameSet(expectedTargets, targetIds), "The managed fuzz corpus does not contain exactly the five QA-04 targets and the generated-differential target.");
 
   let seedCount = 0;
   for (const target of corpus.targets) {
