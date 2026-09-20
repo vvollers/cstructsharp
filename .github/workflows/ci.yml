@@ -75,6 +75,12 @@ jobs:
           --results-directory ./artifacts/test-results/net10
           -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Include="[CStructSharp]*"
 
+      - name: Test the source generator and generated parity
+        run: |
+          node tools/quality/generate-parity-layouts.mjs --check
+          dotnet test ./tests/CStructSharp.Generators.Tests/CStructSharp.Generators.Tests.csproj -c Release --no-build --logger trx --results-directory ./artifacts/test-results/generator
+          dotnet test ./tests/CStructSharp.Generated.Parity/CStructSharp.Generated.Parity.csproj -c Release --no-build --logger trx --results-directory ./artifacts/test-results/parity
+
       - name: Generate README quality badges
         run: >-
           node tools/quality/readme-badges.mjs
@@ -153,6 +159,10 @@ jobs:
 
       - name: Test .NET 8 and .NET 10
         run: dotnet test ./tests/CStructSharpTests/CStructSharpTests.csproj -c Release --no-build --logger trx --results-directory ./artifacts/test-results/${{ matrix.os }}
+
+      # Generated code is platform-neutral; this leg checks the netstandard2.0 generator's load path on each host's compiler.
+      - name: Test generated parity
+        run: dotnet test ./tests/CStructSharp.Generated.Parity/CStructSharp.Generated.Parity.csproj -c Release --no-build --logger trx --results-directory ./artifacts/test-results/${{ matrix.os }}
 
       - name: Upload test results
         if: always()
