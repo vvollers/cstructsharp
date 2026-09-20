@@ -267,7 +267,7 @@ internal sealed partial class LayoutEmitter
         {
             if (!inUnion)
             {
-                writer.Line("cursor.Seek(" + placement + ".AdvanceToSeparator(" + Int(field.BitStorageSize ?? 1) + ", " + Int(field.Alignment) + ", " + Int(field.BitRunBits) + "), " + member + ", " + memberType + ");");
+                writer.Line("cursor.Seek(" + placement + ".AdvanceToSeparator(" + Int(field.BitStorageSize ?? 1) + ", " + Int(field.Alignment) + ", " + Int(field.BitRunBits) + "), null, null);");
             }
 
             CloseBlock(writer, openBlock);
@@ -303,6 +303,12 @@ internal sealed partial class LayoutEmitter
                 EmitTailPadding(writer, inner, inline.Symbol.Alignment, member, memberType);
                 writer.Line("cursor.ExitComposite();");
             }
+        }
+        else if (field.IsUnnamed)
+        {
+            // Padding (`uint16 _;`): the runtime writes the type's zero value; the same bytes are zeros of its extent.
+            int extent = field.FixedStorageSize ?? throw new InvalidOperationException("Padding without a fixed size: " + field.TypeSpelling);
+            writer.Line("cursor.Pad(" + Int(extent) + ", " + member + ", " + memberType + ");");
         }
         else
         {

@@ -741,6 +741,10 @@ namespace Demo
                     throw cursor.Fail("Bitfield exceeds its storage unit: bits", "bits", "uint8");
                 }
                 ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 3, slot.UnitSize * 8, HighBitFirst), 3);
+                if ((slot.BitOffset + 3) / 8 + 1 <= slot.UnitSize)
+                {
+                    cursor.Position = (int)slot.UnitStart;
+                }
                 value.Bits = (byte)bits;
             }
             // color cbits : 2
@@ -753,6 +757,10 @@ namespace Demo
                     throw cursor.Fail("Bitfield exceeds its storage unit: cbits", "cbits", "color");
                 }
                 ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 2, slot.UnitSize * 8, HighBitFirst), 2);
+                if ((slot.BitOffset + 2) / 8 + 1 <= slot.UnitSize)
+                {
+                    cursor.Position = (int)slot.UnitStart;
+                }
                 value.Cbits = (Color)(byte)bits;
             }
             // uint16 wbits : 12
@@ -765,6 +773,10 @@ namespace Demo
                     throw cursor.Fail("Bitfield exceeds its storage unit: wbits", "wbits", "uint16");
                 }
                 ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 12, slot.UnitSize * 8, HighBitFirst), 12);
+                if ((slot.BitOffset + 12) / 8 + 1 <= slot.UnitSize)
+                {
+                    cursor.Position = (int)slot.UnitStart;
+                }
                 value.Wbits = (ushort)bits;
             }
             // uint8 *ptr

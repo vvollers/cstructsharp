@@ -142,6 +142,10 @@ namespace Demo
                     throw cursor.Fail("Bitfield exceeds its storage unit: low", "low", "uint8");
                 }
                 ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 4, slot.UnitSize * 8, HighBitFirst), 4);
+                if ((slot.BitOffset + 4) / 8 + 1 <= slot.UnitSize)
+                {
+                    cursor.Position = (int)slot.UnitStart;
+                }
                 value.Low = (byte)bits;
             }
             // uint8 high : 4
@@ -154,6 +158,10 @@ namespace Demo
                     throw cursor.Fail("Bitfield exceeds its storage unit: high", "high", "uint8");
                 }
                 ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 4, slot.UnitSize * 8, HighBitFirst), 4);
+                if ((slot.BitOffset + 4) / 8 + 1 <= slot.UnitSize)
+                {
+                    cursor.Position = (int)slot.UnitStart;
+                }
                 value.High = (byte)bits;
             }
             // byte tail

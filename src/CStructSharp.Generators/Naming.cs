@@ -19,6 +19,12 @@ internal static class Naming
             name = "_";
         }
 
+        if (char.IsDigit(name[0]))
+        {
+            // A layout identifier may start with a digit inside an enum (`32BIT_MACHINE`); a C# one may not.
+            name = "_" + name;
+        }
+
         return SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None || SyntaxFacts.GetContextualKeywordKind(name) == SyntaxKind.VarKeyword
                    ? "@" + name
                    : name;

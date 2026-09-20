@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>CStructSharp.Generated.Parity</RootNamespace>
+    <!-- The generated files land under obj/, where a parity failure can be read next to the layout. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <!-- Every fixture layout of the repository is generated into this project (Layouts.g.cs, written by
+         tools/quality/generate-parity-layouts.mjs); the tests compare the generated code with the runtime. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="MSTest" Version="4.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CStructSharp\CStructSharp.csproj" />
+    <!-- The generator runs on this project's build, as it does in a consumer that references the package. -->
+    <ProjectReference Include="..\..\src\CStructSharp.Generators\CStructSharp.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The fixture loaders and the value comparer are the generator tests' (linked, one copy of the rules). -->
+    <Compile Include="..\CStructSharp.Generators.Tests\BenchmarkFixture.cs" Link="Shared\BenchmarkFixture.cs" />
+    <Compile Include="..\CStructSharp.Generators.Tests\BenchmarkFixtures.cs" Link="Shared\BenchmarkFixtures.cs" />
+    <Compile Include="..\CStructSharp.Generators.Tests\ManualFixture.cs" Link="Shared\ManualFixture.cs" />
+    <Compile Include="..\CStructSharp.Generators.Tests\ManualFixtures.cs" Link="Shared\ManualFixtures.cs" />
+    <Compile Include="..\CStructSharp.Generators.Tests\ParityComparer.cs" Link="Shared\ParityComparer.cs" />
+    <None Include="..\..\contracts\language\manual-fixtures-v1.json" Link="manual-fixtures-v1.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="layouts.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

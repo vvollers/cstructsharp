@@ -155,6 +155,10 @@ namespace Demo
                     throw cursor.Fail("Bitfield exceeds its storage unit: type", "type", "kind");
                 }
                 ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 2, slot.UnitSize * 8, HighBitFirst), 2);
+                if ((slot.BitOffset + 2) / 8 + 1 <= slot.UnitSize)
+                {
+                    cursor.Position = (int)slot.UnitStart;
+                }
                 value.Type = (Kind)(ushort)bits;
             }
             // kind name_type : 3
@@ -167,6 +171,10 @@ namespace Demo
                     throw cursor.Fail("Bitfield exceeds its storage unit: name_type", "name_type", "kind");
                 }
                 ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 3, slot.UnitSize * 8, HighBitFirst), 3);
+                if ((slot.BitOffset + 3) / 8 + 1 <= slot.UnitSize)
+                {
+                    cursor.Position = (int)slot.UnitStart;
+                }
                 value.NameType = (Kind)(ushort)bits;
             }
             // uint16 rest : 11
@@ -179,6 +187,10 @@ namespace Demo
                     throw cursor.Fail("Bitfield exceeds its storage unit: rest", "rest", "uint16");
                 }
                 ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 11, slot.UnitSize * 8, HighBitFirst), 11);
+                if ((slot.BitOffset + 11) / 8 + 1 <= slot.UnitSize)
+                {
+                    cursor.Position = (int)slot.UnitStart;
+                }
                 value.Rest = (ushort)bits;
             }
             cursor.Seek(placement.Finish(2), member, memberType);

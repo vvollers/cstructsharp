@@ -299,7 +299,8 @@ internal sealed partial class LayoutEmitter
         {
             if (!inUnion)
             {
-                writer.Line("cursor.Seek(" + placement + ".AdvanceToSeparator(" + Int(field.BitStorageSize ?? 1) + ", " + Int(field.Alignment) + ", " + Int(field.BitRunBits) + "), " + member + ", " + memberType + ");");
+                // The runtime moves past a separator before entering any field: a failure there names no member.
+                writer.Line("cursor.Seek(" + placement + ".AdvanceToSeparator(" + Int(field.BitStorageSize ?? 1) + ", " + Int(field.Alignment) + ", " + Int(field.BitRunBits) + "), null, null);");
             }
 
             CloseBlock(writer, openBlock);
@@ -336,6 +337,11 @@ internal sealed partial class LayoutEmitter
                 writer.Line("cursor.Seek(" + inner + ".Finish(" + Int(inline.Symbol.Alignment) + "), " + member + ", " + memberType + ");");
                 writer.Line("cursor.ExitComposite();");
             }
+        }
+        else if (field.IsUnnamed)
+        {
+            // Padding (`uint16 _;`): read with the field's own rules and discarded, as the runtime reads it without a slot.
+            this.EmitDiscardedValue(writer, field, scope, inUnion, member, memberType);
         }
         else
         {
@@ -415,6 +421,14 @@ internal sealed partial class LayoutEmitter
         writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Bitfield exceeds its storage unit: " + field.Name) + ", " + member + ", " + memberType + ");");
         writer.Close();
         writer.Line("ulong bits = " + CodecClass + ".ExtractBits(unit, " + CodecClass + ".BitfieldShift(slot.BitOffset, " + Int(field.BitSize) + ", slot.UnitSize * 8, HighBitFirst), " + Int(field.BitSize) + ");");
+        if (!inUnion)
+        {
+            // While later bitfields may share the unit, the runtime keeps its position at the unit's start (its failures report that offset).
+            writer.Open("if ((slot.BitOffset + " + Int(field.BitSize) + ") / 8 + 1 <= slot.UnitSize)");
+            writer.Line("cursor.Position = (int)slot.UnitStart;");
+            writer.Close();
+        }
+
         if (field.Name.Length > 0)
         {
             GeneratedMember generated = scope.Member(field) ?? throw new InvalidOperationException("No generated member for bitfield " + field.Name);
@@ -467,6 +481,21 @@ internal sealed partial class LayoutEmitter
         writer.Close();
         writer.Open("catch (global::System.Exception expressionFailure)");
         writer.Line("throw cursor.FailExpression(expressionFailure, " + SourceWriter.Literal(context) + ", " + member + ", " + memberType + ");");
+        writer.Close();
+    }
+
+    /// <summary>A padding field's value: the same read as a named field's, into a discard.</summary>
+    private void EmitDiscardedValue(SourceWriter writer, CompiledField field, ReaderScope scope, bool inUnion, string member, string memberType)
+    {
+        GeneratedMember padding = this.model.Describe(field, "_");
+        if (field.Array.Kind == CompiledArrayKind.Scalar)
+        {
+            writer.Line("_ = " + this.ScalarRead(field, padding, member, memberType) + ";");
+            return;
+        }
+
+        writer.Open(string.Empty);
+        this.EmitArray(writer, field, padding, scope, "_", inUnion, member, memberType);
         writer.Close();
     }
 
@@ -598,9 +627,16 @@ internal sealed partial class LayoutEmitter
 
     private CompiledCompositeType? InlineComposite(CompiledField field)
     {
-        return field.Declaration is Struct inline && this.compilation.CompiledModel.Composites.TryGetValue(inline, out CompiledTypeSymbol? symbol)
+        if (field.Declaration is not Struct inline)
+        {
+            return null;
+        }
+
+        // An anonymous inline composite is keyed by its declaration; a tagged one declared in place
+        // (`union tag { ... };` as a member) is reached through the field's type symbol.
+        return this.compilation.CompiledModel.Composites.TryGetValue(inline, out CompiledTypeSymbol? symbol)
                    ? symbol.Definition as CompiledCompositeType
-                   : null;
+                   : field.Type.Symbol.Definition as CompiledCompositeType;
     }
 
     private static string PointerReaderName(CompiledField field) => "Pointer_" + Sanitize(field.TypeSpelling) + "_" + Int(field.PointerDepth);

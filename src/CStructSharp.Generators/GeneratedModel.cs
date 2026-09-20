@@ -198,12 +198,14 @@ internal sealed class GeneratedModel
             bool memberConditional = conditional || field.ConditionalBranches.Length > 0;
             if (field.IsZeroWidthBitfield || (field.IsUnnamed && !field.IsInlineComposite))
             {
-                // A `: 0` separator and an anonymous bitfield have no value; padding named `_` is a runtime member and stays.
+                // A `: 0` separator, an anonymous bitfield, and `_` padding (compiled without a name) have no slot in the runtime's value.
                 continue;
             }
 
-            CompiledCompositeType? inline = field.Declaration is Struct inlineDeclaration && compiled.Composites.TryGetValue(inlineDeclaration, out CompiledTypeSymbol? inlineSymbol)
-                                                ? inlineSymbol.Definition as CompiledCompositeType
+            CompiledCompositeType? inline = field.Declaration is Struct inlineDeclaration
+                                                ? compiled.Composites.TryGetValue(inlineDeclaration, out CompiledTypeSymbol? inlineSymbol)
+                                                      ? inlineSymbol.Definition as CompiledCompositeType
+                                                      : field.Type.Symbol.Definition as CompiledCompositeType
                                                 : null;
             if (field.IsUnnamed && inline is not null)
             {

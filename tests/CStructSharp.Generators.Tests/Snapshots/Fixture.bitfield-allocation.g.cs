@@ -145,6 +145,10 @@ namespace Demo
                     throw cursor.Fail("Bitfield exceeds its storage unit: a", "a", "uint16");
                 }
                 ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 4, slot.UnitSize * 8, HighBitFirst), 4);
+                if ((slot.BitOffset + 4) / 8 + 1 <= slot.UnitSize)
+                {
+                    cursor.Position = (int)slot.UnitStart;
+                }
                 value.A = (ushort)bits;
             }
             // uint16 b : 12
@@ -157,6 +161,10 @@ namespace Demo
                     throw cursor.Fail("Bitfield exceeds its storage unit: b", "b", "uint16");
                 }
                 ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 12, slot.UnitSize * 8, HighBitFirst), 12);
+                if ((slot.BitOffset + 12) / 8 + 1 <= slot.UnitSize)
+                {
+                    cursor.Position = (int)slot.UnitStart;
+                }
                 value.B = (ushort)bits;
             }
             // uint8 c : 3
@@ -169,6 +177,10 @@ namespace Demo
                     throw cursor.Fail("Bitfield exceeds its storage unit: c", "c", "uint8");
                 }
                 ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 3, slot.UnitSize * 8, HighBitFirst), 3);
+                if ((slot.BitOffset + 3) / 8 + 1 <= slot.UnitSize)
+                {
+                    cursor.Position = (int)slot.UnitStart;
+                }
                 value.C = (byte)bits;
             }
             // uint8 d : 5
@@ -181,6 +193,10 @@ namespace Demo
                     throw cursor.Fail("Bitfield exceeds its storage unit: d", "d", "uint8");
                 }
                 ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 5, slot.UnitSize * 8, HighBitFirst), 5);
+                if ((slot.BitOffset + 5) / 8 + 1 <= slot.UnitSize)
+                {
+                    cursor.Position = (int)slot.UnitStart;
+                }
                 value.D = (byte)bits;
             }
             cursor.Seek(placement.Finish(2), member, memberType);

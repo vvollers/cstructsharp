@@ -1,0 +1,2564 @@
+{
+  "layouts": [
+    {
+      "source": "Benchmarks",
+      "id": "aligned-x256",
+      "className": "AlignedX256",
+      "definition": "struct leaf { uint8 kind; uint32 value; }; struct mid { leaf first; leaf second; uint16 tail; }; struct top { mid left; mid right; uint8 mark; }; struct root { top items[256]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "array-struct-100",
+      "className": "ArrayStruct100",
+      "definition": "struct record { uint32 id; uint16 tag; }; struct root { record items[100]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "array-struct-10000",
+      "className": "ArrayStruct10000",
+      "definition": "struct record { uint32 id; uint16 tag; }; struct root { record items[10000]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "array-u32-be-16384",
+      "className": "ArrayU32Be16384",
+      "definition": "struct root { uint32> values[16384]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "array-u32-be-256",
+      "className": "ArrayU32Be256",
+      "definition": "struct root { uint32> values[256]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "array-u32-be-262144",
+      "className": "ArrayU32Be262144",
+      "definition": "struct root { uint32> values[262144]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "array-u32-le-16384",
+      "className": "ArrayU32Le16384",
+      "definition": "struct root { uint32< values[16384]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "array-u32-le-256",
+      "className": "ArrayU32Le256",
+      "definition": "struct root { uint32< values[256]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "array-u32-le-262144",
+      "className": "ArrayU32Le262144",
+      "definition": "struct root { uint32< values[262144]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "array-u32-neutral-262144",
+      "className": "ArrayU32Neutral262144",
+      "definition": "struct root { uint32 values[262144]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "array-u64-le-1000000",
+      "className": "ArrayU64Le1000000",
+      "definition": "struct root { uint64 values[1000000]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "array-u8-1024",
+      "className": "ArrayU81024",
+      "definition": "struct root { uint8 values[1024]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "array-u8-1048576",
+      "className": "ArrayU81048576",
+      "definition": "struct root { uint8 values[1048576]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "array-u8-16m-stream",
+      "className": "ArrayU816mStream",
+      "definition": "struct root { uint8 values[16777216]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "array-u8-65536",
+      "className": "ArrayU865536",
+      "definition": "struct root { uint8 values[65536]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "bitfield-x1k",
+      "className": "BitfieldX1k",
+      "definition": "struct rec { uint8 a:3; uint8 b:5; uint16 c:4; uint16 :4; uint16 d:8; uint32 e:12; uint32 f:20; }; struct root { rec items[1024]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "compile-k100",
+      "className": "CompileK100",
+      "definition": "struct schema0 { uint16 s0_f0; float64 s0_f1; int64 s0_f2; int32 s0_f3; uint32 s0_f4; int64 s0_f5; int32 s0_f6; uint32 s0_f7; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "compile-large-512",
+      "className": "CompileLarge512",
+      "definition": "struct root { int64 f0; int16 f1; float64 f2; uint8 f3; float32 f4; int32 f5; uint32 f6; int16 f7; int16 f8; uint32 f9; int16 f10; int64 f11; uint16 f12; uint8 f13; int64 f14; int16 f15; float32 f16; float32 f17; uint16 f18; int32 f19; float32 f20; uint32 f21; float32 f22; uint32 f23; int64 f24; int32 f25; int16 f26; float32 f27; uint8 f28; float32 f29; float64 f30; int16 f31; uint32 f32; int32 f33; uint8 f34; float64 f35; float32 f36; int32 f37; uint8 f38; uint32 f39; uint16 f40; uint8 f41; uint32 f42; int32 f43; uint32 f44; uint16 f45; uint8 f46; float64 f47; uint32 f48; uint32 f49; uint8 f50; uint8 f51; int32 f52; float32 f53; int32 f54; uint32 f55; uint32 f56; int64 f57; uint16 f58; uint16 f59; int16 f60; int16 f61; uint32 f62; int16 f63; uint16 f64; float32 f65; int32 f66; int16 f67; uint8 f68; float64 f69; int32 f70; float64 f71; uint32 f72; int32 f73; float32 f74; uint32 f75; uint16 f76; uint8 f77; uint8 f78; float32 f79; uint32 f80; float64 f81; uint8 f82; float32 f83; float32 f84; uint32 f85; float32 f86; uint32 f87; int16 f88; uint32 f89; float32 f90; int16 f91; uint16 f92; uint8 f93; uint16 f94; int16 f95; float64 f96; float64 f97; float32 f98; float32 f99; int32 f100; uint16 f101; int32 f102; int16 f103; uint8 f104; float64 f105; int16 f106; int16 f107; uint16 f108; float32 f109; int16 f110; uint16 f111; int32 f112; int16 f113; int64 f114; uint16 f115; float64 f116; float32 f117; uint16 f118; float64 f119; int64 f120; float64 f121; float32 f122; float64 f123; int16 f124; uint16 f125; int32 f126; float32 f127; float64 f128; uint16 f129; int32 f130; float32 f131; uint16 f132; float32 f133; float32 f134; uint16 f135; uint8 f136; int32 f137; int32 f138; float64 f139; uint16 f140; int32 f141; uint32 f142; uint16 f143; uint8 f144; float32 f145; uint32 f146; int64 f147; float64 f148; uint16 f149; uint32 f150; float64 f151; float32 f152; int16 f153; uint32 f154; uint8 f155; int32 f156; int32 f157; float64 f158; float64 f159; float32 f160; int16 f161; int16 f162; int64 f163; int64 f164; float64 f165; float64 f166; float64 f167; uint32 f168; float64 f169; int16 f170; int64 f171; uint32 f172; float64 f173; uint8 f174; uint32 f175; uint16 f176; int64 f177; uint16 f178; int16 f179; uint8 f180; float64 f181; uint16 f182; int16 f183; uint8 f184; int32 f185; float32 f186; float64 f187; int64 f188; int16 f189; float32 f190; float64 f191; int32 f192; float64 f193; uint16 f194; int64 f195; float64 f196; int64 f197; int32 f198; uint8 f199; uint32 f200; int32 f201; int32 f202; int32 f203; uint32 f204; int16 f205; int16 f206; uint8 f207; uint8 f208; uint8 f209; int64 f210; float64 f211; int16 f212; int32 f213; int64 f214; float32 f215; uint32 f216; float32 f217; uint8 f218; int32 f219; uint16 f220; uint32 f221; float32 f222; int64 f223; uint16 f224; int16 f225; int32 f226; uint16 f227; int64 f228; uint8 f229; uint16 f230; uint32 f231; int64 f232; float64 f233; uint8 f234; int32 f235; int64 f236; int16 f237; float64 f238; uint16 f239; int64 f240; float64 f241; uint8 f242; float64 f243; uint8 f244; int64 f245; uint16 f246; float32 f247; int64 f248; int16 f249; uint8 f250; uint32 f251; uint32 f252; int64 f253; uint32 f254; int32 f255; float64 f256; uint16 f257; int16 f258; int32 f259; float32 f260; int32 f261; float32 f262; int32 f263; int64 f264; float64 f265; uint32 f266; uint32 f267; int32 f268; float64 f269; uint32 f270; uint16 f271; uint32 f272; uint32 f273; float64 f274; uint32 f275; int32 f276; int32 f277; int16 f278; uint8 f279; int64 f280; int64 f281; uint8 f282; int64 f283; float64 f284; float32 f285; uint32 f286; float32 f287; float64 f288; int16 f289; int64 f290; uint8 f291; uint32 f292; int64 f293; uint16 f294; uint8 f295; int64 f296; float64 f297; uint16 f298; uint16 f299; uint8 f300; int16 f301; int32 f302; int16 f303; float64 f304; int32 f305; uint16 f306; uint32 f307; int64 f308; uint32 f309; int32 f310; uint32 f311; uint32 f312; int16 f313; uint32 f314; int16 f315; uint8 f316; uint16 f317; uint16 f318; int32 f319; uint32 f320; int16 f321; uint32 f322; uint32 f323; float64 f324; int32 f325; float32 f326; int16 f327; uint32 f328; int16 f329; float32 f330; float32 f331; int64 f332; float64 f333; float32 f334; int32 f335; int16 f336; float32 f337; int64 f338; float64 f339; uint16 f340; uint8 f341; uint8 f342; float64 f343; int32 f344; float64 f345; uint8 f346; float32 f347; uint16 f348; uint32 f349; uint8 f350; uint16 f351; uint8 f352; uint32 f353; int32 f354; int64 f355; float64 f356; int64 f357; float64 f358; float64 f359; uint32 f360; int32 f361; float32 f362; int16 f363; uint32 f364; int16 f365; int64 f366; int16 f367; uint32 f368; uint8 f369; int32 f370; int32 f371; uint16 f372; int64 f373; int64 f374; int64 f375; float32 f376; uint16 f377; uint16 f378; int64 f379; uint16 f380; uint8 f381; uint8 f382; int16 f383; float64 f384; uint16 f385; float32 f386; uint8 f387; int16 f388; float32 f389; int32 f390; int32 f391; float32 f392; float64 f393; int32 f394; float64 f395; int16 f396; uint16 f397; uint16 f398; uint8 f399; int16 f400; int32 f401; uint16 f402; float32 f403; int16 f404; int32 f405; float64 f406; int32 f407; uint32 f408; int64 f409; uint16 f410; uint16 f411; uint32 f412; float64 f413; float64 f414; float32 f415; uint32 f416; uint16 f417; int64 f418; int64 f419; uint16 f420; int32 f421; uint16 f422; int16 f423; int64 f424; float32 f425; int64 f426; uint32 f427; uint8 f428; float64 f429; int32 f430; int32 f431; int16 f432; int32 f433; int64 f434; float64 f435; float64 f436; uint32 f437; float64 f438; int32 f439; uint16 f440; float64 f441; int32 f442; float64 f443; float32 f444; int32 f445; uint8 f446; int32 f447; uint16 f448; uint16 f449; float32 f450; uint8 f451; float64 f452; float32 f453; uint8 f454; int32 f455; float64 f456; uint8 f457; float64 f458; uint8 f459; int64 f460; int32 f461; float64 f462; float64 f463; float64 f464; int64 f465; uint16 f466; float64 f467; int32 f468; float64 f469; uint8 f470; int16 f471; uint16 f472; uint8 f473; uint8 f474; uint32 f475; uint8 f476; float32 f477; uint16 f478; uint16 f479; float32 f480; float64 f481; int16 f482; int64 f483; uint16 f484; float32 f485; int16 f486; float32 f487; float32 f488; float32 f489; float64 f490; float32 f491; int32 f492; uint8 f493; uint32 f494; int16 f495; uint8 f496; int16 f497; int32 f498; uint32 f499; uint8 f500; float32 f501; int16 f502; uint32 f503; uint32 f504; int64 f505; int32 f506; float32 f507; uint16 f508; uint8 f509; uint16 f510; uint8 f511; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "compile-medium-128",
+      "className": "CompileMedium128",
+      "definition": "struct root { uint32 f0; uint8 f1; uint8 f2; int32 f3; float64 f4; int32 f5; uint8 f6; int64 f7; float32 f8; uint16 f9; uint32 f10; float32 f11; float32 f12; uint16 f13; uint16 f14; uint8 f15; float32 f16; float32 f17; int32 f18; uint16 f19; int32 f20; int64 f21; int32 f22; float64 f23; int16 f24; uint16 f25; float32 f26; uint8 f27; int64 f28; uint32 f29; uint32 f30; float64 f31; int64 f32; int32 f33; uint8 f34; int16 f35; uint16 f36; float64 f37; uint16 f38; float64 f39; int32 f40; uint32 f41; int16 f42; uint8 f43; float64 f44; int32 f45; float64 f46; int16 f47; int32 f48; int32 f49; int64 f50; int64 f51; int64 f52; int16 f53; int64 f54; uint16 f55; uint16 f56; int32 f57; float64 f58; int64 f59; float32 f60; int32 f61; uint32 f62; uint16 f63; uint16 f64; float32 f65; int64 f66; int64 f67; float64 f68; int16 f69; int16 f70; float32 f71; uint32 f72; int32 f73; uint8 f74; int32 f75; uint8 f76; float64 f77; int32 f78; float32 f79; int32 f80; int16 f81; uint16 f82; float32 f83; uint8 f84; uint16 f85; int64 f86; float64 f87; uint8 f88; int16 f89; float32 f90; float32 f91; int16 f92; int16 f93; uint16 f94; int64 f95; uint16 f96; float32 f97; float32 f98; int64 f99; int64 f100; uint16 f101; int32 f102; int64 f103; int64 f104; uint16 f105; int64 f106; uint8 f107; uint16 f108; float32 f109; float32 f110; int64 f111; uint16 f112; uint8 f113; uint32 f114; uint16 f115; float64 f116; uint16 f117; int16 f118; int64 f119; int16 f120; int64 f121; int16 f122; float64 f123; float64 f124; uint8 f125; float64 f126; int16 f127; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "compile-nested",
+      "className": "CompileNested",
+      "definition": "struct leaf { uint8 kind; uint32 value; }; struct mid { leaf first; leaf second; uint16 tail; }; struct top { mid left; mid right; uint8 mark; }; struct root { top items[16]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "compile-small",
+      "className": "CompileSmall",
+      "definition": "struct root { uint8 kind; uint32 value; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "compile-windows-header",
+      "className": "CompileWindowsHeader",
+      "definition": "#pragma pack(push, 1)\n#define IMAGE_DOS_SIGNATURE 0x5A4D\n#define IMAGE_NT_SIGNATURE 0x00004550\ntypedef struct _IMAGE_DOS_HEADER { WORD e_magic; WORD e_cblp; WORD e_cp; WORD e_crlc; WORD e_cparhdr; WORD e_minalloc; WORD e_maxalloc; WORD e_ss; WORD e_sp; WORD e_csum; WORD e_ip; WORD e_cs; WORD e_lfarlc; WORD e_ovno; WORD e_res[4]; WORD e_oemid; WORD e_oeminfo; WORD e_res2[10]; LONG e_lfanew; } IMAGE_DOS_HEADER, *PIMAGE_DOS_HEADER;\nflag IMAGE_FILE_CHARACTERISTICS : WORD { RELOCS_STRIPPED = 0x0001, EXECUTABLE_IMAGE = 0x0002, LINE_NUMS_STRIPPED = 0x0004, LOCAL_SYMS_STRIPPED = 0x0008, AGGRESIVE_WS_TRIM = 0x0010, LARGE_ADDRESS_AWARE = 0x0020, BYTES_REVERSED_LO = 0x0080, 32BIT_MACHINE = 0x0100, DEBUG_STRIPPED = 0x0200, DLL = 0x2000 };\ntypedef struct _IMAGE_FILE_HEADER { WORD Machine; WORD NumberOfSections; DWORD TimeDateStamp; DWORD PointerToSymbolTable; DWORD NumberOfSymbols; WORD SizeOfOptionalHeader; IMAGE_FILE_CHARACTERISTICS Characteristics; } IMAGE_FILE_HEADER, *PIMAGE_FILE_HEADER;\ntypedef struct _IMAGE_DATA_DIRECTORY { DWORD VirtualAddress; DWORD Size; } IMAGE_DATA_DIRECTORY, *PIMAGE_DATA_DIRECTORY;\ntypedef struct _IMAGE_SECTION_HEADER { BYTE Name[8]; union { DWORD PhysicalAddress; DWORD VirtualSize; } Misc; DWORD VirtualAddress; DWORD SizeOfRawData; DWORD PointerToRawData; DWORD PointerToRelocations; DWORD PointerToLinenumbers; WORD NumberOfRelocations; WORD NumberOfLinenumbers; DWORD Characteristics; } IMAGE_SECTION_HEADER, *PIMAGE_SECTION_HEADER;\ntypedef struct _IMAGE_RESOURCE_DIRECTORY_ENTRY { union { struct { DWORD NameOffset:31; DWORD NameIsString:1; }; DWORD Name; WORD Id; }; union { DWORD OffsetToData; struct { DWORD OffsetToDirectory:31; DWORD DataIsDirectory:1; }; }; } IMAGE_RESOURCE_DIRECTORY_ENTRY, *PIMAGE_RESOURCE_DIRECTORY_ENTRY;\ntypedef struct _IMAGE_OPTIONAL_HEADER { WORD Magic; BYTE MajorLinkerVersion; BYTE MinorLinkerVersion; DWORD SizeOfCode; DWORD SizeOfInitializedData; DWORD SizeOfUninitializedData; DWORD AddressOfEntryPoint; DWORD BaseOfCode; DWORD BaseOfData; DWORD ImageBase; DWORD SectionAlignment; DWORD FileAlignment; WORD MajorOperatingSystemVersion; WORD MinorOperatingSystemVersion; WORD MajorImageVersion; WORD MinorImageVersion; WORD MajorSubsystemVersion; WORD MinorSubsystemVersion; DWORD Win32VersionValue; DWORD SizeOfImage; DWORD SizeOfHeaders; DWORD CheckSum; WORD Subsystem; WORD DllCharacteristics; DWORD SizeOfStackReserve; DWORD SizeOfStackCommit; DWORD SizeOfHeapReserve; DWORD SizeOfHeapCommit; DWORD LoaderFlags; DWORD NumberOfRvaAndSizes; IMAGE_DATA_DIRECTORY DataDirectory[16]; } IMAGE_OPTIONAL_HEADER32, *PIMAGE_OPTIONAL_HEADER32;\ntypedef struct _IMAGE_NT_HEADERS { DWORD Signature; IMAGE_FILE_HEADER FileHeader; IMAGE_OPTIONAL_HEADER32 OptionalHeader; } IMAGE_NT_HEADERS32, *PIMAGE_NT_HEADERS32;\nstruct root { IMAGE_DOS_HEADER dos; WORD _; WORD _; IMAGE_NT_HEADERS32 nt; IMAGE_SECTION_HEADER sections[4]; };\n#pragma pack(pop)",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "cond-if128",
+      "className": "CondIf128",
+      "definition": "struct entry { uint8 tag; if (tag == 1) { uint32 value; } else { uint16 small; } uint16 tail; }; struct root { entry items[128]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "cond-plain128",
+      "className": "CondPlain128",
+      "definition": "struct entry { uint8 tag; uint32 value; uint16 tail; }; struct root { entry items[128]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "cond-switch128",
+      "className": "CondSwitch128",
+      "definition": "struct entry { uint8 tag; switch (tag) { case 1: { uint32 value; } default: { uint16 small; } } uint16 tail; }; struct root { entry items[128]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "dynamic-1",
+      "className": "Dynamic1",
+      "definition": "#define TRAILER_WORDS 1\nstruct child { uint16 value; }; struct root { uint16 count; child children[count]; uint32 trailer[TRAILER_WORDS]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "dynamic-1024",
+      "className": "Dynamic1024",
+      "definition": "#define TRAILER_WORDS 1\nstruct child { uint16 value; }; struct root { uint16 count; child children[count]; uint32 trailer[TRAILER_WORDS]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "dynamic-64",
+      "className": "Dynamic64",
+      "definition": "#define TRAILER_WORDS 1\nstruct child { uint16 value; }; struct root { uint16 count; child children[count]; uint32 trailer[TRAILER_WORDS]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "enum-x1k",
+      "className": "EnumX1k",
+      "definition": "enum small : uint8 { Zero = 0, One = 1, Two = 2 }; enum medium : uint16 { Ten = 10, Eleven = 11, Twelve = 12 }; enum wide : uint32 { Hundred = 100, HundredOne = 101, HundredTwo = 102 }; struct rec { small x; medium y; wide z; }; struct root { rec items[1024]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "malformed-budget-exceeded",
+      "className": "MalformedBudgetExceeded",
+      "definition": "struct root { uint8 values[100000]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "malformed-dangling-pointer",
+      "className": "MalformedDanglingPointer",
+      "definition": "struct root { uint32 *target; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "malformed-negative-count",
+      "className": "MalformedNegativeCount",
+      "definition": "struct root { int16 count; uint8 values[count]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "malformed-truncated",
+      "className": "MalformedTruncated",
+      "definition": "struct root { uint8 a; int16 b; uint32 c; int64 d; float32 e; float64 f; bool g; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "mixed-endian-record",
+      "className": "MixedEndianRecord",
+      "definition": "struct root { uint16< a; uint16> b; uint32< c; uint32> d; uint64> e; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "multidim-16x16",
+      "className": "Multidim16x16",
+      "definition": "struct root { uint16 grid[16][16]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "nested-x1",
+      "className": "NestedX1",
+      "definition": "struct leaf { uint8 kind; uint32 value; }; struct mid { leaf first; leaf second; uint16 tail; }; struct top { mid left; mid right; uint8 mark; }; struct root { top items[1]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "nested-x256",
+      "className": "NestedX256",
+      "definition": "struct leaf { uint8 kind; uint32 value; }; struct mid { leaf first; leaf second; uint16 tail; }; struct top { mid left; mid right; uint8 mark; }; struct root { top items[256]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "parity-alias-x1k",
+      "className": "ParityAliasX1k",
+      "definition": "struct rec { DWORD a; WORD b; BYTE c; }; struct root { rec items[1024]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "parity-flag-x1k",
+      "className": "ParityFlagX1k",
+      "definition": "flag access : uint16 { READ, WRITE, EXEC, HIDDEN = 0x100 }; struct rec { access mode; uint16 v; }; struct root { rec items[1024]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "parity-inline-union-x1k",
+      "className": "ParityInlineUnionX1k",
+      "definition": "struct rec { uint32 a; union { uint32 x; uint16 y; }; uint8 z; }; struct root { rec items[1024]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "parity-terminated-struct-1k",
+      "className": "ParityTerminatedStruct1k",
+      "definition": "struct entry { uint16 a; uint16 b; }; struct root { entry items[]; uint8 tail; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "parity-toend-u32-64k",
+      "className": "ParityToendU3264k",
+      "definition": "struct root { uint32 magic; uint32 values[EOF]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "pointer-depth-1",
+      "className": "PointerDepth1",
+      "definition": "struct node { node *next; uint32 value; }; struct root { node *head; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "pointer-depth-64",
+      "className": "PointerDepth64",
+      "definition": "struct node { node *next; uint32 value; }; struct root { node *head; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "pointer-depth-8",
+      "className": "PointerDepth8",
+      "definition": "struct node { node *next; uint32 value; }; struct root { node *head; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "prim-be-record",
+      "className": "PrimBeRecord",
+      "definition": "struct root { uint8 a; int16> b; uint32> c; int64> d; float32> e; float64> f; bool g; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "prim-be-x1k",
+      "className": "PrimBeX1k",
+      "definition": "struct rec { uint8 a; int16> b; uint32> c; int64> d; float32> e; float64> f; bool g; }; struct root { rec items[1024]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "prim-le-record",
+      "className": "PrimLeRecord",
+      "definition": "struct root { uint8 a; int16 b; uint32 c; int64 d; float32 e; float64 f; bool g; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "prim-le-x1k",
+      "className": "PrimLeX1k",
+      "definition": "struct rec { uint8 a; int16 b; uint32 c; int64 d; float32 e; float64 f; bool g; }; struct root { rec items[1024]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "real-bmp",
+      "className": "RealBmp",
+      "definition": "enum bmp_compression : uint32 {\n    Rgb = 0,\n    Rle8 = 1,\n    Rle4 = 2,\n    Bitfields = 3\n};\n\nstruct bitmap_file_header {\n    char signature[2];\n    uint32 file_size;\n    uint16 reserved1;\n    uint16 reserved2;\n    uint32 pixel_data_offset;\n};\n\nstruct bitmap_info_header {\n    uint32 header_size;\n    int32 width;\n    int32 height;\n    uint16 planes;\n    uint16 bits_per_pixel;\n    bmp_compression compression;\n    uint32 image_size;\n    int32 x_pixels_per_meter;\n    int32 y_pixels_per_meter;\n    uint32 colors_used;\n    uint32 colors_important;\n};\n\nstruct root {\n    bitmap_file_header file_header;\n    bitmap_info_header info_header;\n};",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "real-ico",
+      "className": "RealIco",
+      "definition": "struct icon_dir_entry {\n    uint8 width;\n    uint8 height;\n    uint8 color_count;\n    uint8 reserved;\n    uint16 color_planes;\n    uint16 bits_per_pixel;\n    uint32 size_in_bytes;\n    uint32 data_offset;\n};\n\nstruct root {\n    uint16 reserved;\n    uint16 image_type;\n    uint16 image_count;\n    icon_dir_entry entries[image_count];\n};",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "real-jpg",
+      "className": "RealJpg",
+      "definition": "struct app0_segment {\n    uint16> marker;\n    uint16> length;\n    char identifier[5];\n    uint8 version_major;\n    uint8 version_minor;\n    uint8 density_units;\n    uint16> x_density;\n    uint16> y_density;\n    uint8 thumbnail_width;\n    uint8 thumbnail_height;\n};\n\nstruct root {\n    uint16> soi_marker;\n    app0_segment app0;\n};",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "real-pe-dll",
+      "className": "RealPeDll",
+      "definition": "struct pe_header {\n    char signature[4];\n    uint16 machine;\n    uint16 number_of_sections;\n    uint32 time_date_stamp;\n    uint32 pointer_to_symbol_table;\n    uint32 number_of_symbols;\n    uint16 size_of_optional_header;\n    uint16 characteristics;\n    uint16 optional_header_magic;\n};\n\nstruct dos_header {\n    uint16 e_magic;\n    uint16 e_cblp;\n    uint16 e_cp;\n    uint16 e_crlc;\n    uint16 e_cparhdr;\n    uint16 e_minalloc;\n    uint16 e_maxalloc;\n    uint16 e_ss;\n    uint16 e_sp;\n    uint16 e_csum;\n    uint16 e_ip;\n    uint16 e_cs;\n    uint16 e_lfarlc;\n    uint16 e_ovno;\n    uint16 e_res[4];\n    uint16 e_oemid;\n    uint16 e_oeminfo;\n    uint16 e_res2[10];\n    pe_header *e_lfanew;\n};\n\nstruct root {\n    dos_header dos;\n};",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "real-pe-exe",
+      "className": "RealPeExe",
+      "definition": "struct pe_header {\n    char signature[4];\n    uint16 machine;\n    uint16 number_of_sections;\n    uint32 time_date_stamp;\n    uint32 pointer_to_symbol_table;\n    uint32 number_of_symbols;\n    uint16 size_of_optional_header;\n    uint16 characteristics;\n    uint16 optional_header_magic;\n};\n\nstruct dos_header {\n    uint16 e_magic;\n    uint16 e_cblp;\n    uint16 e_cp;\n    uint16 e_crlc;\n    uint16 e_cparhdr;\n    uint16 e_minalloc;\n    uint16 e_maxalloc;\n    uint16 e_ss;\n    uint16 e_sp;\n    uint16 e_csum;\n    uint16 e_ip;\n    uint16 e_cs;\n    uint16 e_lfarlc;\n    uint16 e_ovno;\n    uint16 e_res[4];\n    uint16 e_oemid;\n    uint16 e_oeminfo;\n    uint16 e_res2[10];\n    pe_header *e_lfanew;\n};\n\nstruct root {\n    dos_header dos;\n};",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "real-png",
+      "className": "RealPng",
+      "definition": "enum png_color_type : uint8 {\n    Grayscale = 0,\n    Rgb = 2,\n    Palette = 3,\n    GrayscaleAlpha = 4,\n    Rgba = 6\n};\n\nstruct ihdr_chunk {\n    uint32 length;\n    char chunk_type[4];\n    uint32 width;\n    uint32 height;\n    uint8 bit_depth;\n    png_color_type color_type;\n    uint8 compression_method;\n    uint8 filter_method;\n    uint8 interlace_method;\n    uint32 crc;\n};\n\nstruct root {\n    uint8 signature[8];\n    ihdr_chunk ihdr;\n};",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": false
+    },
+    {
+      "source": "Benchmarks",
+      "id": "real-tar",
+      "className": "RealTar",
+      "definition": "struct root {\n    char name[100];\n    char mode[8];\n    char uid[8];\n    char gid[8];\n    char size[12];\n    char mtime[12];\n    char chksum[8];\n    char typeflag[1];\n    char linkname[100];\n    char magic[6];\n    char version[2];\n    char uname[32];\n    char gname[32];\n    char devmajor[8];\n    char devminor[8];\n    char prefix[155];\n    char padding[12];\n};",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "real-wav",
+      "className": "RealWav",
+      "definition": "struct riff_header {\n    char chunk_id[4];\n    uint32 chunk_size;\n    char format[4];\n};\n\nstruct fmt_chunk {\n    char chunk_id[4];\n    uint32 chunk_size;\n    uint16 audio_format;\n    uint16 num_channels;\n    uint32 sample_rate;\n    uint32 byte_rate;\n    uint16 block_align;\n    uint16 bits_per_sample;\n};\n\nstruct data_chunk_header {\n    char chunk_id[4];\n    uint32 chunk_size;\n};\n\nstruct root {\n    riff_header riff;\n    fmt_chunk fmt;\n    data_chunk_header data;\n};",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "real-zip",
+      "className": "RealZip",
+      "definition": "struct root {\n    uint32 signature;\n    uint16 version_needed;\n    struct {\n        uint16 encrypted : 1;\n        uint16 compression_option : 2;\n        uint16 has_data_descriptor : 1;\n        uint16 reserved : 12;\n    } general_purpose_flag;\n    uint16 compression_method;\n    uint16 last_mod_time;\n    uint16 last_mod_date;\n    uint32 crc_32;\n    uint32 compressed_size;\n    uint32 uncompressed_size;\n    uint16 file_name_length;\n    uint16 extra_field_length;\n    char file_name[file_name_length];\n    uint8 extra_field[extra_field_length];\n};",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "strings-1024",
+      "className": "Strings1024",
+      "definition": "struct root { char name[32]; char cstr[]; utf8_string_zero utf8_text; wchar< wide[]; unicode_string_zero< utf16_text; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "strings-65536",
+      "className": "Strings65536",
+      "definition": "struct root { char name[32]; char cstr[]; utf8_string_zero utf8_text; wchar< wide[]; unicode_string_zero< utf16_text; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "strings-8",
+      "className": "Strings8",
+      "definition": "struct root { char name[32]; char cstr[]; utf8_string_zero utf8_text; wchar< wide[]; unicode_string_zero< utf16_text; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Benchmarks",
+      "id": "union-x1k",
+      "className": "UnionX1k",
+      "definition": "union choice { uint8 small; uint16 medium; uint32 large; int32 signed; }; struct rec { uint8 tag; choice value; }; struct root { rec items[1024]; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Manual",
+      "id": "fixed-primitives",
+      "className": "FixedPrimitives",
+      "definition": "struct root { uint16< value; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "3412",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "boolean-primitive",
+      "className": "BooleanPrimitive",
+      "definition": "struct root { bool flag; uint8 tail; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "01AA",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "floating-point-primitives",
+      "className": "FloatingPointPrimitives",
+      "definition": "struct root { float32 a; float64 b; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "0000C03F0000000000000440",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "portable-c-integer-spellings",
+      "className": "PortableCIntegerSpellings",
+      "definition": "struct root { uint32_t value; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "78563412",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "character-buffers",
+      "className": "CharacterBuffers",
+      "definition": "struct root { char value[2]; byte tail; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "41427E",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "terminated-strings",
+      "className": "TerminatedStrings",
+      "definition": "struct root { utf8_string_zero value; byte tail; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "41007E",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "enums",
+      "className": "Enums",
+      "definition": "enum mode : uint8 { One=1, Two=2 }; struct root { mode value; byte tail; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "027E",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "portable-bitfields",
+      "className": "PortableBitfields",
+      "definition": "struct root { uint8 low:4; uint8 high:4; byte tail; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "A57E",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "fixed-arrays",
+      "className": "FixedArrays",
+      "definition": "struct root { uint8 values[2]; byte tail; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "11227E",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "runtime-expression-arrays",
+      "className": "RuntimeExpressionArrays",
+      "definition": "struct root { uint8 values[N]; byte tail; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "11227E",
+      "variables": {
+        "N": 2
+      }
+    },
+    {
+      "source": "Manual",
+      "id": "nested-structs",
+      "className": "NestedStructs",
+      "definition": "struct child { uint8 value; }; struct root { child item; byte tail; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "117E",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "inline-structs",
+      "className": "InlineStructs",
+      "definition": "struct root { struct { uint8 value; } item; byte tail; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "117E",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "anonymous-promoted-member",
+      "className": "AnonymousPromotedMember",
+      "definition": "struct root { uint8 a; struct { uint8 x; uint8 y; }; uint8 b; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "01020304",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "multiple-declarators",
+      "className": "MultipleDeclarators",
+      "definition": "struct root { uint8 first, second; };",
+      "root": "root",
+      "pointerSize": 1,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "0102",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "qualifiers",
+      "className": "Qualifiers",
+      "definition": "struct root { const uint8 value; };",
+      "root": "root",
+      "pointerSize": 1,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "2A",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "field-alignment-override",
+      "className": "FieldAlignmentOverride",
+      "definition": "struct root { uint8 a; uint8 value @align(4); };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "0100000002000000",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "offset-assertion",
+      "className": "OffsetAssertion",
+      "definition": "struct root { uint8 a; uint8 b; uint8 value @2; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "010203",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "composite-alignment-override",
+      "className": "CompositeAlignmentOverride",
+      "definition": "struct root @align(1) { uint8 a; uint32 b; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "0101020304",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "anonymous-bitfield-padding",
+      "className": "AnonymousBitfieldPadding",
+      "definition": "struct root { uint8 flag:1, :3, other:4; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "51",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "typedefs",
+      "className": "Typedefs",
+      "definition": "typedef uint16 word; struct root { word value; byte tail; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "34127E",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "unions",
+      "className": "Unions",
+      "definition": "union choice { uint8 narrow; uint16 wide; };",
+      "root": "choice",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "A512",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "tag-keywords",
+      "className": "TagKeywords",
+      "definition": "struct child { uint8 value; }; struct root { struct child value; };",
+      "root": "root",
+      "pointerSize": 1,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "2A",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "pointers",
+      "className": "Pointers",
+      "definition": "struct root { uint16 *target; byte tail; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "00007E",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "multi-pointers",
+      "className": "MultiPointers",
+      "definition": "struct root { uint8 **target; byte tail; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "00007E",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "alignment-and-endian-overrides",
+      "className": "AlignmentAndEndianOverrides",
+      "definition": "struct root { uint8 head; uint16> big; uint16< little; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "110012347856",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "bounded-failures",
+      "className": "BoundedFailures",
+      "definition": "struct root { utf8_string_zero text; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "414200",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "invalid-layouts",
+      "className": "InvalidLayouts",
+      "definition": "struct root { uint8 value; };",
+      "root": "root",
+      "pointerSize": 2,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "2A",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "integers-24",
+      "className": "Integers24",
+      "definition": "struct root { int24< values[2]; uint8 tail; };",
+      "root": "root",
+      "pointerSize": 1,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "010000FEFFFF63",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "bounded-encodings",
+      "className": "BoundedEncodings",
+      "definition": "struct root { utf8 label[2]; uint8 tail; };",
+      "root": "root",
+      "pointerSize": 1,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "C3A963",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "leb128-integers",
+      "className": "Leb128Integers",
+      "definition": "struct root { uleb128_32 value; uint8 tail; };",
+      "root": "root",
+      "pointerSize": 1,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "800163",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "fixed-point-values",
+      "className": "FixedPointValues",
+      "definition": "struct root { fixed16_16> value; };",
+      "root": "root",
+      "pointerSize": 1,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "FFFE8000",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "identifier-values",
+      "className": "IdentifierValues",
+      "definition": "struct root { uuid network; guid windows; };",
+      "root": "root",
+      "pointerSize": 1,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "00112233445566778899AABBCCDDEEFF33221100554477668899AABBCCDDEEFF",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "conditional-fields",
+      "className": "ConditionalFields",
+      "definition": "struct root { uint8 tag; if(tag == 1) { uint24< number; } else { utf8 label[3]; } uint8 tail; };",
+      "root": "root",
+      "pointerSize": 1,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "012A000063",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "alias-spellings",
+      "className": "AliasSpellings",
+      "definition": "struct root { BYTE kind; WORD count; DWORD length; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "02030004000000",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "typedef-forms",
+      "className": "TypedefForms",
+      "definition": "typedef struct _X { uint8 a; uint16 b; } X, *PX; typedef uint8 pair[2]; struct root { X x; _X y; pair p; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "0102000304000506",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "top-level-declarations",
+      "className": "TopLevelDeclarations",
+      "definition": "struct { uint16 sec; uint16 usec; } timeval; struct root { timeval stamp; uint8 tail; } header;",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "0100020003",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "preprocessor-lines",
+      "className": "PreprocessorLines",
+      "definition": "#define N 2\n#pragma pack(1)\n#ifdef N\nstruct root { uint8 a; uint32 b; uint8 v[N]; };\n#else\nstruct root { uint8 a; };\n#endif",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "01020000000304",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "inline-unions",
+      "className": "InlineUnions",
+      "definition": "struct root { uint32 attributes; union { struct { uint16 ea_size; uint16 reserved; }; uint32 reparse_tag; }; uint8 name_length; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "200000003412785603",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "data-sized-arrays",
+      "className": "DataSizedArrays",
+      "definition": "struct entry { uint8 kind; uint8 size; }; struct root { entry entries[]; uint16 values[EOF]; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "010A02140000050006000700",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "flags",
+      "className": "Flags",
+      "definition": "flag access : uint16 { READ, WRITE, EXEC, HIDDEN = 0x100 }; struct root { access mode; uint8 tail; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "050107",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "enum-bitfields",
+      "className": "EnumBitfields",
+      "definition": "enum kind : uint16 { NONE, CODE, DATA, CONST }; struct root { kind type : 2; kind name_type : 3; uint16 rest : 11; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "AE5A",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "expression-extensions",
+      "className": "ExpressionExtensions",
+      "definition": "enum kind : uint8 { A = 1, B = 6 ^ 3 }; struct head { uint32 a; uint16 b; }; struct root { uint8 x[kind.B % 4]; uint8 y[sizeof(head) ? offsetof(head, b) : 9]; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "0102030405",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "wide-primitives",
+      "className": "WidePrimitives",
+      "definition": "struct root { uint48 a; float16 b; void *p; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "010203040506003C08000000",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "bitfield-allocation",
+      "className": "BitfieldAllocation",
+      "definition": "struct root { uint16 a : 4; uint16 b : 12; uint8 c : 3; uint8 d : 5; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": false,
+      "bitfieldAllocation": "HighBitFirst",
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "123426",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "c-long-width",
+      "className": "CLongWidth",
+      "definition": "struct root { long a; unsigned long b; uint8 tail; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 32,
+      "defaultEnumStorage": null,
+      "bytes": "FFFFFFFF0200000007",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "default-enum-storage",
+      "className": "DefaultEnumStorage",
+      "definition": "enum kind { NONE, DATA = 2 }; struct root { kind type; uint8 tail; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": "uint8",
+      "bytes": "0207",
+      "variables": {}
+    },
+    {
+      "source": "Manual",
+      "id": "nested-references",
+      "className": "NestedReferences",
+      "definition": "struct h { uint8 n; uint8 pad; }; struct root { h hdr; uint8 v[hdr.n]; uint8 tail; };",
+      "root": "root",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldAllocation": null,
+      "cLongWidth": 0,
+      "defaultEnumStorage": null,
+      "bytes": "0200070809",
+      "variables": {}
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-u8-u16-sysv",
+      "className": "BitsU8U16Sysv",
+      "definition": "struct s { uint8 a:4; uint16 b:4; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 15,
+        "b": 10
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-u8-u16-msvc",
+      "className": "BitsU8U16Msvc",
+      "definition": "struct s { uint8 a:4; uint16 b:4; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 15,
+        "b": 10
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-u8-u8-u16-sysv",
+      "className": "BitsU8U8U16Sysv",
+      "definition": "struct s { uint8 a:3; uint8 b:5; uint16 c; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 7,
+        "b": 31,
+        "c": 43981
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-u8-u8-u16-msvc",
+      "className": "BitsU8U8U16Msvc",
+      "definition": "struct s { uint8 a:3; uint8 b:5; uint16 c; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 7,
+        "b": 31,
+        "c": 43981
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-u32-3-29-1-sysv",
+      "className": "BitsU323291Sysv",
+      "definition": "struct s { uint32 a:3; uint32 b:29; uint32 c:1; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 7,
+        "b": 536870911,
+        "c": 1
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-u32-3-29-1-msvc",
+      "className": "BitsU323291Msvc",
+      "definition": "struct s { uint32 a:3; uint32 b:29; uint32 c:1; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 7,
+        "b": 536870911,
+        "c": 1
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-u16-15-u8-2-sysv",
+      "className": "BitsU1615U82Sysv",
+      "definition": "struct s { uint16 a:15; uint8 b:2; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 32767,
+        "b": 3
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-u16-15-u8-2-msvc",
+      "className": "BitsU1615U82Msvc",
+      "definition": "struct s { uint16 a:15; uint8 b:2; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 32767,
+        "b": 3
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-zero-width-sysv",
+      "className": "BitsZeroWidthSysv",
+      "definition": "struct s { uint8 a:3; uint8 :0; uint8 b:3; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 7,
+        "b": 7
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-zero-width-msvc",
+      "className": "BitsZeroWidthMsvc",
+      "definition": "struct s { uint8 a:3; uint8 :0; uint8 b:3; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 7,
+        "b": 7
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-zero-width-u32-sysv",
+      "className": "BitsZeroWidthU32Sysv",
+      "definition": "struct s { uint8 a:3; uint32 :0; uint8 b:3; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 7,
+        "b": 7
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-zero-width-u32-msvc",
+      "className": "BitsZeroWidthU32Msvc",
+      "definition": "struct s { uint8 a:3; uint32 :0; uint8 b:3; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 7,
+        "b": 7
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-signed-sysv",
+      "className": "BitsSignedSysv",
+      "definition": "struct s { int8 a:3; uint8 b:5; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 7,
+        "b": 31
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-signed-msvc",
+      "className": "BitsSignedMsvc",
+      "definition": "struct s { int8 a:3; uint8 b:5; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 7,
+        "b": 31
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-u8-6-6-sysv",
+      "className": "BitsU866Sysv",
+      "definition": "struct s { uint8 a:6; uint8 b:6; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 63,
+        "b": 63
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-u8-6-6-msvc",
+      "className": "BitsU866Msvc",
+      "definition": "struct s { uint8 a:6; uint8 b:6; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 63,
+        "b": 63
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-u64-u8-sysv",
+      "className": "BitsU64U8Sysv",
+      "definition": "struct s { uint64 a:4; uint8 b:4; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 15,
+        "b": 15
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-u64-u8-msvc",
+      "className": "BitsU64U8Msvc",
+      "definition": "struct s { uint64 a:4; uint8 b:4; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 15,
+        "b": 15
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-after-byte-sysv",
+      "className": "BitsAfterByteSysv",
+      "definition": "struct s { uint8 x; uint32 a:4; uint8 b:4; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "x": 170,
+        "a": 15,
+        "b": 15
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bits-after-byte-msvc",
+      "className": "BitsAfterByteMsvc",
+      "definition": "struct s { uint8 x; uint32 a:4; uint8 b:4; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "x": 170,
+        "a": 15,
+        "b": 15
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "u64-after-u8-sysv",
+      "className": "U64AfterU8Sysv",
+      "definition": "struct s { uint8 a; uint64 b; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 17,
+        "b": 9833440827789222000
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "u64-after-u8-msvc",
+      "className": "U64AfterU8Msvc",
+      "definition": "struct s { uint8 a; uint64 b; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 17,
+        "b": 9833440827789222000
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "double-after-u8-sysv",
+      "className": "DoubleAfterU8Sysv",
+      "definition": "struct s { uint8 a; float64 b; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 17,
+        "b": 1.5
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "double-after-u8-msvc",
+      "className": "DoubleAfterU8Msvc",
+      "definition": "struct s { uint8 a; float64 b; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 17,
+        "b": 1.5
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "long-sysv",
+      "className": "LongSysv",
+      "definition": "struct s { uint8 a; long b; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 17,
+        "b": 305419896
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "long-msvc",
+      "className": "LongMsvc",
+      "definition": "struct s { uint8 a; long b; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 17,
+        "b": 305419896
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "enum-large-sysv",
+      "className": "EnumLargeSysv",
+      "definition": "enum big : int32 { BIG = 0x7FFFFFFF }; struct s { uint8 a; big b; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 17,
+        "b": 2147483647
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "enum-large-msvc",
+      "className": "EnumLargeMsvc",
+      "definition": "enum big : int32 { BIG = 0x7FFFFFFF }; struct s { uint8 a; big b; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 17,
+        "b": 2147483647
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bool-sysv",
+      "className": "BoolSysv",
+      "definition": "struct s { uint8 a; bool b; uint16 c; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 17,
+        "b": true,
+        "c": 8755
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "bool-msvc",
+      "className": "BoolMsvc",
+      "definition": "struct s { uint8 a; bool b; uint16 c; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 17,
+        "b": true,
+        "c": 8755
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "pack2-array-sysv",
+      "className": "Pack2ArraySysv",
+      "definition": "#pragma pack(2)\nstruct s { uint8 a; uint32 b[2]; uint8 c; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 17,
+        "b": [
+          573785173,
+          1719109785
+        ],
+        "c": 170
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "pack2-array-msvc",
+      "className": "Pack2ArrayMsvc",
+      "definition": "#pragma pack(2)\nstruct s { uint8 a; uint32 b[2]; uint8 c; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 17,
+        "b": [
+          573785173,
+          1719109785
+        ],
+        "c": 170
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "nested-align-sysv",
+      "className": "NestedAlignSysv",
+      "definition": "struct inner { uint8 a; uint32 b; }; struct s { uint8 x; inner in; uint8 y; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "x": 17,
+        "in": {
+          "a": 34,
+          "b": 860116326
+        },
+        "y": 119
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "nested-align-msvc",
+      "className": "NestedAlignMsvc",
+      "definition": "struct inner { uint8 a; uint32 b; }; struct s { uint8 x; inner in; uint8 y; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "x": 17,
+        "in": {
+          "a": 34,
+          "b": 860116326
+        },
+        "y": 119
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "union-size-sysv",
+      "className": "UnionSizeSysv",
+      "definition": "union s { uint8 a; uint32 b; uint16 c[3]; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "c": [
+          4386,
+          13124,
+          21862
+        ]
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "union-size-msvc",
+      "className": "UnionSizeMsvc",
+      "definition": "union s { uint8 a; uint32 b; uint16 c[3]; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "c": [
+          4386,
+          13124,
+          21862
+        ]
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "packed-bits-u8-u16-sysv",
+      "className": "PackedBitsU8U16Sysv",
+      "definition": "struct s { uint8 a:4; uint16 b:4; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 15,
+        "b": 10
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "packed-bits-u8-u16-msvc",
+      "className": "PackedBitsU8U16Msvc",
+      "definition": "struct s { uint8 a:4; uint16 b:4; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 15,
+        "b": 10
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "packed-bits-u8-6-6-sysv",
+      "className": "PackedBitsU866Sysv",
+      "definition": "struct s { uint8 a:6; uint8 b:6; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 63,
+        "b": 63
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "packed-bits-u8-6-6-msvc",
+      "className": "PackedBitsU866Msvc",
+      "definition": "struct s { uint8 a:6; uint8 b:6; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 63,
+        "b": 63
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "packed-bits-u16-15-u8-2-sysv",
+      "className": "PackedBitsU1615U82Sysv",
+      "definition": "struct s { uint16 a:15; uint8 b:2; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "a": 32767,
+        "b": 3
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "packed-bits-u16-15-u8-2-msvc",
+      "className": "PackedBitsU1615U82Msvc",
+      "definition": "struct s { uint16 a:15; uint8 b:2; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "a": 32767,
+        "b": 3
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "packed-bits-after-byte-sysv",
+      "className": "PackedBitsAfterByteSysv",
+      "definition": "struct s { uint8 x; uint32 a:4; uint8 b:4; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldPacking": "SysV",
+      "values": {
+        "x": 170,
+        "a": 15,
+        "b": 15
+      }
+    },
+    {
+      "source": "Shapes",
+      "id": "packed-bits-after-byte-msvc",
+      "className": "PackedBitsAfterByteMsvc",
+      "definition": "struct s { uint8 x; uint32 a:4; uint8 b:4; };",
+      "root": "s",
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true,
+      "bitfieldPacking": "Msvc",
+      "values": {
+        "x": 170,
+        "a": 15,
+        "b": 15
+      }
+    },
+    {
+      "source": "Conditional",
+      "id": "header",
+      "className": "Header",
+      "definition": "struct root { uint8 kind; uint32 value; uint16 flags; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "size": 7,
+      "fill": 0
+    },
+    {
+      "source": "Conditional",
+      "id": "fields128",
+      "className": "Fields128",
+      "definition": "struct root { uint32 f0;uint32 f1;uint32 f2;uint32 f3;uint32 f4;uint32 f5;uint32 f6;uint32 f7;uint32 f8;uint32 f9;uint32 f10;uint32 f11;uint32 f12;uint32 f13;uint32 f14;uint32 f15;uint32 f16;uint32 f17;uint32 f18;uint32 f19;uint32 f20;uint32 f21;uint32 f22;uint32 f23;uint32 f24;uint32 f25;uint32 f26;uint32 f27;uint32 f28;uint32 f29;uint32 f30;uint32 f31;uint32 f32;uint32 f33;uint32 f34;uint32 f35;uint32 f36;uint32 f37;uint32 f38;uint32 f39;uint32 f40;uint32 f41;uint32 f42;uint32 f43;uint32 f44;uint32 f45;uint32 f46;uint32 f47;uint32 f48;uint32 f49;uint32 f50;uint32 f51;uint32 f52;uint32 f53;uint32 f54;uint32 f55;uint32 f56;uint32 f57;uint32 f58;uint32 f59;uint32 f60;uint32 f61;uint32 f62;uint32 f63;uint32 f64;uint32 f65;uint32 f66;uint32 f67;uint32 f68;uint32 f69;uint32 f70;uint32 f71;uint32 f72;uint32 f73;uint32 f74;uint32 f75;uint32 f76;uint32 f77;uint32 f78;uint32 f79;uint32 f80;uint32 f81;uint32 f82;uint32 f83;uint32 f84;uint32 f85;uint32 f86;uint32 f87;uint32 f88;uint32 f89;uint32 f90;uint32 f91;uint32 f92;uint32 f93;uint32 f94;uint32 f95;uint32 f96;uint32 f97;uint32 f98;uint32 f99;uint32 f100;uint32 f101;uint32 f102;uint32 f103;uint32 f104;uint32 f105;uint32 f106;uint32 f107;uint32 f108;uint32 f109;uint32 f110;uint32 f111;uint32 f112;uint32 f113;uint32 f114;uint32 f115;uint32 f116;uint32 f117;uint32 f118;uint32 f119;uint32 f120;uint32 f121;uint32 f122;uint32 f123;uint32 f124;uint32 f125;uint32 f126;uint32 f127; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "size": 512,
+      "fill": 0
+    },
+    {
+      "source": "Conditional",
+      "id": "bytes1024",
+      "className": "Bytes1024",
+      "definition": "struct root { uint8 values[1024]; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "size": 1024,
+      "fill": 0
+    },
+    {
+      "source": "Conditional",
+      "id": "nested16",
+      "className": "Nested16",
+      "definition": "struct leaf { uint8 marker; uint32 value; }; struct root { leaf items[16]; uint16 tail; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "size": 82,
+      "fill": 0
+    },
+    {
+      "source": "Conditional",
+      "id": "dynamic32",
+      "className": "Dynamic32",
+      "definition": "struct root { uint8 count; uint16 values[count]; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "size": 65,
+      "fill": 32
+    },
+    {
+      "source": "Conditional",
+      "id": "text64",
+      "className": "Text64",
+      "definition": "struct root { char name[64]; uint32 value; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "size": 68,
+      "fill": 65
+    },
+    {
+      "source": "Conditional",
+      "id": "plain1",
+      "className": "Plain1",
+      "definition": "struct entry { uint8 tag; uint32 value; uint16 tail; }; struct root { entry items[1]; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "size": 7,
+      "fill": 1
+    },
+    {
+      "source": "Conditional",
+      "id": "if1",
+      "className": "If1",
+      "definition": "struct entry { uint8 tag; if (tag == 1) { uint32 value; } else { uint16 small; } uint16 tail; }; struct root { entry items[1]; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "size": 7,
+      "fill": 1
+    },
+    {
+      "source": "Conditional",
+      "id": "switch1",
+      "className": "Switch1",
+      "definition": "struct entry { uint8 tag; switch (tag) { case 1: { uint32 value; } default: { uint16 small; } } uint16 tail; }; struct root { entry items[1]; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "size": 7,
+      "fill": 1
+    },
+    {
+      "source": "Conditional",
+      "id": "plain128",
+      "className": "Plain128",
+      "definition": "struct entry { uint8 tag; uint32 value; uint16 tail; }; struct root { entry items[128]; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "size": 896,
+      "fill": 1
+    },
+    {
+      "source": "Conditional",
+      "id": "if128",
+      "className": "If128",
+      "definition": "struct entry { uint8 tag; if (tag == 1) { uint32 value; } else { uint16 small; } uint16 tail; }; struct root { entry items[128]; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "size": 896,
+      "fill": 1
+    },
+    {
+      "source": "Conditional",
+      "id": "switch128",
+      "className": "Switch128",
+      "definition": "struct entry { uint8 tag; switch (tag) { case 1: { uint32 value; } default: { uint16 small; } } uint16 tail; }; struct root { entry items[128]; };",
+      "root": "root",
+      "pointerSize": 4,
+      "aligned": false,
+      "littleEndian": true,
+      "size": 896,
+      "fill": 1
+    },
+    {
+      "source": "Recipes",
+      "id": "aligned-header",
+      "className": "AlignedHeader",
+      "definition": "struct header { uint16 kind; uint32 length; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "bit-flags",
+      "className": "BitFlags",
+      "definition": "struct flags { uint8 enabled : 1; uint8 mode : 3; uint8 reserved : 4; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "bounded-encodings",
+      "className": "BoundedEncodings",
+      "definition": "struct root { utf8 currency[3]; latin1 western[1]; cp437 dos[1]; utf16le little[4]; utf16be big[4]; uint8 tail; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "bounded-read",
+      "className": "BoundedRead",
+      "definition": "struct header { uint16 kind; uint32 length; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "byte-order",
+      "className": "ByteOrder",
+      "definition": "struct header { uint16 kind; uint32 length; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "byte-order-2",
+      "className": "ByteOrder2",
+      "definition": "struct header { uint16 kind; uint32 length; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": false
+    },
+    {
+      "source": "Recipes",
+      "id": "composite-record",
+      "className": "CompositeRecord",
+      "definition": "enum kind : uint8 { Text = 1, Numbers = 2 };\nunion payload_word { uint8 small; uint16 large; };\nstruct record {\n    kind type;\n    char label[3];\n    payload_word payload;\n};",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "conditional-records",
+      "className": "ConditionalRecords",
+      "definition": "struct entry {\n    uint8 kind;\n    switch (kind) {\n        case 1: { utf8 label[3]; }\n        default: { uint24< number; }\n    }\n    if (kind == 1) { uint8 flags; }\n};\nstruct root { uleb128_32 count; entry items[count]; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "conditional-records-2",
+      "className": "ConditionalRecords2",
+      "definition": "struct entry { uint8 tag; int8 some_parameter; if (some_parameter * 20 > 10) { uint8 high; } else { uint8 low; } switch (tag) { case 1: { uint8 first; } case 2: { uint8 second; } default: { uint8 other; } } }; struct root { entry items[3]; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "conditional-records-3",
+      "className": "ConditionalRecords3",
+      "definition": "#define count 99\nstruct entry { uint8 tag; if (tag) { uint8 count; } if (count > 0) { uint8 payload[count]; } }; struct root { entry items[2]; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "conditional-records-4",
+      "className": "ConditionalRecords4",
+      "definition": "#define count 99\nstruct entry { uint8 tag; if (tag) { uint8 count; } if (count > 0) { uint8 payload[count]; } }; struct root { entry items[2]; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "conditional-records-5",
+      "className": "ConditionalRecords5",
+      "definition": "struct root { uint8 tag; if (tag) { if (missing > 0) { uint8 value; } } uint8 tail; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "decode-header",
+      "className": "DecodeHeader",
+      "definition": "struct header { uint16 kind; uint32 length; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "edit-file",
+      "className": "EditFile",
+      "definition": "struct header { uint8 signature[2]; uint8 version; uint8 count; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "edit-file-2",
+      "className": "EditFile2",
+      "definition": "struct record { uint16 id; uint8 flags; }; struct data { record records[COUNT]; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "fixed-point",
+      "className": "FixedPoint",
+      "definition": "struct root { fixed16_16> revision; ufixed8_8< volume; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "fixed-text",
+      "className": "FixedText",
+      "definition": "struct label { char text[4]; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "flags-and-data-sized-arrays",
+      "className": "FlagsAndDataSizedArrays",
+      "definition": "flag access : uint16 { READ, WRITE, EXEC, HIDDEN = 0x100 };\nstruct entry { uint8 kind; uint8 size; };\nstruct root {\n    access mode;\n    entry entries[];\n    uint16 trailer[EOF];\n};",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "follow-pointer",
+      "className": "FollowPointer",
+      "definition": "struct root { uint8 *target; };",
+      "root": null,
+      "pointerSize": 1,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "header-preprocessor",
+      "className": "HeaderPreprocessor",
+      "definition": "#define MAGIC \"CD001\"\n#define BLOCK_MASK (1 << 40)\n#define LEGACY_VERSION 1\n#ifdef WIDE_COUNTS\ntypedef uint32 count_t;\n#else\ntypedef uint16 count_t;\n#endif\nstruct header { uint8 kind; uint32 length; };\nstruct root {\n    count_t count;\n    uint8 payload[count % 4 == 0 ? sizeof(header) : offsetof(header, length)];\n};",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "header-round-trip",
+      "className": "HeaderRoundTrip",
+      "definition": "struct header { uint16 kind; uint32 length; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "identifier-order",
+      "className": "IdentifierOrder",
+      "definition": "struct root { uuid network; guid windows; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "inspect-ranges",
+      "className": "InspectRanges",
+      "definition": "struct sample { uint8 tag; uint16 value; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "integers-24",
+      "className": "Integers24",
+      "definition": "struct root { uint24< size; int24< delta; uint8 tail; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": true,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "invalid-path",
+      "className": "InvalidPath",
+      "definition": "struct header { uint16 kind; uint32 length; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "layout-introspection",
+      "className": "LayoutIntrospection",
+      "definition": "enum kind : uint8 { NONE, DATA = 2 }; struct root { kind type; uint16 length; char name[4]; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "map-poco",
+      "className": "MapPoco",
+      "definition": "struct point { int16 x; int16 y; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "nested-array",
+      "className": "NestedArray",
+      "definition": "struct item { uint16 id; }; struct packet { item items[2]; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "patch-field",
+      "className": "PatchField",
+      "definition": "struct item { uint16 id; uint8 flags; }; struct root { item value; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "positioned-stream",
+      "className": "PositionedStream",
+      "definition": "struct header { uint16 kind; uint32 length; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "preserve-enum",
+      "className": "PreserveEnum",
+      "definition": "enum state : uint32 { Known = 1 }; struct root { state value; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "preserve-union",
+      "className": "PreserveUnion",
+      "definition": "union choice { uint8 small; uint16 large; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "relative-pointer",
+      "className": "RelativePointer",
+      "definition": "struct root { uint8 *target; };",
+      "root": null,
+      "pointerSize": 1,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "round-trip",
+      "className": "RoundTrip",
+      "definition": "struct sample { uint16 id; uint8 flags; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "runtime-payload",
+      "className": "RuntimePayload",
+      "definition": "struct packet { uint8 kind; uint8 payload[COUNT]; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "terminated-text",
+      "className": "TerminatedText",
+      "definition": "struct label { char text[]; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "variable-integers",
+      "className": "VariableIntegers",
+      "definition": "struct root { uleb128_32 count; uleb128_64 values[count]; sleb128_32 delta; uint8 tail; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "windows-header",
+      "className": "WindowsHeader",
+      "definition": "typedef struct _RECORD {\n    DWORD   Magic;\n    WORD    Version;\n    WORD    _;\n    union version_information {\n        DWORD Packed;\n        struct { BYTE Major; BYTE Minor; WORD Build; };\n    };\n    DWORD   _;\n    PWSTR   Name;\n} RECORD, *PRECORD;",
+      "root": null,
+      "pointerSize": 4,
+      "aligned": true,
+      "littleEndian": true
+    }
+  ],
+  "skipped": [
+    {
+      "source": "Benchmarks",
+      "id": "parity-primitive-root-256",
+      "reason": "the root is a type spelling, not a declaration (CSG004)"
+    },
+    {
+      "source": "Recipes",
+      "id": "custom-codec",
+      "reason": "compilation options or codecs are constructed in code"
+    },
+    {
+      "source": "Recipes",
+      "id": "layout-introspection",
+      "reason": "definition is not a string constant of the file"
+    }
+  ]
+}
