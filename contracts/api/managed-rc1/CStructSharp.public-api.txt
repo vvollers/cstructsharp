@@ -137,7 +137,9 @@ namespace CStructSharp
     }
     public static class MappedTypes
     {
+        public static T ConvertValue<T>(object? value, string member) { }
         public static bool IsMapped(System.Type type) { }
+        public static string MemberName(CStructSharp.Values.StructValue source, string propertyName) { }
         public static void Register<T>()
             where T : CStructSharp.ICStructMapped<T> { }
     }

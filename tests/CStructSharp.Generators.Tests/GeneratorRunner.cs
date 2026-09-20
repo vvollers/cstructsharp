@@ -41,7 +41,7 @@ internal static class GeneratorRunner
             References.Value,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable, allowUnsafe: true));
 
-        GeneratorDriver driver = CSharpGeneratorDriver.Create([new CStructLayoutGenerator().AsSourceGenerator()], parseOptions: parseOptions);
+        GeneratorDriver driver = CSharpGeneratorDriver.Create([new CStructLayoutGenerator().AsSourceGenerator(), new CStructMappedGenerator().AsSourceGenerator()], parseOptions: parseOptions);
         if (additionalFiles is { Count: > 0 })
         {
             driver = driver.AddAdditionalTexts([.. additionalFiles.Select(file => (AdditionalText)new InMemoryAdditionalText(file.Path, file.Text))]);

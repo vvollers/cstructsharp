@@ -17,6 +17,12 @@ internal static class EnumFieldValueParser
     {
         try
         {
+            // A CLR enum (a mapped class's property) is its underlying integer: the layout enum is matched by value.
+            if (value is Enum clrEnum)
+            {
+                value = Convert.ChangeType(clrEnum, Enum.GetUnderlyingType(clrEnum.GetType()), System.Globalization.CultureInfo.InvariantCulture);
+            }
+
             BigInteger result;
             if (value is EnumValueResult parsed)
             {

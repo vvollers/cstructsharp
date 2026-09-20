@@ -86,6 +86,16 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   project as an additional file marked `CStructSharpLayout="true"` (a file with another extension can be marked
   the same way), and `<DisableCStructSharpGenerator>true</DisableCStructSharpGenerator>` keeps the runtime and skips
   generation. A class named like a generated member (`Layout`, `Parse`, `Sizes`, ...) is reported as CSG003.
+- `[CStructMapped]` generator: a `partial` class or struct with public settable properties gains
+  `ICStructMapped<TSelf>` - `ReadFrom` assigns every property by name with the conversions of `Get<T>` (scalars,
+  strings, enums by value, nested mapped classes, arrays, `List<T>`/`IList<T>`/`ICollection<T>`, read-only
+  collections, `Pointer<T>`, `StructValue`/`UnionValue`/`Pointer`/`object`, and `T?` for a member a conditional arm
+  may leave out), `WriteTo` copies them back, and a module initializer registers the type. Names match the layout
+  member exactly, then case-insensitively, then ignoring underscores (`bit_depth` ↔ `BitDepth`); `[CStructMember]`
+  names one explicitly, and `[CStructMapped(Layout = "root")]` resolves the names at build time against a
+  `[CStructLayout]` of the same compilation (CSG102 warns about a property without a counterpart). CSG100 (not
+  `partial`, or no parameterless constructor) and CSG101 (a property whose class is not mapped) are errors. A CLR
+  enum value is accepted wherever a layout enum is written (matched by value).
 
 ### Fixed
 

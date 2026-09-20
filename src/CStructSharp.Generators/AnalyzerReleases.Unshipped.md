@@ -12,3 +12,6 @@ CSG004 | CStructSharp | Warning | Unknown root declaration
 CSG005 | CStructSharp | Error | Attributed class must be partial
 CSG006 | CStructSharp | Error | Custom codec declaration is invalid
 CSG010 | CStructSharp | Error | C# 12 or later is required
+CSG100 | CStructSharp | Error | Mapped type must be partial with a parameterless constructor
+CSG101 | CStructSharp | Error | Mapped member type is not mapped
+CSG102 | CStructSharp | Warning | Mapped member has no layout counterpart

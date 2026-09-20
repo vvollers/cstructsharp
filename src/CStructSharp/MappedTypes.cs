@@ -33,6 +33,68 @@ public static class MappedTypes
         return Entries.ContainsKey(type);
     }
 
+    /// <summary>
+    ///     Finds the layout member a mapped property maps to, for a generated mapper that did not resolve its layout
+    ///     at build time: the exact name, else the single case-insensitive match, else the single match after
+    ///     underscores are ignored (<c>bit_depth</c> for <c>BitDepth</c>), else <paramref name="propertyName"/>
+    ///     itself (which the following <c>Get</c> reports as missing, with the members that exist).
+    /// </summary>
+    /// <param name="source">The value being mapped.</param>
+    /// <param name="propertyName">The mapped property's name.</param>
+    /// <returns>The member name to read or write.</returns>
+    public static string MemberName(StructValue source, string propertyName)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(propertyName);
+        string[] names = source.Shape.Names;
+        if (Array.IndexOf(names, propertyName) >= 0)
+        {
+            return propertyName;
+        }
+
+        string? found = null;
+        foreach (string name in names)
+        {
+            if (string.Equals(name, propertyName, StringComparison.OrdinalIgnoreCase))
+            {
+                if (found is not null)
+                {
+                    return propertyName;
+                }
+
+                found = name;
+            }
+        }
+
+        if (found is not null)
+        {
+            return found;
+        }
+
+        foreach (string name in names)
+        {
+            if (name.IndexOf('_') >= 0 && string.Equals(name.Replace("_", string.Empty), propertyName, StringComparison.OrdinalIgnoreCase))
+            {
+                if (found is not null)
+                {
+                    return propertyName;
+                }
+
+                found = name;
+            }
+        }
+
+        return found ?? propertyName;
+    }
+
+    /// <summary>Converts a value the reader produced (a pointer target, a union member) to <typeparamref name="T"/> with the rules of <c>Get&lt;T&gt;</c>.</summary>
+    /// <typeparam name="T">The destination type.</typeparam>
+    /// <param name="value">The value to convert.</param>
+    /// <param name="member">The member the value belongs to, for the failure message.</param>
+    /// <returns>The converted value.</returns>
+    /// <exception cref="Diagnostics.CStructReadException">The value cannot be converted without loss.</exception>
+    public static T ConvertValue<T>(object? value, string member) => (T)TypedValueConverter.Convert(value, typeof(T), member)!;
+
     /// <summary>Reads an instance of <paramref name="type"/> from <paramref name="source"/>, when the type is registered.</summary>
     internal static bool TryRead(Type type, StructValue source, out object? result)
     {

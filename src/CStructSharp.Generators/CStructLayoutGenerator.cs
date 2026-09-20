@@ -73,6 +73,52 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         return options.GetOptions(file).TryGetValue("build_metadata.AdditionalFiles.CStructSharpLayout", out string? marked) && string.Equals(marked, "true", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>The layout request of a [CStructLayout] class, for the mapped-class generator's layout resolution.</summary>
+    internal static LayoutRequest? CreateRequestForMapping(GeneratorAttributeSyntaxContext context, CancellationToken cancellation) => CreateRequest(context, cancellation);
+
+    /// <summary>
+    ///     The member names of the composite <paramref name="layoutName"/> in the first inline layout of the
+    ///     compilation that declares it (a layout read from a file is not searched), or <see langword="null"/> when
+    ///     no layout declares it or the layout does not compile (its own class reports that).
+    /// </summary>
+    internal static IReadOnlyList<string>? ResolveMembers(ImmutableArray<LayoutRequest> layouts, string layoutName)
+    {
+        foreach (LayoutRequest request in layouts)
+        {
+            if (request.Definition is null)
+            {
+                continue;
+            }
+
+            try
+            {
+                var codecs = new List<CustomCodecDescriptor>();
+                foreach (string declaration in request.Codecs)
+                {
+                    if (CustomCodecDeclaration.TryParse(declaration, out CustomCodecDescriptor descriptor))
+                    {
+                        codecs.Add(descriptor);
+                    }
+                }
+
+                LayoutCompilation compilation = Compile(request.Definition, request, codecs);
+                foreach (KeyValuePair<Syntax.Struct, CompiledTypeSymbol> entry in compilation.CompiledModel.Composites)
+                {
+                    if (entry.Value.Definition is CompiledCompositeType composite && composite.Name == layoutName)
+                    {
+                        return composite.Shape.Names;
+                    }
+                }
+            }
+            catch (Exception exception) when (exception is CStructException or ArgumentException)
+            {
+                // The layout's own class reports the failure; the mapper falls back to run-time name matching.
+            }
+        }
+
+        return null;
+    }
+
     private static LayoutRequest? CreateRequest(GeneratorAttributeSyntaxContext context, CancellationToken cancellation)
     {
         if (context.TargetSymbol is not INamedTypeSymbol symbol || context.TargetNode is not ClassDeclarationSyntax declaration)

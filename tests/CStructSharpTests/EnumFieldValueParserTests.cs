@@ -15,6 +15,12 @@ using CStructSharp.Values;
 [TestClass]
 public class EnumFieldValueParserTests
 {
+    private enum ClrMode : byte
+    {
+        First = 1,
+        Second = 2,
+    }
+
     private static (CompiledEnumType Compiled, CStructSharp.Syntax.Enum Declaration) CompileMode()
     {
         var cstruct = new CStruct("enum mode : uint8 { One=1, Two=2 };", pointerSize: 1);
@@ -33,6 +39,16 @@ public class EnumFieldValueParserTests
         BigInteger result = EnumFieldValueParser.GetEnumValue(compiled, "Two");
 
         Assert.AreEqual(new BigInteger(2), result);
+    }
+
+    /// <summary>A CLR enum value (a mapped class's property) is matched by its underlying integer, whatever its C# name.</summary>
+    [TestMethod]
+    public void GetEnumValue_ClrEnum_ResolvesByUnderlyingValue()
+    {
+        (CompiledEnumType compiled, _) = CompileMode();
+
+        Assert.AreEqual(new BigInteger(2), EnumFieldValueParser.GetEnumValue(compiled, ClrMode.Second));
+        Assert.AreEqual(new BigInteger(5), EnumFieldValueParser.GetEnumValue(compiled, (ClrMode)5));
     }
 
     /// <summary>A decimal string that is not a member name is parsed as an invariant integer.</summary>

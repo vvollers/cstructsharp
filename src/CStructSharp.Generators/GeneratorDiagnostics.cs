@@ -58,6 +58,30 @@ internal static class GeneratorDiagnostics
         isEnabledByDefault: true,
         description: "An entry of [CStructLayout(Codecs = ...)] must be \"name\", \"name:size\", \"name:size:alignment\", or \"name:*:alignment\" with an identifier name, a non-negative size, and a power-of-two alignment, and must not repeat a built-in type.");
 
+    public static readonly DiagnosticDescriptor MappedNotPartial = new(
+        "CSG100",
+        "Mapped type must be partial with a parameterless constructor",
+        "'{0}' {1} for the generator to add its ICStructMapped implementation",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor MappedMemberType = new(
+        "CSG101",
+        "Mapped member type is not mapped",
+        "The type of '{0}', {1}, is a class that is neither [CStructMapped] nor ICStructMapped<T>; mark it, or map the member as StructValue",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor MappedMemberMissing = new(
+        "CSG102",
+        "Mapped member has no layout counterpart",
+        "'{0}' matches no member of the layout '{1}' (by exact name, case-insensitively, or ignoring underscores); add [CStructMember(\"name\")] or rename it",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     public static readonly DiagnosticDescriptor LanguageVersion = new(
         "CSG010",
         "C# 12 or later is required",
