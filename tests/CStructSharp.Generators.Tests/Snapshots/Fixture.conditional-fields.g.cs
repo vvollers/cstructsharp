@@ -36,11 +36,17 @@ namespace Demo
             /// <summary><c>uint8 tag</c>.</summary>
             public byte Tag { get; set; }
 
-            /// <summary><c>uint24< number</c> (conditional).</summary>
+            /// <summary>Whether <c>number</c> was selected by its condition and holds a value.</summary>
+            public bool HasNumber { get; set; }
+
+            /// <summary><c>uint24< number</c> (conditional; see <see cref="HasNumber"/>).</summary>
             public uint Number { get; set; }
 
-            /// <summary><c>utf8 label[3]</c> (conditional).</summary>
-            public string Label { get; set; } = string.Empty;
+            /// <summary>Whether <c>label</c> was selected by its condition and holds a value.</summary>
+            public bool HasLabel { get; set; }
+
+            /// <summary><c>utf8 label[3]</c> (conditional; see <see cref="HasLabel"/>).</summary>
+            public string? Label { get; set; }
 
             /// <summary><c>uint8 tail</c>.</summary>
             public byte Tail { get; set; }
@@ -98,6 +104,7 @@ namespace Demo
             cursor.EnterComposite(member ?? "root", memberType);
             var value = new Root();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
+            int placementArm0 = int.MinValue;
             // uint8 tag
             {
                 cursor.Seek(placement.AdvanceToField(1), "tag", "uint8");
@@ -105,29 +112,30 @@ namespace Demo
                 placement.CompleteField(cursor.Position);
             }
             // uint24< number
+            try
+            {
+                placementArm0 = (global::CStructSharp.Generated.Expressions.Equal(global::CStructSharp.Generated.Expressions.RequireInt32((long)value.Tag, "tag"), 1)) != 0 ? 1 : 0;
+            }
+            catch (global::System.Exception expressionFailure)
+            {
+                throw cursor.FailExpression(expressionFailure, "conditional selector", member, memberType);
+            }
+            if (placementArm0 == 1)
             {
                 cursor.Seek(placement.AdvanceToField(1), "number", "uint24<");
                 value.Number = global::CStructSharp.Generated.Codec.ReadUInt24(cursor.Take(3, "number", "uint24<"), true);
+                value.HasNumber = true;
                 placement.CompleteField(cursor.Position);
             }
             // utf8 label[3]
+            if (placementArm0 == 0)
             {
                 cursor.Seek(placement.AdvanceToField(1), "label", "utf8");
                 int count;
-                try
-                {
-                    count = 3;
-                }
-                catch (global::System.Exception expressionFailure)
-                {
-                    throw cursor.FailExpression(expressionFailure, "array length for label", "label", "utf8");
-                }
-                if (count < 0)
-                {
-                    throw cursor.Fail("Array length cannot be negative: label", "label", "utf8");
-                }
+                count = 3;
                 cursor.RequireArrayLength(count, "label", "utf8");
                 value.Label = cursor.TakeEncodedText(count, "utf8", "label", "utf8");
+                value.HasLabel = true;
                 placement.CompleteField(cursor.Position);
             }
             // uint8 tail

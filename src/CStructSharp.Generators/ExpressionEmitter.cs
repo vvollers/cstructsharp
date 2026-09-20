@@ -9,14 +9,16 @@ using CStructSharp.Syntax;
 /// <summary>
 ///     Turns a compiled layout expression into C# over <c>CStructSharp.Generated.Expressions</c>, so every operator
 ///     keeps the runtime's checked signed-Int32 semantics (plan Appendix E). Identifiers resolve through the scope
-///     the emitter is given: earlier members of the composite being read, then defines folded at compile time,
-///     then caller variables; a member that holds a wide value is guarded with <c>RequireInt32</c> at its use.
+///     the emitter is given: earlier members of the composite being read, then caller variables, then defines and
+///     enum members folded at compile time (a caller variable overrides a constant of the same name, as at runtime);
+///     a member that holds a wide value is guarded with <c>RequireInt32</c> at its use.
 /// </summary>
 internal sealed class ExpressionEmitter
 {
     private readonly IReadOnlyDictionary<string, Expr> staticValues;
     private readonly IReadOnlyDictionary<string, Defines> definitions;
     private readonly Func<string, string?> resolveMember;
+    private int overrideCount;
 
     public ExpressionEmitter(IReadOnlyDictionary<string, Expr> staticValues, IReadOnlyDictionary<string, Defines> definitions, Func<string, string?> resolveMember)
     {
@@ -24,6 +26,10 @@ internal sealed class ExpressionEmitter
         this.definitions = definitions;
         this.resolveMember = resolveMember;
     }
+
+    /// <summary>Whether the expression is a plain literal in the Int32 range, whose evaluation cannot fail.</summary>
+    public static bool IsInt32Literal(Expr expression)
+        => expression is Literal { ExactValue: var value } && value >= int.MinValue && value <= int.MaxValue;
 
     public string Emit(Expr expression)
     {
@@ -86,15 +92,15 @@ internal sealed class ExpressionEmitter
 
     private static string IntLiteral(Literal literal)
     {
-        // The evaluator projects a literal to Int32 and fails on overflow when the value is used; a literal past the
-        // range is emitted through RequireInt32 so the same failure surfaces at the same time.
-        if (literal.ExactValue >= int.MinValue && literal.ExactValue <= int.MaxValue)
+        // The evaluator keeps a constant exact and overflows when an expression selects one past the Int32 range; a
+        // literal past the range is emitted as that overflow so the same failure surfaces at the same time.
+        if (IsInt32Literal(literal))
         {
             int value = (int)literal.ExactValue;
             return value < 0 ? "(" + value.ToString(CultureInfo.InvariantCulture) + ")" : value.ToString(CultureInfo.InvariantCulture);
         }
 
-        return "global::CStructSharp.Generated.Expressions.RequireInt32(" + literal.ExactValue.ToString(CultureInfo.InvariantCulture) + "L, \"literal\")";
+        return "global::CStructSharp.Generated.Expressions.Overflow()";
     }
 
     private string EmitIdentifier(string name, HashSet<string> resolving)
@@ -105,28 +111,50 @@ internal sealed class ExpressionEmitter
             return member;
         }
 
-        if (this.staticValues.TryGetValue(name, out Expr? value))
+        // A caller variable overrides the layout's constant of the same name (the runtime copies supplied variables
+        // over its definitions), so every non-member name checks the caller's dictionary first.
+        string literalName = SourceWriter.Literal(name);
+        bool dependentDefine = this.definitions.TryGetValue(name, out Defines? definition) && definition.Value is not Literal;
+        if (!dependentDefine && this.staticValues.TryGetValue(name, out Expr? value))
         {
-            if (value is Literal literal)
+            if (value is Literal literal && IsInt32Literal(literal))
             {
-                return IntLiteral(literal);
+                return "global::CStructSharp.Generated.Expressions.Variable(variables, " + literalName + ", " + IntLiteral(literal) + ")";
             }
 
             if (value is WideValueVariable wide)
             {
-                return "global::CStructSharp.Generated.Expressions.RequireInt32(" + Convert.ToInt64(wide.WideValue, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture) + "L, " + SourceWriter.Literal(name) + ")";
+                return this.WithOverride(name, "global::CStructSharp.Generated.Expressions.RequireInt32(" + Convert.ToInt64(wide.WideValue, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture) + "L, " + literalName + ")");
+            }
+
+            if (value is Literal)
+            {
+                return this.WithOverride(name, IntLiteral((Literal)value));
+            }
+
+            if (value is Identifier or UnaryOp or BinaryOp or ConditionalExpr)
+            {
+                return this.WithOverride(name, this.Emit(value));
             }
         }
 
-        if (this.definitions.TryGetValue(name, out Defines? definition) && resolving.Add(name))
+        if (definition is not null && resolving.Add(name))
         {
-            // A define that depends on a caller variable is evaluated where it is used, as the runtime does.
+            // A define with dependencies is evaluated where it is used: a caller variable may override a name it
+            // depends on, which at runtime invalidates the folded value and re-evaluates the definition.
             string inner = this.EmitDefinition(definition.Value, resolving);
             resolving.Remove(name);
-            return "(" + inner + ")";
+            return this.WithOverride(name, inner);
         }
 
-        return "global::CStructSharp.Generated.Expressions.Variable(variables, " + SourceWriter.Literal(name) + ")";
+        return "global::CStructSharp.Generated.Expressions.Variable(variables, " + literalName + ")";
+    }
+
+    /// <summary>The caller's value of <paramref name="name"/> when supplied; otherwise <paramref name="fallback"/>, evaluated only then.</summary>
+    private string WithOverride(string name, string fallback)
+    {
+        string local = "supplied" + (this.overrideCount++).ToString(CultureInfo.InvariantCulture);
+        return "(global::CStructSharp.Generated.Expressions.TryVariable(variables, " + SourceWriter.Literal(name) + ", out int " + local + ") ? " + local + " : (" + fallback + "))";
     }
 
     private string EmitDefinition(Expr expression, HashSet<string> resolving)

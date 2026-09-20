@@ -171,18 +171,7 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(1), "p", "uint8");
                 int count;
-                try
-                {
-                    count = 2;
-                }
-                catch (global::System.Exception expressionFailure)
-                {
-                    throw cursor.FailExpression(expressionFailure, "array length for p", "p", "uint8");
-                }
-                if (count < 0)
-                {
-                    throw cursor.Fail("Array length cannot be negative: p", "p", "uint8");
-                }
+                count = 2;
                 cursor.RequireArrayLength(count, "p", "uint8");
                 var elements = new byte[count];
                 if (count > 0)

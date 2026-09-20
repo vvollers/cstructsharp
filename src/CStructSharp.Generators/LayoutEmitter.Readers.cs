@@ -19,6 +19,9 @@ internal sealed partial class LayoutEmitter
     private const string CodecClass = "global::CStructSharp.Generated.Codec";
     private const string VariablesType = "global::System.Collections.Generic.IReadOnlyDictionary<string, int>?";
 
+    // The conditional groups whose selector the reader being emitted has already evaluated (cleared per composite).
+    private readonly HashSet<ConditionalGroup> decidedGroups = new(ReferenceEqualityComparer.Instance);
+
     private void EmitReaders(SourceWriter writer)
     {
         writer.Line();
@@ -113,6 +116,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("cursor.EnterComposite(member ?? " + SourceWriter.Literal(composite.LayoutName) + ", memberType);");
         writer.Line("var value = new " + name + "();");
         var scope = new ReaderScope(this, composite);
+        this.decidedGroups.Clear();
         if (composite.IsUnion)
         {
             this.EmitUnionBody(writer, composite, scope);
@@ -145,10 +149,11 @@ internal sealed partial class LayoutEmitter
         }
 
         writer.Line("cursor.EnterUnion();");
+        EmitConditionalSlots(writer, union, "union");
         foreach (CompiledField field in union.Fields)
         {
             writer.Line("cursor.Position = unionStart;");
-            this.EmitField(writer, field, union, scope, "value", inUnion: true, "placement");
+            this.EmitField(writer, field, union, scope, "value", inUnion: true, "union");
             if (fixedSize is null)
             {
                 writer.Line("unionEnd = global::System.Math.Max(unionEnd, cursor.Position);");
@@ -171,11 +176,26 @@ internal sealed partial class LayoutEmitter
     /// <summary>The fields of a struct body in order; a promoted anonymous composite's fields are read in place into the same value.</summary>
     private void EmitFields(SourceWriter writer, CompiledCompositeType composite, ReaderScope scope, string target, string placement)
     {
+        EmitConditionalSlots(writer, composite, placement);
         foreach (CompiledField field in composite.Fields)
         {
             this.EmitField(writer, field, composite, scope, target, inUnion: false, placement);
         }
     }
+
+    /// <summary>
+    ///     One local per conditional group of the composite, holding the selected arm once the group is reached
+    ///     (<c>int.MinValue</c> until then): the runtime decides each group once per instance, at its first field.
+    /// </summary>
+    private static void EmitConditionalSlots(SourceWriter writer, CompiledCompositeType composite, string prefix)
+    {
+        for (int slot = 0; slot < composite.ConditionalGroupCount; slot++)
+        {
+            writer.Line("int " + ArmSlot(prefix, slot) + " = int.MinValue;");
+        }
+    }
+
+    private static string ArmSlot(string prefix, int slot) => prefix + "Arm" + Int(slot);
 
     private void EmitField(SourceWriter writer, CompiledField field, CompiledCompositeType composite, ReaderScope scope, string target, bool inUnion, string placement)
     {
@@ -185,7 +205,65 @@ internal sealed partial class LayoutEmitter
         string member = promoted ? "member" : SourceWriter.Literal(field.Name.Length == 0 && field.BitSize == 0 ? "_" : field.Name);
         string memberType = promoted ? "memberType" : SourceWriter.Literal(field.DisplayTypeSpelling);
         writer.Line("// " + DescribeDeclaration(field));
-        writer.Open(string.Empty);
+
+        // A conditional field: each enclosing group (outermost first) is decided when its first field is reached -
+        // the selector is evaluated once per instance, and never while an outer arm is inactive - and the field is
+        // read only when every group selected its arm. Every later field of a group is reached only after that first
+        // field's block ran, so it tests the decision without repeating it.
+        foreach (CompiledConditionalBranch branch in field.ConditionalBranches)
+        {
+            string slot = ArmSlot(placement, branch.Slot);
+            if (this.decidedGroups.Add(branch.Group))
+            {
+                this.EmitSelector(writer, branch.Group, scope, slot);
+            }
+
+            writer.Open("if (" + slot + " == " + Int(branch.Arm) + ")");
+        }
+
+        this.EmitFieldBody(writer, field, scope, target, inUnion, placement, promoted, member, memberType, openBlock: field.ConditionalBranches.Length == 0);
+        for (int index = 0; index < field.ConditionalBranches.Length; index++)
+        {
+            writer.Close();
+        }
+    }
+
+    /// <summary>Evaluates a group's selector into its arm slot: an <c>if</c> selects arm 1 or 0, a <c>switch</c> maps the value through its case table (default is arm -1).</summary>
+    private void EmitSelector(SourceWriter writer, ConditionalGroup group, ReaderScope scope, string slot)
+    {
+        string code = scope.Expressions.Emit(group.Selector);
+        string selection;
+        if (group.CaseArms is { } cases)
+        {
+            var arms = new System.Text.StringBuilder("(" + code + ") switch { ");
+            foreach (KeyValuePair<int, int> arm in cases.OrderBy(pair => pair.Value))
+            {
+                arms.Append(Int(arm.Key)).Append(" => ").Append(Int(arm.Value)).Append(", ");
+            }
+
+            selection = arms.Append("_ => -1 }").ToString();
+        }
+        else
+        {
+            selection = "(" + code + ") != 0 ? 1 : 0";
+        }
+
+        // A selector failure is the composite's, not any field's: the enclosing member is what the runtime notes.
+        writer.Open("try");
+        writer.Line(slot + " = " + selection + ";");
+        writer.Close();
+        writer.Open("catch (global::System.Exception expressionFailure)");
+        writer.Line("throw cursor.FailExpression(expressionFailure, \"conditional selector\", member, memberType);");
+        writer.Close();
+    }
+
+    private void EmitFieldBody(SourceWriter writer, CompiledField field, ReaderScope scope, string target, bool inUnion, string placement, bool promoted, string member, string memberType, bool openBlock)
+    {
+        if (openBlock)
+        {
+            writer.Open(string.Empty);
+        }
+
         if (field.IsZeroWidthBitfield)
         {
             if (!inUnion)
@@ -193,14 +271,14 @@ internal sealed partial class LayoutEmitter
                 writer.Line("cursor.Seek(" + placement + ".AdvanceToSeparator(" + Int(field.BitStorageSize ?? 1) + ", " + Int(field.Alignment) + ", " + Int(field.BitRunBits) + "), " + member + ", " + memberType + ");");
             }
 
-            writer.Close();
+            CloseBlock(writer, openBlock);
             return;
         }
 
         if (field.BitSize > 0)
         {
             this.EmitBitfield(writer, field, scope, target, inUnion, member, memberType, placement);
-            writer.Close();
+            CloseBlock(writer, openBlock);
             return;
         }
 
@@ -232,6 +310,10 @@ internal sealed partial class LayoutEmitter
         {
             GeneratedMember generated = scope.Member(field) ?? throw new InvalidOperationException("No generated member for field " + field.Name);
             this.EmitValue(writer, field, generated, scope, target, inUnion, member, memberType);
+            if (generated.IsConditional)
+            {
+                writer.Line(target + "." + generated.HasFlagName + " = true;");
+            }
         }
 
         if (!inUnion)
@@ -239,7 +321,15 @@ internal sealed partial class LayoutEmitter
             writer.Line(placement + ".CompleteField(cursor.Position);");
         }
 
-        writer.Close();
+        CloseBlock(writer, openBlock);
+    }
+
+    private static void CloseBlock(SourceWriter writer, bool openBlock)
+    {
+        if (openBlock)
+        {
+            writer.Close();
+        }
     }
 
     private void EmitPromotedUnion(SourceWriter writer, CompiledCompositeType union, ReaderScope scope, string target, string member, string memberType, string placement)
@@ -258,10 +348,11 @@ internal sealed partial class LayoutEmitter
         }
 
         writer.Line("cursor.EnterUnion();");
+        EmitConditionalSlots(writer, union, placement + "U");
         foreach (CompiledField field in union.Fields)
         {
             writer.Line("cursor.Position = unionStart;");
-            this.EmitField(writer, field, union, scope, target, inUnion: true, placement);
+            this.EmitField(writer, field, union, scope, target, inUnion: true, placement + "U");
             if (size is null)
             {
                 writer.Line("unionEnd = global::System.Math.Max(unionEnd, cursor.Position);");
@@ -297,6 +388,11 @@ internal sealed partial class LayoutEmitter
         {
             GeneratedMember generated = scope.Member(field) ?? throw new InvalidOperationException("No generated member for bitfield " + field.Name);
             writer.Line(target + "." + generated.PropertyName + " = (" + generated.TypeName + ")" + (generated.Enum is not null ? "(" + generated.Enum.UnderlyingType + ")" : string.Empty) + "bits;");
+            if (generated.IsConditional)
+            {
+                writer.Line(target + "." + generated.HasFlagName + " = true;");
+            }
+
             if (!inUnion)
             {
                 scope.Publish(generated, target + "." + generated.PropertyName);
@@ -328,6 +424,13 @@ internal sealed partial class LayoutEmitter
     private void EmitExpression(SourceWriter writer, Expr expression, ReaderScope scope, string local, string context, string member, string memberType, string type)
     {
         string code = scope.Expressions.Emit(expression);
+        if (ExpressionEmitter.IsInt32Literal(expression))
+        {
+            // A constant (a fixed count, a folded sizeof) cannot fail.
+            writer.Line(local + " = " + code + ";");
+            return;
+        }
+
         writer.Open("try");
         writer.Line(local + " = " + code + ";");
         writer.Close();

@@ -497,18 +497,7 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(1), "name", "char");
                 int count;
-                try
-                {
-                    count = 8;
-                }
-                catch (global::System.Exception expressionFailure)
-                {
-                    throw cursor.FailExpression(expressionFailure, "array length for name", "name", "char");
-                }
-                if (count < 0)
-                {
-                    throw cursor.Fail("Array length cannot be negative: name", "name", "char");
-                }
+                count = 8;
                 cursor.RequireArrayLength(count, "name", "char");
                 int rowLength = count;
                 value.Name = cursor.TakeFixedText(rowLength, "name", "char");
@@ -518,18 +507,7 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(2), "wide", "wchar");
                 int count;
-                try
-                {
-                    count = 4;
-                }
-                catch (global::System.Exception expressionFailure)
-                {
-                    throw cursor.FailExpression(expressionFailure, "array length for wide", "wide", "wchar");
-                }
-                if (count < 0)
-                {
-                    throw cursor.Fail("Array length cannot be negative: wide", "wide", "wchar");
-                }
+                count = 4;
                 cursor.RequireArrayLength(count, "wide", "wchar");
                 int rowLength = count;
                 value.Wide = cursor.TakeWideText(rowLength, true, "wide", "wchar");
@@ -539,18 +517,7 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(1), "label", "utf8");
                 int count;
-                try
-                {
-                    count = 3;
-                }
-                catch (global::System.Exception expressionFailure)
-                {
-                    throw cursor.FailExpression(expressionFailure, "array length for label", "label", "utf8");
-                }
-                if (count < 0)
-                {
-                    throw cursor.Fail("Array length cannot be negative: label", "label", "utf8");
-                }
+                count = 3;
                 cursor.RequireArrayLength(count, "label", "utf8");
                 value.Label = cursor.TakeEncodedText(count, "utf8", "label", "utf8");
                 placement.CompleteField(cursor.Position);
@@ -574,18 +541,7 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(1), "bytes", "uint8");
                 int count;
-                try
-                {
-                    count = 4;
-                }
-                catch (global::System.Exception expressionFailure)
-                {
-                    throw cursor.FailExpression(expressionFailure, "array length for bytes", "bytes", "uint8");
-                }
-                if (count < 0)
-                {
-                    throw cursor.Fail("Array length cannot be negative: bytes", "bytes", "uint8");
-                }
+                count = 4;
                 cursor.RequireArrayLength(count, "bytes", "uint8");
                 var elements = new byte[count];
                 if (count > 0)
@@ -694,18 +650,7 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(1), "children", "inner");
                 int count;
-                try
-                {
-                    count = 2;
-                }
-                catch (global::System.Exception expressionFailure)
-                {
-                    throw cursor.FailExpression(expressionFailure, "array length for children", "children", "inner");
-                }
-                if (count < 0)
-                {
-                    throw cursor.Fail("Array length cannot be negative: children", "children", "inner");
-                }
+                count = 2;
                 cursor.RequireArrayLength(count, "children", "inner");
                 var elements = new Inner[count];
                 for (int index = 0; index < count; index++)

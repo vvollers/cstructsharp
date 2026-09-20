@@ -186,14 +186,16 @@ internal sealed class GeneratedModel
             memberNames["RawStorage"] = "the generated RawStorage property";
         }
 
-        this.AppendMembers(generated, generated.Composite, compiled, memberNames);
+        this.AppendMembers(generated, generated.Composite, compiled, memberNames, conditional: false);
     }
 
     /// <summary>Adds the members of <paramref name="composite"/> to <paramref name="owner"/>; a promoted anonymous composite contributes its own members in place.</summary>
-    private void AppendMembers(GeneratedComposite owner, CompiledCompositeType composite, CompiledLayoutModel compiled, Dictionary<string, string> memberNames)
+    private void AppendMembers(GeneratedComposite owner, CompiledCompositeType composite, CompiledLayoutModel compiled, Dictionary<string, string> memberNames, bool conditional)
     {
         foreach (CompiledField field in composite.Fields)
         {
+            // A member is conditional when it sits in an arm itself or when the promoted composite that carries it does.
+            bool memberConditional = conditional || field.ConditionalBranches.Length > 0;
             if (field.IsZeroWidthBitfield || (field.IsUnnamed && !field.IsInlineComposite))
             {
                 // A `: 0` separator and an anonymous bitfield have no value; padding named `_` is a runtime member and stays.
@@ -206,7 +208,7 @@ internal sealed class GeneratedModel
             if (field.IsUnnamed && inline is not null)
             {
                 // Promoted: the runtime splices the anonymous composite's members into the parent value.
-                this.AppendMembers(owner, inline, compiled, memberNames);
+                this.AppendMembers(owner, inline, compiled, memberNames, memberConditional);
                 continue;
             }
 
@@ -224,17 +226,31 @@ internal sealed class GeneratedModel
                 this.AddComposite(target.Name.Length == 0 ? field.Name : target.Name, target, isDeclared: false, preferredName: owner.Name + propertyName);
             }
 
-            owner.Members.Add(this.Describe(field, propertyName));
+            GeneratedMember member = this.Describe(field, propertyName, memberConditional);
+            if (memberConditional)
+            {
+                // The presence flag of a conditional member; it must not collide with another member's property.
+                string flag = member.HasFlagName;
+                if (memberNames.TryGetValue(flag, out string? taken))
+                {
+                    this.collisions.Add($"Member '{field.Name}' of '{owner.LayoutName}' needs a presence flag '{flag}', which member '{taken}' would also be generated as; use [CStructLayout(KeepNames = true)] or rename one in the layout.");
+                    continue;
+                }
+
+                memberNames[flag] = field.Name;
+            }
+
+            owner.Members.Add(member);
         }
     }
 
     /// <summary>The C# shape of a field (its class, enum, and property type); the composites it refers to must already exist.</summary>
-    public GeneratedMember Describe(CompiledField field, string propertyName)
+    public GeneratedMember Describe(CompiledField field, string propertyName, bool conditional = false)
     {
         CompiledCompositeType? target = field.TargetComposite;
         GeneratedComposite? memberComposite = target is null ? null : this.Find(target);
         GeneratedEnum? memberEnum = field.Type.Symbol.Definition is CompiledEnumType compiledEnum ? this.Find(compiledEnum) : null;
-        return new GeneratedMember(field, propertyName, memberComposite, memberEnum, this.TypeNameOf(field, memberComposite, memberEnum));
+        return new GeneratedMember(field, propertyName, memberComposite, memberEnum, this.TypeNameOf(field, memberComposite, memberEnum), conditional);
     }
 
     /// <summary>The shape of a pointer field's value, for the pointer readers.</summary>
@@ -363,9 +379,13 @@ internal sealed class GeneratedComposite
 }
 
 /// <summary>One property of a generated class and the compiled field it holds.</summary>
-internal sealed record GeneratedMember(CompiledField Field, string PropertyName, GeneratedComposite? Composite, GeneratedEnum? Enum, string TypeName)
+internal sealed record GeneratedMember(CompiledField Field, string PropertyName, GeneratedComposite? Composite, GeneratedEnum? Enum, string TypeName, bool IsConditional)
 {
     public string LayoutName => this.Field.Name;
 
-    public bool IsConditional => this.Field.Declaration.Condition is not null;
+    /// <summary>The presence flag of a conditional member: <c>HasValue</c> for <c>value</c>.</summary>
+    public string HasFlagName => "Has" + this.PropertyName.TrimStart('@');
+
+    /// <summary>Whether the property is a reference type; a conditional one is then declared nullable and left null when its arm is inactive.</summary>
+    public bool IsReferenceType => this.TypeName == "string" || this.TypeName.EndsWith("[]", System.StringComparison.Ordinal) || (this.Composite is not null && this.Field.PointerDepth == 0);
 }

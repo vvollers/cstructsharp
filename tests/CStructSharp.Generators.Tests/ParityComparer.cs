@@ -60,6 +60,29 @@ internal static class ParityComparer
             Assert.IsNotNull(property, path + "." + member.Key + ": no generated property on " + generated.GetType().Name);
             AssertSame(member.Value, property.GetValue(generated), path + "." + member.Key);
         }
+
+        // A conditional member is present at runtime exactly when its generated presence flag is set; an absent
+        // one is null (reference types) or default.
+        foreach (PropertyInfo flag in generated!.GetType().GetProperties())
+        {
+            if (flag.PropertyType != typeof(bool) || !flag.Name.StartsWith("Has", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            PropertyInfo? valueProperty = generated.GetType().GetProperty(flag.Name.Substring(3)) ?? generated.GetType().GetProperty("@" + flag.Name.Substring(3));
+            if (valueProperty is null)
+            {
+                continue;
+            }
+
+            bool present = runtime.Any(member => FindProperty(generated.GetType(), member.Key) == valueProperty);
+            Assert.AreEqual(present, (bool)flag.GetValue(generated)!, path + "." + flag.Name);
+            if (!present && !valueProperty.PropertyType.IsValueType)
+            {
+                Assert.IsNull(valueProperty.GetValue(generated), path + "." + valueProperty.Name + ": inactive member must be null");
+            }
+        }
     }
 
     private static void AssertUnion(UnionValue runtime, object? generated, string path)

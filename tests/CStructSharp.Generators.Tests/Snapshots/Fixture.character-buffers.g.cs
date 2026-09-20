@@ -96,18 +96,7 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(1), "value", "char");
                 int count;
-                try
-                {
-                    count = 2;
-                }
-                catch (global::System.Exception expressionFailure)
-                {
-                    throw cursor.FailExpression(expressionFailure, "array length for value", "value", "char");
-                }
-                if (count < 0)
-                {
-                    throw cursor.Fail("Array length cannot be negative: value", "value", "char");
-                }
+                count = 2;
                 cursor.RequireArrayLength(count, "value", "char");
                 int rowLength = count;
                 value.Value = cursor.TakeFixedText(rowLength, "value", "char");

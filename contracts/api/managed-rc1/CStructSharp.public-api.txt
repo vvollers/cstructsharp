@@ -376,12 +376,16 @@ namespace CStructSharp.Generated
         public static int Negate(int value) { }
         public static int NotEqual(int left, int right) { }
         public static int Or(int left, int right) { }
+        public static int Overflow() { }
         public static int RequireInt32(long value, string name) { }
         public static int RequireInt32(ulong value, string name) { }
         public static int ShiftLeft(int value, int count) { }
         public static int ShiftRight(int value, int count) { }
         public static int Subtract(int left, int right) { }
+        public static bool TryVariable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name, out int value) { }
+        public static int Undefined(string name) { }
         public static int Variable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name) { }
+        public static int Variable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name, int value) { }
         public static int Xor(int left, int right) { }
     }
     public readonly struct Pointer<T> : System.IEquatable<CStructSharp.Generated.Pointer<T>>

@@ -191,6 +191,52 @@ public static class Expressions
         throw new System.Collections.Generic.KeyNotFoundException("Undefined expression identifier: " + name);
     }
 
+    /// <summary>
+    ///     A layout constant (a define, an enum member) as an expression operand: the caller's variable of the same
+    ///     name wins, as it does at runtime, where supplied variables override the layout's own definitions.
+    /// </summary>
+    /// <param name="variables">The caller's variables, or <see langword="null"/>.</param>
+    /// <param name="name">The constant's name.</param>
+    /// <param name="value">The layout's value of the constant.</param>
+    /// <returns>The caller's value when supplied; otherwise <paramref name="value"/>.</returns>
+    public static int Variable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name, int value)
+        => variables is not null && variables.TryGetValue(name, out int supplied) ? supplied : value;
+
+    /// <summary>Looks a caller variable up, for a define whose own expression is evaluated only when the caller did not override it.</summary>
+    /// <param name="variables">The caller's variables, or <see langword="null"/>.</param>
+    /// <param name="name">The variable name.</param>
+    /// <param name="value">The caller's value when supplied.</param>
+    /// <returns>Whether the caller supplied the variable.</returns>
+    public static bool TryVariable(System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string name, out int value)
+    {
+        if (variables is not null && variables.TryGetValue(name, out value))
+        {
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    /// <summary>
+    ///     The failure for a name that an expression selects before the composite read it: a conditional composite's
+    ///     own members hide any outer or caller value of the same name from the start of the composite, and a member in
+    ///     an arm that was not selected has no value.
+    /// </summary>
+    /// <param name="name">The member name.</param>
+    /// <returns>Never returns.</returns>
+    /// <exception cref="System.Collections.Generic.KeyNotFoundException">Always.</exception>
+    public static int Undefined(string name)
+        => throw new System.Collections.Generic.KeyNotFoundException("Undefined expression identifier: " + name);
+
+    /// <summary>
+    ///     The failure for a layout constant outside the signed 32-bit range (a define such as <c>4294967295</c>):
+    ///     the runtime keeps its exact value and overflows when an expression selects it.
+    /// </summary>
+    /// <returns>Never returns.</returns>
+    /// <exception cref="OverflowException">Always.</exception>
+    public static int Overflow() => throw new OverflowException("Arithmetic operation resulted in an overflow.");
+
     private static InvalidOperationException OutOfRange(IFormattable value, string name)
         => new(WideValueVariable.DescribeOutOfRange(name, value));
 }

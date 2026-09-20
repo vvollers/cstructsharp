@@ -240,18 +240,7 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(1), "pr", "uint8");
                 int count;
-                try
-                {
-                    count = 2;
-                }
-                catch (global::System.Exception expressionFailure)
-                {
-                    throw cursor.FailExpression(expressionFailure, "array length for pr", "pr", "uint8");
-                }
-                if (count < 0)
-                {
-                    throw cursor.Fail("Array length cannot be negative: pr", "pr", "uint8");
-                }
+                count = 2;
                 cursor.RequireArrayLength(count, "pr", "uint8");
                 var elements = new byte[count];
                 if (count > 0)

@@ -51,6 +51,13 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   and compares the values member by member and every truncated prefix's exception. `ReadCursor` gains the
   per-kind `Take*` methods, `Seek`, union and composite bookkeeping, and `Complete`; `CompositeCursor` is the
   field placement rule (alignment, bitfield packing and allocation) as a struct the generated code drives.
+- Generated conditionals: `if`/`else` and `switch` groups are emitted as C# with the runtime's rules - a group is
+  decided once per instance when its first field is reached, an inner group is never evaluated while its outer
+  arm is inactive, and a conditional composite's own member names hide caller and outer values until the member is
+  read. A conditional member gets a `Has<Member>` flag; an unselected arm leaves it `false` with the property
+  `null` (reference types) or default. Caller variables override the layout's defines, and a define that depends
+  on an overridden name is re-evaluated where it is used, as at runtime. `Expressions` gains `Variable(variables,
+  name, value)`, `TryVariable`, `Undefined`, and `Overflow` for these rules.
 
 ### Internal
 

@@ -96,18 +96,7 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(1), "values", "int24<");
                 int count;
-                try
-                {
-                    count = 2;
-                }
-                catch (global::System.Exception expressionFailure)
-                {
-                    throw cursor.FailExpression(expressionFailure, "array length for values", "values", "int24<");
-                }
-                if (count < 0)
-                {
-                    throw cursor.Fail("Array length cannot be negative: values", "values", "int24<");
-                }
+                count = 2;
                 cursor.RequireArrayLength(count, "values", "int24<");
                 var elements = new int[count];
                 if (count > 0)

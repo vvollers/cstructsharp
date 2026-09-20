@@ -80,7 +80,19 @@ internal sealed partial class LayoutEmitter
             }
 
             first = false;
-            writer.Line("/// <summary><c>" + DescribeDeclaration(member.Field) + "</c>" + (member.IsConditional ? " (conditional)" : string.Empty) + ".</summary>");
+            if (member.IsConditional)
+            {
+                // A conditional member: the flag says whether its arm was selected; a reference-typed value is then
+                // null, a value-typed one default.
+                writer.Line("/// <summary>Whether <c>" + member.Field.Name + "</c> was selected by its condition and holds a value.</summary>");
+                writer.Line("public bool " + member.HasFlagName + " { get; set; }");
+                writer.Line();
+                writer.Line("/// <summary><c>" + DescribeDeclaration(member.Field) + "</c> (conditional; see <see cref=\"" + member.HasFlagName + "\"/>).</summary>");
+                writer.Line("public " + member.TypeName + (member.IsReferenceType ? "?" : string.Empty) + " " + member.PropertyName + " { get; set; }");
+                continue;
+            }
+
+            writer.Line("/// <summary><c>" + DescribeDeclaration(member.Field) + "</c>.</summary>");
             writer.Line("public " + member.TypeName + " " + member.PropertyName + " { get; set; }" + Initializer(member));
         }
 

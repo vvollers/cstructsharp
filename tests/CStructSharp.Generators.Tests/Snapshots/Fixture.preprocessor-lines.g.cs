@@ -113,7 +113,7 @@ namespace Demo
                 int count;
                 try
                 {
-                    count = 2;
+                    count = global::CStructSharp.Generated.Expressions.Variable(variables, "N", 2);
                 }
                 catch (global::System.Exception expressionFailure)
                 {

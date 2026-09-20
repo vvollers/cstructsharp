@@ -118,20 +118,20 @@ namespace Demo
                 //  
                 {
                     cursor.EnterComposite(member, memberType);
-                    var placementN = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
+                    var placementUN = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
                     // uint16 ea_size
                     {
-                        cursor.Seek(placementN.AdvanceToField(2), "ea_size", "uint16");
+                        cursor.Seek(placementUN.AdvanceToField(2), "ea_size", "uint16");
                         value.EaSize = global::CStructSharp.Generated.Codec.ReadUInt16(cursor.Take(2, "ea_size", "uint16"), true);
-                        placementN.CompleteField(cursor.Position);
+                        placementUN.CompleteField(cursor.Position);
                     }
                     // uint16 reserved
                     {
-                        cursor.Seek(placementN.AdvanceToField(2), "reserved", "uint16");
+                        cursor.Seek(placementUN.AdvanceToField(2), "reserved", "uint16");
                         value.Reserved = global::CStructSharp.Generated.Codec.ReadUInt16(cursor.Take(2, "reserved", "uint16"), true);
-                        placementN.CompleteField(cursor.Position);
+                        placementUN.CompleteField(cursor.Position);
                     }
-                    cursor.Seek(placementN.Finish(2), member, memberType);
+                    cursor.Seek(placementUN.Finish(2), member, memberType);
                     cursor.ExitComposite();
                 }
                 cursor.Position = unionStart;

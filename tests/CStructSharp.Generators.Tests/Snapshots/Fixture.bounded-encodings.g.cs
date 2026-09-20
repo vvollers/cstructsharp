@@ -96,18 +96,7 @@ namespace Demo
             {
                 cursor.Seek(placement.AdvanceToField(1), "label", "utf8");
                 int count;
-                try
-                {
-                    count = 2;
-                }
-                catch (global::System.Exception expressionFailure)
-                {
-                    throw cursor.FailExpression(expressionFailure, "array length for label", "label", "utf8");
-                }
-                if (count < 0)
-                {
-                    throw cursor.Fail("Array length cannot be negative: label", "label", "utf8");
-                }
+                count = 2;
                 cursor.RequireArrayLength(count, "label", "utf8");
                 value.Label = cursor.TakeEncodedText(count, "utf8", "label", "utf8");
                 placement.CompleteField(cursor.Position);

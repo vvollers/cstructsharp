@@ -165,7 +165,7 @@ namespace Demo
                 int count;
                 try
                 {
-                    count = global::CStructSharp.Generated.Expressions.Modulo(5, 4);
+                    count = global::CStructSharp.Generated.Expressions.Modulo(global::CStructSharp.Generated.Expressions.Variable(variables, "kind.B", 5), 4);
                 }
                 catch (global::System.Exception expressionFailure)
                 {
