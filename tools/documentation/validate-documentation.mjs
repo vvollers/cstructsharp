@@ -28,6 +28,7 @@ const scripts = {
   pages: path.join(here, "validate-pages-artifact.mjs"),
   pagesArtifact: path.join(here, "new-documentation-pages-artifact.mjs"),
   canonical: path.join(here, "validate-canonical-reference.mjs"),
+  generatorDiagnostics: path.join(here, "validate-generator-diagnostics.mjs"),
   featureMatrix: path.join(repositoryRoot, "tools/quality/feature-operation-matrix.mjs"),
 };
 const docfxConfigPath = path.join(documentationRoot, "docfx.json");
@@ -118,7 +119,7 @@ await main(() => {
   assertCondition(ignored.length === 0, `Repository source still depends on ignored local-documentation paths:\n${ignored.join("\n")}`);
   runNode(path.join(here, "export-documentation-examples.mjs"), [], "Recipe generation failed.");
   const generatedRecipes = JSON.parse(fs.readFileSync(path.join(documentationRoot, "generated-files.json"), "utf8"));
-  assertCondition(generatedRecipes.length === 68, "Expected all 68 recipe exports (33 recipes, a .cs and a .md each, plus the recipe catalog and its toc).");
+  assertCondition(generatedRecipes.length === 74, "Expected all 74 recipe exports (36 recipes, a .cs and a .md each, plus the recipe catalog and its toc).");
   for (const generated of generatedRecipes) assertCondition(fs.existsSync(path.join(documentationRoot, generated)), `Missing recipe export: ${generated}`);
   const broken = brokenRepositoryMarkdownLinks();
   assertCondition(broken.length === 0, `Repository Markdown contains missing local link targets:\n${broken.join("\n")}`);
@@ -130,6 +131,7 @@ await main(() => {
   runNode(scripts.api, [], "Generated API documentation validation failed.");
   runNode(scripts.language, [], "Language documentation validation failed.");
   runNode(scripts.canonical, [], "Canonical Portable reference validation failed.");
+  runNode(scripts.generatorDiagnostics, ["--check"], "Generator diagnostics documentation validation failed.");
   runNode(scripts.featureMatrix, [], "Feature-operation matrix validation failed.");
   runNode(scripts.quality, [], "Documentation quality validation failed.");
   runNode(scripts.workflow, [], "Documentation workflow validation failed.");
@@ -162,8 +164,9 @@ await main(() => {
   // so it adds nothing to the API metadata; any other project reference would.
   const apiReferences = findAll(coreProject, "ProjectReference").filter((reference) => String(reference.attributes.ReferenceOutputAssembly ?? "true").toLowerCase() !== "false");
   assertCondition(apiReferences.length === 0, "The API input project must not acquire a project reference that contributes an assembly.");
-  const exampleReferences = findAll(exampleProject, "ProjectReference");
-  assertCondition(exampleReferences.length === 1 && exampleReferences[0].attributes.Include === "..\\..\\src\\CStructSharp\\CStructSharp.csproj", "The documentation examples must reference only the core project.");
+  // The examples reference the generator as an analyzer only (ReferenceOutputAssembly=false), the way the package consumes it.
+  const exampleReferences = findAll(exampleProject, "ProjectReference").filter((reference) => String(reference.attributes.ReferenceOutputAssembly ?? "true").toLowerCase() !== "false");
+  assertCondition(exampleReferences.length === 1 && exampleReferences[0].attributes.Include === "..\\..\\src\\CStructSharp\\CStructSharp.csproj", "The documentation examples must reference only the core project as an assembly.");
   const metadataSources = docfxConfig.metadata.flatMap((entry) => (Array.isArray(entry.src) ? entry.src : [entry.src])).map((source) => source.src);
   assertCondition(metadataSources.length === 1, "DocFX must have exactly one managed metadata source root.");
   assertCondition(metadataSources[0] === "../src/CStructSharp/bin/Release/net10.0", `Unexpected DocFX metadata source '${metadataSources[0]}'.`);

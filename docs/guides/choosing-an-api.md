@@ -42,6 +42,7 @@ refer to bytes before that slice.
 | One field, nested value, union, or array | `ReadValue` | You don't need the rest of the object, or the selection is not a struct |
 | A known C# type | `ReadValue<T>` | Application code benefits from typed properties and checked conversion; `T` is a scalar, an array, or a class implementing `ICStructMapped<T>` |
 | A known C# type with an expected failure path | `TryReadValue<T>` | Truncated or malformed input is an ordinary outcome |
+| A generated class or an allocation-free view | `Wire.Parse` / `new Wire.HeaderView(bytes)` on a `[CStructLayout]` class | The layout is in your source; see [runtime or generated?](generated/choosing-runtime-or-generated.md) |
 | Values plus byte ranges | `ParseWithDebug` (struct) / `ReadValueWithDebug` (anything) | A hex viewer or diagnostic tool must show where values came from |
 | Only a field's stream position | `ResolveAddress` | You need a coordinate without materializing the value |
 | An array or terminated string length | `GetArrayLength` | The count depends on variables or scanned input |
@@ -77,7 +78,9 @@ stream failure during the final commit may still leave a written prefix.
 For a small file already loaded into a `byte[]`:
 
 1. Start with `Parse(bytes, "root")` while learning the format.
-2. Change to `ReadValue<MyType>(bytes, "root")` when the C# shape is stable.
+2. Change to `ReadValue<MyType>(bytes, "root")` when the C# shape is stable - or, when the layout itself is part
+   of the program, put it on a `[CStructLayout]` class and call its generated `Parse`
+   ([generated code](generated/index.md)).
 3. Use `ReadValue(bytes, "root.header.flags")` when only one field is needed.
 4. Start writes with `Serialize("root", value)`.
 5. Consider spans or `IBufferWriter<byte>` only after measuring allocation in the real workload.

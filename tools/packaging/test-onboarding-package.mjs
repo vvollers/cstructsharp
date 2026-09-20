@@ -35,7 +35,7 @@ await main(() => {
   if (exportResult.status !== 0) throw new Error("Recipe generation failed.");
   const recipesDirectory = path.join(repositoryRoot, "docs/examples/recipes");
   const recipes = fs.readdirSync(recipesDirectory).filter((name) => name.endsWith(".cs")).sort();
-  if (recipes.length !== 33) throw new Error("Expected all 33 recipes.");
+  if (recipes.length !== 36) throw new Error("Expected all 36 recipes.");
   const starter = path.join(repositoryRoot, "docs/examples/starter");
   const documentedCode = (/```csharp\r?\n([\s\S]*?)\r?\n```/.exec(readme)?.[1] ?? "").trim();
   if (documentedCode !== fs.readFileSync(path.join(starter, "Program.cs"), "utf8").trim()) throw new Error("The packaged README code does not match the tested starter.");

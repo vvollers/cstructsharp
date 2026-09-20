@@ -1,17 +1,18 @@
 ---
 title: Trimming and Native AOT
-description: Publish a trimmed or Native AOT application that uses CStructSharp - what works unchanged, how mapped classes stay reflection-free, and why dynamic access is JIT-only.
+description: Publish a trimmed or Native AOT application that uses CStructSharp - what works unchanged, how generated layouts and mapped classes stay reflection-free, and why dynamic access is JIT-only.
 ---
 
 # Trimming and Native AOT
 
 CStructSharp ships as a trimmable library on both targets and declares Native AOT compatibility on .NET 10. A
 published Native AOT program runs every operation: parsing, selected reads, typed reads into your own classes,
-writes from classes and dictionaries, updates in place, debug reads, and the diagnostics. This page says what that
-promise covers, how your own mapped classes take part without reflection, and why `dynamic` stays on the JIT.
+generated layouts and views, writes from classes and dictionaries, updates in place, debug reads, and the
+diagnostics. This page says what that promise covers, how generated code and your own mapped classes take part
+without reflection, and why `dynamic` stays on the JIT.
 
 The repository proves the page on every push: `tests/CStructSharp.AotConsumer` publishes with `PublishAot=true`,
-reports zero trim or AOT warnings, and runs the cases below.
+reports zero trim or AOT warnings, and runs the cases below, generated layout and mapped class included.
 
 ## What the package declares
 
@@ -20,8 +21,9 @@ reports zero trim or AOT warnings, and runs the cases below.
 | net10.0 | yes | yes | `PublishTrimmed` and `PublishAot` produce no warnings from the package; the trim and AOT analyzers have verified every code path |
 | net8.0 | yes | no claim | `PublishTrimmed` works the same way; the package makes no Native AOT claim on .NET 8 because that SDK's analyzer cannot verify the library's dynamic-code guard (the AOT consumer runs on .NET 10) |
 
-Nothing in the library needs runtime code generation or reflection: mapping to and from your classes goes through
-`ICStructMapped<T>` (static code the generator or you write), and the value objects implement
+Nothing in the library needs runtime code generation or reflection: a `[CStructLayout]` class is ordinary C#
+the generator wrote at build time, mapping to and from your classes goes through `ICStructMapped<T>` (static
+code the generator or you write), and the value objects implement
 `IDynamicMetaObjectProvider` directly instead of deriving from `DynamicObject`, whose constructor requires dynamic
 code. That keeps the *library* clean; a `dynamic` call site in your own code is a different matter (see
 [dynamic access](#dynamic-access-is-jit-only)).
@@ -48,7 +50,44 @@ members the `[CStructMapped]` source generator writes for a `partial` class, or 
 registering itself with `MappedTypes.Register<T>()`. There is no annotation to add and no member for the trimmer to
 lose.
 
+## Generated layouts
+
+A `[CStructLayout]` class is the most direct AOT path: the generator turns the layout into readers, writers,
+views, and typed setters at build time, so the published program contains straight-line code with the offsets
+filled in and nothing for the trimmer to remove. The generator runs inside the compiler and ships in the package
+as an analyzer; `PublishAot` and `PublishTrimmed` need no extra setting. The AOT consumer runs this class:
+
+```csharp
+[CStructLayout("struct point { int16 x; int16 y; }; struct record { uint8 tag; point origin; point corners[2]; uint8 flags[3]; };")]
+public static partial class Shapes { }
+
+Shapes.Record generated = Shapes.Parse(recordBytes);          // typed properties, no StructValue in between
+byte[] written = Shapes.Serialize(generated);
+var view = new Shapes.RecordView(recordBytes);                // allocation-free
+Shapes.Update.Tag(edited, 9);                                 // a typed setter at a build-time offset
+```
+
+The [generated code series](generated/index.md) teaches the path; the analyzer's `CSG300` warns when a project
+that publishes trimmed or AOT binds a parsed value as `dynamic`.
+
 ## Mapped classes
+
+A `[CStructMapped]` class needs only the attribute; the AOT consumer maps this record with a generated mapper:
+
+```csharp
+[CStructMapped(Layout = "record")]
+public sealed partial class MappedRecord
+{
+    public byte Tag { get; set; }
+    public Point Origin { get; set; } = new();
+    public IList<Point> Corners { get; set; } = [];
+    public byte[] Flags { get; set; } = [];
+}
+```
+
+`Point` here is the hand-written class below (a mapped property's class must be `[CStructMapped]` or implement
+`ICStructMapped<T>` itself). The classes written by hand show what the generator produces and how a project
+without the generator takes part:
 
 ```csharp
 using System.Runtime.CompilerServices;
@@ -143,9 +182,10 @@ dictionary and list shaped, so it never registers a mapped class; the details ar
 ## Checklist
 
 - `PublishAot`/`PublishTrimmed` on the application; nothing on the package.
-- Every class you read into or write from implements `ICStructMapped<T>` and is registered (generated classes do
-  both for you).
-- No `dynamic` in the application: `Get<T>`, dictionary indexing, or `ReadValue<T>` instead.
+- Every class you read into or write from is `[CStructMapped]` or implements `ICStructMapped<T>` and is registered
+  (generated classes do both for you); a `[CStructLayout]` class needs nothing.
+- No `dynamic` in the application: `Get<T>`, dictionary indexing, `ReadValue<T>`, or a generated class instead
+  (`CSG300` points at the `dynamic` uses).
 - Run the published binary once through a typed read and a write; a removed member or an interface member surfaces
   as a `CStructReadException` with the remedy in the message.
 

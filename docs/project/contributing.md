@@ -50,7 +50,9 @@ quality threshold, change a replay seed, or replace a reviewed baseline merely t
 After the focused tests pass:
 
 1. Run the full managed test project.
-2. Run the affected language, API, regression, compiler, fuzz, package, or documentation validator.
+2. Run the affected language, API, regression, compiler, fuzz, package, or documentation validator; a change
+   to the layout compiler or the emitter also runs the generator snapshot and parity projects (see
+   [generator snapshots and parity](testing.md#generator-snapshots-and-parity)).
 3. Measure timing and allocation for a hot path.
 4. Compare package or site artifacts when output contents can change.
 5. Run the consolidated Web/WASM checks only at the designated final integration stage.

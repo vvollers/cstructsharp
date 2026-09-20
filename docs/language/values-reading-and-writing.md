@@ -34,14 +34,15 @@ pointer.
 - a struct value maps to a class implementing `ICStructMapped<T>` through that class's own `ReadFrom`.
 
 A mapped class is registered with `MappedTypes.Register<T>()` (generated classes register from a module initializer); nothing about it is discovered by reflection.
-Names match exactly first, then by one unambiguous case-insensitive match. Every writable destination member needs a
-source member; extra source members may be ignored.
+A generated mapper matches each property to a member exactly first, then by one unambiguous case-insensitive
+match, then by one match that ignores underscores; `[CStructMember("name")]` names the member directly. Every
+mapped property needs a source member; extra source members are ignored.
 
 The mapper does not infer pointer following, invoke parameterized constructors, set private members, honor serializer
 attributes, or use a serializer package. Missing/ambiguous names and nullability/range problems become
 `CStructReadException` with the most specific path available. Do not assume every exception from an application
-constructor or setter is converted: unexpected application exceptions may propagate. Compiled accessors invoke
-application code directly, without reflection's `TargetInvocationException` wrapper.
+constructor or setter is converted: unexpected application exceptions may propagate. `ReadFrom` and `WriteTo` are
+ordinary code, so an application exception surfaces as itself, without a reflection wrapper.
 
 `TryReadValue<T>` catches only expected `CStructException` failures, returns `false`, and assigns the default output.
 For streams it restores the starting position after that expected failure. Invalid arguments and unexpected runtime

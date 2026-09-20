@@ -1,0 +1,25 @@
+items:
+- name: Generated code
+  href: index.md
+- name: Your first generated layout
+  href: first-generated-layout.md
+- name: Views and zero allocation
+  href: views-and-zero-allocation.md
+- name: Arrays, strings, and enums
+  href: arrays-strings-enums.md
+- name: Unions, bitfields, and nested structs
+  href: unions-bitfields-nested.md
+- name: Pointers and budgets
+  href: pointers-and-budgets.md
+- name: Conditional fields
+  href: conditionals.md
+- name: Writing and updating
+  href: writing-and-updating.md
+- name: Mapped classes
+  href: mapped-classes.md
+- name: Diagnostics
+  href: diagnostics.md
+- name: How it works
+  href: how-it-works.md
+- name: Runtime or generated?
+  href: choosing-runtime-or-generated.md

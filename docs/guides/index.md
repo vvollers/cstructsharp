@@ -23,6 +23,11 @@ steps are:
 4. [Write and serialize values](writing-and-serialization.md) creates new binary data, and
    [update existing data](updating-existing-data.md) changes one field without rebuilding the surrounding object.
 
+When the layout is part of your program's source, the [generated code series](generated/index.md) turns it into
+typed C# classes at build time - `Parse` into properties, `Serialize` from them, allocation-free views, typed
+setters - with the same rules and the same failure texts as the runtime; [runtime or generated?](generated/choosing-runtime-or-generated.md)
+is the decision table.
+
 The data-shape guides cover [strings](strings-and-encodings.md), [enums](enums.md), [unions](unions.md),
 [pointers](pointers.md), [conditional fields](conditional-fields.md) (with per-item decisions, variable scope, and
 browser exercises), and the [binary metadata types](binary-metadata-types.md). The operational guides cover

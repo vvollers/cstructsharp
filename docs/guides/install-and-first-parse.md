@@ -79,3 +79,5 @@ complete class definition. Use [Choose an API](choosing-an-api.md) when you are 
 output choices.
 
 Continue the [layout-language tutorial](../language/tutorial/index.md) to learn more declarations and byte layouts.
+When the layout is part of your program rather than of its input, the same six bytes can be read through a class
+the compiler generates for you: [your first generated layout](generated/first-generated-layout.md).

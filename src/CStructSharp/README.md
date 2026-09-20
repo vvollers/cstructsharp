@@ -1,8 +1,15 @@
 # Core library source map
 
 Every folder in this project is a namespace: a file in `Reading/` declares `namespace CStructSharp.Reading;`.
-The root folder holds the `CStruct` facade and the option types that appear on its methods, and nothing else.
-When you look for the code behind a behavior, start from the stage of the pipeline it belongs to.
+The root folder holds the `CStruct` facade, the option types that appear on its methods, and the generator's
+public attributes and interfaces, and nothing else. When you look for the code behind a behavior, start from the
+stage of the pipeline it belongs to.
+
+The part of the library that is known before any byte is read - the parser, the syntax tree, the expression
+evaluator, the compiled model and placement, the codec descriptors, the diagnostics texts, introspection, the
+path grammar, the options - lives in [`src/CStructSharp.Core/`](../CStructSharp.Core/README.md), a source folder
+this project and the source generator both compile (`<Compile Include="../CStructSharp.Core/**/*.cs" />`). The
+folders below with the same names hold the runtime halves of those namespaces.
 
 ## Folders and namespaces
 
@@ -18,7 +25,8 @@ When you look for the code behind a behavior, start from the stage of the pipeli
 | `Addressing/` | `CStructSharp.Addressing` | Public path syntax (`a.b[2].c`) parsing, target resolution, and pointer arithmetic | No |
 | `Reading/` | `CStructSharp.Reading` | Read-operation state, conditional field selection, data-sized array extents, and the static and typed read plans that decode fixed composites quickly | No |
 | `Writing/` | `CStructSharp.Writing` | Write-operation state, value materialization, and projection of written values into the variable domain | No |
-| `Values/` | `CStructSharp.Values` | What reads return and writes accept: `StructValue`, `UnionValue`, `EnumValueResult`, `FlagValueResult`, `Pointer`, `PrimitiveArray<T>`, and the POCO binding and typed conversion behind them | Yes |
+| `Values/` | `CStructSharp.Values` | What reads return and writes accept: `StructValue`, `UnionValue`, `EnumValueResult`, `FlagValueResult`, `Pointer`, `PrimitiveArray<T>`, and the typed conversion (`TypedValueConverter`) behind `Get<T>` and mapped classes | Yes |
+| `Generated/` | `CStructSharp.Generated` | What generated code calls at run time: `ReadCursor`, `WriteCursor`, `CompositeCursor` (position, limits, budgets, path context, the runtime's failure texts), `Codec` (text and bitfield decoding), `Expressions` (the layout operators), `Pointer<T>`; the root also holds `CStructLayoutAttribute`, `CStructMappedAttribute`, `CStructMemberAttribute`, `ICStructGenerated<T>`, `ICStructMapped<T>`, and `MappedTypes` | Yes |
 | `Introspection/` | `CStructSharp.Introspection` | `LayoutInfo` and the `Layout*Info` records that describe a compiled layout's declarations, fields, offsets, and constants | Yes |
 | `Diagnostics/` | `CStructSharp.Diagnostics` | The exception family, `CStructErrorCode`, `DebugData`, and the helpers that attach path and stream context to failures | Yes |
 | `Memory/` | `CStructSharp.Memory`, `.Memory.Metadata` | Address spaces, mappings, metadata import, sessions, traversal, and offline patches for memory images; see its own [README](Memory/README.md) | Yes |
@@ -41,7 +49,10 @@ Writes mirror this with `Writing` in place of `Reading`, and updates stage their
 
 - A file's namespace is its folder. Moving a file means changing its namespace and the `using` directives of the
   files that referenced it; nothing may reach a type through a stale namespace.
-- The root folder stays small: only the facade and its option types. New behavior belongs in the stage that owns
-  it, or in a new folder with a matching namespace when no stage fits.
+- The root folder stays small: only the facade, its option types, and the generator's public attributes and
+  interfaces. New behavior belongs in the stage that owns it, or in a new folder with a matching namespace when
+  no stage fits.
+- A type that needs no I/O belongs in `src/CStructSharp.Core/` so the generator sees it too; a type that reads or
+  writes bytes stays here.
 - Public types outside the root live in `Values`, `Introspection`, `Diagnostics`, `Codecs`, and `Memory`. Adding a
   public type elsewhere changes the API baseline in `contracts/api/managed-rc1` and needs a review entry there.

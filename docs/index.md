@@ -27,6 +27,11 @@ struct header {
 With the default little-endian byte order, CStructSharp reads `kind` as `2` and `length` as `6`. The same layout
 works on .NET 8 and .NET 10 without depending on the operating system's C compiler or native pointer size.
 
+The layout is used at run time - `new CStruct(text)` compiles it when the program runs, for formats that arrive
+with the data - and at compile time: put the same text on a `[CStructLayout]` class and the source generator
+turns it into typed C# classes, readers, writers, and allocation-free views while the program is built
+([generated code](guides/generated/index.md)).
+
 If terms such as *little-endian*, *offset*, or *padding* are new to you, start with
 [Binary layout basics](guides/binary-layout-basics.md). It explains how declarations map to bytes before introducing
 the library API.
@@ -40,7 +45,8 @@ the library API.
   reference material, and the three examples to read first.
 - To read your first value, follow [Install and make a first parse](guides/install-and-first-parse.md).
 - To decide between a stream, a byte array, a typed C# object, or a `StructValue` result, see
-  [Choose an API](guides/choosing-an-api.md).
+  [Choose an API](guides/choosing-an-api.md); between the runtime and the generator,
+  [runtime or generated?](guides/generated/choosing-runtime-or-generated.md).
 - To learn the C-like layout syntax, work through the [layout-language tutorial](language/tutorial/index.md).
 - To solve a specific task, browse the [library guides](guides/index.md) or
   [tested recipes](guides/recipes/index.md).

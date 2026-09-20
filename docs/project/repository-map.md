@@ -10,14 +10,18 @@ and which direction their dependencies point.
 
 | Path | What belongs here | Direct project/package relationship |
 | --- | --- | --- |
-| `src/CStructSharp/` | Public library; one folder per pipeline stage with a matching namespace (`src/CStructSharp/README.md` maps folders to roles) | No runtime package dependencies |
+| `src/CStructSharp.Core/` | Shared sources, not a project: the parser, expressions, compiled model, codec descriptors, diagnostics texts, introspection, and options, compiled into both the library and the generator (`src/CStructSharp.Core/README.md` lists the rules) | Included by the two projects below |
+| `src/CStructSharp/` | Public library; one folder per pipeline stage with a matching namespace (`src/CStructSharp/README.md` maps folders to roles); `Generated/` is the runtime support generated code calls | No runtime package dependencies; packs the generator as an analyzer |
+| `src/CStructSharp.Generators/` | The `[CStructLayout]`/`[CStructMapped]` source generator and the `CSG` analyzer (`netstandard2.0`, Roslyn 4.8), shipped inside the package under `analyzers/dotnet/cs` | Compiles the Core sources; references only Roslyn |
 | `tests/CStructSharpTests/` | Unit, integration, regression, property, limit, concurrency, and compatibility tests; `Reference/` holds the frozen Pidgin grammar used only by the parser differential tests | References core and fuzz support, plus Pidgin (test-only) |
-| `tests/CStructSharp.Fuzz/` | Bounded fuzz targets and replay corpus | References core |
+| `tests/CStructSharp.Generators.Tests/` | Generator snapshot, parity, analyzer, and option tests (`Snapshots/*.g.cs` are the golden files; `UPDATE_SNAPSHOTS=1` rewrites them) | References the generator and core |
+| `tests/CStructSharp.Generated.Parity/` | Every layout fixture generated into one project (`Layouts.g.cs` from `tools/quality/generate-parity-layouts.mjs`) and compared with the runtime on the same bytes | References core, uses the generator as an analyzer |
+| `tests/CStructSharp.Fuzz/` | Bounded fuzz targets and replay corpus, including the generated-differential target | References core, uses the generator as an analyzer |
 | `benchmarks/CStructSharp.Benchmarks/` | BenchmarkDotNet timing and allocation scenarios | References core |
 | `benchmarks/CStructSharp.FixtureTool/` and `benchmarks/fixtures/` | The seeded fixture corpus shared by the .NET, Node, and browser harnesses, and the tool that records its managed expectations | References core |
 | `benchmarks/js/` | Node and headless-Chromium harness for the WASM bridge | Loads its own staged bundle |
 | `tests/CStructSharp.PackageConsumer/` and `tests/CStructSharp.Memory.PackageConsumer/` | Small external-style apps that install a built package (the second uses only the memory namespace) | Use the packed NuGet file, not the core project |
-| `tests/CStructSharp.AotConsumer/` | A Native AOT publication of the starter, typed reads, writes, and diagnostics | References core, published with `PublishAot` in CI |
+| `tests/CStructSharp.AotConsumer/` | A Native AOT publication of the starter, typed reads, writes, generated layouts, mapped classes, and diagnostics | References core and the generator, published with `PublishAot` in CI |
 | `docs/` | DocFX pages, examples, site assets, browser checks, and machine-readable reference data | Reads a prebuilt core net10 assembly |
 | `src/CStructSharp.Wasm/` | Managed WebAssembly bridge (exports, DTOs, JSON projection) | References core |
 | `packages/cstructsharp/` | Public npm package: loaders, Vite plugin, README, declarations, the JavaScript adapter sources (`src/`), and the standalone bundle pieces (`standalone/`) | Packages the prebuilt WASM bridge for Node.js and browsers |
@@ -27,7 +31,7 @@ and which direction their dependencies point.
 | `tools/` | Node validation, measurement, packaging, release, and documentation scripts; `lib/` holds their shared helpers | Takes explicit files/projects as inputs |
 | `.github/workflows/` | Continuous integration, scheduled mutation, docs, and release-candidate automation | Runs pinned actions and repository scripts |
 
-`CStructSharp.NonWeb.sln` contains core, tests, fuzz, and benchmarks. Use it for routine development.
+`CStructSharp.NonWeb.sln` contains core, the generator, tests, fuzz, and benchmarks. Use it for routine development.
 `CStructSharp.sln` adds the WASM project and belongs to final integration. The package-consumer project stays outside
 both solutions because its package does not exist during the solution's initial restore.
 

@@ -10,5 +10,7 @@
     <Compile Remove="recipes/**" />
     <Compile Remove="memory-analysis/**" />
     <ProjectReference Include="..\..\src\CStructSharp\CStructSharp.csproj" />
+    <!-- The generated-code lessons: the generator runs on this project as it does in a consumer. -->
+    <ProjectReference Include="..\..\src\CStructSharp.Generators\CStructSharp.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>

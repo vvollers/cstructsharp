@@ -17,6 +17,7 @@ internal static partial class Program
         ("composite-record", CompositeRecord),
         ("runtime-payload", RuntimePayload),
         ("map-poco", MapPoco),
+        ("map-mapped", MapMapped),
         ("inspect-ranges", InspectRanges),
         ("follow-pointer", FollowPointer),
         ("preserve-union", PreserveUnion),
@@ -46,6 +47,14 @@ internal static partial class Program
         ("header-preprocessor", HeaderPreprocessor),
         ("layout-introspection", LayoutIntrospection),
         ("custom-codec", CustomCodec),
+        ("generated-first-layout", GeneratedFirstLayout),
+        ("generated-views", GeneratedViews),
+        ("generated-arrays-strings-enums", GeneratedArraysStringsEnums),
+        ("generated-unions-bitfields-nested", GeneratedUnionsBitfieldsNested),
+        ("generated-pointers", GeneratedPointers),
+        ("generated-conditionals", GeneratedConditionals),
+        ("generated-writing-updating", GeneratedWritingUpdating),
+        ("generated-mapped-classes", GeneratedMappedClasses),
     ];
 
     public static int Main(string[] args)
@@ -145,6 +154,22 @@ internal static partial class Program
         Point point = layout.ReadValue<Point>(new byte[] { 0xFE, 0xFF, 0x05, 0x00 }, "point");
         Equal((short)-2, point.X);
         Equal((short)5, point.Y);
+    }
+    #endregion
+
+    #region api-guide-map-mapped
+    private static void MapMapped()
+    {
+        var layout = new CStruct("struct point { int16 x; int16 y; };");
+        byte[] bytes = [0xFE, 0xFF, 0x05, 0x00];
+
+        // The generated mapper matches X to x by name (case-insensitively) and converts with Get<short>'s checks.
+        MappedPoint point = layout.ReadValue<MappedPoint>(bytes, "point");
+        Equal((short)-2, point.X);
+        Equal((short)5, point.Y);
+
+        // The same class writes back through the generated WriteTo.
+        SequenceEqual(bytes, layout.Serialize("point", point));
     }
     #endregion
 
@@ -315,6 +340,17 @@ internal static partial class Program
             MappedTypes.Register<Header>();
         }
     }
+
+    #region api-guide-map-mapped-type
+    // The generator writes ReadFrom, WriteTo, and the registration for this partial class.
+    [CStructMapped]
+    public sealed partial class MappedPoint
+    {
+        public short X { get; set; }
+
+        public short Y { get; set; }
+    }
+    #endregion
 
     #region api-guide-map-poco-type
     public sealed class Point : ICStructMapped<Point>

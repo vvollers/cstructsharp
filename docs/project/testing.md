@@ -30,6 +30,40 @@ dotnet test tests/CStructSharpTests/CStructSharpTests.csproj -c Release
 This builds as needed and runs unit, integration, regression, property, stream-adapter, concurrency, limit, and
 compatibility tests on both frameworks.
 
+## Generator snapshots and parity
+
+The source generator has two test projects of its own:
+
+```sh
+dotnet test tests/CStructSharp.Generators.Tests/CStructSharp.Generators.Tests.csproj -c Release
+dotnet test tests/CStructSharp.Generated.Parity/CStructSharp.Generated.Parity.csproj -c Release
+```
+
+The first runs the generator in memory over small sources: the generated file for each fixture is compared byte
+for byte with the golden file in `Snapshots/*.g.cs`, and behavior tests compile the output and compare it with
+the runtime (`ReaderParityTests`, `WriterParityTests`, `ConditionalParityTests`, the analyzer's diagnostics). When
+a change to the emitter alters the generated text on purpose, rewrite the snapshots and review the diff in the
+commit:
+
+```sh
+UPDATE_SNAPSHOTS=1 dotnet test tests/CStructSharp.Generators.Tests/CStructSharp.Generators.Tests.csproj -c Release
+```
+
+A snapshot is never rewritten to make a failing test pass; the diff is the review.
+
+The second project generates every layout fixture the runtime is tested with into one assembly. Its
+`Layouts.g.cs` and `layouts.json` come from the fixture sources; regenerate and check them with:
+
+```sh
+node tools/quality/generate-parity-layouts.mjs
+node tools/quality/generate-parity-layouts.mjs --check
+```
+
+For each layout the tests compare the generated `Parse` with `Layout.Parse` member by member, round-trip the
+value through both writers, and cut the bytes at every length expecting the same exception type and text from
+both paths (the runtime is the oracle). A new fixture added to the runtime tests reaches the parity project
+through the generator tool; `--check` in CI fails when the generated files are stale.
+
 ## Check repository reference data
 
 Some behavior is also recorded in JSON/text files so tests, docs, and release automation agree. Run the checks

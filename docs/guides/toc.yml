@@ -13,6 +13,8 @@ items:
   href: reading-values.md
 - name: Typed values
   href: typed-values.md
+- name: Generated code
+  href: generated/
 - name: Trimming and Native AOT
   href: trimming-and-native-aot.md
 - name: Choose an API

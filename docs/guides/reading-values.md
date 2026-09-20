@@ -151,5 +151,7 @@ An `InvalidPath` error means the selector does not match the compiled layout. A 
 valid but the bytes could not be decoded, for example because the input was truncated. `ReadLimitExceeded` means the
 operation reached a configured array, string, nesting, byte, or pointer limit.
 
-For typed application models, continue with [Map values to C# types](typed-values.md). For the exact path grammar,
+For typed application models, continue with [Map values to C# types](typed-values.md); when the layout is known
+at build time, the [generated code series](generated/index.md) reads it into generated classes without paths at
+all. For the exact path grammar,
 including unions and pointer `.address`/`.value` access, see [Paths and selection](../language/paths-and-selection.md).

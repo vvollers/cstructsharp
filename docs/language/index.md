@@ -20,6 +20,11 @@ struct header {
 This says that `header` contains a two-byte unsigned integer followed by a four-byte unsigned integer. The
 constructor chooses packed or aligned placement and the byte order used by neutral multi-byte fields.
 
+The same text is consumed in two places: at run time by `new CStruct(text)`, which compiles it when the program
+runs, and at compile time by the `[CStructLayout]` source generator, which turns it into C# classes while the
+program is built ([generated code](../guides/generated/index.md)). Both use the same parser and the same
+placement rules, so a layout means the same bytes wherever it is read.
+
 The rules are called *Portable* because they do not change with the operating system, CPU, installed C compiler, or
 .NET process bitness. `uint32` is always four bytes. `long` is always eight bytes. Pointer width is an explicit
 constructor choice.

@@ -130,6 +130,19 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Documentation and tooling
 
+- Documentation: a twelve-lesson [generated code series](docs/guides/generated/index.md) (what a source generator
+  is and where the files live, the first generated layout, views and zero allocation, arrays/strings/enums,
+  unions/bitfields/nested structs, pointers and budgets, conditionals, writing and updating, mapped classes, the
+  diagnostics catalogue, how the generator works, and a runtime-or-generated decision table), each with a
+  "check yourself" and an exercise; every code block runs in `docs/examples/GeneratedExamples.cs`. The
+  diagnostics page's table is generated from `AnalyzerReleases.Unshipped.md` by
+  `tools/documentation/validate-generator-diagnostics.mjs`, which the documentation gate runs with `--check`.
+  [Typed values](docs/guides/typed-values.md) is written around `[CStructMapped]`,
+  [trimming and Native AOT](docs/guides/trimming-and-native-aot.md) covers generated layouts, and the reading,
+  choosing-an-api, install, performance, language, project (architecture, repository map, testing with the
+  snapshot and parity workflow), and README pages point at the generated path. Three generated recipes
+  (`generated-first-layout`, `generated-views`, `generated-mapped-classes`) join the exported set (36), and the
+  starter gains `Generated.cs`.
 - Documentation: every C# example, recipe, and guide snippet reads results as `StructValue` with `Get<T>` instead
   of `dynamic`; [Read values and paths](docs/guides/reading-values.md) gained a "Dynamic access" section that
   states what `dynamic` trades away, and a new guide, [Trimming and Native AOT](docs/guides/trimming-and-native-aot.md),

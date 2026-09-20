@@ -8,17 +8,29 @@ const original = fs.readFileSync(path.join(examples, "Program.cs"), "utf8");
 const more = fs.readFileSync(path.join(examples, "MoreExamples.cs"), "utf8");
 const binaryTypes = fs.readFileSync(path.join(examples, "BinaryTypeExamples.cs"), "utf8");
 const parity = fs.readFileSync(path.join(examples, "DissectParityExamples.cs"), "utf8");
+const generated = fs.readFileSync(path.join(examples, "GeneratedExamples.cs"), "utf8");
 function between(start, end) {
   const first = original.indexOf(start);
   return original.slice(first, original.indexOf(end, first)).trimEnd();
+}
+/** The body of a `#region name` in the generated-code examples (the attributed classes a generated recipe needs). */
+function generatedRegion(name) {
+  const start = generated.indexOf(`#region ${name}\n`);
+  if (start < 0) throw new Error(`Missing generated example region ${name}`);
+  const body = generated.slice(generated.indexOf("\n", start) + 1, generated.indexOf("#endregion", start));
+  return body.trimEnd();
 }
 const support = [
   [/\bEqual(?:<[^>]*>)?\(/, between("    private static void Equal<T>", "    private static void True")],
   [/\bTrue\(/, between("    private static void True", "    private static void SequenceEqual")],
   [/\bSequenceEqual\(/, between("    private static void SequenceEqual", "    private static void Throws")],
   [/\bThrows</, between("    private static void Throws", "    public sealed class Header")],
-  [/\bHeader[?> ]/, between("    public sealed class Header", "    #region api-guide-map-poco-type")],
+  [/(?<!\.)\bHeader[?> ]/, between("    public sealed class Header", "    #region api-guide-map-poco-type")],
   [/\bPoint[> ]/, between("    public sealed class Point", "    #endregion")],
+  // The generated-code recipes carry their [CStructLayout]/[CStructMapped] classes; the package's generator fills them in.
+  [/\bWire\./, generatedRegion("generated-first-layout-class")],
+  [/\bSamples\./, generatedRegion("generated-arrays-strings-enums-class")],
+  [/\b(?:HeaderRecord|SampleRecord)\b/, generatedRegion("generated-mapped-classes-class")],
 ];
 
 // Authored teaching material; code and assertions are extracted from the executable runner.
@@ -55,6 +67,9 @@ const recipes = [
   ["header-preprocessor", "Keep a header's defines and size expressions", "Advanced", "recipe-header-preprocessor", "a text constant, a 64-bit mask constant, an #ifdef-selected typedef, and payload counts of 5 and 1 from a conditional sizeof/offsetof expression", "Text and 64-bit defines are published on Constants, #ifdef selects declarations (also through CStructCompilationOptions.Defined), and counts may use %, ?:, sizeof, and offsetof.", "Change the count bytes 04 00 to 03 00 and shorten the payload to one byte.", "Count 3 is not a multiple of 4, so the payload has offsetof(header, length) = 1 element.", "../language/expressions-defines-and-variables", "header-preprocessor"],
   ["layout-introspection", "Inspect a compiled layout", "Intermediate", "recipe-layout-introspection", "a 7-byte root with length at offset 1, enum member DATA = 2, a definition rendered by ToDefinition that compiles to the same size, and a big-endian sibling layout", "Layout lists every declaration with sizes, offsets, array kinds, and enum members; ToDefinition renders Portable text back; WithEndianness returns the cached sibling for the other byte order.", "Ask the sibling for pointer size 4 instead.", "WithPointerSize(4) returns another cached layout; the root size stays 7 because no field is a pointer.", "debug-data-and-addresses", null],
   ["custom-codec", "Register a custom codec", "Advanced", "recipe-custom-codec", "varint fields decoded as 2, 128, and 5 with an exact round trip and address 4 for the second id", "An ICustomCodec supplies the name, size, alignment, reader, and writer of a caller-defined type; the layout uses it like any primitive, including as an array count.", "Change the second varint from 80 01 to 81 01.", "id becomes 129 (0x81 & 0x7F plus 1 << 7); the field still occupies two bytes.", "migrating-from-dissect", null],
+  ["generated-first-layout", "Generate a layout class", "Beginner", "generated-first-layout", "Parse into a generated class with kind 2 and length 6, Serialize back to the same six bytes, and the size constant 6", "The layout text on a [CStructLayout] class becomes typed classes, Parse, and Serialize at build time; the package ships the generator, so a console project needs nothing else.", "Add `uint8 flags;` after length and append a seventh byte.", "Header gains a Flags property, Sizes.Header becomes 7, and the assertions on the six-byte input must change to match.", "generated/first-generated-layout", null],
+  ["generated-views", "Read through an allocation-free view", "Intermediate", "generated-views", "a view reading kind 2 and length 6 from the span, ToObject producing the class, and the runtime's short-read message for four bytes", "A readonly ref struct view decodes each member when it is read and allocates nothing; a short source fails with the same message the runtime reports.", "Read the view from a slice that starts one byte late.", "The view still needs six bytes, so a five-byte slice fails with 'needed 6, available 5'; a six-byte slice from offset 1 decodes shifted values (kind 0x0600).", "generated/views-and-zero-allocation", null],
+  ["generated-mapped-classes", "Map a generated layout to your classes", "Intermediate", "generated-mapped-classes", "a [CStructMapped] record read by the runtime and by the generated bridge, an exact SerializeMapped round trip, and name matching through [CStructMember]", "A [CStructMapped] partial class gets ReadFrom, WriteTo, and its registration from the generator; properties match members exactly, then case-insensitively, then ignoring underscores, or by [CStructMember].", "Rename FileName to Name and drop its [CStructMember] attribute.", "The property still maps: Name matches the layout's name case-insensitively.", "generated/mapped-classes", null],
   ["conditional-records", "Parse tagged records with native branches", "Advanced", "recipe-conditional-records", "a UTF-8 label, a 24-bit number at offset 7, an inactive-path error, and rejected branch-changing update", "A runtime tag selects the fields that consume storage. Each array element chooses its own branch, and inactive fields do not appear in results.", "Change the first record kind through Update.", "Changing active branches is rejected. Serialize a new record when its layout must change.", "binary-metadata-types", null],
 ];
 
@@ -73,16 +88,17 @@ const out = path.join(examples, "recipes");
 fs.mkdirSync(out, { recursive: true });
 const toc = ["items:"];
 for (const [id, title, level, region, expected, explanation, exercise, answer, guide, lesson] of recipes) {
-  const text = [original, more, binaryTypes, parity].find(source => source.includes(`#region ${region}\n`) || source.includes(`#region ${region}\r\n`));
+  const text = [original, more, binaryTypes, parity, generated].find(source => source.includes(`#region ${region}\n`) || source.includes(`#region ${region}\r\n`));
   if (!text) throw new Error(`Missing example region ${region}`);
-  const start = text.indexOf(`#region ${region}`);
+  // The exact region: a `-class` region shares the prefix of the scenario region it supports.
+  const start = text.search(new RegExp(`#region ${region}\\r?\\n`));
   if (start < 0) throw new Error(`Missing example region ${region}`);
   const end = text.indexOf("#endregion", start);
   const method = text.slice(text.indexOf("\n", start) + 1, end).trimEnd();
   const methodName = method.match(/private static void (\w+)\(/)?.[1];
   if (!methodName || !original.includes(`("${id}", ${methodName})`)) throw new Error(`Scenario ${id} is not registered`);
   const helpers = support.filter(([pattern]) => pattern.test(method)).map(([, code]) => code).join("\n\n") + "\n";
-  const code = `// Generated from executable documentation examples. Edit the source region, then regenerate.\nusing System;\nusing System.IO;\nusing System.Linq;\nusing System.Buffers;\nusing System.Collections.Generic;\nusing System.Dynamic;\nusing System.Globalization;\nusing System.Numerics;\nusing System.Runtime.CompilerServices;\nusing CStructSharp;\nusing CStructSharp.Codecs;\nusing CStructSharp.Diagnostics;\nusing CStructSharp.Introspection;\nusing CStructSharp.Values;\n\ninternal static class Program\n{\n    public static void Main()\n    {\n        ${methodName}();\n        Console.WriteLine("PASS ${id}");\n    }\n\n${method}\n\n${helpers}}\n`;
+  const code = `// Generated from executable documentation examples. Edit the source region, then regenerate.\nusing System;\nusing System.IO;\nusing System.Linq;\nusing System.Buffers;\nusing System.Collections.Generic;\nusing System.Dynamic;\nusing System.Globalization;\nusing System.Numerics;\nusing System.Runtime.CompilerServices;\nusing CStructSharp;\nusing CStructSharp.Codecs;\nusing CStructSharp.Diagnostics;\nusing CStructSharp.Introspection;\nusing CStructSharp.Values;\n\ninternal static partial class Program\n{\n    public static void Main()\n    {\n        ${methodName}();\n        Console.WriteLine("PASS ${id}");\n    }\n\n${method}\n\n${helpers}}\n`;
   fs.writeFileSync(path.join(out, `${id}.cs`), code);
   fs.writeFileSync(path.join(out, `${id}.md`), `---\ntitle: ${title}\ndescription: Run the complete ${id} example and check its values and bytes.\n---\n\n# ${title}\n\n**${level} · C#**. ${explanation}\n\n## Run this example\n\nPrerequisites: the repository's .NET 10 SDK and a checkout of this source. Run from the repository root:\n\n\`\`\`sh\ndotnet run --project docs/examples/CStructSharp.Docs.Examples.csproj -c Release -- ${id}\n\`\`\`\n\nThe runner checks ${expected}. Success includes \`PASS ${id}\`.\n${lesson ? `\n[Try the related browser lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=${lesson}).\n` : "\nThis example uses the C# API. Browser capabilities and result shapes are described in the [browser guide](../../guides/browser/api.md).\n"}\n## Complete program\n\nThe layout, options, input bytes, helper methods, and required types are all included. To adapt it outside the\nrepository, create a .NET 10 console project, add CStructSharp, and replace Program.cs with this complete file.\nThese examples follow the source version; use a matching package when testing a release.\n\n[Download the complete C# source](${id}.cs).\n\n[!code-csharp[Complete ${id} program](${id}.cs)]\n\n## Try it and diagnose mistakes\n\n${exercise}\n\nAnswer: ${answer} The program contains assertions for its original inputs. When changing an input intentionally,\nupdate the expected assertion too; an unchanged assertion is not evidence that the new value is wrong.\n\nContinue with [the related guide](../../guides/${guide}.md) or [choose another recipe](../../guides/recipes/index.md).\n`);
   toc.push(`- name: ${title}`, `  href: ${id}.md`);

@@ -36,7 +36,23 @@ debug, read, and write paths from each interpreting the source in a different wa
 
 The source tree mirrors these stages: each folder under `src/CStructSharp` is a namespace (`Parsing`, `Syntax`,
 `Expressions`, `Compilation`, `Codecs`, `Streams`, `Addressing`, `Reading`, `Writing`, `Values`, `Introspection`,
-`Diagnostics`, `Memory`), and `src/CStructSharp/README.md` maps each folder to its role.
+`Diagnostics`, `Memory`, `Generated`), and `src/CStructSharp/README.md` maps each folder to its role.
+
+## One core, two hosts
+
+Stages 1 to 3 need no bytes, so their code lives in `src/CStructSharp.Core/`: a source folder, not a project,
+that two assemblies compile. The runtime library includes it and adds the I/O halves (streams, codec delegates,
+readers, writers, values). The source generator (`src/CStructSharp.Generators`, `netstandard2.0`, loaded into the
+C# compiler where the runtime library is not available) includes the same files and adds an emitter: for every
+`[CStructLayout]` class it runs stages 1 to 3 on the layout text at build time, then writes C# readers, writers,
+views, and typed setters from the compiled model - the same offsets, the same placement rules, and the same
+failure texts (`ReadFailures`/`WriteFailures` are Core). At run time the generated code goes through the small
+`CStructSharp.Generated` cursors so limits and diagnostics stay the runtime's.
+
+`tests/CStructSharp.Generated.Parity` holds the generator to the runtime: every layout fixture is generated into
+one project, and each generated `Parse` and `Serialize` is compared with the runtime's on the same bytes, including
+a truncation sweep that expects the same exception text at every cut. [How the generator works](../guides/generated/how-it-works.md)
+describes the pipeline for users; [Testing](testing.md) describes the snapshot and parity workflow.
 
 ## What happens during an operation
 

@@ -18,6 +18,9 @@ The highest-value choices are usually:
 6. Map to a class only when typed application code needs it. `ReadValue<T>` parses the value (through the static
    read plan when the layout is fully fixed) and hands it to the class's own `ReadFrom`; the mapping itself is the
    code the generator or you wrote, with no reflection to pay for.
+7. Generate the layout when it is part of the program: a `[CStructLayout]` class parses straight into typed
+   properties, and its view reads members without allocating (the "Generated" table below and
+   [runtime or generated?](generated/choosing-runtime-or-generated.md)).
 
 Selected reads can avoid decoding unrelated later siblings, but they still perform the work needed to locate the
 target. Runtime arrays, alignment, terminated strings, and pointers before the selected field may need traversal.

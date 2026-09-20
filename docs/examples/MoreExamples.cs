@@ -87,7 +87,9 @@ internal static partial class Program
     {
         var layout = new CStruct("struct header { uint16 kind; uint32 length; };");
         byte[] bytes = [2, 0, 6, 0, 0, 0];
+#pragma warning disable CSG200 // The analyzer reports the wrong path at build time; this recipe shows the runtime failure.
         Throws<CStructPathException>(() => layout.ReadValue(bytes.AsSpan(), "Header.kind"));
+#pragma warning restore CSG200
         Equal((ushort)2, (ushort)layout.ReadValue(bytes.AsSpan(), "header.kind")!);
     }
     #endregion

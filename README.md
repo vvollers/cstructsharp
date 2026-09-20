@@ -84,7 +84,9 @@ byte[] again = Wire.Serialize(header);
 ```
 
 A `[CStructMapped] partial class` maps a parsed `StructValue` to your own properties by name, and the analyzer
-warns about a path string that does not match the layout it is used with.
+warns about a path string that does not match the layout it is used with. The
+[generated code series](https://vvollers.github.io/cstructsharp/docs/guides/generated/index.html) teaches this
+path from the first class to the decision between runtime and generated.
 For the background, read [how C structs occupy memory](https://vvollers.github.io/cstructsharp/docs/guides/native-c-memory.html) and
 [memory addresses and stored data](https://vvollers.github.io/cstructsharp/docs/guides/memory-and-stored-data.html).
 See [reading values](https://vvollers.github.io/cstructsharp/docs/guides/reading-values.html) for managed result types and the
@@ -110,6 +112,11 @@ a browser to build protocol tools, file inspectors, and binary editors.
 - **Navigate beyond sequential records.** Describe stored pointers, pointer arrays, and multiple levels of
   indirection. Read targets using absolute or relative addressing, or inspect stored addresses without following
   them. Select nested values with paths such as `packet.samples[2].value` or `root.ptr.value`.
+- **Generate the code.** Put a layout on a `[CStructLayout]` class and the source generator in the same package
+  writes typed classes, `Parse`/`Serialize`/`Write`, `readonly ref struct` views that allocate nothing, typed
+  in-place setters, and size and offset constants at build time - the same parser, the same placement, and the
+  same failure texts as the runtime, checked by a parity suite over every fixture. `[CStructMapped]` generates
+  the mapping into your own classes, with no reflection, so trimmed and Native AOT publishes need no conventions.
 - **Analyze memory images.** `CStructSharp.Memory` adds unsigned address spaces, mapped regions, BTF/ISF type
   import, bounded traversal, and offline patches, with the same zero-dependency runtime; see the
   [memory-analysis guide](https://vvollers.github.io/cstructsharp/docs/guides/memory-analysis.html) and the
@@ -119,7 +126,7 @@ Prepare a layout once and reuse it to read `StructValue` results or C# classes, 
 selected fields in existing data. The definition keeps the format's structure and byte-level rules together as your
 tools grow from a single header parser into a complete format explorer. The library is trim-safe and Native AOT
 compatible; see [trimming and Native AOT](https://vvollers.github.io/cstructsharp/docs/guides/trimming-and-native-aot.html)
-for the two conventions your own classes follow (and why `dynamic` stays on the JIT).
+for what a published program contains (and why `dynamic` stays on the JIT).
 
 Start with the [language tutorial](https://vvollers.github.io/cstructsharp/docs/language/tutorial/index.html),
 explore the [language reference](https://vvollers.github.io/cstructsharp/docs/language/index.html), or consult

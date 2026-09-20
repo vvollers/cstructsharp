@@ -49,4 +49,6 @@ Answer: the replacement does not fit `uint16`, so the update fails. Restore a va
 field width unless the actual format calls for a different width.
 
 Continue with [nested arrays](../examples/recipes/nested-array.md),
-[fixed text](../examples/recipes/fixed-text.md), or [choosing an API](choosing-an-api.md).
+[fixed text](../examples/recipes/fixed-text.md), or [choosing an API](choosing-an-api.md). The starter's third
+file, `Generated.cs`, does the same four steps with a `[CStructLayout]` class the compiler generates:
+[your first generated layout](generated/first-generated-layout.md).
