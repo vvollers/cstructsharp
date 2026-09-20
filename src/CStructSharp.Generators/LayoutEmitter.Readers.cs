@@ -90,6 +90,34 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.ReadOnlySpan{byte}, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>");
         writer.Line("public static " + name + " " + method + "(global::System.ReadOnlyMemory<byte> source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
         writer.Line("    => " + method + "(source.Span, variables, options);");
+        writer.Line();
+        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from <paramref name=\"stream\"/>: the stream is buffered up to the total read budget (or its remaining length) and read through the span reader; a seekable stream is left after the value.</summary>");
+        writer.Line("/// <param name=\"stream\">The stream, read from its current position.</param>");
+        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line("/// <returns>The parsed value.</returns>");
+        writer.Open("public static " + name + " " + method + "(global::System.IO.Stream stream, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
+        writer.Line("global::System.ArgumentNullException.ThrowIfNull(stream);");
+        writer.Line("long start = stream.CanSeek ? stream.Position : 0;");
+        writer.Line("byte[] buffer = " + Cursor + ".BufferStream(stream, options, out int length);");
+        writer.Open("try");
+        writer.Line("var cursor = new " + Cursor + "(new global::System.ReadOnlySpan<byte>(buffer, 0, length), options, " + SourceWriter.Literal(composite.LayoutName) + ");");
+        writer.Open("try");
+        writer.Line(name + " value = Read" + name + "(ref cursor, variables, null, null);");
+        writer.Open("if (stream.CanSeek)");
+        writer.Line("stream.Position = start + cursor.Position;");
+        writer.Close();
+        writer.Line("return value;");
+        writer.Close();
+        writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
+        writer.Line("cursor.Complete(exception);");
+        writer.Line("throw;");
+        writer.Close();
+        writer.Close();
+        writer.Open("finally");
+        writer.Line("global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);");
+        writer.Close();
+        writer.Close();
         if (isRoot)
         {
             writer.Line();
@@ -104,6 +132,9 @@ internal sealed partial class LayoutEmitter
             writer.Line();
             writer.Line("/// <inheritdoc cref=\"Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)\"/>");
             writer.Line("public static " + name + " Parse(global::System.ReadOnlyMemory<byte> source, global::CStructSharp.ReadOptions? options = null) => " + method + "(source.Span, null, options);");
+            writer.Line();
+            writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.IO.Stream, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>");
+            writer.Line("public static " + name + " Parse(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null) => " + method + "(stream, null, options);");
         }
     }
 

@@ -80,6 +80,40 @@ namespace Demo
         public static Choice ParseChoice(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
             => ParseChoice(source.Span, variables, options);
 
+        /// <summary>Reads one <c>choice</c> from <paramref name="stream"/>: the stream is buffered up to the total read budget (or its remaining length) and read through the span reader; a seekable stream is left after the value.</summary>
+        /// <param name="stream">The stream, read from its current position.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value.</returns>
+        public static Choice ParseChoice(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            global::System.ArgumentNullException.ThrowIfNull(stream);
+            long start = stream.CanSeek ? stream.Position : 0;
+            byte[] buffer = global::CStructSharp.Generated.ReadCursor.BufferStream(stream, options, out int length);
+            try
+            {
+                var cursor = new global::CStructSharp.Generated.ReadCursor(new global::System.ReadOnlySpan<byte>(buffer, 0, length), options, "choice");
+                try
+                {
+                    Choice value = ReadChoice(ref cursor, variables, null, null);
+                    if (stream.CanSeek)
+                    {
+                        stream.Position = start + cursor.Position;
+                    }
+                    return value;
+                }
+                catch (global::CStructSharp.Diagnostics.CStructException exception)
+                {
+                    cursor.Complete(exception);
+                    throw;
+                }
+            }
+            finally
+            {
+                global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
         /// <summary>Reads the root declaration (<c>choice</c>); see <see cref="ParseChoice(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
         /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
@@ -91,6 +125,9 @@ namespace Demo
 
         /// <inheritdoc cref="Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)"/>
         public static Choice Parse(global::System.ReadOnlyMemory<byte> source, global::CStructSharp.ReadOptions? options = null) => ParseChoice(source.Span, null, options);
+
+        /// <inheritdoc cref="ParseChoice(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static Choice Parse(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null) => ParseChoice(stream, null, options);
 
         /// <summary>Reads one <c>choice</c> at the cursor's position.</summary>
         private static Choice ReadChoice(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
@@ -310,6 +347,59 @@ namespace Demo
         {
             /// <summary><c>sizeof(choice)</c>.</summary>
             public const int Choice = 2;
+        }
+
+        /// <summary>
+        ///     A zero-allocation view of one <c>choice</c> over its bytes: each statically placed member decodes
+        ///     directly from the span when read; a member the view does not expose (runtime-sized, conditional, or placed after one)
+        ///     is reached through <see cref="ToObject"/>. A view cannot leave the method that created it.
+        /// </summary>
+        public readonly ref struct ChoiceView
+        {
+            private readonly global::System.ReadOnlySpan<byte> source;
+            private readonly global::CStructSharp.ReadOptions? options;
+
+            /// <summary>Creates a view over <paramref name="source"/>, whose first byte is the value's first byte; the source must hold the value's 2 bytes.</summary>
+            /// <param name="source">The bytes, from the value's start; more may follow (pointer targets, the rest of the input).</param>
+            /// <param name="options">The read options <see cref="ToObject"/> uses; <see langword="null"/> uses the documented defaults.</param>
+            public ChoiceView(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null)
+            {
+                if (source.Length < 2)
+                {
+                    var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "choice");
+                    global::CStructSharp.Diagnostics.CStructException failure = cursor.Fail(global::CStructSharp.Generated.ReadCursor.ShortReadText(2, source.Length), null, null);
+                    cursor.Complete(failure);
+                    throw failure;
+                }
+                this.source = source;
+                this.options = options;
+            }
+
+            /// <summary>Gets the value's bytes (its 2 bytes).</summary>
+            public global::System.ReadOnlySpan<byte> Bytes => this.source.Slice(0, 2);
+
+            /// <summary><c>uint8 narrow</c> at offset 0.</summary>
+            public byte Narrow => this.source.Slice(0, 1)[0];
+
+            /// <summary><c>uint16 wide</c> at offset 0.</summary>
+            public ushort Wide => global::CStructSharp.Generated.Codec.ReadUInt16(this.source.Slice(0, 2), true);
+
+            /// <summary>Reads the whole value with the generated reader (every member, runtime-sized ones included).</summary>
+            /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+            /// <returns>The value.</returns>
+            public Choice ToObject(global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null)
+            {
+                var cursor = new global::CStructSharp.Generated.ReadCursor(this.source, this.options, "choice");
+                try
+                {
+                    return ReadChoice(ref cursor, variables, null, null);
+                }
+                catch (global::CStructSharp.Diagnostics.CStructException exception)
+                {
+                    cursor.Complete(exception);
+                    throw;
+                }
+            }
         }
     }
 }

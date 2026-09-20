@@ -299,6 +299,7 @@ namespace CStructSharp.Generated
         public static void DecodeIntegers<T>(System.ReadOnlySpan<byte> source, System.Span<T> destination, bool littleEndian)
             where T :  unmanaged { }
         public static void DecodeUInt24(System.ReadOnlySpan<byte> source, System.Span<uint> destination, bool littleEndian) { }
+        public static string DecodeWideText(System.ReadOnlySpan<byte> source, bool littleEndian, CStructSharp.ReadOptions? options) { }
         public static long EncodeFixedPoint(object value, int widthBits, int fractionBits, bool signed) { }
         public static void EncodeIntegers<T>(System.ReadOnlySpan<T> source, System.Span<byte> destination, bool littleEndian)
             where T :  unmanaged { }
@@ -328,6 +329,7 @@ namespace CStructSharp.Generated
         public static System.Guid ToGuid(object value) { }
         public static byte ToNarrowCharacter(char value) { }
         public static byte ToNarrowCharacter(object value) { }
+        public static bool TrimsFixedText(CStructSharp.ReadOptions? options) { }
         public static void WriteChar(System.Span<byte> destination, char value, bool littleEndian) { }
         public static void WriteDouble(System.Span<byte> destination, double value, bool littleEndian) { }
         public static void WriteGuid(System.Span<byte> destination, System.Guid value, bool networkOrder) { }
@@ -456,6 +458,8 @@ namespace CStructSharp.Generated
         public long TakePointerAddress(int pointerSize, bool littleEndian, string member, string? memberType) { }
         public string TakeTerminatedString(CStructSharp.Generated.TerminatedTextEncoding encoding, char terminator, string member, string? memberType) { }
         public string TakeWideText(int count, bool littleEndian, string member, string? memberType) { }
+        public static byte[] BufferStream(System.IO.Stream stream, CStructSharp.ReadOptions? options, out int length) { }
+        public static string ShortReadText(long needed, long available) { }
     }
     public enum TerminatedTextEncoding
     {

@@ -849,6 +849,38 @@ public static class Codec
     public static byte ToNarrowCharacter(object value)
         => PrimitiveCodecs.ConvertToNarrowCharacter(value);
 
+    /// <summary>Whether the options trim trailing NULs from fixed text (<c>ReadOptions.TrimFixedText</c>), for a view's text accessor.</summary>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>Whether trailing NULs are trimmed.</returns>
+    public static bool TrimsFixedText(ReadOptions? options) => options?.TrimFixedText ?? false;
+
+    /// <summary>Decodes a fixed wide-character buffer (<c>wchar[N]</c>) as a view does: validated UTF-16 code units, <c>TrimFixedText</c> applied.</summary>
+    /// <param name="source">The buffer's bytes (two per character).</param>
+    /// <param name="littleEndian">The code units' byte order.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>The text.</returns>
+    /// <exception cref="CStructReadException">The code units are not valid UTF-16.</exception>
+    public static string DecodeWideText(ReadOnlySpan<byte> source, bool littleEndian, ReadOptions? options)
+    {
+        var characters = new char[source.Length / 2];
+        for (int index = 0; index < characters.Length; index++)
+        {
+            characters[index] = ReadChar(source.Slice(index * 2, 2), littleEndian);
+        }
+
+        string text = new(characters);
+        try
+        {
+            _ = (littleEndian ? PrimitiveCodecs.StrictUtf16LittleEndianEncoding : PrimitiveCodecs.StrictUtf16BigEndianEncoding).GetByteCount(text);
+        }
+        catch (System.Text.EncoderFallbackException exception)
+        {
+            throw new CStructReadException(ReadFailures.WideTextInvalid, exception);
+        }
+
+        return TrimsFixedText(options) ? text.TrimEnd('\0') : text;
+    }
+
     /// <summary>Converts one character to the one-byte domain of the layout's <c>char</c> type.</summary>
     /// <param name="value">The character.</param>
     /// <returns>The byte.</returns>

@@ -74,6 +74,13 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   `Update.<Member>(Span<byte>, value)` setters (nested by struct member; fixed arrays take an index) cover every
   statically placed scalar; `ParseWithDebug`, `ResolveAddress`, `GetArrayLength`, and `UpdatePath` run on the
   runtime layout with its path grammar. `WriteCursor` gains a growable mode and the per-kind `Write*` helpers.
+- Generated views and stream parsing: `readonly ref struct <Name>View` per composite (`Views = false` skips them)
+  decodes every statically placed scalar, bitfield, enum, pointer address, fixed numeric array element, and fixed
+  text straight from the span with no allocation, exposes a nested static struct as a nested view and the value's
+  `Bytes`, and reaches everything else through `ToObject()`; a source shorter than the value fails with the
+  runtime's short-read text. `Parse<Name>(Stream)` buffers the stream up to the total read budget (or its remaining
+  length) and takes the span path, leaving a seekable stream after the value - unlike the runtime's incremental
+  stream reads, a non-seekable stream is consumed up to that budget.
 
 ### Fixed
 

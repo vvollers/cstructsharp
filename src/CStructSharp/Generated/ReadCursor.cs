@@ -89,6 +89,58 @@ public ref struct ReadCursor
     /// <summary>Gets the configured encoded-string byte limit.</summary>
     public readonly long MaxStringBytes => this.settings.MaxStringBytes;
 
+    /// <summary>The runtime's short-read text, for a generated view that finds its source shorter than the value.</summary>
+    /// <param name="needed">The bytes the value needs.</param>
+    /// <param name="available">The bytes the source has.</param>
+    /// <returns>The message.</returns>
+    public static string ShortReadText(long needed, long available) => ReadFailures.ShortRead(needed, available);
+
+    /// <summary>
+    ///     Reads a stream into a pooled buffer for the span-based generated reader: up to the options' total read
+    ///     budget (or the stream's remaining length when it is known and smaller). The caller returns the array to
+    ///     <see cref="System.Buffers.ArrayPool{T}.Shared"/> after parsing. A seekable stream is left where it was; the
+    ///     generated <c>Parse</c> moves it past the bytes the value took.
+    /// </summary>
+    /// <param name="stream">The stream to read from its current position.</param>
+    /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+    /// <param name="length">The number of bytes read into the buffer.</param>
+    /// <returns>The rented buffer.</returns>
+    public static byte[] BufferStream(System.IO.Stream stream, ReadOptions? options, out int length)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(options);
+        long limit = Math.Min(settings.MaxTotalBytesRead, int.MaxValue - 1);
+        if (stream.CanSeek)
+        {
+            limit = Math.Min(limit, Math.Max(0, stream.Length - stream.Position));
+        }
+
+        // One byte past the budget lets the reader report the budget failure instead of a short read.
+        int capacity = (int)Math.Min(limit + 1, int.MaxValue - 1);
+        byte[] buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(capacity);
+        try
+        {
+            length = 0;
+            while (length < capacity)
+            {
+                int read = stream.Read(buffer, length, capacity - length);
+                if (read <= 0)
+                {
+                    break;
+                }
+
+                length += read;
+            }
+
+            return buffer;
+        }
+        catch
+        {
+            System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+            throw;
+        }
+    }
+
     /// <summary>Moves to <paramref name="position"/> (a placement result: an aligned field start, the end of a composite), failing with the runtime's text and context when it lies outside the input.</summary>
     /// <param name="position">The position to move to.</param>
     /// <param name="member">The layout field being placed, for the diagnostics.</param>

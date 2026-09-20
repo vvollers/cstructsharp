@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 28,
+  "baselineRevision": 29,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.6.0",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 949,
-    "normalizedSha256": "C823F78816DCE3E1E8307583C69CBE4FA232E62A79168899B0E49DA4612A023A"
+    "lines": 953,
+    "normalizedSha256": "A195D7DEF141FB500BDA699BCCB4943A429FDBFBC59001CD99D4BB6699B6420F"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "DAB6E6180D422C759C998C796EBB7E38F42612AAD9FF37ACA16271C959C9313C",
+      "normalizedSha256": "D6D4CE40D821AA69518B3069C28287CA3303F8BDA5894DC3D41CEFD10085FC92",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "33A190BECB09784A3F640BCA1163F578766F3FB7905E0A080F510E7A42C7E8B4",
+      "normalizedSha256": "291A14CB664134DAC99F34F916583C97A4C013D88C34E9170CE046BFC0592CE7",
       "aotCompatible": true
     }
   ],
@@ -284,6 +284,15 @@
       "packageVersion": "0.6.0",
       "combinedSha256": "5AE54C74F3C6D7527D67BE04ABC2E936AAFDB37BB9D983ECD9DD17C58D6AF93E",
       "rationale": "Generated writers (plan 3.8): WriteCursor gains a growable constructor, ToArray/Written/Dispose, Seek, Unit, WithMember, Complete, ForUpdate, and the per-kind Write* helpers (terminated, fixed and bounded text, pointer addresses, custom codecs, bitfields); Reserve/Pad take a nullable member; Codec.ToNarrowCharacter(char).",
+      "releaseImpact": "Additive to the released 0.6.0 surface; the CStructSharp.Generated namespace has not shipped yet."
+    },
+    {
+      "revision": 29,
+      "kind": "additive",
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "76DEF6E2B1ADE5D2492773BAA8C04C4AC1A92FFA88D3A4F1714B3AE506198784",
+      "rationale": "Generated views and stream parsing (plan 3.3/3.4 follow-up): ReadCursor.ShortReadText and BufferStream, Codec.TrimsFixedText and DecodeWideText, the helpers a view's accessors and a generated Parse(Stream) call.",
       "releaseImpact": "Additive to the released 0.6.0 surface; the CStructSharp.Generated namespace has not shipped yet."
     }
   ]

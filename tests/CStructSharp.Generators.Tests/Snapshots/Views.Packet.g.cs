@@ -9,7 +9,7 @@ namespace Demo
     public static partial class Packet
     {
         /// <summary>The layout text the members of this class were generated from.</summary>
-        public const string Definition = "enum kind : uint8 { A = 1, B = 2 };\nstruct hdr { uint16 length; kind tag; uint8 flags:3; uint8 level:5; };\nstruct root { uint8 magic; hdr header; uint32 values[3]; uint8 n; uint8 data[n]; int24 wide; uint16 *link; };";
+        public const string Definition = "enum kind : uint8 { A = 1, B = 2 };\nstruct hdr { uint16 length; kind tag; uint8 flags:3; uint8 level:5; char name[4]; uint32 values[2]; uint16 *link; };\nstruct root { uint8 magic; hdr header; uint8 n; uint8 data[n]; uint8 tail; };";
 
         /// <summary>The declaration the plain <see cref="Parse"/> and <see cref="Serialize"/> methods operate on.</summary>
         public const string RootName = "root";
@@ -51,6 +51,15 @@ namespace Demo
 
             /// <summary><c>uint8 level : 5</c>.</summary>
             public byte Level { get; set; }
+
+            /// <summary><c>char name[4]</c>.</summary>
+            public string Name { get; set; } = string.Empty;
+
+            /// <summary><c>uint32 values[2]</c>.</summary>
+            public uint[] Values { get; set; } = global::System.Array.Empty<uint>();
+
+            /// <summary><c>uint16 *link</c>.</summary>
+            public global::CStructSharp.Generated.Pointer<ushort> Link { get; set; }
         }
 
         /// <summary>The layout struct <c>root</c>.</summary>
@@ -62,20 +71,14 @@ namespace Demo
             /// <summary><c>hdr header</c>.</summary>
             public Hdr Header { get; set; } = new();
 
-            /// <summary><c>uint32 values[3]</c>.</summary>
-            public uint[] Values { get; set; } = global::System.Array.Empty<uint>();
-
             /// <summary><c>uint8 n</c>.</summary>
             public byte N { get; set; }
 
             /// <summary><c>uint8 data[...]</c>.</summary>
             public byte[] Data { get; set; } = global::System.Array.Empty<byte>();
 
-            /// <summary><c>int24 wide</c>.</summary>
-            public int Wide { get; set; }
-
-            /// <summary><c>uint16 *link</c>.</summary>
-            public global::CStructSharp.Generated.Pointer<ushort> Link { get; set; }
+            /// <summary><c>uint8 tail</c>.</summary>
+            public byte Tail { get; set; }
         }
 
         private const bool Aligned = true;
@@ -264,7 +267,38 @@ namespace Demo
                 ulong bits = global::CStructSharp.Generated.Codec.ExtractBits(unit, global::CStructSharp.Generated.Codec.BitfieldShift(slot.BitOffset, 5, slot.UnitSize * 8, HighBitFirst), 5);
                 value.Level = (byte)bits;
             }
-            cursor.Seek(placement.Finish(2), member, memberType);
+            // char name[4]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "name", "char");
+                int count;
+                count = 4;
+                cursor.RequireArrayLength(count, "name", "char");
+                int rowLength = count;
+                value.Name = cursor.TakeFixedText(rowLength, "name", "char");
+                placement.CompleteField(cursor.Position);
+            }
+            // uint32 values[2]
+            {
+                cursor.Seek(placement.AdvanceToField(4), "values", "uint32");
+                int count;
+                count = 2;
+                cursor.RequireArrayLength(count, "values", "uint32");
+                var elements = new uint[count];
+                if (count > 0)
+                {
+                    global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 4, "values", "uint32");
+                    global::CStructSharp.Generated.Codec.DecodeIntegers<uint>(bytes, elements, false);
+                }
+                value.Values = elements;
+                placement.CompleteField(cursor.Position);
+            }
+            // uint16 *link
+            {
+                cursor.Seek(placement.AdvanceToField(2), "link", "uint16");
+                value.Link = ReadPointer_uint16_1(ref cursor, variables, "link", "uint16");
+                placement.CompleteField(cursor.Position);
+            }
+            cursor.Seek(placement.Finish(4), member, memberType);
             cursor.ExitComposite();
             return value;
         }
@@ -283,23 +317,8 @@ namespace Demo
             }
             // hdr header
             {
-                cursor.Seek(placement.AdvanceToField(2), "header", "hdr");
+                cursor.Seek(placement.AdvanceToField(4), "header", "hdr");
                 value.Header = ReadHdr(ref cursor, variables, "header", "hdr");
-                placement.CompleteField(cursor.Position);
-            }
-            // uint32 values[3]
-            {
-                cursor.Seek(placement.AdvanceToField(4), "values", "uint32");
-                int count;
-                count = 3;
-                cursor.RequireArrayLength(count, "values", "uint32");
-                var elements = new uint[count];
-                if (count > 0)
-                {
-                    global::System.ReadOnlySpan<byte> bytes = cursor.TakeArray(count, 4, "values", "uint32");
-                    global::CStructSharp.Generated.Codec.DecodeIntegers<uint>(bytes, elements, false);
-                }
-                value.Values = elements;
                 placement.CompleteField(cursor.Position);
             }
             // uint8 n
@@ -334,16 +353,10 @@ namespace Demo
                 value.Data = elements;
                 placement.CompleteField(cursor.Position);
             }
-            // int24 wide
+            // uint8 tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "wide", "int24");
-                value.Wide = global::CStructSharp.Generated.Codec.ReadInt24(cursor.Take(3, "wide", "int24"), false);
-                placement.CompleteField(cursor.Position);
-            }
-            // uint16 *link
-            {
-                cursor.Seek(placement.AdvanceToField(2), "link", "uint16");
-                value.Link = ReadPointer_uint16_1(ref cursor, variables, "link", "uint16");
+                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
+                value.Tail = cursor.Take(1, "tail", "uint8")[0];
                 placement.CompleteField(cursor.Position);
             }
             cursor.Seek(placement.Finish(4), member, memberType);
@@ -554,8 +567,52 @@ namespace Demo
                 var slot = placement.AdvanceToBitfield(1, 1, 5, 8, false, "level");
                 cursor.WriteBits(slot, 5, value.Level, false, HighBitFirst, "level", "uint8");
             }
+            // char name[4]
+            {
+                cursor.Seek(placement.AdvanceToField(1), "name", "char");
+                if (value.Name is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: name", "name", "char");
+                }
+                int count;
+                count = 4;
+                cursor.RequireArrayLength(count, "name", "char");
+                cursor.WriteFixedText(count, value.Name, false, false, "name", "char");
+                placement.CompleteField(cursor.Position);
+            }
+            // uint32 values[2]
+            {
+                cursor.Seek(placement.AdvanceToField(4), "values", "uint32");
+                if (value.Values is null)
+                {
+                    throw cursor.Fail("Null is valid only for a scalar pointer field: values", "values", "uint32");
+                }
+                int count;
+                count = 2;
+                cursor.RequireArrayLength(count, "values", "uint32");
+                if (value.Values.Length > count)
+                {
+                    throw cursor.Fail("Array value for values exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "values", "uint32");
+                }
+                if (value.Values.Length != count)
+                {
+                    throw cursor.Fail("Array length mismatch for values: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Values.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "values", "uint32");
+                }
+                if (count > 0)
+                {
+                    global::System.Span<byte> bytes = cursor.Reserve(count * 4, "values", "uint32");
+                    global::CStructSharp.Generated.Codec.EncodeIntegers<uint>(value.Values, bytes, false);
+                }
+                placement.CompleteField(cursor.Position);
+            }
+            // uint16 *link
+            {
+                cursor.Seek(placement.AdvanceToField(2), "link", "uint16");
+                cursor.WritePointerAddress(value.Link.Address, PointerSize, LittleEndian, "link", "uint16");
+                placement.CompleteField(cursor.Position);
+            }
             cursor.Seek(placement.Current, member, memberType);
-            cursor.Pad((int)(placement.Finish(2) - placement.Current), member, memberType);
+            cursor.Pad((int)(placement.Finish(4) - placement.Current), member, memberType);
             cursor.ExitComposite();
         }
 
@@ -576,37 +633,12 @@ namespace Demo
             }
             // hdr header
             {
-                cursor.Seek(placement.AdvanceToField(2), "header", "hdr");
+                cursor.Seek(placement.AdvanceToField(4), "header", "hdr");
                 if (value.Header is null)
                 {
                     throw cursor.Fail("Null is valid only for a scalar pointer field: header", "header", "hdr");
                 }
                 EncodeHdr(ref cursor, value.Header, variables, "header", "hdr");
-                placement.CompleteField(cursor.Position);
-            }
-            // uint32 values[3]
-            {
-                cursor.Seek(placement.AdvanceToField(4), "values", "uint32");
-                if (value.Values is null)
-                {
-                    throw cursor.Fail("Null is valid only for a scalar pointer field: values", "values", "uint32");
-                }
-                int count;
-                count = 3;
-                cursor.RequireArrayLength(count, "values", "uint32");
-                if (value.Values.Length > count)
-                {
-                    throw cursor.Fail("Array value for values exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "values", "uint32");
-                }
-                if (value.Values.Length != count)
-                {
-                    throw cursor.Fail("Array length mismatch for values: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Values.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "values", "uint32");
-                }
-                if (count > 0)
-                {
-                    global::System.Span<byte> bytes = cursor.Reserve(count * 4, "values", "uint32");
-                    global::CStructSharp.Generated.Codec.EncodeIntegers<uint>(value.Values, bytes, false);
-                }
                 placement.CompleteField(cursor.Position);
             }
             // uint8 n
@@ -651,27 +683,10 @@ namespace Demo
                 }
                 placement.CompleteField(cursor.Position);
             }
-            // int24 wide
+            // uint8 tail
             {
-                cursor.Seek(placement.AdvanceToField(1), "wide", "int24");
-                {
-                    global::System.Span<byte> encoded = stackalloc byte[3];
-                    try
-                    {
-                        global::CStructSharp.Generated.Codec.WriteInt24(encoded, value.Wide, false);
-                    }
-                    catch (global::CStructSharp.Diagnostics.CStructWriteException exception)
-                    {
-                        throw cursor.WithMember(exception, "wide", "int24");
-                    }
-                    encoded.CopyTo(cursor.Reserve(3, "wide", "int24"));
-                }
-                placement.CompleteField(cursor.Position);
-            }
-            // uint16 *link
-            {
-                cursor.Seek(placement.AdvanceToField(2), "link", "uint16");
-                cursor.WritePointerAddress(value.Link.Address, PointerSize, LittleEndian, "link", "uint16");
+                cursor.Seek(placement.AdvanceToField(1), "tail", "uint8");
+                cursor.Reserve(1, "tail", "uint8")[0] = value.Tail;
                 placement.CompleteField(cursor.Position);
             }
             cursor.Seek(placement.Current, member, memberType);
@@ -734,7 +749,7 @@ namespace Demo
         public static class Sizes
         {
             /// <summary><c>sizeof(hdr)</c>.</summary>
-            public const int Hdr = 4;
+            public const int Hdr = 20;
         }
 
         /// <summary>The offset from the root's first byte of every statically placed scalar (<c>offsetof</c>), nested by struct member.</summary>
@@ -743,26 +758,29 @@ namespace Demo
             /// <summary><c>offsetof(root, magic)</c>.</summary>
             public const int Magic = 0;
 
-            /// <summary><c>offsetof(root, values)</c>.</summary>
-            public const int Values = 8;
-
             /// <summary><c>offsetof(root, n)</c>.</summary>
-            public const int N = 20;
+            public const int N = 24;
 
             /// <summary>The members of <c>Header</c>.</summary>
             public static class Header
             {
                 /// <summary><c>offsetof(root, header.length)</c>.</summary>
-                public const int Length = 2;
+                public const int Length = 4;
 
                 /// <summary><c>offsetof(root, header.tag)</c>.</summary>
-                public const int Tag = 4;
+                public const int Tag = 6;
 
                 /// <summary><c>offsetof(root, header.flags)</c> (the storage unit's first byte).</summary>
-                public const int Flags = 5;
+                public const int Flags = 7;
 
                 /// <summary><c>offsetof(root, header.level)</c> (the storage unit's first byte).</summary>
-                public const int Level = 5;
+                public const int Level = 7;
+
+                /// <summary><c>offsetof(root, header.values)</c>.</summary>
+                public const int Values = 12;
+
+                /// <summary><c>offsetof(root, header.link)</c>.</summary>
+                public const int Link = 20;
             }
         }
 
@@ -787,30 +805,7 @@ namespace Demo
                 }
             }
 
-            /// <summary>Stores <c>values</c>[<paramref name="index"/>] into <paramref name="target"/> at offset 8 plus the element's, leaving every other byte alone.</summary>
-            /// <param name="target">The bytes holding the value.</param>
-            /// <param name="index">The element index.</param>
-            /// <param name="value">The new value.</param>
-            public static void Values(global::System.Span<byte> target, int index, uint value)
-            {
-                if ((uint)index >= 3u)
-                {
-                    throw new global::System.ArgumentOutOfRangeException(nameof(index));
-                }
-                var cursor = global::CStructSharp.Generated.WriteCursor.ForUpdate(target, null, "root.values");
-                try
-                {
-                    cursor.Position = 8 + index * 4;
-                    global::CStructSharp.Generated.Codec.WriteUInt32(cursor.Reserve(4, "values", "uint32"), value, false);
-                }
-                catch (global::CStructSharp.Diagnostics.CStructException exception)
-                {
-                    cursor.Complete(exception);
-                    throw;
-                }
-            }
-
-            /// <summary>Stores <c>n</c> into <paramref name="target"/> at offset 20, leaving every other byte alone.</summary>
+            /// <summary>Stores <c>n</c> into <paramref name="target"/> at offset 24, leaving every other byte alone.</summary>
             /// <param name="target">The bytes holding the value.</param>
             /// <param name="value">The new value.</param>
             public static void N(global::System.Span<byte> target, byte value)
@@ -818,7 +813,7 @@ namespace Demo
                 var cursor = global::CStructSharp.Generated.WriteCursor.ForUpdate(target, null, "root.n");
                 try
                 {
-                    cursor.Position = 20;
+                    cursor.Position = 24;
                     cursor.Reserve(1, "n", "uint8")[0] = value;
                 }
                 catch (global::CStructSharp.Diagnostics.CStructException exception)
@@ -831,7 +826,7 @@ namespace Demo
             /// <summary>The members of <c>Header</c>.</summary>
             public static class Header
             {
-                /// <summary>Stores <c>header.length</c> into <paramref name="target"/> at offset 2, leaving every other byte alone.</summary>
+                /// <summary>Stores <c>header.length</c> into <paramref name="target"/> at offset 4, leaving every other byte alone.</summary>
                 /// <param name="target">The bytes holding the value.</param>
                 /// <param name="value">The new value.</param>
                 public static void Length(global::System.Span<byte> target, ushort value)
@@ -839,7 +834,7 @@ namespace Demo
                     var cursor = global::CStructSharp.Generated.WriteCursor.ForUpdate(target, null, "root.header.length");
                     try
                     {
-                        cursor.Position = 2;
+                        cursor.Position = 4;
                         global::CStructSharp.Generated.Codec.WriteUInt16(cursor.Reserve(2, "length", "uint16"), value, false);
                     }
                     catch (global::CStructSharp.Diagnostics.CStructException exception)
@@ -849,7 +844,7 @@ namespace Demo
                     }
                 }
 
-                /// <summary>Stores <c>header.tag</c> into <paramref name="target"/> at offset 4, leaving every other byte alone.</summary>
+                /// <summary>Stores <c>header.tag</c> into <paramref name="target"/> at offset 6, leaving every other byte alone.</summary>
                 /// <param name="target">The bytes holding the value.</param>
                 /// <param name="value">The new value.</param>
                 public static void Tag(global::System.Span<byte> target, Kind value)
@@ -857,7 +852,7 @@ namespace Demo
                     var cursor = global::CStructSharp.Generated.WriteCursor.ForUpdate(target, null, "root.header.tag");
                     try
                     {
-                        cursor.Position = 4;
+                        cursor.Position = 6;
                         cursor.Reserve(1, "tag", "kind")[0] = (byte)value;
                     }
                     catch (global::CStructSharp.Diagnostics.CStructException exception)
@@ -867,7 +862,7 @@ namespace Demo
                     }
                 }
 
-                /// <summary>Stores <c>header.flags</c> into <paramref name="target"/> at offset 5, leaving every other byte alone.</summary>
+                /// <summary>Stores <c>header.flags</c> into <paramref name="target"/> at offset 7, leaving every other byte alone.</summary>
                 /// <param name="target">The bytes holding the value.</param>
                 /// <param name="value">The new value.</param>
                 public static void Flags(global::System.Span<byte> target, byte value)
@@ -875,7 +870,7 @@ namespace Demo
                     var cursor = global::CStructSharp.Generated.WriteCursor.ForUpdate(target, null, "root.header.flags");
                     try
                     {
-                        cursor.WriteBits(new global::CStructSharp.Generated.BitfieldSlot(5, 1, 0), 3, value, false, HighBitFirst, "flags", "uint8");
+                        cursor.WriteBits(new global::CStructSharp.Generated.BitfieldSlot(7, 1, 0), 3, value, false, HighBitFirst, "flags", "uint8");
                     }
                     catch (global::CStructSharp.Diagnostics.CStructException exception)
                     {
@@ -884,7 +879,7 @@ namespace Demo
                     }
                 }
 
-                /// <summary>Stores <c>header.level</c> into <paramref name="target"/> at offset 5, leaving every other byte alone.</summary>
+                /// <summary>Stores <c>header.level</c> into <paramref name="target"/> at offset 7, leaving every other byte alone.</summary>
                 /// <param name="target">The bytes holding the value.</param>
                 /// <param name="value">The new value.</param>
                 public static void Level(global::System.Span<byte> target, byte value)
@@ -892,7 +887,48 @@ namespace Demo
                     var cursor = global::CStructSharp.Generated.WriteCursor.ForUpdate(target, null, "root.header.level");
                     try
                     {
-                        cursor.WriteBits(new global::CStructSharp.Generated.BitfieldSlot(5, 1, 3), 5, value, false, HighBitFirst, "level", "uint8");
+                        cursor.WriteBits(new global::CStructSharp.Generated.BitfieldSlot(7, 1, 3), 5, value, false, HighBitFirst, "level", "uint8");
+                    }
+                    catch (global::CStructSharp.Diagnostics.CStructException exception)
+                    {
+                        cursor.Complete(exception);
+                        throw;
+                    }
+                }
+
+                /// <summary>Stores <c>header.values</c>[<paramref name="index"/>] into <paramref name="target"/> at offset 12 plus the element's, leaving every other byte alone.</summary>
+                /// <param name="target">The bytes holding the value.</param>
+                /// <param name="index">The element index.</param>
+                /// <param name="value">The new value.</param>
+                public static void Values(global::System.Span<byte> target, int index, uint value)
+                {
+                    if ((uint)index >= 2u)
+                    {
+                        throw new global::System.ArgumentOutOfRangeException(nameof(index));
+                    }
+                    var cursor = global::CStructSharp.Generated.WriteCursor.ForUpdate(target, null, "root.header.values");
+                    try
+                    {
+                        cursor.Position = 12 + index * 4;
+                        global::CStructSharp.Generated.Codec.WriteUInt32(cursor.Reserve(4, "values", "uint32"), value, false);
+                    }
+                    catch (global::CStructSharp.Diagnostics.CStructException exception)
+                    {
+                        cursor.Complete(exception);
+                        throw;
+                    }
+                }
+
+                /// <summary>Stores <c>header.link</c> into <paramref name="target"/> at offset 20, leaving every other byte alone.</summary>
+                /// <param name="target">The bytes holding the value.</param>
+                /// <param name="value">The new value.</param>
+                public static void Link(global::System.Span<byte> target, global::CStructSharp.Generated.Pointer<ushort> value)
+                {
+                    var cursor = global::CStructSharp.Generated.WriteCursor.ForUpdate(target, null, "root.header.link");
+                    try
+                    {
+                        cursor.Position = 20;
+                        cursor.WritePointerAddress(value.Address, PointerSize, LittleEndian, "link", "uint16");
                     }
                     catch (global::CStructSharp.Diagnostics.CStructException exception)
                     {
@@ -913,15 +949,15 @@ namespace Demo
             private readonly global::System.ReadOnlySpan<byte> source;
             private readonly global::CStructSharp.ReadOptions? options;
 
-            /// <summary>Creates a view over <paramref name="source"/>, whose first byte is the value's first byte; the source must hold the value's 4 bytes.</summary>
+            /// <summary>Creates a view over <paramref name="source"/>, whose first byte is the value's first byte; the source must hold the value's 20 bytes.</summary>
             /// <param name="source">The bytes, from the value's start; more may follow (pointer targets, the rest of the input).</param>
             /// <param name="options">The read options <see cref="ToObject"/> uses; <see langword="null"/> uses the documented defaults.</param>
             public HdrView(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null)
             {
-                if (source.Length < 4)
+                if (source.Length < 20)
                 {
                     var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "hdr");
-                    global::CStructSharp.Diagnostics.CStructException failure = cursor.Fail(global::CStructSharp.Generated.ReadCursor.ShortReadText(4, source.Length), null, null);
+                    global::CStructSharp.Diagnostics.CStructException failure = cursor.Fail(global::CStructSharp.Generated.ReadCursor.ShortReadText(20, source.Length), null, null);
                     cursor.Complete(failure);
                     throw failure;
                 }
@@ -929,8 +965,8 @@ namespace Demo
                 this.options = options;
             }
 
-            /// <summary>Gets the value's bytes (its 4 bytes).</summary>
-            public global::System.ReadOnlySpan<byte> Bytes => this.source.Slice(0, 4);
+            /// <summary>Gets the value's bytes (its 20 bytes).</summary>
+            public global::System.ReadOnlySpan<byte> Bytes => this.source.Slice(0, 20);
 
             /// <summary><c>uint16 length</c> at offset 0.</summary>
             public ushort Length => global::CStructSharp.Generated.Codec.ReadUInt16(this.source.Slice(0, 2), false);
@@ -943,6 +979,30 @@ namespace Demo
 
             /// <summary><c>uint8 level : 5</c> at offset 3.</summary>
             public byte Level => (byte)global::CStructSharp.Generated.Codec.ExtractBits(global::CStructSharp.Generated.Codec.ReadUnsigned(this.source.Slice(3, 1), false), global::CStructSharp.Generated.Codec.BitfieldShift(3, 5, 8, HighBitFirst), 5);
+
+            /// <summary>The bytes of <c>char name[4]</c> at offset 4.</summary>
+            public global::System.ReadOnlySpan<byte> NameBytes => this.source.Slice(4, 4);
+
+            /// <summary><c>char name[4]</c> as text (trailing NULs kept unless the options set <c>TrimFixedText</c>, as the reader does); allocates the string.</summary>
+            public string Name => global::CStructSharp.Generated.Codec.DecodeFixedText(NameBytes, global::CStructSharp.Generated.Codec.TrimsFixedText(this.options));
+
+            /// <summary>The bytes of <c>uint32 values[2]</c> at offset 8.</summary>
+            public global::System.ReadOnlySpan<byte> ValuesBytes => this.source.Slice(8, 8);
+
+            /// <summary>One element of <c>uint32 values[2]</c>.</summary>
+            /// <param name="index">The element index.</param>
+            /// <returns>The element.</returns>
+            public uint Values(int index)
+            {
+                if ((uint)index >= 2u)
+                {
+                    throw new global::System.ArgumentOutOfRangeException(nameof(index));
+                }
+                return global::CStructSharp.Generated.Codec.ReadUInt32(this.source.Slice(8 + index * 4, 4), false);
+            }
+
+            /// <summary>The stored address of <c>uint16 *link</c> at offset 16 (the target is read by <see cref="ToObject"/>).</summary>
+            public long LinkAddress => (long)global::CStructSharp.Generated.Codec.ReadUnsigned(this.source.Slice(16, PointerSize), LittleEndian);
 
             /// <summary>Reads the whole value with the generated reader (every member, runtime-sized ones included).</summary>
             /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
@@ -987,26 +1047,11 @@ namespace Demo
             /// <summary><c>uint8 magic</c> at offset 0.</summary>
             public byte Magic => this.source.Slice(0, 1)[0];
 
-            /// <summary>A view of <c>hdr header</c> at offset 2.</summary>
-            public HdrView Header => new(this.source.Slice(2), this.options);
+            /// <summary>A view of <c>hdr header</c> at offset 4.</summary>
+            public HdrView Header => new(this.source.Slice(4), this.options);
 
-            /// <summary>The bytes of <c>uint32 values[3]</c> at offset 8.</summary>
-            public global::System.ReadOnlySpan<byte> ValuesBytes => this.source.Slice(8, 12);
-
-            /// <summary>One element of <c>uint32 values[3]</c>.</summary>
-            /// <param name="index">The element index.</param>
-            /// <returns>The element.</returns>
-            public uint Values(int index)
-            {
-                if ((uint)index >= 3u)
-                {
-                    throw new global::System.ArgumentOutOfRangeException(nameof(index));
-                }
-                return global::CStructSharp.Generated.Codec.ReadUInt32(this.source.Slice(8 + index * 4, 4), false);
-            }
-
-            /// <summary><c>uint8 n</c> at offset 20.</summary>
-            public byte N => this.source.Slice(20, 1)[0];
+            /// <summary><c>uint8 n</c> at offset 24.</summary>
+            public byte N => this.source.Slice(24, 1)[0];
 
             /// <summary>Reads the whole value with the generated reader (every member, runtime-sized ones included).</summary>
             /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>

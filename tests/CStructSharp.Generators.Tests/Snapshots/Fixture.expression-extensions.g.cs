@@ -91,6 +91,40 @@ namespace Demo
         public static Head ParseHead(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
             => ParseHead(source.Span, variables, options);
 
+        /// <summary>Reads one <c>head</c> from <paramref name="stream"/>: the stream is buffered up to the total read budget (or its remaining length) and read through the span reader; a seekable stream is left after the value.</summary>
+        /// <param name="stream">The stream, read from its current position.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value.</returns>
+        public static Head ParseHead(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            global::System.ArgumentNullException.ThrowIfNull(stream);
+            long start = stream.CanSeek ? stream.Position : 0;
+            byte[] buffer = global::CStructSharp.Generated.ReadCursor.BufferStream(stream, options, out int length);
+            try
+            {
+                var cursor = new global::CStructSharp.Generated.ReadCursor(new global::System.ReadOnlySpan<byte>(buffer, 0, length), options, "head");
+                try
+                {
+                    Head value = ReadHead(ref cursor, variables, null, null);
+                    if (stream.CanSeek)
+                    {
+                        stream.Position = start + cursor.Position;
+                    }
+                    return value;
+                }
+                catch (global::CStructSharp.Diagnostics.CStructException exception)
+                {
+                    cursor.Complete(exception);
+                    throw;
+                }
+            }
+            finally
+            {
+                global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
         /// <summary>Reads one <c>root</c> from the start of <paramref name="source"/> with the generated reader; the same value, and the same failures, as the runtime's <c>Parse</c>.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
@@ -118,6 +152,40 @@ namespace Demo
         public static Root ParseRoot(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
             => ParseRoot(source.Span, variables, options);
 
+        /// <summary>Reads one <c>root</c> from <paramref name="stream"/>: the stream is buffered up to the total read budget (or its remaining length) and read through the span reader; a seekable stream is left after the value.</summary>
+        /// <param name="stream">The stream, read from its current position.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value.</returns>
+        public static Root ParseRoot(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            global::System.ArgumentNullException.ThrowIfNull(stream);
+            long start = stream.CanSeek ? stream.Position : 0;
+            byte[] buffer = global::CStructSharp.Generated.ReadCursor.BufferStream(stream, options, out int length);
+            try
+            {
+                var cursor = new global::CStructSharp.Generated.ReadCursor(new global::System.ReadOnlySpan<byte>(buffer, 0, length), options, "root");
+                try
+                {
+                    Root value = ReadRoot(ref cursor, variables, null, null);
+                    if (stream.CanSeek)
+                    {
+                        stream.Position = start + cursor.Position;
+                    }
+                    return value;
+                }
+                catch (global::CStructSharp.Diagnostics.CStructException exception)
+                {
+                    cursor.Complete(exception);
+                    throw;
+                }
+            }
+            finally
+            {
+                global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
         /// <summary>Reads the root declaration (<c>root</c>); see <see cref="ParseRoot(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
         /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
@@ -129,6 +197,9 @@ namespace Demo
 
         /// <inheritdoc cref="Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)"/>
         public static Root Parse(global::System.ReadOnlyMemory<byte> source, global::CStructSharp.ReadOptions? options = null) => ParseRoot(source.Span, null, options);
+
+        /// <inheritdoc cref="ParseRoot(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static Root Parse(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null) => ParseRoot(stream, null, options);
 
         /// <summary>Reads one <c>head</c> at the cursor's position.</summary>
         private static Head ReadHead(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
@@ -537,6 +608,99 @@ namespace Demo
         {
             /// <summary><c>sizeof(head)</c>.</summary>
             public const int Head = 6;
+        }
+
+        /// <summary>
+        ///     A zero-allocation view of one <c>head</c> over its bytes: each statically placed member decodes
+        ///     directly from the span when read; a member the view does not expose (runtime-sized, conditional, or placed after one)
+        ///     is reached through <see cref="ToObject"/>. A view cannot leave the method that created it.
+        /// </summary>
+        public readonly ref struct HeadView
+        {
+            private readonly global::System.ReadOnlySpan<byte> source;
+            private readonly global::CStructSharp.ReadOptions? options;
+
+            /// <summary>Creates a view over <paramref name="source"/>, whose first byte is the value's first byte; the source must hold the value's 6 bytes.</summary>
+            /// <param name="source">The bytes, from the value's start; more may follow (pointer targets, the rest of the input).</param>
+            /// <param name="options">The read options <see cref="ToObject"/> uses; <see langword="null"/> uses the documented defaults.</param>
+            public HeadView(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null)
+            {
+                if (source.Length < 6)
+                {
+                    var cursor = new global::CStructSharp.Generated.ReadCursor(source, options, "head");
+                    global::CStructSharp.Diagnostics.CStructException failure = cursor.Fail(global::CStructSharp.Generated.ReadCursor.ShortReadText(6, source.Length), null, null);
+                    cursor.Complete(failure);
+                    throw failure;
+                }
+                this.source = source;
+                this.options = options;
+            }
+
+            /// <summary>Gets the value's bytes (its 6 bytes).</summary>
+            public global::System.ReadOnlySpan<byte> Bytes => this.source.Slice(0, 6);
+
+            /// <summary><c>uint32 a</c> at offset 0.</summary>
+            public uint A => global::CStructSharp.Generated.Codec.ReadUInt32(this.source.Slice(0, 4), true);
+
+            /// <summary><c>uint16 b</c> at offset 4.</summary>
+            public ushort B => global::CStructSharp.Generated.Codec.ReadUInt16(this.source.Slice(4, 2), true);
+
+            /// <summary>Reads the whole value with the generated reader (every member, runtime-sized ones included).</summary>
+            /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+            /// <returns>The value.</returns>
+            public Head ToObject(global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null)
+            {
+                var cursor = new global::CStructSharp.Generated.ReadCursor(this.source, this.options, "head");
+                try
+                {
+                    return ReadHead(ref cursor, variables, null, null);
+                }
+                catch (global::CStructSharp.Diagnostics.CStructException exception)
+                {
+                    cursor.Complete(exception);
+                    throw;
+                }
+            }
+        }
+
+        /// <summary>
+        ///     A zero-allocation view of one <c>root</c> over its bytes: each statically placed member decodes
+        ///     directly from the span when read; a member the view does not expose (runtime-sized, conditional, or placed after one)
+        ///     is reached through <see cref="ToObject"/>. A view cannot leave the method that created it.
+        /// </summary>
+        public readonly ref struct RootView
+        {
+            private readonly global::System.ReadOnlySpan<byte> source;
+            private readonly global::CStructSharp.ReadOptions? options;
+
+            /// <summary>Creates a view over <paramref name="source"/>, whose first byte is the value's first byte.</summary>
+            /// <param name="source">The bytes, from the value's start; more may follow (pointer targets, the rest of the input).</param>
+            /// <param name="options">The read options <see cref="ToObject"/> uses; <see langword="null"/> uses the documented defaults.</param>
+            public RootView(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null)
+            {
+                this.source = source;
+                this.options = options;
+            }
+
+            /// <summary>Gets the value's bytes: the whole source, as the value's extent depends on its contents.</summary>
+            public global::System.ReadOnlySpan<byte> Bytes => this.source;
+
+            /// <summary>Reads the whole value with the generated reader (every member, runtime-sized ones included).</summary>
+            /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+            /// <returns>The value.</returns>
+            public Root ToObject(global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null)
+            {
+                var cursor = new global::CStructSharp.Generated.ReadCursor(this.source, this.options, "root");
+                try
+                {
+                    return ReadRoot(ref cursor, variables, null, null);
+                }
+                catch (global::CStructSharp.Diagnostics.CStructException exception)
+                {
+                    cursor.Complete(exception);
+                    throw;
+                }
+            }
         }
     }
 }
