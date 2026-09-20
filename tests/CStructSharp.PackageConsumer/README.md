@@ -20,3 +20,8 @@ raw `UnionValue` parse/serialize and explicit selected-member serialization, so 
 model or returning an obsolete concrete root shape fails before release.
 The enum smoke parses and reserializes `uint64.MaxValue` and verifies the installed `EnumValueResult` exposes its
 exact `BigInteger` value, raw bits, width, signedness, canonical storage type, and symbolic name.
+The generator smoke uses the package as a consumer would: `layouts/wire.cstruct` is picked up by the package's
+`build/CStructSharp.targets`, `[CStructLayout(File = "layouts/wire.cstruct")]` on `WireLayout` generates the class,
+its `Parse`/`Serialize`/`Sizes`/view are called, and `[CStructMapped]` on `GeneratedRoot` generates a mapper that
+`ReadValue<T>` finds registered. The packaged analyzer runs too: the deliberately wrong `root.missing` path is
+suppressed with `#pragma warning disable CSG200` around that negative check.

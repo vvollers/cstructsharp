@@ -1,0 +1,1 @@
+struct wire { uint8 marker; uint16 value; uint8 *target; };

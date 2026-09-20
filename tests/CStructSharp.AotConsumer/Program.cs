@@ -76,6 +76,23 @@ catch (CStructWriteException error)
     Check(error.Message.Contains("ICStructMapped<T>", StringComparison.Ordinal), "plain class write guidance: " + error.Message);
 }
 
+// The generated layout class: the same bytes, the same values, through generated code alone.
+Shapes.Record generated = Shapes.Parse(recordBytes);
+Check(generated.Tag == 7 && generated.Origin.X == -2 && generated.Corners[1].Y == 4 && generated.Flags.Length == 3, "generated parse");
+Check(Shapes.Serialize(generated).AsSpan().SequenceEqual(recordBytes), "generated serialize");
+var generatedView = new Shapes.RecordView(recordBytes);
+Check(generatedView.Tag == 7 && generatedView.Origin.Y == 5, "generated view");
+byte[] edited = (byte[])recordBytes.Clone();
+Shapes.Update.Tag(edited, 9);
+Check(edited[0] == 9 && edited.AsSpan(1).SequenceEqual(recordBytes.AsSpan(1)), "generated setter");
+Check(Shapes.Sizes.Point == 4 && Shapes.Offsets.Origin.Y == 3, "generated constants");
+
+// The generated mapper: registered by its module initializer, an IList<T> member built from the array.
+MappedRecord mapped = records.ReadValue<MappedRecord>(recordBytes, "record");
+Check(mapped.Tag == 7 && mapped.Corners.Count == 2 && mapped.Corners[0].Y == 2 && mapped.Flags.Length == 3, "generated mapper read");
+Check(records.Serialize("record", mapped).AsSpan().SequenceEqual(recordBytes), "generated mapper write");
+Check(Shapes.ToMapped<MappedRecord>(generated).Origin.X == -2, "generated to mapped");
+
 Console.WriteLine("PASS Native AOT consumer");
 return 0;
 

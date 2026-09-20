@@ -8,11 +8,15 @@
   <ItemGroup Condition="'$(StarterVariant)' != 'next'">
     <Compile Remove="Next.cs" />
   </ItemGroup>
-  <ItemGroup Condition="'$(StarterVariant)' == 'next'">
+  <ItemGroup Condition="'$(StarterVariant)' != 'generated'">
+    <Compile Remove="Generated.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(StarterVariant)' == 'next' or '$(StarterVariant)' == 'generated'">
     <Compile Remove="Program.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(CStructSharpPackageVersion)' == ''">
     <ProjectReference Include="../../../src/CStructSharp/CStructSharp.csproj" />
+    <ProjectReference Include="../../../src/CStructSharp.Generators/CStructSharp.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup Condition="'$(CStructSharpPackageVersion)' != ''">
     <PackageReference Include="CStructSharp" Version="$(CStructSharpPackageVersion)" />

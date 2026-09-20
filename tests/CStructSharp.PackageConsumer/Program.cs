@@ -15,6 +15,20 @@ byte[] input = [0xA5, 0x34, 0x12, 0x04, 0x7E,];
 var cstruct = new CStruct(Definition, pointerSize: 1);
 AssertInitOnlyOptions();
 
+// The packaged generator: a class from a .cstruct file the package's targets picked up, and a generated mapper.
+WireLayout.Wire wire = WireLayout.Parse(input);
+AssertEqual((byte)0xA5, wire.Marker, "generated marker");
+AssertEqual((ushort)0x1234, wire.Value, "generated value");
+AssertEqual(4L, wire.Target.Address, "generated pointer address");
+AssertEqual((byte)0x7E, wire.Target.Value, "generated pointer target");
+AssertEqual(true, input.AsSpan(0, 4).SequenceEqual(WireLayout.Serialize(wire)), "generated serialize (the address, not the target)");
+AssertEqual(4, WireLayout.Sizes.Wire, "generated size");
+var wireView = new WireLayout.WireView(input);
+AssertEqual((ushort)0x1234, wireView.Value, "generated view");
+GeneratedRoot generatedRoot = cstruct.ReadValue<GeneratedRoot>(input, "root");
+AssertEqual((ushort)0x1234, generatedRoot.Value, "generated mapper");
+AssertEqual(true, MappedTypes.IsMapped(typeof(GeneratedRoot)), "generated mapper registered");
+
 using (var stream = new MemoryStream(input))
 {
     IDictionary<string, object?> parsed = cstruct.Parse(stream, "root");

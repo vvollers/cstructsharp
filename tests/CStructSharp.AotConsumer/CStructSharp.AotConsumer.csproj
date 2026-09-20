@@ -2,7 +2,8 @@
 
   <!--
     Publishes a Native AOT executable against the library source and runs it: the starter parse, typed reads into
-    a POCO with a nested class and arrays, Get<T>, a POCO write, and the documented List<T>-over-IList<T> rule.
+    a mapped class with a nested class and arrays, Get<T>, a mapped write, a [CStructLayout] class (generated Parse,
+    Serialize, a view, a setter) and a [CStructMapped] class with an IList<T> member - no attributes, no reflection.
     `dotnet publish -c Release -r linux-x64` (or the host RID) must complete with zero IL warnings.
   -->
   <PropertyGroup>
@@ -19,6 +20,8 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/CStructSharp/CStructSharp.csproj" />
+    <!-- The generator, as the package ships it: a [CStructLayout] type and a [CStructMapped] class under Native AOT. -->
+    <ProjectReference Include="../../src/CStructSharp.Generators/CStructSharp.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

@@ -66,7 +66,12 @@ await main(() => {
       for (const line of ["Created: 020006000000", "Updated: 030006000000", "Kind = 3; Length = 6", "Truncated read succeeds = False"]) {
         if (!output.includes(line)) throw new Error(`Missing expected continuation output '${line}': ${output}`);
       }
-      console.log(`PASS external ${framework} starter and continuation against package ${version}`);
+      setProgram(path.join(starter, "Generated.cs"));
+      output = checkedDotnet(["run", "--project", "Starter.csproj", "--no-restore"], work);
+      for (const line of ["kind = 2; length = 6", "Serialized: 030006000000", "Updated: 020007000000 (offset 2, size 6)", "view length = 7", "mapped kind = 2"]) {
+        if (!output.includes(line)) throw new Error(`Missing expected generated-starter output '${line}': ${output}`);
+      }
+      console.log(`PASS external ${framework} starter, continuation, and generated starter against package ${version}`);
       const languageVersion = framework === "net8.0" ? "12.0" : "latest";
       setProgram(path.join(repositoryRoot, "tools/fixtures/byte-array-consumer.cs"));
       output = checkedDotnet(["run", "--project", "Starter.csproj", "--no-restore", `-p:LangVersion=${languageVersion}`], work);
