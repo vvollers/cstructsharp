@@ -115,6 +115,24 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   buffer stream it wrote through started with a zero length and cleared the rest when its length was set. The
   span form now keeps the region's bytes, like the stream form (`MemoryIoTests.SpanUpdate_KeepsTheOtherBytesOfTheRegion`).
 
+### Performance
+
+- Generated code against the runtime on the same bytes (Short job, this devbox, `GeneratedBenchmarks`; the
+  [performance page](docs/guides/performance.md#typical-costs) has the full table): the 28-byte primitives record
+  parses in 33 ns / 48 B generated against 249 ns / 776 B at run time, and a generated view reads every member in
+  1.6 ns with no allocation (hand-written `BinaryPrimitives`: 1.9 ns); 256 nested records parse in 38.8 µs / 124 KiB
+  against 78.2 µs / 243 KiB, and the view walks them in 738 ns; the record serializes in 79 ns / 168 B against
+  188 ns / 768 B; a typed setter replaces one field in 16 ns / 112 B against 704 ns / 2,224 B for the path update;
+  a conditional record with 128 arms parses in 1.7 µs / 5 KiB against 48 µs / 69 KiB; the pointer graph in 170 ns
+  against 674 ns. `ParseWithDebug` on a generated class costs a runtime read on top (920 ns against 731 ns).
+- Runtime paths against 0.6.0 (two-round A/B, allocations first): `ReadValue<T>` into a mapped class −31 % time
+  and −35 % allocations (the hand-written or generated mapper over `StructValue` replaces the expression-tree plan),
+  selected typed reads −7…−23 %, address resolution −5…−9 % allocations, every `Update` −5…−8 % allocations,
+  `Parse` of a 16 MiB stream −15 %, dictionary serialization −11 %, compile allocations −3…−4 %; a mapped-class
+  write allocates +192 B (the value is materialized as a `StructValue` before the one write path; the reflection
+  binder read properties in place). The WASM publication shrinks from 4,829,857 to 4,338,990 bytes (−10.2 %) and
+  the package grows from 689,036 to 909,142 bytes with the generator inside.
+
 ### Internal
 
 - Runtime allocation trims, each measured: a plain parse no longer allocates its unused debug list (−32 B per

@@ -50,38 +50,66 @@ millions of records is dominated by that constant unless the records are read as
 
 | Operation | Median | Allocated |
 | --- | ---: | ---: |
-| Compile a two-field struct (`struct root { uint8 kind; uint32 value; };`) | 6.23 µs | 14,024 B |
-| Compile the PNG header fixture (an enum and two structs) | 24.8 µs | 47,208 B |
-| `GetOrCompile` hit for the same source (cache lookup) | 397 ns | 0 B |
-| `Parse` a five-byte record with a `count`-sized array from memory | 451 ns | 1,296 B |
-| `ReadValue<T>` of the same record into a mapped class | 1.31 µs | 2,544 B |
-| `ReadValue<ushort>` of one selected field | 306 ns | 1,224 B |
-| `Parse` a 1 KiB `uint8[1024]` (one `PrimitiveArray`) | 232 ns | 1,608 B |
-| `ResolveAddress` of `items[127]` in a fixed nested array | 420 ns | 2,008 B |
-| `ParseWithDebug` of the PNG fixture (byte ranges for every value) | 2.08 µs | 6,376 B |
-| Truncated input: `Parse` throws and the caller catches | 8.53 µs | 2,784 B |
-| `Serialize` a mapped class into a caller-provided span | 491 ns | 1,144 B |
-| `Update` one value behind a pointer in place | 612 ns | 2,272 B |
-| `Parse` a 16 MiB record from a `MemoryStream` | 1.55 ms | 16.0 MiB |
+| Compile a two-field struct (`struct root { uint8 kind; uint32 value; };`) | 6.84 µs | 13,848 B |
+| Compile the PNG header fixture (an enum and two structs) | 27.0 µs | 46,200 B |
+| `GetOrCompile` hit for the same source (cache lookup) | 405 ns | 0 B |
+| `Parse` a five-byte record with a `count`-sized array from memory | 477 ns | 1,264 B |
+| `ReadValue<T>` of the same record into a mapped class | 937 ns | 1,648 B |
+| `ReadValue<ushort>` of one selected field | 281 ns | 1,136 B |
+| `Parse` a 1 KiB `uint8[1024]` (one `PrimitiveArray`) | 244 ns | 1,576 B |
+| `ResolveAddress` of `items[127]` in a fixed nested array | 385 ns | 1,832 B |
+| `ParseWithDebug` of the PNG fixture (byte ranges for every value) | 2.40 µs | 6,376 B |
+| Truncated input: `Parse` throws and the caller catches | 9.16 µs | 2,752 B |
+| `Serialize` a mapped class into a caller-provided span | 557 ns | 1,336 B |
+| `Update` one value behind a pointer in place | 683 ns | 2,144 B |
+| `Parse` a 16 MiB record from a `MemoryStream` | 1.85 ms | 16.0 MiB |
 
-Measured 2026-09-18 on AMD EPYC 9645, .NET 10.0.10 (10.0.10, 10.0.1026.32716), Linux Ubuntu 26.04.1 LTS (Resolute Raccoon).
+Measured 2026-09-20 on AMD EPYC 9645, .NET 10.0.10 (10.0.10, 10.0.1026.32716), Linux Ubuntu 26.04.1 LTS (Resolute Raccoon).
+
+A layout on a `[CStructLayout]` class is read by generated code instead ([generated code](generated/index.md)).
+The same bytes four ways - the runtime `Parse`, the generated `Parse`, a generated view, and hand-written
+`BinaryPrimitives` code - then the runtime/generated pairs for a write, an update, and a debug read
+(`GeneratedBenchmarks`):
+
+| Operation | Median | Allocated |
+| --- | ---: | ---: |
+| Runtime `Parse` of the 28-byte primitives record (`StructValue`) | 249 ns | 776 B |
+| Generated `Parse` of the same record (the typed class) | 33.1 ns | 48 B |
+| Generated view of the same record (every member read, nothing allocated) | 1.59 ns | 0 B |
+| Hand-written `BinaryPrimitives` reader of the same record | 1.90 ns | 0 B |
+| Runtime `Parse` of 256 nested records (6,400 bytes) | 78.2 µs | 243 KiB |
+| Generated `Parse` of the 256 nested records | 38.8 µs | 124 KiB |
+| Generated view over the 256 nested records (one view per element by offset) | 738 ns | 0 B |
+| Hand-written reader of the 256 nested records | 365 ns | 0 B |
+| Runtime `Serialize` of the record from a `StructValue` | 188 ns | 768 B |
+| Generated `Serialize` of the record from the typed class | 78.9 ns | 168 B |
+| Runtime `Update` of one field by path | 704 ns | 2,224 B |
+| Generated typed setter for the same field (`Update.C`) | 15.8 ns | 112 B |
+| Runtime `ParseWithDebug` of the record | 731 ns | 2,152 B |
+| Generated `ParseWithDebug` (the generated value plus the runtime's ranges) | 920 ns | 2,200 B |
+
+The generated `Parse` allocates the typed class and nothing else; the view allocates nothing and sits next to
+the hand-written reader because it is the same code with the offsets filled in. `ParseWithDebug` costs a
+runtime read on top of the generated one (the ranges come from the runtime). Use the generated path when the
+layout is in the program's source and the read is hot; [runtime or generated?](generated/choosing-runtime-or-generated.md)
+has the full decision table.
 
 The JavaScript package pays a WebAssembly crossing per call unless the layout is fully fixed and no option
 is set, in which case `parse` reads it in JavaScript (see [many records in one call](browser/large-data.md#many-records-in-one-call)):
 
 | Operation | Median |
 | --- | ---: |
-| `parse` of a fixed 28-byte record (JavaScript fast path, no WebAssembly call) | 3.58 µs |
-| `parse` of the PNG header fixture, 33 bytes (fast path) | 3.11 µs |
-| `parse` of 256 nested records, 6,400 bytes (fast path) | 143 µs |
-| `parse` of a record with four terminated strings, 6,592 bytes (one WebAssembly call) | 256 µs |
-| `parseWithDebug` of the 28-byte record (WebAssembly) | 141 µs |
-| `serialize` of the 28-byte record (WebAssembly) | 75.2 µs |
-| `update` of one scalar in the 28-byte record (WebAssembly) | 59.2 µs |
+| `parse` of a fixed 28-byte record (JavaScript fast path, no WebAssembly call) | 4.07 µs |
+| `parse` of the PNG header fixture, 33 bytes (fast path) | 3.94 µs |
+| `parse` of 256 nested records, 6,400 bytes (fast path) | 199 µs |
+| `parse` of a record with four terminated strings, 6,592 bytes (one WebAssembly call) | 327 µs |
+| `parseWithDebug` of the 28-byte record (WebAssembly) | 151 µs |
+| `serialize` of the 28-byte record (WebAssembly) | 92.2 µs |
+| `update` of one scalar in the 28-byte record (WebAssembly) | 60.6 µs |
 
-Measured 2026-09-18 in Node 26.5.0 with `benchmarks/js` (`npm run bench:node`).
+Measured 2026-09-20 in Node 26.5.0 with `benchmarks/js` (`npm run bench:node`).
 
-The browser runtime (the WASM publication the npm package and the standalone bundle ship) is 4.6 MiB across 26 files, 1.7 MiB gzip-compressed; it is downloaded once and cached by the browser.
+The browser runtime (the WASM publication the npm package and the standalone bundle ship) is 4.1 MiB across 26 files, 1.6 MiB gzip-compressed; it is downloaded once and cached by the browser.
 <!-- typical-costs:end -->
 
 ## Reuse layouts safely
