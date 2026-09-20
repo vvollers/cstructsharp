@@ -16,6 +16,7 @@ using CStructSharp.Values;
 [TestClass]
 public class CodecTests
 {
+    /// <summary>Every fixed-width integer and floating codec of <c>Codec</c> decodes and encodes in both byte orders to the runtime's bytes.</summary>
     [TestMethod]
     public void FixedWidthIntegers_RoundTripInBothByteOrders()
     {
@@ -50,6 +51,7 @@ public class CodecTests
         }
     }
 
+    /// <summary>The 24- and 48-bit codecs sign-extend on read and reject a value outside their range on write with the runtime's text.</summary>
     [TestMethod]
     public void NarrowIntegers_SignExtendAndRejectOutOfRangeWrites()
     {
@@ -79,6 +81,7 @@ public class CodecTests
         AssertWriteFails(() => Codec.WriteUInt48(new byte[6], 0x1_0000_0000_0000, true), "Value is outside the uint48 range.");
     }
 
+    /// <summary><c>ReadUnsigned</c>/<c>WriteUnsigned</c> handle every unit width from one to eight bytes in both orders.</summary>
     [TestMethod]
     public void Unsigned_CoversEveryWidthUpToEightBytes()
     {
@@ -101,6 +104,7 @@ public class CodecTests
         Assert.Throws<InvalidOperationException>(() => Codec.WriteUnsigned(new byte[0], 1, true));
     }
 
+    /// <summary>The span LEB128 decoder agrees with the runtime's stream decoder on values, widths, and failures.</summary>
     [TestMethod]
     public void Leb128_SpanAndStreamDecodersAgree()
     {
@@ -137,6 +141,7 @@ public class CodecTests
         Assert.AreEqual("Not enough bytes: needed 1, available 0.", shortSpan.Message);
     }
 
+    /// <summary>Fixed-point decoding and encoding follow the runtime's grid: exact values pass, unrepresentable ones are rejected.</summary>
     [TestMethod]
     public void FixedPoint_DecodesAndValidatesTheGrid()
     {
@@ -154,6 +159,7 @@ public class CodecTests
         Assert.Throws<ArgumentNullException>(() => Codec.EncodeFixedPoint(null!, 32, 16, true));
     }
 
+    /// <summary>UUID and GUID codecs keep the network and Windows byte orders the runtime uses.</summary>
     [TestMethod]
     public void Identifiers_HonourNetworkAndWindowsOrder()
     {
@@ -172,6 +178,7 @@ public class CodecTests
         AssertWriteFails(() => Codec.ToGuid(42), "Identifier requires a Guid");
     }
 
+    /// <summary>Bitfield extraction, merging, and shift computation agree with the runtime's bitfield table for both allocations.</summary>
     [TestMethod]
     public void Bitfields_ExtractMergeAndShiftLikeTheRuntimeTable()
     {
@@ -189,6 +196,7 @@ public class CodecTests
         AssertWriteFails(() => Codec.ToBitfieldValue("flags", 3, null), "cannot be null");
     }
 
+    /// <summary>Bulk primitive array decoding and encoding cover every element width in both byte orders.</summary>
     [TestMethod]
     public void PrimitiveArrays_DecodeAndEncodeEveryWidthInBothOrders()
     {
@@ -230,6 +238,7 @@ public class CodecTests
         CollectionAssert.AreEqual(new[] { 0xFFFFFFu, 0x80u }, uint24);
     }
 
+    /// <summary>Fixed and bounded text decode as the runtime does, and the terminator search honours unit size and alignment.</summary>
     [TestMethod]
     public void Text_DecodesFixedAndBoundedBuffersAndFindsTerminators()
     {
@@ -252,6 +261,7 @@ public class CodecTests
         AssertWriteFails(() => Codec.ToNarrowCharacter('€'), "does not fit the one-byte char type");
     }
 
+    /// <summary>The runtime's stream codecs and <c>Codec</c>'s span functions produce the same bytes for the same values.</summary>
     [TestMethod]
     public void RuntimeStreamCodecs_ProduceTheSameBytesAsCodec()
     {

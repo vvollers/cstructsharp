@@ -8,6 +8,7 @@ using CStructSharp.Values;
 [TestClass]
 public class PointerTests
 {
+    /// <summary><c>Pointer&lt;T&gt;</c> keeps the runtime pointer's invariants: null, address-only, and dereferenced states.</summary>
     [TestMethod]
     public void Invariants_MatchTheRuntimePointer()
     {
@@ -33,6 +34,7 @@ public class PointerTests
         Assert.IsFalse(resolved.Equals((object)unresolved));
     }
 
+    /// <summary><c>FromPointer</c>/<c>ToPointer</c> round-trip a typed pointer through the runtime's <c>Pointer</c> value.</summary>
     [TestMethod]
     public void Conversions_RoundTripThroughTheRuntimePointer()
     {

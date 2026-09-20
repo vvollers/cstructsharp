@@ -59,14 +59,6 @@ public class MemoryIoTests
         Assert.AreEqual((ushort)0x0102, selected);
     }
 
-    /// <summary>
-    ///     The input is a slice of a larger array.
-    /// </summary>
-    /// <remarks>
-    ///     Pointer offset 3 is measured from the start of that slice and must reach 0x7E, not a position in the
-    ///     original array. Out-of-region targets fail when followed, while address-only reads can retain an unresolved
-    ///     address.
-    /// </remarks>
     /// <summary>An in-place update over a span changes the selected bytes and keeps every other byte of the region.</summary>
     [TestMethod]
     public void SpanUpdate_KeepsTheOtherBytesOfTheRegion()
@@ -89,6 +81,14 @@ public class MemoryIoTests
         CollectionAssert.AreEqual(data, viaStream);
     }
 
+    /// <summary>
+    ///     The input is a slice of a larger array.
+    /// </summary>
+    /// <remarks>
+    ///     Pointer offset 3 is measured from the start of that slice and must reach 0x7E, not a position in the
+    ///     original array. Out-of-region targets fail when followed, while address-only reads can retain an unresolved
+    ///     address.
+    /// </remarks>
     [TestMethod]
     public void MemoryInput_PointersStayInsideTheSuppliedRegion()
     {

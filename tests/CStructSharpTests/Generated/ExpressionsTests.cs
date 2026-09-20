@@ -14,6 +14,7 @@ using CStructSharp.Parsing;
 [TestClass]
 public class ExpressionsTests
 {
+    /// <summary>Every <c>Expressions</c> operator returns what the runtime expression evaluator returns for the same operands.</summary>
     [TestMethod]
     public void Operators_MatchTheRuntimeEvaluator()
     {
@@ -48,6 +49,7 @@ public class ExpressionsTests
         }
     }
 
+    /// <summary>Division by zero, overflow, and undefined identifiers fail through <c>Expressions</c> with the runtime evaluator's exceptions.</summary>
     [TestMethod]
     public void Failures_AreTheRuntimeEvaluatorFailures()
     {
@@ -68,6 +70,7 @@ public class ExpressionsTests
         Assert.Throws<InvalidOperationException>(() => evaluator.Evaluate(LayoutParser.ParseExpression("1 << 32")));
     }
 
+    /// <summary><c>RequireInt32</c> rejects a wide captured value with the runtime evaluator's message.</summary>
     [TestMethod]
     public void RequireInt32_FailsExactlyAsTheRuntimeEvaluatorDoes()
     {

@@ -11,6 +11,7 @@ using CStructSharp.Values;
 [TestClass]
 public class WriteCursorTests
 {
+    /// <summary><c>WriteCursor.Reserve</c> advances, pads, and reports a too-small destination with the runtime's capacity text.</summary>
     [TestMethod]
     public void Reserve_AdvancesPadsAndReportsCapacityLikeTheRuntime()
     {
@@ -45,6 +46,7 @@ public class WriteCursorTests
         Assert.AreEqual("The serialized value exceeds the supplied destination capacity (field 'b' (uint16), in 'root', offset 2).", capacity.Message);
     }
 
+    /// <summary>The write cursor's array and string limits fail with the runtime's limit texts.</summary>
     [TestMethod]
     public void Limits_MatchTheRuntimeTexts()
     {
@@ -110,6 +112,7 @@ public class WriteCursorTests
         Assert.Throws<ArgumentOutOfRangeException>(() => new WriteCursor(new byte[1], new WriteOptions { MaxArrayElements = -1, }));
     }
 
+    /// <summary><c>FailUnwritable</c> reproduces the runtime's <c>Value ... does not fit</c> diagnostics for every primitive kind.</summary>
     [TestMethod]
     public void FailUnwritable_MatchesTheRuntimeValueDiagnostics()
     {
@@ -146,6 +149,7 @@ public class WriteCursorTests
 
     private static string WithoutOffset(string message) => System.Text.RegularExpressions.Regex.Replace(message, @", offset \d+", string.Empty);
 
+    /// <summary><c>Align</c> writes zero bytes up to the next aligned position.</summary>
     [TestMethod]
     public void Align_PadsWithZeroes()
     {
@@ -172,6 +176,7 @@ public class WriteCursorTests
         Assert.AreEqual(9, destination[7]);
     }
 
+    /// <summary>A growable cursor collects its bytes into an array, and its text helpers produce the runtime writer's bytes and failures.</summary>
     [TestMethod]
     public void GrowableCursor_CollectsTheBytesAndTextHelpersMatchTheRuntime()
     {

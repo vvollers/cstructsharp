@@ -13,6 +13,7 @@ using CStructSharp.Generated;
 [TestClass]
 public class ReadCursorTests
 {
+    /// <summary><c>ReadCursor.Take</c> consumes bytes, charges the total byte budget, and reports a short read with the runtime's text.</summary>
     [TestMethod]
     public void Take_ConsumesChargesAndReportsShortReadsLikeTheRuntime()
     {
@@ -51,6 +52,7 @@ public class ReadCursorTests
         Assert.AreEqual(runtime.Offset, error.Offset);
     }
 
+    /// <summary>The cursor's array, string, nesting, pointer, and byte limits fail with the runtime's limit exceptions and texts.</summary>
     [TestMethod]
     public void Budgets_MatchTheRuntimeLimits()
     {
@@ -107,6 +109,7 @@ public class ReadCursorTests
         StringAssert.StartsWith(terminated.Message, "String field exceeded the configured encoded-byte limit");
     }
 
+    /// <summary>Composite nesting and pointer entry enforce depth, absolute and relative addressing, and cycle detection like the runtime.</summary>
     [TestMethod]
     public void NestingAndPointers_EnforceDepthAndAddressing()
     {
@@ -162,6 +165,7 @@ public class ReadCursorTests
         Assert.IsNull(defaults.Path);
     }
 
+    /// <summary><c>Align</c> pads from the composite origin, not from the cursor's absolute position.</summary>
     [TestMethod]
     public void Align_PadsFromTheOrigin()
     {
@@ -181,6 +185,7 @@ public class ReadCursorTests
         Assert.Throws<CStructReadException>(() => new ReadCursor(new byte[3]) { Position = 4, });
     }
 
+    /// <summary><c>FailExpression</c> wraps an operator failure in the runtime's <c>Cannot evaluate</c> text with the member context.</summary>
     [TestMethod]
     public void FailExpression_WrapsOperatorFailuresLikeTheRuntime()
     {
@@ -218,6 +223,7 @@ public class ReadCursorTests
         Assert.AreSame(unrelated, cursor.FailExpression(unrelated, "array length for items", "items", "uint8"));
     }
 
+    /// <summary><c>TakeCustom</c> hands a custom codec the remaining input and charges the budget as the runtime's memory path does.</summary>
     [TestMethod]
     public void TakeCustom_MatchesTheRuntimeMemoryPath()
     {
