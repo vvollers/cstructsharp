@@ -59,6 +59,12 @@ offsets, and values plus one invalid case and its stable error category. Tests e
 | Update | Finds and replaces storage after staged validation |
 | Read value | Returns one direct value or checked typed mapping |
 
+Every row is also compiled by the `[CStructLayout]` source generator: the matrix records `"generated": "parity"`
+for a feature whose fixture the parity project (`tests/CStructSharp.Generated.Parity`) generates and compares with
+the runtime - values, serialized bytes, addresses, and the failure at every truncated length - and the validator
+checks that claim against the project's layout index. All 47 features are at parity; the
+[generated code series](../guides/generated/index.md) shows what each becomes in C#.
+
 Supported does not mean equally appropriate. Memory input avoids a stream adapter when bytes are already available.
 Debugging adds diagnostic work. Updating has validation-before-commit behavior that a direct stream write does not.
 Use [Choose an API](../guides/choosing-an-api.md) for those tradeoffs.

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Validates contracts/quality/feature-operation-matrix.json: vocabulary, every feature's dimensions, operation
- * statuses and executable evidence (path#method references that must exist), the memory I/O, compiled execution,
+ * statuses and executable evidence (path#method references that must exist), the generated-parity status of every
+ * feature against the parity project's layout index, the memory I/O, compiled execution,
  * operation context, managed and browser compatibility contracts, round-trip contracts, known limits, exclusions,
  * and the linked domain contracts.
  *
@@ -79,6 +80,25 @@ await main(() => {
   assertCondition(new Set(allPrimitiveSpellings).size === allPrimitiveSpellings.length, "primitiveSpellings contains duplicate names.");
 
   assertUniqueIds(matrix.features ?? [], "features");
+  const generated = matrix.generatedEvidence;
+  assertCondition(generated, "generatedEvidence is required.");
+  assertCondition(Number(generated.schemaVersion) === 1, "Unsupported generatedEvidence schema version.");
+  for (const property of ["claim", "generator", "project", "layouts", "tool", "guide"]) {
+    assertCondition(!blank(generated[property]), `generatedEvidence has no ${property}.`);
+  }
+  for (const property of ["generator", "project", "layouts", "tool", "guide"]) {
+    assertCondition(isFile(path.join(repositoryRoot, String(generated[property]))), `generatedEvidence ${property} '${generated[property]}' does not exist.`);
+  }
+  const generatedStatuses = Object.keys(generated.statuses ?? {});
+  assertCondition(sortedJoin(generatedStatuses) === sortedJoin(["parity", "runtime-only"]), "generatedEvidence must define exactly the parity and runtime-only statuses.");
+  assertCondition(sortedJoin(strings(generated.operations)) === sortedJoin(["parse", "serialize", "address", "truncation"]), "generatedEvidence must list the exact compared operations.");
+  const generatedTests = strings(generated.tests);
+  assertCondition(generatedTests.length > 0, "generatedEvidence has no executable evidence.");
+  for (const reference of generatedTests) assertEvidenceReference(reference, "generatedEvidence");
+  const generatedIndex = JSON.parse(fs.readFileSync(path.join(repositoryRoot, String(generated.layouts)), "utf8"));
+  const generatedFixtures = new Set((generatedIndex.layouts ?? []).filter((layout) => layout.source === "Manual").map((layout) => String(layout.id)));
+  assertCondition(generatedFixtures.size > 0, "The parity layouts index lists no Manual fixtures.");
+
   for (const feature of matrix.features) {
     const context = `Feature '${feature.id}'`;
     assertCondition(!blank(feature.manual), `${context} has no language-manual reference.`);
@@ -119,6 +139,13 @@ await main(() => {
         assertCondition(evidenceCoverage.get(operationName).length > 0, `${context} operation '${operationName}' is ${status} but has no executable evidence.`);
       }
       if (status === "blocked") requiresWorkItem = true;
+    }
+    const generatedStatus = String(feature.generated);
+    assertCondition(generatedStatuses.includes(generatedStatus), `${context} has unknown generated status '${generatedStatus}'.`);
+    if (generatedStatus === "parity") {
+      assertCondition(generatedFixtures.has(String(feature.fixture)), `${context} claims generated parity but '${feature.fixture}' is not among the parity project's Manual layouts (run ${generated.tool}).`);
+    } else {
+      assertCondition(!blank(feature.generatedLimitation), `${context} is runtime-only for the generator but has no generatedLimitation.`);
     }
     const limitations = strings(feature.limitations);
     if (feature.support === "limited" || Object.values(feature.operations).includes("limited")) {
@@ -259,6 +286,7 @@ await main(() => {
   console.log(`Operations: ${operationIds.length}`);
   console.log(`Features: ${matrix.features.length}`);
   console.log(`Round-trip contracts: ${matrix.roundTripContracts.length}`);
+  console.log(`Generated parity fixtures: ${matrix.features.filter((feature) => feature.generated === "parity").length} of ${matrix.features.length}`);
   console.log(`Primitive spellings: ${allPrimitiveSpellings.length}`);
   console.log(`Memory I/O APIs: ${memoryInputApis.length + memoryOutputApis.length}`);
   console.log(`Compiled read/write routes: ${readRoutes.length + writeRoutes.length}`);
