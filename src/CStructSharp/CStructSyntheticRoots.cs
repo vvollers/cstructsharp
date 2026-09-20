@@ -143,13 +143,10 @@ public partial class CStruct
 
         var field = new Field(new Identifier(type.TerminalName), new Identifier(spelling), arrayCount, 0, pointerDepth);
         bool isUnsizedCharacterArray = arrayCount.Count == 1 && ReferenceEquals(arrayCount[0], Field.UnknownArraysize) && CharacterFieldTypes.IsCharArrayField(field);
-        Func<Stream, object>? terminatedReader = null;
-        Action<Stream, object>? terminatedWriter = null;
+        int terminatedCodecId = PrimitiveCatalog.NoCodec;
         if (isUnsizedCharacterArray || (pointerDepth > 0 && CharacterFieldTypes.IsStringPointerType(field.Type)))
         {
-            string handler = CharacterFieldTypes.GetStringPointerHandlerKey(field.Type);
-            terminatedReader = this.fieldHandlers[handler];
-            terminatedWriter = this.writeHandlers[handler];
+            terminatedCodecId = this.catalog.CodecIdOf(CharacterFieldTypes.GetStringPointerHandlerKey(field.Type));
         }
 
         int alignment = pointerDepth > 0 ? this.PointerSize : type.Symbol.Alignment;
@@ -176,10 +173,8 @@ public partial class CStruct
             field,
             field,
             type,
-            this.GetCompiledReader(type.Symbol),
-            this.GetCompiledWriter(type.Symbol),
-            terminatedReader,
-            terminatedWriter,
+            GetCompiledCodecId(type.Symbol),
+            terminatedCodecId,
             alignment,
             elementSize,
             arrayShape,

@@ -3,7 +3,6 @@ namespace CStructSharp.Codecs;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
@@ -17,21 +16,17 @@ internal sealed class BitfieldCodecTable
 
     /// <summary>Builds the table of scalar integral primitive codecs that are safe bitfield storage.</summary>
     /// <param name="isLittleEndian">The layout's default byte order for unsuffixed multi-byte type names.</param>
-    /// <param name="fieldAlignments">The already-populated primitive byte width for every registered field type name.</param>
-    /// <param name="fieldHandlers">The already-populated primitive readers, used only to confirm a candidate type has one.</param>
-    /// <param name="writeHandlers">The already-populated primitive writers, used only to confirm a candidate type has one.</param>
+    /// <param name="fieldAlignments">The catalog's alignment per readable name; for a direct integral type it equals the byte width.</param>
     /// <param name="fieldTypeAliases">The C-style and shorthand type name aliases to mirror into this table.</param>
     public BitfieldCodecTable(
         bool isLittleEndian,
         IReadOnlyDictionary<string, byte> fieldAlignments,
-        IReadOnlyDictionary<string, Func<Stream, object>> fieldHandlers,
-        IReadOnlyDictionary<string, Action<Stream, object>> writeHandlers,
         IReadOnlyDictionary<string, string> fieldTypeAliases)
     {
-        this.Register("byte", 1, isLittleEndian, fieldAlignments, fieldHandlers, writeHandlers);
-        this.Register("int8", 1, isLittleEndian, fieldAlignments, fieldHandlers, writeHandlers);
-        this.Register("uint8", 1, isLittleEndian, fieldAlignments, fieldHandlers, writeHandlers);
-        this.Register("char", 1, isLittleEndian, fieldAlignments, fieldHandlers, writeHandlers);
+        this.Register("byte", 1, isLittleEndian, fieldAlignments);
+        this.Register("int8", 1, isLittleEndian, fieldAlignments);
+        this.Register("uint8", 1, isLittleEndian, fieldAlignments);
+        this.Register("char", 1, isLittleEndian, fieldAlignments);
 
         foreach ((string name, int byteSize) in new[]
                  {
@@ -44,9 +39,9 @@ internal sealed class BitfieldCodecTable
                      ("uint64", 8),
                  })
         {
-            this.Register(name + ">", byteSize, false, fieldAlignments, fieldHandlers, writeHandlers);
-            this.Register(name + "<", byteSize, true, fieldAlignments, fieldHandlers, writeHandlers);
-            this.Register(name, byteSize, isLittleEndian, fieldAlignments, fieldHandlers, writeHandlers);
+            this.Register(name + ">", byteSize, false, fieldAlignments);
+            this.Register(name + "<", byteSize, true, fieldAlignments);
+            this.Register(name, byteSize, isLittleEndian, fieldAlignments);
         }
 
         foreach (KeyValuePair<string, string> alias in fieldTypeAliases)
@@ -187,13 +182,13 @@ internal sealed class BitfieldCodecTable
         string name,
         int byteSize,
         bool isLittleEndian,
-        IReadOnlyDictionary<string, byte> fieldAlignments,
-        IReadOnlyDictionary<string, Func<Stream, object>> fieldHandlers,
-        IReadOnlyDictionary<string, Action<Stream, object>> writeHandlers)
+        IReadOnlyDictionary<string, byte> fieldAlignments)
     {
+        // The catalog's alignment of a direct integral type is its size; a disagreement means the storage-unit
+        // width the placement would assume differs from what the codec reads - refuse rather than corrupt bits.
         bool hasMatchingSize = fieldAlignments.TryGetValue(name, out byte alignedByteSize) &&
                                alignedByteSize == byteSize;
-        if (!hasMatchingSize || !fieldHandlers.ContainsKey(name) || !writeHandlers.ContainsKey(name))
+        if (!hasMatchingSize)
         {
             throw new InvalidOperationException("Integral bitfield codec registration is inconsistent: " + name);
         }

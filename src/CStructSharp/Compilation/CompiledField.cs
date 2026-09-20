@@ -2,7 +2,6 @@ namespace CStructSharp.Compilation;
 
 using System;
 using System.Collections.Immutable;
-using System.IO;
 using System.Text;
 using CStructSharp.Codecs;
 using CStructSharp.Expressions;
@@ -15,10 +14,8 @@ internal sealed class CompiledField
         Field declaration,
         Field effectiveField,
         CompiledTypeReference type,
-        Func<Stream, object>? reader,
-        Action<Stream, object>? writer,
-        Func<Stream, object>? terminatedReader,
-        Action<Stream, object>? terminatedWriter,
+        int codecId,
+        int terminatedCodecId,
         int alignment,
         int? fixedElementSize,
         CompiledArrayShape array,
@@ -33,10 +30,8 @@ internal sealed class CompiledField
         this.Declaration = declaration;
         this.EffectiveField = effectiveField;
         this.Type = type;
-        this.Reader = reader;
-        this.Writer = writer;
-        this.TerminatedReader = terminatedReader;
-        this.TerminatedWriter = terminatedWriter;
+        this.CodecId = codecId;
+        this.TerminatedCodecId = terminatedCodecId;
         this.Alignment = alignment;
         this.FixedElementSize = fixedElementSize;
         this.Array = array;
@@ -64,15 +59,13 @@ internal sealed class CompiledField
     }
 
     /// <summary>Derived copies keep the parent's resolved codec when the pointer depth is unchanged.</summary>
-    private CompiledField(CompiledField parent, Field effectiveField, int alignment, int? fixedElementSize, CompiledArrayShape array, int? fixedStorageSize, bool isUnsizedCharacterArray, int? bitStorageSize, bool? bitStorageIsLittleEndian, int? fixedOffset, int bitOffset, Func<Stream, object>? reader, Action<Stream, object>? writer)
+    private CompiledField(CompiledField parent, Field effectiveField, int alignment, int? fixedElementSize, CompiledArrayShape array, int? fixedStorageSize, bool isUnsizedCharacterArray, int? bitStorageSize, bool? bitStorageIsLittleEndian, int? fixedOffset, int bitOffset, int codecId)
     {
         this.Declaration = parent.Declaration;
         this.EffectiveField = effectiveField;
         this.Type = parent.Type;
-        this.Reader = reader;
-        this.Writer = writer;
-        this.TerminatedReader = parent.TerminatedReader;
-        this.TerminatedWriter = parent.TerminatedWriter;
+        this.CodecId = codecId;
+        this.TerminatedCodecId = parent.TerminatedCodecId;
         this.Alignment = alignment;
         this.FixedElementSize = fixedElementSize;
         this.Array = array;
@@ -235,15 +228,23 @@ internal sealed class CompiledField
     /// <summary>Whether the field is an anonymous inline composite whose members are promoted into the parent.</summary>
     public bool IsPromotedComposite => this.Declaration is Struct { Name.Name.Length: 0, };
 
-    public Func<Stream, object>? Reader { get; }
+    /// <summary>
+    ///     The codec id of the delegate pair that reads and writes one element of this field, or
+    ///     <see cref="PrimitiveCatalog.NoCodec"/> for a composite, a pointer (read by the pointer reader), and a
+    ///     bare terminated-string target. The runtime's <c>CodecTable</c> is indexed by it.
+    /// </summary>
+    public int CodecId { get; }
 
-    public Func<Stream, object>? TerminatedReader { get; }
+    /// <summary>The codec id of the terminated-string handler behind a <c>char *</c>-style pointer, or <see cref="PrimitiveCatalog.NoCodec"/>.</summary>
+    public int TerminatedCodecId { get; }
 
-    public Action<Stream, object>? TerminatedWriter { get; }
+    /// <summary>Whether a primitive delegate pair reads and writes this field (false for composites and pointers).</summary>
+    public bool HasCodec => this.CodecId != PrimitiveCatalog.NoCodec;
+
+    /// <summary>Whether this field is a pointer to a terminated string (<c>char *</c> shorthand) whose target reads through a terminated handler.</summary>
+    public bool HasTerminatedCodec => this.TerminatedCodecId != PrimitiveCatalog.NoCodec;
 
     public CompiledTypeReference Type { get; }
-
-    public Action<Stream, object>? Writer { get; }
 
     /// <summary>The primitive codec vocabulary name (for example <c>uint32&lt;</c>), <c>pointer</c>, or a composite's own name.</summary>
     public string CodecName
@@ -316,16 +317,13 @@ internal sealed class CompiledField
             this.BitStorageIsLittleEndian,
             this.FixedOffset,
             this.BitOffset,
-            this.Reader,
-            this.Writer);
+            this.CodecId);
     }
 
     /// <summary>Creates an immutable target view after explicit pointer accessors consume part of the shape.</summary>
     public CompiledField SelectPointerTarget(
         int remainingPointerDepth,
         string? terminatedCodecName,
-        Func<Stream, object>? terminatedReader,
-        Action<Stream, object>? terminatedWriter,
         int pointerSize)
     {
         Identifier type = terminatedCodecName is null
@@ -351,8 +349,7 @@ internal sealed class CompiledField
             null,
             null,
             0,
-            targetIsTerminated ? terminatedReader : this.Reader,
-            targetIsTerminated ? terminatedWriter : this.Writer);
+            targetIsTerminated ? this.TerminatedCodecId : this.CodecId);
     }
 
     /// <summary>Returns the same descriptor with its compiled placement facts attached.</summary>
@@ -370,8 +367,7 @@ internal sealed class CompiledField
             this.BitStorageIsLittleEndian,
             fixedOffset,
             bitOffset,
-            this.Reader,
-            this.Writer);
+            this.CodecId);
         placed.BitUnitSize = bitUnitSize ?? this.BitUnitSize;
         return placed;
     }

@@ -20,7 +20,7 @@ public class BitfieldCodecTableTests
     [TestMethod]
     public void Constructor_BuildsEntriesAndAliasesFromConsistentPrimitiveTables()
     {
-        BitfieldCodecTable table = CreateValidTable(isLittleEndian: true, out _, out _, out _);
+        BitfieldCodecTable table = CreateValidTable(isLittleEndian: true, out _);
 
         BitfieldCodecTable.Entry byteEntry = table.ValidateBitField(BitfieldField("uint8", bitSize: 3));
         Assert.AreEqual(1, byteEntry.ByteSize);
@@ -49,7 +49,7 @@ public class BitfieldCodecTableTests
     [TestMethod]
     public void Constructor_NeutralEntries_FollowBigEndianDefaultWhenRequested()
     {
-        BitfieldCodecTable table = CreateValidTable(isLittleEndian: false, out _, out _, out _);
+        BitfieldCodecTable table = CreateValidTable(isLittleEndian: false, out _);
 
         BitfieldCodecTable.Entry neutralEntry = table.ValidateBitField(BitfieldField("uint32", bitSize: 5));
 
@@ -74,40 +74,6 @@ public class BitfieldCodecTableTests
             () => new BitfieldCodecTable(
                 true,
                 alignments,
-                ValidFieldHandlers(),
-                ValidWriteHandlers(),
-                new Dictionary<string, string>()));
-    }
-
-    /// <summary>A primitive type with no registered reader cannot be trusted as bitfield storage.</summary>
-    [TestMethod]
-    public void Constructor_RejectsAPrimitiveWithNoRegisteredReader()
-    {
-        Dictionary<string, Func<Stream, object>> handlers = ValidFieldHandlers();
-        handlers.Remove("byte");
-
-        Assert.Throws<InvalidOperationException>(
-            () => new BitfieldCodecTable(
-                true,
-                ValidAlignments(),
-                handlers,
-                ValidWriteHandlers(),
-                new Dictionary<string, string>()));
-    }
-
-    /// <summary>A primitive type with no registered writer cannot be trusted as bitfield storage.</summary>
-    [TestMethod]
-    public void Constructor_RejectsAPrimitiveWithNoRegisteredWriter()
-    {
-        Dictionary<string, Action<Stream, object>> handlers = ValidWriteHandlers();
-        handlers.Remove("byte");
-
-        Assert.Throws<InvalidOperationException>(
-            () => new BitfieldCodecTable(
-                true,
-                ValidAlignments(),
-                ValidFieldHandlers(),
-                handlers,
                 new Dictionary<string, string>()));
     }
 
@@ -115,7 +81,7 @@ public class BitfieldCodecTableTests
     [TestMethod]
     public void ValidateBitField_RejectsAnArrayField()
     {
-        BitfieldCodecTable table = CreateValidTable(true, out _, out _, out _);
+        BitfieldCodecTable table = CreateValidTable(true, out _);
         var arrayField = new Field(new Identifier("uint8"), new Identifier("values"), [new Literal(4),], 3);
 
         Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(arrayField));
@@ -125,7 +91,7 @@ public class BitfieldCodecTableTests
     [TestMethod]
     public void ValidateBitField_RejectsAPointerField()
     {
-        BitfieldCodecTable table = CreateValidTable(true, out _, out _, out _);
+        BitfieldCodecTable table = CreateValidTable(true, out _);
         var pointerField = new Field(new Identifier("uint8"), new Identifier("ptr"), Field.NoArray, 3, pointerDepth: 1);
 
         Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(pointerField));
@@ -135,7 +101,7 @@ public class BitfieldCodecTableTests
     [TestMethod]
     public void ValidateBitField_RejectsAnUnregisteredStorageType()
     {
-        BitfieldCodecTable table = CreateValidTable(true, out _, out _, out _);
+        BitfieldCodecTable table = CreateValidTable(true, out _);
 
         Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(BitfieldField("not_a_real_type", bitSize: 3)));
     }
@@ -144,7 +110,7 @@ public class BitfieldCodecTableTests
     [TestMethod]
     public void ValidateBitField_RejectsAWidthLargerThanTheStorageUnit()
     {
-        BitfieldCodecTable table = CreateValidTable(true, out _, out _, out _);
+        BitfieldCodecTable table = CreateValidTable(true, out _);
 
         Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(BitfieldField("uint8", bitSize: 9)));
     }
@@ -229,22 +195,16 @@ public class BitfieldCodecTableTests
         return new Field(new Identifier(typeName), new Identifier("value"), Field.NoArray, bitSize);
     }
 
-    private static BitfieldCodecTable CreateValidTable(
-        bool isLittleEndian,
-        out Dictionary<string, byte> alignments,
-        out Dictionary<string, Func<Stream, object>> fieldHandlers,
-        out Dictionary<string, Action<Stream, object>> writeHandlers)
+    private static BitfieldCodecTable CreateValidTable(bool isLittleEndian, out Dictionary<string, byte> alignments)
     {
         alignments = ValidAlignments();
-        fieldHandlers = ValidFieldHandlers();
-        writeHandlers = ValidWriteHandlers();
         var aliases = new Dictionary<string, string> { ["uint"] = "uint32", };
-        return new BitfieldCodecTable(isLittleEndian, alignments, fieldHandlers, writeHandlers, aliases);
+        return new BitfieldCodecTable(isLittleEndian, alignments, aliases);
     }
 
     /// <summary>
     ///     Every scalar integral type name <see cref="BitfieldCodecTable"/>'s constructor unconditionally tries to
-    ///     register, with the same byte widths <c>CStruct.BuildFieldHandlers</c> would have measured for them.
+    ///     register, with the byte widths the primitive catalog records for them.
     /// </summary>
     private static Dictionary<string, byte> ValidAlignments()
     {
@@ -263,16 +223,6 @@ public class BitfieldCodecTableTests
         }
 
         return alignments;
-    }
-
-    private static Dictionary<string, Func<Stream, object>> ValidFieldHandlers()
-    {
-        return ValidAlignments().Keys.ToDictionary(name => name, _ => (Func<Stream, object>)(_ => 0));
-    }
-
-    private static Dictionary<string, Action<Stream, object>> ValidWriteHandlers()
-    {
-        return ValidAlignments().Keys.ToDictionary(name => name, _ => (Action<Stream, object>)((_, _) => { }));
     }
 
     private static IEnumerable<(string Name, byte ByteSize)> MultiByteTypes()

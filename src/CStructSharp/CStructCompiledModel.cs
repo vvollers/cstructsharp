@@ -178,7 +178,7 @@ public partial class CStruct
     /// <summary>Creates all type symbols first, then binds immutable enum, field, and composite definitions.</summary>
     private CompiledLayoutModel BuildCompiledLayout()
     {
-        var namedTypes = this.primitiveRegistry.Symbols.ToBuilder();
+        var namedTypes = this.catalog.Symbols.ToBuilder();
 
         foreach (KeyValuePair<string, CompiledTypeReference> custom in this.customSymbols)
         {
@@ -217,8 +217,7 @@ public partial class CStruct
                         enm,
                         this.enumIntegerCodecs.Get(enm.Name.Name).SizeInBytes,
                         this.enumIntegerCodecs.Get(enm.Name.Name).SizeInBytes,
-                        null,
-                        null));
+                        PrimitiveCatalog.NoCodec));
                 break;
             }
         }
@@ -328,15 +327,11 @@ public partial class CStruct
                 rootShape,
                 0,
                 type.PointerDepth);
-            Func<Stream, object>? reader = this.GetCompiledReader(type.Symbol);
-            Action<Stream, object>? writer = this.GetCompiledWriter(type.Symbol);
-            Func<Stream, object>? terminatedReader = null;
-            Action<Stream, object>? terminatedWriter = null;
+            int codecId = GetCompiledCodecId(type.Symbol);
+            int terminatedCodecId = PrimitiveCatalog.NoCodec;
             if (type.PointerDepth > 0 && CharacterFieldTypes.IsStringPointerType(field.Type))
             {
-                string handler = CharacterFieldTypes.GetStringPointerHandlerKey(field.Type);
-                terminatedReader = this.fieldHandlers[handler];
-                terminatedWriter = this.writeHandlers[handler];
+                terminatedCodecId = this.catalog.CodecIdOf(CharacterFieldTypes.GetStringPointerHandlerKey(field.Type));
             }
 
             int alignment = type.PointerDepth > 0 ? this.PointerSize : type.Symbol.Alignment;
@@ -349,10 +344,8 @@ public partial class CStruct
                 field,
                 field,
                 type,
-                reader,
-                writer,
-                terminatedReader,
-                terminatedWriter,
+                codecId,
+                terminatedCodecId,
                 alignment,
                 elementSize,
                 rootArrayShape,
@@ -446,7 +439,7 @@ public partial class CStruct
             if (space > 0)
             {
                 string firstWord = spelling[..space];
-                if (this.fieldHandlers.ContainsKey(firstWord) || namedTypes.ContainsKey(firstWord) || this.CStructElements.ContainsKey(firstWord))
+                if (this.catalog.IsKnownName(firstWord) || namedTypes.ContainsKey(firstWord) || this.CStructElements.ContainsKey(firstWord))
                 {
                     int secondSpace = spelling.IndexOf(' ', space + 1);
                     string secondWord = secondSpace > 0 ? spelling[(space + 1)..secondSpace] : spelling[(space + 1)..];
@@ -751,15 +744,11 @@ public partial class CStruct
 
                 bool isUnsizedCharacterArray = isUnsizedArray && CharacterFieldTypes.IsCharArrayField(effectiveField);
 
-                Func<Stream, object>? reader = this.GetCompiledReader(type.Symbol);
-                Action<Stream, object>? writer = this.GetCompiledWriter(type.Symbol);
-                Func<Stream, object>? terminatedReader = null;
-                Action<Stream, object>? terminatedWriter = null;
+                int codecId = GetCompiledCodecId(type.Symbol);
+                int terminatedCodecId = PrimitiveCatalog.NoCodec;
                 if (isUnsizedCharacterArray || (pointerDepth > 0 && CharacterFieldTypes.IsStringPointerType(effectiveField.Type)))
                 {
-                    string handler = CharacterFieldTypes.GetStringPointerHandlerKey(effectiveField.Type);
-                    terminatedReader = this.fieldHandlers[handler];
-                    terminatedWriter = this.writeHandlers[handler];
+                    terminatedCodecId = this.catalog.CodecIdOf(CharacterFieldTypes.GetStringPointerHandlerKey(effectiveField.Type));
                 }
 
                 int alignment = pointerDepth > 0 ? this.PointerSize : type.Symbol.Alignment;
@@ -835,10 +824,8 @@ public partial class CStruct
                     field,
                     effectiveField,
                     type,
-                    reader,
-                    writer,
-                    terminatedReader,
-                    terminatedWriter,
+                    codecId,
+                    terminatedCodecId,
                     alignment,
                     elementSize,
                     arrayShape,
@@ -1052,25 +1039,14 @@ public partial class CStruct
         }
     }
 
-    /// <summary>Returns a primitive reader directly or the compiled underlying reader for an enum.</summary>
-    private Func<Stream, object>? GetCompiledReader(CompiledTypeSymbol symbol)
+    /// <summary>Returns a primitive's codec id directly or the compiled underlying primitive's id for an enum.</summary>
+    private static int GetCompiledCodecId(CompiledTypeSymbol symbol)
     {
         return symbol.Kind switch
         {
-            CompiledTypeKind.Primitive => symbol.Reader,
-            CompiledTypeKind.Enum when symbol.Definition is CompiledEnumType enm => enm.Underlying.Symbol.Reader,
-            _ => null,
-        };
-    }
-
-    /// <summary>Returns a primitive writer directly or the compiled underlying writer for an enum.</summary>
-    private Action<Stream, object>? GetCompiledWriter(CompiledTypeSymbol symbol)
-    {
-        return symbol.Kind switch
-        {
-            CompiledTypeKind.Primitive => symbol.Writer,
-            CompiledTypeKind.Enum when symbol.Definition is CompiledEnumType enm => enm.Underlying.Symbol.Writer,
-            _ => null,
+            CompiledTypeKind.Primitive => symbol.CodecId,
+            CompiledTypeKind.Enum when symbol.Definition is CompiledEnumType enm => enm.Underlying.Symbol.CodecId,
+            _ => PrimitiveCatalog.NoCodec,
         };
     }
 

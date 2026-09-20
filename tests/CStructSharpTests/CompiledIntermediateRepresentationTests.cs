@@ -51,8 +51,9 @@ public class CompiledIntermediateRepresentationTests
         Assert.AreEqual(1, count.FixedArrayCount);
         Assert.AreEqual(2, count.FixedStorageSize);
         Assert.AreEqual(0, count.FixedOffset);
-        Assert.IsNotNull(count.Reader);
-        Assert.IsNotNull(count.Writer);
+        Assert.IsTrue(count.HasCodec);
+        Assert.IsNotNull(cstruct.Codecs.ReaderOf(count));
+        Assert.IsNotNull(cstruct.Codecs.WriterOf(count));
 
         CompiledField values = compiledRoot.Fields[1];
         Assert.AreEqual(2, values.FixedArrayCount);
@@ -66,13 +67,12 @@ public class CompiledIntermediateRepresentationTests
         Assert.AreEqual("pointer", link.CodecName);
         Assert.AreEqual(2, link.FixedElementSize);
         Assert.AreEqual(6, link.FixedOffset);
-        CompiledField pointerTarget = link.SelectPointerTarget(0, null, null, null, 2);
+        CompiledField pointerTarget = link.SelectPointerTarget(0, null, 2);
         Assert.AreEqual(0, pointerTarget.PointerDepth);
         Assert.AreEqual(2, pointerTarget.Alignment);
         Assert.AreEqual(2, pointerTarget.FixedElementSize);
-        Assert.AreSame(link.Reader, pointerTarget.Reader);
-        Assert.AreSame(link.Writer, pointerTarget.Writer);
-        CompiledField remainingPointer = link.SelectPointerTarget(1, null, null, null, 2);
+        Assert.AreEqual(link.CodecId, pointerTarget.CodecId);
+        CompiledField remainingPointer = link.SelectPointerTarget(1, null, 2);
         Assert.AreEqual(1, remainingPointer.PointerDepth);
         Assert.AreEqual("pointer", remainingPointer.CodecName);
         Assert.AreEqual(2, remainingPointer.FixedStorageSize);
@@ -231,8 +231,9 @@ public class CompiledIntermediateRepresentationTests
         Assert.AreEqual(4, name.FixedOffset);
         Assert.IsNull(name.FixedStorageSize);
         Assert.IsTrue(name.IsUnsizedCharacterArray);
-        Assert.IsNotNull(name.TerminatedReader);
-        Assert.IsNotNull(name.TerminatedWriter);
+        Assert.IsTrue(name.HasTerminatedCodec);
+        Assert.IsNotNull(cstruct.Codecs.TerminatedReaderOf(name));
+        Assert.IsNotNull(cstruct.Codecs.TerminatedWriterOf(name));
         Assert.IsNull(payload.Symbol.FixedSize);
 
         var textPointerLayout = new CStruct("struct text_root { char *text; };", pointerSize: 2);
@@ -240,18 +241,13 @@ public class CompiledIntermediateRepresentationTests
         var compiledTextRoot =
             (CompiledCompositeType)textPointerLayout.CompiledModel.Composites[textRoot].Definition!;
         CompiledField textPointer = compiledTextRoot.FieldsByName["text"];
-        CompiledField terminatedTarget = textPointer.SelectPointerTarget(
-            0,
-            "cstring",
-            textPointer.TerminatedReader,
-            textPointer.TerminatedWriter,
-            2);
+        CompiledField terminatedTarget = textPointer.SelectPointerTarget(0, "cstring", 2);
         Assert.AreEqual("cstring", terminatedTarget.EffectiveField.Type.Name);
         Assert.AreEqual(0, terminatedTarget.PointerDepth);
         Assert.AreEqual(1, terminatedTarget.Alignment);
         Assert.IsNull(terminatedTarget.FixedElementSize);
-        Assert.AreSame(textPointer.TerminatedReader, terminatedTarget.Reader);
-        Assert.AreSame(textPointer.TerminatedWriter, terminatedTarget.Writer);
+        Assert.AreEqual(textPointer.TerminatedCodecId, terminatedTarget.CodecId);
+        Assert.AreSame(textPointerLayout.Codecs.TerminatedReaderOf(textPointer), textPointerLayout.Codecs.ReaderOf(terminatedTarget));
 
         var choice = (CompiledCompositeType)model.Composites[cstruct.GetStruct("choice")].Definition!;
         Assert.AreEqual(CompiledTypeKind.Union, choice.Symbol.Kind);
@@ -299,16 +295,9 @@ public class CompiledIntermediateRepresentationTests
                     new Field(new Identifier("uint8"), new Identifier("wrong"), Field.NoArray, 0)),
                 false));
         AssertPrivateDictionaryRejectsMutation(cstruct, "fieldAlignments", "uint16", (byte)1);
-        AssertPrivateDictionaryRejectsMutation<Func<Stream, object>>(
-            cstruct,
-            "fieldHandlers",
-            "uint16",
-            _ => throw new AssertFailedException("Parse performed a runtime primitive-handler lookup."));
-        AssertPrivateDictionaryRejectsMutation<Action<Stream, object>>(
-            cstruct,
-            "writeHandlers",
-            "uint16",
-            (_, _) => throw new AssertFailedException("Write performed a runtime primitive-handler lookup."));
+
+        // The primitive vocabulary is an immutable catalog plus an id-indexed delegate table: no per-parse name lookup.
+        Assert.IsInstanceOfType(cstruct.Codecs.Catalog.CodecIds, typeof(System.Collections.Immutable.ImmutableDictionary<string, int>));
 
         Assert.AreEqual(3, cstruct.GetStruct("root").Fields.Count);
         Assert.AreEqual(2, cstruct.GetStructAlignmentInBytes("root"));

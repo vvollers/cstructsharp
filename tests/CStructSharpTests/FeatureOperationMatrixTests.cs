@@ -35,12 +35,13 @@ public class FeatureOperationMatrixTests
         catalog = catalog.Where(item => PrimitiveSpellings.Canonicalize(item, 64) != "void").ToArray();
 
         var cstruct = new CStruct("struct root { byte value; };");
-        CollectionAssert.AreEquivalent(
-            cstruct.FieldHandlers.Keys.OrderBy(item => item, StringComparer.Ordinal).ToArray(),
-            catalog.OrderBy(item => item, StringComparer.Ordinal).ToArray());
-        CollectionAssert.AreEquivalent(
-            cstruct.WriteHandlers.Keys.OrderBy(item => item, StringComparer.Ordinal).ToArray(),
-            catalog.OrderBy(item => item, StringComparer.Ordinal).ToArray());
+        string[] readable = cstruct.Codecs.Catalog.CodecIds.Keys.OrderBy(item => item, StringComparer.Ordinal).ToArray();
+        CollectionAssert.AreEquivalent(readable, catalog.OrderBy(item => item, StringComparer.Ordinal).ToArray());
+        foreach (string name in readable)
+        {
+            Assert.IsNotNull(cstruct.Codecs.ReaderOf(name), name);
+            Assert.IsNotNull(cstruct.Codecs.WriterOf(name), name);
+        }
     }
 
     /// <summary>

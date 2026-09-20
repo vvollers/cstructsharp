@@ -3,30 +3,54 @@ namespace CStructSharpTests;
 using System.Collections.Generic;
 using CStructSharp;
 using CStructSharp.Codecs;
+using CStructSharp.Compilation;
 
 /// <summary>Compile-time codec identity must agree with the primitive registry vocabulary and the layout byte order.</summary>
 [TestClass]
 public class PrimitiveCodecTests
 {
-    /// <summary>Every registered primitive name (canonical, neutral, and alias spellings) resolves to a known kind with the registry's size.</summary>
+    /// <summary>
+    ///     Every readable name in the catalog (canonical, neutral, and alias spellings) resolves to a known kind whose
+    ///     size is the symbol's fixed size, and the catalog's alignment follows the descriptor rule (1 for
+    ///     variable-length codecs and for 3-, 6-, and 16-byte identifiers, otherwise the size).
+    /// </summary>
     [TestMethod]
-    public void EveryRegistryName_ResolvesToAKnownKind()
+    public void EveryCatalogName_ResolvesToAKnownKind()
     {
         var layout = new CStruct("struct root { uint8 v; };");
-        foreach (KeyValuePair<string, byte> entry in layout.FieldAlignments)
+        PrimitiveCatalog catalog = layout.Codecs.Catalog;
+        foreach (string name in catalog.CodecIds.Keys)
         {
-            string name = entry.Key;
-            if (!layout.FieldHandlers.ContainsKey(name))
-            {
-                continue; // composite/enum names carry alignments too
-            }
-
             PrimitiveCodec codec = PrimitiveCodec.Resolve(name, true);
             Assert.AreNotEqual(PrimitiveCodecKind.None, codec.Kind, name);
-            if (codec.IsFixedWidthNumeric || codec.IsFixedPoint || codec.IsIdentifier || codec.Kind == PrimitiveCodecKind.WChar)
+            CompiledTypeSymbol symbol = catalog.Symbols[name].Symbol;
+            Assert.AreEqual(codec.Size == 0 ? null : (int?)codec.Size, symbol.FixedSize, name);
+            Assert.AreEqual(PrimitiveCatalog.AlignmentOf(codec), catalog.Alignments[name], name);
+            Assert.AreEqual(catalog.Alignments[name], symbol.Alignment, name);
+        }
+    }
+
+    /// <summary>
+    ///     The catalog's static sizes agree with what the runtime delegates actually consume: every fixed-width
+    ///     reader advances a stream by exactly the symbol's fixed size. This keeps the compile-time table (which the
+    ///     source generator also uses) coupled to the real reader logic.
+    /// </summary>
+    [TestMethod]
+    public void CatalogSizes_MatchWhatTheReadersConsume()
+    {
+        var layout = new CStruct("struct root { uint8 v; };");
+        PrimitiveCatalog catalog = layout.Codecs.Catalog;
+        foreach (string name in PrimitiveCatalog.CanonicalNames)
+        {
+            int? size = catalog.Symbols[name].Symbol.FixedSize;
+            if (size is null)
             {
-                Assert.AreEqual(entry.Value == 1 && codec.Size == 3 ? 3 : Math.Max(entry.Value, (byte)1), codec.Size, name);
+                continue;
             }
+
+            var stream = new MemoryStream(new byte[32]);
+            layout.Codecs.ReaderOf(name)!(stream);
+            Assert.AreEqual(size.Value, (int)stream.Position, name);
         }
     }
 

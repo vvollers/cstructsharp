@@ -323,8 +323,7 @@ public class RobustnessTests
 
         Assert.IsTrue(cstruct.CStructElements is System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, CStructElement>> elements && elements.IsReadOnly);
         Assert.IsTrue(cstruct.FieldAlignments is System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, byte>> alignments && alignments.IsReadOnly);
-        Assert.IsTrue(cstruct.FieldHandlers is System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, Func<Stream, object>>> readers && readers.IsReadOnly);
-        Assert.IsTrue(cstruct.WriteHandlers is System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, Action<Stream, object>>> writers && writers.IsReadOnly);
+        Assert.IsTrue(cstruct.Codecs.Catalog.CodecIds is System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, int>> ids && ids.IsReadOnly);
     }
 
     /// <summary>

@@ -278,7 +278,7 @@ public partial class CStruct
                         break;
                     }
 
-                    Func<Stream, object>? fieldReader = compiledField.Reader;
+                    Func<Stream, object>? fieldReader = this.codecs.ReaderOf(compiledField);
                     CompiledCompositeType? nestedComposite = compiledField.Composite;
                     CompiledEnumType? fieldEnum = compiledField.Enum;
 
@@ -297,7 +297,7 @@ public partial class CStruct
                         {
                             // An unsized character array is a terminated string in this layout language; the
                             // compiled view already carries its terminated codec.
-                            fieldReader = compiledField.TerminatedReader;
+                            fieldReader = this.codecs.TerminatedReaderOf(compiledField);
                         }
                         else if (compiledField.Array.Dimensions.Length > 1)
                         {
@@ -1092,14 +1092,14 @@ public partial class CStruct
                 state.Debug).Result;
         }
 
-        if (field.TerminatedReader is not null)
+        if (this.codecs.TerminatedReaderOf(field) is { } terminatedReader)
         {
             // Pointer-to-char shorthand uses a terminated-string handler rather than a one-character primitive reader.
-            return field.TerminatedReader(state.Stream);
+            return terminatedReader(state.Stream);
         }
 
         // All remaining targets are ordinary primitive values read from the current target position.
-        return field.Reader?.Invoke(state.Stream) ??
+        return this.codecs.ReaderOf(field)?.Invoke(state.Stream) ??
                throw new InvalidOperationException(
                    "Compiled pointer target has no reader: " + field.TypeSpelling);
     }
@@ -1107,7 +1107,7 @@ public partial class CStruct
     /// <summary>Decodes one enum through its validated backing domain and declaration-order symbolic table.</summary>
     private EnumValueResult ReadEnumValue(CompiledField field, CompiledEnumType enm, Stream stream)
     {
-        object storageValue = field.Reader?.Invoke(stream) ??
+        object storageValue = this.codecs.ReaderOf(field)?.Invoke(stream) ??
                               throw new InvalidOperationException(
                                   "Compiled enum has no storage reader: " + enm.Name);
         return CreateEnumValue(enm, storageValue);
@@ -1269,7 +1269,7 @@ public partial class CStruct
     /// <summary>Returns a target's known size, or <see langword="null"/> when it is variable length.</summary>
     private long? GetFixedTargetSize(CompiledField field)
     {
-        if (field.TerminatedReader is not null)
+        if (field.HasTerminatedCodec)
         {
             // A terminator determines string length at runtime, so no finite static bound can be reported here.
             return null;

@@ -1,7 +1,6 @@
 namespace CStructSharp.Compilation;
 
 using System;
-using System.IO;
 using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
@@ -21,8 +20,7 @@ internal sealed class CompiledTypeSymbol
         CStructElement? declaration,
         int alignment,
         int? fixedSize,
-        Func<Stream, object>? reader,
-        Action<Stream, object>? writer,
+        int codecId,
         bool isCustomCodec = false)
     {
         this.Name = name;
@@ -31,8 +29,7 @@ internal sealed class CompiledTypeSymbol
         this.alignment = alignment;
         this.fixedSize = fixedSize;
         this.layoutComplete = true;
-        this.Reader = reader;
-        this.Writer = writer;
+        this.CodecId = codecId;
         this.IsCustomCodec = isCustomCodec;
     }
 
@@ -41,6 +38,7 @@ internal sealed class CompiledTypeSymbol
         this.Name = name;
         this.Kind = kind;
         this.Declaration = declaration;
+        this.CodecId = PrimitiveCatalog.NoCodec;
     }
 
     public int Alignment =>
@@ -68,9 +66,12 @@ internal sealed class CompiledTypeSymbol
 
     public string Name { get; }
 
-    public Func<Stream, object>? Reader { get; }
-
-    public Action<Stream, object>? Writer { get; }
+    /// <summary>
+    ///     The codec id the runtime's delegate table is indexed by (a primitive's reader and writer), or
+    ///     <see cref="PrimitiveCatalog.NoCodec"/> for a composite, an enum (which reads through its underlying
+    ///     primitive), <c>void</c>, and a type only reachable through a pointer.
+    /// </summary>
+    public int CodecId { get; }
 
     internal static CompiledTypeSymbol PredeclareComposite(Struct declaration)
     {

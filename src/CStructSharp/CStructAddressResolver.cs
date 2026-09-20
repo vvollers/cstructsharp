@@ -666,15 +666,13 @@ public partial class CStruct
     /// <summary>Builds the exact compiled writable field remaining after explicit pointer dereferences.</summary>
     private CompiledField CreatePointerTargetCompiledField(CompiledField field, int remainingPointerDepth)
     {
-        bool isTerminatedTarget = remainingPointerDepth == 0 && field.TerminatedReader is not null;
+        bool isTerminatedTarget = remainingPointerDepth == 0 && field.HasTerminatedCodec;
         string? terminatedCodec = isTerminatedTarget
                                       ? CharacterFieldTypes.GetStringPointerHandlerKey(field.EffectiveField.Type)
                                       : null;
         return field.SelectPointerTarget(
             remainingPointerDepth,
             terminatedCodec,
-            field.TerminatedReader,
-            field.TerminatedWriter,
             this.PointerSize);
     }
 
@@ -765,7 +763,7 @@ public partial class CStruct
             int leaves = checked(index * (elementField.Array.TotalFixedElementCount ?? 1));
             for (int i = 0; i < leaves; i++)
             {
-                _ = compiledField.Reader!(state.Stream);
+                _ = this.codecs.ReaderOf(compiledField)!(state.Stream);
             }
 
             return state.Stream.Position;
@@ -874,7 +872,7 @@ public partial class CStruct
         if (compiledField.Array.Kind == CompiledArrayKind.Scalar && compiledField.Codec.IsTerminatedText)
         {
             state.Stream.Position = fieldStart;
-            _ = compiledField.Reader?.Invoke(state.Stream) ??
+            _ = this.codecs.ReaderOf(compiledField)?.Invoke(state.Stream) ??
                 throw new InvalidOperationException(
                     "Compiled named string has no reader: " + compiledField.Name);
             return state.Stream.Position;
@@ -889,7 +887,7 @@ public partial class CStruct
             }
 
             state.Stream.Position = fieldStart;
-            _ = compiledField.TerminatedReader?.Invoke(state.Stream) ??
+            _ = this.codecs.TerminatedReaderOf(compiledField)?.Invoke(state.Stream) ??
                 throw new InvalidOperationException(
                     "Compiled unsized character array has no reader: " + compiledField.Name);
             return state.Stream.Position;
@@ -902,7 +900,7 @@ public partial class CStruct
             state.Stream.Position = fieldStart;
             for (int i = 0; i < count; i++)
             {
-                _ = compiledField.Reader!(state.Stream);
+                _ = this.codecs.ReaderOf(compiledField)!(state.Stream);
             }
 
             return state.Stream.Position;
@@ -1081,7 +1079,7 @@ public partial class CStruct
         }
         else if (compiledField.Enum is { } enm)
         {
-            value = compiledField.Reader?.Invoke(state.Stream) ??
+            value = this.codecs.ReaderOf(compiledField)?.Invoke(state.Stream) ??
                     throw new InvalidOperationException(
                         "Compiled enum has no storage reader: " + enm.Name);
             if (captures)
@@ -1093,7 +1091,7 @@ public partial class CStruct
 
             return;
         }
-        else if (compiledField.Composite is not null || compiledField.Reader is not Func<Stream, object> reader)
+        else if (compiledField.Composite is not null || this.codecs.ReaderOf(compiledField) is not Func<Stream, object> reader)
         {
             return;
         }

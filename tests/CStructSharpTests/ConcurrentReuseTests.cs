@@ -49,8 +49,7 @@ public class ConcurrentReuseTests
 
         AssertFrozenMetadata(cstruct.CStructElements, nameof(cstruct.CStructElements));
         AssertFrozenMetadata(cstruct.FieldAlignments, nameof(cstruct.FieldAlignments));
-        AssertFrozenMetadata(cstruct.FieldHandlers, nameof(cstruct.FieldHandlers));
-        AssertFrozenMetadata(cstruct.WriteHandlers, nameof(cstruct.WriteHandlers));
+        AssertFrozenMetadata(cstruct.Codecs.Catalog.CodecIds, "Codecs.Catalog.CodecIds");
 
         Type symbolType = typeof(CompiledTypeSymbol);
         PropertyInfo frozenProperty = symbolType.GetProperty(
@@ -84,8 +83,7 @@ public class ConcurrentReuseTests
             null,
             1,
             1,
-            null,
-            null);
+            0);
         var definition = new CompiledPrimitiveType(symbol);
 
         symbol.Bind(definition);
@@ -105,8 +103,7 @@ public class ConcurrentReuseTests
             null,
             1,
             1,
-            null,
-            null);
+            0);
         Assert.Throws<CStructLayoutException>(() => unbound.Freeze());
         Assert.IsFalse(unbound.IsFrozen);
     }
@@ -273,7 +270,7 @@ public class ConcurrentReuseTests
         where TKey : notnull
     {
         Type type = metadata.GetType();
-        bool sealedTable = type.Namespace == "System.Collections.Frozen" ||
+        bool sealedTable = type.Namespace is "System.Collections.Frozen" or "System.Collections.Immutable" ||
                            (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ConstructionDictionary<,>) &&
                             (bool)type.GetProperty("IsFrozen")!.GetValue(metadata)!);
         Assert.IsTrue(sealedTable, $"{name} must be a sealed snapshot, not a wrapper over a mutable dictionary.");

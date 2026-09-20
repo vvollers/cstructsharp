@@ -3,6 +3,7 @@ namespace CStructSharp;
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -37,8 +38,8 @@ public sealed partial class CStruct
         new(StringComparer.Ordinal);
 
     private readonly ConstructionDictionary<string, byte> fieldAlignments;
-    private readonly FrozenDictionary<string, Func<Stream, object>> fieldHandlers;
-    private readonly PrimitiveRegistry primitiveRegistry;
+    private readonly PrimitiveCatalog catalog;
+    private readonly CodecTable codecs;
 
     /// <summary>Caller-supplied codecs (<see cref="CStructCompilationOptions.Codecs"/>) as type symbols; empty for every layout that has none.</summary>
     private readonly IReadOnlyDictionary<string, CompiledTypeReference> customSymbols;
@@ -53,7 +54,6 @@ public sealed partial class CStruct
     private readonly LayoutExpressionEvaluator layoutExpressionEvaluator;
     private readonly LayoutVariableResolver layoutVariableResolver;
     private readonly IReadOnlyDictionary<string, Expr> staticLayoutVariables;
-    private readonly FrozenDictionary<string, Action<Stream, object>> writeHandlers;
 
     private readonly Lazy<IReadOnlyDictionary<string, LayoutConstant>> constants;
     private readonly Lazy<LayoutInfo> layoutInfo;
@@ -110,24 +110,23 @@ public sealed partial class CStruct
         this.PointerSize = pointerSize;
         this.IsLittleEndian = isLittleEndian;
 
-        // Primitive readers and writers are built once because their byte order is part of the layout contract.
-        this.primitiveRegistry = GetPrimitiveRegistry(this.IsLittleEndian, effectiveCompilationOptions.CLongWidth);
-
-        // The registry's alignments are the shared baseline; only this layout's declarations are added on top.
-        this.fieldAlignments = new ConstructionDictionary<string, byte>(StringComparer.Ordinal, this.primitiveRegistry.Alignments);
-        this.bitfieldCodecs = this.primitiveRegistry.Bitfields;
+        // The catalog (names, ids, alignments, symbols) is compile-time knowledge shared with the source generator;
+        // the codec table is its runtime delegate half. Both are built once per byte order and long width; only a
+        // layout that registers custom codecs derives its own pair.
         if (effectiveCompilationOptions.Codecs is { Count: > 0, } customCodecs)
         {
-            // Only a layout that registers codecs builds its own handler tables; every other layout shares the
-            // process-wide registry as before.
-            (this.fieldHandlers, this.writeHandlers, this.customSymbols) = this.RegisterCustomCodecs(customCodecs);
+            (this.catalog, this.codecs, this.customSymbols) = RegisterCustomCodecs(this.IsLittleEndian, effectiveCompilationOptions.CLongWidth, customCodecs);
         }
         else
         {
-            this.fieldHandlers = this.primitiveRegistry.Readers;
-            this.writeHandlers = this.primitiveRegistry.Writers;
-            this.customSymbols = FrozenDictionary<string, CompiledTypeReference>.Empty;
+            this.codecs = GetSharedCodecTable(this.IsLittleEndian, effectiveCompilationOptions.CLongWidth);
+            this.catalog = this.codecs.Catalog;
+            this.customSymbols = ImmutableDictionary<string, CompiledTypeReference>.Empty;
         }
+
+        // The catalog's alignments are the shared baseline; only this layout's declarations are added on top.
+        this.fieldAlignments = new ConstructionDictionary<string, byte>(StringComparer.Ordinal, this.catalog.Alignments);
+        this.bitfieldCodecs = this.catalog.Bitfields;
 
         try
         {
@@ -157,7 +156,7 @@ public sealed partial class CStruct
                     continue;
                 }
 
-                SymbolValidation.ValidateBuiltInNameCollision(declaration, this.fieldHandlers);
+                SymbolValidation.ValidateBuiltInNameCollision(declaration, this.catalog);
                 if (this.cStructElements.TryGetValue(declaration.Name.Name, out CStructElement? existing))
                 {
                     throw new CStructLayoutException(
@@ -227,7 +226,7 @@ public sealed partial class CStruct
                     };
                 }
 
-                SymbolValidation.ValidateBuiltInNameCollision(tagged, this.fieldHandlers);
+                SymbolValidation.ValidateBuiltInNameCollision(tagged, this.catalog);
                 this.cStructElements.Add(tagged.Name.Name, tagged);
                 structResult = [.. structResult, tagged,];
             }
@@ -316,17 +315,14 @@ public sealed partial class CStruct
     /// <summary>Gets primitive-codec and exported-type alignments without exposing anonymous or backing-tag identities.</summary>
     internal IReadOnlyDictionary<string, byte> FieldAlignments => this.fieldAlignments;
 
-    internal IReadOnlyDictionary<string, Func<Stream, object>> FieldHandlers =>
-        this.fieldHandlers;
+    /// <summary>The primitive vocabulary this layout reads with: the compile-time catalog and its runtime delegates.</summary>
+    internal CodecTable Codecs => this.codecs;
 
     /// <summary>Gets whether neutral numeric, pointer, and UTF-16 values use little-endian byte order.</summary>
     public bool IsLittleEndian { get; }
 
     /// <summary>Gets the configured pointer storage width: 1, 2, 4, or 8 bytes.</summary>
     public byte PointerSize { get; }
-
-    internal IReadOnlyDictionary<string, Action<Stream, object>> WriteHandlers =>
-        this.writeHandlers;
 
     private string Source { get; }
 
@@ -388,45 +384,31 @@ public sealed partial class CStruct
         }
     }
 
-    /// <summary>Adds the caller's codecs to per-layout copies of the reader, writer, and alignment tables.</summary>
-    private (FrozenDictionary<string, Func<Stream, object>> Readers, FrozenDictionary<string, Action<Stream, object>> Writers, IReadOnlyDictionary<string, CompiledTypeReference> Symbols)
-        RegisterCustomCodecs(IReadOnlyList<ICustomCodec> codecs)
+    /// <summary>
+    ///     Derives the catalog and delegate table of a layout that registers custom codecs: the shared catalog gains
+    ///     one descriptor per codec (validating names, alignment, and size), and the table gains one adapter pair.
+    /// </summary>
+    private static (PrimitiveCatalog Catalog, CodecTable Codecs, IReadOnlyDictionary<string, CompiledTypeReference> Symbols)
+        RegisterCustomCodecs(bool littleEndian, int cLongWidth, IReadOnlyList<ICustomCodec> codecs)
     {
-        var readers = new Dictionary<string, Func<Stream, object>>(this.primitiveRegistry.Readers, StringComparer.Ordinal);
-        var writers = new Dictionary<string, Action<Stream, object>>(this.primitiveRegistry.Writers, StringComparer.Ordinal);
-        var symbols = new Dictionary<string, CompiledTypeReference>(StringComparer.Ordinal);
-        foreach (ICustomCodec codec in codecs)
+        var descriptors = new CustomCodecDescriptor[codecs.Count];
+        var instances = ImmutableArray.CreateBuilder<ICustomCodec>(codecs.Count);
+        for (int index = 0; index < codecs.Count; index++)
         {
+            ICustomCodec codec = codecs[index];
             ArgumentNullException.ThrowIfNull(codec, nameof(codecs));
-            string name = codec.Name;
-            if (string.IsNullOrEmpty(name) || !(name[0] == '_' || char.IsLetter(name[0])) || name.Any(character => character != '_' && !char.IsLetterOrDigit(character)))
-            {
-                throw new ArgumentException($"Custom codec name '{name}' is not an identifier.", nameof(codecs));
-            }
-
-            if (this.primitiveRegistry.Symbols.ContainsKey(name) || symbols.ContainsKey(name))
-            {
-                throw new ArgumentException($"Custom codec name '{name}' is already a primitive type.", nameof(codecs));
-            }
-
-            if (codec.Alignment <= 0 || (codec.Alignment & (codec.Alignment - 1)) != 0 || codec.FixedSize is < 0)
-            {
-                throw new ArgumentException($"Custom codec '{name}' needs a power-of-two alignment and a non-negative size.", nameof(codecs));
-            }
-
-            ICustomCodec captured = codec;
-            Func<Stream, object> reader = stream => CustomCodecAdapter.Read(captured, stream);
-            Action<Stream, object> writer = (stream, value) => CustomCodecAdapter.Write(captured, stream, value);
-            readers.Add(name, reader);
-            writers.Add(name, writer);
-            this.fieldAlignments[name] = (byte)Math.Min(codec.Alignment, byte.MaxValue);
-            var symbol = new CompiledTypeSymbol(name, CompiledTypeKind.Primitive, null, codec.Alignment, codec.FixedSize, reader, writer, isCustomCodec: true);
-            symbol.Bind(new CompiledPrimitiveType(symbol));
-            symbol.Freeze();
-            symbols.Add(name, new CompiledTypeReference(symbol, 0, name));
+            descriptors[index] = new CustomCodecDescriptor(codec.Name, codec.FixedSize, codec.Alignment);
+            instances.Add(codec);
         }
 
-        return (readers.ToFrozenDictionary(StringComparer.Ordinal), writers.ToFrozenDictionary(StringComparer.Ordinal), symbols);
+        PrimitiveCatalog catalog = PrimitiveCatalog.For(littleEndian, cLongWidth).WithCustomCodecs(descriptors);
+        var symbols = new Dictionary<string, CompiledTypeReference>(StringComparer.Ordinal);
+        foreach (CustomCodecDescriptor descriptor in catalog.CustomCodecs)
+        {
+            symbols.Add(descriptor.Name, catalog.Symbols[descriptor.Name]);
+        }
+
+        return (catalog, BuildCodecTable(catalog, instances.ToImmutable()), symbols);
     }
 
     private IReadOnlyDictionary<string, LayoutConstant> BuildConstants()
@@ -820,7 +802,7 @@ public sealed partial class CStruct
             if (compiledField.Array.Kind == CompiledArrayKind.Flexible && compiledField.IsCharacterArray)
             {
                 state.Stream.Position = target.Address;
-                Func<Stream, object> reader = target.EffectiveCompiledField?.TerminatedReader ??
+                Func<Stream, object> reader = (target.EffectiveCompiledField is { } stringField ? this.codecs.TerminatedReaderOf(stringField) : null) ??
                                               throw new InvalidOperationException(
                                                   "Resolved string target has no compiled reader.");
                 return ((string)reader(state.Stream)).Length;
@@ -829,7 +811,7 @@ public sealed partial class CStruct
             if (compiledField.Array.Kind == CompiledArrayKind.Scalar && compiledField.Codec.IsTerminatedText)
             {
                 state.Stream.Position = target.Address;
-                Func<Stream, object> reader = compiledField.Reader ??
+                Func<Stream, object> reader = this.codecs.ReaderOf(compiledField) ??
                                               throw new InvalidOperationException(
                                                   "Resolved named string target has no compiled reader.");
                 return ((string)reader(state.Stream)).Length;

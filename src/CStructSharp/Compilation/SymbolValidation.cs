@@ -2,7 +2,6 @@ namespace CStructSharp.Compilation;
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
@@ -50,12 +49,12 @@ internal static class SymbolValidation
     /// <summary>Rejects a declaration name that would shadow a built-in primitive, character, or string codec.</summary>
     public static void ValidateBuiltInNameCollision(
         CStructElement declaration,
-        IReadOnlyDictionary<string, Func<Stream, object>> fieldHandlers)
+        PrimitiveCatalog catalog)
     {
         // Alias spellings (`DWORD`, `u_char`, `short`, ...) may be redeclared by a layout - a header that carries its
         // own `typedef uint32 DWORD;` must keep working - and the layout's declaration then shadows the built-in.
         // Canonical codec names stay reserved because compiled fields are keyed by them.
-        if ((fieldHandlers.ContainsKey(declaration.Name.Name) || declaration.Name.Name == "void") && !PrimitiveSpellings.IsAlias(declaration.Name.Name))
+        if ((catalog.IsKnownName(declaration.Name.Name) || declaration.Name.Name == "void") && !PrimitiveSpellings.IsAlias(declaration.Name.Name))
         {
             throw new CStructLayoutException(
                 $"Global {GetDeclarationKind(declaration)} name '{declaration.Name.Name}' conflicts with a built-in codec.")

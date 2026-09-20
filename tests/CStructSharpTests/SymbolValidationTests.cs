@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using System.Collections.Immutable;
+using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
@@ -118,21 +119,21 @@ public class SymbolValidationTests
     [TestMethod]
     public void ValidateBuiltInNameCollision_NameMatchesABuiltInCodec_Throws()
     {
-        var fieldHandlers = new Dictionary<string, Func<Stream, object>> { ["uint32"] = _ => 0, };
+        PrimitiveCatalog catalog = PrimitiveCatalog.For(true, 64);
         Struct collidingStruct = EmptyStruct("uint32", isUnion: false);
 
         Assert.Throws<CStructLayoutException>(
-            () => SymbolValidation.ValidateBuiltInNameCollision(collidingStruct, fieldHandlers));
+            () => SymbolValidation.ValidateBuiltInNameCollision(collidingStruct, catalog));
     }
 
     /// <summary>A declaration name that does not match any built-in codec name is accepted.</summary>
     [TestMethod]
     public void ValidateBuiltInNameCollision_NameDoesNotMatchABuiltInCodec_DoesNotThrow()
     {
-        var fieldHandlers = new Dictionary<string, Func<Stream, object>> { ["uint32"] = _ => 0, };
+        PrimitiveCatalog catalog = PrimitiveCatalog.For(true, 64);
         Struct distinctStruct = EmptyStruct("packet", isUnion: false);
 
-        SymbolValidation.ValidateBuiltInNameCollision(distinctStruct, fieldHandlers);
+        SymbolValidation.ValidateBuiltInNameCollision(distinctStruct, catalog);
     }
 
     private static Field ScalarField(string name)

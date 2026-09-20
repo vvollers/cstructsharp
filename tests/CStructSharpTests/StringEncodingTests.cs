@@ -359,7 +359,7 @@ public class StringEncodingTests
             () => narrowScalar.Serialize("root", new Dictionary<string, object> { ["value"] = '\u0100', }));
         using var directNarrowWrite = new MemoryStream();
         Assert.Throws<CStructWriteException>(
-            () => narrowScalar.WriteHandlers["char"](directNarrowWrite, '\u0100'));
+            () => narrowScalar.Codecs.WriterOf("char")!(directNarrowWrite, '\u0100'));
         Assert.AreEqual(0, directNarrowWrite.Length);
 
         var ascii = new CStruct("struct root { ascii_string_zero value; };");

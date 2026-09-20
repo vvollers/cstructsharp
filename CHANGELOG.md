@@ -6,6 +6,16 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+### Internal
+
+- The primitive vocabulary is split into a compile-time catalog (`PrimitiveCatalog`: names, aliases, alignments,
+  sizes, symbols, and a codec id per readable name) and a runtime delegate table (`CodecTable`, indexed by codec
+  id). The compiled model carries ids instead of reader/writer delegates, so it can compile without any I/O - the
+  prerequisite for hosting the layout compiler inside the source generator. Per-field reads index an array
+  instead of holding a delegate; measured neutral (allocations identical, timings inside the noise floor).
+
+### Documentation and tooling
+
 - Documentation: every C# example, recipe, and guide snippet reads results as `StructValue` with `Get<T>` instead
   of `dynamic`; [Read values and paths](docs/guides/reading-values.md) gained a "Dynamic access" section that
   states what `dynamic` trades away, and a new guide, [Trimming and Native AOT](docs/guides/trimming-and-native-aot.md),

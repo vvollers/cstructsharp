@@ -626,8 +626,6 @@ public partial class CStruct
                     valueField = compiledField.SelectPointerTarget(
                         0,
                         CharacterFieldTypes.CstringType.Name,
-                        compiledField.TerminatedReader,
-                        compiledField.TerminatedWriter,
                         this.PointerSize);
                 }
                 else if (compiledField.IsWideCharElement)
@@ -636,8 +634,6 @@ public partial class CStruct
                     valueField = compiledField.SelectPointerTarget(
                         0,
                         handler,
-                        compiledField.TerminatedReader,
-                        compiledField.TerminatedWriter,
                         this.PointerSize);
                 }
             }
@@ -1068,7 +1064,7 @@ public partial class CStruct
     {
         // Resolve these once so each case below can choose the smallest correct writing path.
         string fieldTypeName = compiledField.TypeSpelling;
-        bool isKnownFieldType = compiledField.Writer is not null;
+        bool isKnownFieldType = compiledField.HasCodec;
 
         if (compiledField.PointerDepth > 0)
         {
@@ -1089,7 +1085,7 @@ public partial class CStruct
         if (compiledField.Enum is { } compiledEnum)
         {
             BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, value, state.BindingMode);
-            (compiledField.Writer ??
+            (this.codecs.WriterOf(compiledField) ??
              throw new InvalidOperationException(
                  "Compiled enum has no storage writer: " + compiledEnum.Name))(
                 state.Stream,
@@ -1129,7 +1125,7 @@ public partial class CStruct
         object value,
         string fieldName)
     {
-        Action<Stream, object> writer = field.Writer ??
+        Action<Stream, object> writer = this.codecs.WriterOf(field) ??
                                         throw new InvalidOperationException(
                                             "Compiled field has no writer: " + field.CodecName);
         try
@@ -1137,7 +1133,7 @@ public partial class CStruct
             if (stream is WriteBudgetStream { IsSparseUpdate: true } && (field.Codec.IsLeb128 || (field.Codec.IsCustom && !field.FixedElementSize.HasValue)))
             {
                 long start = stream.Position;
-                _ = field.Reader!(stream);
+                _ = this.codecs.ReaderOf(field)!(stream);
                 long available = stream.Position - start;
                 stream.Position = start;
                 using var encoded = new MemoryStream();

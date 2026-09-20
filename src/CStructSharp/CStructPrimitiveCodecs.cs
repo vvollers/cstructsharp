@@ -1,25 +1,23 @@
 namespace CStructSharp;
 
 using System;
-using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
 using System.Text;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
+using CStructSharp.Reading;
 using CStructSharp.Syntax;
 
 /// <summary>Builds the primitive binary codec maps used by the CStruct facade.</summary>
 public partial class CStruct
 {
     /// <summary>
-    ///     The direction-suffixed and byte-order-agnostic primitive readers (for example <c>int32&gt;</c>/
-    ///     <c>int32&lt;</c>, or <c>byte</c>, which has no direction). None of these delegates depend on any
-    ///     per-instance state - only the unsuffixed/C-style alias layer, built per instance in
-    ///     <see cref="CreatePrimitiveRegistry" />, depends on <see cref="IsLittleEndian" />. Built once per process
-    ///     instead of once per <see cref="CStruct" /> construction.
+    ///     The canonical, direction-suffixed primitive readers (for example <c>int32&gt;</c>/<c>int32&lt;</c>, or
+    ///     <c>byte</c>, which has no direction), keyed by the names in <see cref="PrimitiveCatalog.CanonicalNames"/>.
+    ///     None of these delegates depend on per-instance state; the neutral and alias spellings are ids in the
+    ///     catalog that point at the same delegates. Built once per process.
     /// </summary>
     private static readonly IReadOnlyDictionary<string, Func<Stream, object>> BaseFieldHandlers =
         BuildBaseFieldHandlers();
@@ -28,33 +26,60 @@ public partial class CStruct
     private static readonly IReadOnlyDictionary<string, Action<Stream, object>> BaseWriteHandlers =
         BuildBaseWriteHandlers();
 
-    /// <summary>
-    ///     Each <see cref="BaseFieldHandlers" /> entry's fixed byte width, measured once by actually running the
-    ///     reader - keeping the measurement coupled to the real reader logic instead of a separately maintained
-    ///     constant table. A per-instance unsuffixed/alias key's alignment is always identical to whichever
-    ///     canonical entry it resolves to (they share the same delegate), so it is copied rather than re-measured.
-    /// </summary>
-    private static readonly IReadOnlyDictionary<string, byte> BaseFieldAlignments =
-        MeasureBaseFieldAlignments(BaseFieldHandlers);
+    private static readonly object CodecTableLock = new();
+    private static readonly Dictionary<(bool LittleEndian, int CLongWidth), CodecTable> SharedCodecTables = new();
 
     /// <summary>
-    ///     One registry per (byte order, <c>long</c> width) pair. Each is built once per process on first use, so a
-    ///     layout only ever pays a table lookup for its primitive vocabulary.
+    ///     The shared delegate table for one byte order and <c>long</c> width: the catalog's ids over the process-wide
+    ///     reader and writer maps. A layout without custom codecs uses it directly; one with custom codecs derives its
+    ///     own table from it (<see cref="RegisterCustomCodecs"/>).
     /// </summary>
-    private static readonly Lazy<PrimitiveRegistry> LittleEndianRegistry = new(() => CreatePrimitiveRegistry(true, 64));
-    private static readonly Lazy<PrimitiveRegistry> BigEndianRegistry = new(() => CreatePrimitiveRegistry(false, 64));
-    private static readonly Lazy<PrimitiveRegistry> LittleEndianLong32Registry = new(() => CreatePrimitiveRegistry(true, 32));
-    private static readonly Lazy<PrimitiveRegistry> BigEndianLong32Registry = new(() => CreatePrimitiveRegistry(false, 32));
-
-    private static PrimitiveRegistry GetPrimitiveRegistry(bool littleEndian, int cLongWidth)
+    private static CodecTable GetSharedCodecTable(bool littleEndian, int cLongWidth)
     {
-        return (littleEndian, cLongWidth) switch
+        PrimitiveCatalog catalog = PrimitiveCatalog.For(littleEndian, cLongWidth);
+        lock (CodecTableLock)
         {
-            (true, 32) => LittleEndianLong32Registry.Value,
-            (false, 32) => BigEndianLong32Registry.Value,
-            (true, _) => LittleEndianRegistry.Value,
-            (false, _) => BigEndianRegistry.Value,
-        };
+            (bool, int) key = (catalog.LittleEndian, catalog.CLongWidth);
+            if (!SharedCodecTables.TryGetValue(key, out CodecTable? table))
+            {
+                table = BuildCodecTable(catalog, ImmutableArray<ICustomCodec>.Empty);
+                SharedCodecTables.Add(key, table);
+            }
+
+            return table;
+        }
+    }
+
+    /// <summary>
+    ///     Builds the delegate arrays a catalog's ids index: the canonical delegates in catalog order, then one adapter
+    ///     pair per custom codec in registration order. Every canonical name must have a delegate pair - a missing one
+    ///     is a programming error the first layout construction reports.
+    /// </summary>
+    private static CodecTable BuildCodecTable(PrimitiveCatalog catalog, ImmutableArray<ICustomCodec> customCodecs)
+    {
+        var readers = new Func<Stream, object>?[catalog.CodecCount];
+        var writers = new Action<Stream, object>?[catalog.CodecCount];
+        for (int id = 0; id < PrimitiveCatalog.CanonicalNames.Length; id++)
+        {
+            string name = PrimitiveCatalog.CanonicalNames[id];
+            readers[id] = BaseFieldHandlers[name];
+            writers[id] = BaseWriteHandlers[name];
+        }
+
+        if (customCodecs.Length != catalog.CustomCodecs.Length)
+        {
+            throw new InvalidOperationException("The custom codec instances do not match the catalog's custom codec descriptors.");
+        }
+
+        for (int index = 0; index < customCodecs.Length; index++)
+        {
+            ICustomCodec captured = customCodecs[index];
+            int id = PrimitiveCatalog.CanonicalNames.Length + index;
+            readers[id] = stream => CustomCodecAdapter.Read(captured, stream);
+            writers[id] = (stream, value) => CustomCodecAdapter.Write(captured, stream, value);
+        }
+
+        return new CodecTable(catalog, readers, writers);
     }
 
     /// <summary>Builds the process-wide, direction-suffixed primitive reader table (see <see cref="BaseFieldHandlers" />).</summary>
@@ -245,118 +270,10 @@ public partial class CStruct
         };
     }
 
-    /// <summary>
-    ///     Runs every non-variable-length reader in <paramref name="handlers" /> against enough zero bytes to
-    ///     measure its fixed width for alignment and sizing calculations - once per canonical entry, computed
-    ///     once for the whole process rather than once per <see cref="CStruct" /> construction.
-    /// </summary>
-    private static Dictionary<string, byte> MeasureBaseFieldAlignments(IReadOnlyDictionary<string, Func<Stream, object>> handlers)
-    {
-        var alignments = new Dictionary<string, byte>(StringComparer.Ordinal);
-        byte[] buffer = "\x00\n\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".Select(o => (byte)o).ToArray();
-
-        Array.Resize(ref buffer, 16);
-
-        foreach (KeyValuePair<string, Func<Stream, object>> fieldHandler in handlers)
-        {
-            if (PrimitiveCodecs.IsVariableLengthType(fieldHandler.Key) || Leb128Codec.IsType(fieldHandler.Key))
-            {
-                // A terminated string has no fixed footprint. Keep its alignment at one without trying to read a
-                // synthetic terminator, because the real reader now correctly treats an unterminated string as an error.
-                alignments[fieldHandler.Key] = 1;
-                continue;
-            }
-
-            var stream = new MemoryStream(buffer);
-            fieldHandler.Value(stream);
-
-            // Variable-length strings report zero consumed bytes here, which is normalized to alignment one.
-            alignments[fieldHandler.Key] = (byte)Math.Max(1, stream.Position);
-        }
-
-        return alignments;
-    }
-
-    /// <summary>
-    ///     Builds immutable primitive descriptors once per byte order and <c>long</c> width, independent of user
-    ///     layouts and pointer widths. Alias spellings (<see cref="PrimitiveSpellings"/>) resolve to their canonical
-    ///     symbol exactly like a user typedef would, so a compiled field's terminal name is always canonical.
-    /// </summary>
-    private static PrimitiveRegistry CreatePrimitiveRegistry(bool littleEndian, int cLongWidth)
-    {
-        var readers = new Dictionary<string, Func<Stream, object>>(BaseFieldHandlers, StringComparer.Ordinal);
-        var writers = new Dictionary<string, Action<Stream, object>>(BaseWriteHandlers, StringComparer.Ordinal);
-        var alignments = new Dictionary<string, byte>(BaseFieldAlignments, StringComparer.Ordinal);
-        foreach (string name in BaseFieldHandlers.Keys.Where(name => name.EndsWith('>')))
-        {
-            string neutral = name[..^1];
-            string canonical = neutral + (littleEndian ? '<' : '>');
-            readers.Add(neutral, readers[canonical]);
-            writers.Add(neutral, writers[canonical]);
-            alignments.Add(neutral, alignments[canonical]);
-        }
-
-        // Every canonical name (suffixed and neutral) gets its own symbol; aliases below share those symbols.
-        var symbols = ImmutableDictionary.CreateBuilder<string, CompiledTypeReference>(StringComparer.Ordinal);
-        foreach ((string name, Func<Stream, object> reader) in readers)
-        {
-            int? size = PrimitiveCodecs.IsVariableLengthType(name) || Leb128Codec.IsType(name) ? null : alignments[name];
-            var symbol = new CompiledTypeSymbol(name, CompiledTypeKind.Primitive, null, size is 3 or 6 || name is "uuid" or "guid" ? 1 : alignments[name], size, reader, writers[name]);
-            symbol.Bind(new CompiledPrimitiveType(symbol));
-            symbol.Freeze();
-            symbols.Add(name, new CompiledTypeReference(symbol, 0, name));
-        }
-
-        // `void` is a type with no value of its own: only `void *` (an opaque address) is storable, which the
-        // compiler enforces; the symbol exists so the name resolves.
-        var voidSymbol = new CompiledTypeSymbol("void", CompiledTypeKind.Primitive, null, 1, 0, null, null);
-        voidSymbol.Bind(new CompiledPrimitiveType(voidSymbol));
-        voidSymbol.Freeze();
-        symbols.Add("void", new CompiledTypeReference(voidSymbol, 0, "void"));
-        foreach ((string spelling, string pointee) in PrimitiveSpellings.PointerSpellings)
-        {
-            symbols.Add(spelling, new CompiledTypeReference(symbols[pointee].Symbol, 1, pointee));
-        }
-
-        var aliases = new Dictionary<string, string>(PrimitiveSpellings.Aliases, StringComparer.Ordinal);
-        foreach ((string spelling, bool isUnsigned) in PrimitiveSpellings.LongFamilyIsUnsigned)
-        {
-            aliases.Add(spelling, PrimitiveSpellings.LongCanonical(isUnsigned, cLongWidth));
-        }
-
-        foreach ((string alias, string canonical) in aliases)
-        {
-            symbols.Add(alias, symbols[canonical]);
-            if (readers.TryGetValue(canonical, out Func<Stream, object>? reader))
-            {
-                readers.Add(alias, reader);
-                writers.Add(alias, writers[canonical]);
-                alignments.Add(alias, alignments[canonical]);
-            }
-        }
-
-        return new PrimitiveRegistry(
-            readers.ToFrozenDictionary(StringComparer.Ordinal),
-            writers.ToFrozenDictionary(StringComparer.Ordinal),
-            alignments.ToFrozenDictionary(StringComparer.Ordinal),
-            symbols.ToImmutable(),
-            new BitfieldCodecTable(littleEndian, alignments, readers, writers, aliases),
-            aliases.ToFrozenDictionary(StringComparer.Ordinal));
-    }
-
-    /// <summary>Selects strict UTF-16 in the field's explicit order, or in the layout order for neutral <c>wchar</c>.</summary>
+    /// <summary>The UTF-16 encoding a wide-character field decodes with: its explicit suffix, or the layout byte order.</summary>
     private Encoding GetWideCharacterEncoding(CompiledField field)
     {
         return field.ExplicitWideCharacterEncoding ??
                (this.IsLittleEndian ? PrimitiveCodecs.StrictUtf16LittleEndianEncoding : PrimitiveCodecs.StrictUtf16BigEndianEncoding);
     }
-
-    /// <summary>All members are constructed once and used read-only by layouts of the same byte order.</summary>
-    private sealed record PrimitiveRegistry(
-        FrozenDictionary<string, Func<Stream, object>> Readers,
-        FrozenDictionary<string, Action<Stream, object>> Writers,
-        FrozenDictionary<string, byte> Alignments,
-        ImmutableDictionary<string, CompiledTypeReference> Symbols,
-        BitfieldCodecTable Bitfields,
-        FrozenDictionary<string, string> Aliases);
 }
