@@ -96,6 +96,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   `[CStructLayout]` of the same compilation (CSG102 warns about a property without a counterpart). CSG100 (not
   `partial`, or no parameterless constructor) and CSG101 (a property whose class is not mapped) are errors. A CLR
   enum value is accepted wherever a layout enum is written (matched by value).
+- The mapped bridge: `StructValue.ToMapped<T>()` maps a parsed struct through a mapped class's `ReadFrom`; a
+  generated layout class gains `ToStructValue(value)` (the value's bytes parsed by the runtime layout; pointers keep
+  their addresses and are not followed), `ToMapped<T>(value)`, `ParseMapped<T>(bytes)`, and
+  `SerializeMapped<T>(value)` for any `ICStructMapped<T>` class over the same layout.
 
 ### Fixed
 

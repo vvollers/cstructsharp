@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 30,
+  "baselineRevision": 31,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.6.0",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 955,
-    "normalizedSha256": "0ADEA27565C8E9454990652F311EC274B09D62769CED642498F9322FD0511647"
+    "lines": 957,
+    "normalizedSha256": "79D2E5977B77D15E7529BB0EB718D04B21EA81848C12023D8E287CC9D4EC4D4D"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "2E8830BFA9B36478BC0D81C75E418AD6DD092C7BC02745CE3384DC9A74466DA2",
+      "normalizedSha256": "316B9431CD25D04E2561742D8D71B5807928DB778D489041E2E914B08030A658",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "3B690409D0E1EA7BA339D0BC95ADE915071BD429C243211B72E07EF736AD9181",
+      "normalizedSha256": "859A3B8B20B31385DC63F9D9EB7F826A409306AD9CE469825BF1D0F88AB47512",
       "aotCompatible": true
     }
   ],
@@ -303,6 +303,15 @@
       "combinedSha256": "1B9E5B1C4C498C25C085CF68ED4079C0C96309229E3A7F1DE3A75218C6EBFB64",
       "rationale": "Generated mappers (plan 4.1): MappedTypes.MemberName (the mapper's run-time name match: exact, case-insensitive, underscores ignored) and ConvertValue<T> (Get<T>'s conversion for a pointer target).",
       "releaseImpact": "Additive to the released 0.6.0 surface; MappedTypes has not shipped yet."
+    },
+    {
+      "revision": 31,
+      "kind": "additive",
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "0996E9DF89323892B8DE59F01A2DB099992157FA71C912A4ED2EA0A4F8EB60D1",
+      "rationale": "Mapped bridge (plan 4.2): StructValue.ToMapped<T>() maps a parsed struct through a mapped class's ReadFrom.",
+      "releaseImpact": "Additive to the released 0.6.0 surface."
     }
   ]
 }

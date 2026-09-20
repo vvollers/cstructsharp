@@ -917,6 +917,8 @@ namespace CStructSharp.Values
         public T Get<T>(string path) { }
         public CStructSharp.Values.StructValue.Enumerator GetEnumerator() { }
         public bool Remove(string name) { }
+        public T ToMapped<T>()
+            where T : CStructSharp.ICStructMapped<T> { }
         public override string ToString() { }
         public bool TryGet<T>(string path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value) { }
         public bool TryGetValue(string name, out object? value) { }

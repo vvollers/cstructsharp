@@ -530,6 +530,59 @@ namespace Demo
             static int global::CStructSharp.ICStructGenerated<Root>.Serialize(Root value, global::System.Span<byte> destination, global::CStructSharp.WriteOptions? options) => FixtureNestedReferences.Serialize(value, destination, options);
         }
 
+        /// <summary>The runtime's <see cref="global::CStructSharp.Values.StructValue"/> for a generated value: its bytes, parsed by the runtime layout (every member, in the layout's shape). Pointers keep their addresses and are not followed: the value's bytes hold no targets.</summary>
+        /// <param name="value">The value to convert.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options for the runtime parse (limits, text trimming); <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The struct value.</returns>
+        public static global::CStructSharp.Values.StructValue ToStructValue(Root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            byte[] bytes = SerializeRoot(value, variables);
+            var effective = new global::CStructSharp.ReadOptions
+            {
+                DereferencePointers = false,
+                AddressingMode = options?.AddressingMode ?? global::CStructSharp.PointerAddressingMode.Absolute,
+                Origin = options?.Origin ?? 0,
+                MaxPointerDepth = options?.MaxPointerDepth ?? 64,
+                MaxPointerTargetBytes = options?.MaxPointerTargetBytes,
+                MaxArrayElements = options?.MaxArrayElements ?? 1_000_000,
+                MaxStringBytes = options?.MaxStringBytes ?? (16L * 1024 * 1024),
+                MaxTotalBytesRead = options?.MaxTotalBytesRead ?? (64L * 1024 * 1024),
+                MaxNestingDepth = options?.MaxNestingDepth ?? 256,
+                TrimFixedText = options?.TrimFixedText ?? false,
+            };
+            return Layout.Parse(bytes, "root", variables, effective);
+        }
+
+        /// <summary>Maps a generated value to a mapped class through the runtime's <see cref="global::CStructSharp.Values.StructValue"/>: <c>ToMapped&lt;MyRoot&gt;(value)</c>.</summary>
+        /// <typeparam name="T">A class implementing <see cref="global::CStructSharp.ICStructMapped{TSelf}"/>.</typeparam>
+        /// <param name="value">The value to map.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <returns>The mapped instance.</returns>
+        public static T ToMapped<T>(Root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null)
+            where T : global::CStructSharp.ICStructMapped<T>
+            => T.ReadFrom(ToStructValue(value, variables));
+
+        /// <summary>Serializes a mapped instance as the root declaration through the runtime layout (its <c>WriteTo</c> supplies the members).</summary>
+        /// <typeparam name="T">A class implementing <see cref="global::CStructSharp.ICStructMapped{TSelf}"/>, registered with <see cref="global::CStructSharp.MappedTypes"/>.</typeparam>
+        /// <param name="value">The instance to write.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The serialized bytes.</returns>
+        public static byte[] SerializeMapped<T>(T value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null)
+            where T : global::CStructSharp.ICStructMapped<T>
+            => Layout.Serialize("root", value!, variables, options);
+
+        /// <summary>Reads the root declaration straight into a mapped class through the runtime layout.</summary>
+        /// <typeparam name="T">A class implementing <see cref="global::CStructSharp.ICStructMapped{TSelf}"/>.</typeparam>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The mapped instance.</returns>
+        public static T ParseMapped<T>(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            where T : global::CStructSharp.ICStructMapped<T>
+            => T.ReadFrom(Layout.Parse(source, "root", variables, options));
+
         /// <summary>Reads the root declaration with the generated reader and the runtime's debug ranges (the runtime reads the same bytes once more to produce them).</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>

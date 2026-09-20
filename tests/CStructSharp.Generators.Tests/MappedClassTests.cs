@@ -115,6 +115,22 @@ public class MappedClassTests
         Assert.IsNull(record.GetProperty("Extra")!.GetValue(mappedOther));
         CollectionAssert.AreEqual(runtime.Serialize("root", runtime.Parse(other, "root")), runtime.Serialize("root", mappedOther));
 
+        // The bridge: a generated value → StructValue → mapped class, a mapped instance serialized through the layout,
+        // and the runtime's StructValue.ToMapped<T>().
+        Type packet = assembly.GetType("Demo.Packet")!;
+        object generatedValue = packet.GetMethods().Single(method => method.Name == "ParseRoot" && method.GetParameters()[0].ParameterType == typeof(byte[])).Invoke(null, [bytes, null, null])!;
+        var structValue = (StructValue)packet.GetMethod("ToStructValue")!.Invoke(null, [generatedValue, null, null])!;
+        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), generatedValue, "root");
+        Assert.AreEqual((byte)9, structValue["extra"]);
+        object bridged = packet.GetMethod("ToMapped")!.MakeGenericMethod(record).Invoke(null, [generatedValue, null])!;
+        Assert.AreEqual(8u, record.GetProperty("BitDepth")!.GetValue(bridged));
+        object bridgedLink = record.GetProperty("Link")!.GetValue(bridged)!;
+        Assert.AreEqual(33L, bridgedLink.GetType().GetProperty("Address")!.GetValue(bridgedLink));
+        Assert.IsFalse((bool)bridgedLink.GetType().GetProperty("IsDereferenced")!.GetValue(bridgedLink)!, "the value's bytes hold no pointer targets");
+        CollectionAssert.AreEqual(bytes[..^2], (byte[])packet.GetMethod("SerializeMapped")!.MakeGenericMethod(record).Invoke(null, [bridged, null, null])!);
+        object viaRuntime = typeof(StructValue).GetMethod("ToMapped")!.MakeGenericMethod(record).Invoke(structValue, null)!;
+        Assert.AreEqual((byte)9, record.GetProperty("Extra")!.GetValue(viaRuntime));
+
         // Without a resolvable layout the names are matched at run time (exact, case-insensitive, underscores ignored); reader values pass through.
         object looseValue = ReadValue(loose, runtime, bytes);
         Assert.AreEqual(8u, loose.GetProperty("BitDepth")!.GetValue(looseValue));

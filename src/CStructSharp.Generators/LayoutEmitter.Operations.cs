@@ -62,6 +62,7 @@ internal sealed partial class LayoutEmitter
     {
         string name = root.Name;
         string layout = SourceWriter.Literal(root.LayoutName);
+        this.EmitMappedBridge(writer, root);
         writer.Line();
         writer.Line("/// <summary>Reads the root declaration with the generated reader and the runtime's debug ranges (the runtime reads the same bytes once more to produce them).</summary>");
         writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
@@ -96,6 +97,70 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
         writer.Line("/// <param name=\"options\">The update options; <see langword=\"null\"/> uses the documented defaults.</param>");
         writer.Line("public static void UpdatePath(global::System.Span<byte> target, string path, object value, " + VariablesType + " variables = null, global::CStructSharp.UpdateOptions? options = null) => Layout.Update(target, path, value, variables, options);");
+    }
+
+    /// <summary>
+    ///     The bridge to mapped classes: a generated value becomes the runtime's <c>StructValue</c> (through its bytes)
+    ///     and from there any <c>ICStructMapped</c> class; a mapped instance serializes through the runtime layout.
+    /// </summary>
+    private void EmitMappedBridge(SourceWriter writer, GeneratedComposite root)
+    {
+        string name = root.Name;
+        string layout = SourceWriter.Literal(root.LayoutName);
+        writer.Line();
+        writer.Line("/// <summary>The runtime's <see cref=\"global::CStructSharp.Values.StructValue\"/> for a generated value: its bytes, parsed by the runtime layout (every member, in the layout's shape). Pointers keep their addresses and are not followed: the value's bytes hold no targets.</summary>");
+        writer.Line("/// <param name=\"value\">The value to convert.</param>");
+        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line("/// <param name=\"options\">The read options for the runtime parse (limits, text trimming); <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line("/// <returns>The struct value.</returns>");
+        writer.Open("public static global::CStructSharp.Values.StructValue ToStructValue(" + name + " value, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
+        writer.Line("byte[] bytes = Serialize" + name + "(value, variables);");
+        writer.Line("var effective = new global::CStructSharp.ReadOptions");
+        writer.Line("{");
+        writer.Indent();
+        writer.Line("DereferencePointers = false,");
+        writer.Line("AddressingMode = options?.AddressingMode ?? global::CStructSharp.PointerAddressingMode.Absolute,");
+        writer.Line("Origin = options?.Origin ?? 0,");
+        writer.Line("MaxPointerDepth = options?.MaxPointerDepth ?? 64,");
+        writer.Line("MaxPointerTargetBytes = options?.MaxPointerTargetBytes,");
+        writer.Line("MaxArrayElements = options?.MaxArrayElements ?? 1_000_000,");
+        writer.Line("MaxStringBytes = options?.MaxStringBytes ?? (16L * 1024 * 1024),");
+        writer.Line("MaxTotalBytesRead = options?.MaxTotalBytesRead ?? (64L * 1024 * 1024),");
+        writer.Line("MaxNestingDepth = options?.MaxNestingDepth ?? 256,");
+        writer.Line("TrimFixedText = options?.TrimFixedText ?? false,");
+        writer.Outdent();
+        writer.Line("};");
+        writer.Line("return Layout.Parse(bytes, " + layout + ", variables, effective);");
+        writer.Close();
+        writer.Line();
+        writer.Line("/// <summary>Maps a generated value to a mapped class through the runtime's <see cref=\"global::CStructSharp.Values.StructValue\"/>: <c>ToMapped&lt;MyRoot&gt;(value)</c>.</summary>");
+        writer.Line("/// <typeparam name=\"T\">A class implementing <see cref=\"global::CStructSharp.ICStructMapped{TSelf}\"/>.</typeparam>");
+        writer.Line("/// <param name=\"value\">The value to map.</param>");
+        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line("/// <returns>The mapped instance.</returns>");
+        writer.Line("public static T ToMapped<T>(" + name + " value, " + VariablesType + " variables = null)");
+        writer.Line("    where T : global::CStructSharp.ICStructMapped<T>");
+        writer.Line("    => T.ReadFrom(ToStructValue(value, variables));");
+        writer.Line();
+        writer.Line("/// <summary>Serializes a mapped instance as the root declaration through the runtime layout (its <c>WriteTo</c> supplies the members).</summary>");
+        writer.Line("/// <typeparam name=\"T\">A class implementing <see cref=\"global::CStructSharp.ICStructMapped{TSelf}\"/>, registered with <see cref=\"global::CStructSharp.MappedTypes\"/>.</typeparam>");
+        writer.Line("/// <param name=\"value\">The instance to write.</param>");
+        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line("/// <param name=\"options\">The write options; <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line("/// <returns>The serialized bytes.</returns>");
+        writer.Line("public static byte[] SerializeMapped<T>(T value, " + VariablesType + " variables = null, global::CStructSharp.WriteOptions? options = null)");
+        writer.Line("    where T : global::CStructSharp.ICStructMapped<T>");
+        writer.Line("    => Layout.Serialize(" + layout + ", value!, variables, options);");
+        writer.Line();
+        writer.Line("/// <summary>Reads the root declaration straight into a mapped class through the runtime layout.</summary>");
+        writer.Line("/// <typeparam name=\"T\">A class implementing <see cref=\"global::CStructSharp.ICStructMapped{TSelf}\"/>.</typeparam>");
+        writer.Line("/// <param name=\"source\">The bytes; offset 0 is coordinate zero.</param>");
+        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line("/// <returns>The mapped instance.</returns>");
+        writer.Line("public static T ParseMapped<T>(global::System.ReadOnlySpan<byte> source, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
+        writer.Line("    where T : global::CStructSharp.ICStructMapped<T>");
+        writer.Line("    => T.ReadFrom(Layout.Parse(source, " + layout + ", variables, options));");
     }
 
     /// <summary>The fixed size of every composite that has one, as constants.</summary>
