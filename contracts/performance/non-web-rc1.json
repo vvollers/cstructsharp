@@ -137,29 +137,29 @@
   "package": {
     "baselineEvidence": {
       "tool": "tools/quality/artifact-baseline.mjs --package-directory artifacts/package",
-      "note": "Re-baselined 2026-09-18 from dotnet pack of the 0.5.0 source (the library grew from 286 KB to 690 KB between the frozen QA-07 baseline and this revision); the gzip-equivalent totals are zlib level 9 sums."
+      "note": "Re-baselined 2026-09-20 from dotnet pack of the 0.7.0 source: the package now carries the [CStructLayout]/[CStructMapped] source generator and analyzer (analyzers/dotnet/cs/CStructSharp.Generators.dll, ~450 KB, the compile-time core compiled a second time for netstandard2.0) plus build/CStructSharp.props/.targets and THIRD-PARTY-NOTICES.md; the maxima keep the ~5.3 % headroom of the previous baseline, rounded up to whole KiB; the gzip-equivalent totals are zlib level 9 sums."
     },
     "baseline": {
       "files": 2,
-      "bytes": 874856,
-      "gzipBytes": 872554
+      "bytes": 1102386,
+      "gzipBytes": 1099785
     },
-    "maximumBytes": 921600,
-    "maximumGzipBytes": 921600,
+    "maximumBytes": 1161216,
+    "maximumGzipBytes": 1158144,
     "extensions": [
       {
         "extension": ".nupkg",
-        "baselineBytes": 690353,
-        "baselineGzipBytes": 688849,
-        "maximumBytes": 727040,
-        "maximumGzipBytes": 727040
+        "baselineBytes": 907936,
+        "baselineGzipBytes": 906238,
+        "maximumBytes": 956416,
+        "maximumGzipBytes": 954368
       },
       {
         "extension": ".snupkg",
-        "baselineBytes": 184503,
-        "baselineGzipBytes": 183705,
-        "maximumBytes": 194560,
-        "maximumGzipBytes": 194560
+        "baselineBytes": 194450,
+        "baselineGzipBytes": 193547,
+        "maximumBytes": 204800,
+        "maximumGzipBytes": 204800
       }
     ]
   },

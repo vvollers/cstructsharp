@@ -227,7 +227,10 @@ using (var stream = new MemoryStream(input))
 {
     try
     {
+        // The packaged analyzer sees the layout literal and would warn (CSG200) about this deliberately wrong path.
+#pragma warning disable CSG200
         _ = cstruct.ResolveAddress(stream, "root.missing");
+#pragma warning restore CSG200
         throw new InvalidOperationException("Missing package path did not fail.");
     }
     catch (CStructPathException exception)

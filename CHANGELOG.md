@@ -24,7 +24,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Added
 
-- The `CStructSharp.Generators` source generator (shipped inside the package from 0.7.0): `[CStructLayout]` on a
+- The `CStructSharp.Generators` source generator ships inside the package (`analyzers/dotnet/cs`, with
+  `build/CStructSharp.props`/`.targets` and `THIRD-PARTY-NOTICES.md`; no new package and no runtime dependency):
+  `[CStructLayout]` on a
   `static partial` class compiles the layout at build time with the same compiler the runtime uses and emits the
   layout's types and operations as C#; the runtime gains `CStructLayoutAttribute`, `CStructMappedAttribute`,
   `CStructMemberAttribute`, and `ICStructGenerated<TSelf>`. Diagnostics CSG001-CSG006 and CSG010 report a layout

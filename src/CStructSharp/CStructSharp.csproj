@@ -40,6 +40,17 @@
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     <None Include="..\..\CHANGELOG.md" Pack="true" PackagePath="\" />
     <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="\" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The [CStructLayout]/[CStructMapped] source generator and the analyzer ship inside this package: the consumer's
+         compiler loads them from analyzers/dotnet/cs, and build/CStructSharp.props/.targets wire .cstruct files and the
+         DisableCStructSharpGenerator switch. The generator has no assembly of its own on NuGet. -->
+    <ProjectReference Include="..\CStructSharp.Generators\CStructSharp.Generators.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <None Include="..\CStructSharp.Generators\bin\$(Configuration)\netstandard2.0\CStructSharp.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="build\CStructSharp.props" Pack="true" PackagePath="build" />
+    <None Include="build\CStructSharp.targets" Pack="true" PackagePath="build" />
   </ItemGroup>
 
   <ItemGroup>

@@ -158,7 +158,10 @@ await main(() => {
   const exampleProject = parseXml(fs.readFileSync(exampleProjectPath, "utf8"));
   assertCondition(toolManifest.tools.docfx.version === "2.78.5", "DocFX must remain pinned to reviewed version 2.78.5.");
   assertCondition(!toolManifest.tools.docfx.rollForward, "DocFX tool roll-forward must remain disabled.");
-  assertCondition(findAll(coreProject, "ProjectReference").length === 0, "The API input project must not acquire a project reference.");
+  // The generator is packed from the core project without being referenced as an assembly (ReferenceOutputAssembly=false),
+  // so it adds nothing to the API metadata; any other project reference would.
+  const apiReferences = findAll(coreProject, "ProjectReference").filter((reference) => String(reference.attributes.ReferenceOutputAssembly ?? "true").toLowerCase() !== "false");
+  assertCondition(apiReferences.length === 0, "The API input project must not acquire a project reference that contributes an assembly.");
   const exampleReferences = findAll(exampleProject, "ProjectReference");
   assertCondition(exampleReferences.length === 1 && exampleReferences[0].attributes.Include === "..\\..\\src\\CStructSharp\\CStructSharp.csproj", "The documentation examples must reference only the core project.");
   const metadataSources = docfxConfig.metadata.flatMap((entry) => (Array.isArray(entry.src) ? entry.src : [entry.src])).map((source) => source.src);

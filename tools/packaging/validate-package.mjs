@@ -57,6 +57,10 @@ await main(() => {
     "lib/net8.0/CStructSharp.xml",
     "lib/net10.0/CStructSharp.dll",
     "lib/net10.0/CStructSharp.xml",
+    "THIRD-PARTY-NOTICES.md",
+    "analyzers/dotnet/cs/CStructSharp.Generators.dll",
+    "build/CStructSharp.props",
+    "build/CStructSharp.targets",
   ];
   for (const required of requiredEntries) {
     if (!entryNames.includes(required)) throw new Error(`The package is missing required entry '${required}'.`);
@@ -70,5 +74,7 @@ await main(() => {
   const assemblies = entryNames.filter((name) => /^lib\/.*\.dll$/.test(name)).sort();
   const expectedAssemblies = ["lib/net10.0/CStructSharp.dll", "lib/net8.0/CStructSharp.dll"];
   if (assemblies.join(",") !== expectedAssemblies.join(",")) throw new Error("The package must contain exactly one CStructSharp assembly per supported framework.");
+  const analyzers = entryNames.filter((name) => /^analyzers\/.*\.dll$/.test(name)).sort();
+  if (analyzers.join(",") !== "analyzers/dotnet/cs/CStructSharp.Generators.dll") throw new Error("The package must contain exactly the CStructSharp.Generators analyzer assembly.");
   console.log(`Validated package metadata, ${requiredEntries.length} package entries, and ${requiredSymbolEntries.length} portable symbol entries.`);
 });
