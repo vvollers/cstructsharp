@@ -38,12 +38,39 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             .Where(static request => request is not null)
             .Select(static (request, _) => request!);
 
+        // A layout file is any AdditionalFile named *.cstruct, or one the build marks with CStructSharpLayout=true
+        // (the package's build props mark every .cstruct file; a project can mark others). The file provider is part of
+        // the pipeline, so an edit to a layout file re-runs the classes that use it.
         IncrementalValueProvider<ImmutableArray<(string Path, string Text)>> layoutFiles = context.AdditionalTextsProvider
-            .Where(static file => file.Path.EndsWith(".cstruct", StringComparison.OrdinalIgnoreCase))
-            .Select(static (file, cancellation) => (file.Path, file.GetText(cancellation)?.ToString() ?? string.Empty))
+            .Combine(context.AnalyzerConfigOptionsProvider)
+            .Where(static pair => IsLayoutFile(pair.Left, pair.Right))
+            .Select(static (pair, cancellation) => (pair.Left.Path, pair.Left.GetText(cancellation)?.ToString() ?? string.Empty))
             .Collect();
 
-        context.RegisterSourceOutput(requests.Combine(layoutFiles), static (productionContext, pair) => Generate(productionContext, pair.Left, pair.Right));
+        // DisableCStructSharpGenerator=true (a CompilerVisibleProperty of the package's build props) keeps the runtime
+        // and skips generation: the attributed classes stay as the consumer wrote them.
+        IncrementalValueProvider<bool> disabled = context.AnalyzerConfigOptionsProvider
+            .Select(static (provider, _) => provider.GlobalOptions.TryGetValue("build_property.DisableCStructSharpGenerator", out string? value) && string.Equals(value, "true", StringComparison.OrdinalIgnoreCase));
+
+        context.RegisterSourceOutput(
+            requests.Combine(layoutFiles).Combine(disabled),
+            static (productionContext, pair) =>
+            {
+                if (!pair.Right)
+                {
+                    Generate(productionContext, pair.Left.Left, pair.Left.Right);
+                }
+            });
+    }
+
+    private static bool IsLayoutFile(AdditionalText file, Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptionsProvider options)
+    {
+        if (file.Path.EndsWith(".cstruct", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return options.GetOptions(file).TryGetValue("build_metadata.AdditionalFiles.CStructSharpLayout", out string? marked) && string.Equals(marked, "true", StringComparison.OrdinalIgnoreCase);
     }
 
     private static LayoutRequest? CreateRequest(GeneratorAttributeSyntaxContext context, CancellationToken cancellation)

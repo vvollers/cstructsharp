@@ -55,6 +55,13 @@ internal sealed partial class LayoutEmitter
         return result;
     }
 
+    /// <summary>The members every generated class has, which no generated type or the class itself may be named like.</summary>
+    private static readonly string[] ReservedMembers =
+    [
+        "Layout", "RootName", "Definition", "Parse", "Serialize", "Write", "ParseWithDebug", "ResolveAddress", "GetArrayLength", "UpdatePath",
+        "Sizes", "Offsets", "Update", "CreateCodecs", "CodecInstances", "LayoutInstance", "CreateLayout",
+    ];
+
     private static string GeneratorVersion => typeof(LayoutEmitter).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
 
     /// <summary>Builds the type model, which assigns every generated name, and reports CSG003 for collisions.</summary>
@@ -63,12 +70,18 @@ internal sealed partial class LayoutEmitter
         var taken = new Dictionary<string, string>(System.StringComparer.Ordinal)
         {
             [this.request.ClassName] = "the containing class",
-            ["Layout"] = "the generated Layout property",
-            ["RootName"] = "the generated RootName property",
-            ["Definition"] = "the generated Definition constant",
-            ["Parse"] = "the generated Parse method",
-            ["Serialize"] = "the generated Serialize method",
         };
+        foreach (string reserved in ReservedMembers)
+        {
+            taken[reserved] = "the generated " + reserved + " member";
+        }
+
+        // A C# type cannot have a member with its own name: a class named like a generated member cannot be generated into.
+        if (System.Array.IndexOf(ReservedMembers, this.request.ClassName) >= 0)
+        {
+            this.Error(GeneratorDiagnostics.NameCollision, "The class '" + this.request.ClassName + "' is named like the generated " + this.request.ClassName + " member, which C# does not allow; rename the class.");
+        }
+
         this.model = GeneratedModel.Build(this.compilation, this.request.KeepNames, taken);
         foreach (string collision in this.model.Collisions)
         {

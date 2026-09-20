@@ -79,6 +79,29 @@ public class ReaderParityTests
         RunParity(fixture.Id, fixture.Definition, ManualFixtures.AttributeArguments(fixture), fixture.Root, Convert.FromHexString(fixture.Bytes!), fixture.Variables, null, null);
     }
 
+    /// <summary>A layout declared from a <c>.cstruct</c> file generates the same readers as the inline text: every manual fixture, through the file path.</summary>
+    [TestMethod]
+    public void FileDeclaredFixtures_MatchTheInlineDeclarations()
+    {
+        int compared = 0;
+        foreach (ManualFixture fixture in ManualFixtures.Load().Where(item => item.Bytes is not null).Take(12))
+        {
+            string arguments = ManualFixtures.AttributeArguments(fixture);
+            string inline = Header + "[CStructLayout(" + Literal(fixture.Definition) + ", " + arguments + ")]\npublic static partial class Fixture { }\n";
+            string fromFile = Header + "[CStructLayout(File = \"layouts/" + fixture.Id + ".cstruct\", " + arguments + ")]\npublic static partial class Fixture { }\n";
+            string inlineSource = GeneratorRunner.Run(inline).AssertClean().Source;
+            string fileSource = GeneratorRunner.Run(fromFile, [("/project/layouts/" + fixture.Id + ".cstruct", fixture.Definition)]).AssertClean().Source;
+
+            // Only the Definition constant differs (the file's text is used verbatim); every generated member is the same.
+            Assert.AreEqual(Strip(inlineSource), Strip(fileSource), fixture.Id);
+            compared++;
+        }
+
+        Assert.AreEqual(12, compared);
+
+        static string Strip(string source) => string.Join("\n", source.Split('\n').Where(line => !line.Contains("public const string Definition = ", StringComparison.Ordinal)));
+    }
+
     /// <summary>Runs one ad-hoc case through both readers: the value (or the expected failure) and the truncation sweep.</summary>
     internal static void RunParity(string id, string definition, string arguments, string root, byte[] bytes, IReadOnlyDictionary<string, int> fixtureVariables, ReadOptions? options, string? expectedError)
     {

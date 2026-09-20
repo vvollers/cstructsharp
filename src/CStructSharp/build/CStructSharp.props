@@ -1,0 +1,17 @@
+<Project>
+  <!--
+    Imported into every project that references the CStructSharp package (NuGet places it under build/).
+    Every .cstruct file in the project becomes an AdditionalFile the [CStructLayout] source generator can read
+    with File = "name.cstruct"; the CStructSharpLayout metadata marks it so a file with another extension can be
+    opted in the same way. Set DisableCStructSharpGenerator=true to keep the package's runtime and skip generation.
+  -->
+  <PropertyGroup>
+    <DisableCStructSharpGenerator Condition="'$(DisableCStructSharpGenerator)' == ''">false</DisableCStructSharpGenerator>
+    <CStructSharpIncludeLayoutFiles Condition="'$(CStructSharpIncludeLayoutFiles)' == ''">true</CStructSharpIncludeLayoutFiles>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="DisableCStructSharpGenerator" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="CStructSharpLayout" />
+  </ItemGroup>
+</Project>

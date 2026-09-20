@@ -3,6 +3,7 @@ extern alias Generators;
 namespace CStructSharp.Generators.Tests;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using CStructSharp;
@@ -60,6 +61,29 @@ public class SkeletonTests
         Assert.AreEqual(5, layout.GetStructSizeInBytes("root"), "the Defined symbol keeps the tail");
         Assert.AreEqual(BitfieldPacking.Msvc, layout.CompilationOptions.BitfieldPacking);
         Assert.AreEqual(32, layout.CompilationOptions.CLongWidth);
+    }
+
+    /// <summary>A file the build marks with CStructSharpLayout=true is a layout file whatever its extension; DisableCStructSharpGenerator=true skips generation.</summary>
+    [TestMethod]
+    public void MarkedFiles_AreLayoutFiles_AndTheDisableSwitchSkipsGeneration()
+    {
+        const string Consumer = Header + """
+            [CStructLayout(File = "layouts/record.layout")]
+            public static partial class Record { }
+            """;
+        var files = new[] { ("/project/layouts/record.layout", "struct root { uint8 a; uint16 b; };") };
+        Assert.AreEqual(1, GeneratorRunner.Run(Consumer, files).DiagnosticsWithId("CSG002").Count, "an unmarked file with another extension is not a layout file");
+
+        var marked = new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal)
+        {
+            ["/project/layouts/record.layout"] = new Dictionary<string, string>(StringComparer.Ordinal) { ["build_metadata.AdditionalFiles.CStructSharpLayout"] = "true" },
+        };
+        GeneratorResult result = GeneratorRunner.Run(Consumer, files, fileOptions: marked).AssertClean();
+        Assert.AreEqual(3, ((CStruct)result.Load().GetType("Demo.Record")!.GetProperty("Layout")!.GetValue(null)!).GetStructSizeInBytes("root"));
+
+        GeneratorResult disabled = GeneratorRunner.Run(Consumer, files, globalOptions: new Dictionary<string, string>(StringComparer.Ordinal) { ["build_property.DisableCStructSharpGenerator"] = "true" }, fileOptions: marked);
+        Assert.AreEqual(0, disabled.GeneratedSources.Count);
+        Assert.AreEqual(0, disabled.GeneratorDiagnostics.Length);
     }
 
     [TestMethod]
@@ -217,6 +241,14 @@ public class SkeletonTests
             public static partial class Names { }
             """);
         StringAssert.Contains(container.DiagnosticsWithId("CSG003").Single().GetMessage(), "containing class");
+
+        // A class named like a generated member (Layout, Parse, Sizes, ...) cannot receive it: C# forbids a member named like its type.
+        GeneratorResult reserved = GeneratorRunner.Run(Header + """
+            [CStructLayout("struct root { uint8 x; };")]
+            public static partial class Layout { }
+            """);
+        StringAssert.Contains(reserved.DiagnosticsWithId("CSG003").Single().GetMessage(), "rename the class");
+        Assert.IsEmpty(reserved.GeneratedSources);
 
         GeneratorResult kept = GeneratorRunner.Run(Header + """
             [CStructLayout("struct a_b { uint8 x; }; struct aB { uint8 y; };", KeepNames = true)]

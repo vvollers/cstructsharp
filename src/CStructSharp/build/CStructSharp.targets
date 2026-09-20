@@ -1,0 +1,6 @@
+<Project>
+  <!-- The layout files are collected after the project's own items so a project can exclude some with DefaultItemExcludes. -->
+  <ItemGroup Condition="'$(CStructSharpIncludeLayoutFiles)' == 'true'">
+    <AdditionalFiles Include="**/*.cstruct" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" CStructSharpLayout="true" />
+  </ItemGroup>
+</Project>

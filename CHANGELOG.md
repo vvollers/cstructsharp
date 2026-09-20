@@ -81,6 +81,11 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   runtime's short-read text. `Parse<Name>(Stream)` buffers the stream up to the total read budget (or its remaining
   length) and takes the span path, leaving a seekable stream after the value - unlike the runtime's incremental
   stream reads, a non-seekable stream is consumed up to that budget.
+- Layout files: `[CStructLayout(File = "layouts/png.cstruct")]` reads the layout from an `AdditionalFiles` entry;
+  the package's `build/CStructSharp.props` and `.targets` (shipped from 0.7.0) add every `**/*.cstruct` file of a
+  project as an additional file marked `CStructSharpLayout="true"` (a file with another extension can be marked
+  the same way), and `<DisableCStructSharpGenerator>true</DisableCStructSharpGenerator>` keeps the runtime and skips
+  generation. A class named like a generated member (`Layout`, `Parse`, `Sizes`, ...) is reported as CSG003.
 
 ### Fixed
 
