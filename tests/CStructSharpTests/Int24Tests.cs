@@ -66,18 +66,18 @@ public class Int24Tests
             var parser = new CStruct($"struct root {{ int24{suffix} value; }};", aligned: false);
             foreach (int value in new[] { -8388608, -1, 0, 1, 8388607 })
             {
-                byte[] bytes = parser.Serialize("root", new { value });
+                byte[] bytes = parser.Serialize("root", new Dictionary<string, object?> { ["value"] = value });
                 Assert.AreEqual(3, bytes.Length);
                 using var stream = new MemoryStream(bytes);
                 Assert.AreEqual(value, parser.ReadValue<int>(stream, "root.value"));
             }
 
-            Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new { value = -8388609 }));
+            Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new Dictionary<string, object?> { ["value"] = -8388609 }));
             Assert.Throws<CStructReadException>(() => parser.Parse(new MemoryStream(new byte[2]), "root"));
         }
 
         var unsigned = new CStruct("struct root { uint24 value; };");
-        Assert.Throws<CStructWriteException>(() => unsigned.Serialize("root", new { value = 0x1000000U }));
+        Assert.Throws<CStructWriteException>(() => unsigned.Serialize("root", new Dictionary<string, object?> { ["value"] = 0x1000000U }));
         Assert.Throws<CStructLayoutException>(() => new CStruct("enum kind : uint24 { A = 1 };"));
         Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { uint24 value : 3; };"));
     }

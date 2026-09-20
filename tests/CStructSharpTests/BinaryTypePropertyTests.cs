@@ -181,7 +181,7 @@ public class BinaryTypePropertyTests
                     random.NextBytes(raw);
                     BigInteger expected = new BigInteger(raw, isUnsigned: !signed, isBigEndian: false);
                     object input = signed ? (object)(long)expected : (ulong)expected;
-                    byte[] encoded = parser.Serialize("root", new { value = input });
+                    byte[] encoded = parser.Serialize("root", new Dictionary<string, object?> { ["value"] = input });
                     Assert.IsTrue(encoded.Length <= (width + 6) / 7);
                     object actual = parser.ReadValue(encoded.AsSpan(), "root.value")!;
                     Assert.AreEqual(expected, BigInteger.Parse(actual.ToString()!));

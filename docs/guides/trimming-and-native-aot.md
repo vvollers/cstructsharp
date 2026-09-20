@@ -1,6 +1,6 @@
 ---
 title: Trimming and Native AOT
-description: Publish a trimmed or Native AOT application that uses CStructSharp - what works unchanged, the two POCO conventions, and why dynamic access is JIT-only.
+description: Publish a trimmed or Native AOT application that uses CStructSharp - what works unchanged, how mapped classes stay reflection-free, and why dynamic access is JIT-only.
 ---
 
 # Trimming and Native AOT
@@ -8,7 +8,7 @@ description: Publish a trimmed or Native AOT application that uses CStructSharp 
 CStructSharp ships as a trimmable library on both targets and declares Native AOT compatibility on .NET 10. A
 published Native AOT program runs every operation: parsing, selected reads, typed reads into your own classes,
 writes from classes and dictionaries, updates in place, debug reads, and the diagnostics. This page says what that
-promise covers, the two conventions your own mapped classes must follow, and why `dynamic` stays on the JIT.
+promise covers, how your own mapped classes take part without reflection, and why `dynamic` stays on the JIT.
 
 The repository proves the page on every push: `tests/CStructSharp.AotConsumer` publishes with `PublishAot=true`,
 reports zero trim or AOT warnings, and runs the cases below.
@@ -20,8 +20,8 @@ reports zero trim or AOT warnings, and runs the cases below.
 | net10.0 | yes | yes | `PublishTrimmed` and `PublishAot` produce no warnings from the package; the trim and AOT analyzers have verified every code path |
 | net8.0 | yes | no claim | `PublishTrimmed` works the same way; the package makes no Native AOT claim on .NET 8 because that SDK's analyzer cannot verify the library's dynamic-code guard (the AOT consumer runs on .NET 10) |
 
-Nothing in the library needs runtime code generation: expression trees are used only for the compiled POCO
-accessors, behind a feature switch the trimmer understands, and the value objects implement
+Nothing in the library needs runtime code generation or reflection: mapping to and from your classes goes through
+`ICStructMapped<T>` (static code the generator or you write), and the value objects implement
 `IDynamicMetaObjectProvider` directly instead of deriving from `DynamicObject`, whose constructor requires dynamic
 code. That keeps the *library* clean; a `dynamic` call site in your own code is a different matter (see
 [dynamic access](#dynamic-access-is-jit-only)).
@@ -41,73 +41,78 @@ Add the usual properties to the application project; the library needs no settin
 dotnet publish -c Release -r linux-x64
 ```
 
-Parsing, selected reads, `Get<T>` of primitives, and writes from dictionaries or parsed values use no reflection.
-Reflection is used in one place - mapping bytes to and from your own classes (`ReadValue<T>`, `TryReadValue<T>`,
-`Get<T>` of a class, `Serialize`, `Write`, `Update` with a class instance) - and that is where the two conventions
-below apply.
+Nothing the library does involves reflection. Parsing, selected reads, `Get<T>` of primitives, strings, enums,
+arrays, and values, and writes from dictionaries or parsed values are plain code. Mapping bytes to and from your
+own classes is plain code too: a class becomes a mapping target by implementing `ICStructMapped<T>` - two static
+members the `[CStructMapped]` source generator writes for a `partial` class, or that you write by hand - and by
+registering itself with `MappedTypes.Register<T>()`. There is no annotation to add and no member for the trimmer to
+lose.
 
-## Convention 1: keep the members of nested mapped classes
-
-The class you name in `ReadValue<T>`, `TryReadValue<T>`, `Get<T>`, or `TryGet<T>` is annotated on the method
-itself, so the trimmer keeps its public parameterless constructor, public properties, and public fields
-automatically. Classes reached *through* it - a member of class type, the element type of an array or list - and
-any object you hand to a write are known only at run time. Mark them:
+## Mapped classes
 
 ```csharp
-using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using CStructSharp;
+using CStructSharp.Values;
 
-[DynamicallyAccessedMembers(
-    DynamicallyAccessedMemberTypes.PublicParameterlessConstructor |
-    DynamicallyAccessedMemberTypes.PublicProperties |
-    DynamicallyAccessedMemberTypes.PublicFields)]
-public sealed class Point
+public sealed class Point : ICStructMapped<Point>
 {
     public short X { get; set; }
     public short Y { get; set; }
+
+    public static Point ReadFrom(StructValue source) => new() { X = source.Get<short>("x"), Y = source.Get<short>("y"), };
+
+    public static void WriteTo(Point value, StructValue target)
+    {
+        target["x"] = value.X;
+        target["y"] = value.Y;
+    }
+
+    // Runs before any other code in the assembly, on every runtime; generated classes register the same way.
+    [ModuleInitializer]
+    internal static void Register() => MappedTypes.Register<Point>();
 }
 
-public sealed class Record
+public sealed class Record : ICStructMapped<Record>
 {
     public byte Tag { get; set; }
     public Point Origin { get; set; } = new();
     public Point[] Corners { get; set; } = [];
     public byte[] Flags { get; set; } = [];
+
+    public static Record ReadFrom(StructValue source) => new()
+    {
+        Tag = source.Get<byte>("tag"),
+        Origin = source.Get<Point>("origin"),        // a nested mapped class
+        Corners = source.Get<Point[]>("corners"),    // an array of them
+        Flags = source.Get<byte[]>("flags"),
+    };
+
+    public static void WriteTo(Record value, StructValue target)
+    {
+        target["tag"] = value.Tag;
+        target["origin"] = value.Origin;             // nested instances are mapped in turn
+        target["corners"] = value.Corners;
+        target["flags"] = value.Flags;
+    }
+
+    [ModuleInitializer]
+    internal static void Register() => MappedTypes.Register<Record>();
 }
 ```
 
 ```csharp
 var layout = new CStruct("struct point { int16 x; int16 y; }; struct record { uint8 tag; point origin; point corners[2]; uint8 flags[3]; };");
-Record record = layout.ReadValue<Record>(bytes, "record");   // Record is preserved by the method's own annotation
-byte[] written = layout.Serialize("record", record);          // Point's members are preserved by the attribute
+Record record = layout.ReadValue<Record>(bytes, "record");
+byte[] written = layout.Serialize("record", record);
 ```
 
-A trimmer root descriptor (`TrimmerRootDescriptor`) that lists the classes works as well. A member the trimmer
-removed does not fail silently: the read reports a `CStructReadException` saying the source member is missing on
-the target type.
-
-## Convention 2: declare collections as `List<T>` or `T[]`
-
-A member declared as an interface - `IList<T>`, `ICollection<T>`, `IEnumerable<T>`, `IReadOnlyList<T>` - needs a
-`List<T>` created at run time for an element type the compiler never saw, which is exactly what Native AOT cannot
-do. Declare the member as `List<Point>` or `Point[]` and the mapping is static.
-
-```csharp
-public sealed class InterfaceRecord
-{
-    public byte Tag { get; set; }
-    public IList<Point> Corners { get; set; } = [];   // works on the JIT; fails under Native AOT
-}
-```
-
-Nothing about this fails at build or publish time. On a JIT runtime the member works as before. Under Native AOT
-the `ReadValue<InterfaceRecord>` call throws a `CStructReadException` naming the fix:
-
-```text
-Cannot map 'record.corners' to 'System.Collections.Generic.IList`1[…Point…]' without dynamic code: declare the
-member as List<Point> or Point[] when publishing with Native AOT.
-```
-
-Every other operation in the same program is unaffected; only that mapping is.
+Register from a module initializer, never from a static constructor: a static constructor that no other code
+triggers is removed by the Native AOT compiler, and the first `ReadValue<Record>` would then report the type as not
+mapped. The mapper decides the collection type: `Get<T>` hands out arrays, and a mapper is free to copy them into a
+`List<T>` or anything else. A class that does not implement the interface is not a mapping target; `ReadValue<T>`
+reports a `CStructReadException` naming the type, and a write reports a `CStructWriteException` that says what is
+writable (a `StructValue`, a dictionary, or a registered mapped class).
 
 ## Dynamic access is JIT-only
 
@@ -131,17 +136,15 @@ object? raw = header["length"];                   // the stored value, untyped
 
 ## The WebAssembly bridge
 
-The browser runtime is the same library published trimmed (`TrimMode=full`) inside the WASM bridge. It never maps
-POCOs, so the bridge switches the library's `CStructSharp.CompiledAccessors` feature off and the trimmer drops the
-expression-tree accessor path and `System.Linq.Expressions` with it; the details are in
+The browser runtime is the same library published trimmed (`TrimMode=full`) inside the WASM bridge. Its values are
+dictionary and list shaped, so it never registers a mapped class; the details are in
 [web development](../project/web-development.md#managed-bridge-trimming).
 
 ## Checklist
 
 - `PublishAot`/`PublishTrimmed` on the application; nothing on the package.
-- `[DynamicallyAccessedMembers(...)]` (or a root descriptor) on every class reached through a mapped class and on
-  every class handed to a write.
-- Collection members as `List<T>` or `T[]`, never a collection interface.
+- Every class you read into or write from implements `ICStructMapped<T>` and is registered (generated classes do
+  both for you).
 - No `dynamic` in the application: `Get<T>`, dictionary indexing, or `ReadValue<T>` instead.
 - Run the published binary once through a typed read and a write; a removed member or an interface member surfaces
   as a `CStructReadException` with the remedy in the message.

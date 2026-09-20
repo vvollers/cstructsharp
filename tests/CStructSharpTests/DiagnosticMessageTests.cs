@@ -42,7 +42,7 @@ public class DiagnosticMessageTests
     [TestMethod]
     public void ValueOutOfRange_StatesTheAcceptedRange()
     {
-        CStructWriteException exception = Assert.Throws<CStructWriteException>(() => Header.Serialize("header", new { kind = 70000, length = 6 }));
+        CStructWriteException exception = Assert.Throws<CStructWriteException>(() => Header.Serialize("header", new Dictionary<string, object?> { ["kind"] = 70000, ["length"] = 6 }));
 
         Assert.AreEqual("Value 70000 does not fit: uint16 accepts 0 to 65535 (field 'kind' (uint16), in 'header', offset 0).", exception.Message);
     }
@@ -51,7 +51,7 @@ public class DiagnosticMessageTests
     [TestMethod]
     public void WrongValueKind_ShowsTheValue()
     {
-        CStructWriteException exception = Assert.Throws<CStructWriteException>(() => Header.Serialize("header", new { kind = "abc", length = 6 }));
+        CStructWriteException exception = Assert.Throws<CStructWriteException>(() => Header.Serialize("header", new Dictionary<string, object?> { ["kind"] = "abc", ["length"] = 6 }));
 
         StringAssert.StartsWith(exception.Message, "Value \"abc\" cannot be written as uint16 (field 'kind' (uint16)");
     }
@@ -60,7 +60,7 @@ public class DiagnosticMessageTests
     [TestMethod]
     public void MissingMember_IsNamed()
     {
-        CStructWriteException exception = Assert.Throws<CStructWriteException>(() => Header.Serialize("header", new { kind = 1 }));
+        CStructWriteException exception = Assert.Throws<CStructWriteException>(() => Header.Serialize("header", new Dictionary<string, object?> { ["kind"] = 1 }));
 
         StringAssert.StartsWith(exception.Message, "No value was supplied for 'length' (field 'length' (uint32)");
     }
@@ -126,7 +126,7 @@ public class DiagnosticMessageTests
     {
         var layout = new CStruct("enum color : uint8 { red = 1 }; struct s { color c; };");
 
-        CStructWriteException exception = Assert.Throws<CStructWriteException>(() => layout.Serialize("s", new { c = "blue" }));
+        CStructWriteException exception = Assert.Throws<CStructWriteException>(() => layout.Serialize("s", new Dictionary<string, object?> { ["c"] = "blue" }));
 
         StringAssert.StartsWith(exception.Message, "Cannot write the supplied value as enum 'color': 'blue' is neither a member of enum 'color' nor an invariant decimal integer (field 'c' (color)");
     }

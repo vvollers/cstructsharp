@@ -49,13 +49,13 @@ public class Leb128Tests
         foreach (long value in new[] { long.MinValue, -1L, 0L, 63L, 64L, long.MaxValue })
         {
             var signed = new CStruct("struct root { sleb128_64 value; };", aligned: false);
-            byte[] bytes = signed.Serialize("root", new { value });
+            byte[] bytes = signed.Serialize("root", new Dictionary<string, object?> { ["value"] = value });
             Assert.IsTrue(bytes.Length <= 10);
             Assert.AreEqual(value, signed.ReadValue<long>(new MemoryStream(bytes), "root.value"));
         }
 
         var unsigned = new CStruct("struct root { uleb128_64 value; };", aligned: false);
-        byte[] maximum = unsigned.Serialize("root", new { value = ulong.MaxValue });
+        byte[] maximum = unsigned.Serialize("root", new Dictionary<string, object?> { ["value"] = ulong.MaxValue });
         Assert.AreEqual(10, maximum.Length);
         Assert.AreEqual(ulong.MaxValue, unsigned.ReadValue<ulong>(new MemoryStream(maximum), "root.value"));
     }

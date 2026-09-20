@@ -196,15 +196,15 @@ public class AnonymousPromotedMemberTests
             "struct root { uint8 a; struct { uint8 x; uint8 y; } inner; uint8 b; };",
             pointerSize: 1);
 
-        byte[] anonBytes = anon.Serialize("root", new { a = (byte)1, x = (byte)2, y = (byte)3, b = (byte)4, });
+        byte[] anonBytes = anon.Serialize("root", new Dictionary<string, object?> { ["a"] = (byte)1, ["x"] = (byte)2, ["y"] = (byte)3, ["b"] = (byte)4, });
         byte[] namedBytes = named.Serialize(
             "root",
-            new { a = (byte)1, inner = new { x = (byte)2, y = (byte)3, }, b = (byte)4, });
+            new Dictionary<string, object?> { ["a"] = (byte)1, ["inner"] = new Dictionary<string, object?> { ["x"] = (byte)2, ["y"] = (byte)3, }, ["b"] = (byte)4, });
 
         CollectionAssert.AreEqual(namedBytes, anonBytes);
 
         using var writeStream = new MemoryStream();
-        anon.Write(writeStream, "root", new { a = (byte)1, x = (byte)2, y = (byte)3, b = (byte)4, });
+        anon.Write(writeStream, "root", new Dictionary<string, object?> { ["a"] = (byte)1, ["x"] = (byte)2, ["y"] = (byte)3, ["b"] = (byte)4, });
         CollectionAssert.AreEqual(namedBytes, writeStream.ToArray());
     }
 
@@ -218,7 +218,7 @@ public class AnonymousPromotedMemberTests
     {
         var cstruct = new CStruct("struct root { uint8 flag:1, :3, other:4; struct { uint8 x; }; };", pointerSize: 1);
 
-        byte[] bytes = cstruct.Serialize("root", new { flag = 1, other = 0b1111, x = (byte)0xAB, });
+        byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["flag"] = 1, ["other"] = 0b1111, ["x"] = (byte)0xAB, });
 
         CollectionAssert.AreEqual(new byte[] { 0b1111_0001, 0xAB, }, bytes);
     }
@@ -304,7 +304,7 @@ public class AnonymousPromotedMemberTests
         var cstruct = new CStruct("struct root { struct { struct { uint8 x; }; } inner; };", pointerSize: 1);
         using var stream = new MemoryStream(new byte[1]);
 
-        cstruct.Write(stream, "root.inner.x", new { inner = new { x = (byte)9, }, });
+        cstruct.Write(stream, "root.inner.x", new Dictionary<string, object?> { ["inner"] = new Dictionary<string, object?> { ["x"] = (byte)9, }, });
 
         CollectionAssert.AreEqual(new byte[] { 9, }, stream.ToArray());
     }
@@ -355,13 +355,13 @@ public class AnonymousPromotedMemberTests
 
         byte[] roundTrip = cstruct.Serialize(
             "root",
-            new
+            new Dictionary<string, object?>
             {
-                a = (byte)1,
-                x = (byte)2,
-                named = new { y = (byte)3, },
-                p = new Pointer(0, null, 1),
-                values = new byte[] { 10, 20, },
+                ["a"] = (byte)1,
+                ["x"] = (byte)2,
+                ["named"] = new Dictionary<string, object?> { ["y"] = (byte)3, },
+                ["p"] = new Pointer(0, null, 1),
+                ["values"] = new byte[] { 10, 20, },
             });
         CollectionAssert.AreEqual(bytes, roundTrip);
     }

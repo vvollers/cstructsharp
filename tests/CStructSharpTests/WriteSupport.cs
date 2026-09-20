@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
 using System.Dynamic;
+using System.Runtime.CompilerServices;
+using CStructSharp.Values;
 
 /// <summary>Groups tests for write support so changes to this behavior are caught.</summary>
 [TestClass]
@@ -30,14 +32,15 @@ public class WriteSupport
     }
 
     /// <summary>
-    ///     An ordinary C# object supplies properties A and B for the layout's a and b fields.
+    ///     A mapped class supplies properties A and B for the layout's a and b fields through its own
+    ///     <see cref="ICStructMapped{TSelf}.WriteTo"/>.
     /// </summary>
     /// <remarks>
-    ///     Binding must produce the same bytes, 02 01 04 03, as the dynamic-object example. Users need not construct a
-    ///     dynamic dictionary to serialize a simple record.
+    ///     Mapping must produce the same bytes, 02 01 04 03, as the dynamic-object example. Users need not construct a
+    ///     dynamic dictionary to serialize a simple record, and no reflection is involved.
     /// </remarks>
     [TestMethod]
-    public void Serialize_SimpleStruct_Poco_WritesBytes()
+    public void Serialize_SimpleStruct_MappedClass_WritesBytes()
     {
         const string d = "struct test { uint16 a; uint16 b; };";
         var c = new CStruct(d, 1);
@@ -180,10 +183,27 @@ public class WriteSupport
     }
 
     /// <summary>Groups tests for poco test so changes to this behavior are caught.</summary>
-    private sealed class PocoTest
+    internal sealed class PocoTest : ICStructMapped<PocoTest>
     {
         public ushort A { get; set; }
 
         public ushort B { get; set; }
+
+        public static PocoTest ReadFrom(StructValue source)
+        {
+            return new PocoTest { A = source.Get<ushort>("a"), B = source.Get<ushort>("b"), };
+        }
+
+        public static void WriteTo(PocoTest value, StructValue target)
+        {
+            target["a"] = value.A;
+            target["b"] = value.B;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<PocoTest>();
+        }
     }
 }

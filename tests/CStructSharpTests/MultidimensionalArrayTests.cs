@@ -260,7 +260,7 @@ public class MultidimensionalArrayTests
             new List<object> { 8, 9, 10, 11, },
         ];
 
-        byte[] bytes = cstruct.Serialize("root", new { matrix, });
+        byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["matrix"] = matrix, });
 
         Assert.AreEqual(12, bytes.Length);
         CollectionAssert.AreEqual(Enumerable.Range(0, 12).Select(i => (byte)i).ToArray(), bytes);
@@ -302,7 +302,7 @@ public class MultidimensionalArrayTests
             cube.Add(plane);
         }
 
-        byte[] bytes = cstruct.Serialize("root", new { cube, });
+        byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["cube"] = cube, });
 
         Assert.AreEqual(24, bytes.Length);
         CollectionAssert.AreEqual(Enumerable.Range(0, 24).Select(i => (byte)i).ToArray(), bytes);
@@ -315,7 +315,7 @@ public class MultidimensionalArrayTests
         var cstruct = new CStruct("struct root { char names[3][4]; };", pointerSize: 1, aligned: false);
         List<object> names = ["abc", "defg", "ij",];
 
-        byte[] bytes = cstruct.Serialize("root", new { names, });
+        byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["names"] = names, });
 
         Assert.AreEqual(12, bytes.Length);
         using var stream = new MemoryStream(bytes);
@@ -338,7 +338,7 @@ public class MultidimensionalArrayTests
             new List<object> { 3, 4, },
         ];
 
-        Assert.Throws<CStructWriteException>(() => cstruct.Serialize("root", new { matrix, }));
+        Assert.Throws<CStructWriteException>(() => cstruct.Serialize("root", new Dictionary<string, object?> { ["matrix"] = matrix, }));
     }
 
     /// <summary>Supplying too few or too many rows is rejected the same way.</summary>
@@ -352,7 +352,7 @@ public class MultidimensionalArrayTests
             new List<object> { 4, 5, 6, 7, },
         ];
 
-        Assert.Throws<CStructWriteException>(() => cstruct.Serialize("root", new { matrix, }));
+        Assert.Throws<CStructWriteException>(() => cstruct.Serialize("root", new Dictionary<string, object?> { ["matrix"] = matrix, }));
     }
 
     /// <summary>

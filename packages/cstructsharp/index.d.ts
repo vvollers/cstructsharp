@@ -57,7 +57,6 @@ export interface SerializeOptions extends OperationOptions {
   addressingMode?: "Absolute" | "Relative";
   /** Address origin. Use a decimal string or bigint for an exact large integer. */
   origin?: number | string | bigint;
-  bindingMode?: "PublicReadable" | "PublicReadWrite";
   /** What a member the layout does not declare does: "Ignore" (default) or "Reject". */
   unknownMembers?: "Ignore" | "Reject";
   /** Default: 1,000,000. Configurable through 2,147,483,647; decoded results must fit memory. */

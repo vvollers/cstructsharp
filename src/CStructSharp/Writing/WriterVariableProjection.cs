@@ -34,7 +34,7 @@ internal static class WriterVariableProjection
 
         // Normal scalar values become literal expressions for following array counts and calculations. The field
         // still shadows a caller/definition value even when it cannot feed the Int32 expression language: this method
-        // receives arbitrary caller-supplied POCO/dynamic values (byte arrays, nested objects, out-of-range numbers).
+        // receives arbitrary caller-supplied dictionary/dynamic values (byte arrays, nested objects, out-of-range numbers).
         LayoutVariableCapture.Capture(state.Variables, name, value);
     }
 }

@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
@@ -156,13 +157,13 @@ public class MemoryIoTests
                                   };
                                   """;
         var cstruct = new CStruct(definition, pointerSize: 1, isLittleEndian: true, aligned: true);
-        var value = new
+        var value = new Dictionary<string, object?>
         {
-            low = 5,
-            high = 17,
-            value = 0x1234,
-            text = "OK",
-            selected = UnionValue.FromMember("choice", "wide", 0xABCD),
+            ["low"] = 5,
+            ["high"] = 17,
+            ["value"] = 0x1234,
+            ["text"] = "OK",
+            ["selected"] = UnionValue.FromMember("choice", "wide", 0xABCD),
         };
         byte[] expected = cstruct.Serialize("root", value);
 
@@ -198,7 +199,7 @@ public class MemoryIoTests
         byte[] destination = [0xA5,];
 
         Assert.Throws<CStructWriteException>(
-            () => cstruct.Serialize(destination.AsSpan(), "root", new { first = 1, second = 2, }));
+            () => cstruct.Serialize(destination.AsSpan(), "root", new Dictionary<string, object?> { ["first"] = 1, ["second"] = 2, }));
         CollectionAssert.AreEqual(new byte[] { 1, }, destination);
     }
 
@@ -218,12 +219,12 @@ public class MemoryIoTests
             "struct root { byte prefix[count]; byte low : 4; byte high : 4; uint16> tail; };",
             pointerSize: 1);
         var variables = new Dictionary<string, int> { ["count"] = count, };
-        var value = new
+        var value = new Dictionary<string, object?>
         {
-            prefix = Enumerable.Range(0, count).Select(index => (byte)index).ToArray(),
-            low = 0xA,
-            high = 0xB,
-            tail = 0x1234,
+            ["prefix"] = Enumerable.Range(0, count).Select(index => (byte)index).ToArray(),
+            ["low"] = 0xA,
+            ["high"] = 0xB,
+            ["tail"] = 0x1234,
         };
         byte[] expected = cstruct.Serialize("root", value, variables);
         var writer = new ArrayBufferWriter<byte>(128);
@@ -251,10 +252,10 @@ public class MemoryIoTests
             pointerSize: 1,
             aligned: true);
         var variables = new Dictionary<string, int> { ["count"] = count, };
-        var value = new
+        var value = new Dictionary<string, object?>
         {
-            prefix = new byte[count],
-            value = 0x0102030405060708UL,
+            ["prefix"] = new byte[count],
+            ["value"] = 0x0102030405060708UL,
         };
         byte[] expected = aligned.Serialize("root", value, variables);
         var writer = new ArrayBufferWriter<byte>(32);
@@ -268,14 +269,14 @@ public class MemoryIoTests
 
         var bitfield = new CStruct("struct root { byte low : 3; };", pointerSize: 1);
         byte[] destination = [0xFF, 0xA5,];
-        int bitfieldBytes = bitfield.Serialize(destination.AsSpan(), "root", new { low = 5, });
+        int bitfieldBytes = bitfield.Serialize(destination.AsSpan(), "root", new Dictionary<string, object?> { ["low"] = 5, });
         Assert.AreEqual(1, bitfieldBytes);
         Assert.AreEqual((byte)5, destination[0]);
         Assert.AreEqual((byte)0xA5, destination[1]);
     }
 
-    /// <summary>Receives a complete typed root from the memory reader.</summary>
-    public sealed class MemoryRoot
+    /// <summary>Receives a complete typed root from the memory reader through its own mapper.</summary>
+    public sealed class MemoryRoot : ICStructMapped<MemoryRoot>
     {
         /// <summary>Gets or sets the runtime child count.</summary>
         public byte Count { get; set; }
@@ -288,12 +289,54 @@ public class MemoryIoTests
 
         /// <summary>Gets or sets the exact enum projection.</summary>
         public MemoryStatus State { get; set; }
+
+        /// <summary>The mapper chooses the collection type; the library hands it arrays.</summary>
+        public static MemoryRoot ReadFrom(StructValue source)
+        {
+            return new MemoryRoot
+            {
+                Count = source.Get<byte>("count"),
+                Items = [.. source.Get<MemoryChild[]>("items")],
+                Name = source.Get<string>("name"),
+                State = source.Get<MemoryStatus>("state"),
+            };
+        }
+
+        public static void WriteTo(MemoryRoot value, StructValue target)
+        {
+            target["count"] = value.Count;
+            target["items"] = value.Items;
+            target["name"] = value.Name;
+            target["state"] = value.State;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<MemoryRoot>();
+        }
     }
 
     /// <summary>Receives one typed nested child.</summary>
-    public sealed class MemoryChild
+    public sealed class MemoryChild : ICStructMapped<MemoryChild>
     {
         /// <summary>Gets or sets the big-endian child value.</summary>
         public ushort Value { get; set; }
+
+        public static MemoryChild ReadFrom(StructValue source)
+        {
+            return new MemoryChild { Value = source.Get<ushort>("value"), };
+        }
+
+        public static void WriteTo(MemoryChild value, StructValue target)
+        {
+            target["value"] = value.Value;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<MemoryChild>();
+        }
     }
 }

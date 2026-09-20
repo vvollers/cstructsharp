@@ -45,10 +45,10 @@ namespace CStructSharp
         public object? ReadValue(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public object? ReadValue(System.ReadOnlySpan<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public object? ReadValue(byte[] source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
-        public T ReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
-        public T ReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
-        public T ReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(System.ReadOnlySpan<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
-        public T ReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(byte[] source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public T ReadValue<T>(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public T ReadValue<T>(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public T ReadValue<T>(System.ReadOnlySpan<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public T ReadValue<T>(byte[] source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ReadResult ReadValueWithDebug(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ReadResult ReadValueWithDebug(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ReadResult ReadValueWithDebug(System.ReadOnlySpan<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
@@ -61,10 +61,10 @@ namespace CStructSharp
         public long Serialize(System.Buffers.IBufferWriter<byte> destination, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.WriteOptions? options = null) { }
         public int Serialize(System.Span<byte> destination, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.WriteOptions? options = null) { }
         public string ToDefinition() { }
-        public bool TryReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(System.IO.Stream stream, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
-        public bool TryReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(System.ReadOnlyMemory<byte> source, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
-        public bool TryReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(System.ReadOnlySpan<byte> source, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
-        public bool TryReadValue<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(byte[] source, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public bool TryReadValue<T>(System.IO.Stream stream, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public bool TryReadValue<T>(System.ReadOnlyMemory<byte> source, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public bool TryReadValue<T>(System.ReadOnlySpan<byte> source, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public bool TryReadValue<T>(byte[] source, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public void Update(System.IO.Stream stream, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.UpdateOptions? options = null) { }
         public void Update(System.Span<byte> data, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.UpdateOptions? options = null) { }
         public CStructSharp.CStruct WithAlignment(bool aligned) { }
@@ -89,10 +89,17 @@ namespace CStructSharp
         public int MaxLayoutNestingDepth { get; init; }
         public string? Prelude { get; init; }
     }
-    public enum PocoBindingMode
+    public interface ICStructMapped<TSelf>
+        where TSelf : CStructSharp.ICStructMapped<TSelf>
     {
-        PublicReadable = 0,
-        PublicReadWrite = 1,
+        TSelf ReadFrom(CStructSharp.Values.StructValue source);
+        void WriteTo(TSelf value, CStructSharp.Values.StructValue target);
+    }
+    public static class MappedTypes
+    {
+        public static bool IsMapped(System.Type type) { }
+        public static void Register<T>()
+            where T : CStructSharp.ICStructMapped<T> { }
     }
     public enum PointerAddressingMode
     {
@@ -139,7 +146,6 @@ namespace CStructSharp
     {
         public WriteOptions() { }
         public CStructSharp.PointerAddressingMode AddressingMode { get; init; }
-        public CStructSharp.PocoBindingMode BindingMode { get; init; }
         public int MaxArrayElements { get; init; }
         public int MaxNestingDepth { get; init; }
         public long MaxStringBytes { get; init; }
@@ -638,11 +644,11 @@ namespace CStructSharp.Values
         public void Add(string name, object? value) { }
         public void Clear() { }
         public bool ContainsKey(string name) { }
-        public T Get<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(string path) { }
+        public T Get<T>(string path) { }
         public CStructSharp.Values.StructValue.Enumerator GetEnumerator() { }
         public bool Remove(string name) { }
         public override string ToString() { }
-        public bool TryGet<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(string path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value) { }
+        public bool TryGet<T>(string path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value) { }
         public bool TryGetValue(string name, out object? value) { }
         public struct Enumerator : System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.IEnumerator, System.IDisposable
         {
@@ -666,10 +672,10 @@ namespace CStructSharp.Values
         public string UnionName { get; }
         public System.Collections.Generic.IEnumerable<object?> Values { get; }
         public bool ContainsKey(string key) { }
-        public T Get<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(string path) { }
+        public T Get<T>(string path) { }
         public System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, object?>> GetEnumerator() { }
         public override string ToString() { }
-        public bool TryGet<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.None | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]  T>(string path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value) { }
+        public bool TryGet<T>(string path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value) { }
         public bool TryGetValue(string key, out object? value) { }
         public CStructSharp.Values.UnionValue WithSelectedMember(string memberName, object? value) { }
         public CStructSharp.Values.UnionValue WithoutSelection() { }

@@ -99,7 +99,7 @@ struct root {
 ```
 
 Here `x` and `y` are addressable directly as `root.x` and `root.y`, not `root.<something>.x`. Placement, size, and
-alignment are completely unaffected - promotion changes only which path/POCO/JSON name resolves to a field, not
+alignment are completely unaffected - promotion changes only which path/mapped-class/JSON name resolves to a field, not
 where it lives in the stream. Parsing, serializing, writing, and updating all treat `x` and `y` as if they were
 declared directly on `root`.
 
@@ -304,7 +304,7 @@ declaration (`struct node;`) is accepted and declares nothing: a self-referentia
 
 | Declaration | Storage | Direct result | Reusable name | Mistake to avoid |
 | --- | --- | --- | --- | --- |
-| Named struct | Sequential | Dynamic object or mapped POCO | Yes | Assuming host padding |
+| Named struct | Sequential | Dynamic object or mapped class | Yes | Assuming host padding |
 | Inline struct (named member) | Sequential, nested | Nested dynamic object | No | Assuming member promotion |
 | Inline struct (anonymous member) | Sequential, promoted | Spliced into the parent object | No | Assuming a nested container still exists |
 | Union | Overlapping | `UnionValue` | Yes | Guessing an active member |

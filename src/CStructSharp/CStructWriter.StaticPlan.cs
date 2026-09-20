@@ -116,7 +116,7 @@ public partial class CStruct
                 StaticReadOperation operation = operations[index];
                 CompiledField field = operation.Field;
                 string name = field.Declaration.Name.Name;
-                object value = GetMemberValue(sameShape, data, operation.Slot, name, state.BindingMode);
+                object value = GetMemberValue(sameShape, data, operation.Slot, name);
                 if (value is null)
                 {
                     throw new CStructWriteException("Null is valid only for a scalar pointer field: " + name);
@@ -138,7 +138,7 @@ public partial class CStruct
                 case StaticReadKind.Enum:
                     {
                         CompiledEnumType compiledEnum = field.Enum!;
-                        BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, value, state.BindingMode);
+                        BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, value);
                         field.Codec.WriteNumeric(bytes.Slice(operation.Offset, field.Codec.Size), compiledEnum.Integer.ToStorageValue(enumValue));
                         if (capture)
                         {
@@ -237,7 +237,7 @@ public partial class CStruct
     }
 
     /// <summary>The member lookup the general writer performs, using the slot directly for a value of this composite's own shape.</summary>
-    private static object GetMemberValue(StructValue? sameShape, object data, int slot, string name, PocoBindingMode bindingMode)
+    private static object GetMemberValue(StructValue? sameShape, object data, int slot, string name)
     {
         if (sameShape is not null)
         {
@@ -246,7 +246,7 @@ public partial class CStruct
                        : throw new CStructWriteException($"No value was supplied for '{name}'.");
         }
 
-        return PocoDataBinding.GetMemberValueOrThrow(data, name, bindingMode);
+        return WriteDataBinding.GetMemberValueOrThrow(data, name);
     }
 
     /// <summary>One numeric value with the general writer's conversion-failure translation.</summary>

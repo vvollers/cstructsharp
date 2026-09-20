@@ -2,7 +2,9 @@ namespace CStructSharp.Tests;
 
 using System.Collections;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Defines the checked CLR projection boundary layered over natural selected reads.</summary>
 [TestClass]
@@ -121,15 +123,16 @@ public class TypedValueConversionTests
     }
 
     /// <summary>
-    ///     Matching names can populate an ordinary C# model, including a model representing union views.
+    ///     A registered mapped class reads itself from the parsed struct, and a union reads as its natural
+    ///     <see cref="UnionValue"/>, whose members a mapper may pick from.
     /// </summary>
     /// <remarks>
-    ///     Unsupported constructors, unwritable or incompatible members, and failures while invoking model code must
-    ///     produce meaningful conversion errors. This tests object creation and binding after binary decoding, not a
-    ///     different byte format.
+    ///     A target that is not registered - an interface, a struct, an abstract class, a plain class - and a mapper
+    ///     that throws must produce meaningful conversion errors at the mapped path. This tests object creation after
+    ///     binary decoding, not a different byte format.
     /// </remarks>
     [TestMethod]
-    public void PocoProjection_ReportsConstructionAndMemberContracts()
+    public void MappedProjection_ReportsRegistrationAndMapperContracts()
     {
         var exact = new CStruct("struct root { byte Value; };");
         using (var stream = new MemoryStream([42,]))
@@ -141,21 +144,22 @@ public class TypedValueConversionTests
         var union = new CStruct("union choice { uint16 Wide; byte Small; };");
         using (var stream = new MemoryStream([0x34, 0x12,]))
         {
-            UnionProjection model = union.ReadValue<UnionProjection>(stream, "choice");
-            Assert.AreEqual((ushort)0x1234, model.Wide);
+            UnionValue model = union.ReadValue<UnionValue>(stream, "choice");
+            Assert.AreEqual((ushort)0x1234, model["Wide"]);
+            Assert.AreEqual((byte)0x34, model["Small"]);
         }
 
-        AssertPocoFailure<IModel>(exact, "mutable reference-type");
-        AssertPocoFailure<ValueModel>(exact, "mutable reference-type");
-        AssertPocoFailure<AbstractModel>(exact, "mutable reference-type");
-        AssertPocoFailure<NoPublicConstructor>(exact, "public parameterless constructor");
-        AssertPocoFailure<NoWritableMembers>(exact, "no public writable");
-        AssertPocoFailure<AmbiguousMembers>(exact, "ambiguous writable members");
-        AssertPocoFailure<ThrowingConstructor>(exact, "Cannot map");
-        AssertPocoFailure<ThrowingSetter>(exact, "Cannot map", "root.Value");
+        AssertMappingFailure<IModel>(exact, "Cannot map 'root'");
+        AssertMappingFailure<ValueModel>(exact, "Cannot map 'root'");
+        AssertMappingFailure<AbstractModel>(exact, "Cannot map 'root'");
+        AssertMappingFailure<NotRegistered>(exact, nameof(NotRegistered));
+        AssertMappingFailure<ThrowingMapper>(exact, "Cannot map 'root'");
+        AssertMappingFailure<WrongMemberMapper>(exact, "to 'System.DateTime'", "root.Value");
+        Assert.IsFalse(MappedTypes.IsMapped(typeof(NotRegistered)));
+        Assert.IsTrue(MappedTypes.IsMapped(typeof(ExactModel)));
     }
 
-    private static void AssertPocoFailure<T>(
+    private static void AssertMappingFailure<T>(
         CStruct cstruct,
         string expectedMessage,
         string expectedPath = "root")
@@ -189,53 +193,72 @@ public class TypedValueConversionTests
         public byte Value { get; set; }
     }
 
-    private sealed class ExactModel
+    internal sealed class ExactModel : ICStructMapped<ExactModel>
     {
         public byte Value { get; set; }
-    }
 
-    private sealed class UnionProjection
-    {
-        public ushort Wide { get; set; }
-    }
-
-    private sealed class NoPublicConstructor
-    {
-        private NoPublicConstructor()
+        public static ExactModel ReadFrom(StructValue source)
         {
+            return new ExactModel { Value = source.Get<byte>("Value"), };
         }
 
-        public byte Value { get; set; }
-    }
-
-    private sealed class NoWritableMembers
-    {
-        public byte Value => 0;
-    }
-
-    private sealed class AmbiguousMembers
-    {
-        public byte Value { get; set; }
-
-        public byte VALUE { get; set; }
-    }
-
-    private sealed class ThrowingConstructor
-    {
-        public ThrowingConstructor()
+        public static void WriteTo(ExactModel value, StructValue target)
         {
-            throw new InvalidOperationException("constructor failure");
+            target["Value"] = value.Value;
         }
 
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<ExactModel>();
+        }
+    }
+
+    private sealed class NotRegistered
+    {
         public byte Value { get; set; }
     }
 
-    private sealed class ThrowingSetter
+    internal sealed class ThrowingMapper : ICStructMapped<ThrowingMapper>
     {
-        public byte Value
+        public byte Value { get; set; }
+
+        public static ThrowingMapper ReadFrom(StructValue source)
         {
-            get => 0;
-            set => throw new InvalidOperationException("setter failure");
+            throw new InvalidOperationException("mapper failure");
+        }
+
+        public static void WriteTo(ThrowingMapper value, StructValue target)
+        {
+            target["Value"] = value.Value;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<ThrowingMapper>();
+        }
+    }
+
+    /// <summary>Asks for a conversion the member cannot make; the failure names the member's full path.</summary>
+    internal sealed class WrongMemberMapper : ICStructMapped<WrongMemberMapper>
+    {
+        public DateTime Value { get; set; }
+
+        public static WrongMemberMapper ReadFrom(StructValue source)
+        {
+            return new WrongMemberMapper { Value = source.Get<DateTime>("Value"), };
+        }
+
+        public static void WriteTo(WrongMemberMapper value, StructValue target)
+        {
+            target["Value"] = value.Value;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<WrongMemberMapper>();
         }
     }
 }

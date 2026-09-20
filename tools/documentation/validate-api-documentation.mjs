@@ -197,7 +197,7 @@ await main(() => {
           else missingTypeParameters.push(`${uid} :: ${id}`);
         }
       }
-      if (/^ {2}type: Method\r?$/m.test(item) && /^ {4}content: (?!(?:public (?:static |readonly |override |virtual |sealed )*)?void )/m.test(item)) {
+      if (/^ {2}type: Method\r?$/m.test(item) && /^ {4}content: (?!'?(?:public (?:static |abstract |readonly |override |virtual |sealed )*)?void )/m.test(item)) {
         returnCount++;
         const returnBlock = /^ {4}return:\r?\n([\s\S]*?)(?=^ {4}content\.vb:|^ {2}[A-Za-z]|(?![\s\S]))/m.exec(item);
         if (returnBlock && descriptionOf(returnBlock[1])) returnDescriptionCount++;

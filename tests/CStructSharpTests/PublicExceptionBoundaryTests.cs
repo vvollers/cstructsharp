@@ -381,16 +381,16 @@ public class PublicExceptionBoundaryTests
         var cstruct = CreateLayout();
 
         Assert.Throws<CStructWriteException>(() => cstruct.Serialize("root", null!));
-        Assert.Throws<CStructWriteException>(() => cstruct.Serialize("root", new { scalar = "not-a-byte", }));
+        Assert.Throws<CStructWriteException>(() => cstruct.Serialize("root", new Dictionary<string, object?> { ["scalar"] = "not-a-byte", }));
         Assert.Throws<CStructWriteException>(
             () => cstruct.Serialize(
                 "root",
-                new
+                new Dictionary<string, object?>
                 {
-                    scalar = (byte)1,
-                    values = new byte[] { 1, },
-                    nested = new { value = (byte)2, },
-                    link = (object?)null,
+                    ["scalar"] = (byte)1,
+                    ["values"] = new byte[] { 1, },
+                    ["nested"] = new Dictionary<string, object?> { ["value"] = (byte)2, },
+                    ["link"] = (object?)null,
                 }));
     }
 

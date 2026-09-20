@@ -63,7 +63,7 @@ through its own fields.
 
 The completed `CStruct` is immutable and supports concurrent operations without one global instance lock.
 Concurrency does not extend to mutable caller resources. Each operation needs its own stream, writer, mutable payload
-graph, POCO, or collection, or the application must synchronize that resource for the complete call.
+graph, mapped class, or collection, or the application must synchronize that resource for the complete call.
 
 Variable dictionaries are copied when an operation starts and must not change during that copy. Returned dynamic and
 debug objects belong to one operation and remain mutable application data. Init-only option objects can be shared

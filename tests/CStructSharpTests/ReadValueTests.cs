@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
@@ -8,7 +9,7 @@ using CStructSharp.Values;
 [TestClass]
 public class ReadValueTests
 {
-    private enum Mode : ushort
+    internal enum Mode : ushort
     {
         Ready = 2,
     }
@@ -267,15 +268,15 @@ public class ReadValueTests
     }
 
     /// <summary>
-    ///     A typedef root can read directly as int, and an array of item records can map into common C# collection
-    ///     shapes and public fields.
+    ///     A typedef root can read directly as int, and an array of item records maps into an array of mapped classes
+    ///     whose mapper fills a public field.
     /// </summary>
     /// <remarks>
     ///     Default-root TryReadValue must also populate the expected model. These checks show that typed reads are not
-    ///     restricted to property-only root classes.
+    ///     restricted to property-only root classes: the mapper decides how the value lands.
     /// </remarks>
     [TestMethod]
-    public void TypedRead_HandlesScalarRootsCollectionsFieldsAndDefaultTry()
+    public void TypedRead_HandlesScalarRootsArraysFieldsAndDefaultTry()
     {
         var scalar = new CStruct("typedef uint16 word;");
         using (var stream = new MemoryStream([0x34, 0x12,]))
@@ -290,9 +291,8 @@ public class ReadValueTests
         var cstruct = new CStruct(layout);
         using (var stream = new MemoryStream([2, 0x34, 0x12, 0x78, 0x56,]))
         {
-            IReadOnlyList<ItemFields> items =
-                cstruct.ReadValue<IReadOnlyList<ItemFields>>(stream, "root.items");
-            Assert.AreEqual(2, items.Count);
+            ItemFields[] items = cstruct.ReadValue<ItemFields[]>(stream, "root.items");
+            Assert.AreEqual(2, items.Length);
             Assert.AreEqual(0x1234, items[0].Value);
             Assert.AreEqual(0x5678, items[1].Value);
         }
@@ -307,15 +307,15 @@ public class ReadValueTests
     }
 
     /// <summary>
-    ///     The value 256 cannot fit a byte property, a requested model member may be absent, and value versus Value can
-    ///     make case-insensitive matching ambiguous.
+    ///     The value 256 cannot fit a byte property, a mapper may ask for a member the layout does not have, and an
+    ///     unregistered class is not a mapping target at all.
     /// </summary>
     /// <remarks>
-    ///     Each case must fail with a useful conversion path. The mapper must not truncate, invent missing values, or
-    ///     choose an ambiguous member arbitrarily.
+    ///     Each case must fail with a useful conversion path. The mapper must not truncate or invent missing values,
+    ///     and member names are exact: <c>value</c> and <c>Value</c> are two different members, never an ambiguity.
     /// </remarks>
     [TestMethod]
-    public void TypedRead_RejectsUnsafeOrAmbiguousMappings()
+    public void TypedRead_RejectsUnsafeOrUnmappedTargets()
     {
         var cstruct = new CStruct("struct root { uint16 value; };");
 
@@ -328,19 +328,25 @@ public class ReadValueTests
 
         using (var stream = new MemoryStream([1, 0,]))
         {
-            CStructReadException missing = Assert.Throws<CStructReadException>(
+            CStructPathException missing = Assert.Throws<CStructPathException>(
                 () => cstruct.ReadValue<MissingMember>(stream, "root"));
             Assert.AreEqual("root", missing.Path);
-            StringAssert.Contains(missing.Message, "source member 'Other' is missing");
+            StringAssert.Contains(missing.Message, "'other'");
         }
 
-        var ambiguous = new CStruct("struct root { byte value; byte Value; };");
+        using (var stream = new MemoryStream([1, 0,]))
+        {
+            CStructReadException unmapped = Assert.Throws<CStructReadException>(
+                () => cstruct.ReadValue<NotMapped>(stream, "root"));
+            Assert.AreEqual("root", unmapped.Path);
+            StringAssert.Contains(unmapped.Message, nameof(NotMapped));
+        }
+
+        var distinct = new CStruct("struct root { byte value; byte Value; };");
         using (var stream = new MemoryStream([1, 2,]))
         {
-            CStructReadException error = Assert.Throws<CStructReadException>(
-                () => ambiguous.ReadValue<UpperValue>(stream, "root"));
-            Assert.AreEqual("root", error.Path);
-            StringAssert.Contains(error.Message, "ambiguous");
+            UpperValue exact = distinct.ReadValue<UpperValue>(stream, "root");
+            Assert.AreEqual((byte)2, exact.VALUE);
         }
     }
 
@@ -424,12 +430,28 @@ public class ReadValueTests
         Assert.AreEqual(0L, stream.Position);
     }
 
-    private sealed class ChildModel
+    internal sealed class ChildModel : ICStructMapped<ChildModel>
     {
         public int Value { get; set; }
+
+        public static ChildModel ReadFrom(StructValue source)
+        {
+            return new ChildModel { Value = source.Get<int>("value"), };
+        }
+
+        public static void WriteTo(ChildModel value, StructValue target)
+        {
+            target["value"] = value.Value;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<ChildModel>();
+        }
     }
 
-    private sealed class RootModel
+    internal sealed class RootModel : ICStructMapped<RootModel>
     {
         public int Count { get; set; }
 
@@ -438,27 +460,121 @@ public class ReadValueTests
         public Mode State { get; set; }
 
         public Pointer Optional { get; set; } = null!;
+
+        public static RootModel ReadFrom(StructValue source)
+        {
+            return new RootModel
+            {
+                Count = source.Get<int>("count"),
+                Children = source.Get<ChildModel[]>("children"),
+                State = source.Get<Mode>("state"),
+                Optional = source.Get<Pointer>("optional"),
+            };
+        }
+
+        public static void WriteTo(RootModel value, StructValue target)
+        {
+            target["count"] = value.Count;
+            target["children"] = value.Children;
+            target["state"] = value.State;
+            target["optional"] = value.Optional;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<RootModel>();
+        }
     }
 
-    private sealed class ItemFields
+    internal sealed class ItemFields : ICStructMapped<ItemFields>
     {
-#pragma warning disable SA1401 // This fixture intentionally verifies public-field POCO mapping.
+#pragma warning disable SA1401 // This fixture intentionally verifies that a mapper may fill a public field.
         public int Value = -1;
 #pragma warning restore SA1401
+
+        public static ItemFields ReadFrom(StructValue source)
+        {
+            return new ItemFields { Value = source.Get<int>("value"), };
+        }
+
+        public static void WriteTo(ItemFields value, StructValue target)
+        {
+            target["value"] = value.Value;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<ItemFields>();
+        }
     }
 
-    private sealed class ByteValue
+    internal sealed class ByteValue : ICStructMapped<ByteValue>
     {
         public byte Value { get; set; }
+
+        public static ByteValue ReadFrom(StructValue source)
+        {
+            return new ByteValue { Value = source.Get<byte>("value"), };
+        }
+
+        public static void WriteTo(ByteValue value, StructValue target)
+        {
+            target["value"] = value.Value;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<ByteValue>();
+        }
     }
 
-    private sealed class MissingMember
+    internal sealed class MissingMember : ICStructMapped<MissingMember>
     {
         public int Other { get; set; }
+
+        public static MissingMember ReadFrom(StructValue source)
+        {
+            return new MissingMember { Other = source.Get<int>("other"), };
+        }
+
+        public static void WriteTo(MissingMember value, StructValue target)
+        {
+            target["other"] = value.Other;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<MissingMember>();
+        }
     }
 
-    private sealed class UpperValue
+    internal sealed class UpperValue : ICStructMapped<UpperValue>
     {
         public byte VALUE { get; set; }
+
+        public static UpperValue ReadFrom(StructValue source)
+        {
+            return new UpperValue { VALUE = source.Get<byte>("Value"), };
+        }
+
+        public static void WriteTo(UpperValue value, StructValue target)
+        {
+            target["Value"] = value.VALUE;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<UpperValue>();
+        }
+    }
+
+    private sealed class NotMapped
+    {
+        public byte Value { get; set; }
     }
 }

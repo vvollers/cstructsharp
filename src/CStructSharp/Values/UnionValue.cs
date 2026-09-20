@@ -199,12 +199,12 @@ public sealed class UnionValue : IDynamicMetaObjectProvider, IReadOnlyDictionary
     ///     Reads a member, or a nested value below it, as <typeparamref name="T"/> with the same checked conversion
     ///     <c>ReadValue&lt;T&gt;</c> applies - <c>choice.Get&lt;ushort&gt;("wide")</c>.
     /// </summary>
-    /// <typeparam name="T">The destination type; a POCO needs a public parameterless constructor and public bindable members.</typeparam>
+    /// <typeparam name="T">The destination type: a scalar, string, enum, array, <see cref="StructValue"/>, <see cref="UnionValue"/>, <see cref="Pointer"/>, or a class implementing <see cref="ICStructMapped{TSelf}"/>.</typeparam>
     /// <param name="path">A member name, or a dotted and indexed path relative to this union.</param>
     /// <returns>The converted value.</returns>
     /// <exception cref="CStructPathException">The path is malformed or selects nothing; the message names the failing segment and the members that exist.</exception>
     /// <exception cref="CStructReadException">The value cannot be converted to <typeparamref name="T"/> without loss.</exception>
-    public T Get<[DynamicallyAccessedMembers(TypedValueConverter.MappedMembers)] T>(string path)
+    public T Get<T>(string path)
     {
         ArgumentNullException.ThrowIfNull(path);
         if (!ValuePath.TryResolve(this, path, out object? value, out string? failure))
@@ -219,11 +219,11 @@ public sealed class UnionValue : IDynamicMetaObjectProvider, IReadOnlyDictionary
     ///     Reads a member, or a nested value below it, as <typeparamref name="T"/>; returns <see langword="false"/>
     ///     instead of throwing when the path selects nothing or the value does not convert.
     /// </summary>
-    /// <typeparam name="T">The destination type; a POCO needs a public parameterless constructor and public bindable members.</typeparam>
+    /// <typeparam name="T">The destination type: a scalar, string, enum, array, <see cref="StructValue"/>, <see cref="UnionValue"/>, <see cref="Pointer"/>, or a class implementing <see cref="ICStructMapped{TSelf}"/>.</typeparam>
     /// <param name="path">A member name, or a dotted and indexed path relative to this union.</param>
     /// <param name="value">The converted value, or <see langword="default"/> when the method returns <see langword="false"/>.</param>
     /// <returns><see langword="true"/> when the path resolved and the value converted.</returns>
-    public bool TryGet<[DynamicallyAccessedMembers(TypedValueConverter.MappedMembers)] T>(string path, [MaybeNullWhen(false)] out T value)
+    public bool TryGet<T>(string path, [MaybeNullWhen(false)] out T value)
     {
         ArgumentNullException.ThrowIfNull(path);
         if (!ValuePath.TryResolve(this, path, out object? natural, out _))

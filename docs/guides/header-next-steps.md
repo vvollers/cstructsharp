@@ -21,9 +21,12 @@ Truncated read succeeds = False
 
 ## Create bytes
 
-`Serialize` allocates a new byte array and writes the fields according to the layout. `Header` is an ordinary C#
-class defined at the bottom of this program. Its `ushort` property matches the two-byte unsigned `uint16` field;
-its `uint` property matches `uint32`. These property names have an unambiguous case-insensitive match to the layout.
+`Serialize` allocates a new byte array and writes the fields according to the layout. `Header` is a C# class
+defined at the bottom of this program that implements `ICStructMapped<Header>`: its `WriteTo` stores `Kind` under
+the layout name `kind` and `Length` under `length`, and its `ReadFrom` does the reverse with `Get<T>`, whose
+conversions are range-checked (`ushort` for the two-byte `uint16`, `uint` for `uint32`). The `[ModuleInitializer]`
+method registers the class before any other code runs; the `[CStructMapped]` source generator writes all of this
+for a `partial` class, so the hand-written version is here to show what it does.
 
 ## Change existing bytes
 
@@ -33,8 +36,8 @@ in memory and lets the library move to the selected position. An update cannot i
 
 ## Read into a class and handle missing bytes
 
-`ReadValue<Header>` gives application code typed properties. The byte array is read in place; a
-`ReadOnlySpan<byte>` or `ReadOnlyMemory<byte>` slice of a larger buffer works the same way.
+`ReadValue<Header>` gives application code typed properties through `Header`'s own `ReadFrom`. The byte array is
+read in place; a `ReadOnlySpan<byte>` or `ReadOnlyMemory<byte>` slice of a larger buffer works the same way.
 
 The last read has only one byte. `TryReadValue` returns `false` for this expected library failure. Invalid method
 arguments can still throw; it is not a way to suppress every programming error.

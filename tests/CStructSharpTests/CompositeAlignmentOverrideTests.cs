@@ -124,10 +124,10 @@ public class CompositeAlignmentOverrideTests
         var cstruct = new CStruct("struct root @align(1) { uint8 a; uint32 b; };", aligned: true);
 
         using var writeStream = new MemoryStream();
-        cstruct.Write(writeStream, "root", new { a = (byte)1, b = 0x04030201u, });
+        cstruct.Write(writeStream, "root", new Dictionary<string, object?> { ["a"] = (byte)1, ["b"] = 0x04030201u, });
         CollectionAssert.AreEqual(new byte[] { 1, 1, 2, 3, 4, }, writeStream.ToArray());
 
-        byte[] bytes = cstruct.Serialize("root", new { a = (byte)1, b = 0x04030201u, });
+        byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["a"] = (byte)1, ["b"] = 0x04030201u, });
         CollectionAssert.AreEqual(new byte[] { 1, 1, 2, 3, 4, }, bytes);
 
         using var readStream = new MemoryStream(bytes);

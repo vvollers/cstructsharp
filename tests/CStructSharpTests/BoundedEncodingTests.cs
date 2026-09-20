@@ -64,7 +64,7 @@ public class BoundedEncodingTests
             using var stream = new MemoryStream(new byte[] { 0, 99 });
             Assert.Throws<CStructReadException>(() => odd.Parse(stream, "root"));
             Assert.AreEqual(1L, stream.Position);
-            Assert.Throws<CStructWriteException>(() => odd.Serialize("root", new { name = string.Empty, tail = 99 }));
+            Assert.Throws<CStructWriteException>(() => odd.Serialize("root", new Dictionary<string, object?> { ["name"] = string.Empty, ["tail"] = 99 }));
         }
     }
 

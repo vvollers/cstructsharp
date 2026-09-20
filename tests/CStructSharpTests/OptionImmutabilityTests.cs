@@ -62,7 +62,6 @@ public class OptionImmutabilityTests
         Assert.AreEqual(PointerAddressingMode.Absolute, readOptions.AddressingMode);
         Assert.IsTrue(readOptions.DereferencePointers);
         Assert.AreEqual(1_000_000, readOptions.MaxArrayElements);
-        Assert.AreEqual(PocoBindingMode.PublicReadable, writeOptions.BindingMode);
         Assert.AreEqual(64 * 1024 * 1024L, writeOptions.MaxTotalBytesWritten);
         Assert.IsTrue(updateOptions.DereferencePointers);
         Assert.IsTrue(updateOptions.RequireExistingPointerTarget);

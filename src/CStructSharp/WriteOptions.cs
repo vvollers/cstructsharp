@@ -2,16 +2,6 @@ namespace CStructSharp;
 
 using CStructSharp.Writing;
 
-/// <summary>Lists which public members are allowed when writing ordinary .NET objects.</summary>
-public enum PocoBindingMode
-{
-    /// <summary>Any public readable property or public field may supply a layout value.</summary>
-    PublicReadable,
-
-    /// <summary>Only public read/write properties and public fields may supply a layout value.</summary>
-    PublicReadWrite,
-}
-
 /// <summary>Says what a write does with a supplied member that the layout does not declare.</summary>
 public enum UnknownMemberPolicy
 {
@@ -33,16 +23,13 @@ public enum UnknownMemberPolicy
 /// </remarks>
 public record WriteOptions
 {
-    /// <summary>Creates the default bounded write and object-binding policy.</summary>
+    /// <summary>Creates the default bounded write policy.</summary>
     public WriteOptions()
     {
     }
 
     /// <summary>Gets whether written pointer values are absolute stream positions or offsets from <see cref="Origin"/>.</summary>
     public PointerAddressingMode AddressingMode { get; init; } = PointerAddressingMode.Absolute;
-
-    /// <summary>Gets which readable .NET properties can supply layout field values.</summary>
-    public PocoBindingMode BindingMode { get; init; } = PocoBindingMode.PublicReadable;
 
     /// <summary>
     ///     Gets what happens when the supplied value carries a member the struct or union does not declare - a

@@ -38,24 +38,19 @@ Open the address printed by Vite. Changes to Vue update during development; chan
 
 `src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj` builds with `PublishTrimmed` and `TrimMode=full`, declares the
 bridge assembly trimmable for this publish (the library itself ships as `IsTrimmable`/`IsAotCompatible`), roots
-nothing, and publishes with trim analysis on: the library carries `[DynamicallyAccessedMembers]` annotations on
-its typed-read and POCO-binding paths, so the linker has nothing to warn about. The browser value-conversion rules
+nothing, and publishes with trim analysis on: the library uses no reflection (typed reads and writes go through
+`ICStructMapped<T>`), so the linker has nothing to warn about. The browser value-conversion rules
 make these settings possible:
 
 - No C# runtime-binder call site executes in the browser build. Parsed values are `StructValue` objects, and the
   bridge and the benchmark exports handle every library result as `object`. `Microsoft.CSharp` is not part of the
   publication, and `System.Linq.Expressions` is trimmed to the `IDynamicMetaObjectProvider` surface the value
   types implement. This avoids loading and initializing the runtime binder for a parse.
-- The library's reflection paths (`PocoDataBinding`'s POCO-member fallback and `TypedValueConverter`'s object
-  conversion) are statically reachable from `Serialize`/`Update` but never executed from JavaScript:
-  `ParseJsonValue` in `CStructJsonConversion.cs` always produces dictionary/list shapes. One consequence stands:
-  the `bindingMode` interop option (`WriteOptions.BindingMode`) has no observable effect through the JS API.
-- The project switches the library's `CStructSharp.CompiledAccessors` feature off (a
-  `RuntimeHostConfigurationOption` with `Trim="true"`). The compiled POCO accessors (`PocoCompiledAccessors`)
-  are behind that switch, so the trimmer removes them - and `System.Linq.Expressions` with them - from the
-  publication, where they would never run; the browser keeps reflection for the POCO fallback it never takes.
-  (Declaring dynamic code unsupported would trim the same code but was measured to add ≈ 820 B of managed
-  allocation to every export call through `System.Text.Json`, so the library-specific switch is used instead.)
+- The library has no reflection-based data binding: write data is a `StructValue`, a dictionary, or a class
+  implementing `ICStructMapped<T>`, and `ParseJsonValue` in `CStructJsonConversion.cs` always produces
+  dictionary/list shapes, so the browser build never registers a mapped type. (Declaring dynamic code unsupported
+  was measured to add ≈ 820 B of managed allocation to every export call through `System.Text.Json`, so the
+  project relies on trimming alone.)
 
 Measured effect of the full trim (publication as shipped by `publish-wasm.mjs`): 33 → 27 files, 5.35 → 4.36 MB
 raw, 2.05 → 1.66 MB gzip; Node cold start: first public parse 142 → 17 ms, process wall −25 %; runtime creation

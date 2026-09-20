@@ -13,7 +13,7 @@ configured limits.
 
 ## Struct, array, union, and pointer inputs
 
-A whole struct write needs every required field. It may come from a dictionary, `ExpandoObject`, parsed `StructValue`, readable POCO, or a
+A whole struct write needs every required field. It may come from a dictionary, `ExpandoObject`, parsed `StructValue`, registered mapped class, or a
 dynamic object returned by parsing.
 
 Selecting a fixed array field requires the complete collection with exactly the declared count. Selecting one indexed
@@ -26,7 +26,7 @@ A whole union write accepts `UnionValue`:
 - a new selected-member write starts with zero-filled union storage; and
 - a wrong union name, raw length, or member name fails before union bytes are submitted.
 
-Dictionary, expando, or POCO values cannot stand in for a whole union because they do not state which member
+Dictionary, expando, or mapped-class values cannot stand in for a whole union because they do not state which member
 or raw bytes to preserve. `Members` and raw storage are read-only snapshots. `WithoutSelection` returns to raw
 pass-through when a raw snapshot exists.
 

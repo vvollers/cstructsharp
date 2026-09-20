@@ -4,6 +4,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using global::CStructSharp;
 using global::CStructSharp.Diagnostics;
 using global::CStructSharp.Values;
@@ -291,19 +292,55 @@ internal static partial class Program
         throw new InvalidOperationException($"Expected {typeof(TException).Name}.");
     }
 
-    public sealed class Header
+    public sealed class Header : ICStructMapped<Header>
     {
         public ushort Kind { get; set; }
 
         public uint Length { get; set; }
+
+        public static Header ReadFrom(StructValue source)
+        {
+            return new Header { Kind = source.Get<ushort>("kind"), Length = source.Get<uint>("length") };
+        }
+
+        public static void WriteTo(Header value, StructValue target)
+        {
+            target["kind"] = value.Kind;
+            target["length"] = value.Length;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<Header>();
+        }
     }
 
     #region api-guide-map-poco-type
-    public sealed class Point
+    public sealed class Point : ICStructMapped<Point>
     {
         public short X { get; set; }
 
         public short Y { get; set; }
+
+        // The mapper names the layout members it reads; Get<T> converts each one with range checks.
+        public static Point ReadFrom(StructValue source)
+        {
+            return new Point { X = source.Get<short>("x"), Y = source.Get<short>("y") };
+        }
+
+        public static void WriteTo(Point value, StructValue target)
+        {
+            target["x"] = value.X;
+            target["y"] = value.Y;
+        }
+
+        // Runs before any other code in the assembly; the [CStructMapped] generator emits the same registration.
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<Point>();
+        }
     }
     #endregion
 }

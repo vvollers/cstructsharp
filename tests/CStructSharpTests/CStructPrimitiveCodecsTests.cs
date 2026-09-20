@@ -23,7 +23,7 @@ public class CStructPrimitiveCodecsTests
         var little = new CStruct(Layout, pointerSize: 1, isLittleEndian: true);
         var big = new CStruct(Layout, pointerSize: 1, isLittleEndian: false);
 
-        byte[] bytes = little.Serialize("root", new { value = 0x11223344, pair = (ushort)0xAABB, });
+        byte[] bytes = little.Serialize("root", new Dictionary<string, object?> { ["value"] = 0x11223344, ["pair"] = (ushort)0xAABB, });
 
         using var littleStream = new MemoryStream(bytes);
         dynamic parsedLittle = little.Parse(littleStream, "root");
@@ -37,7 +37,7 @@ public class CStructPrimitiveCodecsTests
         Assert.AreNotEqual(0x11223344, parsedBig.value);
         Assert.AreNotEqual((ushort)0xAABB, parsedBig.pair);
 
-        byte[] bigBytes = big.Serialize("root", new { value = 0x11223344, pair = (ushort)0xAABB, });
+        byte[] bigBytes = big.Serialize("root", new Dictionary<string, object?> { ["value"] = 0x11223344, ["pair"] = (ushort)0xAABB, });
         CollectionAssert.AreNotEqual(bytes, bigBytes);
     }
 
@@ -54,7 +54,7 @@ public class CStructPrimitiveCodecsTests
             bool isLittleEndian = i % 2 == 0;
             var cstruct = new CStruct(Layout, pointerSize: 1, isLittleEndian: isLittleEndian);
 
-            byte[] bytes = cstruct.Serialize("root", new { value = 1, pair = (ushort)2, });
+            byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["value"] = 1, ["pair"] = (ushort)2, });
             using var stream = new MemoryStream(bytes);
             dynamic parsed = cstruct.Parse(stream, "root");
 

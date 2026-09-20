@@ -13,8 +13,7 @@ internal static class EnumFieldValueParser
     /// <summary>Accepts one exact enum input shape and validates all supplied metadata against the compiled declaration.</summary>
     public static BigInteger GetEnumValue(
         CompiledEnumType compiled,
-        object value,
-        PocoBindingMode bindingMode)
+        object value)
     {
         try
         {
@@ -57,7 +56,7 @@ internal static class EnumFieldValueParser
             }
             else
             {
-                result = GetEnumObjectValue(compiled, value, bindingMode);
+                result = GetEnumObjectValue(compiled, value);
             }
 
             compiled.Integer.EnsureInRange(result);
@@ -76,7 +75,7 @@ internal static class EnumFieldValueParser
         }
     }
 
-    /// <summary>Reads the browser/POCO enum object shape and rejects absent or contradictory metadata.</summary>
+    /// <summary>Reads the browser/dictionary enum object shape and rejects absent or contradictory metadata.</summary>
     private static BigInteger CombineFlagMembers(CompiledEnumType compiled, System.Collections.Generic.IEnumerable<string> names)
     {
         ulong rawBits = 0;
@@ -100,16 +99,15 @@ internal static class EnumFieldValueParser
 
     private static BigInteger GetEnumObjectValue(
         CompiledEnumType compiled,
-        object value,
-        PocoBindingMode bindingMode)
+        object value)
     {
-        bool hasEnum = PocoDataBinding.TryGetMemberValue(value, "Enum", bindingMode, out object enumName);
+        bool hasEnum = WriteDataBinding.TryGetMemberValue(value, "Enum", out object enumName);
         if (hasEnum && enumName is not null)
         {
             ValidateEnumName(compiled, enumName.ToString());
         }
 
-        bool hasName = PocoDataBinding.TryGetMemberValue(value, "Name", bindingMode, out object memberName);
+        bool hasName = WriteDataBinding.TryGetMemberValue(value, "Name", out object memberName);
         BigInteger? namedValue = null;
         string? selectedName = memberName?.ToString();
         if (hasName && selectedName is not null)
@@ -123,7 +121,7 @@ internal static class EnumFieldValueParser
             namedValue = compiled.Integer.FromRawBits(member.RawBits);
         }
 
-        bool hasValue = PocoDataBinding.TryGetMemberValue(value, "Value", bindingMode, out object rawValue);
+        bool hasValue = WriteDataBinding.TryGetMemberValue(value, "Value", out object rawValue);
         BigInteger? numericValue = null;
         if (hasValue && rawValue is not null)
         {

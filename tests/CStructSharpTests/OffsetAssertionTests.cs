@@ -88,7 +88,7 @@ public class OffsetAssertionTests
         Assert.Throws<CStructLayoutException>(
             () => cstruct.Serialize(
                 "root",
-                new { count = (byte)2, items = new byte[] { 10, 20, }, tail = (byte)42, }));
+                new Dictionary<string, object?> { ["count"] = (byte)2, ["items"] = new byte[] { 10, 20, }, ["tail"] = (byte)42, }));
     }
 
     /// <summary>A negative offset is rejected regardless of what the field's actual placement would be.</summary>
@@ -138,10 +138,10 @@ public class OffsetAssertionTests
         var cstruct = new CStruct("struct root { uint8 a; uint8 b; uint8 value @2; };");
 
         using var writeStream = new MemoryStream();
-        cstruct.Write(writeStream, "root", new { a = (byte)1, b = (byte)2, value = (byte)3, });
+        cstruct.Write(writeStream, "root", new Dictionary<string, object?> { ["a"] = (byte)1, ["b"] = (byte)2, ["value"] = (byte)3, });
         CollectionAssert.AreEqual(new byte[] { 1, 2, 3, }, writeStream.ToArray());
 
-        byte[] bytes = cstruct.Serialize("root", new { a = (byte)1, b = (byte)2, value = (byte)3, });
+        byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["a"] = (byte)1, ["b"] = (byte)2, ["value"] = (byte)3, });
         CollectionAssert.AreEqual(new byte[] { 1, 2, 3, }, bytes);
 
         using var readStream = new MemoryStream(bytes);

@@ -160,12 +160,12 @@ do not nest. The parser accepts pointer stars adjacent to either token (`uint8* 
 normalizes the total star count.
 
 An `inline-struct-field`'s trailing `identifier` is optional: when omitted, this is an *anonymous promoted
-member* - its own fields splice directly into the containing struct's addressable path/POCO/JSON namespace
+member* - its own fields splice directly into the containing struct's addressable path/mapped-class/JSON namespace
 (`root.x`, not `root.<name>.x`) instead of nesting under a name of their own. The empty declarator name reuses the
 same sentinel `anonymous-bitfield` already established for a nameless field. Promotion is transitive (an anonymous
 member's own anonymous members promote further) and a name collision anywhere in the flattened, transitively-promoted
 namespace is a construction-time error. Placement, size, and alignment are unaffected - this changes only which
-path/POCO/JSON name resolves to a field. Promotion is supported for inline structs, not inline unions.
+path/mapped-class/JSON name resolves to a field. Promotion is supported for inline structs, not inline unions.
 A field referencing a separately declared named union is supported. See
 [Structs, unions, enums, and typedefs](structs-unions-enums-typedefs.md#anonymous-promoted-members).
 
@@ -189,7 +189,7 @@ leading `struct`, `union`, or `enum` keyword (`struct child value;`), matching h
 the keyword is checked against the referenced declaration's actual kind at construction time and rejected on a
 mismatch, but otherwise has no effect - `struct child value;` and `child value;` compile to the identical field. A
 declarator with a bit width and no name at all (`anonymous-bitfield`) reserves storage as pure padding -
-its bits are consumed from the shared storage unit but it never becomes an addressable path, POCO member, or JSON
+its bits are consumed from the shared storage unit but it never becomes an addressable path, mapped-class member, or JSON
 field (`uint8 flag:1, :3, other:4;`). This applies to any declarator after the first without ambiguity, since its
 type is already fixed by the field's shared `type-name`. The first declarator is a special case: when exactly one
 word appears before it and a bit width follows, that one word is the whole `type-name` and the first declarator

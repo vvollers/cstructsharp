@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests;
 
+using System.Runtime.CompilerServices;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
@@ -158,7 +159,7 @@ public class InlineUnionTests
         Assert.AreEqual(2, new CStruct("struct r { uint8 t; union { uint8 a; uint8 b; }; };").GetStructSizeInBytes("r"));
     }
 
-    private sealed class FileName
+    internal sealed class FileName : ICStructMapped<FileName>
     {
         public uint Attributes { get; set; }
 
@@ -169,5 +170,33 @@ public class InlineUnionTests
         public uint ReparseTag { get; set; }
 
         public byte NameLength { get; set; }
+
+        /// <summary>Anonymous union and struct members are promoted, so every leaf is addressable by its own name.</summary>
+        public static FileName ReadFrom(StructValue source)
+        {
+            return new FileName
+            {
+                Attributes = source.Get<uint>("Attributes"),
+                EaSize = source.Get<ushort>("EaSize"),
+                Reserved = source.Get<ushort>("Reserved"),
+                ReparseTag = source.Get<uint>("ReparseTag"),
+                NameLength = source.Get<byte>("NameLength"),
+            };
+        }
+
+        public static void WriteTo(FileName value, StructValue target)
+        {
+            target["Attributes"] = value.Attributes;
+            target["EaSize"] = value.EaSize;
+            target["Reserved"] = value.Reserved;
+            target["ReparseTag"] = value.ReparseTag;
+            target["NameLength"] = value.NameLength;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<FileName>();
+        }
     }
 }

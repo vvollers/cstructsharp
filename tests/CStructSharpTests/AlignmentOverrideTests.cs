@@ -21,7 +21,7 @@ public class AlignmentOverrideTests
         Assert.AreEqual(8, cstruct.GetStructSizeInBytes("root"));
         Assert.AreEqual(4, cstruct.GetStructAlignmentInBytes("root"));
 
-        byte[] bytes = cstruct.Serialize("root", new { a = (byte)1, value = (byte)2, });
+        byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["a"] = (byte)1, ["value"] = (byte)2, });
         CollectionAssert.AreEqual(new byte[] { 1, 0, 0, 0, 2, 0, 0, 0, }, bytes);
     }
 
@@ -36,7 +36,7 @@ public class AlignmentOverrideTests
 
         Assert.AreEqual(2, cstruct.GetStructSizeInBytes("root"));
 
-        byte[] bytes = cstruct.Serialize("root", new { a = (byte)1, value = (byte)2, });
+        byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["a"] = (byte)1, ["value"] = (byte)2, });
         CollectionAssert.AreEqual(new byte[] { 1, 2, }, bytes);
     }
 
@@ -104,10 +104,10 @@ public class AlignmentOverrideTests
         var cstruct = new CStruct("struct root { uint8 a; uint8 value @align(4); };", aligned: true);
 
         using var writeStream = new MemoryStream();
-        cstruct.Write(writeStream, "root", new { a = (byte)1, value = (byte)2, });
+        cstruct.Write(writeStream, "root", new Dictionary<string, object?> { ["a"] = (byte)1, ["value"] = (byte)2, });
         CollectionAssert.AreEqual(new byte[] { 1, 0, 0, 0, 2, 0, 0, 0, }, writeStream.ToArray());
 
-        byte[] bytes = cstruct.Serialize("root", new { a = (byte)1, value = (byte)2, });
+        byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["a"] = (byte)1, ["value"] = (byte)2, });
         CollectionAssert.AreEqual(new byte[] { 1, 0, 0, 0, 2, 0, 0, 0, }, bytes);
 
         using var readStream = new MemoryStream(bytes);

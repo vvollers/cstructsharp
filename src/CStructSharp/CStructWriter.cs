@@ -2,6 +2,7 @@ namespace CStructSharp;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -41,7 +42,7 @@ public partial class CStruct
         if (compiledField.Enum is { } compiledBitfieldEnum)
         {
             value = compiledBitfieldEnum.Integer.ToRawBits(
-                EnumFieldValueParser.GetEnumValue(compiledBitfieldEnum, value, state.BindingMode));
+                EnumFieldValueParser.GetEnumValue(compiledBitfieldEnum, value));
         }
 
         // Work out the size of the whole storage unit first, not just the small field being changed: the placed
@@ -171,6 +172,18 @@ public partial class CStruct
         }
     }
 
+    /// <summary>The composite a struct root or an inline-struct typedef root writes; false for scalar roots.</summary>
+    private bool TryGetRootComposite(CStructElement rootElement, [NotNullWhen(true)] out CompiledCompositeType? composite)
+    {
+        composite = rootElement switch
+        {
+            Struct s => this.compiledSizeQueries.GetCompiledComposite(s),
+            Typedef { Struct: not null } t => this.compiledSizeQueries.GetCompiledComposite(t.Struct),
+            _ => null,
+        };
+        return composite is not null;
+    }
+
     /// <summary>Writes one struct or union while charging exactly one active composite-depth level.</summary>
     private void WriteStruct(CompiledCompositeType composite, object data, CStructElementWriterState state)
     {
@@ -179,10 +192,13 @@ public partial class CStruct
             throw new CStructWriteException("Null is not valid for struct or union value: " + composite.Name);
         }
 
+        // A mapped-class instance becomes a StructValue of this composite's shape once, here, so every path
+        // below (static plan included) reads plain members.
+        data = WriteDataBinding.Materialize(data, composite);
         if (state.RejectUnknownMembers)
         {
             // Checked before the static plan, which writes nested composites without re-entering this method.
-            RejectUnknownMembers(composite, data, state.BindingMode);
+            RejectUnknownMembers(composite, data);
         }
 
         // Static write plan: a fully fixed composite is encoded into one block and written once when that
@@ -211,7 +227,7 @@ public partial class CStruct
                 {
                     foreach (string name in field.VisibleNames)
                     {
-                        if (PocoDataBinding.TryGetMemberValue(data, name, state.BindingMode, out _))
+                        if (WriteDataBinding.TryGetMemberValue(data, name, out _))
                         {
                             throw new CStructWriteException("Inactive conditional field supplied: " + name);
                         }
@@ -262,10 +278,7 @@ public partial class CStruct
                 // Require every ordinary struct field. Missing values would make the byte layout ambiguous.
                 try
                 {
-                    object fieldValue = PocoDataBinding.GetMemberValueOrThrow(
-                        data,
-                        field.Name,
-                        state.BindingMode);
+                    object fieldValue = WriteDataBinding.GetMemberValueOrThrow(data, field.Name);
                     this.WriteFieldValue(field, fieldValue, state, -1, cursor);
                 }
                 catch (CStructException exception) when (exception.NoteMember(field.Name, field.DisplayTypeSpelling))
@@ -316,7 +329,7 @@ public partial class CStruct
             }
 
             string name = member.Name;
-            if (name.Length > 0 && PocoDataBinding.TryGetMemberValue(data, name, state.BindingMode, out object? value))
+            if (name.Length > 0 && WriteDataBinding.TryGetMemberValue(data, name, out object? value))
             {
                 selected = member;
                 selectedValue = value;
@@ -371,7 +384,7 @@ public partial class CStruct
             }
 
             string name = member.Name;
-            if (name.Length > 0 && PocoDataBinding.TryGetMemberValue(data, name, state.BindingMode, out _))
+            if (name.Length > 0 && WriteDataBinding.TryGetMemberValue(data, name, out _))
             {
                 return true;
             }
@@ -481,44 +494,30 @@ public partial class CStruct
 
     /// <summary>
     ///     <see cref="UnknownMemberPolicy.Reject"/>: every member the supplied value carries must be one the composite
-    ///     declares. Dictionaries are matched by exact key (the lookup the writer performs); .NET objects by the
-    ///     case-insensitive member resolution POCO binding uses. A parsed <see cref="UnionValue"/> is trusted.
+    ///     declares, matched by exact key (the lookup the writer performs). A parsed <see cref="UnionValue"/> is
+    ///     trusted; a mapped class was materialized into the composite's own shape and so cannot carry an unknown key.
     /// </summary>
-    private static void RejectUnknownMembers(CompiledCompositeType composite, object data, PocoBindingMode bindingMode)
+    private static void RejectUnknownMembers(CompiledCompositeType composite, object data)
     {
         StructShape shape = composite.Shape;
-        switch (data)
+        if (data is UnionValue)
         {
-        case UnionValue:
             return;
-        case IDictionary<string, object?> members:
-            foreach (string key in members.Keys)
-            {
-                if (!shape.TryGetIndex(key, out _))
-                {
-                    throw UnknownMember(composite, key);
-                }
-            }
-
-            break;
-        default:
-            foreach (string member in PocoDataBinding.EnumerateMemberNames(TypedValueConverter.DeclaredMappedType(data.GetType()), bindingMode))
-            {
-                if (!shape.TryGetIndex(member, out _) &&
-                    !shape.Names.Any(name => string.Equals(name, member, StringComparison.OrdinalIgnoreCase)))
-                {
-                    throw UnknownMember(composite, member);
-                }
-            }
-
-            break;
         }
 
-        RejectUnknownNestedMembers(composite, data, bindingMode);
+        foreach (string key in WriteDataBinding.EnumerateMemberNames(data))
+        {
+            if (!shape.TryGetIndex(key, out _))
+            {
+                throw UnknownMember(composite, key);
+            }
+        }
+
+        RejectUnknownNestedMembers(composite, data);
     }
 
     /// <summary>Applies the same check to every by-value nested struct the composite declares, arrays included.</summary>
-    private static void RejectUnknownNestedMembers(CompiledCompositeType composite, object data, PocoBindingMode bindingMode)
+    private static void RejectUnknownNestedMembers(CompiledCompositeType composite, object data)
     {
         foreach (CompiledField field in composite.Fields)
         {
@@ -530,11 +529,11 @@ public partial class CStruct
             if (composite.PromotedFields.Contains(field))
             {
                 // A promoted member's children live on the same data object; only its own nested composites need checking.
-                RejectUnknownNestedMembers(nested, data, bindingMode);
+                RejectUnknownNestedMembers(nested, data);
                 continue;
             }
 
-            if (field.IsUnnamed || !PocoDataBinding.TryGetMemberValue(data, field.Name, bindingMode, out object? value) || value is null)
+            if (field.IsUnnamed || !WriteDataBinding.TryGetMemberValue(data, field.Name, out object? value) || value is null)
             {
                 continue;
             }
@@ -543,7 +542,7 @@ public partial class CStruct
             {
                 if (field.Array.Kind == CompiledArrayKind.Scalar)
                 {
-                    RejectUnknownMembers(nested, value, bindingMode);
+                    RejectUnknownMembers(nested, WriteDataBinding.Materialize(value, nested));
                 }
                 else if (value is System.Collections.IEnumerable elements and not string)
                 {
@@ -551,7 +550,7 @@ public partial class CStruct
                     {
                         if (element is not null)
                         {
-                            RejectUnknownMembers(nested, element, bindingMode);
+                            RejectUnknownMembers(nested, WriteDataBinding.Materialize(element, nested));
                         }
                     }
                 }
@@ -1084,7 +1083,7 @@ public partial class CStruct
         // Named layout types are enums or nested composites; both need more than a primitive handler call.
         if (compiledField.Enum is { } compiledEnum)
         {
-            BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, value, state.BindingMode);
+            BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, value);
             (this.codecs.WriterOf(compiledField) ??
              throw new InvalidOperationException(
                  "Compiled enum has no storage writer: " + compiledEnum.Name))(
@@ -1408,7 +1407,7 @@ public partial class CStruct
         }
 
         // Callers may pass either { root: ... } or the root object itself; accept both forms at the public boundary.
-        object rootData = PocoDataBinding.NormalizeRootData(data, rootName, effectiveOptions.BindingMode);
+        object rootData = WriteDataBinding.NormalizeRootData(data, rootName);
 
         // Keep all write-time choices in one state object for recursive struct and field calls.
         try
@@ -1428,12 +1427,18 @@ public partial class CStruct
 
             IReadOnlyList<PathSegment> childSegments = segments.Skip(1).ToArray();
 
-            object subData = rootData;
+            // A mapped-class root becomes a StructValue first so its members can be walked like any other root object.
+            if (rootData is not null && !WriteDataBinding.IsMemberSource(rootData) && this.TryGetRootComposite(rootElement, out CompiledCompositeType? rootComposite))
+            {
+                rootData = WriteDataBinding.Materialize(rootData, rootComposite)!;
+            }
+
+            object subData = rootData!;
             if (childSegments.Count > 0 &&
-                PocoDataBinding.TryGetMemberValue(rootData, childSegments[0].Name, effectiveOptions.BindingMode, out _))
+                WriteDataBinding.TryGetMemberValue(rootData!, childSegments[0].Name, out _))
             {
                 // If the caller supplied a complete root object, walk down to the matching nested source value.
-                subData = PocoDataBinding.ResolveDataPath(rootData, childSegments, effectiveOptions.BindingMode);
+                subData = WriteDataBinding.ResolveDataPath(rootData!, childSegments);
             }
 
             // Separately resolve the layout shape so the writer knows whether the selected target is a field, struct, or typedef.

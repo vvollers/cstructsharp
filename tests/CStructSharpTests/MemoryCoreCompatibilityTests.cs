@@ -3,6 +3,7 @@ namespace CStructSharp.Tests;
 using System.Collections;
 using System.Collections.Immutable;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using CStructSharp.Diagnostics;
 using CStructSharp.Introspection;
 using CStructSharp.Syntax;
@@ -172,8 +173,8 @@ public class MemoryCoreCompatibilityTests
         Assert.AreEqual(2, ((IList<object?>)parsed.Packed).Count);
     }
 
-    /// <summary>Typed consumer shape exercises exact array plans without custom conversion code.</summary>
-    public sealed class ArrayRecord
+    /// <summary>Typed consumer shape exercises exact array conversions through a mapped class.</summary>
+    public sealed class ArrayRecord : ICStructMapped<ArrayRecord>
     {
         public sbyte[] Signed { get; set; } = [];
 
@@ -188,5 +189,36 @@ public class MemoryCoreCompatibilityTests
         public double[] Double { get; set; } = [];
 
         public uint[] Packed { get; set; } = [];
+
+        public static ArrayRecord ReadFrom(StructValue source)
+        {
+            return new ArrayRecord
+            {
+                Signed = source.Get<sbyte[]>("Signed"),
+                Flags = source.Get<bool[]>("Flags"),
+                Words = source.Get<ushort[]>("Words"),
+                Wide = source.Get<long[]>("Wide"),
+                Single = source.Get<float[]>("Single"),
+                Double = source.Get<double[]>("Double"),
+                Packed = source.Get<uint[]>("Packed"),
+            };
+        }
+
+        public static void WriteTo(ArrayRecord value, StructValue target)
+        {
+            target["Signed"] = value.Signed;
+            target["Flags"] = value.Flags;
+            target["Words"] = value.Words;
+            target["Wide"] = value.Wide;
+            target["Single"] = value.Single;
+            target["Double"] = value.Double;
+            target["Packed"] = value.Packed;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<ArrayRecord>();
+        }
     }
 }

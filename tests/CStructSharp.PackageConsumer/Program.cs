@@ -52,9 +52,9 @@ using (var stream = new MemoryStream(input))
 
     stream.Position = 0;
     PackageRoot typed = cstruct.ReadValue<PackageRoot>(stream, "root");
-    AssertEqual((byte)0xA5, typed.Marker, "typed POCO marker");
-    AssertEqual((ushort)0x1234, typed.Value, "typed POCO value");
-    AssertEqual(4L, typed.Target.Address, "typed POCO pointer");
+    AssertEqual((byte)0xA5, typed.Marker, "typed mapped marker");
+    AssertEqual((ushort)0x1234, typed.Value, "typed mapped value");
+    AssertEqual(4L, typed.Target.Address, "typed mapped pointer");
 
     stream.Position = 0;
     if (cstruct.TryReadValue<DateTime>(stream, "root.value", out _))
@@ -134,7 +134,7 @@ using (var stream = new MemoryStream((byte[])input.Clone()))
 {
     try
     {
-        cstruct.Update(stream, "root", new { marker = (byte)0x11, });
+        cstruct.Update(stream, "root", new Dictionary<string, object?> { ["marker"] = (byte)0x11, });
         throw new InvalidOperationException("A late package update binding failure did not fail.");
     }
     catch (CStructWriteException)

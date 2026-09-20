@@ -6,6 +6,22 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+### Breaking changes
+
+- **Breaking (API):** reflection-based mapping is gone. `ReadValue<T>`, `TryReadValue<T>`, `Get<T>`, and
+  `TryGet<T>` map a struct to a class only when the class implements `ICStructMapped<T>` (a static `ReadFrom` and
+  `WriteTo`) and is registered with `MappedTypes.Register<T>()` - which the `[CStructMapped]` source generator does
+  for a `partial` class, and a hand-written class does from a module initializer. `Serialize`, `Write`, and
+  `Update` accept a `StructValue`/`UnionValue`, a string-keyed dictionary (expando objects included), or a registered
+  mapped class; anonymous objects and plain classes are rejected with a message that says what is writable.
+  `PocoBindingMode`, `WriteOptions.BindingMode`, and `UpdateOptions.BindingMode` are removed, as are the
+  `[DynamicallyAccessedMembers]` annotations on the typed-read generic parameters and the
+  `CStructSharp.CompiledAccessors` feature switch. Collection-interface and `List<T>` targets are no longer
+  converted: `Get<T>` hands out arrays (`T[]`), and a mapper copies them into whatever collection it wants. A
+  failure inside a mapper is reported at the member's full path (`root.leaves[0].v`). The browser API's
+  `bindingMode` option, which never had an observable effect through JavaScript, is removed from the option
+  list.
+
 ### Internal
 
 - The primitive vocabulary is split into a compile-time catalog (`PrimitiveCatalog`: names, aliases, alignments,
@@ -19,9 +35,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - Documentation: every C# example, recipe, and guide snippet reads results as `StructValue` with `Get<T>` instead
   of `dynamic`; [Read values and paths](docs/guides/reading-values.md) gained a "Dynamic access" section that
   states what `dynamic` trades away, and a new guide, [Trimming and Native AOT](docs/guides/trimming-and-native-aot.md),
-  covers a trimmed or AOT publish end to end: the package's claims per target, the two POCO conventions
-  (`[DynamicallyAccessedMembers]` on nested mapped classes, `List<T>`/`T[]` instead of collection interfaces) with
-  the messages a missed convention produces, and the fact that `dynamic` is JIT-only (the C# runtime binder needs
+  covers a trimmed or AOT publish end to end: the package's claims per target, how mapped classes take part
+  without reflection (and why they register from a module initializer), and the fact that `dynamic` is JIT-only (the C# runtime binder needs
   runtime code generation - `IL2026`/`IL3050` at publish, a binder failure if suppressed). The README and the
   typed-values guide link to it.
 - The release workflow's npm publication check polls the registry (every 10 s, up to five minutes) instead of

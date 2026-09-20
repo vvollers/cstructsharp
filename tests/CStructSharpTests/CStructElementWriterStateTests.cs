@@ -156,7 +156,6 @@ public class CStructElementWriterStateTests
         var options = new UpdateOptions
         {
             AddressingMode = PointerAddressingMode.Relative,
-            BindingMode = PocoBindingMode.PublicReadWrite,
             MaxArrayElements = 3,
             MaxStringBytes = 11,
             MaxTotalBytesWritten = 22,
@@ -185,7 +184,6 @@ public class CStructElementWriterStateTests
         var options = new WriteOptions
         {
             AddressingMode = PointerAddressingMode.Relative,
-            BindingMode = PocoBindingMode.PublicReadWrite,
             MaxArrayElements = 3,
             MaxStringBytes = 11,
             MaxTotalBytesWritten = 22,

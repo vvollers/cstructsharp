@@ -74,7 +74,7 @@ A path such as `root.choice.small` updates only that member's byte range and pre
 path selecting the whole union applies the whole-union policy, including clearing storage for a selected member by
 default.
 
-Do not replace a complete union with a dictionary or POCO and expect CStructSharp to infer an active member. Use
+Do not replace a complete union with a dictionary or mapped class and expect CStructSharp to infer an active member. Use
 `UnionValue` so the intent and raw-storage behavior are explicit.
 
 Common mistakes are assuming the first member is active, keeping only one decoded view after a read, forgetting that

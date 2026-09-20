@@ -133,7 +133,6 @@ public partial class CStructExports
         return new WriteOptions
         {
             AddressingMode = ParseAddressingMode(options.AddressingMode),
-            BindingMode = ParseBindingMode(options.BindingMode),
             UnknownMembers = ParseEnumOption<UnknownMemberPolicy>(options.UnknownMembers, "unknownMembers"),
             MaxArrayElements = Bounded(
                 options.MaxArrayElements,
@@ -166,7 +165,6 @@ public partial class CStructExports
         return new UpdateOptions
         {
             AddressingMode = write.AddressingMode,
-            BindingMode = write.BindingMode,
             UnknownMembers = write.UnknownMembers,
             MaxArrayElements = write.MaxArrayElements,
             MaxStringBytes = write.MaxStringBytes,
@@ -251,17 +249,6 @@ public partial class CStructExports
         }
 
         throw new BrowserInputException($"Option {name} must be one of {string.Join(", ", Enum.GetNames<TEnum>())}; received '{value}'.");
-    }
-
-    private static PocoBindingMode ParseBindingMode(string? mode)
-    {
-        mode ??= nameof(PocoBindingMode.PublicReadable);
-        if (Enum.TryParse(mode, true, out PocoBindingMode parsed) && Enum.IsDefined(parsed))
-        {
-            return parsed;
-        }
-
-        throw new ArgumentException("Unknown binding mode: " + mode, nameof(mode));
     }
 
     private static long ParseOrigin(string? origin)

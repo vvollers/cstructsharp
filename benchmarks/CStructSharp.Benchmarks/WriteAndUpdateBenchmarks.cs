@@ -2,7 +2,9 @@ namespace CStructSharp.Benchmarks;
 
 using System.Buffers;
 using System.Dynamic;
+using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
+using CStructSharp.Values;
 
 [BenchmarkCategory("Write", "Update")]
 public class WriteAndUpdateBenchmarks
@@ -206,12 +208,35 @@ public class WriteAndUpdateBenchmarks
         return this.utf16BigEndianLayout.Serialize("root", this.utf16Data);
     }
 
-    public sealed class BenchmarkPoco
+    public sealed class BenchmarkPoco : ICStructMapped<BenchmarkPoco>
     {
         public ushort Count { get; init; }
 
         public uint Id { get; init; }
 
         public byte[] Samples { get; init; } = [];
+
+        public static BenchmarkPoco ReadFrom(StructValue source)
+        {
+            return new BenchmarkPoco
+            {
+                Count = source.Get<ushort>("count"),
+                Id = source.Get<uint>("id"),
+                Samples = source.Get<byte[]>("samples"),
+            };
+        }
+
+        public static void WriteTo(BenchmarkPoco value, StructValue target)
+        {
+            target["count"] = value.Count;
+            target["id"] = value.Id;
+            target["samples"] = value.Samples;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<BenchmarkPoco>();
+        }
     }
 }

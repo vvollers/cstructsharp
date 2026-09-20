@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
@@ -14,7 +15,7 @@ public class FlagDeclarationTests
     private const string Layout = "flag access : uint16 { READ, WRITE, EXEC, RW = 3, HIDDEN = 0x100 }; struct root { access mode; access modes[2]; };";
 
     [Flags]
-    private enum Access : ushort
+    internal enum Access : ushort
     {
         Read = 1,
         Write = 2,
@@ -191,10 +192,27 @@ public class FlagDeclarationTests
         Assert.Throws<CStructLayoutException>(() => new CStruct("#define N 2\nflag { A = N, B }; struct root { uint8 v; };"));
     }
 
-    private sealed class Root
+    internal sealed class Root : ICStructMapped<Root>
     {
         public Access Mode { get; set; }
 
         public Access[] Modes { get; set; } = [];
+
+        public static Root ReadFrom(StructValue source)
+        {
+            return new Root { Mode = source.Get<Access>("mode"), Modes = source.Get<Access[]>("modes"), };
+        }
+
+        public static void WriteTo(Root value, StructValue target)
+        {
+            target["mode"] = value.Mode;
+            target["modes"] = value.Modes;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<Root>();
+        }
     }
 }

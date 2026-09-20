@@ -496,7 +496,7 @@ public class LayoutSafetyTests
         var cstruct = new CStruct(layout);
         using var stream = new WriteOnlyNonSeekableStream();
 
-        Assert.Throws<ArgumentException>(() => cstruct.Write(stream, "root", new { value = (byte)0xA5, }));
+        Assert.Throws<ArgumentException>(() => cstruct.Write(stream, "root", new Dictionary<string, object?> { ["value"] = (byte)0xA5, }));
     }
 
     /// <summary>
@@ -578,10 +578,10 @@ public class LayoutSafetyTests
         var cstruct = new CStruct("struct root { uint8 first, second; };");
 
         using var writeStream = new MemoryStream();
-        cstruct.Write(writeStream, "root", new { first = (byte)1, second = (byte)2, });
+        cstruct.Write(writeStream, "root", new Dictionary<string, object?> { ["first"] = (byte)1, ["second"] = (byte)2, });
         CollectionAssert.AreEqual(new byte[] { 1, 2, }, writeStream.ToArray());
 
-        byte[] bytes = cstruct.Serialize("root", new { first = (byte)1, second = (byte)2, });
+        byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["first"] = (byte)1, ["second"] = (byte)2, });
         CollectionAssert.AreEqual(new byte[] { 1, 2, }, bytes);
 
         using var readStream = new MemoryStream(bytes);
@@ -778,10 +778,10 @@ public class LayoutSafetyTests
         var cstruct = new CStruct("struct child { uint8 value; }; struct root { struct child value; };");
 
         using var writeStream = new MemoryStream();
-        cstruct.Write(writeStream, "root", new { value = new { value = (byte)1, }, });
+        cstruct.Write(writeStream, "root", new Dictionary<string, object?> { ["value"] = new Dictionary<string, object?> { ["value"] = (byte)1, }, });
         CollectionAssert.AreEqual(new byte[] { 1, }, writeStream.ToArray());
 
-        byte[] bytes = cstruct.Serialize("root", new { value = new { value = (byte)1, }, });
+        byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["value"] = new Dictionary<string, object?> { ["value"] = (byte)1, }, });
         CollectionAssert.AreEqual(new byte[] { 1, }, bytes);
 
         using var readStream = new MemoryStream(bytes);

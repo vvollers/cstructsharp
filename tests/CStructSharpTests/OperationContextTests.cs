@@ -2,8 +2,10 @@ namespace CStructSharpTests;
 
 using System.Collections;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using CStructSharp;
 using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Verifies that one operation owns immutable choices before it invokes caller-controlled code.</summary>
 [TestClass]
@@ -215,7 +217,7 @@ public class OperationContextTests
         }
     }
 
-    private sealed class MutatingPayload
+    internal sealed class MutatingPayload : ICStructMapped<MutatingPayload>
     {
         private readonly Action callback;
         private readonly byte[] values;
@@ -226,13 +228,22 @@ public class OperationContextTests
             this.values = values;
         }
 
-        public byte[] Values
+        public static MutatingPayload ReadFrom(StructValue source)
         {
-            get
-            {
-                this.callback();
-                return this.values;
-            }
+            return new MutatingPayload(() => { }, source.Get<byte[]>("values"));
+        }
+
+        /// <summary>The mapper runs caller code while the write is in flight; the options must already be captured.</summary>
+        public static void WriteTo(MutatingPayload value, StructValue target)
+        {
+            value.callback();
+            target["values"] = value.values;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<MutatingPayload>();
         }
     }
 }

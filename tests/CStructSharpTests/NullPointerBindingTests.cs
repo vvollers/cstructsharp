@@ -1,8 +1,10 @@
 namespace CStructSharpTests;
 
 using System.Dynamic;
+using System.Runtime.CompilerServices;
 using CStructSharp;
 using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Requires null pointer values to behave identically across supported caller data shapes.</summary>
 [TestClass]
@@ -31,20 +33,9 @@ public class NullPointerBindingTests
             CollectionAssert.AreEqual(new byte[] { 0, 0, 0xA5, }, stream.ToArray(), name + "/write");
         }
 
-        var strictProperty = new NullablePointerProperty { Ptr = null, Tail = 0xA5, };
-        CollectionAssert.AreEqual(
-            new byte[] { 0, 0, 0xA5, },
-            cstruct.Serialize(
-                "root",
-                strictProperty,
-                options: new WriteOptions { BindingMode = PocoBindingMode.PublicReadWrite, }));
-
-        var strictReadOnly = new ReadOnlyNullablePointerProperty();
-        Assert.Throws<CStructWriteException>(
-            () => cstruct.Serialize(
-                "root",
-                strictReadOnly,
-                options: new WriteOptions { BindingMode = PocoBindingMode.PublicReadWrite, }));
+        // A mapped class that reports the pointer as null writes the same zero address.
+        var mapped = new NullablePointerProperty { Ptr = null, Tail = 0xA5, };
+        CollectionAssert.AreEqual(new byte[] { 0, 0, 0xA5, }, cstruct.Serialize("root", mapped));
     }
 
     /// <summary>
@@ -154,8 +145,7 @@ public class NullPointerBindingTests
 
     private static IEnumerable<(string Name, object Value)> NullPointerShapes()
     {
-        yield return ("poco-property", new NullablePointerProperty { Ptr = null, Tail = 0xA5, });
-        yield return ("poco-field", new NullablePointerField { Ptr = null, Tail = 0xA5, });
+        yield return ("mapped-class", new NullablePointerProperty { Ptr = null, Tail = 0xA5, });
         yield return (
             "dictionary",
             new Dictionary<string, object?> { ["ptr"] = null, ["tail"] = (byte)0xA5, });
@@ -165,8 +155,7 @@ public class NullPointerBindingTests
 
     private static IEnumerable<(string Name, object Value)> NullNonPointerShapes()
     {
-        yield return ("poco-property", new NullablePrimitiveProperty { Value = null, });
-        yield return ("poco-field", new NullablePrimitiveField { Value = null, });
+        yield return ("mapped-class", new NullablePrimitiveProperty { Value = null, });
         yield return ("dictionary", new Dictionary<string, object?> { ["value"] = null, });
         yield return ("expando", CreateExpando("value", null));
     }
@@ -182,36 +171,50 @@ public class NullPointerBindingTests
         return (ExpandoObject)result;
     }
 
-    private sealed class NullablePointerProperty
+    /// <summary>A hand-written mapped class (what the generator emits for a <c>[CStructMapped]</c> class).</summary>
+    internal sealed class NullablePointerProperty : ICStructMapped<NullablePointerProperty>
     {
         public long? Ptr { get; set; }
 
         public byte Tail { get; set; }
+
+        public static NullablePointerProperty ReadFrom(StructValue source)
+        {
+            return new NullablePointerProperty { Ptr = source.Get<long?>("ptr"), Tail = source.Get<byte>("tail"), };
+        }
+
+        public static void WriteTo(NullablePointerProperty value, StructValue target)
+        {
+            target["ptr"] = value.Ptr;
+            target["tail"] = value.Tail;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<NullablePointerProperty>();
+        }
     }
 
-#pragma warning disable SA1401 // Public fields are the caller shape under test.
-    private sealed class NullablePointerField
-    {
-        public long? Ptr;
-
-        public byte Tail;
-    }
-
-    private sealed class NullablePrimitiveProperty
+    /// <summary>A mapped class whose one member is a nullable primitive.</summary>
+    internal sealed class NullablePrimitiveProperty : ICStructMapped<NullablePrimitiveProperty>
     {
         public byte? Value { get; set; }
-    }
 
-    private sealed class ReadOnlyNullablePointerProperty
-    {
-        public long? Ptr => null;
+        public static NullablePrimitiveProperty ReadFrom(StructValue source)
+        {
+            return new NullablePrimitiveProperty { Value = source.Get<byte?>("value"), };
+        }
 
-        public byte Tail { get; set; } = 0xA5;
-    }
+        public static void WriteTo(NullablePrimitiveProperty value, StructValue target)
+        {
+            target["value"] = value.Value;
+        }
 
-    private sealed class NullablePrimitiveField
-    {
-        public byte? Value;
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<NullablePrimitiveProperty>();
+        }
     }
-#pragma warning restore SA1401
 }

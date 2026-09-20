@@ -330,11 +330,11 @@ public class CompiledIntermediateRepresentationTests
             Assert.AreEqual(1L, queryStream.Position);
         }
 
-        var value = new
+        var value = new Dictionary<string, object?>
         {
-            count = (ushort)0x1234,
-            values = new ushort[] { 0x5678, 0x9ABC, },
-            link = 8,
+            ["count"] = (ushort)0x1234,
+            ["values"] = new ushort[] { 0x5678, 0x9ABC, },
+            ["link"] = 8,
         };
         CollectionAssert.AreEqual(bytes[..8], cstruct.Serialize("root", value));
 

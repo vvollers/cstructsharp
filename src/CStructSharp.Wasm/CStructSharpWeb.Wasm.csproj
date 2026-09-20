@@ -40,12 +40,6 @@
       this publish only. Measured (E3.10): the publication shrank from 5.35 MB / 2.05 MB gzip to 4.36 MB / 1.66 MB gzip.
     -->
     <TrimmableAssembly Include="CStructSharpWeb.Wasm" />
-    <!--
-      The bridge never binds POCOs through compiled accessors (its values are dictionary/list shaped). Switching the
-      library's CStructSharp.CompiledAccessors feature off lets the trimmer drop that code path and
-      System.Linq.Expressions with it (~360 KB) instead of shipping a dead path.
-    -->
-    <RuntimeHostConfigurationOption Include="CStructSharp.CompiledAccessors" Value="false" Trim="true" />
   </ItemGroup>
 
 </Project>

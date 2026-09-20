@@ -16,9 +16,6 @@ public sealed class InteropOptionsDto
     [JsonPropertyName("aligned")]
     public bool? Aligned { get; set; }
 
-    [JsonPropertyName("bindingMode")]
-    public string? BindingMode { get; set; }
-
     [JsonPropertyName("bitfieldAllocation")]
     public string? BitfieldAllocation { get; set; }
 

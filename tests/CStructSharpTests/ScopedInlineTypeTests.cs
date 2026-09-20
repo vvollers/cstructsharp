@@ -118,14 +118,14 @@ public class ScopedInlineTypeTests
         dynamic selected = cstruct.Parse(stream, "root.value.value");
         Assert.AreEqual(0x55667788U, (uint)selected.payload);
 
-        var data = new
+        var data = new Dictionary<string, object?>
         {
-            prefix = (byte)0xEE,
-            value = new
+            ["prefix"] = (byte)0xEE,
+            ["value"] = new Dictionary<string, object?>
             {
-                values = new ushort[] { 0x1122, 0x3344, },
-                value = new { payload = 0x55667788U, },
-                pointer = 16L,
+                ["values"] = new ushort[] { 0x1122, 0x3344, },
+                ["value"] = new Dictionary<string, object?> { ["payload"] = 0x55667788U, },
+                ["pointer"] = 16L,
             },
         };
         CollectionAssert.AreEqual(rootBytes, cstruct.Serialize("root", data));
@@ -343,7 +343,7 @@ public class ScopedInlineTypeTests
     public void NamedPointerRecursion_RemainsLegal()
     {
         var cstruct = new CStruct("struct node { node *next; uint8 value; };", pointerSize: 1);
-        var data = new { next = 0L, value = (byte)0x2A, };
+        var data = new Dictionary<string, object?> { ["next"] = 0L, ["value"] = (byte)0x2A, };
 
         CollectionAssert.AreEqual(new byte[] { 0x00, 0x2A, }, cstruct.Serialize("node", data));
 
@@ -359,7 +359,7 @@ public class ScopedInlineTypeTests
         var aliased = new CStruct(
             "typedef struct node_tag { node *next; uint8 value; } node; struct root { node item; };",
             pointerSize: 1);
-        var aliasedData = new { item = new { next = 0L, value = (byte)0x5A, }, };
+        var aliasedData = new Dictionary<string, object?> { ["item"] = new Dictionary<string, object?> { ["next"] = 0L, ["value"] = (byte)0x5A, }, };
         CollectionAssert.AreEqual(
             new byte[] { 0x00, 0x5A, },
             aliased.Serialize("root", aliasedData));
@@ -445,7 +445,7 @@ public class ScopedInlineTypeTests
 
         byte[] bytes = cstruct.Serialize(
             "root",
-            new { value = UnionValue.FromMember("choice", "small", (byte)0xA5), });
+            new Dictionary<string, object?> { ["value"] = UnionValue.FromMember("choice", "small", (byte)0xA5), });
 
         CollectionAssert.AreEqual(new byte[] { 0xA5, 0x00, }, bytes);
     }

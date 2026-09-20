@@ -59,14 +59,14 @@ public class AnonymousBitfieldTests
     {
         var cstruct = new CStruct("struct root { uint8 flag:1, :3, other:4; };", pointerSize: 1);
 
-        byte[] bytes = cstruct.Serialize("root", new { flag = 1, other = 0b1111, });
+        byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["flag"] = 1, ["other"] = 0b1111, });
 
         // flag=1 in bit 0, the middle 3 padding bits forced to zero regardless of the source byte's other bits,
         // other=0b1111 in the top 4 bits.
         CollectionAssert.AreEqual(new byte[] { 0b1111_0001, }, bytes);
 
         using var writeStream = new MemoryStream();
-        cstruct.Write(writeStream, "root", new { flag = 1, other = 0b1111, });
+        cstruct.Write(writeStream, "root", new Dictionary<string, object?> { ["flag"] = 1, ["other"] = 0b1111, });
         CollectionAssert.AreEqual(new byte[] { 0b1111_0001, }, writeStream.ToArray());
     }
 

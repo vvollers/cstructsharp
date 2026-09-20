@@ -43,8 +43,8 @@ public class BooleanPrimitiveTests
     {
         var cstruct = new CStruct("struct root { bool value; };");
 
-        byte[] trueBytes = cstruct.Serialize("root", new { value = true, });
-        byte[] falseBytes = cstruct.Serialize("root", new { value = false, });
+        byte[] trueBytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["value"] = true, });
+        byte[] falseBytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["value"] = false, });
 
         CollectionAssert.AreEqual(new byte[] { 1, }, trueBytes);
         CollectionAssert.AreEqual(new byte[] { 0, }, falseBytes);
@@ -69,10 +69,10 @@ public class BooleanPrimitiveTests
         var cstruct = new CStruct("struct root { bool value; };");
 
         using var writeStream = new MemoryStream();
-        cstruct.Write(writeStream, "root", new { value = true, });
+        cstruct.Write(writeStream, "root", new Dictionary<string, object?> { ["value"] = true, });
         CollectionAssert.AreEqual(new byte[] { 1, }, writeStream.ToArray());
 
-        byte[] bytes = cstruct.Serialize("root", new { value = true, });
+        byte[] bytes = cstruct.Serialize("root", new Dictionary<string, object?> { ["value"] = true, });
         CollectionAssert.AreEqual(new byte[] { 1, }, bytes);
 
         using var readStream = new MemoryStream(bytes);
@@ -125,8 +125,8 @@ public class BooleanPrimitiveTests
         var little = new CStruct("struct root { bool value; };", isLittleEndian: true);
         var big = new CStruct("struct root { bool value; };", isLittleEndian: false);
 
-        byte[] littleBytes = little.Serialize("root", new { value = true, });
-        byte[] bigBytes = big.Serialize("root", new { value = true, });
+        byte[] littleBytes = little.Serialize("root", new Dictionary<string, object?> { ["value"] = true, });
+        byte[] bigBytes = big.Serialize("root", new Dictionary<string, object?> { ["value"] = true, });
 
         CollectionAssert.AreEqual(littleBytes, bigBytes);
     }

@@ -54,6 +54,23 @@ public abstract class CStructException : Exception
         this.Offset ??= offset;
     }
 
+    /// <summary>
+    ///     Qualifies a path recorded relative to a nested value with the path of that value, so a failure a mapper
+    ///     raises through <c>StructValue.Get&lt;T&gt;("v")</c> while mapping <c>root.leaves[0]</c> reads
+    ///     <c>root.leaves[0].v</c>. A missing path becomes <paramref name="prefix"/> itself.
+    /// </summary>
+    internal void PrefixPath(string prefix)
+    {
+        if (this.Path is null)
+        {
+            this.Path = prefix;
+        }
+        else if (!this.Path.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            this.Path = prefix + "." + this.Path;
+        }
+    }
+
     /// <summary>Records the innermost field the failure belongs to; outer levels do not replace it.</summary>
     internal void AttachMember(string name, string? type)
     {

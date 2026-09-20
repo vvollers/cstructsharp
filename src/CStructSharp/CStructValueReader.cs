@@ -16,11 +16,6 @@ using CStructSharp.Values;
 /// <summary>Reads natural scalar or composite values and projects them to caller-selected CLR types.</summary>
 public sealed partial class CStruct
 {
-    private const DynamicallyAccessedMemberTypes TypedReadMembers =
-        DynamicallyAccessedMemberTypes.PublicParameterlessConstructor |
-        DynamicallyAccessedMemberTypes.PublicProperties |
-        DynamicallyAccessedMemberTypes.PublicFields;
-
     /// <summary>Extracts a named value, with a one-value fallback for inline typedef roots.</summary>
     private static object? ExtractOnlyValue(StructValue container, string preferredName)
     {
@@ -39,7 +34,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads one selected value through the compiled reader and maps it to <typeparamref name="T"/>.</summary>
-    internal T ReadTypedValueCore<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
+    internal T ReadTypedValueCore<T>(
         Stream stream,
         string elementNameOrPath,
         IReadOnlyDictionary<string, int>? variables = null,
@@ -49,14 +44,13 @@ public sealed partial class CStruct
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
         try
         {
-            // A fully fixed struct read into a POCO takes the typed plan inside ReadValueCore and comes back
-            // already as a T; Convert then returns it unchanged.
+            // The natural value is converted to T: a checked scalar conversion, an array, a value object, or a
+            // registered mapped class (ICStructMapped<T>) built from the parsed composite.
             object? naturalValue = this.ReadValueCore(
                 stream,
                 elementNameOrPath,
                 LayoutVariableInput.FromIntegers(variables),
-                options,
-                typeof(T));
+                options);
             return (T)TypedValueConverter.Convert(naturalValue, typeof(T), ExceptionContext.FormatPath(segments))!;
         }
         catch (CStructException exception)
@@ -71,8 +65,7 @@ public sealed partial class CStruct
         Stream stream,
         string elementNameOrPath,
         LayoutVariableInput variables,
-        ReadOptions? options,
-        [DynamicallyAccessedMembers(TypedReadMembers)] Type? typedTarget = null)
+        ReadOptions? options)
     {
         ArgumentNullException.ThrowIfNull(stream);
         IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
@@ -87,11 +80,6 @@ public sealed partial class CStruct
         try
         {
             ResolvedTarget target = this.ResolveTargetFromLayout(state, segments);
-            if (typedTarget is not null && this.TryReadResolvedTyped(state, target, segments, typedTarget, out object? typed))
-            {
-                return typed;
-            }
-
             return this.ReadResolvedValue(state, target, segments[0].Name);
         }
         catch (CStructException exception)
@@ -104,48 +92,6 @@ public sealed partial class CStruct
         {
             state.Complete();
         }
-    }
-
-    /// <summary>Chooses the exact compiled decoder appropriate for one semantic target.</summary>
-    /// <summary>
-    ///     The typed read plan's entry: a root or nested struct target read into <paramref name="targetType"/>
-    ///     directly when the plan is equivalent to the general read-then-convert path.
-    /// </summary>
-    private bool TryReadResolvedTyped(
-        CStructOperationContext state,
-        ResolvedTarget target,
-        IReadOnlyList<PathSegment> segments,
-        [DynamicallyAccessedMembers(TypedReadMembers)] Type targetType,
-        out object? value)
-    {
-        value = null;
-        CompiledCompositeType? declaration = null;
-        if (target.Kind == ResolvedTargetKind.Root)
-        {
-            if (!this.compiledModelQueries.TryGetCompiledDeclaration(segments[0].Name, out CStructElement? element))
-            {
-                return false;
-            }
-
-            Struct? rootStruct = element as Struct ?? (element as Typedef)?.Struct;
-            declaration = rootStruct is null ? null : this.compiledSizeQueries.GetCompiledComposite(rootStruct);
-        }
-        else if ((!target.IsArray || target.SelectsArrayElement) && target.RemainingPointerDepth == 0 &&
-                 target.TargetComposite is { } composite && target.EffectiveCompiledField?.PointerDepth == 0)
-        {
-            declaration = composite;
-            state.Stream.Position = target.Address;
-            state.StructureDepth = target.ContainingStructureDepth;
-            state.PointerDereferenceDepth = target.PointerAccessorsConsumed;
-        }
-
-        if (declaration is null)
-        {
-            return false;
-        }
-
-        value = this.TryReadTypedPlan(declaration, targetType, state, ExceptionContext.FormatPath(segments) ?? "<root>");
-        return value is not null;
     }
 
     private object? ReadResolvedValue(

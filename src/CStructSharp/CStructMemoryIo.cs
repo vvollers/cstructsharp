@@ -55,7 +55,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>Runs the existing typed-value reader over one synchronously pinned read-only region.</summary>
-    private unsafe T ReadMemoryValueCore<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
+    private unsafe T ReadMemoryValueCore<T>(
         ReadOnlySpan<byte> source,
         string? elementNameOrPath,
         IReadOnlyDictionary<string, int>? variables,

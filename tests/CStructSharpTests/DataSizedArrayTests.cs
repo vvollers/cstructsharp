@@ -1,6 +1,8 @@
 namespace CStructSharp.Tests;
 
+using System.Runtime.CompilerServices;
 using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>
 ///     Arrays whose count comes from the data: <c>T values[EOF]</c> (every whole element to the end of the input)
@@ -147,17 +149,51 @@ public class DataSizedArrayTests
         Assert.AreEqual(2, layout.GetStructAlignmentInBytes("root"));
     }
 
-    private sealed class Root
+    internal sealed class Root : ICStructMapped<Root>
     {
         public ushort Header { get; set; }
 
         public Entry[] Entries { get; set; } = [];
+
+        public static Root ReadFrom(StructValue source)
+        {
+            return new Root { Header = source.Get<ushort>("header"), Entries = source.Get<Entry[]>("entries"), };
+        }
+
+        public static void WriteTo(Root value, StructValue target)
+        {
+            target["header"] = value.Header;
+            target["entries"] = value.Entries;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<Root>();
+        }
     }
 
-    private sealed class Entry
+    internal sealed class Entry : ICStructMapped<Entry>
     {
         public byte Kind { get; set; }
 
         public byte Size { get; set; }
+
+        public static Entry ReadFrom(StructValue source)
+        {
+            return new Entry { Kind = source.Get<byte>("kind"), Size = source.Get<byte>("size"), };
+        }
+
+        public static void WriteTo(Entry value, StructValue target)
+        {
+            target["kind"] = value.Kind;
+            target["size"] = value.Size;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<Entry>();
+        }
     }
 }

@@ -17,8 +17,8 @@ public class IdentifierTests
             var variables = new Dictionary<string, int> { ["id"] = 1 };
             Assert.Throws<CStructReadException>(() => parser.Parse(new MemoryStream(new byte[17]), "root", variables: variables));
             Assert.Throws<CStructReadException>(() => parser.ResolveAddress(new MemoryStream(new byte[17]), "root.bytes[0]", variables: variables));
-            Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new { id = Guid.Empty, bytes = new byte[] { 0 } }, variables: variables));
-            Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new { id = Guid.Empty.ToString("D"), bytes = new byte[] { 0 } }, variables: variables));
+            Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new Dictionary<string, object?> { ["id"] = Guid.Empty, ["bytes"] = new byte[] { 0 } }, variables: variables));
+            Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new Dictionary<string, object?> { ["id"] = Guid.Empty.ToString("D"), ["bytes"] = new byte[] { 0 } }, variables: variables));
         }
     }
 
@@ -35,7 +35,7 @@ public class IdentifierTests
             foreach (bool littleEndian in new[] { false, true })
             {
                 var parser = new CStruct($"struct root {{ uint8 prefix; {type} id; uint8 tail; }};", aligned: true, isLittleEndian: littleEndian);
-                byte[] bytes = parser.Serialize("root", new { prefix = 1, id = text, tail = 99 });
+                byte[] bytes = parser.Serialize("root", new Dictionary<string, object?> { ["prefix"] = 1, ["id"] = text, ["tail"] = 99 });
                 byte[] fullExpected = [1, .. expected, 99];
                 CollectionAssert.AreEqual(fullExpected, bytes);
                 Assert.AreEqual(18, parser.GetStructSizeInBytes("root"));

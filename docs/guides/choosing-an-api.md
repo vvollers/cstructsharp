@@ -40,7 +40,7 @@ refer to bytes before that slice.
 | --- | --- | --- |
 | A whole struct with runtime field names | `Parse` | Exploring a format, building tools, or handling layouts that vary at runtime |
 | One field, nested value, union, or array | `ReadValue` | You don't need the rest of the object, or the selection is not a struct |
-| A known C# type | `ReadValue<T>` | Application code benefits from typed properties and checked conversion |
+| A known C# type | `ReadValue<T>` | Application code benefits from typed properties and checked conversion; `T` is a scalar, an array, or a class implementing `ICStructMapped<T>` |
 | A known C# type with an expected failure path | `TryReadValue<T>` | Truncated or malformed input is an ordinary outcome |
 | Values plus byte ranges | `ParseWithDebug` (struct) / `ReadValueWithDebug` (anything) | A hex viewer or diagnostic tool must show where values came from |
 | Only a field's stream position | `ResolveAddress` | You need a coordinate without materializing the value |

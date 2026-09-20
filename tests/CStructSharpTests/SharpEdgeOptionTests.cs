@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
@@ -94,9 +95,9 @@ public class SharpEdgeOptionTests
         CollectionAssert.AreEqual(new byte[] { 1, 0, 2 }, layout.Serialize("root", value, options: reject));
     }
 
-    /// <summary>POCOs are checked with the same case-insensitive member matching that binding uses; nested composites are checked too.</summary>
+    /// <summary>A mapped class is checked through the StructValue its mapper fills, so an undeclared name it writes is rejected; nested composites are checked too.</summary>
     [TestMethod]
-    public void UnknownMembers_Reject_ChecksPocosAndNestedStructs()
+    public void UnknownMembers_Reject_ChecksMappedClassesAndNestedStructs()
     {
         var layout = new CStruct("struct inner { uint8 a; }; struct root { uint16 kind; inner nested; };");
         var reject = new WriteOptions { UnknownMembers = UnknownMemberPolicy.Reject, };
@@ -117,27 +118,100 @@ public class SharpEdgeOptionTests
         CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, promoted.Serialize("root", parsed, options: reject));
     }
 
-    private sealed class Root
+    internal sealed class Root : ICStructMapped<Root>
     {
         public string Name { get; set; } = string.Empty;
 
         public byte Tail { get; set; }
+
+        public static Root ReadFrom(StructValue source)
+        {
+            return new Root { Name = source.Get<string>("name"), Tail = source.Get<byte>("tail"), };
+        }
+
+        public static void WriteTo(Root value, StructValue target)
+        {
+            target["name"] = value.Name;
+            target["tail"] = value.Tail;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<Root>();
+        }
     }
 
-    private sealed class InnerPoco
+    internal sealed class InnerPoco : ICStructMapped<InnerPoco>
     {
         public byte A { get; set; }
+
+        public static InnerPoco ReadFrom(StructValue source)
+        {
+            return new InnerPoco { A = source.Get<byte>("a"), };
+        }
+
+        public static void WriteTo(InnerPoco value, StructValue target)
+        {
+            target["a"] = value.A;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<InnerPoco>();
+        }
     }
 
-    private class RootPoco
+    internal sealed class RootPoco : ICStructMapped<RootPoco>
     {
         public ushort Kind { get; set; }
 
         public InnerPoco Nested { get; set; } = new();
+
+        public static RootPoco ReadFrom(StructValue source)
+        {
+            return new RootPoco { Kind = source.Get<ushort>("kind"), Nested = source.Get<InnerPoco>("nested"), };
+        }
+
+        public static void WriteTo(RootPoco value, StructValue target)
+        {
+            target["kind"] = value.Kind;
+            target["nested"] = value.Nested;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<RootPoco>();
+        }
     }
 
-    private sealed class RootPocoWithExtra : RootPoco
+    /// <summary>A mapper that writes a name the layout does not declare; Reject must notice the extra slot.</summary>
+    internal sealed class RootPocoWithExtra : ICStructMapped<RootPocoWithExtra>
     {
+        public ushort Kind { get; set; }
+
+        public InnerPoco Nested { get; set; } = new();
+
         public int Extra { get; set; }
+
+        public static RootPocoWithExtra ReadFrom(StructValue source)
+        {
+            return new RootPocoWithExtra { Kind = source.Get<ushort>("kind"), Nested = source.Get<InnerPoco>("nested"), };
+        }
+
+        public static void WriteTo(RootPocoWithExtra value, StructValue target)
+        {
+            target["kind"] = value.Kind;
+            target["nested"] = value.Nested;
+            target["Extra"] = value.Extra;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<RootPocoWithExtra>();
+        }
     }
 }

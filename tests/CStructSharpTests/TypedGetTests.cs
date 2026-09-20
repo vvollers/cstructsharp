@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests;
 
+using System.Runtime.CompilerServices;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
@@ -139,10 +140,27 @@ public class TypedGetTests
         Assert.AreEqual(2, value.Get<int>("nested.b"));
     }
 
-    private sealed class Inner
+    internal sealed class Inner : ICStructMapped<Inner>
     {
         public byte A { get; set; }
 
         public ushort B { get; set; }
+
+        public static Inner ReadFrom(StructValue source)
+        {
+            return new Inner { A = source.Get<byte>("a"), B = source.Get<ushort>("b"), };
+        }
+
+        public static void WriteTo(Inner value, StructValue target)
+        {
+            target["a"] = value.A;
+            target["b"] = value.B;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<Inner>();
+        }
     }
 }

@@ -20,7 +20,6 @@ const defaults: Record<string, unknown> = {
   littleEndian: true,
   addressingMode: "Absolute",
   origin: 0,
-  bindingMode: "PublicReadable",
   dereferencePointers: true,
   maxPointerDepth: 64,
   maxPointerTargetBytes: null,
@@ -57,11 +56,7 @@ function nonDefaultOptions(request: OperationRequest): Record<string, unknown> {
       // Pointer dereferencing applies to parse and update (both traverse to locate a target); serialize never
       // reads through a pointer, so it never has a use for this option.
       if (key === "dereferencePointers" && request.operation === "serialize") return false;
-      if (
-        request.operation === "parse" &&
-        (key === "bindingMode" || key === "maxTotalBytesWritten")
-      )
-        return false;
+      if (request.operation === "parse" && key === "maxTotalBytesWritten") return false;
       if (value == null) return false;
       if (key === "origin") {
         try {
@@ -78,7 +73,6 @@ function nonDefaultOptions(request: OperationRequest): Record<string, unknown> {
 
 function csOption(key: string, value: unknown): string {
   if (key === "addressingMode") return `PointerAddressingMode.${value}`;
-  if (key === "bindingMode") return `PocoBindingMode.${value}`;
   if (key === "origin")
     return `long.Parse(${csString(String(value))}, System.Globalization.CultureInfo.InvariantCulture)`;
   if (typeof value === "boolean") return String(value);

@@ -55,7 +55,7 @@ public class ConditionalFieldTests
         byte[] bytes = [1, 1, 42, 0, 99];
         Assert.Throws<CStructReadException>(() => parser.Parse(new MemoryStream(bytes), "root"));
         Assert.Throws<CStructReadException>(() => parser.ResolveAddress(new MemoryStream(bytes), "root.items[1].value"));
-        Assert.Throws<CStructWriteException>(() => parser.Serialize("entry", new { tag = 0, count = 1, value = 42 }));
+        Assert.Throws<CStructWriteException>(() => parser.Serialize("entry", new Dictionary<string, object?> { ["tag"] = 0, ["count"] = 1, ["value"] = 42 }));
 
         const string validLayout = "struct root { uint8 tag; if (tag) { struct { struct { uint8 count; }; uint8 values[count]; }; } uint8 tail; };";
         var valid = new CStruct(validLayout, aligned: false);
@@ -66,8 +66,8 @@ public class ConditionalFieldTests
         Assert.IsTrue(debug.Any(item => item.Path == "root.count" && item.Start == 1 && item.End == 2));
         stream.Position = 0;
         Assert.AreEqual(4L, valid.ResolveAddress(stream, "root.tail"));
-        Assert.Throws<CStructWriteException>(() => valid.Serialize("root", new { tag = 0, count = 2, values = new byte[] { 42, 43 }, tail = 99 }));
-        CollectionAssert.AreEqual(new byte[] { 0, 99 }, valid.Serialize("root", new { tag = 0, tail = 99 }));
+        Assert.Throws<CStructWriteException>(() => valid.Serialize("root", new Dictionary<string, object?> { ["tag"] = 0, ["count"] = 2, ["values"] = new byte[] { 42, 43 }, ["tail"] = 99 }));
+        CollectionAssert.AreEqual(new byte[] { 0, 99 }, valid.Serialize("root", new Dictionary<string, object?> { ["tag"] = 0, ["tail"] = 99 }));
     }
 
     /// <summary>Unused conditional declarations do not force selected updates to parse unrelated bytes.</summary>
@@ -152,9 +152,9 @@ public class ConditionalFieldTests
         byte[] bytes = [1, 1, 42, 0, 99];
         Assert.Throws<CStructReadException>(() => parser.Parse(new MemoryStream(bytes), "root"));
         Assert.Throws<CStructReadException>(() => parser.ResolveAddress(new MemoryStream(bytes), "root.items[1].value"));
-        Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new
+        Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new Dictionary<string, object?>
         {
-            items = new object[] { new { tag = 1, count = 1, value = 42 }, new { tag = 0, value = 99 } },
+            ["items"] = new object[] { new Dictionary<string, object?> { ["tag"] = 1, ["count"] = 1, ["value"] = 42 }, new Dictionary<string, object?> { ["tag"] = 0, ["value"] = 99 } },
         }));
 
         var forward = new CStruct("struct root { if (later) { uint8 first; } uint8 later; };", aligned: false);
@@ -247,7 +247,7 @@ public class ConditionalFieldTests
             Assert.IsFalse(debug.Any(item => item.Path.Contains(kind == 1 ? "second" : "first")));
         }
 
-        Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new { kind = 1, first = new { number = 42 }, second = new { number = 42 }, tail = 99 }));
+        Assert.Throws<CStructWriteException>(() => parser.Serialize("root", new Dictionary<string, object?> { ["kind"] = 1, ["first"] = new Dictionary<string, object?> { ["number"] = 42 }, ["second"] = new Dictionary<string, object?> { ["number"] = 42 }, ["tail"] = 99 }));
     }
 
     /// <summary>Inactive groups neither evaluate nested predicates nor consume even alignment padding.</summary>

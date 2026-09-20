@@ -44,7 +44,6 @@ internal sealed class CStructElementWriterState
         this.Stream = this.budgetStream;
         this.PointerOrigin = this.Options.Origin;
         this.AddressingMode = this.Options.AddressingMode;
-        this.BindingMode = this.Options.BindingMode;
         this.RejectUnknownMembers = this.Options.UnknownMembers == UnknownMemberPolicy.Reject;
         this.MaxNestingDepth = this.Options.MaxNestingDepth;
         this.StructureDepth = initialStructureDepth;
@@ -59,8 +58,6 @@ internal sealed class CStructElementWriterState
     public PointerAddressingMode AddressingMode { get; }
 
     public bool Aligned { get; }
-
-    public PocoBindingMode BindingMode { get; }
 
     /// <summary>Whether a member the composite does not declare fails the write (<see cref="WriteOptions.UnknownMembers"/>).</summary>
     public bool RejectUnknownMembers { get; }

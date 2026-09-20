@@ -15,7 +15,7 @@ those at once makes it hard to know which assumption was wrong.
 | --- | --- |
 | `CStruct` construction | Layout exception code/message, unsupported syntax, names/types, expressions, compilation limits |
 | Path selection | Root/member case, array index, pointer `.address`/`.value` depth |
-| Read or typed mapping | Starting position, byte order, placement, exact payload length, direct result before POCO conversion |
+| Read or typed mapping | Starting position, byte order, placement, exact payload length, direct result before mapped-class conversion |
 | Configured limit | The specific option and which array/string/byte/nesting/pointer work consumed it |
 | Pointer traversal | Stored address, pointer width, absolute/relative mode, origin, target range, cycle/depth limits |
 | Write | Input shape, missing/null member, numeric range, string/array size, union selection, destination capability |
@@ -65,7 +65,7 @@ For a wrong value or offset:
 5. Use `ParseWithDebug` or `ResolveAddress` only after the simple calculation is explicit.
 
 For a typed-mapping failure, read the path without `<T>` first. If the direct value is wrong, debug binary decoding.
-If it is right, inspect the POCO constructor, member names, writable members, nullability, and numeric ranges.
+If it is right, inspect the mapper's `ReadFrom`: the member names it asks for, the `Get<T>` target types, nullability, and numeric ranges.
 
 ## Update failures
 

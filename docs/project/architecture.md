@@ -77,7 +77,7 @@ by the application are not made thread-safe:
 
 - streams and output writers need exclusive use for the complete call;
 - dictionaries must not change while they are being copied;
-- POCOs, dynamic objects, and collections being written must not change during the write; and
+- mapped-class instances, dynamic objects, and collections being written must not change during the write; and
 - returned dynamic and debug values belong to that call.
 
 Internal class names on this page help contributors navigate the source; they are not public APIs. Public behavior is

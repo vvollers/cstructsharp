@@ -42,7 +42,7 @@ internal static partial class Program
         // The tag, the alias, and the pointer alias all name the same declaration; the promoted union writes
         // back through the member the data supplies and the padding as zeroes.
         Equal(20, layout.GetStructSizeInBytes("_RECORD"));
-        byte[] written = layout.Serialize("RECORD", new { Magic = 0x5A4DU, Version = (ushort)2, Packed = 0x3039000AU, Name = 0U });
+        byte[] written = layout.Serialize("RECORD", new Dictionary<string, object?> { ["Magic"] = 0x5A4DU, ["Version"] = (ushort)2, ["Packed"] = 0x3039000AU, ["Name"] = 0U });
         SequenceEqual([0x4D, 0x5A, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x39, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], written);
     }
     #endregion

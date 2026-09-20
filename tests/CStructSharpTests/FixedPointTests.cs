@@ -12,7 +12,7 @@ public class FixedPointTests
     public void IntegerInput_StillMasksFixedPointLayoutVariables()
     {
         var layout = new CStruct("struct root { fixed16_16 count; uint8 values[count]; };", aligned: false);
-        Assert.Throws<CStructException>(() => layout.Serialize("root", new { count = 1, values = new byte[] { 42 } }));
+        Assert.Throws<CStructException>(() => layout.Serialize("root", new Dictionary<string, object?> { ["count"] = 1, ["values"] = new byte[] { 42 } }));
     }
 
     /// <summary>A decimal fraction must not disappear through a preliminary Double conversion.</summary>
@@ -22,8 +22,8 @@ public class FixedPointTests
         foreach (string type in new[] { "fixed16_16", "ufixed16_16", "fixed2_30", "ufixed8_8" })
         {
             var parser = new CStruct($"struct root {{ {type} value; }};", aligned: false);
-            byte[] bytes = parser.Serialize("root", new { value = 1m });
-            CollectionAssert.AreEqual(parser.Serialize("root", new { value = 1.0 }), bytes);
+            byte[] bytes = parser.Serialize("root", new Dictionary<string, object?> { ["value"] = 1m });
+            CollectionAssert.AreEqual(parser.Serialize("root", new Dictionary<string, object?> { ["value"] = 1.0 }), bytes);
             using var stream = new MemoryStream(bytes);
             Assert.Throws<CStructWriteException>(() => parser.Update(stream, "root.value", 1.0000000000000000000000000001m));
             CollectionAssert.AreEqual(bytes, stream.ToArray());
@@ -44,7 +44,7 @@ public class FixedPointTests
             foreach (string suffix in new[] { "<", ">" })
             {
                 var parser = new CStruct($"struct root {{ {type}{suffix} value; uint8 tail; }};", aligned: false);
-                byte[] bytes = parser.Serialize("root", new { value, tail = 99 });
+                byte[] bytes = parser.Serialize("root", new Dictionary<string, object?> { ["value"] = value, ["tail"] = 99 });
                 Assert.AreEqual(size + 1, bytes.Length);
                 using var stream = new MemoryStream(bytes);
                 Assert.AreEqual(value, parser.ReadValue<double>(stream, "root.value"));

@@ -10,7 +10,7 @@ internal static partial class Program
     private static void Integers24()
     {
         var layout = new CStruct("struct root { uint24< size; int24< delta; uint8 tail; };", aligned: true);
-        byte[] bytes = layout.Serialize("root", new { size = 16777215U, delta = -2, tail = 99 });
+        byte[] bytes = layout.Serialize("root", new Dictionary<string, object?> { ["size"] = 16777215U, ["delta"] = -2, ["tail"] = 99 });
         SequenceEqual([255, 255, 255, 254, 255, 255, 99], bytes);
         Equal(7, layout.GetStructSizeInBytes("root"));
         Equal(-2, layout.ReadValue<int>(bytes.AsSpan(), "root.delta"));
@@ -26,7 +26,7 @@ internal static partial class Program
     {
         const string definition = "struct root { utf8 currency[3]; latin1 western[1]; cp437 dos[1]; utf16le little[4]; utf16be big[4]; uint8 tail; };";
         var layout = new CStruct(definition, aligned: false);
-        var value = new { currency = "€", western = "é", dos = "é", little = "😀", big = "😀", tail = 99 };
+        var value = new Dictionary<string, object?> { ["currency"] = "€", ["western"] = "é", ["dos"] = "é", ["little"] = "😀", ["big"] = "😀", ["tail"] = 99 };
         byte[] bytes = layout.Serialize("root", value);
         SequenceEqual(Convert.FromHexString("E282ACE9823DD800DED83DDE0063"), bytes);
         StructValue parsed = layout.Parse(bytes, "root");
@@ -44,7 +44,7 @@ internal static partial class Program
     private static void VariableIntegers()
     {
         var layout = new CStruct("struct root { uleb128_32 count; uleb128_64 values[count]; sleb128_32 delta; uint8 tail; };", aligned: false);
-        byte[] bytes = layout.Serialize("root", new { count = 2, values = new ulong[] { 127, 128 }, delta = -65, tail = 99 });
+        byte[] bytes = layout.Serialize("root", new Dictionary<string, object?> { ["count"] = 2, ["values"] = new ulong[] { 127, 128 }, ["delta"] = -65, ["tail"] = 99 });
         SequenceEqual([2, 127, 128, 1, 191, 127, 99], bytes);
         using var stream = new MemoryStream(bytes);
         Equal(2, layout.GetArrayLength(stream, "root.values"));
@@ -62,7 +62,7 @@ internal static partial class Program
     private static void FixedPoint()
     {
         var layout = new CStruct("struct root { fixed16_16> revision; ufixed8_8< volume; };", aligned: false);
-        byte[] bytes = layout.Serialize("root", new { revision = -1.5, volume = 0.5 });
+        byte[] bytes = layout.Serialize("root", new Dictionary<string, object?> { ["revision"] = -1.5, ["volume"] = 0.5 });
         SequenceEqual([255, 254, 128, 0, 128, 0], bytes);
         Equal(-1.5, layout.ReadValue<double>(bytes.AsSpan(), "root.revision"));
         Equal(0.5, layout.ReadValue<double>(bytes.AsSpan(), "root.volume"));
@@ -77,7 +77,7 @@ internal static partial class Program
     {
         var layout = new CStruct("struct root { uuid network; guid windows; };", aligned: false);
         Guid id = Guid.Parse("00112233-4455-6677-8899-aabbccddeeff");
-        byte[] bytes = layout.Serialize("root", new { network = id, windows = id });
+        byte[] bytes = layout.Serialize("root", new Dictionary<string, object?> { ["network"] = id, ["windows"] = id });
         SequenceEqual(Convert.FromHexString("00112233445566778899AABBCCDDEEFF33221100554477668899AABBCCDDEEFF"), bytes);
         Equal(id, layout.ReadValue<Guid>(bytes.AsSpan(), "root.network"));
         Equal(id, layout.ReadValue<Guid>(bytes.AsSpan(), "root.windows"));

@@ -117,7 +117,7 @@ an existing header.
 | --- | --- |
 | Manual offsets with `BinaryReader` / `BinaryPrimitives` | The layout text names every field, offset, width, and byte order once; reads, writes, updates, address lookups, and the debug byte map all come from that one description, and a change to the format is a change to the text. |
 | `[StructLayout]` structs with `MemoryMarshal` | Portable widths never depend on the host process; layouts load at run time, so a tool can accept formats it did not compile against, and variable-length arrays, conditional fields, pointers, and strings are part of the description rather than hand code. |
-| A source generator or a serializer | No build step and no generated types to keep in sync: the same text drives C#, Node.js, and the browser, and the parsed result is a typed `StructValue` (or a POCO through `ReadValue<T>`) either way. |
+| A source generator or a serializer | No build step and no generated types to keep in sync: the same text drives C#, Node.js, and the browser, and the parsed result is a typed `StructValue` (or your own mapped class through `ReadValue<T>`) either way. |
 | Kaitai Struct or another schema language | The schema is C: an existing header or a `dissect.cstruct` definition is the input, with `#define`, `#ifdef`, and `#pragma pack` honored, so format knowledge that already exists as C stays C. |
 | dissect.cstruct (Python) | The same definition language and habits on .NET and in JavaScript, with a compiled layout cache, bounded read budgets, trim-safe Native AOT support, and a [migration guide](https://vvollers.github.io/cstructsharp/docs/guides/migrating-from-dissect.html) for the few places the two libraries read bytes differently. |
 

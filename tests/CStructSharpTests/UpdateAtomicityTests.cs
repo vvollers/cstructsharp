@@ -72,7 +72,7 @@ public class UpdateAtomicityTests
         var cstruct = new CStruct(
             "struct root { uint8 first; uint8 second; uint8 third; };",
             pointerSize: 1);
-        var value = new { first = (byte)1, second = (byte)2, third = (byte)3, };
+        var value = new Dictionary<string, object?> { ["first"] = (byte)1, ["second"] = (byte)2, ["third"] = (byte)3, };
 
         AssertValidationFailureLeavesDestinationUnchanged(
             new byte[] { 0x11, 0x22, 0x33, },
@@ -95,7 +95,7 @@ public class UpdateAtomicityTests
     public void LateStringBudgetFailure_DoesNotReachDestination()
     {
         var cstruct = new CStruct("struct root { uint8 prefix; string value; };", pointerSize: 1);
-        var value = new { prefix = (byte)0xA5, value = "too-long", };
+        var value = new Dictionary<string, object?> { ["prefix"] = (byte)0xA5, ["value"] = "too-long", };
 
         AssertValidationFailureLeavesDestinationUnchanged(
             new byte[] { 0x11, (byte)'o', (byte)'l', (byte)'d', 0, 0, 0, 0, 0, 0, },
@@ -120,11 +120,11 @@ public class UpdateAtomicityTests
         var cstruct = new CStruct(
             "struct root { uint8 prefix; uint8 count; uint8 values[count]; };",
             pointerSize: 1);
-        var value = new
+        var value = new Dictionary<string, object?>
         {
-            prefix = (byte)0xA5,
-            count = (byte)2,
-            values = new object[] { (byte)1, "not-a-byte", },
+            ["prefix"] = (byte)0xA5,
+            ["count"] = (byte)2,
+            ["values"] = new object[] { (byte)1, "not-a-byte", },
         };
 
         AssertValidationFailureLeavesDestinationUnchanged(
@@ -144,7 +144,7 @@ public class UpdateAtomicityTests
     public void LatePointerFailure_DoesNotReachDestination()
     {
         var cstruct = new CStruct("struct root { uint8 marker; uint8 *target; };", pointerSize: 1);
-        var value = new { marker = (byte)0xA5, target = -1L, };
+        var value = new Dictionary<string, object?> { ["marker"] = (byte)0xA5, ["target"] = -1L, };
 
         AssertValidationFailureLeavesDestinationUnchanged(
             new byte[] { 0x11, 0x02, 0x33, },
@@ -168,25 +168,25 @@ public class UpdateAtomicityTests
                 new CStruct(
                     "enum mode : uint8 { ok = 1 }; struct root { uint8 prefix; mode value; };",
                     pointerSize: 1),
-                new { prefix = (byte)0xA5, value = "missing", }),
+                new Dictionary<string, object?> { ["prefix"] = (byte)0xA5, ["value"] = "missing", }),
             (
                 new CStruct("struct root { uint8 prefix; uint8 flags:4; };", pointerSize: 1),
-                new { prefix = (byte)0xA5, flags = 16, }),
+                new Dictionary<string, object?> { ["prefix"] = (byte)0xA5, ["flags"] = 16, }),
             (
                 new CStruct("struct root { uint8 prefix; char text[2]; };", pointerSize: 1),
-                new { prefix = (byte)0xA5, text = "too long", }),
+                new Dictionary<string, object?> { ["prefix"] = (byte)0xA5, ["text"] = "too long", }),
             (
                 new CStruct("struct root { uint8 prefix; uint8 values[2]; };", pointerSize: 1),
-                new { prefix = (byte)0xA5, values = new byte[] { 1, }, }),
+                new Dictionary<string, object?> { ["prefix"] = (byte)0xA5, ["values"] = new byte[] { 1, }, }),
             (
                 new CStruct(
                     "union choice { uint32 wide; uint8 small; }; " +
                     "struct root { uint8 prefix; choice value; };",
                     pointerSize: 1),
-                new
+                new Dictionary<string, object?>
                 {
-                    prefix = (byte)0xA5,
-                    value = UnionValue.FromMember("choice", "missing", (byte)1),
+                    ["prefix"] = (byte)0xA5,
+                    ["value"] = UnionValue.FromMember("choice", "missing", (byte)1),
                 }),
         };
 
@@ -399,7 +399,7 @@ public class UpdateAtomicityTests
         cstruct.Update(
             stream,
             "root",
-            new { prefix = (byte)1, value = 0x11223344U, },
+            new Dictionary<string, object?> { ["prefix"] = (byte)1, ["value"] = 0x11223344U, },
             options: new UpdateOptions { MaxTotalBytesWritten = 5, });
 
         CollectionAssert.AreEqual(expected, stream.Snapshot());

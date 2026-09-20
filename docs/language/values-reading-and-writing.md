@@ -25,15 +25,15 @@ pointer.
 
 ## Typed reads
 
-`ReadValue<T>` applies the same decoding and conversion rules, with direct destination filling for eligible fixed layouts:
+`ReadValue<T>` applies the same decoding and conversion rules (fully fixed layouts decode through the static read plan):
 
 - numeric conversions are checked for range;
 - floating/decimal targets use invariant conversion;
 - CLR enums receive the exact numeric payload, including unnamed values;
 - arrays and common generic collection interfaces convert item by item; and
-- struct/union dictionaries can map to mutable reference-type POCOs.
+- a struct value maps to a class implementing `ICStructMapped<T>` through that class's own `ReadFrom`.
 
-A supported POCO has a public parameterless constructor and public writable properties or mutable public fields.
+A mapped class is registered with `MappedTypes.Register<T>()` (generated classes register from a module initializer); nothing about it is discovered by reflection.
 Names match exactly first, then by one unambiguous case-insensitive match. Every writable destination member needs a
 source member; extra source members may be ignored.
 

@@ -48,7 +48,6 @@
   "optionFields": [
     "addressingMode",
     "aligned",
-    "bindingMode",
     "bitfieldAllocation",
     "bitfieldPacking",
     "cLongWidth",

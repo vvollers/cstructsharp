@@ -1,5 +1,6 @@
 namespace CStructSharp.Benchmarks;
 
+using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
@@ -197,15 +198,48 @@ public class ReadBenchmarks
         return this.scalarLayout.ReadValue<ushort>(this.scalarBytes.AsSpan(), "root.value");
     }
 
-    public sealed class TypedChild
+    public sealed class TypedChild : ICStructMapped<TypedChild>
     {
         public ushort Value { get; set; }
+
+        public static TypedChild ReadFrom(StructValue source)
+        {
+            return new TypedChild { Value = source.Get<ushort>("value"), };
+        }
+
+        public static void WriteTo(TypedChild value, StructValue target)
+        {
+            target["value"] = value.Value;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<TypedChild>();
+        }
     }
 
-    public sealed class TypedRoot
+    public sealed class TypedRoot : ICStructMapped<TypedRoot>
     {
         public byte Count { get; set; }
 
         public TypedChild[] Children { get; set; } = [];
+
+        public static TypedRoot ReadFrom(StructValue source)
+        {
+            return new TypedRoot { Count = source.Get<byte>("count"), Children = source.Get<TypedChild[]>("children"), };
+        }
+
+        public static void WriteTo(TypedRoot value, StructValue target)
+        {
+            target["count"] = value.Count;
+            target["children"] = value.Children;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<TypedRoot>();
+        }
     }
 }

@@ -685,8 +685,6 @@ public class EnumDomainTests
             "Known",
             new Dictionary<string, object?> { ["Enum"] = "state", ["Name"] = "Known", },
             new Dictionary<string, object?> { ["Value"] = "42", },
-            new EnumInputProperty { Enum = "state", Name = "Known", Value = 42UL, },
-            new EnumInputField { Enum = "state", Name = "Known", Value = 42UL, },
         ];
 
         foreach (object value in accepted)
@@ -725,6 +723,7 @@ public class EnumDomainTests
             new Dictionary<string, object?> { ["Name"] = "Known", ["Value"] = 41, },
             new Dictionary<string, object?> { ["Name"] = "Missing", },
             new Dictionary<string, object?> { ["Value"] = null, },
+            new EnumInputProperty { Enum = "state", Name = "Known", Value = 42UL, },
         ];
 
         foreach (object? value in rejected)
@@ -863,6 +862,7 @@ public class EnumDomainTests
         return checked((ulong)raw);
     }
 
+    /// <summary>A plain object is not an enum input: members are read from dictionaries and dynamic objects only, never by reflection.</summary>
     private sealed class EnumInputProperty
     {
         public string? Enum { get; init; }
@@ -870,14 +870,5 @@ public class EnumDomainTests
         public string? Name { get; init; }
 
         public ulong Value { get; init; }
-    }
-
-    private sealed class EnumInputField
-    {
-#pragma warning disable SA1401 // Public test fixture fields intentionally exercise field binding.
-        public string? Enum;
-        public string? Name;
-        public ulong Value;
-#pragma warning restore SA1401
     }
 }

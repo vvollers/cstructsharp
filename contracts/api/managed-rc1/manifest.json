@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 19,
+  "baselineRevision": 20,
   "status": "frozen",
   "workItem": "QA-07",
-  "packageVersion": "0.5.0",
+  "packageVersion": "0.6.0",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 69,
+  "exportedTypes": 70,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 679,
-    "normalizedSha256": "A3499864A62E9AD05FDFD31D49F8E207A1B46E5EADB709D5C3B8E6655BCDAE4F"
+    "lines": 685,
+    "normalizedSha256": "060A3BC3588BCAE50236F59E581D56BB06CE6A527DBBCF2F8B9F84B294F3E8B3"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "FE50C98E1793E8777B51F9714C54EA29AA9875C6213C5A9AEF6BEF2053F4AA48",
+      "normalizedSha256": "83C7BD179B88044EFBC9A0A1D5C7374A99F601F18B5940CDB7006C95848EFAF0",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "61A4A24B9C55BEF6C2D2091D04D3CF495C2A4D12B8B71CE66A24BDF27DBEB055",
+      "normalizedSha256": "50EC32D03974E3D3BF5C40B090F42A83B7B6D38BC0C4961F3BD4F221168E7A25",
       "aotCompatible": true
     }
   ],
@@ -204,6 +204,15 @@
       "combinedSha256": "BAF55AF79A6B923DA6B35CD291D29A5C4977043FDF40CEC1F35736894E636BD5",
       "rationale": "6.1: CStructCompilationOptions.BitfieldPacking (BitfieldPacking.SysV default, Msvc) selects the compiler family's bitfield placement rule; unnamed zero-width declarators are accepted as separators.",
       "releaseImpact": "Additive API; default placement of mixed-size bitfield runs now follows GCC/Clang (behaviour change documented in the changelog)."
+    },
+    {
+      "revision": 20,
+      "kind": "breaking",
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "7746FA679175FBE8A9EE7A73E07FFC644D65F200BEBA0E2A42FE1B946333E1B2",
+      "rationale": "Reflection-based POCO mapping is removed: typed reads and writes go through ICStructMapped<T> and MappedTypes; PocoBindingMode and WriteOptions/UpdateOptions.BindingMode are gone; the DynamicallyAccessedMembers annotations that existed only for reflection are dropped from ReadValue<T>/TryReadValue<T>/Get<T>/TryGet<T>.",
+      "releaseImpact": "Code that read into plain classes or wrote anonymous objects or plain classes must implement ICStructMapped<T> (or use the [CStructMapped] generator) and register the type; collection-interface and List<T> targets become arrays; BindingMode settings are removed."
     }
   ]
 }

@@ -3,10 +3,12 @@ namespace CStructSharpTests;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using CStructSharp;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
+using CStructSharp.Values;
 
 /// <summary>
 ///     Layout-variable capture must decide "becomes an Int32 variable" versus "is removed" exactly as
@@ -98,7 +100,7 @@ public class Int32CaptureTests
         CollectionAssert.AreEqual(bytes, written);
     }
 
-    /// <summary>Serializing a POCO whose members are not Int32-convertible (byte arrays, nested objects) raises no exceptions either.</summary>
+    /// <summary>Serializing a mapped class whose members are not Int32-convertible (byte arrays, nested objects) raises no exceptions either.</summary>
     [TestMethod]
     public void SerializingNonConvertibleMembers_RaisesNoFirstChanceExceptions()
     {
@@ -157,12 +159,30 @@ public class Int32CaptureTests
         return (IList<object?>)((IDictionary<string, object?>)parsed)["items"]!;
     }
 
-    public sealed class SamplePoco
+    public sealed class SamplePoco : ICStructMapped<SamplePoco>
     {
         public uint Id { get; set; }
 
         public ushort Count { get; set; }
 
         public byte[] Samples { get; set; } = [];
+
+        public static SamplePoco ReadFrom(StructValue source)
+        {
+            return new SamplePoco { Id = source.Get<uint>("id"), Count = source.Get<ushort>("count"), Samples = source.Get<byte[]>("samples"), };
+        }
+
+        public static void WriteTo(SamplePoco value, StructValue target)
+        {
+            target["id"] = value.Id;
+            target["count"] = value.Count;
+            target["samples"] = value.Samples;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<SamplePoco>();
+        }
     }
 }

@@ -36,7 +36,7 @@ public class ConditionalExecutionOptimizationTests
         Assert.AreEqual(1L, stream.Position);
         CollectionAssert.AreEqual(bytes, layout.Serialize("root", (object)value));
         Assert.AreEqual(0L, layout.ResolveAddress(new MemoryStream(bytes), "root.value"));
-        Assert.Throws<CStructException>(() => layout.Serialize("root", new { value = 42, other = 7 }));
+        Assert.Throws<CStructException>(() => layout.Serialize("root", new Dictionary<string, object?> { ["value"] = 42, ["other"] = 7 }));
     }
 
     /// <summary>A nested name cannot revive an inactive local that has never had a value.</summary>
@@ -47,7 +47,7 @@ public class ConditionalExecutionOptimizationTests
         byte[] bytes = [1, 42];
         Assert.Throws<CStructReadException>(() => layout.Parse(new MemoryStream(bytes), "root"));
         Assert.Throws<CStructReadException>(() => layout.ResolveAddress(new MemoryStream(bytes), "root.payload"));
-        Assert.Throws<CStructException>(() => layout.Serialize("root", new { nested = new { count = 1 }, payload = 42 }));
+        Assert.Throws<CStructException>(() => layout.Serialize("root", new Dictionary<string, object?> { ["nested"] = new Dictionary<string, object?> { ["count"] = 1 }, ["payload"] = 42 }));
     }
 
     /// <summary>Selector errors retain useful expression context at the public boundary.</summary>

@@ -277,7 +277,7 @@ public sealed partial class CStruct
     ///     struct bound to a class or record whose public writable members match the field names without regard
     ///     to case. Unsupported or lossy conversions fail with <see cref="CStructReadException"/>.
     /// </summary>
-    /// <typeparam name="T">The destination type; a POCO needs a public parameterless constructor and public bindable members.</typeparam>
+    /// <typeparam name="T">The destination type: a scalar, string, enum, array, <see cref="StructValue"/>, <see cref="UnionValue"/>, <see cref="Pointer"/>, or a class implementing <see cref="ICStructMapped{TSelf}"/>.</typeparam>
     /// <param name="stream">The readable, seekable stream whose current position is the operation origin.</param>
     /// <param name="path">The case-sensitive root name or nested path; <see langword="null"/> selects the first declared struct or union.</param>
     /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
@@ -285,7 +285,7 @@ public sealed partial class CStruct
     /// <returns>The selected value converted or bound to <typeparamref name="T"/>.</returns>
     /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
     /// <exception cref="CStructReadException">The bytes cannot be decoded or the result cannot be bound to <typeparamref name="T"/>.</exception>
-    public T ReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
+    public T ReadValue<T>(
         Stream stream,
         string? path = null,
         IReadOnlyDictionary<string, int>? variables = null,
@@ -295,7 +295,7 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads one value from a byte span and maps it to <typeparamref name="T"/>.</summary>
-    /// <typeparam name="T">The destination type; a POCO needs a public parameterless constructor and public bindable members.</typeparam>
+    /// <typeparam name="T">The destination type: a scalar, string, enum, array, <see cref="StructValue"/>, <see cref="UnionValue"/>, <see cref="Pointer"/>, or a class implementing <see cref="ICStructMapped{TSelf}"/>.</typeparam>
     /// <param name="source">The complete byte region available to this operation.</param>
     /// <param name="path">The case-sensitive root name or nested path; <see langword="null"/> selects the first declared struct or union.</param>
     /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
@@ -303,7 +303,7 @@ public sealed partial class CStruct
     /// <returns>The selected value converted or bound to <typeparamref name="T"/>.</returns>
     /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
     /// <exception cref="CStructReadException">The bytes cannot be decoded or the result cannot be bound to <typeparamref name="T"/>.</exception>
-    public T ReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
+    public T ReadValue<T>(
         ReadOnlySpan<byte> source,
         string? path = null,
         IReadOnlyDictionary<string, int>? variables = null,
@@ -314,7 +314,7 @@ public sealed partial class CStruct
 
     /// <summary>Reads one value from read-only memory and maps it to <typeparamref name="T"/>.</summary>
     /// <inheritdoc cref="ReadValue{T}(ReadOnlySpan{byte}, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
-    public T ReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
+    public T ReadValue<T>(
         ReadOnlyMemory<byte> source,
         string? path = null,
         IReadOnlyDictionary<string, int>? variables = null,
@@ -326,7 +326,7 @@ public sealed partial class CStruct
     /// <summary>Reads one value from a byte array and maps it to <typeparamref name="T"/>.</summary>
     /// <inheritdoc cref="ReadValue{T}(ReadOnlySpan{byte}, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
-    public T ReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
+    public T ReadValue<T>(
         byte[] source,
         string? path = null,
         IReadOnlyDictionary<string, int>? variables = null,
@@ -343,7 +343,7 @@ public sealed partial class CStruct
     ///     An expected layout, path, read, or conversion failure returns <see langword="false"/> and restores the
     ///     stream position from before the attempt; invalid arguments and unexpected failures still throw.
     /// </summary>
-    /// <typeparam name="T">The destination type; a POCO needs a public parameterless constructor and public bindable members.</typeparam>
+    /// <typeparam name="T">The destination type: a scalar, string, enum, array, <see cref="StructValue"/>, <see cref="UnionValue"/>, <see cref="Pointer"/>, or a class implementing <see cref="ICStructMapped{TSelf}"/>.</typeparam>
     /// <param name="stream">The readable, seekable stream whose position is restored after an expected failure.</param>
     /// <param name="path">The case-sensitive root name or nested path; <see langword="null"/> selects the first declared struct or union.</param>
     /// <param name="value">Receives the typed result on success, or the default value of <typeparamref name="T"/> on failure.</param>
@@ -351,7 +351,7 @@ public sealed partial class CStruct
     /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <returns><see langword="true"/> on success; <see langword="false"/> for a categorized CStructSharp failure.</returns>
     /// <exception cref="ArgumentException"><paramref name="stream"/> is not readable and seekable.</exception>
-    public bool TryReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
+    public bool TryReadValue<T>(
         Stream stream,
         string? path,
         [MaybeNullWhen(false)] out T value,
@@ -379,14 +379,14 @@ public sealed partial class CStruct
     }
 
     /// <summary>Attempts a typed read from a byte span; an expected CStructSharp failure returns <see langword="false"/>.</summary>
-    /// <typeparam name="T">The destination type; a POCO needs a public parameterless constructor and public bindable members.</typeparam>
+    /// <typeparam name="T">The destination type: a scalar, string, enum, array, <see cref="StructValue"/>, <see cref="UnionValue"/>, <see cref="Pointer"/>, or a class implementing <see cref="ICStructMapped{TSelf}"/>.</typeparam>
     /// <param name="source">The complete byte region available to this operation.</param>
     /// <param name="path">The case-sensitive root name or nested path; <see langword="null"/> selects the first declared struct or union.</param>
     /// <param name="value">Receives the typed result on success, or the default value of <typeparamref name="T"/> on failure.</param>
     /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
     /// <param name="options">Optional read limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <returns><see langword="true"/> on success; <see langword="false"/> for a categorized CStructSharp failure.</returns>
-    public bool TryReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
+    public bool TryReadValue<T>(
         ReadOnlySpan<byte> source,
         string? path,
         [MaybeNullWhen(false)] out T value,
@@ -407,7 +407,7 @@ public sealed partial class CStruct
 
     /// <summary>Attempts a typed read from read-only memory; an expected CStructSharp failure returns <see langword="false"/>.</summary>
     /// <inheritdoc cref="TryReadValue{T}(ReadOnlySpan{byte}, string?, out T, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
-    public bool TryReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
+    public bool TryReadValue<T>(
         ReadOnlyMemory<byte> source,
         string? path,
         [MaybeNullWhen(false)] out T value,
@@ -420,7 +420,7 @@ public sealed partial class CStruct
     /// <summary>Attempts a typed read from a byte array; an expected CStructSharp failure returns <see langword="false"/>.</summary>
     /// <inheritdoc cref="TryReadValue{T}(ReadOnlySpan{byte}, string?, out T, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
-    public bool TryReadValue<[DynamicallyAccessedMembers(TypedReadMembers)] T>(
+    public bool TryReadValue<T>(
         byte[] source,
         string? path,
         [MaybeNullWhen(false)] out T value,
@@ -569,12 +569,12 @@ public sealed partial class CStruct
     /// <summary>
     ///     Creates a new byte array holding <paramref name="value"/> encoded as the declaration or nested field
     ///     <paramref name="path"/> selects. The value may be a <see cref="StructValue"/> from a parse, a dictionary,
-    ///     an anonymous object, a POCO, or a scalar for a scalar path.
+    ///     an instance of a class implementing <see cref="ICStructMapped{TSelf}"/>, or a scalar for a scalar path.
     /// </summary>
     /// <param name="path">The case-sensitive root name or nested field path to serialize.</param>
     /// <param name="value">The value to encode.</param>
     /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
-    /// <param name="options">Optional write limits, binding rules, and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <param name="options">Optional write limits, unknown-member policy, and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <returns>An exactly sized array; no partial output survives a failure.</returns>
     /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
     /// <exception cref="CStructWriteException">The value cannot be encoded.</exception>
@@ -596,7 +596,7 @@ public sealed partial class CStruct
     /// <param name="path">The case-sensitive root name or nested field path to serialize.</param>
     /// <param name="value">The value to encode.</param>
     /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
-    /// <param name="options">Optional write limits, binding rules, and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <param name="options">Optional write limits, unknown-member policy, and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <returns>The number of bytes written at the start of <paramref name="destination"/>.</returns>
     /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
     /// <exception cref="CStructWriteException">The value is invalid or the destination is too small; an initialized prefix may remain.</exception>
@@ -619,7 +619,7 @@ public sealed partial class CStruct
     /// <param name="path">The case-sensitive root name or nested field path to serialize.</param>
     /// <param name="value">The value to encode.</param>
     /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
-    /// <param name="options">Optional write limits, binding rules, and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <param name="options">Optional write limits, unknown-member policy, and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <returns>The number of bytes appended.</returns>
     /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
     /// <exception cref="CStructWriteException">The value cannot be encoded.</exception>
@@ -644,7 +644,7 @@ public sealed partial class CStruct
     /// <param name="path">The case-sensitive root name or nested field path to write.</param>
     /// <param name="value">The value to encode.</param>
     /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
-    /// <param name="options">Optional write limits, binding rules, and pointer settings; <see langword="null"/> uses the documented defaults.</param>
+    /// <param name="options">Optional write limits, unknown-member policy, and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
     /// <exception cref="CStructWriteException">The value cannot be encoded; earlier fields may already be written.</exception>
     public void Write(

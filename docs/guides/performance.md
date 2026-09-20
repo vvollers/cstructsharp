@@ -15,9 +15,9 @@ The highest-value choices are usually:
 3. Use span or memory input when bytes are already in memory.
 4. Use the `byte[]` serialization overload unless an allocation measurement justifies caller-provided output.
 5. Request debug ranges only in diagnostic paths.
-6. Map to a POCO only when typed application code needs it. For a layout whose members are all statically placed
-   (fixed-width numbers, enums, `char[N]` buffers, fixed arrays, nested such structs), `ReadValue<T>` fills the
-   POCO straight from the bytes; other layouts parse first and map afterwards.
+6. Map to a class only when typed application code needs it. `ReadValue<T>` parses the value (through the static
+   read plan when the layout is fully fixed) and hands it to the class's own `ReadFrom`; the mapping itself is the
+   code the generator or you wrote, with no reflection to pay for.
 
 Selected reads can avoid decoding unrelated later siblings, but they still perform the work needed to locate the
 target. Runtime arrays, alignment, terminated strings, and pointers before the selected field may need traversal.
@@ -51,13 +51,13 @@ millions of records is dominated by that constant unless the records are read as
 | Compile the PNG header fixture (an enum and two structs) | 24.8 µs | 47,208 B |
 | `GetOrCompile` hit for the same source (cache lookup) | 397 ns | 0 B |
 | `Parse` a five-byte record with a `count`-sized array from memory | 451 ns | 1,296 B |
-| `ReadValue<T>` of the same record into a POCO | 1.31 µs | 2,544 B |
+| `ReadValue<T>` of the same record into a mapped class | 1.31 µs | 2,544 B |
 | `ReadValue<ushort>` of one selected field | 306 ns | 1,224 B |
 | `Parse` a 1 KiB `uint8[1024]` (one `PrimitiveArray`) | 232 ns | 1,608 B |
 | `ResolveAddress` of `items[127]` in a fixed nested array | 420 ns | 2,008 B |
 | `ParseWithDebug` of the PNG fixture (byte ranges for every value) | 2.08 µs | 6,376 B |
 | Truncated input: `Parse` throws and the caller catches | 8.53 µs | 2,784 B |
-| `Serialize` a POCO into a caller-provided span | 491 ns | 1,144 B |
+| `Serialize` a mapped class into a caller-provided span | 491 ns | 1,144 B |
 | `Update` one value behind a pointer in place | 612 ns | 2,272 B |
 | `Parse` a 16 MiB record from a `MemoryStream` | 1.55 ms | 16.0 MiB |
 
@@ -92,7 +92,7 @@ must have exclusive use of its:
 - stream;
 - writable span or `IBufferWriter<byte>`;
 - mutable dictionary while CStructSharp is copying it;
-- dynamic object, POCO, collection, or enumerable being written; and
+- dynamic object, mapped-class instance, collection, or enumerable being written; and
 - returned mutable dynamic or debug result.
 
 Two tasks may share one `CStruct` and separate streams. They must not seek or read the same stream at the same time

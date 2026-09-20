@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
@@ -15,10 +16,10 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 /// <summary>
 ///     Pins the static write plan: serializing a fully fixed composite through the plan must be
 ///     byte-for-byte what the field-by-field writer produces, for every destination shape, every input shape
-///     (parsed value, dictionary, POCO, typed arrays), every failure, every limit, and existing destination bytes.
+///     (parsed value, dictionary, mapped class, typed arrays), every failure, every limit, and existing destination bytes.
 /// </summary>
 [TestClass]
-[System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1300:ElementMustBeginWithUpperCaseLetter", Justification = "POCO members are named after layout fields")]
+[System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1300:ElementMustBeginWithUpperCaseLetter", Justification = "Mapped-class members are named after layout fields")]
 public class StaticWritePlanTests
 {
     private const string Layout = """
@@ -44,7 +45,7 @@ public class StaticWritePlanTests
         0xAA, 0xBB, 5, 6, 0, 0, 0, 7, 8, 0, 0, 0, 0x99,
     ];
 
-    /// <summary>The plan and the general writer produce identical bytes for a parsed value, a dictionary, and a POCO, into every destination.</summary>
+    /// <summary>The plan and the general writer produce identical bytes for a parsed value, a dictionary, and a mapped class, into every destination.</summary>
     [TestMethod]
     public void WritePlan_MatchesGeneralWriter_ForEveryInputAndDestination()
     {
@@ -55,7 +56,7 @@ public class StaticWritePlanTests
             StructValue parsed = (StructValue)layout.Parse(bytes, "root");
             Assert.IsTrue(layout.CompiledModel.Symbols["root"].Symbol.Definition is CompiledCompositeType { StaticPlan.SupportsWrite: true }, "plan exists");
 
-            foreach ((string label, object data) in new (string, object)[] { ("parsed", parsed), ("dictionary", CreateDictionary()), ("poco", CreatePoco()), })
+            foreach ((string label, object data) in new (string, object)[] { ("parsed", parsed), ("dictionary", CreateDictionary()), ("mapped", CreatePoco()), })
             {
                 AssertSameOutcome(layout, data, null, $"{label} aligned={aligned}");
                 CollectionAssert.AreEqual(bytes, layout.Serialize("root", data), $"{label} aligned={aligned}: round trip");
@@ -108,7 +109,6 @@ public class StaticWritePlanTests
         AssertSameOutcome(layout, CreateDictionary(), new WriteOptions { MaxNestingDepth = 1 }, "nesting limit 1");
         AssertSameOutcome(layout, CreateDictionary(), new WriteOptions { MaxNestingDepth = 2 }, "nesting limit 2");
         AssertSameOutcome(layout, CreateDictionary(), new WriteOptions { MaxNestingDepth = 3 }, "nesting limit 3");
-        AssertSameOutcome(layout, CreateDictionary(), new WriteOptions { BindingMode = PocoBindingMode.PublicReadWrite }, "binding mode");
     }
 
     /// <summary>A failure inside a planned composite leaves the destination untouched.</summary>
@@ -394,23 +394,58 @@ public class StaticWritePlanTests
         return message is null ? null : System.Text.RegularExpressions.Regex.Replace(message, @",? ?offset \d+", string.Empty);
     }
 
-    public sealed class LeafPoco
+    public sealed class LeafPoco : ICStructMapped<LeafPoco>
     {
         public byte k { get; set; }
 
         public uint v { get; set; }
+
+        public static LeafPoco ReadFrom(StructValue source)
+        {
+            return new LeafPoco { k = source.Get<byte>("k"), v = source.Get<uint>("v"), };
+        }
+
+        public static void WriteTo(LeafPoco value, StructValue target)
+        {
+            target["k"] = value.k;
+            target["v"] = value.v;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<LeafPoco>();
+        }
     }
 
-    public sealed class InnerPoco
+    public sealed class InnerPoco : ICStructMapped<InnerPoco>
     {
         public LeafPoco first { get; set; } = null!;
 
         public LeafPoco second { get; set; } = null!;
 
         public ushort pad { get; set; }
+
+        public static InnerPoco ReadFrom(StructValue source)
+        {
+            return new InnerPoco { first = source.Get<LeafPoco>("first"), second = source.Get<LeafPoco>("second"), pad = source.Get<ushort>("pad"), };
+        }
+
+        public static void WriteTo(InnerPoco value, StructValue target)
+        {
+            target["first"] = value.first;
+            target["second"] = value.second;
+            target["pad"] = value.pad;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<InnerPoco>();
+        }
     }
 
-    public sealed class RootPoco
+    public sealed class RootPoco : ICStructMapped<RootPoco>
     {
         public ushort magic { get; set; }
 
@@ -431,5 +466,42 @@ public class StaticWritePlanTests
         public LeafPoco[] leaves { get; set; } = [];
 
         public byte tail { get; set; }
+
+        public static RootPoco ReadFrom(StructValue source)
+        {
+            return new RootPoco
+            {
+                magic = source.Get<ushort>("magic"),
+                which = source.Get<EnumValueResult>("which").Name ?? string.Empty,
+                nested = source.Get<InnerPoco>("nested"),
+                samples = source.Get<uint[]>("samples"),
+                deltas = source.Get<short[]>("deltas"),
+                none = source.Get<byte[]>("none"),
+                p = source.Get<byte>("p"),
+                q = source.Get<byte>("q"),
+                leaves = source.Get<LeafPoco[]>("leaves"),
+                tail = source.Get<byte>("tail"),
+            };
+        }
+
+        public static void WriteTo(RootPoco value, StructValue target)
+        {
+            target["magic"] = value.magic;
+            target["which"] = value.which;
+            target["nested"] = value.nested;
+            target["samples"] = value.samples;
+            target["deltas"] = value.deltas;
+            target["none"] = value.none;
+            target["p"] = value.p;
+            target["q"] = value.q;
+            target["leaves"] = value.leaves;
+            target["tail"] = value.tail;
+        }
+
+        [ModuleInitializer]
+        internal static void Register()
+        {
+            MappedTypes.Register<RootPoco>();
+        }
     }
 }

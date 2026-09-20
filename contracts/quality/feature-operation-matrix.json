@@ -173,7 +173,7 @@
     "contractVersion": 8,
     "managedExports": 7,
     "operations": 5,
-    "optionFields": 32,
+    "optionFields": 31,
     "errorCodes": 9,
     "manifest": "contracts/api/browser-rc1/contract.json",
     "gate": "tools/quality/browser-contract.mjs",
