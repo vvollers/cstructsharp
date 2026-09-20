@@ -12,6 +12,9 @@
 
   <ItemGroup>
     <CompilerVisibleProperty Include="DisableCStructSharpGenerator" />
+    <!-- CSG300 warns about `dynamic` over a parsed value only where the runtime cannot bind it. -->
+    <CompilerVisibleProperty Include="PublishAot" />
+    <CompilerVisibleProperty Include="PublishTrimmed" />
     <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="CStructSharpLayout" />
   </ItemGroup>
 </Project>

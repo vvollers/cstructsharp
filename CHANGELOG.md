@@ -100,6 +100,12 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   generated layout class gains `ToStructValue(value)` (the value's bytes parsed by the runtime layout; pointers keep
   their addresses and are not followed), `ToMapped<T>(value)`, `ParseMapped<T>(bytes)`, and
   `SerializeMapped<T>(value)` for any `ICStructMapped<T>` class over the same layout.
+- Analyzer (in the same package): CSG200 warns when a constant path in a `CStruct` call (`Parse`, `ReadValue`,
+  `ResolveAddress`, `GetArrayLength`, `Serialize`, `Write`, `Update`, ...) names a declaration or member the
+  receiver's layout does not have - the layout is resolved only when it is plainly visible (`new CStruct("...")`
+  or `CStruct.GetOrCompile("...")` initializing the local or field the call uses, an inline construction, or a
+  `[CStructLayout]` class's `Layout`), and stays silent otherwise; CSG201 (info) notes `Parse` on a union or scalar
+  root; CSG300 warns about `dynamic` over a `StructValue`/`UnionValue` in a project that publishes trimmed or AOT.
 
 ### Fixed
 

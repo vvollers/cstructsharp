@@ -399,7 +399,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             symbols.ToImmutable());
     }
 
-    private static IReadOnlySet<string> DefinedSet(EquatableArray<string> defined)
+    internal static IReadOnlySet<string> DefinedSet(EquatableArray<string> defined)
     {
         var set = new HashSet<string>(defined, StringComparer.Ordinal);
 #if NETSTANDARD2_0

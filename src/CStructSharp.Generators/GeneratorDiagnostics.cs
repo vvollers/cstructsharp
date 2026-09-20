@@ -82,6 +82,31 @@ internal static class GeneratorDiagnostics
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    public static readonly DiagnosticDescriptor PathUnresolved = new(
+        "CSG200",
+        "Path does not resolve against the layout",
+        "The path '{0}' does not resolve against the layout this CStruct was built from: {1}",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "The receiver's layout is visible (new CStruct(\"...\"), CStruct.GetOrCompile(\"...\"), or a [CStructLayout] class's Layout) and the constant path names a declaration or member it does not have; the runtime would throw CStructPathException.");
+
+    public static readonly DiagnosticDescriptor ParseNotStruct = new(
+        "CSG201",
+        "Parse selects a root that is not a struct",
+        "'{0}' is {1}; Parse returns structs only - use ReadValue for a union or a scalar",
+        Category,
+        DiagnosticSeverity.Info,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor DynamicUnderAot = new(
+        "CSG300",
+        "dynamic over a parsed value in a trimmed or AOT-published project",
+        "This project publishes trimmed or AOT, where dynamic binding of a {0} is not available; read members through the indexer, Get<T>, or a mapped class",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     public static readonly DiagnosticDescriptor LanguageVersion = new(
         "CSG010",
         "C# 12 or later is required",

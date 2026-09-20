@@ -79,6 +79,10 @@ internal static class GeneratorRunner
         return [.. references];
     }
 
+    /// <summary>The build's options as an analyzer sees them, for running the analyzer over a compilation.</summary>
+    public static AnalyzerConfigOptionsProvider OptionsProvider(IReadOnlyDictionary<string, string>? globalOptions, IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? fileOptions)
+        => new InMemoryOptionsProvider(globalOptions, fileOptions);
+
     private sealed class InMemoryOptionsProvider : AnalyzerConfigOptionsProvider
     {
         private readonly InMemoryOptions global;
