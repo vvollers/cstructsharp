@@ -1,52 +1,24 @@
 namespace CStructSharp.Codecs;
 
-using System;
 using System.IO;
-using CStructSharp.Diagnostics;
+using CStructSharp.Generated;
 
-/// <summary>Exact binary-scaled 16/32-bit fixed-point codecs.</summary>
+/// <summary>Stream adapters over the shared fixed-point rule (<see cref="Codec.DecodeFixedPoint"/>, <see cref="Codec.EncodeFixedPoint"/>).</summary>
 internal static class FixedPointCodec
 {
-    /// <summary>Identifies fixed-point spellings, including their endian variants.</summary>
     public static bool IsType(string name) => name is "fixed16_16" or "fixed16_16<" or "fixed16_16>" or "ufixed16_16" or "ufixed16_16<" or "ufixed16_16>" or "fixed2_30" or "fixed2_30<" or "fixed2_30>" or "ufixed8_8" or "ufixed8_8<" or "ufixed8_8>";
 
-    /// <summary>Reads integer storage and scales it exactly into a double.</summary>
     public static double Read(Stream stream, bool littleEndian, int width, int fraction, bool signed)
     {
-        double raw = width == 16 ? BinaryPrimitiveIO.ReadUInt16(stream, littleEndian)
-                         : signed ? BinaryPrimitiveIO.ReadInt32(stream, littleEndian)
-                         : BinaryPrimitiveIO.ReadUInt32(stream, littleEndian);
-        return raw / Math.Pow(2, fraction);
+        long raw = width == 16 ? BinaryPrimitiveIO.ReadUInt16(stream, littleEndian)
+                       : signed ? BinaryPrimitiveIO.ReadInt32(stream, littleEndian)
+                       : BinaryPrimitiveIO.ReadUInt32(stream, littleEndian);
+        return Codec.DecodeFixedPoint(raw, fraction);
     }
 
-    /// <summary>Rejects non-grid, non-finite and out-of-range values before writing any bytes.</summary>
     public static void Write(Stream stream, object value, bool littleEndian, int width, int fraction, bool signed)
     {
-        double scale = Math.Pow(2, fraction);
-        double raw;
-        if (value is decimal exact)
-        {
-            // Converting to Double first can erase a small off-grid decimal fraction.
-            decimal scaled = checked(exact * (decimal)scale);
-            if (scaled != decimal.Truncate(scaled))
-            {
-                throw new CStructWriteException("Fixed-point value is outside the exact storage grid or range.");
-            }
-
-            raw = (double)scaled;
-        }
-        else
-        {
-            raw = Convert.ToDouble(value) * scale;
-        }
-
-        double minimum = signed ? -Math.Pow(2, width - 1) : 0;
-        double maximum = Math.Pow(2, signed ? width - 1 : width) - 1;
-        if (!double.IsFinite(raw) || raw != Math.Truncate(raw) || raw < minimum || raw > maximum)
-        {
-            throw new CStructWriteException("Fixed-point value is outside the exact storage grid or range.");
-        }
-
+        long raw = Codec.EncodeFixedPoint(value, width, fraction, signed);
         if (width == 16)
         {
             BinaryPrimitiveIO.WriteUInt16(stream, (ushort)raw, littleEndian);

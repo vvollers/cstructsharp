@@ -648,7 +648,7 @@ public partial class CStruct
                 if (numFieldValues > state.Options.MaxArrayElements)
                 {
                     throw new CStructWriteLimitException(
-                        "Array length exceeds the configured write limit: " + compiledField.Name);
+                        WriteFailures.ArrayLengthLimit(compiledField.Name));
                 }
             }
             else
@@ -669,7 +669,7 @@ public partial class CStruct
                 if (numFieldValues > state.Options.MaxArrayElements)
                 {
                     throw new CStructWriteLimitException(
-                        "Array length exceeds the configured write limit: " + compiledField.Name);
+                        WriteFailures.ArrayLengthLimit(compiledField.Name));
                 }
             }
         }
@@ -840,7 +840,7 @@ public partial class CStruct
                 if (count > state.Options.MaxArrayElements)
                 {
                     throw new CStructWriteLimitException(
-                        "Array length exceeds the configured write limit: " + compiledField.Name);
+                        WriteFailures.ArrayLengthLimit(compiledField.Name));
                 }
 
                 if (!unknownArray && items.Count != count)

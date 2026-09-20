@@ -313,7 +313,7 @@ public partial class CStruct
                             if (numFieldValues > state.MaxArrayElements)
                             {
                                 throw new CStructReadLimitException(
-                                    $"Array length {numFieldValues} exceeds MaxArrayElements ({state.MaxArrayElements}).");
+                                    ReadFailures.ArrayLengthLimit(numFieldValues, state.MaxArrayElements));
                             }
                         }
                         else
@@ -334,7 +334,7 @@ public partial class CStruct
                             if (numFieldValues > state.MaxArrayElements)
                             {
                                 throw new CStructReadLimitException(
-                                    $"Array length {numFieldValues} exceeds MaxArrayElements ({state.MaxArrayElements}).");
+                                    ReadFailures.ArrayLengthLimit(numFieldValues, state.MaxArrayElements));
                             }
                         }
                     }
@@ -1179,7 +1179,7 @@ public partial class CStruct
 
         if (state.PointerDereferenceDepth >= state.MaxPointerDepth)
         {
-            throw new CStructReadLimitException("Maximum pointer dereference depth exceeded.");
+            throw new CStructReadLimitException(ReadFailures.PointerDepthLimit);
         }
 
         // Preserve the post-address location so target parsing cannot disturb the parent struct's sequential read.
@@ -1262,7 +1262,7 @@ public partial class CStruct
         if (targetSize.Value > state.MaxPointerTargetBytes.Value)
         {
             // Refuse the target before decoding so malformed data cannot bypass the caller's memory-safety policy.
-            throw new CStructReadLimitException("Pointer target exceeds the configured size limit.");
+            throw new CStructReadLimitException(ReadFailures.PointerTargetLimit);
         }
     }
 

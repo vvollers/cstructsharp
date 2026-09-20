@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 20,
+  "baselineRevision": 21,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.6.0",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 70,
+  "exportedTypes": 73,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 685,
-    "normalizedSha256": "060A3BC3588BCAE50236F59E581D56BB06CE6A527DBBCF2F8B9F84B294F3E8B3"
+    "lines": 838,
+    "normalizedSha256": "FDAF7527FD1B120DC9D6C2DF79F8245B86701338A149908E62F42894C8184F18"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "83C7BD179B88044EFBC9A0A1D5C7374A99F601F18B5940CDB7006C95848EFAF0",
+      "normalizedSha256": "ED5EA34E9DD8DAD24AA14ADCA45AA9C5BBDAE0AA79D5F78F003F122FB17C9DDE",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "50EC32D03974E3D3BF5C40B090F42A83B7B6D38BC0C4961F3BD4F221168E7A25",
+      "normalizedSha256": "EDB6E40516605AD08702027426BF2884B8E2097D2D5638FAA2DD86268A0806C8",
       "aotCompatible": true
     }
   ],
@@ -213,6 +213,15 @@
       "combinedSha256": "7746FA679175FBE8A9EE7A73E07FFC644D65F200BEBA0E2A42FE1B946333E1B2",
       "rationale": "Reflection-based POCO mapping is removed: typed reads and writes go through ICStructMapped<T> and MappedTypes; PocoBindingMode and WriteOptions/UpdateOptions.BindingMode are gone; the DynamicallyAccessedMembers annotations that existed only for reflection are dropped from ReadValue<T>/TryReadValue<T>/Get<T>/TryGet<T>.",
       "releaseImpact": "Code that read into plain classes or wrote anonymous objects or plain classes must implement ICStructMapped<T> (or use the [CStructMapped] generator) and register the type; collection-interface and List<T> targets become arrays; BindingMode settings are removed."
+    },
+    {
+      "revision": 21,
+      "kind": "additive",
+      "date": "2026-09-20",
+      "packageVersion": "0.6.0",
+      "combinedSha256": "F160EDF834FCFF182D9454FF6551581BE7CD0361B38915B03BDD75F44371572A",
+      "rationale": "CStructSharp.Generated support types for generated code: Codec (the span-level primitive rules the runtime now calls), ReadCursor/WriteCursor (the runtime's accounting and failure texts over spans), Pointer<T>, Expressions (the runtime's Int32 operator semantics).",
+      "releaseImpact": "Additive; no existing member changes."
     }
   ]
 }

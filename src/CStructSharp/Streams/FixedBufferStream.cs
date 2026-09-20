@@ -149,7 +149,7 @@ internal sealed unsafe class FixedBufferStream : Stream
         this.EnsureWritable();
         if (source.Length > this.capacity - this.position)
         {
-            throw new CStructWriteException("The serialized value exceeds the supplied destination capacity.");
+            throw new CStructWriteException(WriteFailures.DestinationCapacity);
         }
 
         if (this.position > this.length)

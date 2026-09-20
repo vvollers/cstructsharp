@@ -39,6 +39,7 @@ The namespaces group the public surface by role:
 | `CStructSharp.Introspection` | `LayoutInfo` and the records that describe a compiled layout's declarations, fields, and constants |
 | `CStructSharp.Diagnostics` | The exception family, `CStructErrorCode`, and `DebugData` |
 | `CStructSharp.Codecs` | `ICustomCodec`, the extension point for caller-defined primitive types |
+| `CStructSharp.Generated` | The support the code emitted by the `[CStructLayout]` generator calls: `Codec` (the byte-level rules, shared with the runtime reader and writer), `ReadCursor`/`WriteCursor` (the runtime's accounting and diagnostics over spans), `Pointer<T>`, and `Expressions` (the layout expression operators). Application code reads through a generated layout class or `CStruct` instead |
 | `CStructSharp.Memory` and `.Memory.Metadata` | Address spaces, metadata import, sessions, traversal, and offline patches for memory images |
 
 ## Where this reference comes from

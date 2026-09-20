@@ -174,7 +174,7 @@ internal sealed class CStructElementWriterState
     {
         if (this.StructureDepth >= this.MaxNestingDepth)
         {
-            throw new CStructWriteLimitException("Maximum nested struct write depth exceeded.");
+            throw new CStructWriteLimitException(WriteFailures.NestingLimit);
         }
 
         this.StructureDepth++;

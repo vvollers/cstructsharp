@@ -119,9 +119,9 @@ internal sealed class ExpressionEvaluator
             1 => left,
             2 => code[1].Opcode switch
             {
-                ExpressionOpcode.Negate => checked(-left),
-                ExpressionOpcode.Complement => ~left,
-                _ => left == 0 ? 1 : 0,
+                ExpressionOpcode.Negate => ExpressionArithmetic.Negate(left),
+                ExpressionOpcode.Complement => ExpressionArithmetic.Complement(left),
+                _ => ExpressionArithmetic.LogicalNot(left),
             },
             _ => ExpressionEvaluationSession.EvaluateBinary(code[2].Opcode, left, checked((int)second)),
         };
@@ -545,13 +545,13 @@ internal sealed class ExpressionEvaluator
                             dependencyDepth + instruction.Depth);
                         break;
                     case ExpressionOpcode.LogicalNot:
-                        values[valueCount - 1] = values[valueCount - 1] == 0 ? 1 : 0;
+                        values[valueCount - 1] = ExpressionArithmetic.LogicalNot(values[valueCount - 1]);
                         break;
                     case ExpressionOpcode.Complement:
-                        values[valueCount - 1] = ~values[valueCount - 1];
+                        values[valueCount - 1] = ExpressionArithmetic.Complement(values[valueCount - 1]);
                         break;
                     case ExpressionOpcode.Negate:
-                        values[valueCount - 1] = checked(-values[valueCount - 1]);
+                        values[valueCount - 1] = ExpressionArithmetic.Negate(values[valueCount - 1]);
                         break;
                     default:
                         int right = values[--valueCount];
@@ -609,60 +609,31 @@ internal sealed class ExpressionEvaluator
             }
         }
 
-        /// <summary>Applies the documented signed-Int32 operator semantics.</summary>
+        /// <summary>Applies the documented signed-Int32 operator semantics (<see cref="ExpressionArithmetic"/>).</summary>
         internal static int EvaluateBinary(ExpressionOpcode opcode, int left, int right)
         {
             return opcode switch
             {
-                ExpressionOpcode.LogicalAnd => left != 0 && right != 0 ? 1 : 0,
-                ExpressionOpcode.LogicalOr => left != 0 || right != 0 ? 1 : 0,
-                ExpressionOpcode.Equal => left == right ? 1 : 0,
-                ExpressionOpcode.NotEqual => left != right ? 1 : 0,
-                ExpressionOpcode.Less => left < right ? 1 : 0,
-                ExpressionOpcode.LessOrEqual => left <= right ? 1 : 0,
-                ExpressionOpcode.Greater => left > right ? 1 : 0,
-                ExpressionOpcode.GreaterOrEqual => left >= right ? 1 : 0,
-                ExpressionOpcode.Add => checked(left + right),
-                ExpressionOpcode.Subtract => checked(left - right),
-                ExpressionOpcode.And => left & right,
-                ExpressionOpcode.Divide => left / right,
-                ExpressionOpcode.Multiply => checked(left * right),
-                ExpressionOpcode.Or => left | right,
-                ExpressionOpcode.ShiftLeft => CheckedShiftLeft(left, right),
-                ExpressionOpcode.ShiftRight => CheckedShiftRight(left, right),
-                ExpressionOpcode.Modulo => checked(left % right),
-                ExpressionOpcode.Xor => left ^ right,
+                ExpressionOpcode.LogicalAnd => ExpressionArithmetic.LogicalAnd(left, right),
+                ExpressionOpcode.LogicalOr => ExpressionArithmetic.LogicalOr(left, right),
+                ExpressionOpcode.Equal => ExpressionArithmetic.Equal(left, right),
+                ExpressionOpcode.NotEqual => ExpressionArithmetic.NotEqual(left, right),
+                ExpressionOpcode.Less => ExpressionArithmetic.Less(left, right),
+                ExpressionOpcode.LessOrEqual => ExpressionArithmetic.LessOrEqual(left, right),
+                ExpressionOpcode.Greater => ExpressionArithmetic.Greater(left, right),
+                ExpressionOpcode.GreaterOrEqual => ExpressionArithmetic.GreaterOrEqual(left, right),
+                ExpressionOpcode.Add => ExpressionArithmetic.Add(left, right),
+                ExpressionOpcode.Subtract => ExpressionArithmetic.Subtract(left, right),
+                ExpressionOpcode.And => ExpressionArithmetic.And(left, right),
+                ExpressionOpcode.Divide => ExpressionArithmetic.Divide(left, right),
+                ExpressionOpcode.Multiply => ExpressionArithmetic.Multiply(left, right),
+                ExpressionOpcode.Or => ExpressionArithmetic.Or(left, right),
+                ExpressionOpcode.ShiftLeft => ExpressionArithmetic.ShiftLeft(left, right),
+                ExpressionOpcode.ShiftRight => ExpressionArithmetic.ShiftRight(left, right),
+                ExpressionOpcode.Modulo => ExpressionArithmetic.Modulo(left, right),
+                ExpressionOpcode.Xor => ExpressionArithmetic.Xor(left, right),
                 _ => throw new InvalidOperationException("Unknown compiled binary expression opcode: " + opcode),
             };
-        }
-
-        /// <summary>Rejects C#'s masked shift counts and any signed-Int32 left-shift overflow.</summary>
-        private static int CheckedShiftLeft(int value, int count)
-        {
-            ValidateShiftCount(count);
-            long result = (long)value << count;
-            if (result is < int.MinValue or > int.MaxValue)
-            {
-                throw new OverflowException("Expression left shift exceeded the signed 32-bit range.");
-            }
-
-            return (int)result;
-        }
-
-        /// <summary>Performs an arithmetic signed right shift after validating the unmasked count.</summary>
-        private static int CheckedShiftRight(int value, int count)
-        {
-            ValidateShiftCount(count);
-            return value >> count;
-        }
-
-        /// <summary>Defines valid shift counts as the complete signed-Int32 bit-index domain.</summary>
-        private static void ValidateShiftCount(int count)
-        {
-            if (count is < 0 or >= sizeof(int) * 8)
-            {
-                throw new InvalidOperationException("Expression shift count must be between 0 and 31.");
-            }
         }
     }
 

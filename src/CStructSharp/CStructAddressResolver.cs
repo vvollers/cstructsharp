@@ -402,7 +402,7 @@ public partial class CStruct
 
         if (state.PointerDereferenceDepth >= state.MaxPointerDepth)
         {
-            throw new CStructReadLimitException("Maximum pointer dereference depth exceeded.");
+            throw new CStructReadLimitException(ReadFailures.PointerDepthLimit);
         }
 
         this.EnsurePointerTargetSize(
@@ -785,7 +785,7 @@ public partial class CStruct
         if (count > state.MaxArrayElements)
         {
             throw new CStructReadLimitException(
-                $"Array length {count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
+                ReadFailures.ArrayLengthLimit(count, state.MaxArrayElements));
         }
 
         return count;
@@ -809,7 +809,7 @@ public partial class CStruct
         if (count > state.MaxArrayElements)
         {
             throw new CStructReadLimitException(
-                $"Array length {count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
+                ReadFailures.ArrayLengthLimit(count, state.MaxArrayElements));
         }
 
         return count;

@@ -5,6 +5,7 @@ using System.Buffers;
 using System.IO;
 using System.Text;
 using CStructSharp.Diagnostics;
+using CStructSharp.Generated;
 using CStructSharp.Streams;
 
 /// <summary>
@@ -29,7 +30,7 @@ internal static partial class PrimitiveCodecs
     {
         if (stream is ReadBudgetStream budget && byteCount > budget.MaxStringBytes)
         {
-            throw new CStructReadLimitException("Encoded text buffer exceeds the configured string byte limit.");
+            throw new CStructReadLimitException(ReadFailures.BoundedTextLimit);
         }
 
         byte[] bytes = new byte[byteCount];
@@ -79,7 +80,7 @@ internal static partial class PrimitiveCodecs
 
                 // Search from the first position that starts an encoding unit relative to the string's own start.
                 int alignmentOffset = (int)((unitSize - (encodedByteCount % unitSize)) % unitSize);
-                int terminatorIndex = FindTerminator(chunk.AsSpan(0, bytesRead), terminatorBytes, unitSize, alignmentOffset);
+                int terminatorIndex = Codec.FindTerminator(chunk.AsSpan(0, bytesRead), terminatorBytes, unitSize, alignmentOffset);
 
                 // Budget arithmetic equivalent to counting every consumed byte, including the terminator's own bytes.
                 if (maxStringBytes.HasValue)
@@ -91,7 +92,7 @@ internal static partial class PrimitiveCodecs
                         // The byte-by-byte reader consumed the over-budget byte before checking, so the stream is left
                         // exactly one byte past the limit; only the never-inspected remainder is seeked back.
                         SeekBackUnconsumedChunkBytes(stream, bytesRead, (int)Math.Min(bytesRead, allowed + 1));
-                        throw new CStructReadLimitException("String field exceeded the configured encoded-byte limit.");
+                        throw new CStructReadLimitException(ReadFailures.TerminatedStringLimit);
                     }
                 }
 
@@ -136,24 +137,6 @@ internal static partial class PrimitiveCodecs
     }
 
     /// <summary>Finds the encoded terminator on an encoding-unit boundary, or -1.</summary>
-    private static int FindTerminator(ReadOnlySpan<byte> data, ReadOnlySpan<byte> terminator, int unitSize, int alignmentOffset)
-    {
-        if (unitSize == 1)
-        {
-            return data.IndexOf(terminator[0]);
-        }
-
-        for (int index = alignmentOffset; index + terminator.Length <= data.Length; index += unitSize)
-        {
-            if (data.Slice(index, terminator.Length).SequenceEqual(terminator))
-            {
-                return index;
-            }
-        }
-
-        return -1;
-    }
-
     public static void WriteTerminatedString(Stream stream, Encoding encoding, string value, char terminator)
     {
         if (value.Contains(terminator, StringComparison.Ordinal))

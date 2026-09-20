@@ -8,6 +8,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
+using CStructSharp.Generated;
 using CStructSharp.Streams;
 using CStructSharp.Values;
 
@@ -42,17 +43,17 @@ internal static class PrimitiveArrayReader
         {
             PrimitiveCodecKind.UInt8 => new PrimitiveArray<byte>(ReadBlocks<byte>(stream, codec.Size, count, static (src, dst, _) => src.CopyTo(MemoryMarshal.AsBytes(dst)), le)),
             PrimitiveCodecKind.Int8 => new PrimitiveArray<sbyte>(ReadBlocks<sbyte>(stream, codec.Size, count, static (src, dst, _) => src.CopyTo(MemoryMarshal.AsBytes(dst)), le)),
-            PrimitiveCodecKind.Bool => new PrimitiveArray<bool>(ReadBlocks<bool>(stream, codec.Size, count, static (src, dst, _) => DecodeBooleans(src, dst), le)),
-            PrimitiveCodecKind.Int16 => new PrimitiveArray<short>(ReadBlocks<short>(stream, codec.Size, count, static (src, dst, le) => DecodeIntegers(src, dst, le), le)),
-            PrimitiveCodecKind.UInt16 => new PrimitiveArray<ushort>(ReadBlocks<ushort>(stream, codec.Size, count, static (src, dst, le) => DecodeIntegers(src, dst, le), le)),
-            PrimitiveCodecKind.Int32 => new PrimitiveArray<int>(ReadBlocks<int>(stream, codec.Size, count, static (src, dst, le) => DecodeIntegers(src, dst, le), le)),
-            PrimitiveCodecKind.UInt32 => new PrimitiveArray<uint>(ReadBlocks<uint>(stream, codec.Size, count, static (src, dst, le) => DecodeIntegers(src, dst, le), le)),
-            PrimitiveCodecKind.Int64 => new PrimitiveArray<long>(ReadBlocks<long>(stream, codec.Size, count, static (src, dst, le) => DecodeIntegers(src, dst, le), le)),
-            PrimitiveCodecKind.UInt64 => new PrimitiveArray<ulong>(ReadBlocks<ulong>(stream, codec.Size, count, static (src, dst, le) => DecodeIntegers(src, dst, le), le)),
-            PrimitiveCodecKind.Float32 => new PrimitiveArray<float>(ReadBlocks<float>(stream, codec.Size, count, static (src, dst, le) => DecodeIntegers(src, MemoryMarshal.Cast<float, uint>(dst), le), le)),
-            PrimitiveCodecKind.Float64 => new PrimitiveArray<double>(ReadBlocks<double>(stream, codec.Size, count, static (src, dst, le) => DecodeIntegers(src, MemoryMarshal.Cast<double, ulong>(dst), le), le)),
-            PrimitiveCodecKind.Int24 => new PrimitiveArray<int>(ReadBlocks<int>(stream, codec.Size, count, static (src, dst, le) => DecodeInt24(src, dst, le), le)),
-            PrimitiveCodecKind.UInt24 => new PrimitiveArray<uint>(ReadBlocks<uint>(stream, codec.Size, count, static (src, dst, le) => DecodeUInt24(src, dst, le), le)),
+            PrimitiveCodecKind.Bool => new PrimitiveArray<bool>(ReadBlocks<bool>(stream, codec.Size, count, static (src, dst, _) => Codec.DecodeBooleans(src, dst), le)),
+            PrimitiveCodecKind.Int16 => new PrimitiveArray<short>(ReadBlocks<short>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.UInt16 => new PrimitiveArray<ushort>(ReadBlocks<ushort>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.Int32 => new PrimitiveArray<int>(ReadBlocks<int>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.UInt32 => new PrimitiveArray<uint>(ReadBlocks<uint>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.Int64 => new PrimitiveArray<long>(ReadBlocks<long>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.UInt64 => new PrimitiveArray<ulong>(ReadBlocks<ulong>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.Float32 => new PrimitiveArray<float>(ReadBlocks<float>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.Float64 => new PrimitiveArray<double>(ReadBlocks<double>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeIntegers(src, dst, le), le)),
+            PrimitiveCodecKind.Int24 => new PrimitiveArray<int>(ReadBlocks<int>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeInt24(src, dst, le), le)),
+            PrimitiveCodecKind.UInt24 => new PrimitiveArray<uint>(ReadBlocks<uint>(stream, codec.Size, count, static (src, dst, le) => Codec.DecodeUInt24(src, dst, le), le)),
             _ => throw new InvalidOperationException("Codec is not a fixed-width numeric primitive: " + codec.Kind),
         };
     }
@@ -97,7 +98,7 @@ internal static class PrimitiveArrayReader
         case PrimitiveCodecKind.Bool:
             {
                 var values = new bool[count];
-                DecodeBooleans(bytes, values);
+                Codec.DecodeBooleans(bytes, values);
                 return new PrimitiveArray<bool>(values);
             }
 
@@ -116,28 +117,28 @@ internal static class PrimitiveArrayReader
         case PrimitiveCodecKind.Float32:
             {
                 var values = new float[count];
-                DecodeIntegers(bytes, MemoryMarshal.Cast<float, uint>(values.AsSpan()), le);
+                Codec.DecodeIntegers(bytes, values.AsSpan(), le);
                 return new PrimitiveArray<float>(values);
             }
 
         case PrimitiveCodecKind.Float64:
             {
                 var values = new double[count];
-                DecodeIntegers(bytes, MemoryMarshal.Cast<double, ulong>(values.AsSpan()), le);
+                Codec.DecodeIntegers(bytes, values.AsSpan(), le);
                 return new PrimitiveArray<double>(values);
             }
 
         case PrimitiveCodecKind.Int24:
             {
                 var values = new int[count];
-                DecodeInt24(bytes, values, le);
+                Codec.DecodeInt24(bytes, values, le);
                 return new PrimitiveArray<int>(values);
             }
 
         case PrimitiveCodecKind.UInt24:
             {
                 var values = new uint[count];
-                DecodeUInt24(bytes, values, le);
+                Codec.DecodeUInt24(bytes, values, le);
                 return new PrimitiveArray<uint>(values);
             }
 
@@ -230,63 +231,7 @@ internal static class PrimitiveArrayReader
         where T : unmanaged
     {
         var values = new T[count];
-        DecodeIntegers(source, values.AsSpan(), littleEndian);
+        Codec.DecodeIntegers(source, values.AsSpan(), littleEndian);
         return values;
-    }
-
-    private static void DecodeBooleans(ReadOnlySpan<byte> source, Span<bool> destination)
-    {
-        for (int index = 0; index < destination.Length; index++)
-        {
-            destination[index] = source[index] != 0;
-        }
-    }
-
-    /// <summary>Host byte order is one copy; the other order copies then reverses in place (vectorized on .NET 8+).</summary>
-    private static void DecodeIntegers<T>(ReadOnlySpan<byte> source, Span<T> destination, bool littleEndian)
-        where T : unmanaged
-    {
-        source.CopyTo(MemoryMarshal.AsBytes(destination));
-        if (littleEndian == BitConverter.IsLittleEndian)
-        {
-            return;
-        }
-
-        if (typeof(T) == typeof(ushort) || typeof(T) == typeof(short))
-        {
-            Span<ushort> view = MemoryMarshal.Cast<T, ushort>(destination);
-            BinaryPrimitives.ReverseEndianness(view, view);
-        }
-        else if (typeof(T) == typeof(uint) || typeof(T) == typeof(int))
-        {
-            Span<uint> view = MemoryMarshal.Cast<T, uint>(destination);
-            BinaryPrimitives.ReverseEndianness(view, view);
-        }
-        else
-        {
-            Span<ulong> view = MemoryMarshal.Cast<T, ulong>(destination);
-            BinaryPrimitives.ReverseEndianness(view, view);
-        }
-    }
-
-    private static void DecodeInt24(ReadOnlySpan<byte> source, Span<int> destination, bool littleEndian)
-    {
-        for (int index = 0, offset = 0; index < destination.Length; index++, offset += 3)
-        {
-            uint raw = littleEndian
-                           ? (uint)(source[offset] | (source[offset + 1] << 8) | (source[offset + 2] << 16))
-                           : (uint)(source[offset + 2] | (source[offset + 1] << 8) | (source[offset] << 16));
-            destination[index] = unchecked((int)(raw << 8)) >> 8;
-        }
-    }
-
-    private static void DecodeUInt24(ReadOnlySpan<byte> source, Span<uint> destination, bool littleEndian)
-    {
-        for (int index = 0, offset = 0; index < destination.Length; index++, offset += 3)
-        {
-            destination[index] = littleEndian
-                                     ? (uint)(source[offset] | (source[offset + 1] << 8) | (source[offset + 2] << 16))
-                                     : (uint)(source[offset + 2] | (source[offset + 1] << 8) | (source[offset] << 16));
-        }
     }
 }

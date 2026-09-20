@@ -267,7 +267,7 @@ internal sealed class WriteBudgetStream : Stream
     {
         if (encodedByteCount < 0 || encodedByteCount > this.MaxStringBytes)
         {
-            throw new CStructWriteLimitException("String field exceeded the configured encoded-byte write limit.");
+            throw new CStructWriteLimitException(WriteFailures.StringBytesLimit);
         }
     }
 
@@ -299,7 +299,7 @@ internal sealed class WriteBudgetStream : Stream
     {
         if (Math.Max(physicalBytes, newExtent) > this.maxTotalBytesWritten)
         {
-            throw new CStructWriteLimitException("Write operation exceeded the configured total byte limit.");
+            throw new CStructWriteLimitException(WriteFailures.TotalBytesLimit);
         }
     }
 

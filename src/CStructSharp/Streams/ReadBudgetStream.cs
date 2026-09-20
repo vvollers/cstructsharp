@@ -425,7 +425,7 @@ internal sealed unsafe class ReadBudgetStream : Stream
 
         if (this.bytesRead > this.maxTotalBytesRead)
         {
-            throw new CStructReadLimitException("Read operation exceeded the configured total read-byte limit.");
+            throw new CStructReadLimitException(ReadFailures.TotalBytesLimit);
         }
     }
 

@@ -191,7 +191,7 @@ internal sealed class CStructOperationContext
     {
         if (requiredDepth > this.MaxNestingDepth)
         {
-            throw new CStructReadLimitException("Maximum nested struct depth exceeded.");
+            throw new CStructReadLimitException(ReadFailures.NestingLimit);
         }
     }
 

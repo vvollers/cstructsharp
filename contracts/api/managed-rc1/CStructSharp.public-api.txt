@@ -239,6 +239,159 @@ namespace CStructSharp.Diagnostics
         public override string ToString() { }
     }
 }
+namespace CStructSharp.Generated
+{
+    public static class Codec
+    {
+        public static int BitfieldShift(int bitOffset, int bitSize, int unitBits, bool highBitFirst) { }
+        public static void DecodeBooleans(System.ReadOnlySpan<byte> source, System.Span<bool> destination) { }
+        public static string DecodeBoundedText(System.ReadOnlySpan<byte> source, string encoding, bool trimTrailingNuls) { }
+        public static double DecodeFixedPoint(long raw, int fractionBits) { }
+        public static string DecodeFixedText(System.ReadOnlySpan<byte> source, bool trimTrailingNuls) { }
+        public static void DecodeInt24(System.ReadOnlySpan<byte> source, System.Span<int> destination, bool littleEndian) { }
+        public static void DecodeIntegers<T>(System.ReadOnlySpan<byte> source, System.Span<T> destination, bool littleEndian)
+            where T :  unmanaged { }
+        public static void DecodeUInt24(System.ReadOnlySpan<byte> source, System.Span<uint> destination, bool littleEndian) { }
+        public static long EncodeFixedPoint(object value, int widthBits, int fractionBits, bool signed) { }
+        public static void EncodeIntegers<T>(System.ReadOnlySpan<T> source, System.Span<byte> destination, bool littleEndian)
+            where T :  unmanaged { }
+        public static ulong ExtractBits(ulong unit, int shift, int bitSize) { }
+        public static int FindTerminator(System.ReadOnlySpan<byte> data, System.ReadOnlySpan<byte> terminator, int unitSize, int alignmentOffset) { }
+        public static ulong MergeBits(ulong unit, ulong value, int shift, int bitSize) { }
+        public static char ReadChar(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static double ReadDouble(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static System.Guid ReadGuid(System.ReadOnlySpan<byte> source, bool networkOrder) { }
+        public static System.Half ReadHalf(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static System.Int128 ReadInt128(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static short ReadInt16(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static int ReadInt24(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static int ReadInt32(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static long ReadInt48(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static long ReadInt64(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static ulong ReadLeb128(System.ReadOnlySpan<byte> source, int width, bool signed, out int bytesConsumed) { }
+        public static float ReadSingle(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static System.UInt128 ReadUInt128(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static ushort ReadUInt16(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static uint ReadUInt24(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static uint ReadUInt32(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static ulong ReadUInt48(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static ulong ReadUInt64(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static ulong ReadUnsigned(System.ReadOnlySpan<byte> source, bool littleEndian) { }
+        public static ulong ToBitfieldValue(string name, int bitSize, object? value) { }
+        public static System.Guid ToGuid(object value) { }
+        public static byte ToNarrowCharacter(object value) { }
+        public static void WriteChar(System.Span<byte> destination, char value, bool littleEndian) { }
+        public static void WriteDouble(System.Span<byte> destination, double value, bool littleEndian) { }
+        public static void WriteGuid(System.Span<byte> destination, System.Guid value, bool networkOrder) { }
+        public static void WriteHalf(System.Span<byte> destination, System.Half value, bool littleEndian) { }
+        public static void WriteInt128(System.Span<byte> destination, System.Int128 value, bool littleEndian) { }
+        public static void WriteInt16(System.Span<byte> destination, short value, bool littleEndian) { }
+        public static void WriteInt24(System.Span<byte> destination, int value, bool littleEndian) { }
+        public static void WriteInt32(System.Span<byte> destination, int value, bool littleEndian) { }
+        public static void WriteInt48(System.Span<byte> destination, long value, bool littleEndian) { }
+        public static void WriteInt64(System.Span<byte> destination, long value, bool littleEndian) { }
+        public static int WriteSLeb128(System.Span<byte> destination, long value) { }
+        public static void WriteSingle(System.Span<byte> destination, float value, bool littleEndian) { }
+        public static void WriteUInt128(System.Span<byte> destination, System.UInt128 value, bool littleEndian) { }
+        public static void WriteUInt16(System.Span<byte> destination, ushort value, bool littleEndian) { }
+        public static void WriteUInt24(System.Span<byte> destination, uint value, bool littleEndian) { }
+        public static void WriteUInt32(System.Span<byte> destination, uint value, bool littleEndian) { }
+        public static void WriteUInt48(System.Span<byte> destination, ulong value, bool littleEndian) { }
+        public static void WriteUInt64(System.Span<byte> destination, ulong value, bool littleEndian) { }
+        public static int WriteULeb128(System.Span<byte> destination, ulong value) { }
+        public static void WriteUnsigned(System.Span<byte> destination, ulong value, bool littleEndian) { }
+    }
+    public static class Expressions
+    {
+        public static int Add(int left, int right) { }
+        public static int And(int left, int right) { }
+        public static int Complement(int value) { }
+        public static int Divide(int left, int right) { }
+        public static int Equal(int left, int right) { }
+        public static int Greater(int left, int right) { }
+        public static int GreaterOrEqual(int left, int right) { }
+        public static int Less(int left, int right) { }
+        public static int LessOrEqual(int left, int right) { }
+        public static int LogicalAnd(int left, int right) { }
+        public static int LogicalNot(int value) { }
+        public static int LogicalOr(int left, int right) { }
+        public static int Modulo(int left, int right) { }
+        public static int Multiply(int left, int right) { }
+        public static int Negate(int value) { }
+        public static int NotEqual(int left, int right) { }
+        public static int Or(int left, int right) { }
+        public static int RequireInt32(long value, string name) { }
+        public static int RequireInt32(ulong value, string name) { }
+        public static int ShiftLeft(int value, int count) { }
+        public static int ShiftRight(int value, int count) { }
+        public static int Subtract(int left, int right) { }
+        public static int Xor(int left, int right) { }
+    }
+    public readonly struct Pointer<T> : System.IEquatable<CStructSharp.Generated.Pointer<T>>
+    {
+        public Pointer(long address, int depth, T? value = default, bool isDereferenced = false) { }
+        public long Address { get; }
+        public int Depth { get; }
+        public bool IsDereferenced { get; }
+        public bool IsNull { get; }
+        public T Value { get; }
+        public bool Equals(CStructSharp.Generated.Pointer<T> other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public CStructSharp.Values.Pointer ToPointer(System.Func<T, object> convert) { }
+        public override string ToString() { }
+        public static CStructSharp.Generated.Pointer<T> FromPointer(CStructSharp.Values.Pointer pointer, System.Func<object, T> convert) { }
+        public static bool operator !=(CStructSharp.Generated.Pointer<T> left, CStructSharp.Generated.Pointer<T> right) { }
+        public static bool operator ==(CStructSharp.Generated.Pointer<T> left, CStructSharp.Generated.Pointer<T> right) { }
+    }
+    public ref struct ReadCursor
+    {
+        public ReadCursor(System.ReadOnlySpan<byte> source, CStructSharp.ReadOptions? options = null) { }
+        public CStructSharp.PointerAddressingMode AddressingMode { get; }
+        public bool DereferencePointers { get; }
+        public int MaxArrayElements { get; }
+        public long? MaxPointerTargetBytes { get; }
+        public long MaxStringBytes { get; }
+        public long Origin { get; }
+        public int Position { get; set; }
+        public int Remaining { get; }
+        public System.ReadOnlySpan<byte> Source { get; }
+        public bool TrimFixedText { get; }
+        public void Align(int alignment, long origin, string path) { }
+        public void EnterComposite(string path) { }
+        public int EnterPointer(long address, string path) { }
+        public void ExitComposite() { }
+        public void ExitPointer(int resume) { }
+        public CStructSharp.Diagnostics.CStructReadException Fail(string message, string? path) { }
+        public CStructSharp.Diagnostics.CStructReadLimitException FailLimit(string message, string? path) { }
+        public System.ReadOnlySpan<byte> Peek(int count, string path) { }
+        public int RequireArrayLength(long count, string path) { }
+        public void RequireBoundedTextBytes(long count, string path) { }
+        public void RequireTerminatedStringBytes(long count, string path) { }
+        public void Skip(int count, string path) { }
+        public System.ReadOnlySpan<byte> Take(int count, string path) { }
+        public static string IndexPath(string path, int index) { }
+    }
+    public ref struct WriteCursor
+    {
+        public WriteCursor(System.Span<byte> destination, CStructSharp.WriteOptions? options = null) { }
+        public CStructSharp.PointerAddressingMode AddressingMode { get; }
+        public int Length { get; }
+        public int MaxArrayElements { get; }
+        public long MaxStringBytes { get; }
+        public long Origin { get; }
+        public int Position { get; set; }
+        public void Align(int alignment, long origin, string path) { }
+        public void EnterComposite(string path) { }
+        public void ExitComposite() { }
+        public CStructSharp.Diagnostics.CStructWriteException Fail(string message, string? path) { }
+        public CStructSharp.Diagnostics.CStructWriteLimitException FailLimit(string message, string? path) { }
+        public void Pad(int count, string path) { }
+        public void RequireArrayLength(long count, string fieldName, string path) { }
+        public void RequireStringBytes(long count, string path) { }
+        public System.Span<byte> Reserve(int count, string path) { }
+    }
+}
 namespace CStructSharp.Introspection
 {
     public enum LayoutArrayKind

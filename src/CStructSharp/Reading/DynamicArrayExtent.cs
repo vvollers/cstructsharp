@@ -41,7 +41,7 @@ internal static class DynamicArrayExtent
         long count = remaining / elementSize;
         if (count > maximumElements)
         {
-            throw new CStructReadLimitException($"Array length {count} exceeds MaxArrayElements ({maximumElements}).");
+            throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(count, maximumElements));
         }
 
         return (int)count;
@@ -84,7 +84,7 @@ internal static class DynamicArrayExtent
 
                 if (++count > maximumElements)
                 {
-                    throw new CStructReadLimitException($"Array length {count} exceeds MaxArrayElements ({maximumElements}).");
+                    throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(count, maximumElements));
                 }
             }
         }

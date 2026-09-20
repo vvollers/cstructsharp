@@ -3,11 +3,11 @@ namespace CStructSharp.Codecs;
 using System;
 using System.IO;
 using CStructSharp.Diagnostics;
+using CStructSharp.Generated;
 
-/// <summary>Distinct network UUID and Windows GUID storage conventions.</summary>
+/// <summary>Stream adapters over the shared identifier rule (<see cref="Codec.ReadGuid"/>, <see cref="Codec.WriteGuid"/>, <see cref="Codec.ToGuid"/>).</summary>
 internal static class IdentifierCodec
 {
-    /// <summary>Reads all 128 bits without validating an identifier version or variant.</summary>
     public static Guid Read(Stream stream, bool networkOrder)
     {
         Span<byte> bytes = stackalloc byte[16];
@@ -20,28 +20,13 @@ internal static class IdentifierCodec
             throw new CStructReadException("Not enough bytes for a 16-byte identifier.", exception);
         }
 
-        return new Guid(bytes, bigEndian: networkOrder);
+        return Codec.ReadGuid(bytes, networkOrder);
     }
 
-    /// <summary>Accepts a managed Guid or canonical D-format text and writes exactly 16 bytes.</summary>
     public static void Write(Stream stream, object value, bool networkOrder)
     {
-        Guid identifier;
-        if (value is Guid typed)
-        {
-            identifier = typed;
-        }
-        else if (value is string text && Guid.TryParseExact(text, "D", out Guid parsed))
-        {
-            identifier = parsed;
-        }
-        else
-        {
-            throw new CStructWriteException("Identifier requires a Guid or canonical xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx text.");
-        }
-
         Span<byte> bytes = stackalloc byte[16];
-        identifier.TryWriteBytes(bytes, bigEndian: networkOrder, out _);
+        Codec.WriteGuid(bytes, Codec.ToGuid(value), networkOrder);
         stream.Write(bytes);
     }
 }

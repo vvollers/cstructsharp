@@ -214,7 +214,7 @@ public partial class CStruct
                     {
                         if (operation.Count > state.MaxArrayElements)
                         {
-                            throw new CStructReadLimitException($"Array length {operation.Count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
+                            throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(operation.Count, state.MaxArrayElements));
                         }
 
                         string text = state.FixedText(ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count)));
@@ -232,7 +232,7 @@ public partial class CStruct
                     {
                         if (operation.Count > state.MaxArrayElements)
                         {
-                            throw new CStructReadLimitException($"Array length {operation.Count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
+                            throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(operation.Count, state.MaxArrayElements));
                         }
 
                         if (operation.Count == 0)
@@ -271,7 +271,7 @@ public partial class CStruct
                     {
                         if (operation.Count > state.MaxArrayElements)
                         {
-                            throw new CStructReadLimitException($"Array length {operation.Count} exceeds MaxArrayElements ({state.MaxArrayElements}).");
+                            throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(operation.Count, state.MaxArrayElements));
                         }
 
                         var elements = new List<object?>(operation.Count);

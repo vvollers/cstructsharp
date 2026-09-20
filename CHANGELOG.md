@@ -22,6 +22,17 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   `bindingMode` option, which never had an observable effect through JavaScript, is removed from the option
   list.
 
+### Added
+
+- `CStructSharp.Generated`, the runtime support the `[CStructLayout]` generator's output calls (an advanced
+  surface; application code keeps using `CStruct` or a generated layout class): `Codec` - every byte-level rule
+  as a span function (fixed-width integers in both byte orders, the 24- and 48-bit integers with their range
+  checks, LEB128, fixed point, identifiers, bitfield slices, primitive arrays, bounded and fixed text, terminator
+  search); `ReadCursor` and `WriteCursor` - position, options snapshot, the total byte budget, array/string
+  limits, nesting and pointer depth, and failures carrying path and offset; `Pointer<T>`; `Expressions` - the
+  layout expression operators. The runtime reader and writer now call the same `Codec` functions and the same
+  diagnostic texts (`ReadFailures`/`WriteFailures`), so the two paths cannot drift.
+
 ### Internal
 
 - The primitive vocabulary is split into a compile-time catalog (`PrimitiveCatalog`: names, aliases, alignments,
