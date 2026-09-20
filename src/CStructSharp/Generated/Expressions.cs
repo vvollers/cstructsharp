@@ -2,7 +2,6 @@ namespace CStructSharp.Generated;
 
 using System;
 using System.Globalization;
-using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 
 /// <summary>
@@ -141,12 +140,14 @@ public static class Expressions
     /// <summary>
     ///     The value of a captured member as an expression operand. Layout expressions are 32-bit: a member that holds
     ///     a wider value (a <c>uint32</c> at or above 2^31, a <c>uint64</c>, ...) is kept exact until an expression
-    ///     selects it, and then fails with the runtime's message.
+    ///     selects it, and then fails exactly as the runtime's evaluator does - with an
+    ///     <see cref="InvalidOperationException"/> that <c>ReadCursor.FailExpression</c> turns into the operation's
+    ///     <c>Cannot evaluate {context}: ...</c> failure.
     /// </summary>
     /// <param name="value">The captured member value.</param>
     /// <param name="name">The member name, for the message.</param>
-    /// <returns>The validated value.</returns>
-    /// <exception cref="CStructReadException">The value is not an integer in the signed 32-bit range.</exception>
+    /// <returns>The value as an <see cref="int"/>.</returns>
+    /// <exception cref="InvalidOperationException">The value is outside the signed 32-bit range.</exception>
     public static int RequireInt32(long value, string name)
     {
         if (value is < int.MinValue or > int.MaxValue)
@@ -158,9 +159,10 @@ public static class Expressions
     }
 
     /// <summary>The unsigned overload of <see cref="RequireInt32(long, string)"/>.</summary>
-    /// <param name="value">The value to write.</param>
+    /// <param name="value">The captured member value.</param>
     /// <param name="name">The member name, for the message.</param>
-    /// <returns>The validated value.</returns>
+    /// <returns>The value as an <see cref="int"/>.</returns>
+    /// <exception cref="InvalidOperationException">The value is outside the signed 32-bit range.</exception>
     public static int RequireInt32(ulong value, string name)
     {
         if (value > int.MaxValue)
@@ -171,6 +173,6 @@ public static class Expressions
         return (int)value;
     }
 
-    private static CStructReadException OutOfRange(IFormattable value, string name)
-        => new($"'{name}' is {value.ToString(null, CultureInfo.InvariantCulture)}, which is outside the 32-bit range that layout expressions support.");
+    private static InvalidOperationException OutOfRange(IFormattable value, string name)
+        => new(WideValueVariable.DescribeOutOfRange(name, value));
 }

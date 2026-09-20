@@ -69,18 +69,20 @@ public class ExpressionsTests
     }
 
     [TestMethod]
-    public void RequireInt32_KeepsTheRuntimeWideValueMessage()
+    public void RequireInt32_FailsExactlyAsTheRuntimeEvaluatorDoes()
     {
         Assert.AreEqual(5, Expressions.RequireInt32(5L, "count"));
         Assert.AreEqual(int.MaxValue, Expressions.RequireInt32((ulong)int.MaxValue, "count"));
-        CStructReadException wide = Assert.Throws<CStructReadException>(() => Expressions.RequireInt32(2147483648L, "count"));
+        InvalidOperationException wide = Assert.Throws<InvalidOperationException>(() => Expressions.RequireInt32(2147483648L, "count"));
         Assert.AreEqual("'count' is 2147483648, which is outside the 32-bit range that layout expressions support.", wide.Message);
-        Assert.Throws<CStructReadException>(() => Expressions.RequireInt32(ulong.MaxValue, "count"));
-        Assert.Throws<CStructReadException>(() => Expressions.RequireInt32(-2147483649L, "count"));
+        Assert.Throws<InvalidOperationException>(() => Expressions.RequireInt32(ulong.MaxValue, "count"));
+        Assert.Throws<InvalidOperationException>(() => Expressions.RequireInt32(-2147483649L, "count"));
 
-        // The runtime reports the same text when an expression selects a captured wide value.
+        // The runtime raises the same exception type and text when an expression selects a captured wide value;
+        // ReadCursor.FailExpression turns it into the operation's read failure.
         var layout = new CStruct("struct root { uint32 count; uint8 items[count]; };");
         CStructReadException runtime = Assert.Throws<CStructReadException>(() => layout.Parse(new byte[] { 0, 0, 0, 0x80, 1 }, "root"));
-        StringAssert.Contains(runtime.Message, "'count' is 2147483648, which is outside the 32-bit range that layout expressions support");
+        Assert.IsInstanceOfType<InvalidOperationException>(runtime.InnerException);
+        Assert.AreEqual(wide.Message, runtime.InnerException!.Message);
     }
 }

@@ -40,6 +40,10 @@ internal sealed class LayoutExpressionEvaluator
                KeyNotFoundException or NotSupportedException;
     }
 
+    /// <summary>The <c>Cannot evaluate {context}: {reason}</c> text every expression failure carries.</summary>
+    public static string DescribeFailure(string context, Exception exception)
+        => $"Cannot evaluate {context}: {Describe(exception)}";
+
     /// <summary>
     ///     Evaluates <paramref name="expression"/> and reports a failure as the exception of
     ///     <paramref name="domain"/> with the message <c>Cannot evaluate {context}: {reason}</c>.
@@ -60,7 +64,7 @@ internal sealed class LayoutExpressionEvaluator
         }
         catch (Exception exception) when (IsExpressionFailure(exception))
         {
-            throw CreateFailure(domain, $"Cannot evaluate {context}: {Describe(exception)}", exception);
+            throw CreateFailure(domain, DescribeFailure(context, exception), exception);
         }
     }
 

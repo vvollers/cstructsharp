@@ -112,7 +112,7 @@ internal sealed unsafe class ReadBudgetStream : Stream
                 // FixedBufferStream does); a MemoryStream accepts any non-negative position.
                 if (value < 0 || (this.memoryIsBoundedRegion && value > this.memoryLength))
                 {
-                    throw new CStructReadException("The requested position is outside the supplied memory region.");
+                    throw new CStructReadException(ReadFailures.OutsideRegion);
                 }
 
                 this.position = value;

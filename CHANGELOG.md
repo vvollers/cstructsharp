@@ -31,7 +31,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   search); `ReadCursor` and `WriteCursor` - position, options snapshot, the total byte budget, array/string
   limits, nesting and pointer depth, and failures carrying path and offset; `Pointer<T>`; `Expressions` - the
   layout expression operators. The runtime reader and writer now call the same `Codec` functions and the same
-  diagnostic texts (`ReadFailures`/`WriteFailures`), so the two paths cannot drift.
+  diagnostic texts (`ReadFailures`/`WriteFailures`), so the two paths cannot drift; a cursor failure carries the
+  runtime's context (the innermost field and its type, the operation path, the offset), and `FailExpression`/
+  `FailUnwritable` reproduce the `Cannot evaluate ...` and `Value ... does not fit` texts.
 
 ### Internal
 
