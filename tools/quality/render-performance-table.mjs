@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Renders the "Typical costs" section of docs/guides/performance.md from measured data: the BenchmarkDotNet
- * summary that convert-benchmark-baseline.mjs writes (a curated subset of its cases), the JS harness's Node
+ * summary that convert-benchmark-baseline.mjs writes (a curated subset of its cases, and the generated-code
+ * comparison when the summary holds GeneratedBenchmarks), the JS harness's Node
  * results (benchmarks/js), and the web artifact measurement (tools/quality/measure-web-artifacts.mjs) for the
  * runtime size. The page keeps the rendered block between two HTML comment markers; everything outside them is
  * hand-written. `--check` fails when the page's block differs from what the inputs render, so a stale table is
@@ -32,15 +33,38 @@ export const MANAGED_ROWS = [
   { type: "CompileBenchmarks", method: "Compile", parameters: "Fixture=real-png", operation: "Compile the PNG header fixture (an enum and two structs)" },
   { type: "CompileBenchmarks", method: "GetOrCompile_Hit", parameters: "Fixture=real-png", operation: "`GetOrCompile` hit for the same source (cache lookup)" },
   { type: "ReadBenchmarks", method: "ParseSmallRootMemory", parameters: "", operation: "`Parse` a five-byte record with a `count`-sized array from memory" },
-  { type: "ReadBenchmarks", method: "ReadTypedSmallRootMemory", parameters: "", operation: "`ReadValue<T>` of the same record into a POCO" },
+  { type: "ReadBenchmarks", method: "ReadTypedSmallRootMemory", parameters: "", operation: "`ReadValue<T>` of the same record into a mapped class" },
   { type: "ReadBenchmarks", method: "ReadSelectedScalarTypedMemory", parameters: "", operation: "`ReadValue<ushort>` of one selected field" },
   { type: "ReadBenchmarks", method: "ParsePrimitiveArray1KiB", parameters: "", operation: "`Parse` a 1 KiB `uint8[1024]` (one `PrimitiveArray`)" },
   { type: "AddressBenchmarks", method: "ResolveFixedNestedArray", parameters: "Index=127", operation: "`ResolveAddress` of `items[127]` in a fixed nested array" },
   { type: "DebugBenchmarks", method: "ParseWithDebug", parameters: "Fixture=real-png", operation: "`ParseWithDebug` of the PNG fixture (byte ranges for every value)" },
   { type: "MalformedBenchmarks", method: "ParseAndCatch", parameters: "Fixture=malformed-truncated", operation: "Truncated input: `Parse` throws and the caller catches" },
-  { type: "WriteAndUpdateBenchmarks", method: "SerializePocoToSpan", parameters: "", operation: "`Serialize` a POCO into a caller-provided span" },
+  { type: "WriteAndUpdateBenchmarks", method: "SerializePocoToSpan", parameters: "", operation: "`Serialize` a mapped class into a caller-provided span" },
   { type: "WriteAndUpdateBenchmarks", method: "UpdatePointerTarget", parameters: "", operation: "`Update` one value behind a pointer in place" },
   { type: "LargeStreamBenchmarks", method: "Parse16M_MemoryStream", parameters: "", operation: "`Parse` a 16 MiB record from a `MemoryStream`" },
+];
+
+/**
+ * The generated-code rows, in page order: the same bytes read four ways (runtime `Parse`, generated `Parse`, a
+ * generated view, hand-written `BinaryPrimitives` code) for the reference record and the nested fixture, then the
+ * runtime/generated pairs for a write, an in-place update, and a debug read. The table is rendered only when the
+ * summary contains `GeneratedBenchmarks` (a whole-suite conversion does).
+ */
+export const GENERATED_ROWS = [
+  { method: "Runtime_PrimRecord_Parse", operation: "Runtime `Parse` of the 28-byte primitives record (`StructValue`)" },
+  { method: "Generated_PrimRecord_Parse", operation: "Generated `Parse` of the same record (the typed class)" },
+  { method: "Generated_PrimRecord_View", operation: "Generated view of the same record (every member read, nothing allocated)" },
+  { method: "HandWritten_PrimRecord", operation: "Hand-written `BinaryPrimitives` reader of the same record" },
+  { method: "Runtime_Nested256_Parse", operation: "Runtime `Parse` of 256 nested records (6,400 bytes)" },
+  { method: "Generated_Nested256_Parse", operation: "Generated `Parse` of the 256 nested records" },
+  { method: "Generated_Nested256_View", operation: "Generated view over the 256 nested records (one view per element by offset)" },
+  { method: "HandWritten_Nested256", operation: "Hand-written reader of the 256 nested records" },
+  { method: "Runtime_PrimRecord_Serialize", operation: "Runtime `Serialize` of the record from a `StructValue`" },
+  { method: "Generated_PrimRecord_Serialize", operation: "Generated `Serialize` of the record from the typed class" },
+  { method: "Runtime_PrimRecord_Update", operation: "Runtime `Update` of one field by path" },
+  { method: "Generated_PrimRecord_Update", operation: "Generated typed setter for the same field (`Update.C`)" },
+  { method: "Runtime_PrimRecord_ParseWithDebug", operation: "Runtime `ParseWithDebug` of the record" },
+  { method: "Generated_PrimRecord_ParseWithDebug", operation: "Generated `ParseWithDebug` (the generated value plus the runtime's ranges)" },
 ];
 
 /** The JavaScript rows, in page order; the Node results supply the median. */
@@ -111,6 +135,32 @@ export function renderBlock({ summary, js, web }) {
   const machine = [host.ProcessorName, host.RuntimeVersion, host.OsVersion].filter(Boolean).join(", ");
   lines.push("", `Measured ${isoDate(summary.generatedAtUtc)} on ${machine || "an unrecorded machine"}.`);
 
+  if (byKey.has(`GeneratedBenchmarks|${GENERATED_ROWS[0].method}|`)) {
+    lines.push(
+      "",
+      "A layout on a `[CStructLayout]` class is read by generated code instead ([generated code](generated/index.md)).",
+      "The same bytes four ways - the runtime `Parse`, the generated `Parse`, a generated view, and hand-written",
+      "`BinaryPrimitives` code - then the runtime/generated pairs for a write, an update, and a debug read",
+      "(`GeneratedBenchmarks`):",
+      "",
+      "| Operation | Median | Allocated |",
+      "| --- | ---: | ---: |",
+    );
+    for (const row of GENERATED_ROWS) {
+      const benchmark = byKey.get(`GeneratedBenchmarks|${row.method}|`);
+      assertCondition(benchmark, `The summary has no case GeneratedBenchmarks.${row.method}.`);
+      lines.push(`| ${row.operation} | ${formatDuration(benchmark.medianNanoseconds)} | ${formatBytes(benchmark.allocatedBytes)} |`);
+    }
+    lines.push(
+      "",
+      "The generated `Parse` allocates the typed class and nothing else; the view allocates nothing and sits next to",
+      "the hand-written reader because it is the same code with the offsets filled in. `ParseWithDebug` costs a",
+      "runtime read on top of the generated one (the ranges come from the runtime). Use the generated path when the",
+      "layout is in the program's source and the read is hot; [runtime or generated?](generated/choosing-runtime-or-generated.md)",
+      "has the full decision table.",
+    );
+  }
+
   if (js) {
     assertCondition(js.schemaVersion === 1 && Array.isArray(js.results), "The JS results have an unsupported shape.");
     const results = new Map(js.results.map((result) => [result.name, result]));
@@ -162,7 +212,10 @@ function selfTest() {
     schemaVersion: 1,
     generatedAtUtc: "2026-09-18T06:45:01.088Z",
     hostEnvironment: { ProcessorName: "Test CPU", RuntimeVersion: ".NET 10.0.0", OsVersion: "Test OS" },
-    benchmarks: MANAGED_ROWS.map((row, index) => ({ type: row.type, method: row.method, parameters: row.parameters, medianNanoseconds: 10 ** (index % 7) * 1.5, allocatedBytes: 100 * index })),
+    benchmarks: [
+      ...MANAGED_ROWS.map((row, index) => ({ type: row.type, method: row.method, parameters: row.parameters, medianNanoseconds: 10 ** (index % 7) * 1.5, allocatedBytes: 100 * index })),
+      ...GENERATED_ROWS.map((row, index) => ({ type: "GeneratedBenchmarks", method: row.method, parameters: "", medianNanoseconds: 50 + index, allocatedBytes: index === 2 ? 0 : 48 })),
+    ],
   };
   const js = { schemaVersion: 1, environment: { capturedAtUtc: "2026-09-18T12:52:14.072Z", node: { node: "22.0.0" } }, results: JS_ROWS.map((row) => ({ name: row.name, medianNanoseconds: 4000 })) };
   const web = { values: { wasmFiles: 26, wasmBytes: 4830389, wasmGzipBytes: 1833911 } };
@@ -170,6 +223,15 @@ function selfTest() {
   assertCondition(block.includes("| 1.50 ns | 0 B |") && block.includes("| 1.50 ms |"), "Self-test: duration formatting is wrong.");
   assertCondition(block.includes("4.6 MiB") && block.includes("1.7 MiB"), "Self-test: byte formatting is wrong.");
   assertCondition(block.includes("Measured 2026-09-18 on Test CPU, .NET 10.0.0, Test OS."), "Self-test: the caption is wrong.");
+  assertCondition(block.includes("| Generated view of the same record (every member read, nothing allocated) | 52.0 ns | 0 B |"), "Self-test: the generated table is wrong.");
+  assertCondition(!renderBlock({ summary: { ...summary, benchmarks: summary.benchmarks.slice(0, MANAGED_ROWS.length) } }).includes("GeneratedBenchmarks"), "Self-test: a summary without generated cases must render no generated table.");
+  let partial = false;
+  try {
+    renderBlock({ summary: { ...summary, benchmarks: summary.benchmarks.slice(0, MANAGED_ROWS.length + 1) } });
+  } catch {
+    partial = true;
+  }
+  assertCondition(partial, "Self-test: a partial generated set was not rejected.");
   assertCondition(block.includes("Measured 2026-09-18 in Node 22.0.0 with"), "Self-test: the JS caption is wrong.");
   const page = `# Title\n\n${START_MARKER}\nold\n${END_MARKER}\n\nAfter.\n`;
   const replaced = replaceBlock(page, block);
@@ -208,5 +270,5 @@ await main(() => {
   }
 
   fs.writeFileSync(options.page, rendered);
-  console.log(`Rendered ${MANAGED_ROWS.length} managed rows${options.js ? ` and ${JS_ROWS.length} JavaScript rows` : ""} into ${path.relative(repositoryRoot, options.page)}.`);
+  console.log(`Rendered ${MANAGED_ROWS.length} managed rows${block.includes("GeneratedBenchmarks") ? `, ${GENERATED_ROWS.length} generated rows,` : ""}${options.js ? ` and ${JS_ROWS.length} JavaScript rows` : ""} into ${path.relative(repositoryRoot, options.page)}.`);
 });

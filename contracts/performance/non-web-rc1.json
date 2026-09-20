@@ -131,8 +131,29 @@
         "parameters": "",
         "baselineMedianNanoseconds": 878.4,
         "baselineAllocatedBytes": 3160
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "Generated_Nested256_Parse",
+        "parameters": "",
+        "baselineMedianNanoseconds": 36838.137,
+        "baselineAllocatedBytes": 127024
+      },
+      {
+        "type": "GeneratedBenchmarks",
+        "method": "Generated_PrimRecord_Parse",
+        "parameters": "",
+        "baselineMedianNanoseconds": 35.525,
+        "baselineAllocatedBytes": 48
       }
-    ]
+    ],
+    "generatedBaselineEvidence": {
+      "summary": "artifacts/baseline/generated-gate/summary.json",
+      "summarySha256": "422217FCE44DE90A45C4BC5B18FEBB4541EC48E95A02069F93E0D87B7C6950E7",
+      "environment": "Linux Ubuntu 26.04.1 LTS (Resolute Raccoon); AMD EPYC 9645; X64; .NET 10.0.10 (10.0.10, 10.0.1026.32716); SDK 10.0.302",
+      "date": "2026-09-20",
+      "note": "The two GeneratedBenchmarks cases (generated Parse of the primitives record and of the 256 nested records, category ReleaseGate) were measured on the same devbox with the Gate job after the generator plan's Phase 6; their budgets use the policy's minimum median budget and allocation headroom, which cover a 36 ns / 48 B case."
+    }
   },
   "package": {
     "baselineEvidence": {

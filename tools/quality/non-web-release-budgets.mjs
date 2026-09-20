@@ -130,7 +130,7 @@ await main(() => {
   assertCondition(benchmark.maximumMedianMultiplier >= 1, "The benchmark median multiplier is invalid.");
   assertCondition(benchmark.maximumRelativeStandardDeviation > 0 && benchmark.maximumRelativeStandardDeviation <= 0.5, "The benchmark dispersion limit must be in (0, 0.5].");
   const policyCases = benchmark.cases ?? [];
-  assertCondition(policyCases.length === 14, "The non-Web benchmark gate must contain exactly 14 cases.");
+  assertCondition(policyCases.length === 16, "The non-Web benchmark gate must contain exactly 16 cases (14 runtime, 2 generated).");
   const keys = policyCases.map(caseKey);
   assertCondition(new Set(keys).size === keys.length, "The non-Web benchmark policy contains duplicate cases.");
   for (const entry of policyCases) {
