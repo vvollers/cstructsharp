@@ -14,6 +14,8 @@ using CStructSharp.Diagnostics;
 /// </summary>
 internal static class ValuePath
 {
+    private static readonly char[] Separators = ['.', '['];
+
     /// <summary>Resolves <paramref name="path"/> below <paramref name="root"/>, or reports the segment that failed.</summary>
     /// <param name="root">The value the path is relative to.</param>
     /// <param name="path">A member name, or a dotted and indexed path.</param>
@@ -22,6 +24,18 @@ internal static class ValuePath
     /// <returns><see langword="true"/> when every segment resolved.</returns>
     public static bool TryResolve(object? root, string path, out object? value, [NotNullWhen(false)] out string? failure)
     {
+        // A bare member name - what a mapper's Get<T>("count") asks for - needs no walk and no substring.
+        if (path.Length > 0 && path.IndexOfAny(Separators) < 0)
+        {
+            if (TryMember(root, path, out value, out string? directReason))
+            {
+                failure = null;
+                return true;
+            }
+
+            return Fail($"Path '{path}' cannot select '{path}' in the value: {directReason}", out value, out failure);
+        }
+
         object? current = root;
         int position = 0;
         string consumed = string.Empty;
