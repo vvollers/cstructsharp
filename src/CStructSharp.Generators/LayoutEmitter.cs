@@ -82,7 +82,7 @@ internal sealed partial class LayoutEmitter
             this.Error(GeneratorDiagnostics.NameCollision, "The class '" + this.request.ClassName + "' is named like the generated " + this.request.ClassName + " member, which C# does not allow; rename the class.");
         }
 
-        this.model = GeneratedModel.Build(this.compilation, this.request.KeepNames, taken);
+        this.model = GeneratedModel.Build(this.compilation, this.request.KeepNames, taken, this.request.Views);
         foreach (string collision in this.model.Collisions)
         {
             this.Error(GeneratorDiagnostics.NameCollision, collision);

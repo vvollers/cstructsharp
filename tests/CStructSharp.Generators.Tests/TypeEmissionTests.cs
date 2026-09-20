@@ -235,6 +235,34 @@ public class TypeEmissionTests
             public static partial class SelfNamed { }
             """);
         StringAssert.Contains(selfNamed.DiagnosticsWithId("CSG003").Single().GetMessage(), "the class itself");
+
+        // The view's own members (Bytes, ToObject, and a fixed array's <Member>Bytes slice) are reserved while views are generated.
+        GeneratorResult viewBytes = GeneratorRunner.Run(Header + """
+            [CStructLayout("union payload { uint32 word; uint8 bytes[4]; };")]
+            public static partial class ViewBytes { }
+            """);
+        string viewMessage = viewBytes.DiagnosticsWithId("CSG003").Single().GetMessage();
+        StringAssert.Contains(viewMessage, "the view's Bytes member");
+        StringAssert.Contains(viewMessage, "Views = false");
+
+        GeneratorResult viewSlice = GeneratorRunner.Run(Header + """
+            [CStructLayout("struct root { uint8 raw[4]; uint16 raw_bytes; };")]
+            public static partial class ViewSlice { }
+            """);
+        StringAssert.Contains(viewSlice.DiagnosticsWithId("CSG003").Single().GetMessage(), "view slice 'RawBytes'");
+
+        GeneratorResult noViews = GeneratorRunner.Run(Header + """
+            [CStructLayout("union payload { uint32 word; uint8 bytes[4]; }; struct root { uint8 raw[4]; uint16 raw_bytes; };", Views = false)]
+            public static partial class NoViews { }
+            """).AssertClean();
+        Assert.IsEmpty(noViews.GeneratorDiagnostics);
+
+        // A member the view cannot expose (after a runtime-sized member) keeps its name: the view has nothing to collide with.
+        GeneratorResult unplaced = GeneratorRunner.Run(Header + """
+            [CStructLayout("struct root { uint8 count; uint8 items[count]; uint8 bytes[4]; };")]
+            public static partial class Unplaced { }
+            """).AssertClean();
+        Assert.IsEmpty(unplaced.GeneratorDiagnostics);
     }
 
     private static string SourceLiteral(string definition)

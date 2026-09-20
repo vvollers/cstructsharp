@@ -22,10 +22,13 @@ internal sealed class GeneratedModel
     private readonly bool keepNames;
     private readonly List<string> collisions = new();
 
-    private GeneratedModel(bool keepNames, Dictionary<string, string> takenNames)
+    private readonly bool views;
+
+    private GeneratedModel(bool keepNames, bool views, Dictionary<string, string> takenNames)
     {
         this.keepNames = keepNames;
         this.takenNames = takenNames;
+        this.views = views;
     }
 
     public List<GeneratedEnum> Enums { get; } = new();
@@ -34,10 +37,10 @@ internal sealed class GeneratedModel
 
     public IReadOnlyList<string> Collisions => this.collisions;
 
-    /// <summary>Builds the model; <paramref name="takenNames"/> holds the names the class frame already uses (updated with every type name).</summary>
-    public static GeneratedModel Build(LayoutCompilation compilation, bool keepNames, Dictionary<string, string> takenNames)
+    /// <summary>Builds the model; <paramref name="takenNames"/> holds the names the class frame already uses (updated with every type name); <paramref name="views"/> reserves the view members.</summary>
+    public static GeneratedModel Build(LayoutCompilation compilation, bool keepNames, Dictionary<string, string> takenNames, bool views = true)
     {
-        var model = new GeneratedModel(keepNames, takenNames);
+        var model = new GeneratedModel(keepNames, views, takenNames);
         CompiledLayoutModel compiled = compilation.CompiledModel;
 
         // A typedef that aliases a struct tag names the class; the tag itself gets no class of its own.
@@ -187,6 +190,32 @@ internal sealed class GeneratedModel
         }
 
         this.AppendMembers(generated, generated.Composite, compiled, memberNames, conditional: false);
+        if (!this.views)
+        {
+            return;
+        }
+
+        // The view has Bytes and ToObject of its own and a <Member>Bytes slice per fixed one-dimensional array; a member
+        // the view exposes (statically placed, not conditional) may not spell one of those names.
+        foreach (GeneratedMember member in generated.Members)
+        {
+            CompiledField field = member.Field;
+            if (member.IsConditional || field.IsZeroWidthBitfield || (!generated.IsUnion && field.FixedOffset is null))
+            {
+                continue;
+            }
+
+            if (member.PropertyName is "Bytes" or "ToObject")
+            {
+                this.collisions.Add($"Member '{field.Name}' of '{generated.LayoutName}' would be generated as '{member.PropertyName}', which is already the view's {member.PropertyName} member; use [CStructLayout(KeepNames = true)] or Views = false, or rename the member in the layout.");
+            }
+
+            if (field.Array.Kind == CompiledArrayKind.Fixed && field.Array.Dimensions.Length == 1 && field.PointerDepth == 0 && member.Composite is null
+                && memberNames.TryGetValue(member.PropertyName + "Bytes", out string? taken))
+            {
+                this.collisions.Add($"Member '{field.Name}' of '{generated.LayoutName}' needs a view slice '{member.PropertyName}Bytes', which member '{taken}' would also be generated as; use [CStructLayout(Views = false)] or KeepNames, or rename one in the layout.");
+            }
+        }
     }
 
     /// <summary>Adds the members of <paramref name="composite"/> to <paramref name="owner"/>; a promoted anonymous composite contributes its own members in place.</summary>
