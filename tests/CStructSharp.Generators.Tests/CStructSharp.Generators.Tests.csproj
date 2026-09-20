@@ -25,6 +25,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\contracts\language\manual-fixtures-v1.json" Link="manual-fixtures-v1.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The golden files live beside the tests; UPDATE_SNAPSHOTS=1 rewrites them in place. -->
     <AssemblyMetadata Include="SnapshotDirectory" Value="$(MSBuildProjectDirectory)/Snapshots" />
   </ItemGroup>

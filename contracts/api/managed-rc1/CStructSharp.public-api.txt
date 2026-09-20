@@ -98,6 +98,7 @@ namespace CStructSharp
         public CStructSharp.BitfieldAllocation BitfieldAllocation { get; set; }
         public CStructSharp.BitfieldPacking BitfieldPacking { get; set; }
         public int CLongWidth { get; set; }
+        public string? DefaultEnumStorage { get; set; }
         public string[]? Defined { get; set; }
         public string? Definition { get; }
         public string? File { get; set; }

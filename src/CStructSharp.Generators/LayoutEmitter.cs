@@ -3,7 +3,6 @@ namespace CStructSharp.Generators;
 using System.Collections.Generic;
 using System.Globalization;
 using CStructSharp.Compilation;
-using CStructSharp.Syntax;
 using Microsoft.CodeAnalysis;
 
 /// <summary>
@@ -19,7 +18,7 @@ internal sealed partial class LayoutEmitter
     private readonly string definition;
     private readonly string rootName;
     private readonly List<Diagnostic> diagnostics = new();
-    private readonly Dictionary<string, string> declarationNames = new(System.StringComparer.Ordinal);
+    private GeneratedModel model = null!;
     private bool hasErrors;
 
     public LayoutEmitter(LayoutRequest request, LayoutCompilation compilation, string definition, string rootName)
@@ -34,7 +33,7 @@ internal sealed partial class LayoutEmitter
 
     private static string GeneratorVersion => typeof(LayoutEmitter).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
 
-    /// <summary>Assigns every generated name and reports CSG003 for collisions; the emit step relies on the result.</summary>
+    /// <summary>Builds the type model, which assigns every generated name, and reports CSG003 for collisions.</summary>
     public IReadOnlyList<Diagnostic> Validate()
     {
         var taken = new Dictionary<string, string>(System.StringComparer.Ordinal)
@@ -46,24 +45,10 @@ internal sealed partial class LayoutEmitter
             ["Parse"] = "the generated Parse method",
             ["Serialize"] = "the generated Serialize method",
         };
-        foreach (KeyValuePair<string, CStructElement> element in this.compilation.CStructElements)
+        this.model = GeneratedModel.Build(this.compilation, this.request.KeepNames, taken);
+        foreach (string collision in this.model.Collisions)
         {
-            if (element.Value is not (Struct or Typedef { Struct: not null } or Enum))
-            {
-                continue;
-            }
-
-            string name = Naming.ToCSharp(element.Key, this.request.KeepNames);
-            if (taken.TryGetValue(name, out string? owner))
-            {
-                this.Error(
-                    GeneratorDiagnostics.NameCollision,
-                    $"Layout declaration '{element.Key}' would be generated as '{name}', which is already {owner}; use [CStructLayout(KeepNames = true)] or rename the declaration in the layout.");
-                continue;
-            }
-
-            taken[name] = $"generated for '{element.Key}'";
-            this.declarationNames[element.Key] = name;
+            this.Error(GeneratorDiagnostics.NameCollision, collision);
         }
 
         return this.diagnostics;
@@ -93,6 +78,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("[global::System.CodeDom.Compiler.GeneratedCode(\"CStructSharp\", " + SourceWriter.Literal(GeneratorVersion) + ")]");
         writer.Open(this.request.Accessibility + " static partial class " + this.request.ClassName);
         this.EmitFrame(writer);
+        this.EmitTypes(writer);
         writer.Close();
 
         for (int index = 0; index < this.request.ContainingTypes.Count; index++)
@@ -136,6 +122,11 @@ internal sealed partial class LayoutEmitter
         writer.Line("CLongWidth = " + (this.request.CLongWidth == 0 ? 64 : this.request.CLongWidth).ToString(CultureInfo.InvariantCulture) + ",");
         writer.Line("BitfieldPacking = global::CStructSharp.BitfieldPacking." + this.request.BitfieldPacking + ",");
         writer.Line("BitfieldAllocation = global::CStructSharp.BitfieldAllocation." + this.request.BitfieldAllocation + ",");
+        if (this.request.DefaultEnumStorage is not null)
+        {
+            writer.Line("DefaultEnumStorage = " + SourceWriter.Literal(this.request.DefaultEnumStorage) + ",");
+        }
+
         if (this.request.Defined.Count > 0)
         {
             writer.Write("Defined = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal) { ");

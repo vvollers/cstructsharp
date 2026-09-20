@@ -24,6 +24,7 @@ internal sealed record LayoutRequest(
     string BitfieldAllocation,
     int CLongWidth,
     EquatableArray<string> Defined,
+    string? DefaultEnumStorage,
     bool KeepNames,
     bool Views,
     SourceSpan AttributeSpan,

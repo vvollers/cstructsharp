@@ -64,6 +64,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         string allocation = "LowBitFirst";
         int cLongWidth = 0;
         string[]? defined = null;
+        string? defaultEnumStorage = null;
         bool keepNames = false;
         bool views = true;
         foreach (KeyValuePair<string, TypedConstant> named in attribute.NamedArguments)
@@ -96,6 +97,9 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                 break;
             case "Defined":
                 defined = named.Value.Values.Select(value => value.Value as string ?? string.Empty).ToArray();
+                break;
+            case "DefaultEnumStorage":
+                defaultEnumStorage = named.Value.Value as string;
                 break;
             case "KeepNames":
                 keepNames = named.Value.Value is true;
@@ -143,6 +147,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             allocation,
             cLongWidth,
             new EquatableArray<string>(defined),
+            defaultEnumStorage,
             keepNames,
             views,
             SourceSpan.From(attributeLocation),
@@ -271,6 +276,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             BitfieldPacking = ParseEnum(request.BitfieldPacking, BitfieldPacking.SysV),
             BitfieldAllocation = ParseEnum(request.BitfieldAllocation, BitfieldAllocation.LowBitFirst),
             Defined = request.Defined.Count == 0 ? null : DefinedSet(request.Defined),
+            DefaultEnumStorage = request.DefaultEnumStorage,
         };
         Parsing.LayoutSourceValidator.ValidateLayoutSource(definition, options);
         if (request.PointerSize is not (1 or 2 or 4 or 8))

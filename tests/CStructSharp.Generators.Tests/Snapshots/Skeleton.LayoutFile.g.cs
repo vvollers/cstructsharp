@@ -30,5 +30,22 @@ namespace Demo
             };
             return new global::CStructSharp.CStruct(Definition, pointerSize: 8, aligned: false, isLittleEndian: true, compilationOptions: options);
         }
+
+        /// <summary>The layout struct <c>chunk</c>.</summary>
+        public sealed partial class chunk
+        {
+            /// <summary><c>uint32 length</c>.</summary>
+            public uint length { get; set; }
+        }
+
+        /// <summary>The layout struct <c>root</c>.</summary>
+        public sealed partial class root
+        {
+            /// <summary><c>chunk first</c>.</summary>
+            public chunk first { get; set; } = new();
+
+            /// <summary><c>uint8 tail</c>.</summary>
+            public byte tail { get; set; }
+        }
     }
 }

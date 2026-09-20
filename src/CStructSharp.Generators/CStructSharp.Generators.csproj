@@ -14,7 +14,9 @@
          is either shipped by Roslyn (System.Collections.Immutable at Roslyn's version) or compiled in (the Core
          sources and the PolySharp polyfills). -->
     <!-- CS1574: the shared Core sources document runtime types (CStruct, StructValue) that this assembly does not contain. -->
-    <NoWarn>$(NoWarn);CS1591;CS1574;SA1600;SA1602;SA1611;SA1615;SA1618;SA1623;SA1642</NoWarn>
+    <!-- The emitter reads top to bottom in the order the generated file has, so StyleCop's member-ordering rules
+         (SA1201/SA1202/SA1204) and one-type-per-file (SA1402) are off for this project only. -->
+    <NoWarn>$(NoWarn);CS1591;CS1574;SA1600;SA1602;SA1611;SA1615;SA1618;SA1623;SA1642;SA1201;SA1202;SA1204;SA1402</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft.CodeAnalysis 4.8 is the floor: Visual Studio 17.8 and .NET SDK 8. Newer hosts load it too. -->

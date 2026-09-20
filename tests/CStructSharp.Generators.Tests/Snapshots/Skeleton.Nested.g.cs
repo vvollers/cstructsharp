@@ -33,6 +33,13 @@ namespace Demo
                     };
                     return new global::CStructSharp.CStruct(Definition, pointerSize: 8, aligned: false, isLittleEndian: true, compilationOptions: options);
                 }
+
+                /// <summary>The layout struct <c>root</c>.</summary>
+                public sealed partial class Root
+                {
+                    /// <summary><c>uint8 a</c>.</summary>
+                    public byte A { get; set; }
+                }
             }
         }
     }

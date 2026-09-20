@@ -58,6 +58,9 @@ public sealed class CStructLayoutAttribute : Attribute
     /// <summary>Gets or sets the preprocessor symbols defined for the layout.</summary>
     public string[]? Defined { get; set; }
 
+    /// <summary>Gets or sets the storage type of an enum declared without one (<c>enum kind { ... }</c>); <see langword="null"/> means the library default.</summary>
+    public string? DefaultEnumStorage { get; set; }
+
     /// <summary>Gets or sets whether generated names keep the layout's spelling instead of becoming PascalCase.</summary>
     public bool KeepNames { get; set; }
 
