@@ -63,7 +63,7 @@ internal class Identifier : Expr
     /// <summary>Returns a hash code that matches this value's equality rules.</summary>
     public override int GetHashCode()
     {
-        return HashCode.Combine(this.Name.GetHashCode(StringComparison.Ordinal), this.PointerDepth);
+        return HashCode.Combine(StringComparer.Ordinal.GetHashCode(this.Name), this.PointerDepth);
     }
 
     /// <summary>Returns a short readable description for debugging and logs.</summary>

@@ -1,4 +1,4 @@
-namespace CStructSharp.Reading;
+namespace CStructSharp.Compilation;
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -48,7 +48,7 @@ internal sealed class ConditionalVariableScope
     {
         foreach (int slot in field.CapturedLocalSlots)
         {
-            this.locals[slot] = variables.GetValueOrDefault(this.names[slot]);
+            this.locals[slot] = variables.TryGetValue(this.names[slot], out Expr? value) ? value : null;
         }
 
         foreach (int slot in field.RestoredLocalSlots)

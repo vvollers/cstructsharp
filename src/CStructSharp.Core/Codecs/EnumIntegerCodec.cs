@@ -152,9 +152,7 @@ internal sealed class EnumIntegerCodec
         if (!this.Contains(value))
         {
             throw new OverflowException(
-                string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"Value {value} is outside the {this.StorageType} enum domain."));
+                FormattableString.Invariant($"Value {value} is outside the {this.StorageType} enum domain."));
         }
     }
 }

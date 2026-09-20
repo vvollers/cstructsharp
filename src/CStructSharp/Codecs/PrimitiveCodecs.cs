@@ -11,7 +11,7 @@ using CStructSharp.Streams;
 ///     Provides the strict text encodings, terminated-string read/write logic, and other primitive-type-naming
 ///     support shared by the primitive reader and writer maps that <see cref="CStruct"/> builds for itself.
 /// </summary>
-internal static class PrimitiveCodecs
+internal static partial class PrimitiveCodecs
 {
     /// <summary>
     ///     The number of bytes requested per underlying <see cref="Stream.Read(byte[],int,int)"/> call while
@@ -23,26 +23,6 @@ internal static class PrimitiveCodecs
     ///     exactly matches reading one byte at a time.
     /// </summary>
     private const int TerminatedStringReadChunkSize = 256;
-
-    public static readonly Encoding StrictAsciiEncoding = Encoding.GetEncoding(
-        Encoding.ASCII.CodePage,
-        EncoderFallback.ExceptionFallback,
-        DecoderFallback.ExceptionFallback);
-
-    public static readonly Encoding StrictUtf8Encoding = new UTF8Encoding(false, true);
-
-    public static readonly Encoding StrictUtf16BigEndianEncoding = new UnicodeEncoding(true, false, true);
-
-    public static readonly Encoding StrictUtf16LittleEndianEncoding = new UnicodeEncoding(false, false, true);
-
-    /// <summary>Returns whether a primitive handler consumes bytes until a terminator instead of having a fixed footprint.</summary>
-    public static bool IsVariableLengthType(string typeName)
-    {
-        return typeName is "ascii_string_zero" or "ascii_string_newline" or "utf8_string_zero" or
-               "utf8_string_newline" or "unicode_string_zero" or "unicode_string_zero>" or
-               "unicode_string_zero<" or "unicode_string_newline" or "unicode_string_newline>" or
-               "unicode_string_newline<" or "cstring" or "string" or "string>" or "string<";
-    }
 
     /// <summary>Reads exactly the declared encoded byte extent, including embedded NULs, without reading ahead.</summary>
     public static string ReadBoundedText(Stream stream, int byteCount, string type)

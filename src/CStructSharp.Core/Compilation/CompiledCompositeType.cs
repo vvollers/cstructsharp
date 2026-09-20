@@ -3,20 +3,14 @@ namespace CStructSharp.Compilation;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using CStructSharp.Diagnostics;
-using CStructSharp.Reading;
 using CStructSharp.Syntax;
-using CStructSharp.Values;
 
 /// <summary>Represents a struct or union with an immutable declaration-order field collection.</summary>
-internal sealed class CompiledCompositeType : CompiledType
+internal sealed partial class CompiledCompositeType : CompiledType
 {
     private StructShape? shape;
-    private StaticReadPlan? staticPlan;
-    private System.Collections.Concurrent.ConcurrentDictionary<Type, TypedReadPlan?>? typedReadPlans;
-    private bool staticPlanBuilt;
 
     public CompiledCompositeType(CompiledTypeSymbol symbol, ImmutableArray<CompiledField> fields)
         : base(symbol)
@@ -79,34 +73,18 @@ internal sealed class CompiledCompositeType : CompiledType
 
     public int ConditionalGroupCount { get; }
 
-    public ImmutableArray<string> ConditionalLocalNames { get; private set; } = [];
+    public ImmutableArray<string> ConditionalLocalNames { get; private set; } = ImmutableArray<string>.Empty;
 
     public ImmutableDictionary<string, CompiledField> FieldsByName { get; }
 
     public ImmutableHashSet<CompiledField> PromotedFields { get; }
 
     /// <summary>
-    ///     The <see cref="StructValue"/> member layout every parse of this composite shares: declared names in
+    ///     The <see cref="CStructSharp.Values.StructValue"/> member layout every parse of this composite shares: declared names in
     ///     order, with anonymous promoted members spliced in and anonymous bitfields left out. Conditional
     ///     arms all get a slot; an arm that is not selected simply leaves its slot unset.
     /// </summary>
     public StructShape Shape => this.shape ??= this.BuildShape();
-
-    /// <summary>The span read plan when every member is statically placed; null otherwise. Built on first use.</summary>
-    public StaticReadPlan? StaticPlan
-    {
-        get
-        {
-            if (!this.staticPlanBuilt)
-            {
-                // Built after the whole model is bound; a benign race builds the same plan twice.
-                this.staticPlan = StaticReadPlan.TryBuild(this);
-                this.staticPlanBuilt = true;
-            }
-
-            return this.staticPlan;
-        }
-    }
 
     /// <summary>Finishes scope metadata after recursive pointer symbols have all been bound.</summary>
     internal void CompleteConditionalScope()
@@ -122,7 +100,7 @@ internal sealed class CompiledCompositeType : CompiledType
         {
             string fieldName = field.Declaration.Name.Name;
             field.VisibleNames = fieldName.Length > 0
-                ? [fieldName]
+                ? ImmutableArray.Create(fieldName)
                 : ConditionalVariableScope.GetVisibleNames(field).ToImmutableArray();
             foreach (string name in field.VisibleNames)
             {
@@ -137,7 +115,7 @@ internal sealed class CompiledCompositeType : CompiledType
         foreach (CompiledField field in this.Fields)
         {
             field.CapturedLocalSlots = field.VisibleNames.Length == 1
-                ? [slots[field.VisibleNames[0]]]
+                ? ImmutableArray.Create(slots[field.VisibleNames[0]])
                 : field.VisibleNames.Select(name => slots[name]).ToImmutableArray();
             if (field.Type.Symbol.Definition is not CompiledCompositeType)
             {
@@ -204,25 +182,6 @@ internal sealed class CompiledCompositeType : CompiledType
         }
 
         visiting.Remove(this);
-    }
-
-    /// <summary>
-    ///     Typed read plans bound to this composite's static plan, one per target type, created on the first
-    ///     typed read so a layout never read into a POCO does not pay for the table.
-    /// </summary>
-    public TypedReadPlan? GetOrAddTypedReadPlan([DynamicallyAccessedMembers(TypedValueConverter.MappedMembers)] Type targetType)
-    {
-        System.Collections.Concurrent.ConcurrentDictionary<Type, TypedReadPlan?> plans = this.typedReadPlans ??
-            System.Threading.Interlocked.CompareExchange(ref this.typedReadPlans, new System.Collections.Concurrent.ConcurrentDictionary<Type, TypedReadPlan?>(), null) ??
-            this.typedReadPlans;
-        if (plans.TryGetValue(targetType, out TypedReadPlan? plan))
-        {
-            return plan;
-        }
-
-        // Built with the annotated type in hand (a delegate would lose the annotation); a benign race builds twice.
-        plan = TypedReadPlan.TryBuild(this.StaticPlan!, targetType);
-        return plans.TryAdd(targetType, plan) ? plan : plans[targetType];
     }
 
     /// <summary>Finds one exact compiled field name in this composite, or throws a <see cref="CStructPathException"/> naming both.</summary>

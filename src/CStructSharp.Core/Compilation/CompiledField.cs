@@ -94,7 +94,7 @@ internal sealed class CompiledField
         this.IsFixedPoint = this.Codec.IsFixedPoint;
     }
 
-    public ImmutableArray<CompiledConditionalBranch> ConditionalBranches { get; internal set; } = [];
+    public ImmutableArray<CompiledConditionalBranch> ConditionalBranches { get; internal set; } = ImmutableArray<CompiledConditionalBranch>.Empty;
 
     /// <summary>
     ///     Whether an expression names a field of this nested struct field through a dotted path (<c>hdr.n</c>), so
@@ -107,11 +107,11 @@ internal sealed class CompiledField
     /// <summary>The prefix (<c>hdr.</c>) under which the nested fields are published; <see langword="null"/> for every other field.</summary>
     public string? QualifiedPrefix => this.HasQualifiedPrefix ? this.Declaration.Name.Name + "." : null;
 
-    public ImmutableArray<string> VisibleNames { get; internal set; } = [];
+    public ImmutableArray<string> VisibleNames { get; internal set; } = ImmutableArray<string>.Empty;
 
-    public ImmutableArray<int> CapturedLocalSlots { get; internal set; } = [];
+    public ImmutableArray<int> CapturedLocalSlots { get; internal set; } = ImmutableArray<int>.Empty;
 
-    public ImmutableArray<int> RestoredLocalSlots { get; internal set; } = [];
+    public ImmutableArray<int> RestoredLocalSlots { get; internal set; } = ImmutableArray<int>.Empty;
 
     /// <summary>
     ///     Whether reading or writing this field must publish its value as a layout variable. False when no

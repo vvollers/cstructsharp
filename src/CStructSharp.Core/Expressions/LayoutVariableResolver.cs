@@ -24,7 +24,7 @@ internal sealed class LayoutVariableResolver
     public LayoutVariableResolver(
         IEnumerable<Defines> definitions,
         ExpressionEvaluator evaluator,
-        IReadOnlySet<string>? exactEnumDefinitions = null)
+        IReadOnlyCollection<string>? exactEnumDefinitions = null)
     {
         this.evaluator = evaluator;
         IEnumerable<string> enumDefinitions = exactEnumDefinitions is null
@@ -44,7 +44,7 @@ internal sealed class LayoutVariableResolver
                 StringComparer.Ordinal);
             this.reverseDependents = this.BuildReverseDependents();
             this.staticValues = this.BuildStaticValues(this.GetTopologicallySortedDefinitions()).
-                ToDictionary(StringComparer.Ordinal);
+                ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
         }
         catch (CStructLayoutException)
         {

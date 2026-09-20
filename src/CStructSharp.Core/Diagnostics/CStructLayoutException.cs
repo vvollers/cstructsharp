@@ -43,7 +43,7 @@ public sealed class CStructLayoutException : CStructException
     /// <inheritdoc/>
     public override string Message =>
         this.Line is { } line && this.Column is { } column
-            ? string.Create(CultureInfo.InvariantCulture, $"{base.Message} (line {line}, column {column})")
+            ? FormattableString.Invariant($"{base.Message} (line {line}, column {column})")
             : base.Message;
 
     /// <summary>

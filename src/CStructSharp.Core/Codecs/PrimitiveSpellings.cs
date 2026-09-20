@@ -1,8 +1,8 @@
 namespace CStructSharp.Codecs;
 
 using System;
-using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 /// <summary>
 ///     The one table of accepted primitive spellings that are aliases of a canonical codec name: C, C99, Windows SDK,
@@ -19,7 +19,7 @@ using System.Collections.Generic;
 internal static class PrimitiveSpellings
 {
     /// <summary>Spellings of the C <c>long</c> family whose width depends on <see cref="CStructCompilationOptions.CLongWidth"/>.</summary>
-    public static readonly FrozenDictionary<string, bool> LongFamilyIsUnsigned = new Dictionary<string, bool>(StringComparer.Ordinal)
+    public static readonly ImmutableDictionary<string, bool> LongFamilyIsUnsigned = new Dictionary<string, bool>(StringComparer.Ordinal)
     {
         ["long"] = false,
         ["long int"] = false,
@@ -30,10 +30,10 @@ internal static class PrimitiveSpellings
         ["ulong"] = true,
         ["unsigned long"] = true,
         ["unsigned long int"] = true,
-    }.ToFrozenDictionary(StringComparer.Ordinal);
+    }.ToImmutableDictionary(StringComparer.Ordinal);
 
     /// <summary>Spellings whose width is the layout's pointer width (<c>size_t</c> and friends), keyed to their signedness.</summary>
-    public static readonly FrozenDictionary<string, bool> PointerSizedIsUnsigned = new Dictionary<string, bool>(StringComparer.Ordinal)
+    public static readonly ImmutableDictionary<string, bool> PointerSizedIsUnsigned = new Dictionary<string, bool>(StringComparer.Ordinal)
     {
         ["size_t"] = true,
         ["uintptr_t"] = true,
@@ -47,13 +47,13 @@ internal static class PrimitiveSpellings
         ["SSIZE_T"] = false,
         ["LONG_PTR"] = false,
         ["INT_PTR"] = false,
-    }.ToFrozenDictionary(StringComparer.Ordinal);
+    }.ToImmutableDictionary(StringComparer.Ordinal);
 
     /// <summary>
     ///     Spellings that are a pointer of the layout's pointer width, keyed to what they point at: <c>void</c> for an
     ///     opaque address, or the character type of a Windows string pointer.
     /// </summary>
-    public static readonly FrozenDictionary<string, string> PointerSpellings = new Dictionary<string, string>(StringComparer.Ordinal)
+    public static readonly ImmutableDictionary<string, string> PointerSpellings = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["PVOID"] = "void",
         ["LPVOID"] = "void",
@@ -67,10 +67,10 @@ internal static class PrimitiveSpellings
         ["LPWSTR"] = "wchar",
         ["PCWSTR"] = "wchar",
         ["LPCWSTR"] = "wchar",
-    }.ToFrozenDictionary(StringComparer.Ordinal);
+    }.ToImmutableDictionary(StringComparer.Ordinal);
 
     /// <summary>Alias spelling to canonical registry key, excluding the <c>long</c> and pointer-sized families.</summary>
-    public static readonly FrozenDictionary<string, string> Aliases = BuildAliases().ToFrozenDictionary(StringComparer.Ordinal);
+    public static readonly ImmutableDictionary<string, string> Aliases = BuildAliases().ToImmutableDictionary(StringComparer.Ordinal);
 
     /// <summary>
     ///     Returns the canonical registry key for an alias, the <c>long</c> family member for the requested width, the

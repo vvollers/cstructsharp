@@ -1,4 +1,4 @@
-namespace CStructSharp.Reading;
+namespace CStructSharp.Compilation;
 
 using System;
 using System.Collections.Generic;
@@ -22,7 +22,10 @@ internal sealed class ConditionalFieldSelection
         this.evaluator = evaluator;
         this.domain = domain;
         this.selectedArms = new int[groupCount];
-        Array.Fill(this.selectedArms, int.MinValue);
+        for (int index = 0; index < this.selectedArms.Length; index++)
+        {
+            this.selectedArms[index] = int.MinValue;
+        }
     }
 
     internal bool IsActive(CompiledField field, IReadOnlyDictionary<string, Expr> variables)
@@ -33,7 +36,7 @@ internal sealed class ConditionalFieldSelection
             if (selected == int.MinValue)
             {
                 int value = this.evaluator.Evaluate(branch.Group.Selector, variables, "conditional selector", this.domain);
-                selected = branch.Group.CaseArms is { } cases ? cases.GetValueOrDefault(value, -1) : value != 0 ? 1 : 0;
+                selected = branch.Group.CaseArms is { } cases ? (cases.TryGetValue(value, out int arm) ? arm : -1) : value != 0 ? 1 : 0;
                 this.selectedArms[branch.Slot] = selected;
             }
 

@@ -8,7 +8,11 @@ internal static class LayoutSourceValidator
 {
     public static void ValidateLayoutSource(string layout, CStructCompilationOptions options)
     {
-        ArgumentNullException.ThrowIfNull(layout);
+        if (layout is null)
+        {
+            throw new ArgumentNullException(nameof(layout));
+        }
+
         if (string.IsNullOrWhiteSpace(layout))
         {
             throw new CStructLayoutException("Layout definition cannot be empty.");

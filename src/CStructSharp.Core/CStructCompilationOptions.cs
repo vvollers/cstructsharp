@@ -54,11 +54,13 @@ public sealed class CStructCompilationOptions
     /// </summary>
     public IReadOnlySet<string>? Defined { get; init; }
 
+#if !NETSTANDARD2_0
     /// <summary>
     ///     Gets the caller-supplied primitive types available to the layout by name. The list is compared by
     ///     reference for caching, so keep one instance per codec set. <see langword="null"/> means none.
     /// </summary>
     public IReadOnlyList<ICustomCodec>? Codecs { get; init; }
+#endif
 
     /// <summary>
     ///     Gets layout text compiled ahead of the layout itself - shared typedefs, defines, and declarations that

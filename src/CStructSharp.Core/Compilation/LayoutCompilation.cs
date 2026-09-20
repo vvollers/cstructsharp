@@ -285,7 +285,10 @@ internal sealed partial class LayoutCompilation
     /// <summary>Finds a named struct declaration in this compiled layout.</summary>
     internal Struct GetStruct(string name)
     {
-        ArgumentNullException.ThrowIfNull(name);
+        if (name is null)
+        {
+            throw new ArgumentNullException(nameof(name));
+        }
 
         // Look up the declaration first so callers get the same clear error for an unknown name or a non-struct name.
         if (!this.compiledModelQueries.TryGetCompiledDeclaration(name, out CStructElement? value))
@@ -748,7 +751,7 @@ internal sealed partial class LayoutCompilation
                 });
         }
 
-        return new Struct(strct.Name, [.. fields,], strct.IsUnion, strct.CompositeAlignmentOverrideExpression)
+        return new Struct(strct.Name, fields.ToImmutableList(), strct.IsUnion, strct.CompositeAlignmentOverrideExpression)
         {
             Condition = NormalizeCaseConstants(strct.Condition, caseConstants),
             BranchConditions = strct.BranchConditions.Count == 0 ? Array.Empty<ConditionalBranch>() : strct.BranchConditions.Select(item =>

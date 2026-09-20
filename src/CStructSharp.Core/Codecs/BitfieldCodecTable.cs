@@ -92,9 +92,9 @@ internal sealed class BitfieldCodecTable
                                       (value is decimal decimalValue &&
                                        decimalValue != decimal.Truncate(decimalValue)) ||
                                       (value is double doubleValue &&
-                                       (!double.IsFinite(doubleValue) || doubleValue != Math.Truncate(doubleValue))) ||
+                                       (double.IsNaN(doubleValue) || double.IsInfinity(doubleValue) || doubleValue != Math.Truncate(doubleValue))) ||
                                       (value is float floatValue &&
-                                       (!float.IsFinite(floatValue) || floatValue != MathF.Truncate(floatValue)));
+                                       (float.IsNaN(floatValue) || float.IsInfinity(floatValue) || floatValue != (float)Math.Truncate(floatValue)));
         if (isOutsideIntegerDomain)
         {
             throw new CStructWriteException(

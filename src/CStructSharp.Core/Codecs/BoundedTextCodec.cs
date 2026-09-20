@@ -8,7 +8,9 @@ internal static class BoundedTextCodec
 {
     // Unicode CP437 mapping: https://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/PC/CP437.TXT
     private const string Cp437High = "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ";
-    private static readonly Encoding Latin1 = Encoding.GetEncoding(28591, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+
+    /// <summary>ISO-8859-1 with exception fallbacks, shared by the parser (byte-string constants) and the bounded text codecs.</summary>
+    public static readonly Encoding Latin1 = Encoding.GetEncoding(28591, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
 
     /// <summary>Identifies byte-counted text primitive spellings.</summary>
     public static bool IsType(string type) => type is "utf8" or "latin1" or "cp437" or "utf16le" or "utf16be";

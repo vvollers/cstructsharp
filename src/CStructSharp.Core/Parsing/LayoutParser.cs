@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Text;
+using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Introspection;
 using CStructSharp.Syntax;
@@ -84,7 +85,11 @@ internal sealed class LayoutParser
     /// </summary>
     public static IReadOnlyList<CStructElement> ParseLayout(string source, IReadOnlySet<string>? definedNames, string? defaultEnumStorage, out bool usesQualifiedIdentifiers)
     {
-        ArgumentNullException.ThrowIfNull(source);
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
         var parser = new LayoutParser(source, definedNames, defaultEnumStorage);
         parser.SkipTrivia();
         var elements = new List<CStructElement>();
@@ -105,7 +110,11 @@ internal sealed class LayoutParser
     /// <summary>Parses exactly one top-level declaration (struct, union, typedef, enum, or define).</summary>
     public static CStructElement ParseElement(string source)
     {
-        ArgumentNullException.ThrowIfNull(source);
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
         var parser = new LayoutParser(source);
         parser.SkipTrivia();
         var elements = new List<CStructElement>(1);
@@ -121,7 +130,11 @@ internal sealed class LayoutParser
     /// <summary>Parses one complete expression; leading and trailing whitespace and comments are permitted.</summary>
     public static Expr ParseExpression(string source)
     {
-        ArgumentNullException.ThrowIfNull(source);
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
         var parser = new LayoutParser(source);
         parser.SkipTrivia();
         Expr expression = parser.ParseExpr();
@@ -136,7 +149,11 @@ internal sealed class LayoutParser
     /// </summary>
     public static Expr ParseLiteral(string source, int radix = 0)
     {
-        ArgumentNullException.ThrowIfNull(source);
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
         var parser = new LayoutParser(source);
         if (radix == 0)
         {
@@ -164,7 +181,11 @@ internal sealed class LayoutParser
     /// </summary>
     public static string ParseDigits(string source, int radix)
     {
-        ArgumentNullException.ThrowIfNull(source);
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
         var parser = new LayoutParser(source);
         int digitCount = parser.SkipDigitRun(radix);
         if (digitCount == 0)
@@ -184,14 +205,22 @@ internal sealed class LayoutParser
     /// <summary>Parses one enum member (<c>Name</c> or <c>Name = expression</c>) with optional surrounding whitespace.</summary>
     public static EnumValue ParseEnumValue(string source)
     {
-        ArgumentNullException.ThrowIfNull(source);
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
         return new LayoutParser(source).ParseEnumMember();
     }
 
     /// <summary>Parses a comma-separated enum member list without the surrounding braces.</summary>
     public static IReadOnlyList<EnumValue> ParseEnumValues(string source)
     {
-        ArgumentNullException.ThrowIfNull(source);
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
         var parser = new LayoutParser(source);
         List<EnumValue> values = parser.ParseEnumMembers();
         parser.ExpectEnd();
@@ -201,7 +230,11 @@ internal sealed class LayoutParser
     /// <summary>Parses a braced enum member list, e.g. <c>{ Red = 1, Green }</c>.</summary>
     public static IReadOnlyList<EnumValue> ParseEnumValuesInBrackets(string source)
     {
-        ArgumentNullException.ThrowIfNull(source);
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
         var parser = new LayoutParser(source);
         parser.ExpectToken('{');
         List<EnumValue> values = parser.ParseEnumMembers();
@@ -213,7 +246,11 @@ internal sealed class LayoutParser
     /// <summary>Parses one field declaration with one or more declarators, e.g. <c>uint8 *a, b[4];</c>.</summary>
     public static IReadOnlyList<Field> ParseFieldGroup(string source)
     {
-        ArgumentNullException.ThrowIfNull(source);
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
         var parser = new LayoutParser(source);
         List<Field> fields = parser.ParseFieldDeclaration();
         parser.ExpectEnd();
@@ -301,7 +338,7 @@ internal sealed class LayoutParser
             this.ExpectToken('}');
             Identifier name = this.ExpectIdentifier();
             this.ExpectToken(';');
-            destination.Add(new Struct(name, [.. fields,], isUnion, alignment ?? this.CurrentPack));
+            destination.Add(new Struct(name, fields.ToImmutableList(), isUnion, alignment ?? this.CurrentPack));
             return;
         }
 
@@ -327,7 +364,7 @@ internal sealed class LayoutParser
             this.TryToken(';');
         }
 
-        destination.Add(new Struct(tag, [.. members,], isUnion, alignment ?? this.CurrentPack));
+        destination.Add(new Struct(tag, members.ToImmutableList(), isUnion, alignment ?? this.CurrentPack));
     }
 
     private Expr? CurrentPack => this.packStack.Count == 0 ? null : this.packStack[^1];
@@ -355,7 +392,7 @@ internal sealed class LayoutParser
                 List<Field> fields = this.ParseCompositeMembers(isUnion);
                 this.ExpectToken('}');
                 Identifier alias = this.ExpectIdentifier();
-                var declared = new Struct(alias, [.. fields,], isUnion, alignment ?? this.CurrentPack);
+                var declared = new Struct(alias, fields.ToImmutableList(), isUnion, alignment ?? this.CurrentPack);
                 destination.Add(new Typedef(alias, declared));
                 this.ParseTypedefDeclaratorTail(alias, destination);
                 return;
@@ -372,7 +409,7 @@ internal sealed class LayoutParser
                 {
                     List<Field> fields = this.ParseCompositeMembers(isUnion);
                     this.ExpectToken('}');
-                    var declared = new Struct(tag, [.. fields,], isUnion, tagAlignment ?? this.CurrentPack);
+                    var declared = new Struct(tag, fields.ToImmutableList(), isUnion, tagAlignment ?? this.CurrentPack);
                     if (this.AtDeclarationKeyword() || (this.TryToken(';') && !this.AtBareIdentifierStatement()))
                     {
                         // `typedef struct NAME { ... };` - the tag is the only name (the semicolon is as optional
@@ -430,7 +467,7 @@ internal sealed class LayoutParser
             List<Expr?> dimensions = this.ParseArrayDimensions();
             if (stars > 0 || dimensions.Count > 0 || this.AtEnd || this.source[this.position] is ';' or ',')
             {
-                string joined = string.Join(' ', words.Select(item => item.Name));
+                string joined = string.Join(" ", words.Select(item => item.Name));
                 this.AddPlainTypedef(destination, joined, stars, word, dimensions);
                 while (this.TryToken(','))
                 {
@@ -477,7 +514,7 @@ internal sealed class LayoutParser
         Identifier type = ResolveEnumStorage(declaredType, values);
         if (tag is not null && (this.AtDeclarationKeyword() || (this.TryToken(';') && !this.AtBareIdentifierStatement())))
         {
-            destination.Add(CStructSharpEnum.CreateUnevaluated(tag, [.. values,], type, isFlag));
+            destination.Add(CStructSharpEnum.CreateUnevaluated(tag, values.ToImmutableArray(), type, isFlag));
             return;
         }
 
@@ -485,11 +522,11 @@ internal sealed class LayoutParser
         if (tag is null || tag.Name == alias.Name)
         {
             // An anonymous body is the alias's own enum; an alias equal to the tag never collides with itself.
-            destination.Add(CStructSharpEnum.CreateUnevaluated(alias, [.. values,], type, isFlag));
+            destination.Add(CStructSharpEnum.CreateUnevaluated(alias, values.ToImmutableArray(), type, isFlag));
         }
         else
         {
-            destination.Add(CStructSharpEnum.CreateUnevaluated(tag, [.. values,], type, isFlag));
+            destination.Add(CStructSharpEnum.CreateUnevaluated(tag, values.ToImmutableArray(), type, isFlag));
             destination.Add(new Typedef(alias, new Identifier(tag.Name)) { TypeKeywordHint = "enum", });
         }
 
@@ -566,7 +603,7 @@ internal sealed class LayoutParser
         this.ExpectToken(';');
         if (name is not null)
         {
-            destination.Add(CStructSharpEnum.CreateUnevaluated(name, [.. values,], ResolveEnumStorage(declaredType, values), isFlag));
+            destination.Add(CStructSharpEnum.CreateUnevaluated(name, values.ToImmutableArray(), ResolveEnumStorage(declaredType, values), isFlag));
             return;
         }
 
@@ -878,7 +915,7 @@ internal sealed class LayoutParser
             string text = this.ParseQuotedLiteral();
             destination.Add(
                 bytesPrefix
-                    ? new ConstantDefinition(name, LayoutConstantKind.Bytes, Encoding.Latin1.GetBytes(text))
+                    ? new ConstantDefinition(name, LayoutConstantKind.Bytes, BoundedTextCodec.Latin1.GetBytes(text))
                     : new ConstantDefinition(name, LayoutConstantKind.Text, text));
             this.SkipTrivia();
             return;
@@ -1289,11 +1326,11 @@ internal sealed class LayoutParser
         {
             Identifier name = this.TryParseIdentifier() ?? new Identifier(string.Empty);
             this.ExpectToken(';');
-            destination.Add(new Struct(name, [.. fields,], isUnion, alignment));
+            destination.Add(new Struct(name, fields.ToImmutableList(), isUnion, alignment));
             return;
         }
 
-        this.hoisted.Add(new Struct(tag, [.. fields,], isUnion, alignment ?? this.CurrentPack));
+        this.hoisted.Add(new Struct(tag, fields.ToImmutableList(), isUnion, alignment ?? this.CurrentPack));
         if (this.TryToken(';'))
         {
             int resume = this.position;
@@ -1304,7 +1341,7 @@ internal sealed class LayoutParser
 
             // The second pass hoists the body's own tags again; the first pass already declared them.
             this.hoisted.RemoveRange(hoistedCount, this.hoisted.Count - hoistedCount);
-            destination.Add(new Struct(new Identifier(string.Empty), [.. promoted,], isUnion, alignment));
+            destination.Add(new Struct(new Identifier(string.Empty), promoted.ToImmutableList(), isUnion, alignment));
             return;
         }
 
@@ -2144,17 +2181,17 @@ operand:
 
     private static string NormalizeDigits(ReadOnlySpan<char> run, int digitCount)
     {
-        return string.Create(digitCount, run.ToString(), static (destination, text) =>
+        var destination = new char[digitCount];
+        int index = 0;
+        foreach (char character in run)
         {
-            int index = 0;
-            foreach (char character in text)
+            if (character != '_')
             {
-                if (character != '_')
-                {
-                    destination[index++] = character;
-                }
+                destination[index++] = character;
             }
-        });
+        }
+
+        return new string(destination);
     }
 
     /// <summary>Accumulates the digit run; the common short case stays in a <see cref="ulong"/>.</summary>

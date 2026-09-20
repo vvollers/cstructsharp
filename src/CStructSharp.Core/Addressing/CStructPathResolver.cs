@@ -39,7 +39,7 @@ internal static class CStructPathResolver
             throw new CStructPathException("Path is empty.");
         }
 
-        ReadOnlySpan<char> normalized = path.AsSpan().Trim();
+        string normalized = path.Trim();
         int segmentCount = 1;
         foreach (char character in normalized)
         {
@@ -54,7 +54,7 @@ internal static class CStructPathResolver
         while (true)
         {
             int dot = normalized.IndexOf('.');
-            ReadOnlySpan<char> raw = dot < 0 ? normalized : normalized[..dot];
+            string raw = dot < 0 ? normalized : normalized.Substring(0, dot);
             if (raw.Length == 0)
             {
                 throw new CStructPathException("Path contains an empty segment: " + path);
@@ -65,11 +65,11 @@ internal static class CStructPathResolver
             if (bracketStart < 0)
             {
                 ValidateIdentifier(raw, path);
-                segments[segmentIndex++] = new PathSegment(raw.ToString(), Array.Empty<int>());
+                segments[segmentIndex++] = new PathSegment(raw, Array.Empty<int>());
             }
             else
             {
-                ReadOnlySpan<char> name = raw[..bracketStart];
+                string name = raw.Substring(0, bracketStart);
                 ValidateIdentifier(name, path);
 
                 // Repeated brackets - matrix[2][3] - mirror declaration syntax; each pair is its own dimension's index.
@@ -79,30 +79,30 @@ internal static class CStructPathResolver
                 {
                     if (raw[position] != '[')
                     {
-                        throw new CStructPathException("Invalid path segment: " + raw.ToString());
+                        throw new CStructPathException("Invalid path segment: " + raw);
                     }
 
-                    int bracketEnd = raw[(position + 1)..].IndexOf(']');
+                    int bracketEnd = raw.IndexOf(']', position + 1) - (position + 1);
                     if (bracketEnd < 0)
                     {
-                        throw new CStructPathException("Invalid path segment: " + raw.ToString());
+                        throw new CStructPathException("Invalid path segment: " + raw);
                     }
 
-                    ReadOnlySpan<char> indexText = raw.Slice(position + 1, bracketEnd);
+                    string indexText = raw.Substring(position + 1, bracketEnd);
 
                     // Only non-negative decimal indexes that fit Int32 are part of the public path grammar.
                     if (indexText.Length == 0 ||
                         !AllDecimalDigits(indexText) ||
                         !int.TryParse(indexText, NumberStyles.None, CultureInfo.InvariantCulture, out int index))
                     {
-                        throw new CStructPathException("Invalid array index: " + raw.ToString());
+                        throw new CStructPathException("Invalid array index: " + raw);
                     }
 
                     indexes.Add(index);
                     position += bracketEnd + 2;
                 }
 
-                segments[segmentIndex++] = new PathSegment(name.ToString(), indexes);
+                segments[segmentIndex++] = new PathSegment(name, indexes);
             }
 
             if (dot < 0)
@@ -110,13 +110,13 @@ internal static class CStructPathResolver
                 break;
             }
 
-            normalized = normalized[(dot + 1)..];
+            normalized = normalized.Substring(dot + 1);
         }
 
         return segments;
     }
 
-    private static bool AllDecimalDigits(ReadOnlySpan<char> text)
+    private static bool AllDecimalDigits(string text)
     {
         foreach (char character in text)
         {
@@ -129,7 +129,7 @@ internal static class CStructPathResolver
         return true;
     }
 
-    private static void ValidateIdentifier(ReadOnlySpan<char> name, string completePath)
+    private static void ValidateIdentifier(string name, string completePath)
     {
         bool valid = name.Length > 0 && (char.IsLetter(name[0]) || name[0] == '_');
         for (int index = 1; valid && index < name.Length; index++)
@@ -139,7 +139,7 @@ internal static class CStructPathResolver
 
         if (!valid)
         {
-            throw new CStructPathException($"Invalid path name '{name.ToString()}' in '{completePath}'.");
+            throw new CStructPathException($"Invalid path name '{name}' in '{completePath}'.");
         }
     }
 }

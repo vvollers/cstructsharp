@@ -2,10 +2,9 @@ namespace CStructSharp.Compilation;
 
 using System;
 using System.Collections.Generic;
-using CStructSharp.Values;
 
 /// <summary>
-///     The member layout shared by every <see cref="StructValue"/> produced for one compiled composite: names in
+///     The member layout shared by every <see cref="CStructSharp.Values.StructValue"/> produced for one compiled composite: names in
 ///     declaration order (with anonymous promoted members spliced in) and an ordinal index. Computed once per
 ///     composite, so a parsed struct only allocates its slot array.
 /// </summary>

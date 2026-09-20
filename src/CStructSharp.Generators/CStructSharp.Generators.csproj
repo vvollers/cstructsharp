@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsPackable>false</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RootNamespace>CStructSharp.Generators</RootNamespace>
+    <!-- The generator is loaded into the compiler, which resolves no NuGet dependencies for it: everything it uses
+         is either shipped by Roslyn (System.Collections.Immutable at Roslyn's version) or compiled in (the Core
+         sources and the PolySharp polyfills). -->
+    <!-- CS1574: the shared Core sources document runtime types (CStruct, StructValue) that this assembly does not contain. -->
+    <NoWarn>$(NoWarn);CS1591;CS1574;SA1600;SA1602;SA1611;SA1615;SA1618;SA1623;SA1642</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Microsoft.CodeAnalysis 4.8 is the floor: Visual Studio 17.8 and .NET SDK 8. Newer hosts load it too. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
+    <PackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The compile-time core: the same sources CStructSharp.dll compiles (see src/CStructSharp.Core/README.md). -->
+    <Compile Include="..\CStructSharp.Core\**\*.cs" LinkBase="Core" />
+  </ItemGroup>
+</Project>

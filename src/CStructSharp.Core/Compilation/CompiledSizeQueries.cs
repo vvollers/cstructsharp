@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
-using CStructSharp.Reading;
 using CStructSharp.Syntax;
 
 /// <summary>

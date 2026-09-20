@@ -28,18 +28,24 @@ internal sealed class DebugPath(DebugPath? parent, string name)
     /// <summary>Formats the path once with one string allocation and no recursive traversal.</summary>
     public override string ToString()
     {
-        return this.formatted ??= string.Create(this.length, this, static (characters, path) =>
+        if (this.formatted is not null)
         {
-            int position = characters.Length;
-            for (DebugPath? current = path; current is not null; current = current.Parent)
+            return this.formatted;
+        }
+
+        // Fill from the end so the walk up the parent chain needs no reversal.
+        var characters = new char[this.length];
+        int position = characters.Length;
+        for (DebugPath? current = this; current is not null; current = current.Parent)
+        {
+            position -= current.name.Length;
+            current.name.CopyTo(0, characters, position, current.name.Length);
+            if (current.Parent is not null)
             {
-                position -= current.name.Length;
-                current.name.AsSpan().CopyTo(characters[position..]);
-                if (current.Parent is not null)
-                {
-                    characters[--position] = '.';
-                }
+                characters[--position] = '.';
             }
-        });
+        }
+
+        return this.formatted = new string(characters);
     }
 }

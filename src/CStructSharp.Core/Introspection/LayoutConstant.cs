@@ -52,7 +52,7 @@ public sealed class LayoutConstant
         return this.Kind switch
         {
             LayoutConstantKind.Text => $"#define {this.Name} \"{Escape((string)this.value!)}\"",
-            LayoutConstantKind.Bytes => $"#define {this.Name} b\"{Escape(System.Text.Encoding.Latin1.GetString((byte[])this.value!))}\"",
+            LayoutConstantKind.Bytes => $"#define {this.Name} b\"{Escape(CStructSharp.Codecs.BoundedTextCodec.Latin1.GetString((byte[])this.value!))}\"",
             LayoutConstantKind.Empty => $"#define {this.Name}",
             LayoutConstantKind.Macro => $"#define {this.Name}{this.Value}",
             LayoutConstantKind.Expression => $"#define {this.Name} (expression)",

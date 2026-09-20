@@ -202,7 +202,11 @@ internal sealed class ExpressionEvaluator
     /// <summary>Gets or creates the postfix program for an immutable expression node.</summary>
     private CompiledExpression GetProgram(Expr expression)
     {
-        ArgumentNullException.ThrowIfNull(expression);
+        if (expression is null)
+        {
+            throw new ArgumentNullException(nameof(expression));
+        }
+
         return this.programs.GetValue(expression, value => CompileExpression(value, this.limits));
     }
 
