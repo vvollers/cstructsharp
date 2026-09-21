@@ -4,6 +4,13 @@ Notable changes to CStructSharp, newest first. Release versions and dates were r
 Git history preserved before the repository history reset. Entries focus on features, fixes, and migration steps.
 Related changes are consolidated; routine formatting and benchmark bookkeeping are omitted.
 
+## Unreleased
+
+### Fixed
+
+- Correct the landing-page JavaScript starter and verify its exact success and error paths against the built npm
+  package, including the assembled website before publication.
+
 ## 0.8.0 — 2026-09-21
 
 ### Breaking changes

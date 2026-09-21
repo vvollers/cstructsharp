@@ -62,6 +62,11 @@ jobs:
       - name: Assemble complete website
         run: node tools/packaging/assemble-site.mjs
 
+      - name: Verify final landing example against the built package
+        run: |
+          npm run pack:npm
+          node tools/packaging/test-npm-package.mjs --node-only --landing artifacts/pages/index.html
+
       - name: Upload website
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

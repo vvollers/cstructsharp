@@ -251,6 +251,9 @@ jobs:
       - name: Assemble GitHub Pages site
         run: node tools/packaging/assemble-site.mjs
 
+      - name: Verify final landing example against the release package
+        run: node tools/packaging/test-npm-package.mjs --node-only --landing artifacts/pages/index.html
+
       - name: Record release artifact hashes and source identity
         run: node tools/release/release-artifacts.mjs create
 

@@ -1,3 +1,4 @@
+/** Verify an installed npm tarball and its consumers. Usage: node tools/packaging/test-npm-package.mjs [--node-only] [--landing path]. */
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -5,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { root, npmArtifacts, npm, run } from "./npm-package-utils.mjs";
 import { validateWasmPublication } from "./wasm-publication.mjs";
+import { validateLandingExample } from "../lib/landing-example.mjs";
 
 const info = JSON.parse(fs.readFileSync(path.join(npmArtifacts, "package-info.json"), "utf8"));
 const tarball = path.join(npmArtifacts, info.filename);
@@ -28,6 +30,12 @@ npm(
   { cwd: consumer },
 );
 const installed = path.join(consumer, "node_modules", "cstructsharp");
+const landingIndex = process.argv.indexOf("--landing");
+assert.ok(landingIndex < 0 || process.argv[landingIndex + 1], "--landing requires an HTML path");
+await validateLandingExample(
+  landingIndex < 0 ? path.join(root, "docs/landing/index.html") : path.resolve(process.argv[landingIndex + 1]),
+  installed,
+);
 const pkg = JSON.parse(fs.readFileSync(path.join(installed, "package.json"), "utf8"));
 assert.equal(pkg.name, "cstructsharp");
 assert.equal(pkg.private, undefined);
