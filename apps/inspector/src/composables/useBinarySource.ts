@@ -14,6 +14,10 @@ const HISTORY_LIMIT = 100;
  * Gives the hex editor a small window into a potentially large file.
  * A Blob cannot be changed in place, so each edit produces a new Blob. Keeping the previous
  * Blobs lets us undo and redo edits without loading the entire file into a byte array.
+ * The caller owns the current Blob; this composable owns the displayed window and bounded history.
+ * @param source Supplies the latest immutable file snapshot.
+ * @param onEdit Publishes a replacement Blob; it never writes the original file on disk.
+ * @returns Window state and actions whose pending work is invalidated when the scope is disposed.
  */
 export function useBinarySource(source: () => Blob | null, onEdit: (value: Blob) => void) {
   const windowBytes = shallowRef(new Uint8Array());
@@ -25,6 +29,7 @@ export function useBinarySource(source: () => Blob | null, onEdit: (value: Blob)
   let editedSource: Blob | null = null;
   let windowVersion = 0;
 
+  /** Reads a file-relative byte window; stale completions are ignored and read errors become windowError. */
   async function loadWindow({ offset, length }: VueHexWindowRequest): Promise<void> {
     const current = source();
     const version = ++windowVersion;
@@ -50,12 +55,14 @@ export function useBinarySource(source: () => Blob | null, onEdit: (value: Blob)
     }
   }
 
+  /** Releases undo/redo snapshots and the identity used to recognize our own replacement Blob. */
   function clearHistory(): void {
     undo.length = 0;
     redo.length = 0;
     editedSource = null;
   }
 
+  // A replacement file invalidates pending window reads; our own edits retain their undo/redo chain.
   watch(
     source,
     (current) => {
@@ -75,6 +82,7 @@ export function useBinarySource(source: () => Blob | null, onEdit: (value: Blob)
     { immediate: true, flush: "sync" },
   );
 
+  /** Applies an edit or history step to the current snapshot and publishes a new Blob without mutating it. */
   function handleEdit(intent: VueHexEditIntent): void {
     const current = source();
     if (!current) return;
@@ -102,6 +110,7 @@ export function useBinarySource(source: () => Blob | null, onEdit: (value: Blob)
     }
   }
 
+  /** Searches the current snapshot using file-relative byte offsets and the caller's cancellation signal. */
   function searchSource(request: VueHexSearchRequest) {
     const current = source();
     return current
@@ -109,6 +118,7 @@ export function useBinarySource(source: () => Blob | null, onEdit: (value: Blob)
       : Promise.resolve({ total: 0, hit: null, activeOrdinal: 0 });
   }
 
+  // Disposal prevents a late read from repopulating state and releases retained Blob versions.
   onScopeDispose(() => {
     // Make any unfinished window read obsolete and release references to old file versions.
     windowVersion++;
@@ -124,6 +134,8 @@ export function useBinarySource(source: () => Blob | null, onEdit: (value: Blob)
 /**
  * Build an edited file from three pieces: the unchanged prefix, the replacement bytes,
  * and the unchanged suffix. Blob slices let us do this without reading the whole file into memory.
+ * Offsets are bytes from the file start; VueHex's inclusive end is converted to Blob's exclusive end.
+ * The source is immutable. Undo/redo intents are handled by the composable and return it unchanged here.
  */
 export function editBlob(source: Blob, intent: VueHexEditIntent): Blob {
   if (intent.kind === "undo" || intent.kind === "redo") return source;
@@ -153,6 +165,8 @@ export function editBlob(source: Blob, intent: VueHexEditIntent): Blob {
 /**
  * Search the whole file one 64 KiB chunk at a time. Remember a partial match between chunks,
  * so a byte sequence that starts at the end of one chunk can finish at the start of the next.
+ * Returns non-overlapping matches with file-relative byte offsets and an inclusive hit end.
+ * Cancellation is checked between chunks and before returning; it rejects with the signal's reason.
  */
 export async function searchBlob(
   source: Blob,

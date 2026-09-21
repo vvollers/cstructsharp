@@ -59,6 +59,23 @@ When extending the app, put document transitions in `useInspector`, parser/selec
 This organization follows Vue's guidance on [composables](https://vuejs.org/guide/reusability/composables.html)
 and [shallow reactivity for large immutable structures](https://vuejs.org/guide/best-practices/performance.html#reduce-reactivity-overhead-for-large-immutable-structures).
 
+### Follow one temporary byte edit
+
+1. `BinaryPanel` sends an edit intent with file-relative byte offsets to `useBinarySource.handleEdit`.
+   `editBlob` builds a replacement Blob from unchanged slices and replacement bytes; it does not overwrite the
+   disk file. The edit's inclusive end is converted to the exclusive end expected by `Blob.slice`.
+2. The composable records the Blob snapshots for undo/redo, then publishes the replacement through `onEdit`.
+   `useInspector` owns the current document and invalidates the previous parse and selection.
+3. A window load has its own request identity. A late load cannot replace the window belonging to a newer source.
+   A file replacement clears history; editing the current file keeps its history. Disposing the scope invalidates
+   pending work too.
+4. A new parse owns an `AbortController`. `useParseSession` accepts its result only if that controller still belongs
+   to the current attempt. Cancellation requests alone are not enough: this identity check rejects late results.
+   The UI updates from the accepted result snapshot, not from a stale promise.
+
+To trace failures, start with the composable unit tests and `tests/e2e/product-scope.spec.ts`. Edits remain
+inspection-only: replacing or closing the session discards them, and there is no binary export operation.
+
 ### Adding or changing a format
 
 Edit the format's entry in `src/schema-catalog.ts`. Its `extensions` select the detection layout;

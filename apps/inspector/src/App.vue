@@ -69,7 +69,7 @@ function onDockviewReady({ api }: DockviewReadyEvent): void {
       params: {
         panel: id,
         inspector,
-        // Open the ordinary file chooser; loading and cancellation belong to the shared session.
+        /** Opens the file chooser; loading and cancellation belong to the shared session. */
         onLoadFile: () => openFileDialog(),
       } satisfies InspectorPanelParams,
     });

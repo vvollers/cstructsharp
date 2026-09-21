@@ -17,6 +17,11 @@ public struct CompositeCursor
     private BitfieldPlacement bitfields;
     private long current;
 
+    /// <summary>Creates placement state without owning or reading any binary storage.</summary>
+    /// <param name="start">The composite's byte offset in the containing read/write cursor's coordinate system.</param>
+    /// <param name="aligned">Whether member placement applies alignment padding.</param>
+    /// <param name="packing">The bitfield storage-sharing rule.</param>
+    /// <param name="highBitFirst">Whether the first bitfield occupies the high end of its storage unit.</param>
     private CompositeCursor(long start, bool aligned, BitfieldPacking packing, bool highBitFirst)
     {
         this.current = start;

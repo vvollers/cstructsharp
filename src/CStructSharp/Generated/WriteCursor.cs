@@ -15,6 +15,10 @@ using CStructSharp.Writing;
 /// </summary>
 /// <remarks>
 ///     This is an advanced surface, public so the code the <c>[CStructLayout]</c> generator emits can use it.
+///     A caller-supplied destination is borrowed; a growable destination is pooled and owned by this cursor.
+///     Consume each reserved span before another reservation can grow the buffer, and before disposal. Do not
+///     copy an owning cursor and dispose both copies. Positions are byte offsets from this destination's start;
+///     a failed write can leave earlier bytes changed, so this cursor is not a transaction.
 /// </remarks>
 public ref struct WriteCursor
 {
@@ -485,6 +489,9 @@ public ref struct WriteCursor
         }
     }
 
+    /// <summary>Replaces an owned buffer with a larger rental, preserving written bytes and clearing its unused tail.</summary>
+    /// <param name="required">The minimum destination capacity in bytes.</param>
+    /// <remarks>The old rental is returned immediately; previously borrowed spans must no longer be used.</remarks>
     private void Grow(int required)
     {
         int capacity = Math.Max(required, Math.Min(int.MaxValue / 2, this.destination.Length) * 2);
@@ -629,6 +636,9 @@ public ref struct WriteCursor
         return failure;
     }
 
+    /// <summary>Selects the shared encoding that rejects unrepresentable text rather than replacing characters.</summary>
+    /// <param name="encoding">The supported terminated-text encoding.</param>
+    /// <returns>The shared immutable encoding instance; callers do not change its fallbacks.</returns>
     private static System.Text.Encoding StrictEncoding(TerminatedTextEncoding encoding)
     {
         return encoding switch
@@ -640,6 +650,10 @@ public ref struct WriteCursor
         };
     }
 
+    /// <summary>Attaches field and path context without fixing the final operation-relative byte offset yet.</summary>
+    /// <param name="exception">The failure to enrich.</param>
+    /// <param name="member">The innermost field name, when known.</param>
+    /// <param name="memberType">The field's layout type spelling.</param>
     private readonly void Attach(CStructException exception, string? member, string? memberType)
     {
         if (member is not null)

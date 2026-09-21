@@ -173,6 +173,19 @@ just to improve a score. The
 
 ## Documentation ownership and update triggers
 
+Check comments on changed named declarations against your branch's base commit:
+
+```sh
+node tools/quality/changed-documentation.mjs --base origin/main --language csharp
+node tools/quality/changed-documentation.mjs --base origin/main --language script
+```
+
+The C# check needs the SDK in `global.json`; the script check needs `npm ci` in `apps/explorer`.
+Both use syntax trees, inspect changed declaration bodies as well as signatures, and leave unchanged neighbors
+alone. Deleted comments are checked too. Generated `.g.cs` files and build artifacts are excluded: document their
+generator instead. The check establishes comment presence, not correctness. Review ownership, units, failures,
+side effects, and anonymous callback purpose comments manually. Do not add empty or misleading comments to pass.
+
 Run the full documentation check whenever you change files in `docs/`:
 
 ```sh

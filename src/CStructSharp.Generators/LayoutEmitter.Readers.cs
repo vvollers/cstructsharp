@@ -39,6 +39,8 @@ internal sealed partial class LayoutEmitter
         writer.Close();
     }
 
+    /// <summary>Emits reader entry points and per-composite readers using the compiled layout and fixed parser settings.</summary>
+    /// <param name="writer">The generated source destination; emitted cursors own operation state, not caller input.</param>
     private void EmitReaders(SourceWriter writer)
     {
         writer.Line();

@@ -20,6 +20,7 @@ public class ComparatorBenchmarks
     private FixtureCase nested = null!;
     private FixtureCase arrayU32Be = null!;
 
+    /// <summary>Loads fixture bytes and compiles their layouts outside the timed benchmark operations.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -30,6 +31,9 @@ public class ComparatorBenchmarks
     }
 
     // ---- S-PRIM single record -------------------------------------------------------------------------------------------
+
+    /// <summary>Reads one packed 28-byte fixture directly, without schema lookup or validation.</summary>
+    /// <returns>The decoded typed value.</returns>
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("PrimRecord")]
     public PrimRecordStruct HandWritten_PrimRecord_Typed()
@@ -37,6 +41,8 @@ public class ComparatorBenchmarks
         return ReadPrimRecord(this.primRecord.Bytes);
     }
 
+    /// <summary>Reads one fixed record and allocates a dynamic object to expose the cost of result construction.</summary>
+    /// <returns>A new dynamic object containing the seven decoded fields.</returns>
     [Benchmark]
     [BenchmarkCategory("PrimRecord")]
     public ExpandoObject HandWritten_PrimRecord_Expando()
@@ -53,6 +59,8 @@ public class ComparatorBenchmarks
         return expando;
     }
 
+    /// <summary>Parses the same single-record fixture with its retained CStruct layout.</summary>
+    /// <returns>The library's structured result.</returns>
     [Benchmark]
     [BenchmarkCategory("PrimRecord")]
     public object Library_PrimRecord_ParseSpan()
@@ -61,6 +69,9 @@ public class ComparatorBenchmarks
     }
 
     // ---- S-PRIM × 1k -----------------------------------------------------------------------------------------------------
+
+    /// <summary>Reads 1,024 packed records directly and includes the typed result array allocation in the measurement.</summary>
+    /// <returns>The independently decoded records.</returns>
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("PrimX1K")]
     public PrimRecordStruct[] HandWritten_PrimX1K_Typed()
@@ -75,6 +86,8 @@ public class ComparatorBenchmarks
         return records;
     }
 
+    /// <summary>Parses the 1,024-record fixture through its retained CStruct layout.</summary>
+    /// <returns>The library's structured result.</returns>
     [Benchmark]
     [BenchmarkCategory("PrimX1K")]
     public object Library_PrimX1K_ParseSpan()
@@ -83,6 +96,9 @@ public class ComparatorBenchmarks
     }
 
     // ---- S-NESTED × 256 --------------------------------------------------------------------------------------------------
+
+    /// <summary>Reads 256 nested records with a single fixture-relative byte cursor and no schema validation.</summary>
+    /// <returns>The typed top-level records.</returns>
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("Nested256")]
     public NestedTopStruct[] HandWritten_Nested256_Typed()
@@ -98,6 +114,8 @@ public class ComparatorBenchmarks
         return items;
     }
 
+    /// <summary>Parses the nested-record fixture through its retained CStruct layout.</summary>
+    /// <returns>The library's structured result.</returns>
     [Benchmark]
     [BenchmarkCategory("Nested256")]
     public object Library_Nested256_ParseSpan()
@@ -106,6 +124,9 @@ public class ComparatorBenchmarks
     }
 
     // ---- S-ARRAY-U32 big-endian × 262144 ---------------------------------------------------------------------------------
+
+    /// <summary>Copies the big-endian uint32 array into host-order values using bulk byte-order reversal when needed.</summary>
+    /// <returns>A newly allocated typed array; the fixture bytes are unchanged.</returns>
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("ArrayU32Be")]
     public uint[] HandWritten_ArrayU32Be_ReverseEndianness()
@@ -124,6 +145,8 @@ public class ComparatorBenchmarks
         return values;
     }
 
+    /// <summary>Decodes each four-byte big-endian value separately, including the result array allocation.</summary>
+    /// <returns>The decoded values in fixture order.</returns>
     [Benchmark]
     [BenchmarkCategory("ArrayU32Be")]
     public uint[] HandWritten_ArrayU32Be_ScalarLoop()
@@ -138,6 +161,8 @@ public class ComparatorBenchmarks
         return values;
     }
 
+    /// <summary>Parses the same big-endian numeric array through its retained CStruct layout.</summary>
+    /// <returns>The library's structured result.</returns>
     [Benchmark]
     [BenchmarkCategory("ArrayU32Be")]
     public object Library_ArrayU32Be_ParseSpan()
@@ -145,6 +170,9 @@ public class ComparatorBenchmarks
         return this.arrayU32Be.ParseSpan();
     }
 
+    /// <summary>Decodes the known packed primitive fixture without applying native C# struct layout rules.</summary>
+    /// <param name="bytes">At least 28 bytes starting at this record's first byte.</param>
+    /// <returns>A value whose fields contain the decoded numbers; it does not alias the source.</returns>
     private static PrimRecordStruct ReadPrimRecord(ReadOnlySpan<byte> bytes)
     {
         return new PrimRecordStruct
@@ -159,6 +187,10 @@ public class ComparatorBenchmarks
         };
     }
 
+    /// <summary>Reads a packed five-byte leaf and advances the shared byte cursor.</summary>
+    /// <param name="bytes">The entire borrowed fixture span.</param>
+    /// <param name="offset">Byte offset from the fixture start; advanced by five on success.</param>
+    /// <returns>The decoded leaf, with no reference to the source.</returns>
     private static NestedLeafStruct ReadLeaf(ReadOnlySpan<byte> bytes, ref int offset)
     {
         var leaf = new NestedLeafStruct
@@ -170,6 +202,10 @@ public class ComparatorBenchmarks
         return leaf;
     }
 
+    /// <summary>Reads two leaves and a uint16 tail, advancing the shared cursor by 12 bytes.</summary>
+    /// <param name="bytes">The entire borrowed fixture span.</param>
+    /// <param name="offset">Byte offset from the fixture start, updated as each child is read.</param>
+    /// <returns>The decoded intermediate record.</returns>
     private static NestedMidStruct ReadMid(ReadOnlySpan<byte> bytes, ref int offset)
     {
         NestedLeafStruct first = ReadLeaf(bytes, ref offset);
@@ -179,6 +215,10 @@ public class ComparatorBenchmarks
         return new NestedMidStruct { First = first, Second = second, Tail = tail };
     }
 
+    /// <summary>Reads two intermediate records and a marker, advancing the shared cursor by 25 bytes.</summary>
+    /// <param name="bytes">The entire borrowed fixture span.</param>
+    /// <param name="offset">Byte offset from the fixture start, updated as each child is read.</param>
+    /// <returns>The decoded top-level record.</returns>
     private static NestedTopStruct ReadTop(ReadOnlySpan<byte> bytes, ref int offset)
     {
         NestedMidStruct left = ReadMid(bytes, ref offset);
@@ -187,6 +227,7 @@ public class ComparatorBenchmarks
         return new NestedTopStruct { Left = left, Right = right, Mark = mark };
     }
 
+    /// <summary>Typed comparator result; its CLR memory layout is not the packed wire layout.</summary>
     public struct PrimRecordStruct
     {
         public byte A;
@@ -198,12 +239,14 @@ public class ComparatorBenchmarks
         public bool G;
     }
 
+    /// <summary>Typed leaf result, containing a decoded kind and value rather than borrowed wire bytes.</summary>
     public struct NestedLeafStruct
     {
         public byte Kind;
         public uint Value;
     }
 
+    /// <summary>Typed intermediate result with two leaves and a decoded tail.</summary>
     public struct NestedMidStruct
     {
         public NestedLeafStruct First;
@@ -211,6 +254,7 @@ public class ComparatorBenchmarks
         public ushort Tail;
     }
 
+    /// <summary>Typed top-level result with two intermediate records and a marker.</summary>
     public struct NestedTopStruct
     {
         public NestedMidStruct Left;

@@ -9,6 +9,7 @@ using global::CStructSharp;
 using global::CStructSharp.Diagnostics;
 using global::CStructSharp.Values;
 
+/// <summary>Runs the named executable documentation scenarios and reports failures to the documentation gate.</summary>
 internal static partial class Program
 {
     private static readonly (string Name, Action Run)[] Scenarios =

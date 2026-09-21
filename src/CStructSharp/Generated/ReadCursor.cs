@@ -16,6 +16,9 @@ using CStructSharp.Reading;
 /// </summary>
 /// <remarks>
 ///     This is an advanced surface, public so the code the <c>[CStructLayout]</c> generator emits can use it.
+///     The cursor borrows its source span; it neither owns nor mutates those bytes. Position and diagnostics use
+///     the span's byte-zero origin. Stream adapters translate that origin at the operation boundary. Byte-budget
+///     accounting is separate from position, so revisiting pointer targets still charges the bytes read.
 /// </remarks>
 public ref struct ReadCursor
 {
@@ -910,6 +913,10 @@ public ref struct ReadCursor
         exception.AttachContext(this.path, this.position);
     }
 
+    /// <summary>Attaches field and path context while leaving the final offset for the operation boundary.</summary>
+    /// <param name="exception">The failure to enrich without replacing its original cause.</param>
+    /// <param name="member">The innermost field name, when known.</param>
+    /// <param name="memberType">The field's layout type spelling.</param>
     private readonly void Attach(CStructException exception, string? member, string? memberType)
     {
         if (member is not null)
@@ -921,6 +928,11 @@ public ref struct ReadCursor
         exception.AttachContext(this.path, null);
     }
 
+    /// <summary>Moves to the source end and creates the short-read failure a complete attempted read would produce.</summary>
+    /// <param name="count">The requested byte count, not an element count.</param>
+    /// <param name="member">The field being read.</param>
+    /// <param name="memberType">The field's layout type spelling.</param>
+    /// <returns>The contextual failure; the caller throws it.</returns>
     private CStructReadException ShortRead(int count, string member, string? memberType)
     {
         int available = this.Remaining;
@@ -928,6 +940,11 @@ public ref struct ReadCursor
         return this.Fail(ReadFailures.ShortRead(count, available), member, memberType);
     }
 
+    /// <summary>Charges positive bytes to the operation budget without changing position or charging a rejected read.</summary>
+    /// <param name="count">Bytes consumed by this read, including repeated reads of previously visited addresses.</param>
+    /// <param name="member">The field being read.</param>
+    /// <param name="memberType">The field's layout type spelling.</param>
+    /// <exception cref="CStructReadLimitException">The read would exceed the total-byte budget.</exception>
     private void Charge(int count, string member, string? memberType)
     {
         if (count <= 0)

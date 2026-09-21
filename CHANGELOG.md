@@ -26,6 +26,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   retained diagnostics and measured execution times; preserve all reviewed files and score gates.
 - Correct learning-path and dependency guidance, current inspector/JavaScript references, and benchmark fixture
   claims. Derive volatile fixture and executable-scenario counts from their owning definitions.
+- Explain cursor ownership, generated reads and inspector invalidation at the relevant source boundaries, and
+  check documentation on changed named declarations without requiring unrelated legacy rewrites.
 
 ## 0.8.0 — 2026-09-21
 

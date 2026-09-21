@@ -63,6 +63,10 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             });
     }
 
+    /// <summary>Recognizes a layout by its .cstruct suffix or explicit AdditionalFiles metadata without reading its bytes.</summary>
+    /// <param name="file">The compiler-owned additional file.</param>
+    /// <param name="options">Per-file build metadata visible to the generator.</param>
+    /// <returns>Whether this file participates in layout generation.</returns>
     private static bool IsLayoutFile(AdditionalText file, Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptionsProvider options)
     {
         if (file.Path.EndsWith(".cstruct", StringComparison.OrdinalIgnoreCase))
@@ -119,6 +123,12 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         return null;
     }
 
+    /// <summary>Snapshots one attributed class's configuration and source locations for incremental generation.</summary>
+    /// <param name="context">The compiler's matched attribute, declaration and semantic symbol.</param>
+    /// <param name="cancellation">Cancels syntax retrieval when the compiler abandons this generation pass.</param>
+    /// <returns>An immutable request, or null when the target is not a class declaration.</returns>
+    /// <remarks>No binary input is read and no layout is compiled here. Equality of the snapshot lets Roslyn reuse unchanged work.</remarks>
+    /// <exception cref="OperationCanceledException">The compiler cancels syntax retrieval.</exception>
     private static LayoutRequest? CreateRequest(GeneratorAttributeSyntaxContext context, CancellationToken cancellation)
     {
         if (context.TargetSymbol is not INamedTypeSymbol symbol || context.TargetNode is not ClassDeclarationSyntax declaration)
@@ -170,12 +180,14 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                 cLongWidth = named.Value.Value is int width ? width : 0;
                 break;
             case "Defined":
+                // Copy symbol names out of compiler-owned attribute metadata into the request's own array.
                 defined = named.Value.Values.Select(value => value.Value as string ?? string.Empty).ToArray();
                 break;
             case "DefaultEnumStorage":
                 defaultEnumStorage = named.Value.Value as string;
                 break;
             case "Codecs":
+                // Preserve custom codec declarations in their registered order for the immutable request.
                 codecs = named.Value.Values.Select(value => value.Value as string ?? string.Empty).ToArray();
                 break;
             case "KeepNames":

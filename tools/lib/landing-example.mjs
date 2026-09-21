@@ -24,7 +24,10 @@ export async function validateLandingExample(htmlPath, installedPackage) {
   const execute = new AsyncFunction("parse", "console", source.replace(importLine, ""));
   const lines = [];
   // Capture the example's visible output, not a separately maintained approximation of the example.
-  await execute(parse, { log: (line) => lines.push(String(line)) });
+  await execute(parse, {
+    /** Captures one visible output line for comparison with the documented values. */
+    log: (line) => lines.push(String(line)),
+  });
   assert.deepEqual(lines, ["kind = 2", "length = 6"]);
 
   let expectedMessage;

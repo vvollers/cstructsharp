@@ -47,6 +47,24 @@ Writes mirror this with `Writing` in place of `Reading`, and updates stage their
 the stream through `Streams/AsyncStreamBuffer` and runs step 2 over the buffer; a record sequence
 (`Generated/RecordSequence`) runs step 2 once per record from the end of the previous one.
 
+## Follow a generated read
+
+1. `CStructLayoutGenerator` recognizes the attributed partial type and captures its layout text and options.
+   `CStructSharp.Core` supplies the same parser and compiled model used by the runtime; no input bytes are read
+   while generating source.
+2. `LayoutEmitter.Readers` emits the entry points and per-composite reader methods. Start with `EmitReaders`,
+   then follow `EmitParseOverloads` and `EmitCompositeReader`. The generated source is output, not an editing target.
+3. A generated `Parse` call constructs a `Generated/ReadCursor` over borrowed bytes. Its position is relative to
+   that input, while origin information supplies diagnostic offsets. Nested `CompositeCursor` values track placement;
+   they do not own another copy of the input.
+4. Stream entry points rent temporary storage through `AsyncStreamBuffer`. Acquisition and decoding share the
+   failure-restoration scope; the buffer is returned even if decoding throws. A usable seekable stream returns to
+   its starting position on failure. If restoration also throws, the original failure wins.
+
+For a behavioral comparison, start with `tests/CStructSharp.Generated.Parity/StreamFailureTests.cs` and the
+generated parity layouts. `ReadCursor` borrows bytes; a growing `WriteCursor` can own rented storage and must be
+disposed. A reserved writable span must not outlive a growth operation or cursor disposal.
+
 ## Rules that keep the map honest
 
 - A file's namespace is its folder. Moving a file means changing its namespace and the `using` directives of the
