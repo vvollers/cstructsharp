@@ -162,7 +162,8 @@ The normal CI checks these minimums:
 
 - 78% line coverage;
 - 80% branch coverage;
-- no files classified as critical or high coverage risk; and
+- no runtime files classified as critical or high coverage risk (exact compile-time metadata declarations require
+  the separate source-hash and generator-test qualification described in the testing guide); and
 - a 75% mutation score for the reviewed mutation-testing scope.
 
 These numbers are a backstop, not the goal of a test. A useful test should explain behavior and fail for a clear

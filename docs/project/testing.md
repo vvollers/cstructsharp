@@ -94,14 +94,39 @@ make the comparison pass.
 ## Coverage and mutation testing
 
 *Coverage* records which lines and branches the tests execute. CI requires at least 78% aggregate line coverage and
-80% aggregate branch coverage. It also rejects any critical or high-risk file that remains below its file-level
-gate.
+80% aggregate branch coverage. It also rejects every critical or high-risk runtime file. A critical file has
+less than 60% line coverage, or less than 50% branch coverage when it has at least ten branches. A high-risk
+file has less than 75% line coverage, or less than 65% branch coverage with at least ten branches.
+
+Collect the same whole-library measurement used by CI after building `CStructSharp.NonWeb.sln` in Release:
+
+```sh
+node tools/quality/collect-library-coverage.mjs
+node tools/quality/coverage-risk.mjs --coverage-path artifacts/test-results/library-coverage/coverage.cobertura.xml --collection-manifest artifacts/test-results/library-coverage/collection.json --population-policy contracts/quality/coverage-population.json --output-directory artifacts/test-results/library-risk --minimum-line-percent 78 --minimum-branch-percent 80 --maximum-high-risk-files 0 --maximum-critical-risk-files 0
+```
+
+The collector runs the core, compiled-parity and generator-consumer suites on .NET 10. Coverlet merges its
+JSON measurements sequentially before producing one Cobertura report, so distinct branch outcomes keep their
+identity. The measured assembly is `CStructSharp`, including its shared compiler sources; this is not a coverage
+claim for the separate generator assembly. Missing suite reports or failed tests stop collection. CI retains the
+intermediate reports, TRX results, collection hashes and final risk report.
+
+Three generator attributes are configuration declarations, not runtime algorithms. Roslyn reads their arguments
+without executing their constructors or property accessors. `contracts/quality/coverage-population.json` lists
+these exact files, reviewed source hashes (with LF line endings), reasons and required generator tests. Changed sources or missing test
+evidence fail qualification. Review any new executable behavior before updating a hash; move runtime behavior
+into the runtime population. Do not expand this list to hide ordinary uncovered code.
+
+Qualified declarations remain in aggregate totals and retain their actual measured hits and risk bands in the
+report. Only the runtime critical/high file counts exclude them. Passing generator tests is compile-time evidence,
+not invented runtime coverage. README coverage badges use the merged measurement; their test count remains the
+core suite once on .NET 10.
 
 *Mutation testing* makes small changes to production code, such as reversing a condition, and checks whether tests
 fail. A surviving mutation can reveal an assertion gap even when line coverage is high. The permanent score floor is
 75%.
 
-`coverage-risk.mjs` combines coverage reports with the criticality policy.
+`coverage-risk.mjs` applies the population and risk policy to the collector's merged report.
 `mutation-report.mjs` checks the permanent-scope Stryker report. The exact pinned mutation command is in
 the repository root `MUTATION_TESTING.md`.
 

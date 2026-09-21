@@ -5,11 +5,13 @@
  *
  *   node tools/quality/coverage-risk.mjs --coverage-path <coverage.cobertura.xml> --output-directory <dir>
  *     [--minimum-line-percent N] [--minimum-branch-percent N] [--maximum-critical-risk-files N] [--maximum-high-risk-files N]
+ *     [--population-policy contracts/quality/coverage-population.json --collection-manifest <collection.json>]
  */
 import fs from "node:fs";
 import path from "node:path";
 import { assertCondition, main, parseArguments, repositoryRoot, runCommand } from "../lib/tooling.mjs";
 import { childrenNamed, findAll, parseXml } from "../lib/xml.mjs";
+import { qualifyCompileTimeDeclarations } from "../lib/coverage-population.mjs";
 
 const options = parseArguments(
   process.argv.slice(2),
@@ -20,13 +22,17 @@ const options = parseArguments(
     "minimum-branch-percent": "number",
     "maximum-critical-risk-files": "number",
     "maximum-high-risk-files": "number",
+    "population-policy": "string",
+    "collection-manifest": "string",
   },
   { defaults: { "minimum-line-percent": 0, "minimum-branch-percent": 0, "maximum-critical-risk-files": 2147483647, "maximum-high-risk-files": 2147483647 } },
 );
 assertCondition(options["coverage-path"] && options["output-directory"], "Options --coverage-path and --output-directory are required.");
 
+/** Rounds published ratios without changing the underlying line or branch counts. */
 const round6 = (value) => Math.round(value * 1e6) / 1e6;
 
+// Read one merged measurement, classify its population, write evidence, then enforce the requested limits.
 await main(() => {
   const coveragePath = path.resolve(options["coverage-path"]);
   fs.mkdirSync(options["output-directory"], { recursive: true });
@@ -63,6 +69,12 @@ await main(() => {
     }
   }
 
+  assertCondition(fileLines.size > 0, "The coverage report contains no measured files.");
+  const qualifications = options["population-policy"]
+    ? qualifyCompileTimeDeclarations(repositoryRoot, path.resolve(options["population-policy"]),
+      options["collection-manifest"] && path.resolve(options["collection-manifest"]), coveragePath, [...fileLines.keys()])
+    : new Map();
+  // Preserve raw coverage for every file, including the explicitly qualified metadata declarations.
   const fileReports = [...fileLines].map(([file, lines]) => {
     const values = [...lines.values()];
     const linesValid = values.length;
@@ -80,6 +92,8 @@ await main(() => {
       : "low";
     return {
       file,
+      coverageRole: qualifications.has(file) ? "compile-time-declaration" : "runtime",
+      compileTimeEvidence: qualifications.get(file) ?? null,
       riskBand,
       riskScore: uncoveredLines + 2 * uncoveredBranches,
       linesCovered,
@@ -109,8 +123,9 @@ await main(() => {
     branchesCovered: totalBranchesCovered,
     branchesValid: totalBranchesValid,
     branchRate: totalBranchesValid === 0 ? 1 : round6(totalBranchesCovered / totalBranchesValid),
-    criticalRiskFiles: fileReports.filter((report) => report.riskBand === "critical").length,
-    highRiskFiles: fileReports.filter((report) => report.riskBand === "high").length,
+    criticalRiskFiles: fileReports.filter((report) => report.coverageRole === "runtime" && report.riskBand === "critical").length,
+    highRiskFiles: fileReports.filter((report) => report.coverageRole === "runtime" && report.riskBand === "high").length,
+    compileTimeDeclarationFiles: qualifications.size,
   };
   const report = {
     schemaVersion: 1,
@@ -118,7 +133,7 @@ await main(() => {
     revision,
     worktreeDirty: dirty,
     source: path.basename(coveragePath),
-    riskFormula: "uncoveredLines + (2 * uncoveredBranches); bands are informational and are not CI gates",
+    riskFormula: "uncoveredLines + (2 * uncoveredBranches); runtime critical/high counts enforce the requested limits; qualified compile-time declarations retain their measured rates",
     summary,
     files: fileReports,
   };
@@ -126,7 +141,11 @@ await main(() => {
   const csvPath = path.join(outputDirectory, "coverage-risk.csv");
   fs.writeFileSync(jsonPath, `${JSON.stringify(report, null, 2)}\n`);
   const columns = Object.keys(fileReports[0] ?? { file: "" });
-  const csvValue = (value) => (typeof value === "string" ? `"${value.replaceAll('"', '""')}"` : String(value));
+  /** Quotes text and structured qualification evidence without losing embedded commas or quotes. */
+  const csvValue = (value) => {
+    const scalar = value !== null && typeof value === "object" ? JSON.stringify(value) : value;
+    return typeof scalar === "string" ? `"${scalar.replaceAll('"', '""')}"` : String(scalar);
+  };
   fs.writeFileSync(csvPath, [columns.map(csvValue).join(","), ...fileReports.map((row) => columns.map((column) => csvValue(row[column])).join(","))].join("\n") + "\n");
 
   console.log(`Coverage risk report written to ${jsonPath}`);

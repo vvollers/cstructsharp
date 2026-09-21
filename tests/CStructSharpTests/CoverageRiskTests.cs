@@ -165,6 +165,7 @@ public class CoverageRiskTests
         Assert.AreEqual("read", new CStructReadException("read").Message);
         Assert.AreSame(cause, new CStructReadException("read", cause).InnerException);
         Assert.AreEqual("limit", new CStructReadLimitException("limit").Message);
+        Assert.AreEqual(CStructErrorCode.ReadLimitExceeded, new CStructReadLimitException().Code);
         Assert.AreSame(cause, new CStructReadLimitException("limit", cause).InnerException);
         Assert.IsNotNull(new CStructWriteException().Message);
         Assert.AreEqual("write", new CStructWriteException("write").Message);
@@ -175,6 +176,7 @@ public class CoverageRiskTests
         Assert.AreEqual(CStructErrorCode.ReadLimitExceeded, new CStructReadLimitException("limit").Code);
         Assert.AreEqual(CStructErrorCode.WriteFailed, new CStructWriteException("write").Code);
         Assert.AreEqual(CStructErrorCode.WriteLimitExceeded, new CStructWriteLimitException("limit").Code);
+        Assert.AreEqual(CStructErrorCode.WriteLimitExceeded, new CStructWriteLimitException().Code);
         Assert.AreSame(cause, new CStructWriteLimitException("limit", cause).InnerException);
     }
 }

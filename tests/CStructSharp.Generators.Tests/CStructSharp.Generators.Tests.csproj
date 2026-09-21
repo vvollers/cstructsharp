@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageReference Include="MSTest" Version="4.4.1" />
+    <PackageReference Include="coverlet.msbuild" Version="10.0.1" PrivateAssets="all" />
     <!-- The same Roslyn the generator is built against, so the driver exercises the API surface consumers load. -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
   </ItemGroup>

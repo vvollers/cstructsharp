@@ -20,6 +20,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   all other compiler warnings remain errors.
 - Include generator-only and shared build/toolchain changes in pull-request performance reporting while keeping
   timing comparisons advisory.
+- Enforce whole-library coverage using merged runtime, generated-parity and generator-consumer evidence, with
+  explicit compile-time metadata qualification and regression tests for array, lookup and write-failure contracts.
 
 ## 0.8.0 — 2026-09-21
 

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "compileTimeDeclarations": [
+    {
+      "source": "src/CStructSharp/CStructLayoutAttribute.cs",
+      "sha256": "ffb9782dd08b1047fba4f41aca1b9a2b6217e31bf20a284200ff8111243d4532",
+      "requiredTests": ["EachOption_HasASnapshot_AndTakesEffect"],
+      "reason": "Generator configuration metadata: constructors only store arguments and properties only hold settings. Roslyn reads the declaration without executing these accessors."
+    },
+    {
+      "source": "src/CStructSharp/CStructMappedAttribute.cs",
+      "sha256": "73ab7ae4556fc40741a4af3cb09cec8d0d3f86e3baa8c7a333bd42c0222abe15",
+      "requiredTests": ["MappedClasses_ReadAndWriteThroughTheRuntime", "Diagnostics_CoverPartialConstructorMemberTypesAndMissingMembers"],
+      "reason": "Mapping metadata consumed by Roslyn; the empty constructor and auto-property contain no mapping algorithm. Generator tests compile and execute the resulting mappings."
+    },
+    {
+      "source": "src/CStructSharp/CStructMemberAttribute.cs",
+      "sha256": "094fab061102973595f05bc7e9ff84ca85bd2d1da654d81708dca775fa73f6ec",
+      "requiredTests": ["MappedClasses_ReadAndWriteThroughTheRuntime"],
+      "reason": "Member-name metadata consumed by Roslyn; the constructor only stores the name. Generator tests verify renamed members when reading and writing."
+    }
+  ]
+}

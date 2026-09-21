@@ -5,7 +5,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
+using CStructSharp.Reading;
 using CStructSharp.Values;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -13,7 +15,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 [TestClass]
 public class PrimitiveArrayTests
 {
-    /// <summary>Every fixed-width numeric element type parses to its typed array with the same boxed element types as before, in both byte orders.</summary>
+    /// <summary>Fixed and data-sized numeric arrays preserve typed values across both byte orders and fragmented block reads.</summary>
+    /// <param name="type">The layout primitive spelling.</param>
+    /// <param name="elementType">The CLR element type required by the primitive's value contract.</param>
     [TestMethod]
     [DataRow("uint8", typeof(byte))]
     [DataRow("int8", typeof(sbyte))]
@@ -41,6 +45,14 @@ public class PrimitiveArrayTests
             var list = (IList<object?>)values;
             Assert.AreEqual(70_003, list.Count);
             Assert.AreEqual(elementType, list[0]!.GetType());
+            Assert.AreEqual(elementType, PrimitiveArrayReader.GetElementType(PrimitiveCodec.Resolve(type + suffix, true)));
+
+            // A data-sized array cannot use the fixed-layout span plan. Fragmented reads also force pooled blocks.
+            var dynamicLayout = new CStruct($"struct root {{ {type}{suffix} values[COUNT]; }};");
+            using var fragmented = new ChunkedMemoryStream(bytes, 997, false);
+            IDictionary<string, object?> streamed = dynamicLayout.Parse(fragmented, "root", new Dictionary<string, int> { ["COUNT"] = 70_003 });
+            CollectionAssert.AreEqual(list.ToArray(), ((IList<object?>)streamed["values"]!).ToArray(), "fragmented " + type + suffix);
+            Assert.AreEqual(70_003L * PrimitiveCodec.Resolve(type + suffix, true).Size, fragmented.Position);
 
             // The per-element path (debug parse) is the reference for every value.
             (dynamic reference, IReadOnlyList<DebugData> _) = layout.ParseWithDebug(new MemoryStream(bytes, writable: false), "root");

@@ -72,8 +72,9 @@ await main(() => {
 
 Source: [CI run](${options["run-url"]}).
 
-Coverage measures only the CStructSharp managed library on .NET 10. Test counts include
-parameterized cases from that framework once; they exclude the Vue and browser test suites.
+Coverage measures only the CStructSharp managed library on .NET 10, merged across the core,
+compiled parity and generator-consumer suites. Test counts include the core suite's
+parameterized cases from that framework once; they exclude generator, parity, Vue and browser test cases.
 The website deployment refreshes these statistics from a successful main-branch CI run.
 Full TRX and Cobertura reports are available in that run's test-results artifact.
 `,

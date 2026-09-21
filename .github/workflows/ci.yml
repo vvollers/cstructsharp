@@ -67,24 +67,20 @@ jobs:
           --logger trx
           --results-directory ./artifacts/test-results
 
-      - name: Test .NET 10 with library coverage
-        run: >-
-          dotnet test ./tests/CStructSharpTests/CStructSharpTests.csproj
-          -c Release -f net10.0 --no-build
-          --logger trx --collect:"XPlat Code Coverage"
-          --results-directory ./artifacts/test-results/net10
-          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Include="[CStructSharp]*"
+      - name: Test .NET 10 suites and enforce whole-library coverage
+        run: |
+          node tools/quality/collect-library-coverage.mjs
+          node tools/quality/coverage-risk.mjs --coverage-path artifacts/test-results/library-coverage/coverage.cobertura.xml --collection-manifest artifacts/test-results/library-coverage/collection.json --population-policy contracts/quality/coverage-population.json --output-directory artifacts/test-results/library-risk --minimum-line-percent 78 --minimum-branch-percent 80 --maximum-high-risk-files 0 --maximum-critical-risk-files 0
 
-      - name: Test the source generator and generated parity
+      - name: Check generated fixtures and .NET 8 parity
         run: |
           node tools/quality/generate-parity-layouts.mjs --check
-          dotnet test ./tests/CStructSharp.Generators.Tests/CStructSharp.Generators.Tests.csproj -c Release --no-build --logger trx --results-directory ./artifacts/test-results/generator
-          dotnet test ./tests/CStructSharp.Generated.Parity/CStructSharp.Generated.Parity.csproj -c Release --no-build --logger trx --results-directory ./artifacts/test-results/parity
+          dotnet test ./tests/CStructSharp.Generated.Parity/CStructSharp.Generated.Parity.csproj -c Release -f net8.0 --no-build --logger trx --results-directory ./artifacts/test-results/parity
 
       - name: Generate README quality badges
         run: >-
           node tools/quality/readme-badges.mjs
-          --results-directory artifacts/test-results/net10
+          --results-directory artifacts/test-results/library-coverage/badge-input
           --output-directory artifacts/readme-badges
           --run-url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
@@ -130,6 +126,8 @@ jobs:
           path: |
             artifacts/test-results/**/*.trx
             artifacts/test-results/**/coverage.cobertura.xml
+            artifacts/test-results/library-coverage/**
+            artifacts/test-results/library-risk/**
           if-no-files-found: warn
 
   # Windows and macOS run the managed suite only (no coverage, packaging, or AOT); the Linux job above stays the
