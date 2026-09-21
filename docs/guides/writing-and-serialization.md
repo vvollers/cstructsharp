@@ -93,6 +93,13 @@ The stream remains open and belongs to the caller. Direct stream writing is not 
 physical write failure can leave earlier bytes written. To change an existing field while keeping surrounding bytes
 in place, use [Update existing data](updating-existing-data.md) instead.
 
+`WriteAsync` is the awaitable form for a file opened for asynchronous I/O or a network stream: the value is
+serialized first - every validation the synchronous writer performs happens before a byte is sent, so a rejected
+value writes nothing - and the bytes go out in one `WriteAsync`. Its `cancellationToken` parameter is linked with
+`WriteOptions.CancellationToken`.
+
+[!code-csharp[Write asynchronously](../examples/Program.cs#api-guide-write-async)]
+
 ## Verify output
 
 For a new format integration:

@@ -9,7 +9,8 @@ using CStructSharp.Values;
 /// <summary>
 ///     The awaitable stream forms against the synchronous stream form: <c>ParseAsync</c> over a memory stream that
 ///     exposes its buffer (read in place, completes synchronously), one that hides it (a pooled copy), and a file
-///     opened for asynchronous I/O, for the record and the nested fixture.
+///     opened for asynchronous I/O, for the record and the nested fixture; <c>WriteAsync</c> and <c>UpdateAsync</c>
+///     against their stream forms for the record.
 /// </summary>
 [BenchmarkCategory("Async")]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
@@ -23,6 +24,9 @@ public class AsyncBenchmarks
     private MemoryStream nestedHidden = null!;
     private FileStream primRecordFile = null!;
     private string filePath = null!;
+    private StructValue primRecordValue = null!;
+    private MemoryStream writeTarget = null!;
+    private MemoryStream updateTarget = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -36,6 +40,9 @@ public class AsyncBenchmarks
         this.filePath = Path.Combine(Path.GetTempPath(), $"cstructsharp-bench-{Guid.NewGuid():N}.bin");
         File.WriteAllBytes(this.filePath, this.primRecord.Bytes);
         this.primRecordFile = new FileStream(this.filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+        this.primRecordValue = this.primRecord.Layout.Parse(this.primRecord.Bytes.AsSpan(), "root");
+        this.writeTarget = new MemoryStream(new byte[this.primRecord.Bytes.Length]);
+        this.updateTarget = new MemoryStream((byte[])this.primRecord.Bytes.Clone());
     }
 
     [GlobalCleanup]
@@ -76,6 +83,38 @@ public class AsyncBenchmarks
     {
         this.primRecordFile.Position = 0;
         return this.primRecord.Layout.ParseAsync(this.primRecordFile, "root");
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("PrimRecordWrite")]
+    public void Runtime_PrimRecord_WriteStream()
+    {
+        this.writeTarget.Position = 0;
+        this.primRecord.Layout.Write(this.writeTarget, "root", this.primRecordValue);
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("PrimRecordWrite")]
+    public ValueTask Runtime_PrimRecord_WriteAsync()
+    {
+        this.writeTarget.Position = 0;
+        return this.primRecord.Layout.WriteAsync(this.writeTarget, "root", this.primRecordValue);
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("PrimRecordUpdate")]
+    public void Runtime_PrimRecord_UpdateStream()
+    {
+        this.updateTarget.Position = 0;
+        this.primRecord.Layout.Update(this.updateTarget, "root.c", 7u);
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("PrimRecordUpdate")]
+    public ValueTask Runtime_PrimRecord_UpdateAsync()
+    {
+        this.updateTarget.Position = 0;
+        return this.primRecord.Layout.UpdateAsync(this.updateTarget, "root.c", 7u);
     }
 
     // ---- nested-x256: 6,400 bytes --------------------------------------------------------------------------------------

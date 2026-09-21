@@ -70,10 +70,23 @@ transactional. A disk, network, or custom stream may accept part of the final co
 the accepted prefix may remain changed. If the destination needs storage-level atomicity, use a transactional storage
 system or write a complete replacement elsewhere and swap it through a mechanism provided by that system.
 
+## Update asynchronously
+
+`UpdateAsync` is the awaitable form. It needs a stream that can seek: the region from the current position is read
+into a buffer, the update runs over that buffer with the same validation as `Update`, and only the runs of bytes
+that changed are written back at their positions - a one-field update is one small write - before the position
+returns to the origin. A rejected replacement writes nothing. As in the span form, a stored absolute pointer
+address counts from the region's origin.
+
+[!code-csharp[Update asynchronously](../examples/Program.cs#api-guide-update-async)]
+
 ## Paths, strings, unions, and pointers
 
-An indexed path such as `root.items[2]` updates one array element with the element's codec. A terminated string can
-be replaced only within its existing storage plan; the update does not shift later fields to make room.
+An indexed path such as `root.items[2]` updates one array element with the element's codec. A terminated string (or
+an array ended by an all-zero element) can be replaced only by a value of the same encoded length: the update does
+not shift later fields to make room, and a replacement that would move them is rejected before anything is written -
+`Update changes the extent of a terminated value and would move the fields that follow ...`. Serialize a new buffer
+when the length changes.
 
 A path selecting one union member changes only that member's byte range. Replacing a whole union clears its storage
 before writing the selected member by default, preventing bytes from an older larger member from surviving.

@@ -153,7 +153,10 @@ A seekable stream ends just after the value on success and back at its origin on
 seek is consumed up to `MaxTotalBytesRead` plus one byte, whatever the value needed. `TryReadValueAsync<T>` returns a
 `ReadAttempt<T>` - `Succeeded`, `Value`, `Failure` - because an `out` parameter cannot cross an `await`. The
 `cancellationToken` parameter ends the wait for bytes and the decode at its next boundary; it is linked with
-`ReadOptions.CancellationToken` when both are given.
+`ReadOptions.CancellationToken` when both are given. One difference from the synchronous stream form: the buffered
+region starts at the stream's current position, so a stored absolute pointer address counts from that origin (as it
+does for a span or memory input), not from the stream's first byte - read a stream whose addresses are absolute
+positions from position 0, or use the synchronous form.
 
 ## Verify and troubleshoot
 

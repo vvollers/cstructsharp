@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 36,
+  "baselineRevision": 37,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.7.0",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 987,
-    "normalizedSha256": "FD94EFC91917DF1BDC3968CF1BED1C10B902B31C832A8F823B2BB659FD38A8DB"
+    "lines": 989,
+    "normalizedSha256": "C024211FCB9642CA7AE821EE72BAC42EA17490D1E4669DE6A8D80FE1BDE61DAD"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "D7E693434687A45ACE64FDEF1D1AAFE7C0C150C313F55C687CC368B9D3E1ABA7",
+      "normalizedSha256": "511BDD4650E3E7A54CE733CC4E32E7F0505C2FB5B31495AE315507BC36E9FB73",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "20EAB0DB4083A30A8A36EEEDE4C414F2FA9C9355F053E16401248733702893E7",
+      "normalizedSha256": "77A55106A143EADB5C1310652CDBAB0BC62D23F2F0AB46B0C05F5411D92F5C5D",
       "aotCompatible": true
     }
   ],
@@ -357,6 +357,15 @@
       "combinedSha256": "AA5106BAC83DA856575FCA3D2A67AF22840D784F47E2994D1B7EF18E2FA14EBD",
       "rationale": "Convenience plan 3.1: awaitable reads - ParseAsync, ParseWithDebugAsync, ReadValueAsync, ReadValueAsync<T>, ReadValueWithDebugAsync, TryReadValueAsync<T> (returning the new Values.ReadAttempt<T>), ResolveAddressAsync, GetArrayLengthAsync - each buffering the stream with ReadAsync (a MemoryStream that exposes its buffer is read in place) and running the synchronous span reader; ValueTask results, ConfigureAwait(false), a CancellationToken parameter linked with the options' token.",
       "releaseImpact": "Additive: new methods and one new record struct; the synchronous forms are unchanged."
+    },
+    {
+      "revision": 37,
+      "kind": "additive",
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "8D2300E2BEDC1B887D3B01B492506F35743F01D8FBF9732338EA200D9DB63621",
+      "rationale": "Convenience plan 3.2: WriteAsync (serialize first, one WriteAsync, nothing written on a validation failure) and UpdateAsync (a seekable stream's region read into a buffer, the in-place update over it, only the changed byte runs written back, the position restored), each with a CancellationToken linked with the options' token.",
+      "releaseImpact": "Additive: two methods; the synchronous forms are unchanged. The fix to terminated-value updates (a replacement of another encoded length is now rejected) changes behaviour only where bytes were silently corrupted before."
     }
   ]
 }

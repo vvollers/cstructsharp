@@ -16,7 +16,7 @@ public class AsyncReadTests
     private const string Layout = "struct item { uint16 id; uint8 flags; }; struct root { uint8 count; item items[count]; cstring name; uint16 *link; };";
     private const int Origin = 2;
     private const int ValueLength = 18;
-    private static readonly byte[] Bytes = [0xAA, 0xBB, 2, 0x34, 0x12, 1, 0x78, 0x56, 2, (byte)'o', (byte)'k', 0, 14, 0, 0, 0, 0, 0, 0, 0, 0xEE, 0xFF, 0xCC,];
+    private static readonly byte[] Bytes = [0xAA, 0xBB, 2, 0x34, 0x12, 1, 0x78, 0x56, 2, (byte)'o', (byte)'k', 0, 18, 0, 0, 0, 0, 0, 0, 0, 0xEE, 0xFF, 0xCC,];
 
     /// <summary>Every awaitable read agrees with its synchronous stream form on every stream kind, and leaves a seekable stream just after the value (or at the origin for address and length queries).</summary>
     [TestMethod]
@@ -33,7 +33,13 @@ public class AsyncReadTests
                 StructValue actual = await layout.ParseAsync(async, "root");
                 Assert.AreEqual(expected.Get<string>("name"), actual.Get<string>("name"), kind);
                 Assert.AreEqual(expected.Get<ushort>("items[1].id"), actual.Get<ushort>("items[1].id"), kind);
-                Assert.AreEqual(expected.Get<ushort>("link.value"), actual.Get<ushort>("link.value"), kind);
+
+                // A stored absolute address counts from the buffered region's start (the origin), as in the memory
+                // forms; the synchronous stream form counts from the stream's byte 0. Here that is the difference
+                // between 0xFFEE (origin + 18) and the two zero bytes at stream offset 18.
+                Assert.AreEqual((ushort)0xFFEE, actual.Get<ushort>("link.value"), kind);
+                Assert.AreEqual(layout.Parse(Bytes.AsSpan(Origin), "root").Get<ushort>("link.value"), actual.Get<ushort>("link.value"), kind);
+                Assert.AreEqual((ushort)0, expected.Get<ushort>("link.value"), kind);
                 if (async.CanSeek)
                 {
                     Assert.AreEqual(sync.Position, async.Position, kind);

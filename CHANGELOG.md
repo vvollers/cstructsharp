@@ -17,7 +17,13 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   addresses, and failure offsets are stream coordinates for a seekable stream, which ends just after the value on
   success and at its origin on any failure (address and length queries always end at the origin); a non-seekable
   stream is accepted and consumed up to the budget. A `MemoryStream` that exposes its buffer is read in place and
-  the `ValueTask` completes synchronously.
+  the `ValueTask` completes synchronously. The buffered region starts at the origin, so a stored absolute pointer
+  address counts from the origin, as in the span and memory forms (the synchronous stream form counts from byte 0).
+- Awaitable writes: `WriteAsync` serializes the value first (a validation failure writes nothing) and writes the
+  bytes with one `WriteAsync`; `UpdateAsync` reads the region from the current position of a seekable stream, runs
+  the in-place update over it, and writes back only the byte runs that changed, leaving the position at the origin
+  (a stream that cannot seek is rejected with the reason). Both take a `CancellationToken` linked with the options'
+  token.
 - `ReadCursor.BufferStreamAsync`, the awaitable form of the buffering every stream form that runs the span reader
   uses (a seekable stream up to its remaining length, any stream up to `MaxTotalBytesRead`, plus one byte so a
   value larger than the budget reports the budget failure rather than a short read); the generated `Parse(Stream)`
@@ -35,6 +41,15 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   `OperationCanceledException` - never a `CStructException`, never `false` from `TryReadValue<T>` (which restores the
   stream position and rethrows). An update stages before it commits, so a cancelled update leaves the destination
   unchanged. Generated readers and writers observe the same token through `ReadCursor`/`WriteCursor`.
+
+### Fixed
+
+- An in-place update of a terminated value (`cstring` and the other terminated strings, an array ended by an all-zero
+  element) with a replacement of another encoded length wrote it over the fields that follow. The update now
+  captures the layout before and after the staged write, as it already did for conditional roots, and rejects a
+  replacement that moves a later field: `Update changes the extent of a terminated value and would move the fields
+  that follow; the replacement must have the same encoded length, or serialize a new buffer instead.` The
+  destination keeps its bytes.
 
 ### Behaviour
 

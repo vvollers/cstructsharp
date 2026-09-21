@@ -91,6 +91,25 @@ public class ManualLanguageFixtureTests
         }
     }
 
+    /// <summary>Every valid feature example serializes to the same bytes through <c>WriteAsync</c> as through <c>Write(Stream)</c>.</summary>
+    [TestMethod]
+    public async Task ValidFixtures_WriteTheSameAsynchronously()
+    {
+        foreach (FeaturePair pair in Fixtures.Value.FeaturePairs)
+        {
+            ValidFixture fixture = pair.Valid;
+            var cstruct = new CStruct(fixture.Definition, (byte)fixture.PointerSize, fixture.Aligned, fixture.LittleEndian, CreateCompilationOptions(fixture.Compilation));
+            byte[] bytes = Convert.FromHexString(fixture.Bytes);
+            object parsed = cstruct.ReadValue(bytes, fixture.Root, fixture.Variables, new ReadOptions { DereferencePointers = false, })!;
+            using var sync = new MemoryStream();
+            cstruct.Write(sync, fixture.Root, parsed, fixture.Variables);
+            using var async = new MemoryStream();
+            await cstruct.WriteAsync(async, fixture.Root, parsed, fixture.Variables);
+            CollectionAssert.AreEqual(sync.ToArray(), async.ToArray(), pair.Id);
+            Assert.AreEqual(sync.Position, async.Position, pair.Id);
+        }
+    }
+
     /// <summary>
     ///     Each valid feature example has a paired invalid form or bounded-read failure.
     /// </summary>

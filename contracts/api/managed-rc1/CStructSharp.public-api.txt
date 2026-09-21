@@ -83,10 +83,12 @@ namespace CStructSharp
         public System.Threading.Tasks.ValueTask<CStructSharp.Values.ReadAttempt<T>> TryReadValueAsync<T>(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public void Update(System.IO.Stream stream, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.UpdateOptions? options = null) { }
         public void Update(System.Span<byte> data, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.UpdateOptions? options = null) { }
+        public System.Threading.Tasks.ValueTask UpdateAsync(System.IO.Stream stream, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.UpdateOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public CStructSharp.CStruct WithAlignment(bool aligned) { }
         public CStructSharp.CStruct WithEndianness(bool isLittleEndian) { }
         public CStructSharp.CStruct WithPointerSize(byte pointerSize) { }
         public void Write(System.IO.Stream stream, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.WriteOptions? options = null) { }
+        public System.Threading.Tasks.ValueTask WriteAsync(System.IO.Stream stream, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.WriteOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static void ClearCompiledCache() { }
         public static CStructSharp.CStruct GetOrCompile(string layout, byte pointerSize = 8, bool aligned = false, bool isLittleEndian = true, CStructSharp.CStructCompilationOptions? compilationOptions = null) { }
     }

@@ -20,6 +20,9 @@ using CStructSharp.Values;
 ///     was buffered, whatever the outcome. A <see cref="MemoryStream"/> that exposes its buffer is read in place
 ///     with no copy and the returned task is already complete. The token given here is linked with
 ///     <see cref="ReadOptions.CancellationToken"/>; it gates the I/O and the boundaries the synchronous reader checks.
+///     Because the buffered region starts at the origin, a stored absolute pointer address counts from the origin -
+///     as in the span and memory forms - where the synchronous stream form counts from the stream's first byte; a
+///     stream whose addresses are absolute stream positions is read from position 0 or through the synchronous form.
 /// </summary>
 public sealed partial class CStruct
 {

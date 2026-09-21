@@ -21,6 +21,8 @@ internal static partial class Program
         ("options-with", OptionsWith),
         ("cancellation", Cancellation),
         ("parse-async", () => ParseAsyncExample().GetAwaiter().GetResult()),
+        ("write-async", () => WriteAsyncExample().GetAwaiter().GetResult()),
+        ("update-async", () => UpdateAsyncExample().GetAwaiter().GetResult()),
         ("inspect-ranges", InspectRanges),
         ("follow-pointer", FollowPointer),
         ("preserve-union", PreserveUnion),
@@ -225,6 +227,41 @@ internal static partial class Program
         {
             File.Delete(path);
         }
+    }
+    #endregion
+
+    #region api-guide-write-async
+    private static async Task WriteAsyncExample()
+    {
+        var layout = new CStruct("struct header { uint16 kind; uint32 length; };");
+        var value = new Dictionary<string, object?> { ["kind"] = (ushort)2, ["length"] = 6u, };
+        using var stream = new MemoryStream();
+
+        // Validation happens before the write: a rejected value leaves the stream empty.
+        await layout.WriteAsync(stream, "header", value);
+        SequenceEqual([0x02, 0x00, 0x06, 0x00, 0x00, 0x00], stream.ToArray());
+        try
+        {
+            await layout.WriteAsync(stream, "header", new Dictionary<string, object?> { ["kind"] = 70000, ["length"] = 6u, });
+            True(false, "70000 does not fit uint16");
+        }
+        catch (CStructWriteException)
+        {
+            Equal(6L, stream.Length);
+        }
+    }
+    #endregion
+
+    #region api-guide-update-async
+    private static async Task UpdateAsyncExample()
+    {
+        var layout = new CStruct("struct header { uint16 kind; uint32 length; };");
+        using var stream = new MemoryStream([0x02, 0x00, 0x06, 0x00, 0x00, 0x00]);
+
+        // Only the two bytes of 'kind' are written back; the position returns to the origin.
+        await layout.UpdateAsync(stream, "header.kind", (ushort)3);
+        SequenceEqual([0x03, 0x00, 0x06, 0x00, 0x00, 0x00], stream.ToArray());
+        Equal(0L, stream.Position);
     }
     #endregion
 
