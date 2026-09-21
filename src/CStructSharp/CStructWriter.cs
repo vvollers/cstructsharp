@@ -1234,6 +1234,7 @@ public partial class CStruct
         {
             Dictionary<string, Expr>? layoutVariables = null;
             (string Path, long Start, long End)[]? originalLayout = null;
+            bool variableExtentTarget = false;
             if (this.HasConditionalLayout(rootName))
             {
                 layoutVariables = new Dictionary<string, Expr>(effectiveVariables);
@@ -1277,6 +1278,16 @@ public partial class CStruct
                 CompiledField writableCompiledField = target.WritableCompiledField ??
                                                       throw new CStructPathException(
                                                           "The selected path has no compiled writable field target.");
+                if (originalLayout is null && (writableCompiledField.Codec.IsTerminatedText || writableCompiledField.HasTerminatedCodec || writableCompiledField.Array.Kind == CompiledArrayKind.Terminated))
+                {
+                    // A terminated value has no fixed extent: a replacement of another encoded length would move
+                    // every later field, so the whole layout is captured and compared, as for a conditional root.
+                    layoutVariables = new Dictionary<string, Expr>(effectiveVariables);
+                    originalLayout = this.CaptureUpdateLayout(readState.Stream, originalPosition, rootElement, layoutVariables, readOptions);
+                    variableExtentTarget = true;
+                    readState.Stream.Position = target.Address;
+                }
+
                 state.PositionIsResolvedTarget = true;
                 if (target.BitStorageSize > 0)
                 {
@@ -1296,10 +1307,21 @@ public partial class CStruct
             // The caller sees writes only after every library-detectable writer failure has been ruled out.
             if (originalLayout is not null)
             {
-                var changedLayout = this.CaptureUpdateLayout(stagingStream, originalPosition, rootElement, layoutVariables!, readOptions);
+                const string ExtentChanged = "Update changes the extent of a terminated value and would move the fields that follow; the replacement must have the same encoded length, or serialize a new buffer instead.";
+                (string Path, long Start, long End)[] changedLayout;
+                try
+                {
+                    changedLayout = this.CaptureUpdateLayout(stagingStream, originalPosition, rootElement, layoutVariables!, readOptions);
+                }
+                catch (CStructException inner) when (variableExtentTarget)
+                {
+                    // The moved fields no longer read at all (a later field ran past the end, a pointer went astray).
+                    throw new CStructWriteException(ExtentChanged, inner);
+                }
+
                 if (!originalLayout.SequenceEqual(changedLayout))
                 {
-                    throw new CStructWriteException("Update changes the active conditional storage layout; serialize a new buffer instead.");
+                    throw new CStructWriteException(variableExtentTarget ? ExtentChanged : "Update changes the active conditional storage layout; serialize a new buffer instead.");
                 }
             }
 

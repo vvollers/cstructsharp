@@ -498,6 +498,47 @@ public class UpdateAtomicityTests
         Assert.AreEqual(0, stream.WriteCalls);
     }
 
+    /// <summary>
+    ///     A terminated value has no fixed extent: replacing it with another encoded length would move every later
+    ///     field, so the update is rejected before commit and the destination keeps its bytes; the same length goes through.
+    /// </summary>
+    [TestMethod]
+    public void TerminatedValueUpdate_MustKeepItsEncodedLength()
+    {
+        var layout = new CStruct("struct root { uint8 head; cstring name; uint16 tail; };");
+        byte[] bytes = [7, (byte)'o', (byte)'k', 0, 0x34, 0x12,];
+        foreach (string replacement in new[] { "toolong", "x", string.Empty, "okay", })
+        {
+            using var stream = new MemoryStream((byte[])bytes.Clone());
+            CStructWriteException failure = Assert.Throws<CStructWriteException>(() => layout.Update(stream, "root.name", replacement));
+            if (replacement != "toolong")
+            {
+                // "toolong" runs past the end of the stream and is rejected by the existing extent rule first.
+                StringAssert.StartsWith(failure.Message, "Update changes the extent of a terminated value and would move the fields that follow", replacement);
+            }
+
+            CollectionAssert.AreEqual(bytes, stream.ToArray(), replacement);
+            Assert.AreEqual(0L, stream.Position, replacement);
+            Assert.AreEqual((ushort)0x1234, layout.Parse(stream, "root").Get<ushort>("tail"), replacement);
+        }
+
+        using var same = new MemoryStream((byte[])bytes.Clone());
+        layout.Update(same, "root.name", "no");
+        CollectionAssert.AreEqual(new byte[] { 7, (byte)'n', (byte)'o', 0, 0x34, 0x12, }, same.ToArray());
+
+        // A span update follows the same rule.
+        byte[] span = (byte[])bytes.Clone();
+        Assert.Throws<CStructWriteException>(() => layout.Update(span.AsSpan(), "root.name", "longer"));
+        CollectionAssert.AreEqual(bytes, span);
+
+        // A terminated array (all-zero element) likewise.
+        var arrays = new CStruct("struct entry { uint8 a; uint8 b; }; struct root { entry entries[]; uint8 tail; };");
+        byte[] entries = [1, 2, 3, 4, 0, 0, 9,];
+        using var arrayStream = new MemoryStream((byte[])entries.Clone());
+        Assert.Throws<CStructWriteException>(() => arrays.Update(arrayStream, "root.entries", new object[] { new Dictionary<string, object?> { ["a"] = (byte)5, ["b"] = (byte)6, }, }));
+        CollectionAssert.AreEqual(entries, arrayStream.ToArray());
+    }
+
     private sealed class MissingSecondPoco
     {
         public byte First { get; init; }
