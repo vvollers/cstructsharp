@@ -29,18 +29,18 @@ public class StreamFailureTests
             {
                 switch (operation)
                 {
-                    case "parse": await layout.ParseAsync(stream); break;
-                    case "debug": await layout.ParseWithDebugAsync(stream); break;
-                    case "value": await layout.ReadValueAsync(stream, "header.kind"); break;
-                    case "typed": await layout.ReadValueAsync<ushort>(stream, "header.kind"); break;
-                    case "value-debug": await layout.ReadValueWithDebugAsync(stream, "header.kind"); break;
-                    case "try": await layout.TryReadValueAsync<StructValue>(stream, "header"); break;
-                    case "address": await layout.ResolveAddressAsync(stream, "header.kind"); break;
-                    case "length": await layout.GetArrayLengthAsync(stream, "header.payload"); break;
-                    case "update": await layout.UpdateAsync(stream, "header.kind", (ushort)3); break;
-                    case "generated": StreamFailureLayout.Parse(stream); break;
-                    case "generated-async": await StreamFailureLayout.ParseAsync(stream); break;
-                    default: Assert.Fail("Unknown operation"); break;
+                case "parse": await layout.ParseAsync(stream); break;
+                case "debug": await layout.ParseWithDebugAsync(stream); break;
+                case "value": await layout.ReadValueAsync(stream, "header.kind"); break;
+                case "typed": await layout.ReadValueAsync<ushort>(stream, "header.kind"); break;
+                case "value-debug": await layout.ReadValueWithDebugAsync(stream, "header.kind"); break;
+                case "try": await layout.TryReadValueAsync<StructValue>(stream, "header"); break;
+                case "address": await layout.ResolveAddressAsync(stream, "header.kind"); break;
+                case "length": await layout.GetArrayLengthAsync(stream, "header.payload"); break;
+                case "update": await layout.UpdateAsync(stream, "header.kind", (ushort)3); break;
+                case "generated": StreamFailureLayout.Parse(stream); break;
+                case "generated-async": await StreamFailureLayout.ParseAsync(stream); break;
+                default: Assert.Fail("Unknown operation"); break;
                 }
             }
             catch (Exception failure)
