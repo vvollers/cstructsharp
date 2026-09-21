@@ -17,6 +17,35 @@ export function mutationSource(pattern) {
 }
 
 /**
+ * Builds a project-context invocation using the configured source/test projects and absolute evidence paths.
+ * Running from the solution directory makes Stryker discover extra test projects despite test-projects settings.
+ */
+export function mutationInvocation(root, configuration, output, patterns = []) {
+  const config = JSON.parse(fs.readFileSync(configuration, "utf8"))["stryker-config"];
+  assert.equal(config.project, "src/CStructSharp/CStructSharp.csproj");
+  assert.deepEqual(config["test-projects"], ["tests/CStructSharpTests/CStructSharpTests.csproj"]);
+  const project = path.resolve(root, config.project);
+  const args = ["stryker", "--config-file", path.resolve(configuration), "--solution", path.join(root, "CStructSharp.NonWeb.sln"),
+    "--project", path.basename(project), "--test-project", path.resolve(root, config["test-projects"][0]),
+    "--target-framework", "net10.0", "--configuration", "Release", "--output", path.resolve(output),
+    "--skip-version-check", "--log-to-file"];
+  for (const pattern of patterns) args.push("--mutate", pattern);
+  return { cwd: path.dirname(project), args };
+}
+
+/** Rejects reports that ran tests from projects outside the configured core test project. */
+export function requireCoreMutationTests(report) {
+  let count = 0;
+  for (const [filename, file] of Object.entries(report.testFiles ?? {})) {
+    if (!(file.tests?.length > 0)) continue;
+    const normalized = `/${path.posix.normalize(filename.replaceAll("\\", "/"))}`.toLowerCase();
+    assert.ok(normalized.includes("/cstructsharptests/"), `Mutation report includes tests outside the configured core project: ${filename}`);
+    count += file.tests.length;
+  }
+  assert.ok(count > 0, "Mutation report contains no configured core tests");
+}
+
+/**
  * Partitions every configured file once, assigning larger sources first to the currently smallest group.
  * Source length is a scheduling estimate, not a claim about mutation count or duration. Files are never split.
  */

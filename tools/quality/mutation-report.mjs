@@ -12,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { assertCondition, main, parseArguments, repositoryRoot } from "../lib/tooling.mjs";
 import { loadNonMutableDeclarations, qualifyNonMutableDeclaration } from "../lib/mutation-declarations.mjs";
+import { requireCoreMutationTests } from "../lib/mutation-partitions.mjs";
 
 const options = parseArguments(process.argv.slice(2), { "config-path": "string", "report-path": "string" }, {
   defaults: { "config-path": path.join(repositoryRoot, "stryker-config.json") },
@@ -60,6 +61,7 @@ await main(() => {
     assertCondition(!tests.some((test) => test.name === EXPORT_LIST_TEST), "The export-list test must not falsely kill mutants in an instrumented assembly.");
   }
   assertCondition(testCount > 0, "The mutation report contains no tests.");
+  requireCoreMutationTests(report);
 
   // A runtime entry is relative to src/CStructSharp; a shared compile-time source is named by its folder (`**/CStructSharp.Core/...`).
   const suffixOf = (file) => (file.startsWith("**/") ? `/${file.slice(3)}` : `/cstructsharp/${file}`).toLowerCase();

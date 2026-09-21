@@ -134,6 +134,8 @@ Exact reviewed declarations with no mutation opportunities are reported as not a
 They remain in the configured scope and must have a present report with identical source and no mutants.
 `contracts/quality/mutation-non-mutable.json` pins their source hashes, Stryker version and reasons. Missing reports
 and compiler-rejected mutations do not qualify; executable code retains the score and survivor requirements.
+Mutation runners use source-project context so Stryker honors the configured core test project. Reports containing
+tests from unintended projects fail validation. Generator/parity suites remain independently required in normal CI.
 
 The layout parser has its own oracle: `ParserDifferentialTests` parses every fixture, contract, demo, and
 documentation layout - and thousands of deterministic mutations of them - through both `LayoutParser` and the

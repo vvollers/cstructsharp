@@ -11,7 +11,7 @@ import path from "node:path";
 import { spawnSync, execFileSync } from "node:child_process";
 import { main, parseArguments, repositoryRoot } from "../lib/tooling.mjs";
 import { listFiles } from "../lib/files.mjs";
-import { aggregateMutationPartitions, mutationFileHash, planMutationPartitions, requireCompletedMutants } from "../lib/mutation-partitions.mjs";
+import { aggregateMutationPartitions, mutationFileHash, mutationInvocation, planMutationPartitions, requireCompletedMutants, requireCoreMutationTests } from "../lib/mutation-partitions.mjs";
 
 const options = parseArguments(process.argv.slice(2), {
   mode: "string", partition: "string", "output-directory": "string", "input-directory": "string",
@@ -40,18 +40,16 @@ function createOutput() {
 
 /** Runs the pinned Stryker tool, returning its outcome and elapsed seconds even when its score gate fails. */
 function runMutation(configuration, patterns = []) {
-  const args = ["stryker", "--config-file", configuration, "--solution", "CStructSharp.NonWeb.sln",
-    "--target-framework", "net10.0", "--configuration", "Release", "--output", output,
-    "--skip-version-check", "--log-to-file"];
-  for (const pattern of patterns) args.push("--mutate", pattern);
+  const { cwd, args } = mutationInvocation(repositoryRoot, configuration, output, patterns);
   const started = Date.now();
-  const result = spawnSync("dotnet", args, { cwd: repositoryRoot, stdio: "inherit" });
+  const result = spawnSync("dotnet", args, { cwd, stdio: "inherit" });
   return { exitCode: result.status, signal: result.signal, error: result.error?.message,
-    elapsedSeconds: (Date.now() - started) / 1000, args };
+    elapsedSeconds: (Date.now() - started) / 1000, cwd, args };
 }
 
 /** Requires a complete memory report and enforces the existing 75% score floor independently of permanent scope. */
 function verifyMemory(report) {
+  requireCoreMutationTests(report);
   assert.equal(String(report.schemaVersion), "2");
   assert.deepEqual(report.thresholds, { high: 90, low: 80 });
   const counts = new Map();
@@ -99,6 +97,7 @@ await main(() => {
       configSha256: mutationFileHash(configPath), reportSha256: fs.existsSync(reportPath) ? mutationFileHash(reportPath) : null,
       ...outcome });
     assert.ok(fs.existsSync(reportPath), `Partition ${partition.id} produced no final report`);
+    requireCoreMutationTests(JSON.parse(fs.readFileSync(reportPath, "utf8")));
     assert.equal(outcome.exitCode, 0, `Stryker failed for ${partition.id}; retain its report and log for diagnosis`);
     return;
   }

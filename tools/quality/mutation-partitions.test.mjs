@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
-import { aggregateMutationPartitions, planMutationPartitions } from "../lib/mutation-partitions.mjs";
+import { aggregateMutationPartitions, mutationInvocation, planMutationPartitions, requireCoreMutationTests } from "../lib/mutation-partitions.mjs";
 import { repositoryRoot } from "../lib/tooling.mjs";
 
 // A step timeout must leave ordinary setup/upload headroom; incomplete evidence must still fail aggregation.
@@ -130,7 +130,7 @@ test("a complete but low-scoring report fails the unchanged canonical gate", (t)
   }
   const reportPath = path.join(f.root, "low-score.json");
   fs.writeFileSync(reportPath, JSON.stringify({ schemaVersion: "2", thresholds: { high: 75, low: 75 }, files,
-    testFiles: { "test.cs": { tests: [{ id: "test", name: "BehaviorAssertion" }] } } }));
+    testFiles: { "tests/CStructSharpTests/test.cs": { tests: [{ id: "test", name: "BehaviorAssertion" }] } } }));
   const result = spawnSync(process.execPath, ["tools/quality/mutation-report.mjs", "--report-path", reportPath], { cwd: repositoryRoot, encoding: "utf8" });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr + result.stdout, /score 0.00% is below the 75%/);
@@ -146,4 +146,27 @@ test("the aggregate command rejects an empty artifact directory", (t) => {
   assert.notEqual(result.status, 0);
   assert.match(result.stderr + result.stdout, /Missing or extra mutation artifacts/);
   assert.ok(!fs.existsSync(path.join(f.root, "aggregate/mutation-report.json")));
+});
+
+// Both reviewed scopes must use project context so solution-wide generator/parity discovery cannot override config.
+test("mutation invocations honor the configured core test project without changing scope or thresholds", () => {
+  for (const config of ["stryker-config.json", "stryker-memory-config.json"]) {
+    const invocation = mutationInvocation(repositoryRoot, path.join(repositoryRoot, config), path.join(repositoryRoot, "artifacts/mutation/probe"), ["CStruct.cs", "Values/Pointer.cs"]);
+    assert.equal(invocation.cwd, path.join(repositoryRoot, "src/CStructSharp"));
+    assert.equal(invocation.args[invocation.args.indexOf("--test-project") + 1], path.join(repositoryRoot, "tests/CStructSharpTests/CStructSharpTests.csproj"));
+    assert.equal(invocation.args[invocation.args.indexOf("--project") + 1], "CStructSharp.csproj");
+    assert.deepEqual(invocation.args.slice(-4), ["--mutate", "CStruct.cs", "--mutate", "Values/Pointer.cs"]);
+    assert.ok(!invocation.args.some((arg) => ["--break-at", "--test-case-filter", "--since"].includes(arg)));
+  }
+});
+
+// Actual solution-context reports included these extra suites; reject them while accepting Windows/Unix core paths.
+test("mutation reports require core tests and reject unintended test projects", () => {
+  const entry = { tests: [{ id: "one", name: "BehaviorAssertion" }] };
+  requireCoreMutationTests({ testFiles: { "/repo/tests/CStructSharpTests/ReadTests.cs": entry } });
+  requireCoreMutationTests({ testFiles: { "C:\\repo\\tests\\CStructSharpTests\\ReadTests.cs": entry } });
+  assert.throws(() => requireCoreMutationTests({ testFiles: {} }), /no configured core tests/);
+  for (const project of ["CStructSharp.Generators.Tests", "CStructSharp.Generated.Parity"]) {
+    assert.throws(() => requireCoreMutationTests({ testFiles: { [`/repo/tests/${project}/Tests.cs`]: entry } }), /outside the configured core project/);
+  }
 });

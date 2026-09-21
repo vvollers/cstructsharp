@@ -27,7 +27,7 @@ function fixture(t) {
       mutants: source === declaration ? [] : [{ id: source, status: "Killed", killedBy: ["assertion"] }] };
   }
   return { root, config, declaration, report: { schemaVersion: "2", thresholds: { high: 75, low: 75 }, files,
-    testFiles: { "test.cs": { tests: [{ id: "assertion", name: "BehaviorAssertion" }] } } } };
+    testFiles: { "tests/CStructSharpTests/test.cs": { tests: [{ id: "assertion", name: "BehaviorAssertion" }] } } } };
 }
 
 /** Runs the actual CLI validator against this fixture's report and returns its exit status and output. */

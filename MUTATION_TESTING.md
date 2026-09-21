@@ -26,8 +26,7 @@ and is also used before a release.
 The memory-analysis scope covers `src/CStructSharp/Memory/**/*.cs` in the library project:
 
 ```sh
-dotnet stryker --config-file stryker-memory-config.json --solution CStructSharp.NonWeb.sln \
-  --target-framework net10.0 --configuration Release --output artifacts/mutation/memory --skip-version-check
+node tools/quality/mutation-partitions.mjs --mode memory --output-directory artifacts/mutation/memory
 ```
 
 This scope selects the `CStructSharp.Tests.Memory*` test classes and uses per-test coverage to select relevant
@@ -42,19 +41,26 @@ Run these commands from the repository root:
 
 ```sh
 dotnet tool restore
+cd src/CStructSharp
 dotnet stryker \
-  --config-file stryker-config.json \
-  --solution CStructSharp.NonWeb.sln \
+  --config-file ../../stryker-config.json \
+  --solution ../../CStructSharp.NonWeb.sln \
+  --project CStructSharp.csproj \
+  --test-project ../../tests/CStructSharpTests/CStructSharpTests.csproj \
   --target-framework net10.0 \
   --configuration Release \
-  --output artifacts/mutation/permanent \
+  --output ../../artifacts/mutation/permanent \
   --skip-version-check
-
+cd ../..
 node tools/quality/mutation-report.mjs --report-path artifacts/mutation/permanent/reports/mutation-report.json
 ```
 
-The first command installs the version of Stryker listed in `.config/dotnet-tools.json`. The second command creates
-and tests the mutations. The last command checks that the report was made with the repository's approved settings.
+The tool restore installs the version of Stryker listed in `.config/dotnet-tools.json`. Run Stryker from the source
+project directory with explicit project paths. Its solution-directory mode discovers additional test projects,
+even when the configuration lists only the core tests. Project mode preserves the complete configured core test
+suite without rerunning generator/parity suites for every mutant; those suites retain their ordinary CI gates.
+The last command checks that the report was made with the repository's approved settings, including core-test
+project identity. See [Stryker operating modes](https://stryker-mutator.io/docs/stryker-net/operating-modes/).
 
 This can take much longer than an ordinary test run. Progress is shown in the terminal. The JSON and HTML reports
 are written below `artifacts/mutation/permanent/`. The `artifacts/` directory is ignored by Git.
@@ -66,6 +72,7 @@ larger source files first to the smallest group, using file size only as an init
 of the 71 configured files belongs to exactly one partition. No character ranges or changed-file filters are used.
 Each partition runs the full permitted test suite with coverage-based test selection disabled. The memory scope
 runs in an independent job with its existing per-test selection and 75% score floor.
+The runner uses source-project context and records the working directory and command arguments in its evidence.
 
 Inspect the matrix locally without running mutations:
 
@@ -116,14 +123,18 @@ A full run over the allowlist takes hours. To check the files a branch or a seri
 commit (and runs every test as usual):
 
 ```sh
+cd src/CStructSharp
 timeout 90m dotnet stryker \
-  --config-file stryker-config.json \
-  --solution CStructSharp.NonWeb.sln \
+  --config-file ../../stryker-config.json \
+  --solution ../../CStructSharp.NonWeb.sln \
+  --project CStructSharp.csproj \
+  --test-project ../../tests/CStructSharpTests/CStructSharpTests.csproj \
   --target-framework net10.0 \
   --configuration Release \
   --since:<start-commit> \
-  --output artifacts/mutation/<name> \
+  --output ../../artifacts/mutation/<name> \
   --skip-version-check
+cd ../..
 ```
 
 `<start-commit>` must be a full SHA (or a branch or tag name): Stryker resolves it with LibGit2Sharp, which does not
@@ -170,14 +181,18 @@ mutations for this file, the result must be reviewed and the tests should run ag
 When you change a risky file, start by mutating only that file. For example:
 
 ```sh
+cd src/CStructSharp
 dotnet stryker \
-  --config-file stryker-config.json \
-  --solution CStructSharp.NonWeb.sln \
+  --config-file ../../stryker-config.json \
+  --solution ../../CStructSharp.NonWeb.sln \
+  --project CStructSharp.csproj \
+  --test-project ../../tests/CStructSharpTests/CStructSharpTests.csproj \
   --target-framework net10.0 \
   --configuration Release \
   --mutate CStructWriter.cs \
-  --output artifacts/mutation/writer \
+  --output ../../artifacts/mutation/writer \
   --skip-version-check
+cd ../..
 ```
 
 Do not pass a focused report to `mutation-report.mjs`; that validator expects the complete permanent scope.
