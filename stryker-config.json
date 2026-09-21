@@ -71,7 +71,14 @@
       "**/CStructSharp.Core/Compilation/BitfieldPlacement.cs",
       "**/CStructSharp.Core/Expressions/ExpressionArithmetic.cs",
       "**/CStructSharp.Core/Expressions/LayoutExpressionEvaluator.cs",
-      "**/CStructSharp.Core/Codecs/PrimitiveCatalog.cs"
+      "**/CStructSharp.Core/Codecs/PrimitiveCatalog.cs",
+      "Streams/AsyncStreamBuffer.cs",
+      "Reading/RecordParser.cs",
+      "Generated/RecordSequence.cs",
+      "CStructOperations.Async.cs",
+      "CStructOperations.AsyncWrite.cs",
+      "CStructOperations.Sequences.cs",
+      "Values/ReadAttempt.cs"
     ],
     "reporters": [
       "progress",

@@ -50,21 +50,21 @@ millions of records is dominated by that constant unless the records are read as
 
 | Operation | Median | Allocated |
 | --- | ---: | ---: |
-| Compile a two-field struct (`struct root { uint8 kind; uint32 value; };`) | 6.84 µs | 13,848 B |
-| Compile the PNG header fixture (an enum and two structs) | 27.0 µs | 46,200 B |
-| `GetOrCompile` hit for the same source (cache lookup) | 405 ns | 0 B |
-| `Parse` a five-byte record with a `count`-sized array from memory | 477 ns | 1,264 B |
-| `ReadValue<T>` of the same record into a mapped class | 937 ns | 1,648 B |
-| `ReadValue<ushort>` of one selected field | 281 ns | 1,136 B |
-| `Parse` a 1 KiB `uint8[1024]` (one `PrimitiveArray`) | 244 ns | 1,576 B |
-| `ResolveAddress` of `items[127]` in a fixed nested array | 385 ns | 1,832 B |
-| `ParseWithDebug` of the PNG fixture (byte ranges for every value) | 2.40 µs | 6,376 B |
-| Truncated input: `Parse` throws and the caller catches | 9.16 µs | 2,752 B |
-| `Serialize` a mapped class into a caller-provided span | 557 ns | 1,336 B |
-| `Update` one value behind a pointer in place | 683 ns | 2,144 B |
-| `Parse` a 16 MiB record from a `MemoryStream` | 1.85 ms | 16.0 MiB |
+| Compile a two-field struct (`struct root { uint8 kind; uint32 value; };`) | 7.11 µs | 13,992 B |
+| Compile the PNG header fixture (an enum and two structs) | 27.6 µs | 46,120 B |
+| `GetOrCompile` hit for the same source (cache lookup) | 411 ns | 0 B |
+| `Parse` a five-byte record with a `count`-sized array from memory | 506 ns | 1,272 B |
+| `ReadValue<T>` of the same record into a mapped class | 1.06 µs | 1,656 B |
+| `ReadValue<ushort>` of one selected field | 298 ns | 1,144 B |
+| `Parse` a 1 KiB `uint8[1024]` (one `PrimitiveArray`) | 298 ns | 1,584 B |
+| `ResolveAddress` of `items[127]` in a fixed nested array | 435 ns | 1,840 B |
+| `ParseWithDebug` of the PNG fixture (byte ranges for every value) | 2.95 µs | 6,384 B |
+| Truncated input: `Parse` throws and the caller catches | 9.64 µs | 2,760 B |
+| `Serialize` a mapped class into a caller-provided span | 594 ns | 1,352 B |
+| `Update` one value behind a pointer in place | 695 ns | 2,160 B |
+| `Parse` a 16 MiB record from a `MemoryStream` | 2.15 ms | 16.0 MiB |
 
-Measured 2026-09-20 on AMD EPYC 9645, .NET 10.0.10 (10.0.10, 10.0.1026.32716), Linux Ubuntu 26.04.1 LTS (Resolute Raccoon).
+Measured 2026-09-21 on AMD EPYC 9645, .NET 10.0.10 (10.0.10, 10.0.1026.32716), Linux Ubuntu 26.04.1 LTS (Resolute Raccoon).
 
 A layout on a `[CStructLayout]` class is read by generated code instead ([generated code](generated/index.md)).
 The same bytes four ways - the runtime `Parse`, the generated `Parse`, a generated view, and hand-written
@@ -73,26 +73,55 @@ The same bytes four ways - the runtime `Parse`, the generated `Parse`, a generat
 
 | Operation | Median | Allocated |
 | --- | ---: | ---: |
-| Runtime `Parse` of the 28-byte primitives record (`StructValue`) | 249 ns | 776 B |
-| Generated `Parse` of the same record (the typed class) | 33.1 ns | 48 B |
-| Generated view of the same record (every member read, nothing allocated) | 1.59 ns | 0 B |
-| Hand-written `BinaryPrimitives` reader of the same record | 1.90 ns | 0 B |
-| Runtime `Parse` of 256 nested records (6,400 bytes) | 78.2 µs | 243 KiB |
-| Generated `Parse` of the 256 nested records | 38.8 µs | 124 KiB |
-| Generated view over the 256 nested records (one view per element by offset) | 738 ns | 0 B |
-| Hand-written reader of the 256 nested records | 365 ns | 0 B |
-| Runtime `Serialize` of the record from a `StructValue` | 188 ns | 768 B |
-| Generated `Serialize` of the record from the typed class | 78.9 ns | 168 B |
-| Runtime `Update` of one field by path | 704 ns | 2,224 B |
-| Generated typed setter for the same field (`Update.C`) | 15.8 ns | 112 B |
-| Runtime `ParseWithDebug` of the record | 731 ns | 2,152 B |
-| Generated `ParseWithDebug` (the generated value plus the runtime's ranges) | 920 ns | 2,200 B |
+| Runtime `Parse` of the 28-byte primitives record (`StructValue`) | 265 ns | 784 B |
+| Generated `Parse` of the same record (the typed class) | 40.9 ns | 48 B |
+| Generated view of the same record (every member read, nothing allocated) | 1.44 ns | 0 B |
+| Hand-written `BinaryPrimitives` reader of the same record | 1.62 ns | 0 B |
+| Runtime `Parse` of 256 nested records (6,400 bytes) | 87.9 µs | 243 KiB |
+| Generated `Parse` of the 256 nested records | 41.8 µs | 124 KiB |
+| Generated view over the 256 nested records (one view per element by offset) | 732 ns | 0 B |
+| Hand-written reader of the 256 nested records | 353 ns | 0 B |
+| Runtime `Serialize` of the record from a `StructValue` | 196 ns | 784 B |
+| Generated `Serialize` of the record from the typed class | 79.6 ns | 184 B |
+| Runtime `Update` of one field by path | 753 ns | 2,240 B |
+| Generated typed setter for the same field (`Update.C`) | 16.8 ns | 128 B |
+| Runtime `ParseWithDebug` of the record | 822 ns | 2,160 B |
+| Generated `ParseWithDebug` (the generated value plus the runtime's ranges) | 907 ns | 2,208 B |
 
 The generated `Parse` allocates the typed class and nothing else; the view allocates nothing and sits next to
 the hand-written reader because it is the same code with the offsets filled in. `ParseWithDebug` costs a
 runtime read on top of the generated one (the ranges come from the runtime). Use the generated path when the
 layout is in the program's source and the read is hot; [runtime or generated?](generated/choosing-runtime-or-generated.md)
 has the full decision table.
+
+The awaitable forms read the stream with `ReadAsync` into a pooled buffer and run the same reader over it, so
+their cost is the synchronous read plus the buffering and the state machine; a record sequence parses one
+record per step (`AsyncBenchmarks`, `SequenceBenchmarks`; [async and pipelines](async-and-pipelines.md),
+[sequences and TryParse](generated/sequences-and-try-parse.md)):
+
+| Operation | Median | Allocated |
+| --- | ---: | ---: |
+| Runtime `Parse(Stream)` of the 28-byte record from a `MemoryStream` | 263 ns | 728 B |
+| Runtime `ParseAsync` of the same stream (read in place, the task already complete) | 354 ns | 904 B |
+| Runtime `ParseAsync` of a stream that hides its buffer (one pooled copy) | 343 ns | 904 B |
+| Runtime `ParseAsync` of a `FileStream` opened for asynchronous I/O | 3.04 µs | 1,464 B |
+| Runtime `Write(Stream)` of the record | 185 ns | 384 B |
+| Runtime `WriteAsync` of the record (serialized first, one `WriteAsync`) | 231 ns | 784 B |
+| Runtime `Update(Stream)` of one field | 811 ns | 2,184 B |
+| Runtime `UpdateAsync` of the same field (the region buffered, the changed run written back) | 1.09 µs | 2,328 B |
+| Generated `Parse(Stream)` of the record | 39.9 ns | 48 B |
+| Generated `ParseAsync` of the same stream | 78.6 ns | 48 B |
+| Runtime `Parse` in a loop over 256 consecutive records (7,168 bytes) | 73.5 µs | 196 KiB |
+| Runtime `ParseMany` over the same 256 records | 88.7 µs | 196 KiB |
+| Generated `Parse` in a loop over the 256 records | 12.7 µs | 12,288 B |
+| Generated `Records` over the same 256 records | 6.63 µs | 12,464 B |
+| Hand-written offset loop over 256 views (two members read each) | 255 ns | 0 B |
+| Generated view enumerator (`RootView.Enumerate`) over the same 256 records | 222 ns | 0 B |
+
+A `MemoryStream` that exposes its buffer is read in place and the `ValueTask` is already complete when it is
+returned; a file pays the real asynchronous I/O. `ParseMany` and the generated `Records` cost what the loop a
+caller would write costs, and the view enumerator allocates nothing and sits next to the hand-written offset
+loop.
 
 The JavaScript package pays a WebAssembly crossing per call unless the layout is fully fixed and no option
 is set, in which case `parse` reads it in JavaScript (see [many records in one call](browser/large-data.md#many-records-in-one-call)):

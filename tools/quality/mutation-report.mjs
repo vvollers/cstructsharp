@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Validates the permanent mutation gate: the Stryker configuration (project, thresholds, the 64-file allowlist)
+ * Validates the permanent mutation gate: the Stryker configuration (project, thresholds, the 71-file allowlist)
  * and a JSON report against it (every configured file mutated, no surviving/uncovered/runtime-error mutants,
  * score at or above 75 %).
  *
@@ -41,7 +41,7 @@ await main(() => {
   assertCondition(Number(config.thresholds.break) === 75, "The permanent mutation break threshold must be 75%.");
 
   const configuredFiles = (config.mutate ?? []).map((file) => String(file).replaceAll("\\", "/"));
-  assertCondition(configuredFiles.length === 64, `The permanent mutation allowlist must contain exactly 64 semantic files; found ${configuredFiles.length}.`);
+  assertCondition(configuredFiles.length === 71, `The permanent mutation allowlist must contain exactly 71 semantic files; found ${configuredFiles.length}.`);
   assertCondition(new Set(configuredFiles).size === configuredFiles.length, "The permanent mutation allowlist contains duplicate files.");
   assertCondition(configuredFiles.includes("**/CStructSharp.Core/Parsing/LayoutParser.cs"), "The layout parser must remain in the permanent mutation allowlist.");
 
@@ -93,6 +93,6 @@ await main(() => {
 
   const hash = crypto.createHash("sha256").update(fs.readFileSync(reportPath)).digest("hex").toUpperCase();
   console.log(
-    `Permanent mutation gate passed: ${detected}/${valid} detected (${scoreText}%), ${killed} killed, ${timedOut} timed out, ${survived} survived, ${noCoverage} uncovered, ${runtimeErrors} runtime errors; ${compileErrors} compile errors, ${ignored} ignored; ${testCount} tests; 64 configured files; SHA-256 ${hash}.`,
+    `Permanent mutation gate passed: ${detected}/${valid} detected (${scoreText}%), ${killed} killed, ${timedOut} timed out, ${survived} survived, ${noCoverage} uncovered, ${runtimeErrors} runtime errors; ${compileErrors} compile errors, ${ignored} ignored; ${testCount} tests; 71 configured files; SHA-256 ${hash}.`,
   );
 });
