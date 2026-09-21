@@ -21,6 +21,7 @@ until measurements show that allocation matters.
 | --- | --- | --- |
 | `byte[]`, `ReadOnlySpan<byte>`, or `ReadOnlyMemory<byte>` | `Parse` or `ReadValue` | The call is synchronous and does not retain the input. |
 | A readable, seekable `Stream` | `Parse` or `ReadValue` | Reading begins at the stream's current position. |
+| A `ReadOnlySequence<byte>` (a `PipeReader`'s buffer, a chain of pooled segments) | `Parse` or `ReadValue` | One segment is read in place; several are copied into a pooled buffer bounded by `MaxTotalBytesRead`. |
 
 A *span* is a short-lived view over a section of memory. `ReadOnlyMemory<byte>` is a storable memory object, but the
 CStructSharp operation still finishes synchronously and does not keep it. Use a stream for files or data sources that

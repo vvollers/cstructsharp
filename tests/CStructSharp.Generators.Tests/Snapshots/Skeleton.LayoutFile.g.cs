@@ -82,6 +82,28 @@ namespace Demo
         public static chunk Parsechunk(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
             => Parsechunk(source.Span, variables, options);
 
+        /// <summary>Reads one <c>chunk</c> from a sequence of segments: a single segment is read in place, several are copied into a pooled buffer bounded by the total read budget.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value.</returns>
+        public static chunk Parsechunk(global::System.Buffers.ReadOnlySequence<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            if (source.IsSingleSegment)
+            {
+                return Parsechunk(source.FirstSpan, variables, options);
+            }
+            byte[] buffer = global::CStructSharp.Generated.ReadCursor.CopySequence(source, options, out int length);
+            try
+            {
+                return Parsechunk(new global::System.ReadOnlySpan<byte>(buffer, 0, length), variables, options);
+            }
+            finally
+            {
+                global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
         /// <summary>Reads one <c>chunk</c> from <paramref name="stream"/>: the stream is buffered up to the total read budget (or its remaining length) and read through the span reader; a seekable stream is left after the value.</summary>
         /// <param name="stream">The stream, read from its current position.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
@@ -143,6 +165,28 @@ namespace Demo
         public static root Parseroot(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
             => Parseroot(source.Span, variables, options);
 
+        /// <summary>Reads one <c>root</c> from a sequence of segments: a single segment is read in place, several are copied into a pooled buffer bounded by the total read budget.</summary>
+        /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The parsed value.</returns>
+        public static root Parseroot(global::System.Buffers.ReadOnlySequence<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            if (source.IsSingleSegment)
+            {
+                return Parseroot(source.FirstSpan, variables, options);
+            }
+            byte[] buffer = global::CStructSharp.Generated.ReadCursor.CopySequence(source, options, out int length);
+            try
+            {
+                return Parseroot(new global::System.ReadOnlySpan<byte>(buffer, 0, length), variables, options);
+            }
+            finally
+            {
+                global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
         /// <summary>Reads one <c>root</c> from <paramref name="stream"/>: the stream is buffered up to the total read budget (or its remaining length) and read through the span reader; a seekable stream is left after the value.</summary>
         /// <param name="stream">The stream, read from its current position.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
@@ -188,6 +232,9 @@ namespace Demo
 
         /// <inheritdoc cref="Parse(global::System.ReadOnlySpan{byte}, global::CStructSharp.ReadOptions)"/>
         public static root Parse(global::System.ReadOnlyMemory<byte> source, global::CStructSharp.ReadOptions? options = null) => Parseroot(source.Span, null, options);
+
+        /// <inheritdoc cref="Parseroot(global::System.Buffers.ReadOnlySequence{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static root Parse(global::System.Buffers.ReadOnlySequence<byte> source, global::CStructSharp.ReadOptions? options = null) => Parseroot(source, null, options);
 
         /// <inheritdoc cref="Parseroot(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
         public static root Parse(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null) => Parseroot(stream, null, options);

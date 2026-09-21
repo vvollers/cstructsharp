@@ -101,6 +101,22 @@ public class ViewTests
         Exception truncated = Assert.Throws<TargetInvocationException>(() => parseStream.Invoke(null, [new MemoryStream(bytes[..10]), null, null])).InnerException!;
         Assert.AreEqual(Assert.Throws<CStructReadException>(() => runtime.Parse(bytes[..10], "root")).Message, truncated.Message);
 
+        // A ReadOnlySequence<byte>: one segment reads in place; several are copied and read like the flat bytes.
+        MethodInfo parseSequence = packet.GetMethods().Single(method => method.Name == "ParseRoot" && method.GetParameters()[0].ParameterType == typeof(System.Buffers.ReadOnlySequence<byte>));
+        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), parseSequence.Invoke(null, [new System.Buffers.ReadOnlySequence<byte>(bytes), null, null])!, "root");
+        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), parseSequence.Invoke(null, [Segmented(bytes, 3, 5, 9), null, null])!, "root");
+        Exception truncatedSequence = Assert.Throws<TargetInvocationException>(() => parseSequence.Invoke(null, [Segmented(bytes[..10], 4), null, null])).InnerException!;
+        Assert.AreEqual(truncated.Message, truncatedSequence.Message);
+
+        // A sequence longer than the budget is copied up to the budget plus one byte, exactly as Parse(Stream) buffers,
+        // so both forms fail the same way (the runtime's stream reader charges its seeks differently on this edge:
+        // a budget smaller than the value is a known difference, recorded in the log).
+        var tinyBudget = new ReadOptions { MaxTotalBytesRead = 8 };
+        Exception overBudget = Assert.Throws<TargetInvocationException>(() => parseSequence.Invoke(null, [Segmented(bytes, 3, 5, 9), null, tinyBudget])).InnerException!;
+        Exception overBudgetStream = Assert.Throws<TargetInvocationException>(() => parseStream.Invoke(null, [new MemoryStream(bytes), null, tinyBudget])).InnerException!;
+        Assert.AreEqual(overBudgetStream.Message, overBudget.Message);
+        Assert.IsInstanceOfType<CStructException>(overBudget);
+
         // The token on the options is observed by the cursor at composite entry: a cancelled token ends the generated read.
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
@@ -116,5 +132,41 @@ public class ViewTests
         GeneratorResult without = GeneratorRunner.Run(probeFree.Replace("{0}", ", Views = false", StringComparison.Ordinal)).AssertClean();
         Assert.IsFalse(without.Source.Contains("ref struct", StringComparison.Ordinal));
         Assert.IsTrue(result.Source.Contains("public readonly ref struct HdrView", StringComparison.Ordinal));
+    }
+
+    /// <summary>A sequence whose segments split <paramref name="bytes"/> at the given lengths (the rest is a final segment).</summary>
+    private static System.Buffers.ReadOnlySequence<byte> Segmented(byte[] bytes, params int[] lengths)
+    {
+        var first = new Segment(bytes.AsMemory(0, lengths[0]), 0);
+        Segment last = first;
+        int offset = lengths[0];
+        for (int index = 1; index < lengths.Length; index++)
+        {
+            last = last.Append(bytes.AsMemory(offset, lengths[index]));
+            offset += lengths[index];
+        }
+
+        if (offset < bytes.Length)
+        {
+            last = last.Append(bytes.AsMemory(offset));
+        }
+
+        return new System.Buffers.ReadOnlySequence<byte>(first, 0, last, last.Memory.Length);
+    }
+
+    private sealed class Segment : System.Buffers.ReadOnlySequenceSegment<byte>
+    {
+        public Segment(ReadOnlyMemory<byte> memory, long runningIndex)
+        {
+            this.Memory = memory;
+            this.RunningIndex = runningIndex;
+        }
+
+        public Segment Append(ReadOnlyMemory<byte> memory)
+        {
+            var next = new Segment(memory, this.RunningIndex + this.Memory.Length);
+            this.Next = next;
+            return next;
+        }
     }
 }

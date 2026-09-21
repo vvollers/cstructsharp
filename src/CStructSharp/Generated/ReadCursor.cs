@@ -141,6 +141,35 @@ public ref struct ReadCursor
         }
     }
 
+    /// <summary>
+    ///     Copies a multi-segment <see cref="System.Buffers.ReadOnlySequence{T}"/> into one pooled array so it can be
+    ///     read through the span reader: at most the total read budget plus one byte is copied (the extra byte lets
+    ///     the reader report the budget failure instead of a short read, as <see cref="BufferStream"/> does). A
+    ///     single-segment sequence needs no copy - callers take its <see cref="System.Buffers.ReadOnlySequence{T}.FirstSpan"/>
+    ///     directly. The caller returns the array to <see cref="System.Buffers.ArrayPool{T}.Shared"/>.
+    /// </summary>
+    /// <param name="source">The sequence to copy.</param>
+    /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+    /// <param name="length">The number of bytes copied.</param>
+    /// <returns>The rented buffer.</returns>
+    public static byte[] CopySequence(System.Buffers.ReadOnlySequence<byte> source, ReadOptions? options, out int length)
+    {
+        ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(options);
+        long limit = Math.Min(settings.MaxTotalBytesRead, int.MaxValue - 1);
+        length = (int)Math.Min(source.Length, limit + 1);
+        byte[] buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(Math.Max(length, 1));
+        try
+        {
+            System.Buffers.BuffersExtensions.CopyTo(source.Slice(0, length), buffer.AsSpan(0, length));
+            return buffer;
+        }
+        catch
+        {
+            System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+            throw;
+        }
+    }
+
     /// <summary>Moves to <paramref name="position"/> (a placement result: an aligned field start, the end of a composite), failing with the runtime's text and context when it lies outside the input.</summary>
     /// <param name="position">The position to move to.</param>
     /// <param name="member">The layout field being placed, for the diagnostics.</param>

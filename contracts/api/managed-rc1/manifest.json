@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 33,
+  "baselineRevision": 34,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.7.0",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 959,
-    "normalizedSha256": "208E7282C4C307D2617418312195BA6E5AA7E5BCA32CA511D8AD027550AE16FD"
+    "lines": 968,
+    "normalizedSha256": "989E0345E5A91FFE38A9044671715A41B2F62206B61BB77A408B4E7EC8949DF5"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "1ADB82297E3F06CDCDB1042327C7A94391DBEBB382E4DE2365E7CB7D2757C22F",
+      "normalizedSha256": "FCBD03406DAF3A923D7B5EB45829B661329D272F3E57DFA40BCEAFE29CD1CA10",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "1911F8B04411B9FC76FFFE0EB732DA2A815F95010B9451AD2EC8AF072F272E03",
+      "normalizedSha256": "DEF0B536FDC890ED58CD692EACA06EC88C83FA47BDFFE70971FB05A3F1632F72",
       "aotCompatible": true
     }
   ],
@@ -330,6 +330,15 @@
       "combinedSha256": "87068A17BD0A95A53842EF5C33A4B11522221FFB0D3B06077DA0692F213E1538",
       "rationale": "Convenience plan 1.2: ReadOptions.CancellationToken and WriteOptions.CancellationToken (inherited by UpdateOptions) let a caller stop a long read or write; the token is observed at composite, pointer, block, element, and chunk boundaries in the runtime and in the generated cursors, and surfaces as OperationCanceledException, never as a CStructException and never as false from TryReadValue<T>.",
       "releaseImpact": "Additive: two init properties with the none token as default; no existing signature changes."
+    },
+    {
+      "revision": 34,
+      "kind": "additive",
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "CCCB4675F2845CF6240AC4251DDE098A5B7B48618FA13C21EC0B0442531B3528",
+      "rationale": "Convenience plan 2.1: ReadOnlySequence<byte> overloads of Parse, ParseWithDebug, ReadValue, ReadValue<T>, ReadValueWithDebug, TryReadValue<T>, ResolveAddress, and GetArrayLength (a single segment reads in place, several are copied into a pooled buffer bounded by MaxTotalBytesRead + 1), and ReadCursor.CopySequence, the copy the runtime and generated code share.",
+      "releaseImpact": "Additive overloads; coordinates are zero-based at the sequence's start, like the span forms."
     }
   ]
 }

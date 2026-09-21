@@ -34,6 +34,11 @@ already in your process.
 Coordinates start at zero within the region you supply. If you pass `largeBuffer.AsSpan(100, 20)`, offset 0 means
 index 100 in the original array, and pointers cannot follow bytes outside those 20 supplied bytes.
 
+Bytes that arrive in pieces - a `PipeReader`'s buffer, a chain of pooled segments - are a `ReadOnlySequence<byte>`,
+and every read operation accepts one. A sequence with a single segment is read in place, at the span path's cost; a
+sequence with several segments is copied into a pooled buffer first, bounded by `MaxTotalBytesRead` plus one byte,
+so a sequence longer than the budget fails with the budget text a stream would give.
+
 ## Write to a span
 
 A writable `Span<byte>` gives CStructSharp a fixed-capacity destination:

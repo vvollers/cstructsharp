@@ -8,6 +8,12 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Added
 
+- `ReadOnlySequence<byte>` overloads of `Parse`, `ParseWithDebug`, `ReadValue`, `ReadValue<T>`, `ReadValueWithDebug`,
+  `TryReadValue<T>`, `ResolveAddress`, and `GetArrayLength`, and generated `Parse<Name>`/`Parse` overloads, for input
+  that arrives in segments (a `PipeReader`'s buffer): a single-segment sequence is read in place with the span
+  path's cost; a multi-segment one is copied into a pooled buffer bounded by `MaxTotalBytesRead` plus one byte, so
+  a sequence longer than the budget fails with the budget text. `ReadCursor.CopySequence` is the copy the runtime
+  and generated code share. Coordinates are zero-based at the sequence's start.
 - `ReadOptions.CancellationToken`, `WriteOptions.CancellationToken`, and (through `WriteOptions`)
   `UpdateOptions.CancellationToken`: a read observes the token when it enters a struct or union, follows a pointer,
   starts a 64 KiB block of a numeric array, an element of an array of structs, or a 256-byte chunk of a terminated

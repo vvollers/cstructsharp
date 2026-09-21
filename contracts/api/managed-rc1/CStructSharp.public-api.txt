@@ -27,32 +27,39 @@ namespace CStructSharp
         public bool IsLittleEndian { get; }
         public CStructSharp.Introspection.LayoutInfo Layout { get; }
         public byte PointerSize { get; }
+        public int GetArrayLength(System.Buffers.ReadOnlySequence<byte> source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public int GetArrayLength(System.IO.Stream stream, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public int GetArrayLength(System.ReadOnlyMemory<byte> source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public int GetArrayLength(System.ReadOnlySpan<byte> source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public int GetArrayLength(byte[] source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public int GetStructAlignmentInBytes(string name) { }
         public int GetStructSizeInBytes(string name) { }
+        public CStructSharp.Values.StructValue Parse(System.Buffers.ReadOnlySequence<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.StructValue Parse(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.StructValue Parse(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.StructValue Parse(System.ReadOnlySpan<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.StructValue Parse(byte[] source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public CStructSharp.Values.ParseResult ParseWithDebug(System.Buffers.ReadOnlySequence<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ParseResult ParseWithDebug(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ParseResult ParseWithDebug(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ParseResult ParseWithDebug(System.ReadOnlySpan<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ParseResult ParseWithDebug(byte[] source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public object? ReadValue(System.Buffers.ReadOnlySequence<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public object? ReadValue(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public object? ReadValue(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public object? ReadValue(System.ReadOnlySpan<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public object? ReadValue(byte[] source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public T ReadValue<T>(System.Buffers.ReadOnlySequence<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public T ReadValue<T>(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public T ReadValue<T>(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public T ReadValue<T>(System.ReadOnlySpan<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public T ReadValue<T>(byte[] source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public CStructSharp.Values.ReadResult ReadValueWithDebug(System.Buffers.ReadOnlySequence<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ReadResult ReadValueWithDebug(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ReadResult ReadValueWithDebug(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ReadResult ReadValueWithDebug(System.ReadOnlySpan<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ReadResult ReadValueWithDebug(byte[] source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public long ResolveAddress(System.Buffers.ReadOnlySequence<byte> source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public long ResolveAddress(System.IO.Stream stream, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public long ResolveAddress(System.ReadOnlyMemory<byte> source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public long ResolveAddress(System.ReadOnlySpan<byte> source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
@@ -61,6 +68,7 @@ namespace CStructSharp
         public long Serialize(System.Buffers.IBufferWriter<byte> destination, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.WriteOptions? options = null) { }
         public int Serialize(System.Span<byte> destination, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.WriteOptions? options = null) { }
         public string ToDefinition() { }
+        public bool TryReadValue<T>(System.Buffers.ReadOnlySequence<byte> source, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public bool TryReadValue<T>(System.IO.Stream stream, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public bool TryReadValue<T>(System.ReadOnlyMemory<byte> source, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public bool TryReadValue<T>(System.ReadOnlySpan<byte> source, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
@@ -463,6 +471,7 @@ namespace CStructSharp.Generated
         public string TakeTerminatedString(CStructSharp.Generated.TerminatedTextEncoding encoding, char terminator, string member, string? memberType) { }
         public string TakeWideText(int count, bool littleEndian, string member, string? memberType) { }
         public static byte[] BufferStream(System.IO.Stream stream, CStructSharp.ReadOptions? options, out int length) { }
+        public static byte[] CopySequence(System.Buffers.ReadOnlySequence<byte> source, CStructSharp.ReadOptions? options, out int length) { }
         public static string ShortReadText(long needed, long available) { }
     }
     public enum TerminatedTextEncoding
