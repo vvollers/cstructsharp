@@ -682,6 +682,10 @@ namespace CStructSharp.Generated.Parity.Layouts.Recipes
     [CStructLayout("struct header { uint16 kind; uint32 length; };", PointerSize = 8, Aligned = true, LittleEndian = true)]
     public static partial class AlignedHeader { }
 
+    /// <summary>Recipes: <c>async-stream</c>.</summary>
+    [CStructLayout("struct header { uint16 kind; uint32 length; };", PointerSize = 8, Aligned = false, LittleEndian = true)]
+    public static partial class AsyncStream { }
+
     /// <summary>Recipes: <c>bit-flags</c>.</summary>
     [CStructLayout("struct flags { uint8 enabled : 1; uint8 mode : 3; uint8 reserved : 4; };", PointerSize = 8, Aligned = false, LittleEndian = true)]
     public static partial class BitFlags { }
@@ -793,6 +797,14 @@ namespace CStructSharp.Generated.Parity.Layouts.Recipes
     /// <summary>Recipes: <c>patch-field</c>.</summary>
     [CStructLayout("struct item { uint16 id; uint8 flags; }; struct root { item value; };", PointerSize = 8, Aligned = false, LittleEndian = true)]
     public static partial class PatchField { }
+
+    /// <summary>Recipes: <c>pipe-reader</c>.</summary>
+    [CStructLayout("struct frame { uint16 id; uint16 value; };", PointerSize = 8, Aligned = false, LittleEndian = true)]
+    public static partial class PipeReader { }
+
+    /// <summary>Recipes: <c>pipe-reader-2</c>.</summary>
+    [CStructLayout("struct message { uint8 count; uint8 payload[count]; };", PointerSize = 8, Aligned = false, LittleEndian = true)]
+    public static partial class PipeReader2 { }
 
     /// <summary>Recipes: <c>positioned-stream</c>.</summary>
     [CStructLayout("struct header { uint16 kind; uint32 length; };", PointerSize = 8, Aligned = false, LittleEndian = true)]

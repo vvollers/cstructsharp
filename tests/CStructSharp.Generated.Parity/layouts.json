@@ -2175,6 +2175,16 @@
     },
     {
       "source": "Recipes",
+      "id": "async-stream",
+      "className": "AsyncStream",
+      "definition": "struct header { uint16 kind; uint32 length; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
       "id": "bit-flags",
       "className": "BitFlags",
       "definition": "struct flags { uint8 enabled : 1; uint8 mode : 3; uint8 reserved : 4; };",
@@ -2448,6 +2458,26 @@
       "id": "patch-field",
       "className": "PatchField",
       "definition": "struct item { uint16 id; uint8 flags; }; struct root { item value; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "pipe-reader",
+      "className": "PipeReader",
+      "definition": "struct frame { uint16 id; uint16 value; };",
+      "root": null,
+      "pointerSize": 8,
+      "aligned": false,
+      "littleEndian": true
+    },
+    {
+      "source": "Recipes",
+      "id": "pipe-reader-2",
+      "className": "PipeReader2",
+      "definition": "struct message { uint8 count; uint8 payload[count]; };",
       "root": null,
       "pointerSize": 8,
       "aligned": false,
