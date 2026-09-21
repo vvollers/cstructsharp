@@ -9,10 +9,31 @@ permissions:
   contents: read
 
 jobs:
-  mutation:
+  plan:
+    name: Plan the complete permanent scope
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.5.0
+      - name: Verify orchestration contracts
+        run: node --test tools/quality/mutation-partitions.test.mjs
+      - name: Produce every partition from the checked-out configuration
+        id: plan
+        run: echo "matrix=$(node tools/quality/mutation-partitions.mjs --mode plan)" >> "$GITHUB_OUTPUT"
 
+  permanent:
+    name: Permanent mutation ${{ matrix.id }} (${{ matrix.files }} files)
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -20,42 +41,73 @@ jobs:
         with:
           global-json-file: global.json
 
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.5.0
+
       - name: Restore tools and projects
         run: |
           dotnet tool restore
           dotnet restore ./tests/CStructSharpTests/CStructSharpTests.csproj
 
-      - name: Mutate the reviewed permanent non-Web scope
-        run: >-
-          dotnet stryker
-          --config-file ./stryker-config.json
-          --solution ./CStructSharp.NonWeb.sln
-          --target-framework net10.0
-          --configuration Release
-          --output ./artifacts/mutation/permanent
-          --skip-version-check
+      - name: Mutate this complete file partition
+        run: node tools/quality/mutation-partitions.mjs --mode run --partition ${{ matrix.id }} --output-directory artifacts/mutation/${{ matrix.id }}
 
-      - name: Enforce the permanent-scope report
-        if: always()
-        run: >-
-          node tools/quality/mutation-report.mjs
-          --report-path ./artifacts/mutation/permanent/reports/mutation-report.json
-
-      - name: Mutate memory analysis
-        if: always()
-        run: >-
-          dotnet stryker
-          --config-file ./stryker-memory-config.json
-          --solution ./CStructSharp.NonWeb.sln
-          --target-framework net10.0
-          --configuration Release
-          --output ./artifacts/mutation/memory
-          --skip-version-check
-
-      - name: Upload mutation report
+      - name: Retain partition report, execution evidence and Stryker logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: mutation-report
-          path: artifacts/mutation/
+          name: mutation-permanent-${{ matrix.id }}
+          path: artifacts/mutation/${{ matrix.id }}/
+          if-no-files-found: error
+
+  aggregate:
+    name: Enforce the complete permanent mutation gate
+    needs: [plan, permanent]
+    if: ${{ always() && needs.plan.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.5.0
+      - name: Download every partition separately
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: mutation-permanent-p*
+          path: artifacts/mutation-input
+      - name: Check identities, aggregate and enforce unchanged scope and thresholds
+        run: node tools/quality/mutation-partitions.mjs --mode aggregate --input-directory artifacts/mutation-input --output-directory artifacts/mutation-aggregate
+      - name: Retain aggregate report and measured execution times
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: mutation-permanent-aggregate
+          path: artifacts/mutation-aggregate/
           if-no-files-found: warn
+
+  memory:
+    name: Independent memory mutation
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.5.0
+      - name: Restore tools and projects
+        run: |
+          dotnet tool restore
+          dotnet restore tests/CStructSharpTests/CStructSharpTests.csproj
+      - name: Mutate and validate the complete memory scope
+        run: node tools/quality/mutation-partitions.mjs --mode memory --output-directory artifacts/mutation/memory
+      - name: Retain memory report and Stryker logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: mutation-memory
+          path: artifacts/mutation/memory/
+          if-no-files-found: error

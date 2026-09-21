@@ -22,6 +22,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   timing comparisons advisory.
 - Enforce whole-library coverage using merged runtime, generated-parity and generator-consumer evidence, with
   explicit compile-time metadata qualification and regression tests for array, lookup and write-failure contracts.
+- Partition the complete permanent mutation scope with checked report aggregation, independent memory mutation,
+  retained diagnostics and measured execution times; preserve all reviewed files and score gates.
 
 ## 0.8.0 — 2026-09-21
 

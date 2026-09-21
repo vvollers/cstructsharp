@@ -59,6 +59,46 @@ and tests the mutations. The last command checks that the report was made with t
 This can take much longer than an ordinary test run. Progress is shown in the terminal. The JSON and HTML reports
 are written below `artifacts/mutation/permanent/`. The `artifacts/` directory is ignored by Git.
 
+## Complete parallel workflow
+
+The scheduled/manual `mutation.yml` workflow runs the same permanent scope in 16 file-based partitions. It assigns
+larger source files first to the smallest group, using file size only as an initial scheduling estimate. Every one
+of the 71 configured files belongs to exactly one partition. No character ranges or changed-file filters are used.
+Each partition runs the full permitted test suite with coverage-based test selection disabled. The memory scope
+runs in an independent job with its existing per-test selection and 75% score floor.
+
+Inspect the matrix locally without running mutations:
+
+```sh
+node tools/quality/mutation-partitions.mjs --mode plan
+```
+
+Run one planned partition after restoring tools and projects, using a new output directory:
+
+```sh
+node tools/quality/mutation-partitions.mjs --mode run --partition p00 --output-directory artifacts/mutation/p00
+```
+
+One partition is development evidence, not a complete gate. The workflow downloads all partition artifacts into
+separate directories and runs:
+
+```sh
+node tools/quality/mutation-partitions.mjs --mode aggregate --input-directory artifacts/mutation-input --output-directory artifacts/mutation-aggregate
+```
+
+Aggregation requires every partition, the same source revision and configuration, matching report hashes and
+source text, complete mutation outcomes, and valid references to killing/covering tests. It gives test and mutant
+identifiers a partition prefix so independently numbered reports cannot collide. The original full-scope validator
+then enforces all 71 files, the 75% score floor and zero surviving/uncovered/runtime-error mutations. Missing reports
+fail; compile errors remain compile errors. Raw JSON/HTML reports and Stryker trace logs are retained even when a
+partition fails. A job timeout cannot be counted as a completed report.
+
+Each mutation job has a 180-minute limit; partitions run concurrently where runner capacity permits. The
+`aggregation.json` artifact records each Stryker process's elapsed time and their sum. Compare those measurements
+with the Actions job start/end times: total runner time also includes setup and uploads, while workflow elapsed
+time includes queuing. Parallelism can shorten feedback without reducing runner cost. Revisit the partition count
+or grouping when measured jobs approach their limit; keep the complete scope and score gates unchanged.
+
 ### Mutating only what changed
 
 A full run over the allowlist takes hours. To check the files a branch or a series of commits touched, add Stryker's
