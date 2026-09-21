@@ -12,6 +12,42 @@ using Microsoft.CSharp.RuntimeBinder;
 [TestClass]
 public class UnionValueTests
 {
+    /// <summary>Conversion failure returns false and a default value, with the categorized cause when requested.</summary>
+    [TestMethod]
+    public void TryGet_OverflowIsNotReportedAsSuccess()
+    {
+        UnionValue value = UnionValue.FromMember("choice", "wide", (ushort)300);
+        Assert.IsFalse(value.TryGet<byte>("wide", out byte plain));
+        Assert.AreEqual((byte)0, plain);
+        Assert.IsFalse(value.TryGet<byte>("wide", out byte explained, out CStructException? failure));
+        Assert.AreEqual((byte)0, explained);
+        Assert.IsInstanceOfType<CStructReadException>(failure);
+        Assert.AreEqual((byte)9, value.GetOrDefault("wide", (byte)9));
+    }
+
+    /// <summary>Null arguments remain argument errors rather than missing members, conversion failures or null dereferences.</summary>
+    [TestMethod]
+    public void NullNamesAndPathsReportTheArgument()
+    {
+        UnionValue value = UnionValue.FromMember("choice", "small", (byte)1);
+        Assert.AreEqual("unionName", Assert.Throws<ArgumentNullException>(() => UnionValue.FromRaw(null!, new byte[] { 1, })).ParamName);
+        Assert.AreEqual("path", Assert.Throws<ArgumentNullException>(() => value.Get<byte>(null!)).ParamName);
+        Assert.AreEqual("path", Assert.Throws<ArgumentNullException>(() => value.TryGet<byte>(null!, out _)).ParamName);
+        Assert.AreEqual("path", Assert.Throws<ArgumentNullException>(() => value.TryGet<byte>(null!, out _, out _)).ParamName);
+        StringAssert.Contains(Assert.Throws<ArgumentException>(() => UnionValue.FromRaw(" ", new byte[] { 1, })).Message, "Union name must not be whitespace");
+        StringAssert.Contains(Assert.Throws<InvalidOperationException>(() => value.WithoutSelection()).Message, "must keep an explicit selected member");
+    }
+
+    /// <summary>Debug text distinguishes anonymous storage, null selected members and raw storage without inventing a selection.</summary>
+    [TestMethod]
+    public void ToString_DescribesAnonymousAndNullMemberValues()
+    {
+        Assert.AreEqual("union { 2 raw bytes }", UnionValue.FromRaw(string.Empty, new byte[] { 1, 2, }).ToString());
+        Assert.AreEqual("choice { selected: pointer; pointer = null }", UnionValue.FromMember("choice", "pointer", null).ToString());
+        UnionValue twoViews = UnionValue.FromMember("choice", "first", (byte)1).WithSelectedMember("second", (byte)2);
+        Assert.AreEqual("choice { selected: second; first = 1, second = 2 }", twoViews.ToString());
+    }
+
     /// <summary>
     ///     small and large describe the same two bytes as different integer widths.
     /// </summary>

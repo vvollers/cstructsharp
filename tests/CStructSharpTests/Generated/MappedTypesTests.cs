@@ -30,6 +30,10 @@ public class MappedTypesTests
         var tie = new CStruct("struct root { uint8 a_b; uint8 A_b; };").Parse(new byte[] { 1, 2 }, "root");
         Assert.AreEqual("AB", MappedTypes.MemberName(tie, "AB"), "two members tie once underscores are ignored: unresolved");
 
+        var leading = new CStruct("struct root { uint8 _value; };").Parse(new byte[] { 7 }, "root");
+        Assert.AreEqual("_value", MappedTypes.MemberName(leading, "Value"), "an underscore at index zero is still ignored");
+        Assert.AreEqual((byte)7, leading.Get<byte>(MappedTypes.MemberName(leading, "Value")));
+
         Assert.Throws<ArgumentNullException>(() => MappedTypes.MemberName(null!, "x"));
         Assert.Throws<ArgumentNullException>(() => MappedTypes.MemberName(value, null!));
     }

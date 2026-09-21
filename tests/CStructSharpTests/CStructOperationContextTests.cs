@@ -1,7 +1,9 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
 using CStructSharp.Reading;
+using CStructSharp.Syntax;
 
 /// <summary>
 ///     Exercises <see cref="CStructOperationContext"/> directly, independent of a real parse/read operation. Only
@@ -11,6 +13,62 @@ using CStructSharp.Reading;
 [TestClass]
 public class CStructOperationContextTests
 {
+    /// <summary>Each invalid budget explains which setting prevents constructing a usable read context.</summary>
+    [TestMethod]
+    public void Constructor_InvalidBudgetsIdentifyTheRejectedSetting()
+    {
+        using var stream = new MemoryStream(new byte[4]);
+        ReadOperationSettings defaults = ReadOperationSettings.SnapshotReadOptions(null);
+        (ReadOperationSettings Settings, string Reason)[] cases =
+        [
+            (defaults with { MaxPointerDepth = -1, }, "Maximum pointer depth cannot be negative"),
+            (defaults with { MaxPointerTargetBytes = -1, }, "Maximum pointer target bytes cannot be negative"),
+            (defaults with { MaxArrayElements = -1, }, "Maximum array elements cannot be negative"),
+            (defaults with { MaxStringBytes = -1, }, "Read byte limits cannot be negative"),
+            (defaults with { MaxTotalBytesRead = -1, }, "Read byte limits cannot be negative"),
+            (defaults with { MaxNestingDepth = 0, }, "Maximum nesting depth must be greater than zero"),
+        ];
+
+        foreach ((ReadOperationSettings settings, string reason) in cases)
+        {
+            // Check the diagnostic as well as rejection so callers can correct the responsible option.
+            ArgumentOutOfRangeException failure = Assert.Throws<ArgumentOutOfRangeException>(
+                () => new CStructOperationContext(stream, [], aligned: false, settings));
+            Assert.AreEqual("options", failure.ParamName);
+            StringAssert.Contains(failure.Message, reason);
+        }
+    }
+
+    /// <summary>Only a resolved selective dictionary can skip publishing unreferenced layout variables.</summary>
+    [TestMethod]
+    public void Constructor_PreservesSelectiveAndCaptureAllVariableModes()
+    {
+        using var stream = new MemoryStream();
+        ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(null);
+        Assert.IsTrue(new CStructOperationContext(stream, [], false, settings).CaptureAllLayoutVariables);
+        Assert.IsFalse(new CStructOperationContext(stream, new LayoutVariables(), false, settings).CaptureAllLayoutVariables);
+        Assert.IsTrue(new CStructOperationContext(stream, new LayoutVariables { CaptureAll = true, }, false, settings).CaptureAllLayoutVariables);
+    }
+
+    /// <summary>Leaving a nested scope removes its prefix marker and missing fields cannot retain stale qualified values.</summary>
+    [TestMethod]
+    public void PublishQualified_RemovesStaleValuesAndReleasesPrefixState()
+    {
+        using var stream = new MemoryStream();
+        var context = new CStructOperationContext(stream, [], false, ReadOperationSettings.SnapshotReadOptions(null));
+        context.Variables["count"] = new Literal(3);
+        context.QualifiedPrefix = "header.";
+        context.PublishQualified("count");
+        Assert.AreEqual(3, context.Variables["header.count"].Value);
+        context.Variables.Remove("count");
+        context.PublishQualified("count");
+        Assert.IsFalse(context.Variables.ContainsKey("header.count"));
+        context.QualifiedPrefix = null;
+        Assert.IsFalse(context.HasQualifiedPrefix);
+        Assert.IsNull(context.QualifiedPrefix);
+        Assert.HasCount(0, context.Variables, "leaving the scope must release its internal prefix marker");
+    }
+
     /// <summary>A valid readable, seekable stream and default settings must produce a context exposing those settings.</summary>
     [TestMethod]
     public void Constructor_ValidStream_ExposesTheSuppliedSettings()

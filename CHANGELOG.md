@@ -26,6 +26,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   retained diagnostics and measured execution times; preserve all reviewed files and score gates. Explicitly
   account for exact reviewed declarations with no mutation opportunities, without counting them as detected behavior.
   Run Stryker in project context so its configured core test scope is honored instead of rediscovering every test project.
+- Cover enum metadata, repeated flags, union conversions and record-sequence boundaries with focused regression
+  tests, including short reads, original input offsets and cancellation between records.
 - Correct learning-path and dependency guidance, current inspector/JavaScript references, and benchmark fixture
   claims. Derive volatile fixture and executable-scenario counts from their owning definitions.
 - Explain cursor ownership, generated reads and inspector invalidation at the relevant source boundaries, and
