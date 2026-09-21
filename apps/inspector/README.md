@@ -12,7 +12,11 @@ fields, discover records for the schema, change its pointer width from file byte
 Files stay as Blob sources. Parsing uses the full source in a worker; the hex panel reads visible windows.
 Pointers can target offsets beyond 4 GiB without reading the intervening bytes. Search scans bounded chunks,
 and edits compose immutable Blob ranges with undo/redo. Cancel stops parsing; changing the file or example also
-cancels outstanding work. No edits are written to disk until the user downloads a result.
+cancels outstanding work. Edits are temporary and for inspection only: the app does not save or download edited
+files, and the original file stays unchanged. Replacing the file or closing the tab discards the edited copy.
+
+The inspector supports desktop browser windows at least **1200 CSS pixels wide**. Narrower windows show guidance
+instead of clipped panels; enlarge the window to return to the same session. Mobile inspection is not supported.
 
 The settings dialog controls decoded array, string and total-read budgets. These are independent of file size
 and pointer distance. Larger payload budgets can be selected explicitly; results still have to fit available memory.

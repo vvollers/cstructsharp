@@ -14,6 +14,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   acquisition. Preserve the original failure if restoring the stream position also fails.
 - Correct forward-only stream guidance with executable record-iterator and retained-pipe examples; a single-value
   byte budget does not prevent consuming a byte from the next record.
+- Clarify that inspector edits are temporary, without a download feature. Show desktop-use guidance below a
+  1200-pixel browser width while preserving the current session when resizing.
 
 ## 0.8.0 — 2026-09-21
 

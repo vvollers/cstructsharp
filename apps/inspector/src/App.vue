@@ -35,10 +35,12 @@ const { open: openDetectionDialog, onChange: onDetectionChange } = useFileDialog
   multiple: false,
   accept: "*",
 });
+// Load the chosen file into the current schema without changing its settings.
 onFileChange((files) => {
   const file = files?.item(0);
   if (file) void inspector.loadFile(file);
 });
+// Load and detect only when the user explicitly chose the detection dialog.
 onDetectionChange((files) => {
   const file = files?.item(0);
   if (file) void inspector.loadFile(file, true);
@@ -47,6 +49,7 @@ onDetectionChange((files) => {
 // Dockview manages the movable panels. Its component registry accepts very broad prop types,
 // so we use `satisfies InspectorPanelParams` below to check the data we pass to our adapter.
 const dockComponents = { inspector: InspectorDockPanel as unknown as VueComponent };
+/** Create the initial three-panel desktop layout, sharing the same inspection session with each panel. */
 function onDockviewReady({ api }: DockviewReadyEvent): void {
   const panels = [
     { id: "schema", title: "Schema" },
@@ -66,6 +69,7 @@ function onDockviewReady({ api }: DockviewReadyEvent): void {
       params: {
         panel: id,
         inspector,
+        // Open the ordinary file chooser; loading and cancellation belong to the shared session.
         onLoadFile: () => openFileDialog(),
       } satisfies InspectorPanelParams,
     });
@@ -75,6 +79,7 @@ function onDockviewReady({ api }: DockviewReadyEvent): void {
 
 <template>
   <InspectorHeader
+    class="desktop-header"
     :source-label="sourceLabel"
     :is-running="isRunning"
     :wasm-status="wasmStatus"
@@ -82,6 +87,20 @@ function onDockviewReady({ api }: DockviewReadyEvent): void {
     :wasm-error="wasmError"
     @cancel="inspector.cancelParse"
   />
+  <p class="session-notice" data-testid="temporary-edits-notice">
+    Edits are temporary and for inspection only. Original files stay unchanged; downloading edited
+    files is not available.
+  </p>
+  <section class="minimum-width-notice" data-testid="minimum-width-notice">
+    <h1>Open the inspector on a desktop</h1>
+    <p>
+      The inspector needs a browser window at least 1200 CSS pixels wide for its schema, bytes and
+      results panels. Enlarge this window or use a desktop computer. Mobile inspection is not
+      supported.
+    </p>
+    <p>Your current session stays in this tab when you resize the window.</p>
+    <a href="https://vvollers.github.io/cstructsharp/docs/">Read the documentation</a>
+  </section>
   <main class="workspace">
     <ExampleList
       :examples="schemaCatalog"
@@ -106,6 +125,15 @@ function onDockviewReady({ api }: DockviewReadyEvent): void {
 </template>
 
 <style scoped>
+.session-notice {
+  margin: 0;
+  padding: 6px 20px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.minimum-width-notice {
+  display: none;
+}
 .workspace {
   display: flex;
   flex: 1;
@@ -115,5 +143,20 @@ function onDockviewReady({ api }: DockviewReadyEvent): void {
   flex: 1;
   min-width: 0;
   min-height: 0;
+}
+@media (max-width: 1199px) {
+  .desktop-header,
+  .session-notice,
+  .workspace {
+    display: none;
+  }
+  .minimum-width-notice {
+    display: block;
+    padding: 24px;
+    overflow: auto;
+  }
+  .minimum-width-notice a {
+    color: var(--color-accent);
+  }
 }
 </style>
