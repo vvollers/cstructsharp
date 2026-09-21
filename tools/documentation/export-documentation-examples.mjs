@@ -1,3 +1,4 @@
+/** Exports complete recipe programs/pages from executable sources. Usage: node tools/documentation/export-documentation-examples.mjs. */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -5,6 +6,11 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const examples = path.join(root, "docs/examples");
 const original = fs.readFileSync(path.join(examples, "Program.cs"), "utf8");
+// The runner includes scenarios beyond the exported recipes; its final total must come from its registration list.
+const scenarioBlock = original.match(/Scenarios\s*=\s*\[([\s\S]*?)\];/)?.[1];
+if (!scenarioBlock) throw new Error("Missing executable documentation scenario list");
+const scenarioCount = [...scenarioBlock.matchAll(/\("[^"]+",/g)].length;
+if (scenarioCount === 0) throw new Error("The executable documentation scenario list is empty");
 const more = fs.readFileSync(path.join(examples, "MoreExamples.cs"), "utf8");
 const binaryTypes = fs.readFileSync(path.join(examples, "BinaryTypeExamples.cs"), "utf8");
 const parity = fs.readFileSync(path.join(examples, "DissectParityExamples.cs"), "utf8");
@@ -116,7 +122,7 @@ for (const [id, title, level, region, expected, explanation, exercise, answer, g
   toc.push(`- name: ${title}`, `  href: ${id}.md`);
 }
 fs.writeFileSync(path.join(out, "toc.yml"), `${toc.join("\n")}\n`);
-const catalog = ["---", "title: Tested recipes", "description: Choose a complete executable recipe by task, difficulty, and platform.", "---", "", "# Tested recipes", "", "Start with the [first C# program](../install-and-first-parse.md) or the [Node.js and browser quick start](../browser/index.md).", `These ${recipes.length} recipes include complete programs, exact byte/value checks, exercises, and answers. Browser links identify`, "related lessons; C# streams, spans, typed classes, and runtime-variable dictionaries have no direct browser equivalent.", "", "Run one recipe from the repository root with the .NET 10 SDK:", "", "```sh", "dotnet run --project docs/examples/CStructSharp.Docs.Examples.csproj -c Release -- decode-header", "```", "", "Use `--list` instead of `decode-header` to list names. Omit arguments to run all scenarios. Success ends with", "`PASS all " + recipes.length + " scenarios`. Complete programs can also be copied into a console project with a matching package."];
+const catalog = ["---", "title: Tested recipes", "description: Choose a complete executable recipe by task, difficulty, and platform.", "---", "", "# Tested recipes", "", "Start with the [first C# program](../install-and-first-parse.md) or the [Node.js and browser quick start](../browser/index.md).", `These ${recipes.length} recipes include complete programs, exact byte/value checks, exercises, and answers. Browser links identify`, "related lessons; C# streams, spans, typed classes, and runtime-variable dictionaries have no direct browser equivalent.", "", "Run one recipe from the repository root with the .NET 10 SDK:", "", "```sh", "dotnet run --project docs/examples/CStructSharp.Docs.Examples.csproj -c Release -- decode-header", "```", "", "Use `--list` instead of `decode-header` to list names. Omit arguments to run all scenarios. Success ends with", "`PASS all " + scenarioCount + " scenarios`. Complete programs can also be copied into a console project with a matching package."];
 for (const level of ["Beginner", "Intermediate", "Advanced"]) {
   catalog.push("", `## ${level}`, "", "| Task | Result checked | Browser lesson |", "| --- | --- | --- |");
   for (const [id, title, , , expected, , , , , lesson] of recipes.filter(item => item[2] === level)) {

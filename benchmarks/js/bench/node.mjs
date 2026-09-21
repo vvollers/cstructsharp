@@ -10,6 +10,7 @@ import { boundaryCases, coreCases, publicCases, streamCases, comparatorCases, ve
 import { loadFixture, manifest, repositoryRoot } from "./fixtures.mjs";
 import { captureEnvironment } from "./environment.mjs";
 import { loadBundle } from "./runtime.mjs";
+import { canVerifyPublicFixture } from "./fixture-eligibility.mjs";
 
 const filter = process.env.BENCH_FILTER ? new RegExp(process.env.BENCH_FILTER) : null;
 const quick = process.env.BENCH_QUICK === "1";
@@ -44,8 +45,7 @@ for (const entry of manifest().fixtures) {
   const { document } = loadFixture(entry.id);
   // Every fixture the bridge can parse: an expectation, bytes within the synchronous path, and read limits within
   // the browser contract's bounds (the 1 MiB uint8 array needs maxArrayElements above the bridge's cap).
-  if ((document.expected === null || document.expected === undefined) && !document.expectedSha256) continue;
-  if (document.byteLength > 4 * 1024 * 1024 || (document.readOptions?.maxArrayElements ?? 0) > 1_000_000) continue;
+  if (!canVerifyPublicFixture(document)) continue;
   await verifyFixture(env, entry.id);
   verified.push(entry.id);
 }

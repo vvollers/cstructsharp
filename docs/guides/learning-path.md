@@ -1,6 +1,6 @@
 ---
 title: Learning path
-description: Nine steps (and a generated-code branch) from what CStructSharp is to the reference material, one page each, with the three examples worth reading first.
+description: Nine steps (and a generated-code branch) from what CStructSharp is to the reference material, with four examples worth reading first.
 ---
 
 # Learning path
@@ -39,9 +39,10 @@ already answered for you.
    [debug ranges and addresses](debug-data-and-addresses.md), and the memory-image series starting at
    [analyze mapped memory](memory-analysis.md).
 
-## The three examples to read first
+## Four examples to read first
 
-The repository ships forty tested recipes, four browser lessons, and three starters. Read these four first;
+Choose from the [tested recipe catalog](recipes/index.md) and the
+[browser lessons](https://vvollers.github.io/cstructsharp/explorer/#lesson=header). Read these four examples first;
 together they cover reading, writing, updating, typed results, and a data-dependent shape:
 
 | Example | What it shows |

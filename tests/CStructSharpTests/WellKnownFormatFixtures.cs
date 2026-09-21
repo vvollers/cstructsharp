@@ -5,7 +5,7 @@ using CStructSharp.Values;
 /// <summary>
 ///     Verifies the CStruct definitions and sample bytes used by the CStructSharpInspector example app's
 ///     well-known-format catalog (BMP, WAV, ZIP, PNG, JPG/JFIF, PE/EXE, PE/DLL, TAR, ICO). Each test constructs the
-///     exact same definition text and sample bytes the app's <c>src/formats.ts</c> catalog carries, so the app's
+///     exact same definition text and sample bytes the app's <c>src/schema-catalog.ts</c> catalog carries, so the app's
 ///     hand-authored examples have a real correctness signal instead of trusting hand-written bytes/DSL text by
 ///     inspection alone.
 /// </summary>

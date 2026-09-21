@@ -3,6 +3,7 @@
 //   ?mode=cold&fixture=<id>              — measure runtime create / exports / first compile / first parse once
 import { runCases, formatRecord, sinkValue } from "/bench/harness.mjs";
 import { boundaryCases, coreCases, publicCases, streamCases, comparatorCases, verifyFixture } from "/bench/cases.mjs";
+import { browserVerificationFixtures } from "/bench/fixture-eligibility.mjs";
 
 const params = new URLSearchParams(location.search);
 const logElement = document.getElementById("log");
@@ -76,7 +77,7 @@ try {
     const copyCounter = { pages: 0, pageBytes: 0, bytesIn: 0, bytesOut: 0, jsonChars: 0 };
     const env = { host: "browser", loadFixture, managed: bundle.managed, api: bundle.api, runtime: bundle.runtime, copyCounter };
     const verified = [];
-    for (const id of ["prim-le-record", "nested-x256", "array-u8-1024", "union-x1k", "strings-1024", "pointer-depth-8", "cond-if128", "real-png", "real-pe-exe"]) {
+    for (const id of browserVerificationFixtures) {
       await verifyFixture(env, id);
       verified.push(id);
     }

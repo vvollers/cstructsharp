@@ -24,6 +24,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   explicit compile-time metadata qualification and regression tests for array, lookup and write-failure contracts.
 - Partition the complete permanent mutation scope with checked report aggregation, independent memory mutation,
   retained diagnostics and measured execution times; preserve all reviewed files and score gates.
+- Correct learning-path and dependency guidance, current inspector/JavaScript references, and benchmark fixture
+  claims. Derive volatile fixture and executable-scenario counts from their owning definitions.
 
 ## 0.8.0 — 2026-09-21
 

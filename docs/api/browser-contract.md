@@ -50,9 +50,10 @@ and 64-bit enum values are decimal strings; a non-finite float is `"NaN"`, `"Inf
 
 Options are one camelCase object per call: the compiler settings (`aligned`, `littleEndian`, `pointerSize`,
 `bitfieldPacking`, `bitfieldAllocation`, `cLongWidth`, the definition limits), `root`, and the read, write, or
-update settings of the operation (`trimFixedText`, `unknownMembers`, the addressing and budget options). Version 8
-replaced the PascalCase envelope of versions 1-7, dropped the root wrapper around `data`, renamed `rootTypeName` to
-`root`, and added `resolveAddress`; its history entry in the description lists every change.
+update settings of the operation (`trimFixedText`, `unknownMembers`, the addressing and budget options).
+The `root` option selects a declaration; successful `data` contains its fields directly. Use `resolveAddress`
+to locate a selected field without decoding its value. Release history and migrations belong in the
+[changelog](https://github.com/vvollers/cstructsharp/blob/main/CHANGELOG.md).
 
 The complete list of accepted options and error categories is in the
 [machine-readable browser description](../../contracts/api/browser-rc1/contract.json). Use that JSON file when changing

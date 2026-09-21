@@ -9,7 +9,7 @@ These guides start with the job you need to do and then explain which part of CS
 need to understand compiler construction or native memory layout before you begin.
 
 If this is your first binary-format library, follow the [learning path](learning-path.md): nine steps, one page
-each, from what a layout is to the reference material, plus the three examples worth reading first. Its first
+each, from what a layout is to the reference material, plus four examples worth reading first. Its first
 steps are:
 
 1. [Binary layout basics](binary-layout-basics.md) explains bytes, offsets, byte order, padding, and the role of a

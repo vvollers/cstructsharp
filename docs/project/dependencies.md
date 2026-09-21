@@ -43,7 +43,7 @@ library. Source Link is enabled in CI/release-style builds where repository meta
 | `tests/CStructSharpTests` | Uses the test SDK, MSTest, coverage tools, analyzers, core, and fuzz support |
 | `benchmarks/CStructSharp.Benchmarks` | Uses BenchmarkDotNet and core |
 | `tests/CStructSharp.PackageConsumer` | Installs the produced package without a project reference |
-| `CStructSharpWeb.Wasm` | Adds no managed package; references core |
+| `src/CStructSharp.Wasm` | Adds no managed package; references core |
 | `docs` | Uses pinned DocFX and Node quality tools and reads a prebuilt core assembly |
 
 ## Documentation tools
@@ -55,9 +55,10 @@ library. Source Link is enabled in CI/release-style builds where repository meta
 | `@playwright/test` | Navigation, search, theme, viewport, keyboard, and code-copy behavior |
 | `@axe-core/playwright` | Serious and critical automated accessibility findings |
 
-The documentation manifest pins exact versions and commits `package-lock.json`. Its `js-yaml` override is fixed at
-5.4.1 to satisfy the documentation dependency audit. Use Node 24 or 26. These tools do
-not enter either the NuGet package or the generated static site.
+The [documentation manifest](https://github.com/vvollers/cstructsharp/blob/main/docs/package.json) pins exact
+versions, records dependency overrides and declares the supported Node versions in `engines`.
+The committed `package-lock.json` records the installed graph used by the dependency audit. These development
+tools do not enter either the NuGet package or the generated static site.
 
 Install exactly the locked documentation tree with:
 
@@ -83,8 +84,11 @@ The web apps are outside routine core and documentation builds:
 | Lint integration | `typescript-eslint` / `globals` |
 | Format/orchestration | `prettier` |
 
-That manifest requires Node 22.12 or newer and npm 10 or newer; `packageManager` records the preferred npm version. The lockfile,
-not a floating manifest range, records the exact installed graph.
+Use the `engines` requirements in each app's manifest:
+[explorer](https://github.com/vvollers/cstructsharp/blob/main/apps/explorer/package.json) and
+[inspector](https://github.com/vvollers/cstructsharp/blob/main/apps/inspector/package.json).
+Their `packageManager` fields record the preferred npm version. Each lockfile, not a floating manifest range,
+records the exact installed graph.
 
 ## Review an update
 

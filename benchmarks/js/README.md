@@ -50,9 +50,17 @@ off once any assembly is interpreted.
 
 ## Method
 
-- Every run first verifies that the public JS `parse` reproduces the C# expected JSON (or its SHA-256) for every
-  fixture with an expectation that the bridge can parse (44 of 56; the digest comparison re-serializes the JS value
-  with the C# canonical escaping), so timing never runs on a build that disagrees with the managed library.
+<!-- benchmark-fixture-facts:start -->
+The Node correctness gate verifies 50 of 63 fixtures; the browser gate verifies 9 representative fixtures.
+<!-- benchmark-fixture-facts:end -->
+
+These counts are derived from the fixture manifest and the harness's shared selection rules. Check them with
+`node tools/documentation/sync-documentation-facts.mjs --check` from the repository root.
+
+- Before warm timing, each harness verifies that public JS `parse` reproduces the C# expected JSON (or its SHA-256)
+  for its selected fixtures. The digest comparison re-serializes the JS value with the C# canonical escaping.
+  Node selects fixtures with expectations that fit the bridge's synchronous byte and array limits; the browser
+  uses its named representative set. This is not a claim that every benchmark fixture is verified by both hosts.
   The public `parse` of a fully fixed layout (prim-le-record, nested-x256, real-png among the timed
   fixtures) runs the static plan in JavaScript, so `public.parse.*` measures that path for those fixtures and
   the managed parse + envelope for the others; `direct.parseSource.*` always measures the managed path.

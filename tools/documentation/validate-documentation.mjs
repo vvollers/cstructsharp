@@ -118,6 +118,7 @@ await main(() => {
   const ignored = ignoredDocumentationDependencies();
   assertCondition(ignored.length === 0, `Repository source still depends on ignored local-documentation paths:\n${ignored.join("\n")}`);
   runNode(path.join(here, "export-documentation-examples.mjs"), [], "Recipe generation failed.");
+  runNode(path.join(here, "sync-documentation-facts.mjs"), ["--check"], "Derived documentation facts are stale.");
   const generatedRecipes = JSON.parse(fs.readFileSync(path.join(documentationRoot, "generated-files.json"), "utf8"));
   assertCondition(generatedRecipes.length === 82, "Expected all 82 recipe exports (40 recipes, a .cs and a .md each, plus the recipe catalog and its toc).");
   for (const generated of generatedRecipes) assertCondition(fs.existsSync(path.join(documentationRoot, generated)), `Missing recipe export: ${generated}`);
