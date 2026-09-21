@@ -236,6 +236,13 @@ public class TypeEmissionTests
             """);
         StringAssert.Contains(selfNamed.DiagnosticsWithId("CSG003").Single().GetMessage(), "the class itself");
 
+        // A composite named like one of the layout class's own members (ReadValue, TryParse, ...) cannot be generated.
+        GeneratorResult reservedName = GeneratorRunner.Run(Header + """
+            [CStructLayout("struct read_value { uint8 x; }; struct root { read_value v; };")]
+            public static partial class Reserved { }
+            """);
+        StringAssert.Contains(reservedName.DiagnosticsWithId("CSG003").Single().GetMessage(), "ReadValue");
+
         // The view's own members (Bytes, ToObject, and a fixed array's <Member>Bytes slice) are reserved while views are generated.
         GeneratorResult viewBytes = GeneratorRunner.Run(Header + """
             [CStructLayout("union payload { uint32 word; uint8 bytes[4]; };")]

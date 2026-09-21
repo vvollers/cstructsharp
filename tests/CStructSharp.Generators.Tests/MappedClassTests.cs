@@ -131,6 +131,21 @@ public class MappedClassTests
         object viaRuntime = typeof(StructValue).GetMethod("ToMapped")!.MakeGenericMethod(record).Invoke(structValue, null)!;
         Assert.AreEqual((byte)9, record.GetProperty("Extra")!.GetValue(viaRuntime));
 
+        // The layout class reads a mapped class from the root without naming it: ReadValue<T> and TryReadValue<T>
+        // for byte[], memory, a sequence, and a stream forward to Layout.ReadValue<T>(source, RootName, ...).
+        foreach (Type inputType in new[] { typeof(byte[]), typeof(ReadOnlyMemory<byte>), typeof(System.Buffers.ReadOnlySequence<byte>), typeof(Stream) })
+        {
+            object input = inputType == typeof(byte[]) ? bytes : inputType == typeof(ReadOnlyMemory<byte>) ? new ReadOnlyMemory<byte>(bytes) : inputType == typeof(Stream) ? new MemoryStream(bytes) : new System.Buffers.ReadOnlySequence<byte>(bytes);
+            MethodInfo readValue = packet.GetMethods().Single(method => method.Name == "ReadValue" && method.GetParameters()[0].ParameterType == inputType).MakeGenericMethod(record);
+            object direct = readValue.Invoke(null, [input, null, null])!;
+            Assert.AreEqual(8u, record.GetProperty("BitDepth")!.GetValue(direct), inputType.Name);
+            MethodInfo tryReadValue = packet.GetMethods().Single(method => method.Name == "TryReadValue" && method.GetParameters()[0].ParameterType == inputType).MakeGenericMethod(record);
+            object cut = inputType == typeof(byte[]) ? bytes[..4] : inputType == typeof(ReadOnlyMemory<byte>) ? new ReadOnlyMemory<byte>(bytes[..4]) : inputType == typeof(Stream) ? new MemoryStream(bytes[..4]) : new System.Buffers.ReadOnlySequence<byte>(bytes[..4]);
+            object?[] failed = [cut, null, null, null];
+            Assert.IsFalse((bool)tryReadValue.Invoke(null, failed)!, inputType.Name);
+            Assert.IsNull(failed[1], inputType.Name);
+        }
+
         // Without a resolvable layout the names are matched at run time (exact, case-insensitive, underscores ignored); reader values pass through.
         object looseValue = ReadValue(loose, runtime, bytes);
         Assert.AreEqual(8u, loose.GetProperty("BitDepth")!.GetValue(looseValue));

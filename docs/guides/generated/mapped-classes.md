@@ -52,6 +52,9 @@ Each property receives its member through the same rules `Get<T>` applies:
 
 A generated layout class bridges to mapped classes without leaving the typed world:
 
+- `Wire.ReadValue<HeaderRecord>(bytes)` reads the root into the mapped class - the same as
+  `Wire.Layout.ReadValue<HeaderRecord>(bytes, "header")` without naming the root - and `Wire.TryReadValue<HeaderRecord>(bytes, out var record)`
+  reports a failure as `false`. Both take a span, an array, memory, a `ReadOnlySequence<byte>`, or a stream.
 - `Wire.ToMapped<HeaderRecord>(header)` converts a generated instance.
 - `Wire.ParseMapped<HeaderRecord>(bytes)` parses straight into the mapped class.
 - `Wire.SerializeMapped(record)` writes one.

@@ -93,6 +93,27 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <returns>The element count.</returns>");
         writer.Line("public static int GetArrayLength(global::System.ReadOnlySpan<byte> source, string path, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.GetArrayLength(source, path, variables, options);");
         writer.Line();
+        foreach ((string type, string parameter) in new[] { ("global::System.ReadOnlySpan<byte>", "source"), ("byte[]", "source"), ("global::System.ReadOnlyMemory<byte>", "source"), ("global::System.Buffers.ReadOnlySequence<byte>", "source"), ("global::System.IO.Stream", "stream") })
+        {
+            writer.Line("/// <summary>Reads the root declaration (<c>" + root.LayoutName + "</c>) with the runtime layout and maps it to <typeparamref name=\"T\"/> (a <c>[CStructMapped]</c> class, a <see cref=\"global::CStructSharp.Values.StructValue\"/>, ...) with the conversions of <c>Get&lt;T&gt;</c>: <c>Layout.ReadValue&lt;T&gt;(" + parameter + ", RootName, ...)</c>.</summary>");
+            writer.Line("/// <typeparam name=\"T\">The requested type.</typeparam>");
+            writer.Line("/// <param name=\"" + parameter + "\">The input.</param>");
+            writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+            writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+            writer.Line("/// <returns>The mapped value.</returns>");
+            writer.Line("public static T ReadValue<T>(" + type + " " + parameter + ", " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.ReadValue<T>(" + parameter + ", RootName, variables, options);");
+            writer.Line();
+            writer.Line("/// <summary>The non-throwing form of <see cref=\"ReadValue{T}(" + type.Replace('<', '{').Replace('>', '}') + ", " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>: <c>Layout.TryReadValue&lt;T&gt;(" + parameter + ", RootName, out value, ...)</c>.</summary>");
+            writer.Line("/// <typeparam name=\"T\">The requested type.</typeparam>");
+            writer.Line("/// <param name=\"" + parameter + "\">The input.</param>");
+            writer.Line("/// <param name=\"value\">The mapped value, or the default when the read failed.</param>");
+            writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+            writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+            writer.Line("/// <returns>Whether the read succeeded.</returns>");
+            writer.Line("public static bool TryReadValue<T>(" + type + " " + parameter + ", [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.TryReadValue<T>(" + parameter + ", RootName, out value, variables, options);");
+            writer.Line();
+        }
+
         writer.Line("/// <summary>Replaces one value in place by path with the runtime layout; statically placed members also have typed setters in <see cref=\"Update\"/>.</summary>");
         writer.Line("/// <param name=\"target\">The bytes holding the value.</param>");
         writer.Line("/// <param name=\"path\">The path, in the runtime's path grammar.</param>");

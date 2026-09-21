@@ -317,10 +317,13 @@ internal static partial class Program
     {
         byte[] bytes = [0x02, 0x00, 0x06, 0x00, 0x00, 0x00];
 
-        // The runtime reads into the mapped class; the generated layout bridges to it as well.
-        HeaderRecord record = Wire.Layout.ReadValue<HeaderRecord>(bytes, "header");
+        // The layout class reads its root straight into the mapped class; Wire.Layout.ReadValue<T>(bytes, "header")
+        // is the same call with the root named, and the generated instance bridges to it as well.
+        HeaderRecord record = Wire.ReadValue<HeaderRecord>(bytes);
         Equal(6u, record.Length);
+        Equal(6u, Wire.Layout.ReadValue<HeaderRecord>(bytes, "header").Length);
         Equal(6u, Wire.ToMapped<HeaderRecord>(Wire.Parse(bytes)).Length);
+        True(!Wire.TryReadValue(bytes[..3], out HeaderRecord? _), "three bytes are not a header");
         SequenceEqual(bytes, Wire.SerializeMapped(record));
 
         // Names match by exact spelling, then case-insensitively, then ignoring underscores; [CStructMember] overrides.

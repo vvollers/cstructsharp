@@ -600,6 +600,91 @@ namespace Demo
                 /// <returns>The element count.</returns>
                 public static int GetArrayLength(global::System.ReadOnlySpan<byte> source, string path, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.GetArrayLength(source, path, variables, options);
 
+                /// <summary>Reads the root declaration (<c>root</c>) with the runtime layout and maps it to <typeparamref name="T"/> (a <c>[CStructMapped]</c> class, a <see cref="global::CStructSharp.Values.StructValue"/>, ...) with the conversions of <c>Get&lt;T&gt;</c>: <c>Layout.ReadValue&lt;T&gt;(source, RootName, ...)</c>.</summary>
+                /// <typeparam name="T">The requested type.</typeparam>
+                /// <param name="source">The input.</param>
+                /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+                /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+                /// <returns>The mapped value.</returns>
+                public static T ReadValue<T>(global::System.ReadOnlySpan<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.ReadValue<T>(source, RootName, variables, options);
+
+                /// <summary>The non-throwing form of <see cref="ReadValue{T}(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>: <c>Layout.TryReadValue&lt;T&gt;(source, RootName, out value, ...)</c>.</summary>
+                /// <typeparam name="T">The requested type.</typeparam>
+                /// <param name="source">The input.</param>
+                /// <param name="value">The mapped value, or the default when the read failed.</param>
+                /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+                /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+                /// <returns>Whether the read succeeded.</returns>
+                public static bool TryReadValue<T>(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.TryReadValue<T>(source, RootName, out value, variables, options);
+
+                /// <summary>Reads the root declaration (<c>root</c>) with the runtime layout and maps it to <typeparamref name="T"/> (a <c>[CStructMapped]</c> class, a <see cref="global::CStructSharp.Values.StructValue"/>, ...) with the conversions of <c>Get&lt;T&gt;</c>: <c>Layout.ReadValue&lt;T&gt;(source, RootName, ...)</c>.</summary>
+                /// <typeparam name="T">The requested type.</typeparam>
+                /// <param name="source">The input.</param>
+                /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+                /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+                /// <returns>The mapped value.</returns>
+                public static T ReadValue<T>(byte[] source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.ReadValue<T>(source, RootName, variables, options);
+
+                /// <summary>The non-throwing form of <see cref="ReadValue{T}(byte[], global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>: <c>Layout.TryReadValue&lt;T&gt;(source, RootName, out value, ...)</c>.</summary>
+                /// <typeparam name="T">The requested type.</typeparam>
+                /// <param name="source">The input.</param>
+                /// <param name="value">The mapped value, or the default when the read failed.</param>
+                /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+                /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+                /// <returns>Whether the read succeeded.</returns>
+                public static bool TryReadValue<T>(byte[] source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.TryReadValue<T>(source, RootName, out value, variables, options);
+
+                /// <summary>Reads the root declaration (<c>root</c>) with the runtime layout and maps it to <typeparamref name="T"/> (a <c>[CStructMapped]</c> class, a <see cref="global::CStructSharp.Values.StructValue"/>, ...) with the conversions of <c>Get&lt;T&gt;</c>: <c>Layout.ReadValue&lt;T&gt;(source, RootName, ...)</c>.</summary>
+                /// <typeparam name="T">The requested type.</typeparam>
+                /// <param name="source">The input.</param>
+                /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+                /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+                /// <returns>The mapped value.</returns>
+                public static T ReadValue<T>(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.ReadValue<T>(source, RootName, variables, options);
+
+                /// <summary>The non-throwing form of <see cref="ReadValue{T}(global::System.ReadOnlyMemory{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>: <c>Layout.TryReadValue&lt;T&gt;(source, RootName, out value, ...)</c>.</summary>
+                /// <typeparam name="T">The requested type.</typeparam>
+                /// <param name="source">The input.</param>
+                /// <param name="value">The mapped value, or the default when the read failed.</param>
+                /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+                /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+                /// <returns>Whether the read succeeded.</returns>
+                public static bool TryReadValue<T>(global::System.ReadOnlyMemory<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.TryReadValue<T>(source, RootName, out value, variables, options);
+
+                /// <summary>Reads the root declaration (<c>root</c>) with the runtime layout and maps it to <typeparamref name="T"/> (a <c>[CStructMapped]</c> class, a <see cref="global::CStructSharp.Values.StructValue"/>, ...) with the conversions of <c>Get&lt;T&gt;</c>: <c>Layout.ReadValue&lt;T&gt;(source, RootName, ...)</c>.</summary>
+                /// <typeparam name="T">The requested type.</typeparam>
+                /// <param name="source">The input.</param>
+                /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+                /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+                /// <returns>The mapped value.</returns>
+                public static T ReadValue<T>(global::System.Buffers.ReadOnlySequence<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.ReadValue<T>(source, RootName, variables, options);
+
+                /// <summary>The non-throwing form of <see cref="ReadValue{T}(global::System.Buffers.ReadOnlySequence{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>: <c>Layout.TryReadValue&lt;T&gt;(source, RootName, out value, ...)</c>.</summary>
+                /// <typeparam name="T">The requested type.</typeparam>
+                /// <param name="source">The input.</param>
+                /// <param name="value">The mapped value, or the default when the read failed.</param>
+                /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+                /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+                /// <returns>Whether the read succeeded.</returns>
+                public static bool TryReadValue<T>(global::System.Buffers.ReadOnlySequence<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.TryReadValue<T>(source, RootName, out value, variables, options);
+
+                /// <summary>Reads the root declaration (<c>root</c>) with the runtime layout and maps it to <typeparamref name="T"/> (a <c>[CStructMapped]</c> class, a <see cref="global::CStructSharp.Values.StructValue"/>, ...) with the conversions of <c>Get&lt;T&gt;</c>: <c>Layout.ReadValue&lt;T&gt;(stream, RootName, ...)</c>.</summary>
+                /// <typeparam name="T">The requested type.</typeparam>
+                /// <param name="stream">The input.</param>
+                /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+                /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+                /// <returns>The mapped value.</returns>
+                public static T ReadValue<T>(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.ReadValue<T>(stream, RootName, variables, options);
+
+                /// <summary>The non-throwing form of <see cref="ReadValue{T}(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>: <c>Layout.TryReadValue&lt;T&gt;(stream, RootName, out value, ...)</c>.</summary>
+                /// <typeparam name="T">The requested type.</typeparam>
+                /// <param name="stream">The input.</param>
+                /// <param name="value">The mapped value, or the default when the read failed.</param>
+                /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+                /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+                /// <returns>Whether the read succeeded.</returns>
+                public static bool TryReadValue<T>(global::System.IO.Stream stream, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => Layout.TryReadValue<T>(stream, RootName, out value, variables, options);
+
                 /// <summary>Replaces one value in place by path with the runtime layout; statically placed members also have typed setters in <see cref="Update"/>.</summary>
                 /// <param name="target">The bytes holding the value.</param>
                 /// <param name="path">The path, in the runtime's path grammar.</param>

@@ -22,6 +22,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   `ReadOnlySequence<byte>`, `Stream`), each with and without an `out CStructException? failure`: a read, path, or
   limit failure becomes `false` with the exception the throwing form would have raised; cancellation and argument
   errors throw as before; a stream is left at its origin after a failure.
+- Generated `ReadValue<T>`/`TryReadValue<T>` on the layout class for the same five input kinds, forwarding to
+  `Layout.ReadValue<T>(source, RootName, ...)`: a mapped class is read from the root without naming it
+  (`Wire.ReadValue<HeaderRecord>(bytes)`). `ReadValue` and `TryReadValue` join the reserved member names (CSG003).
 
 - Awaitable reads: `ParseAsync`, `ParseWithDebugAsync`, `ReadValueAsync`, `ReadValueAsync<T>`, `ReadValueWithDebugAsync`,
   `TryReadValueAsync<T>` (returning the new `ReadAttempt<T>` - `Succeeded`, `Value`, `Failure` - since an `out`

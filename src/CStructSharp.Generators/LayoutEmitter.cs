@@ -59,7 +59,7 @@ internal sealed partial class LayoutEmitter
     private static readonly string[] ReservedMembers =
     [
         "Layout", "RootName", "Definition", "Parse", "ParseAsync", "TryParse", "Serialize", "Write", "WriteAsync", "ParseWithDebug", "ResolveAddress", "GetArrayLength", "UpdatePath",
-        "Sizes", "Offsets", "Update", "CreateCodecs", "CodecInstances", "LayoutInstance", "CreateLayout", "ToStructValue", "ToMapped", "SerializeMapped", "ParseMapped",
+        "Sizes", "Offsets", "Update", "CreateCodecs", "CodecInstances", "LayoutInstance", "CreateLayout", "ToStructValue", "ToMapped", "SerializeMapped", "ParseMapped", "ReadValue", "TryReadValue",
     ];
 
     private static string GeneratorVersion => typeof(LayoutEmitter).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
