@@ -69,6 +69,17 @@ Supported does not mean equally appropriate. Memory input avoids a stream adapte
 Debugging adds diagnostic work. Updating has validation-before-commit behavior that a direct stream write does not.
 Use [Choose an API](../guides/choosing-an-api.md) for those tradeoffs.
 
+The awaitable forms (`ParseAsync` and the other `*Async` reads, `WriteAsync`, `UpdateAsync`, `ParseManyAsync`, and
+the generated `Parse<Name>Async`/`Write<Name>Async`/`Records<Name>Async`), the `ReadOnlySequence<byte>` inputs, and
+the record sequences (`ParseMany`, the generated `Records`) add no column: each is an input or enumeration form of
+an operation above and runs the same reader, so every row's status carries over. The matrix's `asyncContract` block
+states the one rule they share (the stream is read with `ReadAsync` into a pooled buffer and the synchronous span
+reader runs over it), the position each form leaves a stream at, which forms need a seekable stream, where a
+stored pointer address counts from, and how cancellation surfaces, each with the test that pins it;
+`memoryIoContract.inputApis` lists the sequence overloads beside the span and memory ones. The guides are
+[async and pipelines](../guides/async-and-pipelines.md) and, for the generated forms,
+[sequences and TryParse](../guides/generated/sequences-and-try-parse.md).
+
 ## Limited rows
 
 A terminated-string update cannot grow beyond the existing storage plan or move later fields.

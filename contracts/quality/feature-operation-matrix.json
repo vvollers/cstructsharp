@@ -1,6 +1,8 @@
 {
   "schemaVersion": 2,
-  "domainContracts": ["contracts/memory/v1.json"],
+  "domainContracts": [
+    "contracts/memory/v1.json"
+  ],
   "operations": [
     {
       "id": "parse",
@@ -76,13 +78,23 @@
       "ReadValue<T>(ReadOnlySpan<byte>)",
       "ReadValue<T>(ReadOnlyMemory<byte>)",
       "TryReadValue<T>(ReadOnlySpan<byte>)",
-      "TryReadValue<T>(ReadOnlyMemory<byte>)"
+      "TryReadValue<T>(ReadOnlyMemory<byte>)",
+      "Parse(ReadOnlySequence<byte>)",
+      "ParseWithDebug(ReadOnlySequence<byte>)",
+      "ReadValue(ReadOnlySequence<byte>)",
+      "ReadValue<T>(ReadOnlySequence<byte>)",
+      "ReadValueWithDebug(ReadOnlySequence<byte>)",
+      "TryReadValue<T>(ReadOnlySequence<byte>)",
+      "ResolveAddress(ReadOnlySequence<byte>)",
+      "GetArrayLength(ReadOnlySequence<byte>)",
+      "ParseMany(ReadOnlyMemory<byte>)",
+      "ParseMany(ReadOnlySequence<byte>)"
     ],
     "outputApis": [
       "Serialize(Span<byte>)",
       "Serialize(IBufferWriter<byte>)"
     ],
-    "lifetime": "Every memory operation is synchronous and retains no caller buffer after returning.",
+    "lifetime": "Every memory operation is synchronous and retains no caller buffer after returning; a ReadOnlySequence<byte> of one segment is read in place, a chain of segments through a pooled copy bounded by MaxTotalBytesRead plus one byte, and a ParseMany enumeration over a chain keeps its pooled copy only while it is enumerated.",
     "pointerCoordinates": "Pointer positions are zero-based within the supplied input region or newly serialized output region, including sliced memory and appends to an existing writer.",
     "partialFailure": "Span output can leave an initialized prefix changed, and IBufferWriter output can retain advanced windows, when a later write fails; neither caller-owned destination promises rollback.",
     "evidence": [
@@ -93,7 +105,10 @@
       "tests/CStructSharpTests/MemoryIoTests.cs#BufferWriterSerialization_MatchesSharedWriterAcrossChunksAndVariables",
       "tests/CStructSharpTests/MemoryIoTests.cs#MemorySerialization_UsesRegionRelativeAppendAndZeroInitialization",
       "tests/CStructSharpTests/FixedBufferStreamTests.cs#WritableRegion_WritesReadsAndClearsNewlyInitializedBytes",
-      "tests/CStructSharpTests/BufferWriterStreamTests.cs#ForwardGapAcrossWindowBoundary_IsZeroInitialized"
+      "tests/CStructSharpTests/BufferWriterStreamTests.cs#ForwardGapAcrossWindowBoundary_IsZeroInitialized",
+      "tests/CStructSharpTests/SequenceInputTests.cs#SingleSegment_ReadsInPlace",
+      "tests/CStructSharpTests/SequenceInputTests.cs#MultipleSegments_ReadLikeTheFlatBytes",
+      "tests/CStructSharpTests/RecordSequenceTests.cs#Records_ReadTheSameFromEveryInput"
     ],
     "webIntegration": "Browser contract v4 accepts Uint8Array input and Base64 output through the shared parse/serialize/update bridge; bridge copying is measured separately from the zero-adapter managed memory APIs.",
     "workItem": "API-02"
@@ -122,7 +137,9 @@
       "tests/CStructSharpTests/CompiledExecutionParityTests.cs#AlignedCompositeSelections_ConsumeTheCompleteCompiledExtent",
       "tests/CStructSharpTests/CompiledExecutionParityTests.cs#UnionStructMember_UsesSequentialCompiledFieldTraversal",
       "tests/CStructSharpTests/CompiledIntermediateRepresentationTests.cs#PrimitiveTypedefSlice_UsesCompiledFactsAcrossEveryOperation",
-      "tests/CStructSharpTests/ReviewRegressionTests.cs#ParseStream_PointerToUnion_RewindsEveryMemberToTargetAddress"
+      "tests/CStructSharpTests/ReviewRegressionTests.cs#ParseStream_PointerToUnion_RewindsEveryMemberToTargetAddress",
+      "tests/CStructSharpTests/AsyncReadTests.cs#AsyncReads_AgreeWithTheStreamForms",
+      "tests/CStructSharpTests/ManualLanguageFixtureTests.cs#ValidFixtures_ReadTheSameAsynchronously"
     ],
     "workItem": "IR-02"
   },
@@ -136,7 +153,7 @@
       "update-address"
     ],
     "snapshotBoundary": "Read, write, and update settings are copied before variable enumeration, payload access, stream access, or another caller-controlled callback.",
-    "readState": "One CStructOperationContext owns resolved variables, the physical-read budget stream, addressing policy, structure and pointer depth, pointer-cycle tracking, bitfield progress, and optional debug diagnostics.",
+    "readState": "One CStructOperationContext owns resolved variables, the physical-read budget stream, addressing policy, structure and pointer depth, pointer-cycle tracking, bitfield progress, and optional debug diagnostics, and the operation's cancellation token, checked on entry and at every composite, pointer, block, element, and chunk boundary.",
     "selectedState": "Target location and selected-target consumption reuse the same context and cannot reset byte, array, structure, pointer, string, or cycle accounting.",
     "cycleKey": "Active pointer targets use value-tuple keys of address, compiled type name, and remaining pointer depth without allocating composite strings.",
     "evidence": [
@@ -144,9 +161,61 @@
       "tests/CStructSharpTests/OperationContextTests.cs#WriteOperation_SnapshotsOptionsBeforeCallerCallbacks",
       "tests/CStructSharpTests/OperationContextTests.cs#UpdateOperation_SnapshotsTraversalOptionsBeforeVariableEnumeration",
       "tests/CStructSharpTests/TraversalLimitTests.cs#SelectedRead_UsesOneTotalByteBudget",
-      "tests/CStructSharpTests/TraversalLimitTests.cs#SelectedPointerTarget_PreservesPathDereferenceDepth"
+      "tests/CStructSharpTests/TraversalLimitTests.cs#SelectedPointerTarget_PreservesPathDereferenceDepth",
+      "tests/CStructSharpTests/CancellationTests.cs#CancelledMidRead_StopsAtTheNextBoundary_AndTryFormsRestoreThePosition"
     ],
     "workItem": "IR-03"
+  },
+  "asyncContract": {
+    "schemaVersion": 1,
+    "rule": "Every awaitable form reads the stream with ReadAsync into a pooled buffer - a seekable stream up to its remaining length, any stream up to MaxTotalBytesRead plus one byte - and runs the synchronous span reader over it; there is no second reader, so values, limits, and failure texts are the synchronous forms'.",
+    "readForms": [
+      "ParseAsync",
+      "ParseWithDebugAsync",
+      "ReadValueAsync",
+      "ReadValueAsync<T>",
+      "ReadValueWithDebugAsync",
+      "TryReadValueAsync<T>",
+      "ResolveAddressAsync",
+      "GetArrayLengthAsync",
+      "ParseManyAsync"
+    ],
+    "writeForms": [
+      "WriteAsync",
+      "UpdateAsync"
+    ],
+    "generatedForms": [
+      "Parse<Name>Async",
+      "Write<Name>Async",
+      "Records<Name>Async"
+    ],
+    "positionRules": {
+      "read": "A seekable stream ends just after the value on success and at its origin on any failure; ResolveAddressAsync and GetArrayLengthAsync end at the origin; a non-seekable stream is consumed by what was buffered.",
+      "write": "WriteAsync serializes first and writes once, so a validation failure writes nothing; UpdateAsync reads the region from the origin, updates a pooled copy, writes back only the runs of bytes that differ, and restores the origin.",
+      "records": "ParseManyAsync and Records<Name>Async read a fixed-size root exactly one record at a time and a runtime-sized root through a pooled window that refills from the start of a record it could not hold; a seekable stream sits at the record's end after each step."
+    },
+    "seekableRequirements": {
+      "reads": "Any readable stream; a stream that cannot seek is consumed up to the budget plus one byte.",
+      "UpdateAsync": "A readable, writable, seekable stream.",
+      "records": "A fixed-size root reads from any stream; a runtime-sized root needs a seekable stream."
+    },
+    "pointerCoordinates": "The buffered region starts at the stream's current position, so a stored absolute pointer address counts from the origin (as in the span and memory forms), where the synchronous stream form counts from the stream's first byte; in a record sequence it counts from the record's first byte.",
+    "cancellation": "The cancellationToken parameter is linked with the options' token; cancellation surfaces as OperationCanceledException (never a read failure), before the first read when already cancelled, at the next boundary otherwise; the non-throwing forms let it through.",
+    "evidence": [
+      "tests/CStructSharpTests/AsyncStreamBufferTests.cs#SeekableStream_BuffersTheRemainderPlusOne",
+      "tests/CStructSharpTests/AsyncStreamBufferTests.cs#NonSeekableStream_IsConsumedUpToTheBudgetPlusOne",
+      "tests/CStructSharpTests/AsyncReadTests.cs#AsyncReads_AgreeWithTheStreamForms",
+      "tests/CStructSharpTests/AsyncReadTests.cs#AsyncFailures_MatchTheStreamFormsAndRestoreTheOrigin",
+      "tests/CStructSharpTests/AsyncWriteTests.cs#WriteAsync_WritesTheSyncBytes_AndNothingOnFailure",
+      "tests/CStructSharpTests/AsyncWriteTests.cs#UpdateAsync_WritesBackOnlyTheChangedRuns",
+      "tests/CStructSharpTests/AsyncWriteTests.cs#UpdateAsync_LeavesTheStreamUnchangedOnFailure",
+      "tests/CStructSharpTests/RecordSequenceTests.cs#ParseManyAsync_ReadsFilesForwardOnlyStreamsAndWindows",
+      "tests/CStructSharpTests/RecordSequenceTests.cs#StreamForms_LeaveThePositionAtTheRecordsEnd",
+      "tests/CStructSharpTests/CancellationTests.cs#CancelledMidRead_StopsAtTheNextBoundary_AndTryFormsRestoreThePosition",
+      "tests/CStructSharp.Generators.Tests/SequenceTests.cs#Records_ReadWhatParseManyReads_FromEveryInput",
+      "tests/CStructSharp.Generated.Parity/LayoutParityTests.cs#ManualFixtures_ValuesWritesAddressesAndTruncations_MatchTheRuntime"
+    ],
+    "workItem": "API-07"
   },
   "managedApiCompatibilityContract": {
     "baselineId": "managed-rc1",

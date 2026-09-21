@@ -168,6 +168,16 @@ await main(() => {
     "ReadValue<T>(ReadOnlyMemory<byte>)",
     "TryReadValue<T>(ReadOnlySpan<byte>)",
     "TryReadValue<T>(ReadOnlyMemory<byte>)",
+    "Parse(ReadOnlySequence<byte>)",
+    "ParseWithDebug(ReadOnlySequence<byte>)",
+    "ReadValue(ReadOnlySequence<byte>)",
+    "ReadValue<T>(ReadOnlySequence<byte>)",
+    "ReadValueWithDebug(ReadOnlySequence<byte>)",
+    "TryReadValue<T>(ReadOnlySequence<byte>)",
+    "ResolveAddress(ReadOnlySequence<byte>)",
+    "GetArrayLength(ReadOnlySequence<byte>)",
+    "ParseMany(ReadOnlyMemory<byte>)",
+    "ParseMany(ReadOnlySequence<byte>)",
   ];
   const memoryInputApis = strings(memoryIo.inputApis);
   assertCondition(sortedJoin(memoryInputApis) === sortedJoin(requiredMemoryInputApis), "memoryIoContract must list the exact span/memory input overload family.");
@@ -199,6 +209,20 @@ await main(() => {
   assertCondition(operationContextEvidence.length > 0, "operationContextContract has no executable evidence.");
   for (const reference of operationContextEvidence) assertEvidenceReference(reference, "operationContextContract");
   assertWorkItems([operationContext.workItem], "operationContextContract", true);
+
+  const asyncContract = matrix.asyncContract;
+  assertCondition(asyncContract, "asyncContract is required.");
+  assertCondition(Number(asyncContract.schemaVersion) === 1, "Unsupported asyncContract schema version.");
+  for (const property of ["rule", "pointerCoordinates", "cancellation"]) assertCondition(!blank(asyncContract[property]), `asyncContract has no ${property}.`);
+  assertCondition(sortedJoin(strings(asyncContract.readForms)) === sortedJoin(["ParseAsync", "ParseWithDebugAsync", "ReadValueAsync", "ReadValueAsync<T>", "ReadValueWithDebugAsync", "TryReadValueAsync<T>", "ResolveAddressAsync", "GetArrayLengthAsync", "ParseManyAsync"]), "asyncContract must list the exact awaitable read forms.");
+  assertCondition(sortedJoin(strings(asyncContract.writeForms)) === sortedJoin(["WriteAsync", "UpdateAsync"]), "asyncContract must list the exact awaitable write forms.");
+  assertCondition(sortedJoin(strings(asyncContract.generatedForms)) === sortedJoin(["Parse<Name>Async", "Write<Name>Async", "Records<Name>Async"]), "asyncContract must list the exact generated awaitable forms.");
+  for (const property of ["read", "write", "records"]) assertCondition(!blank(asyncContract.positionRules?.[property]), `asyncContract has no ${property} position rule.`);
+  for (const property of ["reads", "UpdateAsync", "records"]) assertCondition(!blank(asyncContract.seekableRequirements?.[property]), `asyncContract has no ${property} seekable requirement.`);
+  const asyncEvidence = strings(asyncContract.evidence);
+  assertCondition(asyncEvidence.length > 0, "asyncContract has no executable evidence.");
+  for (const reference of asyncEvidence) assertEvidenceReference(reference, "asyncContract");
+  assertWorkItems([asyncContract.workItem], "asyncContract", true);
 
   const managed = matrix.managedApiCompatibilityContract;
   assertCondition(managed, "managedApiCompatibilityContract is required.");
