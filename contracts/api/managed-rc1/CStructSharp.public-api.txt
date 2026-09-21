@@ -471,6 +471,10 @@ namespace CStructSharp.Generated
         public string TakeTerminatedString(CStructSharp.Generated.TerminatedTextEncoding encoding, char terminator, string member, string? memberType) { }
         public string TakeWideText(int count, bool littleEndian, string member, string? memberType) { }
         public static byte[] BufferStream(System.IO.Stream stream, CStructSharp.ReadOptions? options, out int length) { }
+        [return: System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "Buffer",
+                "Length"})]
+        public static System.Threading.Tasks.ValueTask<System.ValueTuple<byte[], int>> BufferStreamAsync(System.IO.Stream stream, CStructSharp.ReadOptions? options, System.Threading.CancellationToken cancellationToken) { }
         public static byte[] CopySequence(System.Buffers.ReadOnlySequence<byte> source, CStructSharp.ReadOptions? options, out int length) { }
         public static string ShortReadText(long needed, long available) { }
     }

@@ -8,6 +8,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Added
 
+- `ReadCursor.BufferStreamAsync`, the awaitable form of the buffering every stream form that runs the span reader
+  uses (a seekable stream up to its remaining length, any stream up to `MaxTotalBytesRead`, plus one byte so a
+  value larger than the budget reports the budget failure rather than a short read); the generated `Parse(Stream)`
+  and the runtime's async operations share the one implementation (`Streams/AsyncStreamBuffer`).
 - `ReadOnlySequence<byte>` overloads of `Parse`, `ParseWithDebug`, `ReadValue`, `ReadValue<T>`, `ReadValueWithDebug`,
   `TryReadValue<T>`, `ResolveAddress`, and `GetArrayLength`, and generated `Parse<Name>`/`Parse` overloads, for input
   that arrives in segments (a `PipeReader`'s buffer): a single-segment sequence is read in place with the span

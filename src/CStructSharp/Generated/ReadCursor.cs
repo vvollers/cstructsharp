@@ -106,40 +106,19 @@ public ref struct ReadCursor
     /// <param name="length">The number of bytes read into the buffer.</param>
     /// <returns>The rented buffer.</returns>
     public static byte[] BufferStream(System.IO.Stream stream, ReadOptions? options, out int length)
-    {
-        ArgumentNullException.ThrowIfNull(stream);
-        ReadOperationSettings settings = ReadOperationSettings.SnapshotReadOptions(options);
-        long limit = Math.Min(settings.MaxTotalBytesRead, int.MaxValue - 1);
-        if (stream.CanSeek)
-        {
-            limit = Math.Min(limit, Math.Max(0, stream.Length - stream.Position));
-        }
+        => Streams.AsyncStreamBuffer.Rent(stream, options, out length);
 
-        // One byte past the budget lets the reader report the budget failure instead of a short read.
-        int capacity = (int)Math.Min(limit + 1, int.MaxValue - 1);
-        byte[] buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(capacity);
-        try
-        {
-            length = 0;
-            while (length < capacity)
-            {
-                int read = stream.Read(buffer, length, capacity - length);
-                if (read <= 0)
-                {
-                    break;
-                }
-
-                length += read;
-            }
-
-            return buffer;
-        }
-        catch
-        {
-            System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-            throw;
-        }
-    }
+    /// <summary>
+    ///     The awaitable form of <see cref="BufferStream"/>: the same bytes read with
+    ///     <see cref="System.IO.Stream.ReadAsync(Memory{byte}, System.Threading.CancellationToken)"/>; the generated
+    ///     <c>ParseAsync</c> forms and the runtime's async operations share it.
+    /// </summary>
+    /// <param name="stream">The stream to read from its current position.</param>
+    /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+    /// <param name="cancellationToken">The token that ends the read while it waits for bytes.</param>
+    /// <returns>The rented buffer and the number of bytes read into it.</returns>
+    public static System.Threading.Tasks.ValueTask<(byte[] Buffer, int Length)> BufferStreamAsync(System.IO.Stream stream, ReadOptions? options, System.Threading.CancellationToken cancellationToken)
+        => Streams.AsyncStreamBuffer.RentAsync(stream, options, cancellationToken);
 
     /// <summary>
     ///     Copies a multi-segment <see cref="System.Buffers.ReadOnlySequence{T}"/> into one pooled array so it can be
