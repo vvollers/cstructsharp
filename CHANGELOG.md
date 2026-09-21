@@ -14,39 +14,6 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Added
 
-- `StructValue.TryGet<T>(path, out value, out CStructException? failure)` and `UnionValue.TryGet<T>(...)` hand back
-  the path or read exception `Get<T>` would have thrown - so an absent member (a `CStructPathException`) and an
-  unconvertible one (a `CStructReadException`) can be told apart without a `catch` - and `GetOrDefault<T>(path,
-  fallback)` on both returns the fallback in either case.
-- Generated `TryParse<Name>`/`TryParse` for every input kind (`ReadOnlySpan<byte>`, `byte[]`, `ReadOnlyMemory<byte>`,
-  `ReadOnlySequence<byte>`, `Stream`), each with and without an `out CStructException? failure`: a read, path, or
-  limit failure becomes `false` with the exception the throwing form would have raised; cancellation and argument
-  errors throw as before; a stream is left at its origin after a failure.
-- `ParseMany(ReadOnlyMemory<byte> | ReadOnlySequence<byte> | Stream, path, variables, options)` returning
-  `IEnumerable<StructValue>` and `ParseManyAsync(Stream, ..., cancellationToken)` returning
-  `IAsyncEnumerable<StructValue>`: one root struct after another until the input ends, each parsed on the step that
-  reaches it with the read limits applied per record. A fixed-size root advances by its size, a runtime-sized root
-  by the previous record's end; trailing bytes shorter than one record fail on the step that meets them (a
-  fixed-size root with the partial-element text of a `T v[EOF]` array); a failure names the record by its index
-  before the path (`[3].header.length`). The awaitable form reads a fixed-size root exactly one record at a time
-  (any readable stream, byte-exact) and a runtime-sized root through a pooled window that refills from the record
-  it could not hold (a seekable stream). In the memory, sequence, and awaitable forms a stored absolute pointer
-  address counts from the record's first byte; the synchronous stream form counts from the stream's first byte, as
-  `Parse(Stream)` does. The analyzer's CSG200/CSG201 cover `ParseMany`, `ParseManyAsync`, and the awaitable forms.
-- Generated `Records<Name>(ReadOnlyMemory<byte> | ReadOnlySequence<byte> | Stream, variables, options)` returning
-  `IEnumerable<Name>` and `Records<Name>Async(Stream, ..., cancellationToken)` returning `IAsyncEnumerable<Name>`
-  (root forms `Records`/`RecordsAsync`): the typed twin of `ParseMany`, with the same stride, trailing-bytes, record
-  index, per-record limit, and pointer rules, driven by the new support type `CStructSharp.Generated.RecordSequence`
-  over a generated `RecordReader<T>`; a composite whose size the layout fixes (including a count that is a
-  `#define` or a constant expression, as `GetStructSizeInBytes` counts it) is read one record at a time from any
-  stream. For a composite with a static size, `<Name>View.Enumerate(ReadOnlySpan<byte>, options)` returns a
-  `foreach`-able `ref struct` enumeration of views over consecutive records that allocates nothing. `Records` and
-  `RecordsAsync` join the reserved member names, and the derived `<Name>View`, `<Name>ViewEnumerable`, and
-  `<Name>ViewEnumerator` type names join the CSG003 checks.
-- Generated `ReadValue<T>`/`TryReadValue<T>` on the layout class for the same five input kinds, forwarding to
-  `Layout.ReadValue<T>(source, RootName, ...)`: a mapped class is read from the root without naming it
-  (`Wire.ReadValue<HeaderRecord>(bytes)`). `ReadValue` and `TryReadValue` join the reserved member names (CSG003).
-
 - Awaitable reads: `ParseAsync`, `ParseWithDebugAsync`, `ReadValueAsync`, `ReadValueAsync<T>`, `ReadValueWithDebugAsync`,
   `TryReadValueAsync<T>` (returning the new `ReadAttempt<T>` - `Succeeded`, `Value`, `Failure` - since an `out`
   parameter cannot cross an `await`), `ResolveAddressAsync`, and `GetArrayLengthAsync`, each with a
@@ -71,12 +38,6 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   uses (a seekable stream up to its remaining length, any stream up to `MaxTotalBytesRead`, plus one byte so a
   value larger than the budget reports the budget failure rather than a short read); the generated `Parse(Stream)`
   and the runtime's async operations share the one implementation (`Streams/AsyncStreamBuffer`).
-- `ReadOnlySequence<byte>` overloads of `Parse`, `ParseWithDebug`, `ReadValue`, `ReadValue<T>`, `ReadValueWithDebug`,
-  `TryReadValue<T>`, `ResolveAddress`, and `GetArrayLength`, and generated `Parse<Name>`/`Parse` overloads, for input
-  that arrives in segments (a `PipeReader`'s buffer): a single-segment sequence is read in place with the span
-  path's cost; a multi-segment one is copied into a pooled buffer bounded by `MaxTotalBytesRead` plus one byte, so
-  a sequence longer than the budget fails with the budget text. `ReadCursor.CopySequence` is the copy the runtime
-  and generated code share. Coordinates are zero-based at the sequence's start.
 - `ReadOptions.CancellationToken`, `WriteOptions.CancellationToken`, and (through `WriteOptions`)
   `UpdateOptions.CancellationToken`: a read observes the token when it enters a struct or union, follows a pointer,
   starts a 64 KiB block of a numeric array, an element of an array of structs, or a 256-byte chunk of a terminated
@@ -84,13 +45,44 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   `OperationCanceledException` - never a `CStructException`, never `false` from `TryReadValue<T>` (which restores the
   stream position and rethrows). An update stages before it commits, so a cancelled update leaves the destination
   unchanged. Generated readers and writers observe the same token through `ReadCursor`/`WriteCursor`.
-
-- Benchmarks: `AsyncBenchmarks` (category `Async`: every stream form against its awaitable twin, runtime and
-  generated) and `SequenceBenchmarks` (category `Sequences`: segmented input, and 256 records through `ParseMany`,
-  the generated `Records`, and the view enumerator against the loops a caller would write). The release gate
-  (`contracts/performance/non-web-rc1.json`) gains `Runtime_PrimRecord_ParseAsync_MemoryStream` and
-  `Generated_Records256_ViewEnumerator` (18 cases), and the performance page's rendered block gains an "async and
-  sequences" table.
+- `ReadOnlySequence<byte>` overloads of `Parse`, `ParseWithDebug`, `ReadValue`, `ReadValue<T>`, `ReadValueWithDebug`,
+  `TryReadValue<T>`, `ResolveAddress`, and `GetArrayLength`, and generated `Parse<Name>`/`Parse` overloads, for input
+  that arrives in segments (a `PipeReader`'s buffer): a single-segment sequence is read in place with the span
+  path's cost; a multi-segment one is copied into a pooled buffer bounded by `MaxTotalBytesRead` plus one byte, so
+  a sequence longer than the budget fails with the budget text. `ReadCursor.CopySequence` is the copy the runtime
+  and generated code share. Coordinates are zero-based at the sequence's start.
+- `ParseMany(ReadOnlyMemory<byte> | ReadOnlySequence<byte> | Stream, path, variables, options)` returning
+  `IEnumerable<StructValue>` and `ParseManyAsync(Stream, ..., cancellationToken)` returning
+  `IAsyncEnumerable<StructValue>`: one root struct after another until the input ends, each parsed on the step that
+  reaches it with the read limits applied per record. A fixed-size root advances by its size, a runtime-sized root
+  by the previous record's end; trailing bytes shorter than one record fail on the step that meets them (a
+  fixed-size root with the partial-element text of a `T v[EOF]` array); a failure names the record by its index
+  before the path (`[3].header.length`). The awaitable form reads a fixed-size root exactly one record at a time
+  (any readable stream, byte-exact) and a runtime-sized root through a pooled window that refills from the record
+  it could not hold (a seekable stream). In the memory, sequence, and awaitable forms a stored absolute pointer
+  address counts from the record's first byte; the synchronous stream form counts from the stream's first byte, as
+  `Parse(Stream)` does. The analyzer's CSG200/CSG201 cover `ParseMany`, `ParseManyAsync`, and the awaitable forms.
+- Generated `Records<Name>(ReadOnlyMemory<byte> | ReadOnlySequence<byte> | Stream, variables, options)` returning
+  `IEnumerable<Name>` and `Records<Name>Async(Stream, ..., cancellationToken)` returning `IAsyncEnumerable<Name>`
+  (root forms `Records`/`RecordsAsync`): the typed twin of `ParseMany`, with the same stride, trailing-bytes, record
+  index, per-record limit, and pointer rules, driven by the new support type `CStructSharp.Generated.RecordSequence`
+  over a generated `RecordReader<T>`; a composite whose size the layout fixes (including a count that is a
+  `#define` or a constant expression, as `GetStructSizeInBytes` counts it) is read one record at a time from any
+  stream. For a composite with a static size, `<Name>View.Enumerate(ReadOnlySpan<byte>, options)` returns a
+  `foreach`-able `ref struct` enumeration of views over consecutive records that allocates nothing. `Records` and
+  `RecordsAsync` join the reserved member names, and the derived `<Name>View`, `<Name>ViewEnumerable`, and
+  `<Name>ViewEnumerator` type names join the CSG003 checks.
+- Generated `TryParse<Name>`/`TryParse` for every input kind (`ReadOnlySpan<byte>`, `byte[]`, `ReadOnlyMemory<byte>`,
+  `ReadOnlySequence<byte>`, `Stream`), each with and without an `out CStructException? failure`: a read, path, or
+  limit failure becomes `false` with the exception the throwing form would have raised; cancellation and argument
+  errors throw as before; a stream is left at its origin after a failure.
+- `StructValue.TryGet<T>(path, out value, out CStructException? failure)` and `UnionValue.TryGet<T>(...)` hand back
+  the path or read exception `Get<T>` would have thrown - so an absent member (a `CStructPathException`) and an
+  unconvertible one (a `CStructReadException`) can be told apart without a `catch` - and `GetOrDefault<T>(path,
+  fallback)` on both returns the fallback in either case.
+- Generated `ReadValue<T>`/`TryReadValue<T>` on the layout class for the same five input kinds, forwarding to
+  `Layout.ReadValue<T>(source, RootName, ...)`: a mapped class is read from the root without naming it
+  (`Wire.ReadValue<HeaderRecord>(bytes)`). `ReadValue` and `TryReadValue` join the reserved member names (CSG003).
 
 ### Fixed
 
@@ -106,6 +98,39 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - `ReadOptions` and `CStructCompilationOptions` are `sealed record`s, as `WriteOptions` and `UpdateOptions` already
   were: `options with { TrimFixedText = true }` copies every other member, and two option instances with the same
   members are equal (the collection members `Codecs` and `Defined` compare by reference). No signature changed.
+
+### Performance
+
+- The token checks cost the synchronous paths one field: every runtime read allocates 8 bytes more (the token on the
+  budget stream), a write or update 16 bytes more, and the two-round A/B runs against the 0.7.0 tree stayed inside the
+  noise floor on every read, write, update, and generated case (allocations otherwise unchanged; the single-round
+  timings flip sign on identical code). Measured on the reference machine (Short job): the runtime record
+  `ParseAsync` over a `MemoryStream` read in place 343 ns / 904 B against `Parse(Stream)` 307 ns / 728 B, through a
+  hidden buffer 353 ns, from a `FileStream` 3.6 µs / 1,464 B; the generated `ParseAsync` 74 ns / 48 B against
+  `Parse(Stream)` 42 ns; `WriteAsync` 233 ns / 784 B against `Write(Stream)` 199 ns / 384 B; `UpdateAsync` 1.18 µs /
+  2,328 B against `Update(Stream)` 929 ns / 2,184 B; 256 fixed records through `ParseMany` 68 µs / 201 KB against a
+  `Parse` loop 65 µs / 201 KB, through the generated `Records` 5.9 µs / 12.5 KB against a generated `Parse` loop
+  10.7 µs / 12.3 KB, and through the view enumerator 251 ns / 0 B against the hand-written offset loop 247 ns / 0 B.
+- Benchmarks: `AsyncBenchmarks` (category `Async`: every stream form against its awaitable twin, runtime and
+  generated) and `SequenceBenchmarks` (category `Sequences`: segmented input, and 256 records through `ParseMany`,
+  the generated `Records`, and the view enumerator against the loops a caller would write). The release gate
+  (`contracts/performance/non-web-rc1.json`) gains `Runtime_PrimRecord_ParseAsync_MemoryStream` and
+  `Generated_Records256_ViewEnumerator` (18 cases), and the performance page's rendered block gains an "async and
+  sequences" table.
+
+### Documentation
+
+- New guide [async reads, cancellation, and pipelines](docs/guides/async-and-pipelines.md) (what `await` and a
+  `ValueTask` do here, the buffer-then-span rule with the stream position before and after, where the token is
+  checked and why cancellation is not a failure, awaitable writes, framing records from a `PipeReader`, `with` on
+  the option records) and new lesson [sequences and TryParse](docs/guides/generated/sequences-and-try-parse.md)
+  (`TryParse` and the failure it hands over, `ReadValue<T>` on the class, `Records`/`RecordsAsync`, the view
+  enumerator, `ParseAsync`/`WriteAsync`), each with "Check yourself" and an exercise; four new tested recipes
+  (`async-stream`, `pipe-reader`, `record-sequence`, `try-parse`; forty in all); the choose-an-API tables, reading,
+  typed-values, errors, performance, trimming, and runtime-or-generated pages, the language manual's operations
+  page, the operation matrix, the architecture and testing notes, the glossary, and the README cover the new forms.
+- The generated API documentation validator understands generic positional records and delegates (their
+  compiler-synthesized members).
 
 ## 0.7.0 — 2026-09-21
 

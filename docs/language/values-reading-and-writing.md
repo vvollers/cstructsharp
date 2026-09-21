@@ -64,10 +64,27 @@ Successful parse/read/write calls advance the stream according to the consumed v
 `ResolveAddress`, dynamic-length lookup, and `Update` restore the original position under their documented
 conditions.
 
+The awaitable forms (`ParseAsync`, `ReadValueAsync`, `ReadValueAsync<T>`, `ParseWithDebugAsync`,
+`ReadValueWithDebugAsync`, `TryReadValueAsync<T>`, `ResolveAddressAsync`, `GetArrayLengthAsync`, `WriteAsync`,
+`UpdateAsync`, `ParseManyAsync`) accept any readable stream for a read: the bytes are read with `ReadAsync` into a
+pooled buffer - a seekable stream up to its remaining length, any stream up to `MaxTotalBytesRead` plus one byte -
+and the span reader decodes them, so a stream that cannot seek is consumed by what was buffered. A seekable stream
+ends after the value on success and at its origin on any failure; the two queries end at the origin. `UpdateAsync`
+needs a readable, writable, seekable stream; `ParseManyAsync` of a runtime-sized root needs a seekable one. In
+the buffered forms a stored absolute pointer address counts from the origin, as in the memory forms.
+
 ## Span and memory input
 
 `Parse`, `ReadValue`, and `TryReadValue<T>` accept `byte[]`, `ReadOnlySpan<byte>`, or `ReadOnlyMemory<byte>`. They complete
-synchronously and do not retain the caller's region. Pointer coordinates start at zero inside that region.
+synchronously and do not retain the caller's region. Pointer coordinates start at zero inside that region. Every
+read operation also accepts a `ReadOnlySequence<byte>`: one segment is read in place, a chain of segments through a
+pooled copy bounded by `MaxTotalBytesRead` plus one byte.
+
+`ParseMany` reads one root struct after another until the input ends - memory, a sequence, or a seekable stream -
+and yields each record on the step that reaches it, with the limits applied per record; trailing bytes shorter
+than one record fail with the record's index in the path. In the memory, sequence, and awaitable forms each record
+is its own region (a stored absolute address counts from the record's first byte); the synchronous stream form
+counts from the stream's first byte, as `Parse(Stream)` does.
 
 Serialization can fill a writable span or append to `IBufferWriter<byte>`. It returns the initialized/appended count.
 Unused span capacity stays unchanged. These destinations cannot roll back a prefix after a late error; stage through

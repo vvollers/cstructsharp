@@ -30,5 +30,12 @@ description: Plain-language definitions for the terms used in CStructSharp examp
 | Cache | Retained reusable work, such as a prepared layout, to avoid repeating it |
 | Envelope | The outer result object containing success, data, and error information |
 | Round trip | Read data and write it back, checking which bytes and values are preserved |
+| `ValueTask` | A lightweight promise of a result that `await` waits for; already complete when the bytes were in memory |
+| `CancellationToken` | A signal an operation checks for "stop now", created from a `CancellationTokenSource` (a timer, a shutdown); cancellation is an `OperationCanceledException`, never a read failure |
+| `ReadOnlySequence<byte>` | Bytes in one or several segments, such as a `PipeReader`'s buffer; one segment is read in place, several through a pooled copy |
+| `PipeReader` | A reader over bytes that arrive in pieces: `ReadAsync` hands over what has arrived, `AdvanceTo` reports what was consumed and examined |
+| Record sequence | One root struct after another with nothing between them, read one per step by `ParseMany` or the generated `Records` |
+| Iterator | A method that produces values one at a time as a loop asks for them (`IEnumerable<T>`, `IAsyncEnumerable<T>` for `await foreach`); a record is parsed only when the loop reaches it |
+| `ref struct` enumerator | A stack-only `GetEnumerator`/`MoveNext`/`Current` set that `foreach` accepts without `IEnumerable<T>`, so an enumeration over views allocates nothing |
 
 Start with [binary layout basics](binary-layout-basics.md) to see these ideas applied to six bytes.

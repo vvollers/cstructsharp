@@ -119,7 +119,7 @@ await main(() => {
   assertCondition(ignored.length === 0, `Repository source still depends on ignored local-documentation paths:\n${ignored.join("\n")}`);
   runNode(path.join(here, "export-documentation-examples.mjs"), [], "Recipe generation failed.");
   const generatedRecipes = JSON.parse(fs.readFileSync(path.join(documentationRoot, "generated-files.json"), "utf8"));
-  assertCondition(generatedRecipes.length === 74, "Expected all 74 recipe exports (36 recipes, a .cs and a .md each, plus the recipe catalog and its toc).");
+  assertCondition(generatedRecipes.length === 82, "Expected all 82 recipe exports (40 recipes, a .cs and a .md each, plus the recipe catalog and its toc).");
   for (const generated of generatedRecipes) assertCondition(fs.existsSync(path.join(documentationRoot, generated)), `Missing recipe export: ${generated}`);
   const broken = brokenRepositoryMarkdownLinks();
   assertCondition(broken.length === 0, `Repository Markdown contains missing local link targets:\n${broken.join("\n")}`);

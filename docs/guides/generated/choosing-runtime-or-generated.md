@@ -18,6 +18,9 @@ Both paths read and write the same layouts with the same rules. They differ in *
 | Reading a memory image with the memory-analysis API? | Yes | Through `Wire.Layout` |
 | JSON, introspection, debug output? | `CStruct` members | `Wire.Layout` and `ParseWithDebug` |
 | Writing? | Dictionaries or mapped classes | Typed classes, typed `Update` setters |
+| Input that may be wrong? | `TryReadValue<T>`, `TryGet`/`GetOrDefault` on the value | `TryParse` with the failure it would have thrown |
+| A file of records, a stream of frames? | `ParseMany` / `ParseManyAsync` (`StructValue` per record) | `Records` / `RecordsAsync` (a class per record), or the view enumerator (nothing allocated) |
+| Streams that arrive while the program runs? | `ParseAsync`, `WriteAsync`, `UpdateAsync` | `ParseAsync`, `WriteAsync` - the same buffering, the generated reader |
 | Exploring a format interactively? | `dynamic`, paths | Less convenient |
 
 The table's short form: **if the layout is in your source, generate; if it arrives with the data, use the

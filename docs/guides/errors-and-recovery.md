@@ -40,12 +40,24 @@ bug in application code into `false`, and it lets an `OperationCanceledException
 `ReadOptions.CancellationToken` ([cancel a long operation](variables-options-and-limits.md#cancel-a-long-operation))
 is the caller's decision to stop, not a property of the input.
 
+The same rule has three more forms. The awaitable `TryReadValueAsync<T>` returns a `ReadAttempt<T>` - `Succeeded`,
+`Value`, and `Failure` - because an `out` parameter cannot cross an `await`; `Failure` is the exception the throwing
+form would have raised. A generated layout class has `TryParse(input, out value)` and
+`TryParse(input, out value, out CStructException? failure)` for every input kind
+([sequences and TryParse](generated/sequences-and-try-parse.md)). And a value you already hold has
+`TryGet<T>(path, out value, out failure)` and `GetOrDefault<T>(path, fallback)`, which tell an absent member (a
+`CStructPathException`) from an unconvertible one (a `CStructReadException`) without a `catch`.
+
 ## Know what can be recovered
 
 | Operation | Expected failure behavior |
 | --- | --- |
 | Layout construction | No binary input has been touched. Fix or reject the layout. |
 | `TryReadValue<T>` on a stream | Returns `false` and restores the starting position. |
+| `ParseAsync` and the other awaitable reads | A seekable stream returns to its origin on any failure; a stream that cannot seek has been consumed up to the budget plus one byte. |
+| `WriteAsync` | Serializes first and writes once: a validation failure writes nothing. |
+| `UpdateAsync` | Updates a buffered copy and writes back only the changed runs; a failure leaves the stream unchanged. |
+| `ParseMany` / `Records` | Records before the failing one were delivered; the failure names the record by index (`[3].header`). |
 | `ResolveAddress` / length lookup | Restores position after inspection. |
 | `Serialize` to a new `byte[]` | No result array is returned. |
 | Span / `IBufferWriter` serialization | An initialized or advanced prefix may remain. |

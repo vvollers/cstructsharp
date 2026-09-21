@@ -109,3 +109,4 @@ StructValue
 ifdef
 offsetof
 PWSTR
+LINQ

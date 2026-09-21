@@ -28,8 +28,10 @@ already answered for you.
    [binary metadata types](binary-metadata-types.md); the
    [language tutorial](../language/tutorial/index.md) teaches the syntax behind them.
 7. **Errors, files, and streams.** [Errors and recovery](errors-and-recovery.md),
-   [variables, options, and limits](variables-options-and-limits.md), and the
-   [binary file walkthrough](binary-file-walkthrough.md), which combines reading, validating, and patching a file.
+   [variables, options, and limits](variables-options-and-limits.md),
+   [async reads, cancellation, and pipelines](async-and-pipelines.md) for streams that arrive while the program
+   runs, and the [binary file walkthrough](binary-file-walkthrough.md), which combines reading, validating, and
+   patching a file.
 8. **JavaScript.** [The JavaScript API](browser/api.md), [large files and streams](browser/large-data.md), and
    [deployment](browser/deployment.md).
 9. **Reference and advanced.** The [layout-language manual](../language/index.md), the
@@ -39,7 +41,7 @@ already answered for you.
 
 ## The three examples to read first
 
-The repository ships thirty-six tested recipes, four browser lessons, and three starters. Read these four first;
+The repository ships forty tested recipes, four browser lessons, and three starters. Read these four first;
 together they cover reading, writing, updating, typed results, and a data-dependent shape:
 
 | Example | What it shows |

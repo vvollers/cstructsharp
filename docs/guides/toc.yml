@@ -49,6 +49,8 @@ items:
   href: performance.md
 - name: Spans and memory
   href: spans-and-memory.md
+- name: Async reads, cancellation, and pipelines
+  href: async-and-pipelines.md
 - name: Debug data and addresses
   href: debug-data-and-addresses.md
 - name: Migrating from dissect.cstruct

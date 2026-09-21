@@ -20,10 +20,11 @@ This series teaches that path, one idea per page:
 5. [Pointers and budgets](pointers-and-budgets.md) - stored addresses and the limits that protect a read.
 6. [Conditional fields](conditionals.md) - `if` and `switch` in generated code.
 7. [Writing and updating](writing-and-updating.md) - `Serialize`, `Write`, typed setters.
-8. [Mapped classes](mapped-classes.md) - `[CStructMapped]` for your own types.
-9. [Diagnostics](diagnostics.md) - every CSG message, its cause, and its fix.
-10. [How it works](how-it-works.md) - the pipeline from attribute to code.
-11. [Runtime or generated?](choosing-runtime-or-generated.md) - a decision table.
+8. [Sequences and TryParse](sequences-and-try-parse.md) - `TryParse`, `Records`, the view enumerator, `ParseAsync`.
+9. [Mapped classes](mapped-classes.md) - `[CStructMapped]` for your own types.
+10. [Diagnostics](diagnostics.md) - every CSG message, its cause, and its fix.
+11. [How it works](how-it-works.md) - the pipeline from attribute to code.
+12. [Runtime or generated?](choosing-runtime-or-generated.md) - a decision table.
 
 ## Compile time and run time
 

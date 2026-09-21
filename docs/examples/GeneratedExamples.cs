@@ -288,6 +288,68 @@ internal static partial class Program
     }
     #endregion
 
+    #region recipe-try-parse
+    private static void TryParseForms()
+    {
+        byte[] bytes = [0x02, 0x00, 0x06, 0x00, 0x00, 0x00];
+
+        // TryParse returns false instead of throwing for a read, path, or limit failure; the value is null then.
+        True(Wire.TryParse(bytes, out Wire.Header? header) && header.Length == 6, "six bytes are a header");
+        True(!Wire.TryParse(bytes.AsSpan(0, 3), out Wire.Header? missing) && missing is null, "three bytes are not");
+
+        // The second form hands over the failure the throwing form would have raised, so a log line can say why.
+        True(!Wire.TryParse(bytes.AsSpan(0, 3), out _, out CStructException? failure), "the same outcome");
+        True(failure is CStructReadException, "a short read: the kind was read, the length needs four more bytes");
+        True(failure!.Message.Contains("needed 4, available 1", StringComparison.Ordinal), failure.Message);
+
+        // A stream is left at its origin after a failure, so the caller can try another layout at the same place.
+        using var stream = new MemoryStream([0xFF, 0x02, 0x00, 0x06]) { Position = 1 };
+        True(!Wire.TryParse(stream, out _), "three bytes remain");
+        Equal(1L, stream.Position);
+
+        // Cancellation is not a failure: it throws through TryParse as it does through Parse.
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        Throws<OperationCanceledException>(() => Wire.TryParse(bytes, out _, new ReadOptions { CancellationToken = cancelled.Token }));
+
+        // The runtime's TryReadValue<T> is the same idea for a path; TryGet and GetOrDefault are its members' twins.
+        True(Wire.Layout.TryReadValue(bytes, "header.length", out uint length) && length == 6, "typed path read");
+        StructValue parsed = Wire.Layout.Parse(bytes, "header");
+        True(!parsed.TryGet("flags", out byte _, out CStructException? absent) && absent is CStructPathException, "no such member");
+        Equal((byte)0, parsed.GetOrDefault("flags", (byte)0));
+    }
+    #endregion
+
+    #region generated-async
+    private static async Task GeneratedAsync()
+    {
+        // ParseAsync and WriteAsync on the layout class: the same reader and writer, with the bytes moved by
+        // ReadAsync and WriteAsync. A MemoryStream that exposes its buffer is read in place and the task is already
+        // complete; a file or a socket pays the real asynchronous I/O.
+        byte[] bytes = [0x02, 0x00, 0x06, 0x00, 0x00, 0x00];
+        using var source = new MemoryStream(bytes);
+        Wire.Header header = await Wire.ParseAsync(source);
+        Equal(6u, header.Length);
+        Equal(6L, source.Position);
+
+        using var target = new MemoryStream();
+        await Wire.WriteAsync(target, header);
+        SequenceEqual(bytes, target.ToArray());
+
+        // A cancelled token ends the read before a byte is taken and the write before a byte is written.
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        try
+        {
+            await Wire.WriteAsync(new MemoryStream(), header, cancellationToken: cancelled.Token);
+            True(false, "unreachable");
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+    #endregion
+
     #region generated-mapped-classes-class
     // The generator writes ReadFrom, WriteTo, and the registration; the properties are matched by name.
     [CStructMapped(Layout = "header")]

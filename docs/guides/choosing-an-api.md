@@ -22,6 +22,8 @@ until measurements show that allocation matters.
 | `byte[]`, `ReadOnlySpan<byte>`, or `ReadOnlyMemory<byte>` | `Parse` or `ReadValue` | The call is synchronous and does not retain the input. |
 | A readable, seekable `Stream` | `Parse` or `ReadValue` | Reading begins at the stream's current position. |
 | A `ReadOnlySequence<byte>` (a `PipeReader`'s buffer, a chain of pooled segments) | `Parse` or `ReadValue` | One segment is read in place; several are copied into a pooled buffer bounded by `MaxTotalBytesRead`. |
+| A stream whose bytes arrive while the program runs (a file opened for asynchronous I/O, a socket, a request body) | `ParseAsync` or `ReadValueAsync` | The bytes are read with `ReadAsync` into a pooled buffer and decoded by the same reader; the thread is free while they arrive ([async guide](async-and-pipelines.md)). |
+| One record after another with nothing between them | `ParseMany` / `ParseManyAsync` | Each record is parsed on the step of the loop that reaches it, and trailing bytes shorter than a record fail. |
 
 A *span* is a short-lived view over a section of memory. `ReadOnlyMemory<byte>` is a storable memory object, but the
 CStructSharp operation still finishes synchronously and does not keep it. Use a stream for files or data sources that
@@ -42,8 +44,10 @@ refer to bytes before that slice.
 | A whole struct with runtime field names | `Parse` | Exploring a format, building tools, or handling layouts that vary at runtime |
 | One field, nested value, union, or array | `ReadValue` | You don't need the rest of the object, or the selection is not a struct |
 | A known C# type | `ReadValue<T>` | Application code benefits from typed properties and checked conversion; `T` is a scalar, an array, or a class implementing `ICStructMapped<T>` |
-| A known C# type with an expected failure path | `TryReadValue<T>` | Truncated or malformed input is an ordinary outcome |
-| A generated class or an allocation-free view | `Wire.Parse` / `new Wire.HeaderView(bytes)` on a `[CStructLayout]` class | The layout is in your source; see [runtime or generated?](generated/choosing-runtime-or-generated.md) |
+| A known C# type with an expected failure path | `TryReadValue<T>` (`TryReadValueAsync<T>` returns a `ReadAttempt<T>`) | Truncated or malformed input is an ordinary outcome |
+| One member of a value you already parsed, with an expected failure path | `TryGet<T>` / `GetOrDefault<T>` on `StructValue` | An absent conditional member or an unconvertible value is an ordinary outcome |
+| A generated class or an allocation-free view | `Wire.Parse` / `Wire.TryParse` / `new Wire.HeaderView(bytes)` on a `[CStructLayout]` class | The layout is in your source; see [runtime or generated?](generated/choosing-runtime-or-generated.md) |
+| A sequence of records, typed or untyped | `Wire.Records` / `Wire.HeaderView.Enumerate` / `ParseMany` | A file of entries, a message body of frames ([sequences and TryParse](generated/sequences-and-try-parse.md)) |
 | Values plus byte ranges | `ParseWithDebug` (struct) / `ReadValueWithDebug` (anything) | A hex viewer or diagnostic tool must show where values came from |
 | Only a field's stream position | `ResolveAddress` | You need a coordinate without materializing the value |
 | An array or terminated string length | `GetArrayLength` | The count depends on variables or scanned input |
@@ -65,6 +69,7 @@ a struct becomes a `StructValue` (readable through `dynamic` members or as an `I
 | Append to a pipeline or pooled writer | `Serialize(IBufferWriter<byte>, ...)` | Appends directly and returns the byte count. |
 | Write at a stream's current position | `Write` | Writes directly to a writable, seekable stream. |
 | Replace a value already present in a stream | `Update` | Locates the path and validates the replacement before committing it. |
+| Write or update without blocking a thread | `WriteAsync` / `UpdateAsync` | `WriteAsync` serializes first and writes once (a failure writes nothing); `UpdateAsync` needs a seekable stream and writes back only the bytes that changed. |
 
 The `byte[]` overload is the easiest choice for most new code. Span and buffer-writer output avoid the final owned
 array, but they cannot undo a prefix that was already initialized or advanced if a later write fails. `Write`
@@ -92,6 +97,12 @@ For a large file:
 2. Set `Position` to the start of the structure.
 3. Use a selected `ReadValue` when later fields are irrelevant.
 4. Use `Update` only when the existing field's storage plan must stay in place.
+5. Use the `*Async` forms when the program must stay responsive while the bytes arrive (a server, a UI), with a
+   `CancellationToken` that bounds the wait; a file of records is `ParseManyAsync` or the generated `RecordsAsync`.
+
+For bytes that arrive in pieces (a socket, a `PipeReader`): parse the whole records each chunk holds with
+`ParseMany` over the `ReadOnlySequence<byte>`, or check a count-prefixed header with `TryReadValue` before the
+rest has arrived, and let the pipe keep the partial tail ([async guide](async-and-pipelines.md#records-from-a-pipe)).
 
 ## Common mistakes
 

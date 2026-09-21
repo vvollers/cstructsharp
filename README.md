@@ -83,6 +83,10 @@ Wire.Header header = Wire.Parse(bytes);   // header.Kind == 2, header.Length == 
 byte[] again = Wire.Serialize(header);
 ```
 
+Every stream form has an awaitable twin - `await layout.ParseAsync(file, "header", cancellationToken: token)` reads
+the bytes while the thread is free and decodes them with the same reader - and a file of records is `foreach`
+over `Wire.Records(bytes)` or `layout.ParseMany(bytes, "header")`, one record per step.
+
 A `[CStructMapped] partial class` maps a parsed `StructValue` to your own properties by name, and the analyzer
 warns about a path string that does not match the layout it is used with. The
 [generated code series](https://vvollers.github.io/cstructsharp/docs/guides/generated/index.html) teaches this
@@ -117,6 +121,11 @@ a browser to build protocol tools, file inspectors, and binary editors.
   in-place setters, and size and offset constants at build time - the same parser, the same placement, and the
   same failure texts as the runtime, checked by a parity suite over every fixture. `[CStructMapped]` generates
   the mapping into your own classes, with no reflection, so trimmed and Native AOT publishes need no conventions.
+- **Streams and pipelines.** `ParseAsync`, `WriteAsync`, and `UpdateAsync` read and write with `ReadAsync`/`WriteAsync`
+  and a `CancellationToken` that is checked at every boundary; `ReadOnlySequence<byte>` input reads a `PipeReader`'s
+  buffer in place; `ParseMany` and the generated `Records` walk one record after another lazily, and `TryParse`,
+  `TryGet`, and `GetOrDefault` turn expected failures into values instead of exceptions - see
+  [async reads, cancellation, and pipelines](https://vvollers.github.io/cstructsharp/docs/guides/async-and-pipelines.html).
 - **Analyze memory images.** `CStructSharp.Memory` adds unsigned address spaces, mapped regions, BTF/ISF type
   import, bounded traversal, and offline patches, with the same zero-dependency runtime; see the
   [memory-analysis guide](https://vvollers.github.io/cstructsharp/docs/guides/memory-analysis.html) and the

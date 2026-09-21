@@ -154,6 +154,14 @@ records: 60 ns and 184 bytes per record through `records[EOF]`, against 203 ns a
 `Parse` call each - the single operation is 3.4× faster and allocates 3.7× less. Use `records[count]` when a
 header supplies the count, and `ReadValue(bytes, "file.records[7]")` when only one record is needed.
 
+When the records must be handled one at a time - a file too large to hold as one value, a loop that stops early,
+a stream that is still arriving - `ParseMany` and the generated `Records` parse one record per step and cost what
+the per-record `Parse` loop costs (each record is its own operation, with its own context). The generated view
+enumerator (`RootView.Enumerate(bytes)`) is the exception: it allocates nothing and costs what a hand-written
+offset loop costs, so a scan that reads a field or two from each of a million records should use it. The async
+and sequences table above has the measured rows; the [async guide](async-and-pipelines.md) and the
+[sequences lesson](generated/sequences-and-try-parse.md) explain the forms.
+
 ## Managed layout caching
 
 When you already retain a `CStruct`, keep using it. When a call site repeatedly receives the same layout text,

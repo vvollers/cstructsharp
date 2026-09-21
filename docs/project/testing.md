@@ -61,7 +61,13 @@ node tools/quality/generate-parity-layouts.mjs --check
 
 For each layout the tests compare the generated `Parse` with `Layout.Parse` member by member, round-trip the
 value through both writers, and cut the bytes at every length expecting the same exception type and text from
-both paths (the runtime is the oracle). A new fixture added to the runtime tests reaches the parity project
+both paths (the runtime is the oracle); at every cut `TryParse` must return `false` exactly when `Parse` throws,
+with the same message. The awaitable forms are compared the same way over a hidden-buffer stream (`ParseAsync`
+and `WriteAsync` on both sides, unwrapped by a reflection `Await` helper), and the fixture's bytes as one record,
+three times over, and with the third record cut short go through `ParseMany` and the generated `Records` - the
+same records member by member or the same failure text. The runtime suite pins the stream forms against their
+awaitable twins over three stream kinds (`AsyncReadTests`, `AsyncWriteTests`) and every manual fixture through
+`ReadValueAsync`/`WriteAsync` (`ManualLanguageFixtureTests`). A new fixture added to the runtime tests reaches the parity project
 through the generator tool; `--check` in CI fails when the generated files are stale.
 
 ## Check repository reference data

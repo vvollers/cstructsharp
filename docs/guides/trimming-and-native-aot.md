@@ -70,6 +70,11 @@ Shapes.Update.Tag(edited, 9);                                 // a typed setter 
 The [generated code series](generated/index.md) teaches the path; the analyzer's `CSG300` warns when a project
 that publishes trimmed or AOT binds a parsed value as `dynamic`.
 
+The awaitable and sequence forms are as AOT-clean as the rest: `ParseAsync`, `WriteAsync`, `TryParse`, `Records`,
+the view enumerator, `ParseManyAsync`, the layout class's `ReadValue<T>`, `TryGet`, `GetOrDefault`, and a `with`
+copy of the options are all run by the AOT consumer after publishing, with no IL warnings. Iterators and async
+methods compile to ordinary state-machine classes; nothing in them is discovered at run time.
+
 ## Mapped classes
 
 A `[CStructMapped]` class needs only the attribute; the AOT consumer maps this record with a generated mapper:

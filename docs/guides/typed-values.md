@@ -104,6 +104,14 @@ The equivalent branch is compiled in the [first-parse example](install-and-first
 only categorized CStructSharp failures. It does not hide invalid arguments, cancellation, or unrelated application
 bugs.
 
+One member of a value you already parsed has the same pair on `StructValue` and `UnionValue`: `Get<T>` throws,
+`TryGet<T>(path, out value)` returns `false`, `TryGet<T>(path, out value, out CStructException? failure)` also
+hands over the path or read exception `Get<T>` would have thrown, and `GetOrDefault<T>(path, fallback)` returns the
+fallback in either case - an absent conditional member and a value that does not fit the type look the same to
+it. A generated layout class reads the root into a mapped class without naming it: `Wire.ReadValue<HeaderRecord>(bytes)`
+and `Wire.TryReadValue<HeaderRecord>(bytes, out record)` forward to `Layout.ReadValue<T>(bytes, "header")`
+([mapped classes](generated/mapped-classes.md)).
+
 ## Common mapping failures
 
 When mapping fails, inspect the exception path (`root.leaves[0].v` names the member whose conversion failed, even

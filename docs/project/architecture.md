@@ -70,6 +70,16 @@ struct results use a shared member shape with per-result values in `StructValue`
 C# destination directly when the fixed layout and target type support that plan.
 Debug capture uses the general reader to record the fields and ranges it visits.
 
+The awaitable forms and the record sequences add no reader. An `*Async` read links the call's token with the
+options' token, reads the stream with `ReadAsync` into a pooled buffer (`Streams/AsyncStreamBuffer`: a seekable
+stream up to its remaining length, any stream up to the budget plus one byte), runs the stream core over a
+`FixedBufferStream` pinned on that buffer, and sets the stream's position from what the core consumed. A record
+sequence (`Generated/RecordSequence`, shared by `ParseMany` and the generated `Records`) drives a one-record
+reader from the end of the previous record - the runtime's reader pins a slice and runs the stream core over it,
+the generated one runs its cursor over it - checks a fixed-size root against the bytes left before reading it, and
+reads a stream either one fixed-size record at a time or through a pooled window that refills from the record it
+could not hold.
+
 Writers use the same prepared field shapes in reverse. `Serialize` stages through owned memory when returning an
 array. Fixed-struct write plans encode into one block before writing; other shapes use field traversal.
 Span, writer, and stream overloads still have the partial-output limits documented in the API guides: a validated

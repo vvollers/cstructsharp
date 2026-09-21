@@ -33,31 +33,45 @@ const TYPE_DECLARATION = /^( *)public (?:abstract |sealed |static |readonly )*(?
 /** Compiler-generated public and protected record member UIDs omitted from the API snapshot (one namespace block). */
 function recordSynthesizedUids(block, namespace, positionalRecords, apiDirectory) {
   // Record classes and record structs both declare IEquatable<T> in the snapshot; a record struct is `readonly struct`.
-  const declarationPattern = /^\s*public\s+(sealed\s+)?(readonly\s+)?(class|struct)\s+([A-Za-z][A-Za-z0-9]*)(?:\s*:\s*([^\r\n{]+))?/gm;
-  const declarations = [...block.matchAll(declarationPattern)].map((match) => ({ sealed: !!match[1], kind: match[3], name: match[4], bases: match[5] ?? null }));
+  // A generic record (`ReadAttempt<T>`) has the arity in its UID (`ReadAttempt`1`), its metadata file (`ReadAttempt-1.yml`),
+  // and its own type in member signatures (`ReadAttempt{`0}`).
+  const declarationPattern = /^\s*public\s+(sealed\s+)?(readonly\s+)?(class|struct)\s+([A-Za-z][A-Za-z0-9]*)(<[^>]+>)?(?:\s*:\s*([^\r\n{]+))?/gm;
+  const declarations = [...block.matchAll(declarationPattern)].map((match) => ({ sealed: !!match[1], kind: match[3], name: match[4], arity: match[5] ? match[5].split(",").length : 0, bases: match[6] ?? null }));
   const recordNames = new Set(
     declarations
-      .filter((declaration) => declaration.bases && new RegExp(`System\\.IEquatable<${escapeRegex(namespace)}\\.${declaration.name}>`).test(declaration.bases))
+      .filter((declaration) => declaration.bases && new RegExp(`System\\.IEquatable<${escapeRegex(namespace)}\\.${declaration.name}(?:<[^>]+>)?>`).test(declaration.bases))
       .map((declaration) => declaration.name),
   );
   const uids = new Set();
   const typeBody = (name) => new RegExp(`^    public [^\\r\\n]*\\b${escapeRegex(name)}\\b[^\\r\\n]*\\r?\\n    \\{([\\s\\S]*?)^    \\}`, "m").exec(block)?.[1] ?? "";
   for (const declaration of declarations) {
-    const { name } = declaration;
+    const { name, arity } = declaration;
     if (!recordNames.has(name)) continue;
     const qualified = `${namespace}.${name}`;
+    const uidName = arity > 0 ? `${qualified}\`${arity}` : qualified;
+    const selfType = arity > 0 ? `${qualified}{${Array.from({ length: arity }, (_, index) => `\`${index}`).join(",")}}` : qualified;
+    const metadataFile = path.join(apiDirectory, `${qualified}${arity > 0 ? `-${arity}` : ""}.yml`);
     if (positionalRecords.has(qualified) && !/\bDeconstruct\(/.test(typeBody(name))) {
-      const metadata = fs.readFileSync(path.join(apiDirectory, `${qualified}.yml`), "utf8");
-      const deconstructs = [...metadata.matchAll(new RegExp(`^- uid: (${escapeRegex(qualified)}\\.Deconstruct\\([^\\r\\n]+\\))\\r?$`, "gm"))];
+      const metadata = fs.readFileSync(metadataFile, "utf8");
+      const deconstructs = [...metadata.matchAll(new RegExp(`^- uid: (${escapeRegex(uidName)}\\.Deconstruct\\([^\\r\\n]+\\))\\r?$`, "gm"))];
       assertCondition(deconstructs.length === 1, `Expected one generated Deconstruct member for ${qualified}.`);
       uids.add(deconstructs[0][1]);
     }
     const isStruct = declaration.kind === "struct";
-    const structBody = isStruct ? typeBody(name) : "";
-    for (const member of ["ToString", `op_Inequality(${qualified},${qualified})`, `op_Equality(${qualified},${qualified})`, "GetHashCode", "Equals(System.Object)", `Equals(${qualified})`]) {
-      // A record struct's explicit override (ToString) already appears in the snapshot as an authored member.
-      if (isStruct && member === "ToString" && /\boverride string ToString\(/.test(structBody)) continue;
-      uids.add(`${qualified}.${member}`);
+    const body = typeBody(name);
+    // A member the snapshot already carries as an authored declaration (a record struct's ToString override, a
+    // hand-written IEquatable struct's operators and Equals) is not synthesized on top of it.
+    const authored = {
+      ToString: /\boverride string ToString\(/,
+      op_Inequality: /\boperator !=\(/,
+      op_Equality: /\boperator ==\(/,
+      GetHashCode: /\boverride int GetHashCode\(/,
+      "Equals(System.Object)": /\boverride bool Equals\(object/,
+      EqualsSelf: new RegExp(`\\bbool Equals\\(${escapeRegex(qualified)}(?:<[^>]+>)? `),
+    };
+    for (const [member, pattern] of [["ToString", authored.ToString], [`op_Inequality(${selfType},${selfType})`, authored.op_Inequality], [`op_Equality(${selfType},${selfType})`, authored.op_Equality], ["GetHashCode", authored.GetHashCode], ["Equals(System.Object)", authored["Equals(System.Object)"]], [`Equals(${selfType})`, authored.EqualsSelf]]) {
+      if (pattern.test(body)) continue;
+      uids.add(`${uidName}.${member}`);
     }
     if (isStruct) continue;
     if (!declaration.sealed) {
@@ -71,6 +85,27 @@ function recordSynthesizedUids(block, namespace, positionalRecords, apiDirectory
       // Sealed derived records still override their base's protected record members.
       uids.add(`${qualified}.PrintMembers(System.Text.StringBuilder)`);
       uids.add(`${qualified}.EqualityContract`);
+    }
+  }
+  return uids;
+}
+
+/**
+ * The members the compiler gives a delegate (`public delegate T Name<T>(...)` is one snapshot line): the constructor,
+ * `Invoke`, `BeginInvoke`, and `EndInvoke`, read from the delegate's metadata since their signatures repeat the
+ * delegate's parameters.
+ */
+function delegateSynthesizedUids(block, namespace, apiDirectory) {
+  const uids = new Set();
+  for (const match of block.matchAll(/^\s*public delegate [^\r\n]*?\b([A-Za-z][A-Za-z0-9]*)(<[^>]+>)?\(/gm)) {
+    const arity = match[2] ? match[2].split(",").length : 0;
+    const qualified = `${namespace}.${match[1]}`;
+    const uidName = arity > 0 ? `${qualified}\`${arity}` : qualified;
+    const metadata = fs.readFileSync(path.join(apiDirectory, `${qualified}${arity > 0 ? `-${arity}` : ""}.yml`), "utf8");
+    for (const member of ["#ctor", "Invoke", "BeginInvoke", "EndInvoke"]) {
+      const found = [...metadata.matchAll(new RegExp(`^- uid: (${escapeRegex(uidName)}\\.${escapeRegex(member)}\\([^\\r\\n]+\\))\\r?$`, "gm"))];
+      assertCondition(found.length === 1, `Expected one generated ${member} member for the delegate ${qualified}.`);
+      uids.add(found[0][1]);
     }
   }
   return uids;
@@ -128,12 +163,14 @@ await main(() => {
     const sourceNamespace = /^namespace ([A-Za-z0-9_.]+);/m.exec(source)?.[1];
     if (!sourceNamespace) continue;
     // Positional record classes (`public sealed record X(`) and record structs (`public readonly record struct X(`).
-    for (const declaration of source.matchAll(/\bpublic\s+(?:sealed\s+|readonly\s+)*record\s+(?:struct\s+)?([A-Za-z0-9_]+)\s*\(/g)) positionalRecords.add(`${sourceNamespace}.${declaration[1]}`);
+    for (const declaration of source.matchAll(/\bpublic\s+(?:sealed\s+|readonly\s+)*record\s+(?:struct\s+)?([A-Za-z0-9_]+)(?:<[^>]+>)?\s*\(/g)) positionalRecords.add(`${sourceNamespace}.${declaration[1]}`);
   }
   const synthesized = new Set();
   for (const block of baseline.split(/(?=^namespace )/m)) {
     const blockNamespace = /^namespace ([^\r\n]+)/.exec(block)?.[1];
-    if (blockNamespace) for (const uid of recordSynthesizedUids(block, blockNamespace, positionalRecords, apiDirectory)) synthesized.add(uid);
+    if (!blockNamespace) continue;
+    for (const uid of recordSynthesizedUids(block, blockNamespace, positionalRecords, apiDirectory)) synthesized.add(uid);
+    for (const uid of delegateSynthesizedUids(block, blockNamespace, apiDirectory)) synthesized.add(uid);
   }
   const expectedUidCount =
     namespaceNames.length +
