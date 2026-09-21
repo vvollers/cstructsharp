@@ -8,9 +8,15 @@ description: Open a local teaching file, inspect field ranges, update flags, and
 For full-size files, the [Binary Inspector application](https://vvollers.github.io/cstructsharp/inspector/)
 passes the full Blob to the WASM source reader and loads visible hex ranges on demand. Search scans the file in
 chunks; session edits compose Blob ranges without rewriting the original file. Parsing can be cancelled.
+That application is desktop-only (at least 1200 CSS pixels wide). Its edits are temporary and have no download
+or save operation. Replacing or closing the session discards them. Its standalone schemas describe the structures
+listed in the catalog, usually headers; a successful parse is not full validation or decoding of a file format.
+Changing the schema, settings or source invalidates the previous result and selection. Run again to inspect the
+new snapshot.
 See [large files, buffers, and streams](large-data.md) to use this mechanism in your own application.
 
-The standalone teaching example below remains a small in-memory read/update workflow.
+The separate standalone teaching example below is a small in-memory read/update workflow with its own download
+button. That button is part of this example, not a feature of the desktop application.
 
 This advanced example builds on the [standalone browser starter](index.md#alternative-run-the-standalone-browser-starter). It uses the same teaching format as the
 [C# file walkthrough](../binary-file-walkthrough.md), with a fixed count of two records. The browser API does not

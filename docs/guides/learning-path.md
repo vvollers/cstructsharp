@@ -1,12 +1,53 @@
 ---
 title: Learning path
-description: Nine steps (and a generated-code branch) from what CStructSharp is to the reference material, with four examples worth reading first.
+description: Follow one header from installation through parsing, error recovery and updates, then choose generated-code or memory-analysis topics.
 ---
 
 # Learning path
 
-Read these in order; each step is one page and builds on the previous one. Skip a step when its question is
-already answered for you.
+Start with one small header and keep using it until you can explain every byte. You need basic programming,
+not experience with binary formats. A declaration describes where values live; it does not prove that an
+entire file is valid. CStructSharp uses a C-like layout language, not a complete C compiler or your machine's
+native C memory-layout rules.
+
+## One complete first journey
+
+Follow these steps in the same console project. The pages include complete programs; replace `Program.cs`
+when instructed rather than combining several top-level programs in one file. JavaScript readers can follow
+the equivalent [browser and Node starter](browser/index.md), which uses the same header and operations.
+
+| Step | Do this | Check your understanding before continuing |
+| --- | --- | --- |
+| 1. Install and read | Follow [install and first parse](install-and-first-parse.md). Run the six-byte program. | Explain why `kind` is 2 and `length` is 6, and why the second field starts at byte offset 2. |
+| 2. Predict and recover | Change the first byte to `03`, then try the short input in [the header continuation](header-next-steps.md#read-into-a-class-and-handle-missing-bytes). Restore complete input and read again. | Distinguish a valid changed value from missing bytes. A failed read does not supply a usable result. |
+| 3. Create bytes | Run `Next.cs` in [the same continuation](header-next-steps.md#create-bytes). Compare `Created` with the original six bytes. | Explain that serialization creates bytes from values; a C# class's own memory layout does not decide the wire layout. |
+| 4. Change one field | Follow [change existing bytes](header-next-steps.md#change-existing-bytes). Compare the original and updated bytes. | Identify the two-byte slot that can change and the four bytes that must stay unchanged. An update cannot insert space. |
+| 5. Choose realistic limits | Read [variables, options and limits](variables-options-and-limits.md), then [errors and recovery](errors-and-recovery.md). | Explain why an element limit differs from a byte limit, and why successful header parsing does not validate a whole format. |
+
+An **offset** counts bytes from an origin, starting at zero. The first example's origin is the beginning of its
+input array. Passing a slice gives that slice its own zero; file offsets and mapped-memory addresses need the
+explicit origins explained in [debug ranges and addresses](debug-data-and-addresses.md). Do not add a file offset
+twice when turning a returned range into a UI selection.
+
+Array limits count elements: ten `uint32` values are ten elements but forty bytes. String limits count encoded
+bytes, not displayed characters. A total-read budget counts parser reads, including repeated pointer visits,
+not the distance of a seek or the physical file's length. Raising a budget does not make a large result cheap.
+
+After step 4, choose an optional branch:
+
+- **Fixed layout in your source:** [generate the same header](generated/first-generated-layout.md). Compare its
+  typed result with the runtime result. Generation moves layout work to build time; it is not required to parse.
+- **Memory images with addresses:** start with [memory and stored data](memory-and-stored-data.md), then
+  [analyze mapped memory](memory-analysis.md). First explain how a virtual address maps to bytes in a file.
+  The executable example works with a synthetic image; it does not attach to or change a live process.
+- **Inspect a real file:** use the [desktop inspector](browser/inspector.md). Its catalog describes supported
+  header structures, not full decoders. Changing bytes, schema or settings invalidates the previous result;
+  run again before trusting field ranges. Edits are temporary, with no export, and need a browser width of at
+  least 1200 CSS pixels.
+
+## Continue by topic
+
+These pages extend the journey. Skip questions you can already answer.
 
 1. **What it is.** [Binary layout basics](binary-layout-basics.md): bytes, offsets, widths, byte order, padding,
    and what a `CStruct` adds to them.

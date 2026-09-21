@@ -30,6 +30,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   check documentation on changed named declarations without requiring unrelated legacy rewrites.
 - Reuse ordinary managed, frontend and documentation verification in releases on the exact source commit;
   require those gates before publication while retaining versioned-artifact tests and original-run recovery.
+- Connect the existing starter guides into a complete learning journey with byte ranges, failure recovery,
+  ownership and limit units; clarify inspector scope and keep its ready status compact with full build details.
+- Document manual physical-file and repeated-operation qualification scenarios and their untested limits.
+- Record the documentation artifact's remaining margin and growth-review trigger while retaining its existing size gate.
 
 ## 0.8.0 — 2026-09-21
 

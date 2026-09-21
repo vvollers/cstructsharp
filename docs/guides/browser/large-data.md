@@ -146,6 +146,40 @@ The [binary inspector](inspector.md) parses against the full source and loads a 
 Use **Go to byte** with a decimal or `0x` hexadecimal offset to inspect a distant location. Scrolling, searching,
 and session edits do not require a full-file `Uint8Array`.
 
+## Manually qualify a large-file workload
+
+Paged reads are an implementation mechanism, not evidence that every multi-gigabyte workload is usable. Existing
+synthetic and browser tests do not establish a universal file-size ceiling, memory bound or long-session stability
+guarantee. The following is a manual checklist for a workload you intend to support; it is not a report of completed
+qualification or a new automated test suite.
+
+Record the package/app commit, OS, browser version, available memory, storage type and free space. Use actual files
+selected through the browser file picker, not only generated in-memory Blobs or sparse files. Start with a 1 GiB
+file, then a file of at least 4 GiB + 64 KiB to cross the 32-bit offset boundary. Record exact sizes and hashes,
+the schema, parser options and independently known header values. If those files or resources are unavailable,
+mark that case **not tested**, not passed. Use a header-only schema before trying bounded arrays.
+
+1. Load each file at a desktop width of at least 1200 CSS pixels. Parse its header and compare known values.
+   Navigate the hex view to byte 0, a page boundary, a known distant location and the last byte. Verify offsets
+   and contents independently. Record load/parse durations and any available process-memory observations.
+2. Repeat parse → inspect → clear/reload 20 times. Then alternate between the two files 20 times while reads are
+   pending. Only the latest file and its values may appear; stale results and selections must disappear.
+3. Start and cancel 20 searches or parses, then immediately run a small valid parse. The UI must recover without
+   publishing the cancelled result. Include a search that crosses a 64 KiB boundary and a search near end-of-file.
+4. Make 100 small temporary edits, undo them, and redo them. Check changed and unchanged ranges after each phase.
+   Replace the source and confirm old edit history/results are gone. The disk file's hash must remain unchanged;
+   the inspector does not save or export those edits.
+5. Repeat a bounded-array parse with and without debug ranges. Record the element count, bytes read and result
+   size separately from file length. Try one deliberately exceeded budget and confirm useful failure followed by
+   recovery on a valid input. Do not raise all limits simply to obtain a successful parse.
+6. Close the session and observe whether retained memory settles after idle time. Record the observation method
+   and interval; browser garbage collection is not immediate, and one low reading does not prove absence of a
+   leak. Preserve failures, cancellation counts and untested cases with the qualification notes.
+
+Repeat relevant cases when changing worker/source acquisition, Blob history, paging, cancellation, result rendering,
+browser/runtime versions, or the intended workload's size/shape. A result for one browser and file does not qualify
+another browser, mobile use, arbitrary arrays, streamed writes or full-format decoding.
+
 ## Many records in one call
 
 Each JavaScript call pays a fixed cost before any byte is decoded: a fully fixed layout runs in JavaScript for a

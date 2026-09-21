@@ -70,9 +70,10 @@ const emit = defineEmits<{ cancel: [] }>();
     <div
       class="status-badge"
       :class="{ ready: wasmStatus === 'ready', error: wasmStatus === 'error' }"
+      :title="wasmStatus === 'ready' ? wasmVersion : undefined"
     >
       <span v-if="wasmStatus === 'loading'">Loading WebAssembly…</span>
-      <span v-else-if="wasmStatus === 'ready'">Ready · {{ wasmVersion }}</span>
+      <span v-else-if="wasmStatus === 'ready'">Ready</span>
       <span v-else>Unavailable · {{ wasmError }}</span>
     </div>
   </header>

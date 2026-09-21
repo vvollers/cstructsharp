@@ -62,6 +62,11 @@ Little-endian means the least significant byte comes first. The eight-byte point
 because the layout contains no pointers. See [binary layout basics](binary-layout-basics.md) for diagrams and
 explicit constructor options.
 
+Alignment is a placement rule that may leave unused bytes before a field. With alignment enabled for this
+header, the four-byte `length` starts at offset 4, leaving padding at offsets 2 and 3; the header then needs
+eight bytes. Do not enable alignment merely because native C often uses it. Match the actual file format's
+rule. This six-byte example deliberately uses packed placement.
+
 ## Try a change
 
 Change `0x02` to `0x03` and run again. Predict which output changes before running it.

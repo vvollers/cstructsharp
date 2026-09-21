@@ -29,6 +29,7 @@ See the [schema coverage and catalog audit](SCHEMA-REVIEW.md),
 
 `App.vue` creates one inspection session, connects file dialogs, and sets the initial dock layout.
 The session belongs to that app instance; there is no global UI store.
+The header keeps its ready status short; hover over it to inspect the full runtime version/build identity.
 
 | Module                                               | Responsibility                                                                                              |
 | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
