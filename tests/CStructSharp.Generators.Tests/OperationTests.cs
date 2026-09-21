@@ -99,6 +99,14 @@ public class OperationTests
         Assert.IsNotNull(T.Layout);
         var destination = new byte[bytes.Length];
         int written = T.Serialize(value, destination);
+
+        // The non-throwing reader through the interface: a whole value succeeds, a truncated one reports the failure.
+        Assert.IsTrue(T.TryParse(bytes, out T? again, out CStructException? none));
+        Assert.IsNotNull(again);
+        Assert.IsNull(none);
+        Assert.IsFalse(T.TryParse(bytes.AsSpan(0, 3), out T? missing, out CStructException? failure));
+        Assert.IsNull(missing);
+        Assert.AreEqual(Assert.Throws<CStructReadException>(() => T.Parse(bytes.AsSpan(0, 3))).Message, failure!.Message);
         return destination[..written];
     }
 

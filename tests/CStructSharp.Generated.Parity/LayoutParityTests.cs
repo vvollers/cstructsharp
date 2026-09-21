@@ -160,6 +160,7 @@ public class LayoutParityTests
         string rootClass = ClassName(generated, root);
         MethodInfo parse = generated.GetMethods().Single(method => method.Name == "Parse" + rootClass && method.GetParameters()[0].ParameterType == typeof(byte[]));
         MethodInfo serialize = generated.GetMethods().Single(method => method.Name == "Serialize" + rootClass && method.GetParameters().Length == 3);
+        MethodInfo tryParse = generated.GetMethods().Single(method => method.Name == "TryParse" + rootClass && method.GetParameters().Length == 5 && method.GetParameters()[0].ParameterType == typeof(byte[]));
         if (expectedError is not null)
         {
             Exception? runtimeError = Catch(() => runtime.ReadValue(bytes, root, variables, options));
@@ -226,6 +227,13 @@ public class LayoutParityTests
             Exception? generatedError = Catch(() => Invoke(parse, prefix, variables, options));
             Assert.AreEqual(runtimeError?.GetType(), generatedError?.GetType(), $"{id} truncated to {length}: exception type ({runtimeError?.Message} vs {generatedError?.Message})");
             Assert.AreEqual(runtimeError?.Message, generatedError?.Message, $"{id} truncated to {length}");
+
+            // The non-throwing form reports the same failure without throwing; a stream is left at its origin.
+            object?[] attempt = [prefix, null, null, variables, options];
+            bool succeeded = (bool)tryParse.Invoke(null, attempt)!;
+            Assert.AreEqual(generatedError is null, succeeded, $"{id} truncated to {length}: TryParse");
+            Assert.AreEqual(generatedError?.Message, (attempt[2] as CStructException)?.Message, $"{id} truncated to {length}: TryParse failure");
+            Assert.AreEqual(generatedError is null, attempt[1] is not null, $"{id} truncated to {length}: TryParse value");
         }
     }
 

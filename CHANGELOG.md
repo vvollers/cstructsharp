@@ -6,7 +6,18 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+### Breaking changes
+
+- **Breaking (API, hand-written implementers only):** `ICStructGenerated<TSelf>` gains the static abstract
+  `TryParse(ReadOnlySpan<byte> source, out TSelf value, out CStructException? failure, ReadOptions? options = null)`.
+  Every generated root implements it on rebuild; a class that implemented the interface by hand adds the member.
+
 ### Added
+
+- Generated `TryParse<Name>`/`TryParse` for every input kind (`ReadOnlySpan<byte>`, `byte[]`, `ReadOnlyMemory<byte>`,
+  `ReadOnlySequence<byte>`, `Stream`), each with and without an `out CStructException? failure`: a read, path, or
+  limit failure becomes `false` with the exception the throwing form would have raised; cancellation and argument
+  errors throw as before; a stream is left at its origin after a failure.
 
 - Awaitable reads: `ParseAsync`, `ParseWithDebugAsync`, `ReadValueAsync`, `ReadValueAsync<T>`, `ReadValueWithDebugAsync`,
   `TryReadValueAsync<T>` (returning the new `ReadAttempt<T>` - `Succeeded`, `Value`, `Failure` - since an `out`

@@ -192,6 +192,166 @@ namespace Demo
         /// <inheritdoc cref="ParseChoiceAsync(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions, global::System.Threading.CancellationToken)"/>
         public static global::System.Threading.Tasks.ValueTask<Choice> ParseAsync(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => ParseChoiceAsync(stream, null, options, cancellationToken);
 
+        /// <summary>Reads one <c>choice</c> from the bytes without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseChoice(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseChoice(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseChoice(source, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseChoice(global::System.ReadOnlySpan{byte}, out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseChoice(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(source, out value, out _, variables, options);
+
+        /// <inheritdoc cref="TryParseChoice(global::System.ReadOnlySpan{byte}, out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, out global::CStructSharp.Diagnostics.CStructException? failure, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(source, out value, out failure, null, options);
+
+        /// <inheritdoc cref="TryParseChoice(global::System.ReadOnlySpan{byte}, out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(source, out value, out _, null, options);
+
+        /// <summary>Reads one <c>choice</c> from the array without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseChoice(byte[], global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseChoice(byte[] source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseChoice(source, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseChoice(byte[], out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseChoice(byte[] source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(source, out value, out _, variables, options);
+
+        /// <inheritdoc cref="TryParseChoice(byte[], out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(byte[] source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, out global::CStructSharp.Diagnostics.CStructException? failure, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(source, out value, out failure, null, options);
+
+        /// <inheritdoc cref="TryParseChoice(byte[], out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(byte[] source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(source, out value, out _, null, options);
+
+        /// <summary>Reads one <c>choice</c> from the memory without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseChoice(global::System.ReadOnlyMemory{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseChoice(global::System.ReadOnlyMemory<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseChoice(source, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseChoice(global::System.ReadOnlyMemory{byte}, out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseChoice(global::System.ReadOnlyMemory<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(source, out value, out _, variables, options);
+
+        /// <inheritdoc cref="TryParseChoice(global::System.ReadOnlyMemory{byte}, out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.ReadOnlyMemory<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, out global::CStructSharp.Diagnostics.CStructException? failure, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(source, out value, out failure, null, options);
+
+        /// <inheritdoc cref="TryParseChoice(global::System.ReadOnlyMemory{byte}, out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.ReadOnlyMemory<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(source, out value, out _, null, options);
+
+        /// <summary>Reads one <c>choice</c> from the sequence without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseChoice(global::System.Buffers.ReadOnlySequence{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseChoice(global::System.Buffers.ReadOnlySequence<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseChoice(source, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseChoice(global::System.Buffers.ReadOnlySequence{byte}, out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseChoice(global::System.Buffers.ReadOnlySequence<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(source, out value, out _, variables, options);
+
+        /// <inheritdoc cref="TryParseChoice(global::System.Buffers.ReadOnlySequence{byte}, out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.Buffers.ReadOnlySequence<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, out global::CStructSharp.Diagnostics.CStructException? failure, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(source, out value, out failure, null, options);
+
+        /// <inheritdoc cref="TryParseChoice(global::System.Buffers.ReadOnlySequence{byte}, out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.Buffers.ReadOnlySequence<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(source, out value, out _, null, options);
+
+        /// <summary>Reads one <c>choice</c> from the stream (left at its origin after a failure) without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseChoice(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="stream">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseChoice(global::System.IO.Stream stream, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseChoice(stream, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseChoice(global::System.IO.Stream, out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseChoice(global::System.IO.Stream stream, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(stream, out value, out _, variables, options);
+
+        /// <inheritdoc cref="TryParseChoice(global::System.IO.Stream, out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.IO.Stream stream, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, out global::CStructSharp.Diagnostics.CStructException? failure, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(stream, out value, out failure, null, options);
+
+        /// <inheritdoc cref="TryParseChoice(global::System.IO.Stream, out Choice, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.IO.Stream stream, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, global::CStructSharp.ReadOptions? options = null) => TryParseChoice(stream, out value, out _, null, options);
+
         /// <summary>Reads one <c>choice</c> at the cursor's position.</summary>
         private static Choice ReadChoice(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
@@ -390,6 +550,9 @@ namespace Demo
 
             /// <inheritdoc/>
             static Choice global::CStructSharp.ICStructGenerated<Choice>.Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options) => FixtureUnions.Parse(source, options);
+
+            /// <inheritdoc/>
+            static bool global::CStructSharp.ICStructGenerated<Choice>.TryParse(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Choice value, out global::CStructSharp.Diagnostics.CStructException? failure, global::CStructSharp.ReadOptions? options) => FixtureUnions.TryParse(source, out value, out failure, options);
 
             /// <inheritdoc/>
             static int global::CStructSharp.ICStructGenerated<Choice>.Serialize(Choice value, global::System.Span<byte> destination, global::CStructSharp.WriteOptions? options) => FixtureUnions.Serialize(value, destination, options);

@@ -189,6 +189,65 @@ internal sealed partial class LayoutEmitter
             writer.Line("/// <inheritdoc cref=\"" + method + "Async(global::System.IO.Stream, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions, global::System.Threading.CancellationToken)\"/>");
             writer.Line("public static global::System.Threading.Tasks.ValueTask<" + name + "> ParseAsync(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => " + method + "Async(stream, null, options, cancellationToken);");
         }
+
+        this.EmitTryParse(writer, composite, isRoot);
+    }
+
+    /// <summary>
+    ///     The non-throwing readers: <c>TryParse&lt;Name&gt;(source, out value)</c> and the form with an
+    ///     <c>out CStructException? failure</c>, for every input kind, catching the categorized read, path, and limit
+    ///     failures only (cancellation and argument errors pass through, as the runtime's <c>TryReadValue</c>); a
+    ///     stream is back at its origin after a failure.
+    /// </summary>
+    private void EmitTryParse(SourceWriter writer, GeneratedComposite composite, bool isRoot)
+    {
+        string name = composite.Name;
+        string method = "Parse" + name;
+        const string Failure = "global::CStructSharp.Diagnostics.CStructException";
+        const string MaybeNull = "[global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] ";
+        (string Type, string Parameter, string Kind)[] inputs =
+        [
+            ("global::System.ReadOnlySpan<byte>", "source", "the bytes"),
+            ("byte[]", "source", "the array"),
+            ("global::System.ReadOnlyMemory<byte>", "source", "the memory"),
+            ("global::System.Buffers.ReadOnlySequence<byte>", "source", "the sequence"),
+            ("global::System.IO.Stream", "stream", "the stream (left at its origin after a failure)"),
+        ];
+        foreach ((string type, string parameter, string kind) in inputs)
+        {
+            writer.Line();
+            writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from " + kind + " without throwing for a read, path, or limit failure: <see langword=\"false\"/> and the failure instead. Cancellation and argument errors throw as in <see cref=\"" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>.</summary>");
+            writer.Line("/// <param name=\"" + parameter + "\">The input.</param>");
+            writer.Line("/// <param name=\"value\">The parsed value, or <see langword=\"null\"/> when the read failed.</param>");
+            writer.Line("/// <param name=\"failure\">The failure the throwing form would have raised, or <see langword=\"null\"/>.</param>");
+            writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+            writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+            writer.Line("/// <returns>Whether the read succeeded.</returns>");
+            writer.Open("public static bool Try" + method + "(" + type + " " + parameter + ", " + MaybeNull + "out " + name + " value, out " + Failure + "? failure, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
+            writer.Open("try");
+            writer.Line("value = " + method + "(" + parameter + ", variables, options);");
+            writer.Line("failure = null;");
+            writer.Line("return true;");
+            writer.Close();
+            writer.Open("catch (" + Failure + " exception)");
+            writer.Line("value = null;");
+            writer.Line("failure = exception;");
+            writer.Line("return false;");
+            writer.Close();
+            writer.Close();
+            writer.Line();
+            writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>");
+            writer.Line("public static bool Try" + method + "(" + type + " " + parameter + ", " + MaybeNull + "out " + name + " value, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", out value, out _, variables, options);");
+            if (isRoot)
+            {
+                writer.Line();
+                writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>");
+                writer.Line("public static bool TryParse(" + type + " " + parameter + ", " + MaybeNull + "out " + name + " value, out " + Failure + "? failure, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", out value, out failure, null, options);");
+                writer.Line();
+                writer.Line("/// <inheritdoc cref=\"Try" + method + "(" + type.Replace('<', '{').Replace('>', '}') + ", out " + name + ", out " + Failure.Replace('<', '{').Replace('>', '}') + "?, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>");
+                writer.Line("public static bool TryParse(" + type + " " + parameter + ", " + MaybeNull + "out " + name + " value, global::CStructSharp.ReadOptions? options = null) => Try" + method + "(" + parameter + ", out value, out _, null, options);");
+            }
+        }
     }
 
     /// <summary>One composite's reader, entered with the cursor at the composite's first byte.</summary>

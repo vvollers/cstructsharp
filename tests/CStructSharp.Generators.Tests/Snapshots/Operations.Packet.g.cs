@@ -203,6 +203,136 @@ namespace Demo
             }
         }
 
+        /// <summary>Reads one <c>hdr</c> from the bytes without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseHdr(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseHdr(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Hdr value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseHdr(source, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseHdr(global::System.ReadOnlySpan{byte}, out Hdr, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseHdr(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Hdr value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseHdr(source, out value, out _, variables, options);
+
+        /// <summary>Reads one <c>hdr</c> from the array without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseHdr(byte[], global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseHdr(byte[] source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Hdr value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseHdr(source, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseHdr(byte[], out Hdr, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseHdr(byte[] source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Hdr value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseHdr(source, out value, out _, variables, options);
+
+        /// <summary>Reads one <c>hdr</c> from the memory without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseHdr(global::System.ReadOnlyMemory{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseHdr(global::System.ReadOnlyMemory<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Hdr value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseHdr(source, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseHdr(global::System.ReadOnlyMemory{byte}, out Hdr, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseHdr(global::System.ReadOnlyMemory<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Hdr value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseHdr(source, out value, out _, variables, options);
+
+        /// <summary>Reads one <c>hdr</c> from the sequence without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseHdr(global::System.Buffers.ReadOnlySequence{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseHdr(global::System.Buffers.ReadOnlySequence<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Hdr value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseHdr(source, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseHdr(global::System.Buffers.ReadOnlySequence{byte}, out Hdr, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseHdr(global::System.Buffers.ReadOnlySequence<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Hdr value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseHdr(source, out value, out _, variables, options);
+
+        /// <summary>Reads one <c>hdr</c> from the stream (left at its origin after a failure) without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseHdr(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="stream">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseHdr(global::System.IO.Stream stream, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Hdr value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseHdr(stream, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseHdr(global::System.IO.Stream, out Hdr, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseHdr(global::System.IO.Stream stream, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Hdr value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseHdr(stream, out value, out _, variables, options);
+
         /// <summary>Reads one <c>root</c> from the start of <paramref name="source"/> with the generated reader; the same value, and the same failures, as the runtime's <c>Parse</c>.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
@@ -341,6 +471,166 @@ namespace Demo
 
         /// <inheritdoc cref="ParseRootAsync(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions, global::System.Threading.CancellationToken)"/>
         public static global::System.Threading.Tasks.ValueTask<Root> ParseAsync(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => ParseRootAsync(stream, null, options, cancellationToken);
+
+        /// <summary>Reads one <c>root</c> from the bytes without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseRoot(global::System.ReadOnlySpan{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseRoot(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseRoot(source, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseRoot(global::System.ReadOnlySpan{byte}, out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseRoot(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(source, out value, out _, variables, options);
+
+        /// <inheritdoc cref="TryParseRoot(global::System.ReadOnlySpan{byte}, out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, out global::CStructSharp.Diagnostics.CStructException? failure, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(source, out value, out failure, null, options);
+
+        /// <inheritdoc cref="TryParseRoot(global::System.ReadOnlySpan{byte}, out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(source, out value, out _, null, options);
+
+        /// <summary>Reads one <c>root</c> from the array without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseRoot(byte[], global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseRoot(byte[] source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseRoot(source, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseRoot(byte[], out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseRoot(byte[] source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(source, out value, out _, variables, options);
+
+        /// <inheritdoc cref="TryParseRoot(byte[], out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(byte[] source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, out global::CStructSharp.Diagnostics.CStructException? failure, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(source, out value, out failure, null, options);
+
+        /// <inheritdoc cref="TryParseRoot(byte[], out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(byte[] source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(source, out value, out _, null, options);
+
+        /// <summary>Reads one <c>root</c> from the memory without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseRoot(global::System.ReadOnlyMemory{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseRoot(global::System.ReadOnlyMemory<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseRoot(source, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseRoot(global::System.ReadOnlyMemory{byte}, out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseRoot(global::System.ReadOnlyMemory<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(source, out value, out _, variables, options);
+
+        /// <inheritdoc cref="TryParseRoot(global::System.ReadOnlyMemory{byte}, out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.ReadOnlyMemory<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, out global::CStructSharp.Diagnostics.CStructException? failure, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(source, out value, out failure, null, options);
+
+        /// <inheritdoc cref="TryParseRoot(global::System.ReadOnlyMemory{byte}, out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.ReadOnlyMemory<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(source, out value, out _, null, options);
+
+        /// <summary>Reads one <c>root</c> from the sequence without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseRoot(global::System.Buffers.ReadOnlySequence{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseRoot(global::System.Buffers.ReadOnlySequence<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseRoot(source, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseRoot(global::System.Buffers.ReadOnlySequence{byte}, out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseRoot(global::System.Buffers.ReadOnlySequence<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(source, out value, out _, variables, options);
+
+        /// <inheritdoc cref="TryParseRoot(global::System.Buffers.ReadOnlySequence{byte}, out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.Buffers.ReadOnlySequence<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, out global::CStructSharp.Diagnostics.CStructException? failure, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(source, out value, out failure, null, options);
+
+        /// <inheritdoc cref="TryParseRoot(global::System.Buffers.ReadOnlySequence{byte}, out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.Buffers.ReadOnlySequence<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(source, out value, out _, null, options);
+
+        /// <summary>Reads one <c>root</c> from the stream (left at its origin after a failure) without throwing for a read, path, or limit failure: <see langword="false"/> and the failure instead. Cancellation and argument errors throw as in <see cref="ParseRoot(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="stream">The input.</param>
+        /// <param name="value">The parsed value, or <see langword="null"/> when the read failed.</param>
+        /// <param name="failure">The failure the throwing form would have raised, or <see langword="null"/>.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>Whether the read succeeded.</returns>
+        public static bool TryParseRoot(global::System.IO.Stream stream, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, out global::CStructSharp.Diagnostics.CStructException? failure, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            try
+            {
+                value = ParseRoot(stream, variables, options);
+                failure = null;
+                return true;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                value = null;
+                failure = exception;
+                return false;
+            }
+        }
+
+        /// <inheritdoc cref="TryParseRoot(global::System.IO.Stream, out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParseRoot(global::System.IO.Stream stream, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(stream, out value, out _, variables, options);
+
+        /// <inheritdoc cref="TryParseRoot(global::System.IO.Stream, out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.IO.Stream stream, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, out global::CStructSharp.Diagnostics.CStructException? failure, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(stream, out value, out failure, null, options);
+
+        /// <inheritdoc cref="TryParseRoot(global::System.IO.Stream, out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static bool TryParse(global::System.IO.Stream stream, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(stream, out value, out _, null, options);
 
         /// <summary>Reads one <c>hdr</c> at the cursor's position.</summary>
         private static Hdr ReadHdr(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
@@ -865,6 +1155,9 @@ namespace Demo
 
             /// <inheritdoc/>
             static Root global::CStructSharp.ICStructGenerated<Root>.Parse(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options) => Packet.Parse(source, options);
+
+            /// <inheritdoc/>
+            static bool global::CStructSharp.ICStructGenerated<Root>.TryParse(global::System.ReadOnlySpan<byte> source, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, out global::CStructSharp.Diagnostics.CStructException? failure, global::CStructSharp.ReadOptions? options) => Packet.TryParse(source, out value, out failure, options);
 
             /// <inheritdoc/>
             static int global::CStructSharp.ICStructGenerated<Root>.Serialize(Root value, global::System.Span<byte> destination, global::CStructSharp.WriteOptions? options) => Packet.Serialize(value, destination, options);

@@ -122,6 +122,36 @@ public class ViewTests
         AggregateException cancelledAsync = Assert.Throws<AggregateException>(() => { ((dynamic)parseAsync.Invoke(null, [new MemoryStream(bytes), null, null, cancelledSource.Token])!).AsTask().Wait(); });
         Assert.IsInstanceOfType<OperationCanceledException>(cancelledAsync.InnerException);
 
+        // TryParse: every input kind, the failure the throwing form raises, a stream back at its origin, and
+        // cancellation passing through.
+        foreach (Type inputType in new[] { typeof(byte[]), typeof(ReadOnlyMemory<byte>), typeof(System.Buffers.ReadOnlySequence<byte>), typeof(Stream) })
+        {
+            MethodInfo tryParse = packet.GetMethods().Single(method => method.Name == "TryParseRoot" && method.GetParameters().Length == 5 && method.GetParameters()[0].ParameterType == inputType);
+            object whole = inputType == typeof(byte[]) ? bytes : inputType == typeof(ReadOnlyMemory<byte>) ? new ReadOnlyMemory<byte>(bytes) : inputType == typeof(Stream) ? new MemoryStream(bytes) : new System.Buffers.ReadOnlySequence<byte>(bytes);
+            object?[] ok = [whole, null, null, null, null];
+            Assert.IsTrue((bool)tryParse.Invoke(null, ok)!, inputType.Name);
+            ParityComparer.AssertSame(runtime.Parse(bytes, "root"), ok[1]!, "root");
+            Assert.IsNull(ok[2], inputType.Name);
+            byte[] cut = bytes[..10];
+            object part = inputType == typeof(byte[]) ? cut : inputType == typeof(ReadOnlyMemory<byte>) ? new ReadOnlyMemory<byte>(cut) : inputType == typeof(Stream) ? new MemoryStream([0xEE, .. cut]) { Position = 1 } : new System.Buffers.ReadOnlySequence<byte>(cut);
+            object?[] failed = [part, null, null, null, null];
+            Assert.IsFalse((bool)tryParse.Invoke(null, failed)!, inputType.Name);
+            Assert.IsNull(failed[1], inputType.Name);
+            Assert.AreEqual(truncated.Message, ((CStructException)failed[2]!).Message, inputType.Name);
+            if (part is MemoryStream partStream)
+            {
+                Assert.AreEqual(1L, partStream.Position, "a failed TryParse leaves the stream at its origin");
+            }
+
+            object?[] cancelledAttempt = [whole, null, null, null, new ReadOptions { CancellationToken = new CancellationToken(canceled: true) }];
+            Assert.IsInstanceOfType<OperationCanceledException>(Assert.Throws<TargetInvocationException>(() => tryParse.Invoke(null, cancelledAttempt)).InnerException, inputType.Name + ": cancellation passes through");
+        }
+
+        MethodInfo tryParseSpanShort = packet.GetMethods().Single(method => method.Name == "TryParse" && method.GetParameters().Length == 3 && method.GetParameters()[0].ParameterType == typeof(byte[]));
+        object?[] rootForm = [bytes, null, null];
+        Assert.IsTrue((bool)tryParseSpanShort.Invoke(null, rootForm)!);
+        Assert.IsNotNull(rootForm[1]);
+
         // A ReadOnlySequence<byte>: one segment reads in place; several are copied and read like the flat bytes.
         MethodInfo parseSequence = packet.GetMethods().Single(method => method.Name == "ParseRoot" && method.GetParameters()[0].ParameterType == typeof(System.Buffers.ReadOnlySequence<byte>));
         ParityComparer.AssertSame(runtime.Parse(bytes, "root"), parseSequence.Invoke(null, [new System.Buffers.ReadOnlySequence<byte>(bytes), null, null])!, "root");

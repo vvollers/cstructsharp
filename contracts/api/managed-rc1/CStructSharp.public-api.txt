@@ -146,6 +146,7 @@ namespace CStructSharp
         string RootName { get; }
         TSelf Parse(System.ReadOnlySpan<byte> source, CStructSharp.ReadOptions? options = null);
         int Serialize(TSelf value, System.Span<byte> destination, CStructSharp.WriteOptions? options = null);
+        bool TryParse(System.ReadOnlySpan<byte> source, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TSelf value, out CStructSharp.Diagnostics.CStructException? failure, CStructSharp.ReadOptions? options = null);
     }
     public interface ICStructMapped<TSelf>
         where TSelf : CStructSharp.ICStructMapped<TSelf>
