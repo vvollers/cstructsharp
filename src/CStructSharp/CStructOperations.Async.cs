@@ -227,6 +227,15 @@ public sealed partial class CStruct
     ///     ranges and addresses can be shifted. A seekable stream ends after the value, or at the origin when
     ///     <paramref name="restoreOrigin"/> asks for it or the operation failed.
     /// </summary>
+    /// <typeparam name="TResult">The decoded result type.</typeparam>
+    /// <param name="stream">Caller-owned input; its current position is the origin when seekable.</param>
+    /// <param name="options">Read budgets and cancellation settings.</param>
+    /// <param name="cancellationToken">Additional cancellation signal, linked for this operation.</param>
+    /// <param name="operation">Synchronous decoder over a borrowed buffered stream.</param>
+    /// <param name="finish">Maps buffer-relative results to caller-visible coordinates.</param>
+    /// <param name="restoreOrigin">Whether success consumes no bytes in a seekable source.</param>
+    /// <returns>The decoded and coordinate-adjusted result.</returns>
+    /// <remarks>Failed restoration never replaces an earlier failure. Rentals are returned before the error escapes.</remarks>
     private async ValueTask<TResult> ReadBufferedAsync<TResult>(
         Stream stream,
         ReadOptions? options,
@@ -247,27 +256,59 @@ public sealed partial class CStruct
             ReadOptions? effective = token.CanBeCanceled ? (options ?? new ReadOptions()) with { CancellationToken = token, } : options;
             token.ThrowIfCancellationRequested();
             long origin = stream.CanSeek ? stream.Position : 0;
-            if (stream is MemoryStream memory && memory.TryGetBuffer(out ArraySegment<byte> segment))
-            {
-                // In place: the bytes are already in memory, so the span reader runs over them with no copy.
-                int offset = segment.Offset + (int)memory.Position;
-                int available = segment.Offset + (int)memory.Length - offset;
-                return this.RunOverBuffer(stream, origin, segment.Array!, offset, available, effective, operation, finish, restoreOrigin);
-            }
-
-            (byte[] buffer, int length) = await AsyncStreamBuffer.RentAsync(stream, effective, token).ConfigureAwait(false);
             try
             {
-                return this.RunOverBuffer(stream, origin, buffer, 0, length, effective, operation, finish, restoreOrigin);
+                if (stream is MemoryStream memory && memory.TryGetBuffer(out ArraySegment<byte> segment))
+                {
+                    // In place: the bytes are already in memory, so the span reader runs over them with no copy.
+                    int offset = segment.Offset + (int)memory.Position;
+                    int available = segment.Offset + (int)memory.Length - offset;
+                    return this.RunOverBuffer(stream, origin, segment.Array!, offset, available, effective, operation, finish, restoreOrigin);
+                }
+
+                // Acquisition can advance the source before it throws, so it belongs inside the restoration scope.
+                (byte[] buffer, int length) = await AsyncStreamBuffer.RentAsync(stream, effective, token).ConfigureAwait(false);
+                try
+                {
+                    return this.RunOverBuffer(stream, origin, buffer, 0, length, effective, operation, finish, restoreOrigin);
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
+                }
             }
-            finally
+            catch
             {
-                ArrayPool<byte>.Shared.Return(buffer);
+                try
+                {
+                    if (stream.CanSeek)
+                    {
+                        stream.Position = origin;
+                    }
+                }
+                catch
+                {
+                    // A broken seek operation must not replace the original read/cancellation failure.
+                }
+
+                throw;
             }
         }
     }
 
     /// <summary>The synchronous half: the span reader over the buffered bytes, then the stream's final position.</summary>
+    /// <typeparam name="TResult">The decoded result type.</typeparam>
+    /// <param name="stream">Caller-owned source whose successful final position is updated.</param>
+    /// <param name="origin">Starting byte position in the source.</param>
+    /// <param name="buffer">Borrowed input array; ownership stays with the caller.</param>
+    /// <param name="offset">First input byte within the array.</param>
+    /// <param name="length">Available input byte count.</param>
+    /// <param name="effective">Read settings with the linked cancellation token.</param>
+    /// <param name="operation">Synchronous decoder over the borrowed bytes.</param>
+    /// <param name="finish">Adjusts result coordinates using the origin.</param>
+    /// <param name="restoreOrigin">Whether successful queries restore rather than consume.</param>
+    /// <returns>The result with caller-visible coordinates.</returns>
+    /// <remarks>The enclosing operation restores position after failures; this method shifts diagnostic offsets only.</remarks>
     private unsafe TResult RunOverBuffer<TResult>(
         Stream stream,
         long origin,
@@ -301,20 +342,6 @@ public sealed partial class CStruct
         {
             // The failure's offset is a buffer offset; a seekable stream reports stream coordinates, as its sync form does.
             failure.ShiftOffset(origin);
-            if (stream.CanSeek)
-            {
-                stream.Position = origin;
-            }
-
-            throw;
-        }
-        catch
-        {
-            if (stream.CanSeek)
-            {
-                stream.Position = origin;
-            }
-
             throw;
         }
     }

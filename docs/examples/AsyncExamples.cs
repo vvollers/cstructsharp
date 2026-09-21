@@ -11,6 +11,7 @@ using global::CStructSharp.Values;
 internal static partial class Program
 {
     #region recipe-async-stream
+    /// <summary>Parses a file asynchronously and verifies failure, cancellation and stream positioning.</summary>
     private static async Task AsyncStream()
     {
         // A file holds a six-byte header and a payload. Opened for asynchronous I/O, the header is read with
@@ -63,7 +64,60 @@ internal static partial class Program
     }
     #endregion
 
+    #region async-two-records
+    /// <summary>Reads two packed uint16 records from a forward-only stream without consuming part of the next record.</summary>
+    private static async Task ForwardOnlyRecords()
+    {
+        var layout = new CStruct("struct record { uint16 value; };");
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new byte[] { 1, 0, 2, 0 });
+        await pipe.Writer.CompleteAsync();
+        using Stream source = pipe.Reader.AsStream(); // Forward-only, like a network stream.
+        var values = new List<ushort>();
+        await foreach (StructValue record in layout.ParseManyAsync(source, "record", options: new ReadOptions { MaxTotalBytesRead = 2, }))
+        {
+            values.Add(record.Get<ushort>("value"));
+        }
+
+        Equal("1,2", string.Join(",", values));
+    }
+    #endregion
+
+    #region async-retained-record
+    /// <summary>Keeps an incomplete uint16 in a PipeReader until the next bytes arrive, then consumes only whole records.</summary>
+    private static async Task RetainedRecord()
+    {
+        var layout = new CStruct("struct record { uint16 value; };");
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new byte[] { 1 });
+        System.IO.Pipelines.ReadResult first = await pipe.Reader.ReadAsync();
+        Equal(1L, first.Buffer.Length);
+
+        // Examined but not consumed: the first byte must survive the next read.
+        pipe.Reader.AdvanceTo(first.Buffer.Start, first.Buffer.End);
+        await pipe.Writer.WriteAsync(new byte[] { 0, 2, 0 });
+        await pipe.Writer.CompleteAsync();
+
+        System.IO.Pipelines.ReadResult next = await pipe.Reader.ReadAsync();
+        ReadOnlySequence<byte> retained = next.Buffer;
+        Equal(4L, retained.Length);
+        var values = new List<ushort>();
+        while (retained.Length >= 2)
+        {
+            StructValue record = layout.Parse(retained.Slice(0, 2), "record");
+            values.Add(record.Get<ushort>("value"));
+            retained = retained.Slice(2);
+        }
+
+        Equal("1,2", string.Join(",", values));
+        True(retained.IsEmpty, "no truncated record at end of input");
+        pipe.Reader.AdvanceTo(retained.Start, retained.End);
+        await pipe.Reader.CompleteAsync();
+    }
+    #endregion
+
     #region recipe-pipe-reader
+    /// <summary>Frames fixed-size and count-prefixed messages, retaining incomplete input across pipe reads.</summary>
     private static async Task PipeReaderFraming()
     {
         // Four-byte frames arrive on a pipe in chunks that do not line up with the frame boundaries - exactly what a
@@ -71,6 +125,8 @@ internal static partial class Program
         var layout = new CStruct("struct frame { uint16 id; uint16 value; };");
         int size = layout.GetStructSizeInBytes("frame");
         var pipe = new Pipe();
+
+        // Supply chunks independently of the consumer so record boundaries need not match read boundaries.
         Task producer = Task.Run(async () =>
         {
             byte[] frames = [1, 0, 10, 0, 2, 0, 20, 0, 3, 0, 30, 0, 4, 0, 40, 0, 5, 0, 50, 0];

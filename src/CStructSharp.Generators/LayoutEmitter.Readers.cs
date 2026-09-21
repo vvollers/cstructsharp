@@ -22,6 +22,23 @@ internal sealed partial class LayoutEmitter
     // The conditional groups whose selector the reader being emitted has already evaluated (cleared per composite).
     private readonly HashSet<ConditionalGroup> decidedGroups = new(ReferenceEqualityComparer.Instance);
 
+    /// <summary>Emits best-effort cursor restoration without replacing the original acquisition or decode failure.</summary>
+    /// <param name="writer">The generated source destination, immediately after a stream operation's try block.</param>
+    private static void EmitStreamFailureRestoration(SourceWriter writer)
+    {
+        writer.Open("catch");
+        writer.Open("try");
+        writer.Open("if (stream.CanSeek)");
+        writer.Line("stream.Position = start;");
+        writer.Close();
+        writer.Close();
+        writer.Open("catch");
+        writer.Line("// Preserve the original failure if the underlying stream also refuses restoration.");
+        writer.Close();
+        writer.Line("throw;");
+        writer.Close();
+    }
+
     private void EmitReaders(SourceWriter writer)
     {
         writer.Line();
@@ -62,6 +79,10 @@ internal sealed partial class LayoutEmitter
 
     private static string Bool(bool value) => value ? "true" : "false";
 
+    /// <summary>Emits input adapters that own pooled buffers and restore seekable stream origins on any failure.</summary>
+    /// <param name="writer">The generated source destination.</param>
+    /// <param name="composite">The composite whose typed readers are emitted.</param>
+    /// <param name="isRoot">Whether to include the default-root convenience overloads.</param>
     private void EmitParseOverloads(SourceWriter writer, GeneratedComposite composite, bool isRoot)
     {
         string name = composite.Name;
@@ -117,6 +138,7 @@ internal sealed partial class LayoutEmitter
         writer.Open("public static " + name + " " + method + "(global::System.IO.Stream stream, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null)");
         writer.Line("global::System.ArgumentNullException.ThrowIfNull(stream);");
         writer.Line("long start = stream.CanSeek ? stream.Position : 0;");
+        writer.Open("try");
         writer.Line("byte[] buffer = " + Cursor + ".BufferStream(stream, options, out int length);");
         writer.Open("try");
         writer.Line("return " + method + "Buffered(buffer, length, stream, start, variables, options);");
@@ -124,6 +146,8 @@ internal sealed partial class LayoutEmitter
         writer.Open("finally");
         writer.Line("global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);");
         writer.Close();
+        writer.Close();
+        EmitStreamFailureRestoration(writer);
         writer.Close();
         writer.Line();
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from <paramref name=\"stream\"/> with the bytes read by <see cref=\"global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)\"/>: the same buffering and the same reader as the synchronous form; a seekable stream is left after the value (at its origin on failure), a stream that cannot seek is consumed up to the total read budget plus one byte. A stored absolute pointer address counts from the origin, as in the span form.</summary>");
@@ -137,6 +161,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("global::CStructSharp.ReadOptions? effective = " + Cursor + ".WithCancellation(options, cancellationToken, out global::System.Threading.CancellationTokenSource? linked);");
         writer.Open("using (linked)");
         writer.Line("long start = stream.CanSeek ? stream.Position : 0;");
+        writer.Open("try");
         writer.Line("(byte[] buffer, int length) = await " + Cursor + ".BufferStreamAsync(stream, effective, effective?.CancellationToken ?? default).ConfigureAwait(false);");
         writer.Open("try");
         writer.Line("return " + method + "Buffered(buffer, length, stream, start, variables, effective);");
@@ -144,6 +169,8 @@ internal sealed partial class LayoutEmitter
         writer.Open("finally");
         writer.Line("global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);");
         writer.Close();
+        writer.Close();
+        EmitStreamFailureRestoration(writer);
         writer.Close();
         writer.Close();
         writer.Line();
@@ -159,9 +186,6 @@ internal sealed partial class LayoutEmitter
         writer.Close();
         writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
         writer.Line("cursor.Complete(exception);");
-        writer.Open("if (stream.CanSeek)");
-        writer.Line("stream.Position = start;");
-        writer.Close();
         writer.Line("throw;");
         writer.Close();
         writer.Close();

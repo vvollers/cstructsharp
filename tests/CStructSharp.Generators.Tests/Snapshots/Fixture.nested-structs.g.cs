@@ -112,14 +112,32 @@ namespace Demo
         {
             global::System.ArgumentNullException.ThrowIfNull(stream);
             long start = stream.CanSeek ? stream.Position : 0;
-            byte[] buffer = global::CStructSharp.Generated.ReadCursor.BufferStream(stream, options, out int length);
             try
             {
-                return ParseChildBuffered(buffer, length, stream, start, variables, options);
+                byte[] buffer = global::CStructSharp.Generated.ReadCursor.BufferStream(stream, options, out int length);
+                try
+                {
+                    return ParseChildBuffered(buffer, length, stream, start, variables, options);
+                }
+                finally
+                {
+                    global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+                }
             }
-            finally
+            catch
             {
-                global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+                try
+                {
+                    if (stream.CanSeek)
+                    {
+                        stream.Position = start;
+                    }
+                }
+                catch
+                {
+                    // Preserve the original failure if the underlying stream also refuses restoration.
+                }
+                throw;
             }
         }
 
@@ -136,14 +154,32 @@ namespace Demo
             using (linked)
             {
                 long start = stream.CanSeek ? stream.Position : 0;
-                (byte[] buffer, int length) = await global::CStructSharp.Generated.ReadCursor.BufferStreamAsync(stream, effective, effective?.CancellationToken ?? default).ConfigureAwait(false);
                 try
                 {
-                    return ParseChildBuffered(buffer, length, stream, start, variables, effective);
+                    (byte[] buffer, int length) = await global::CStructSharp.Generated.ReadCursor.BufferStreamAsync(stream, effective, effective?.CancellationToken ?? default).ConfigureAwait(false);
+                    try
+                    {
+                        return ParseChildBuffered(buffer, length, stream, start, variables, effective);
+                    }
+                    finally
+                    {
+                        global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+                    }
                 }
-                finally
+                catch
                 {
-                    global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+                    try
+                    {
+                        if (stream.CanSeek)
+                        {
+                            stream.Position = start;
+                        }
+                    }
+                    catch
+                    {
+                        // Preserve the original failure if the underlying stream also refuses restoration.
+                    }
+                    throw;
                 }
             }
         }
@@ -164,10 +200,6 @@ namespace Demo
             catch (global::CStructSharp.Diagnostics.CStructException exception)
             {
                 cursor.Complete(exception);
-                if (stream.CanSeek)
-                {
-                    stream.Position = start;
-                }
                 throw;
             }
         }
@@ -432,14 +464,32 @@ namespace Demo
         {
             global::System.ArgumentNullException.ThrowIfNull(stream);
             long start = stream.CanSeek ? stream.Position : 0;
-            byte[] buffer = global::CStructSharp.Generated.ReadCursor.BufferStream(stream, options, out int length);
             try
             {
-                return ParseRootBuffered(buffer, length, stream, start, variables, options);
+                byte[] buffer = global::CStructSharp.Generated.ReadCursor.BufferStream(stream, options, out int length);
+                try
+                {
+                    return ParseRootBuffered(buffer, length, stream, start, variables, options);
+                }
+                finally
+                {
+                    global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+                }
             }
-            finally
+            catch
             {
-                global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+                try
+                {
+                    if (stream.CanSeek)
+                    {
+                        stream.Position = start;
+                    }
+                }
+                catch
+                {
+                    // Preserve the original failure if the underlying stream also refuses restoration.
+                }
+                throw;
             }
         }
 
@@ -456,14 +506,32 @@ namespace Demo
             using (linked)
             {
                 long start = stream.CanSeek ? stream.Position : 0;
-                (byte[] buffer, int length) = await global::CStructSharp.Generated.ReadCursor.BufferStreamAsync(stream, effective, effective?.CancellationToken ?? default).ConfigureAwait(false);
                 try
                 {
-                    return ParseRootBuffered(buffer, length, stream, start, variables, effective);
+                    (byte[] buffer, int length) = await global::CStructSharp.Generated.ReadCursor.BufferStreamAsync(stream, effective, effective?.CancellationToken ?? default).ConfigureAwait(false);
+                    try
+                    {
+                        return ParseRootBuffered(buffer, length, stream, start, variables, effective);
+                    }
+                    finally
+                    {
+                        global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+                    }
                 }
-                finally
+                catch
                 {
-                    global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+                    try
+                    {
+                        if (stream.CanSeek)
+                        {
+                            stream.Position = start;
+                        }
+                    }
+                    catch
+                    {
+                        // Preserve the original failure if the underlying stream also refuses restoration.
+                    }
+                    throw;
                 }
             }
         }
@@ -484,10 +552,6 @@ namespace Demo
             catch (global::CStructSharp.Diagnostics.CStructException exception)
             {
                 cursor.Complete(exception);
-                if (stream.CanSeek)
-                {
-                    stream.Position = start;
-                }
                 throw;
             }
         }

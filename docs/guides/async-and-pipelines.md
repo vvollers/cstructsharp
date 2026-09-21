@@ -46,8 +46,18 @@ non-seekable stream:                 consumed by what was buffered, whatever the
 ```
 
 A stream that cannot seek (a socket, a pipe, a compressed stream) cannot be rewound, so the bytes the rule
-buffered are gone whether the value used them or not. For such a stream read one value at a time only when the
-budget is the value's size, or use a `PipeReader` as the last section shows.
+buffered are gone whether the value used them or not. A value-sized budget does **not** frame consecutive records:
+`ParseAsync` may consume the budget plus one byte. For example, with `struct record { uint16 value; };`, input
+`01 00 02 00` and a two-byte budget, the first call returns 1 but consumes `01 00 02`. A second call has only `00`
+left, not the two bytes needed for 2. The budget limits decoding; it does not define stream message boundaries.
+
+For fixed-size records, use `ParseManyAsync` (or generated `RecordsAsync`). Each two-byte record below starts at
+offset 0 within its own input slice: `01 00` gives 1 and `02 00` gives 2, in little-endian order. The record iterator
+consumes whole records without single-value read-ahead. A trailing incomplete record is an error.
+
+[!code-csharp[Two records from a forward-only stream](../examples/AsyncExamples.cs#async-two-records)]
+
+When the application owns message framing, keep unconsumed bytes in a `PipeReader`, as shown below.
 
 One consequence of the rule is easy to miss. The buffer starts at the stream's *current position*, so a stored
 absolute pointer address counts from that origin - as it does for a span or memory input - while the synchronous
@@ -69,8 +79,12 @@ read stops with a whole value read and nothing half-decoded.
 
 Cancellation surfaces as `OperationCanceledException` and never as a read failure: the non-throwing forms
 (`TryReadValue`, `TryParse`, `TryReadValueAsync`) let it through instead of returning `false`, because a cancelled
-read says nothing about the bytes. A read cancelled before the first byte leaves a seekable stream at its origin;
-a read cancelled later leaves it where the reader stopped, as a failed synchronous read does.
+read says nothing about the bytes. Buffered runtime async reads and generated stream reads restore a seekable
+stream's origin even if acquisition fails after reading some bytes. Synchronous runtime reads can leave the cursor
+where the reader stopped. A forward-only source cannot restore consumed bytes.
+
+Restoration assumes the stream's `Position` setter still works. If restoring the cursor also fails while handling
+an earlier read/update failure, the original exception is preserved and the cursor is no longer guaranteed.
 
 ## Awaitable writes
 
@@ -90,6 +104,17 @@ A socket delivers bytes in whatever pieces the network chose. A `PipeReader` (`S
 that: `ReadAsync` hands you everything that has arrived as a `ReadOnlySequence<byte>` (a chain of buffers), and
 `AdvanceTo(consumed, examined)` tells it what you used and what you looked at, so the next `ReadAsync` returns
 new bytes appended to the ones you did not consume.
+
+This small example first receives `01`, keeps that incomplete record, then receives `00 02 00`. It parses exactly
+two bytes at a time from the retained four-byte sequence, yielding 1 and 2 without losing the next record's bytes.
+
+[!code-csharp[Retain incomplete records](../examples/AsyncExamples.cs#async-retained-record)]
+
+Run both two-record examples from the repository root:
+
+```sh
+dotnet run --project docs/examples/CStructSharp.Docs.Examples.csproj -c Release -- forward-only-records retained-record
+```
 
 [!code-csharp[Frame records from a pipe](../examples/AsyncExamples.cs#recipe-pipe-reader)]
 

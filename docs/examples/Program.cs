@@ -27,6 +27,13 @@ internal static partial class Program
         ("try-get", TryGetAndGetOrDefault),
         ("async-stream", () => AsyncStream().GetAwaiter().GetResult()),
         ("pipe-reader", () => PipeReaderFraming().GetAwaiter().GetResult()),
+
+        // Exercise the two-record guide independently; existing recipe exports remain self-contained.
+        ("forward-only-records", () => ForwardOnlyRecords().GetAwaiter().GetResult()),
+
+        // Verify that a partially received record survives the next pipe read.
+        ("retained-record", () => RetainedRecord().GetAwaiter().GetResult()),
+
         ("record-sequence", () => RecordSequence().GetAwaiter().GetResult()),
         ("try-parse", TryParseForms),
         ("generated-async", () => GeneratedAsync().GetAwaiter().GetResult()),

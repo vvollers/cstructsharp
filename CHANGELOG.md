@@ -10,6 +10,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 - Correct the landing-page JavaScript starter and verify its exact success and error paths against the built npm
   package, including the assembled website before publication.
+- Restore seekable stream origins when buffered runtime or generated reads and async updates fail during input
+  acquisition. Preserve the original failure if restoring the stream position also fails.
+- Correct forward-only stream guidance with executable record-iterator and retained-pipe examples; a single-value
+  byte budget does not prevent consuming a byte from the next record.
 
 ## 0.8.0 — 2026-09-21
 

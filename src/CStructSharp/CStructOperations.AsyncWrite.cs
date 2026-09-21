@@ -69,6 +69,9 @@ public sealed partial class CStruct
     /// <param name="options">Optional update limits and pointer settings; <see langword="null"/> uses the documented defaults.</param>
     /// <param name="cancellationToken">Ends the update before the read, during the staged validation, or before the write-back; linked with <see cref="WriteOptions.CancellationToken"/>.</param>
     /// <returns>A task that completes when the changed bytes have been written.</returns>
+    /// <remarks>Acquisition failures restore the origin without writing. If restoration itself fails while handling
+    /// an earlier failure, the original exception is preserved and the position cannot be guaranteed. I/O failure
+    /// during write-back can leave some ranges changed; this is not a transactional write.</remarks>
     /// <exception cref="ArgumentException">The stream cannot seek: the changed bytes are written back in place.</exception>
     /// <exception cref="CStructPathException">The path is invalid or cannot be resolved.</exception>
     /// <exception cref="CStructWriteException">The value cannot be encoded; the stream is unchanged.</exception>
@@ -93,10 +96,14 @@ public sealed partial class CStruct
             token.ThrowIfCancellationRequested();
             long origin = stream.Position;
             var region = new ReadOptions { MaxTotalBytesRead = (effective ?? new UpdateOptions()).MaxTraversalBytesRead, };
-            (byte[] buffer, int length) = await AsyncStreamBuffer.RentAsync(stream, region, token).ConfigureAwait(false);
-            byte[] original = ArrayPool<byte>.Shared.Rent(Math.Max(length, 1));
+            byte[]? buffer = null;
+            byte[]? original = null;
+            Exception? failure = null;
             try
             {
+                // Own each rental only after acquisition succeeds; either acquisition can fail before staging.
+                (buffer, int length) = await AsyncStreamBuffer.RentAsync(stream, region, token).ConfigureAwait(false);
+                original = ArrayPool<byte>.Shared.Rent(Math.Max(length, 1));
                 buffer.AsSpan(0, length).CopyTo(original);
                 this.Update(buffer.AsSpan(0, length), path, value, variables, effective);
 
@@ -123,11 +130,31 @@ public sealed partial class CStruct
 
                 await stream.FlushAsync(token).ConfigureAwait(false);
             }
+            catch (Exception exception)
+            {
+                failure = exception;
+                throw;
+            }
             finally
             {
-                ArrayPool<byte>.Shared.Return(original);
-                ArrayPool<byte>.Shared.Return(buffer);
-                stream.Position = origin;
+                if (original is not null)
+                {
+                    ArrayPool<byte>.Shared.Return(original);
+                }
+
+                if (buffer is not null)
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
+                }
+
+                try
+                {
+                    stream.Position = origin;
+                }
+                catch when (failure is not null)
+                {
+                    // Preserve the original acquisition/validation/write failure if restoration also fails.
+                }
             }
         }
     }

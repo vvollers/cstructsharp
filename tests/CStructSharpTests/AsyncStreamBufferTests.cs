@@ -90,6 +90,30 @@ public class AsyncStreamBufferTests
         Assert.AreEqual(10, length, "a stream that ends before the budget gives what it has");
     }
 
+    /// <summary>A value-sized budget still reads ahead; the fixed-record iterator instead preserves the next complete record.</summary>
+    [TestMethod]
+    public async Task SingleValueReadAhead_DiffersFromFixedRecordIteration()
+    {
+        var layout = new CStruct("struct record { uint16 value; };");
+        var options = new ReadOptions { MaxTotalBytesRead = 2, };
+        using var single = new NonSeekableStream([1, 0, 2, 0,]);
+        Assert.AreEqual((ushort)1, (await layout.ParseAsync(single, options: options)).Get<ushort>("value"));
+        Assert.AreEqual(3, single.BytesRead, "single-value buffering consumes the budget plus one");
+
+        // The retained fourth byte cannot form the second uint16 after single-value read-ahead.
+        await Assert.ThrowsAsync<CStructSharp.Diagnostics.CStructReadException>(async () => await layout.ParseAsync(single, options: options));
+
+        using var records = new NonSeekableStream([1, 0, 2, 0,]);
+        var values = new List<ushort>();
+        await foreach (CStructSharp.Values.StructValue record in layout.ParseManyAsync(records, options: options))
+        {
+            values.Add(record.Get<ushort>("value"));
+        }
+
+        CollectionAssert.AreEqual(new ushort[] { 1, 2, }, values);
+        Assert.AreEqual(4, records.BytesRead, "record iteration consumes exactly two whole records");
+    }
+
     /// <summary>A token cancelled before the first read throws before any byte is read; a failing read returns the pooled array.</summary>
     [TestMethod]
     public async Task Cancellation_AndFailures_LeaveNothingBehind()
