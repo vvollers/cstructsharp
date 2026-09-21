@@ -7,7 +7,7 @@ import test from "node:test";
 // The workflow deliberately uses a simple quoted path list; test its actual entries rather than a second list of globs.
 test("generator and shared build changes schedule advisory PR performance reporting", () => {
   const source = fs.readFileSync(new URL("../../.github/workflows/benchmark-drift.yml", import.meta.url), "utf8");
-  const block = source.match(/  pull_request:\n    paths:\n((?:      - "[^"\n]+"\n)+)/)?.[1];
+  const block = source.match(/ {2}pull_request:\n {4}paths:\n((?: {6}- "[^"\n]+"\n)+)/)?.[1];
   assert.ok(block, "Expected explicit PR paths in the benchmark workflow");
   // Extract only the trigger's patterns, not unrelated YAML lists.
   const patterns = [...block.matchAll(/"([^"\n]+)"/g)].map((match) => match[1]);
