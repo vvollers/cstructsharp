@@ -14,8 +14,10 @@ function git(...args) {
 /** Collects changed line intervals, including the surviving boundary when a comment was deleted. */
 export function changedRanges(diff) {
   return [...diff.matchAll(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/gm)].map((match) => {
-    const start = Math.max(1, Number(match[1]));
-    return { start, end: start + Math.max(1, Number(match[2] ?? 1)) - 1 };
+    const count = Number(match[2] ?? 1);
+    // A deletion-only hunk names the preceding surviving line, not the declaration after the deletion.
+    const start = Math.max(1, Number(match[1]) + (count === 0 ? 1 : 0));
+    return { start, end: start + Math.max(1, count) - 1 };
   });
 }
 

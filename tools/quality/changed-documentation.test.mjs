@@ -7,7 +7,8 @@ import { repositoryRoot } from "../lib/tooling.mjs";
 
 // Deleted comment lines must still select the declaration at their surviving boundary.
 test("changed ranges retain deletion boundaries and exact added spans", () => {
-  assert.deepEqual(changedRanges("@@ -1,2 +1,0 @@\n@@ -8 +7,3 @@"), [{ start: 1, end: 1 }, { start: 7, end: 9 }]);
+  assert.deepEqual(changedRanges("@@ -2 +1,0 @@\n@@ -8 +7,3 @@"), [{ start: 2, end: 2 }, { start: 7, end: 9 }]);
+  assert.deepEqual(changedRanges("@@ -1 +0,0 @@"), [{ start: 1, end: 1 }]);
 });
 
 // Run the real Roslyn checker, including a constructor, local function and undocumented untouched method.
@@ -16,12 +17,14 @@ test("C# checker detects missing XML comments only in changed declaration spans"
   const entries = [
     { file: "passing.cs", source, ranges: [{ start: 5, end: 5 }] },
     { file: "failing.cs", source, ranges: [{ start: 6, end: 6 }] },
+    { file: "empty.cs", source: "/// <summary>\n/// </summary>\nclass Empty {}", ranges: [{ start: 1, end: 3 }] },
   ];
   const output = execFileSync("dotnet", ["run", "--file", "tools/quality/CSharpComments.cs"], {
     cwd: repositoryRoot, input: JSON.stringify({ entries }), encoding: "utf8",
   });
   const marker = "DOC-COMMENT-RESULT:";
   const issues = JSON.parse(output.split(/\r?\n/).find((line) => line.startsWith(marker)).slice(marker.length));
-  assert.equal(issues.length, 2);
-  assert.ok(issues.every((issue) => issue.startsWith("failing.cs:6:")));
+  assert.equal(issues.length, 3);
+  assert.equal(issues.filter((issue) => issue.startsWith("failing.cs:6:")).length, 2);
+  assert.ok(issues.some((issue) => issue.startsWith("empty.cs:3:")));
 });

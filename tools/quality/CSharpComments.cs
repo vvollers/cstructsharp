@@ -69,8 +69,9 @@ internal static class CSharpComments
                     return true;
                 }
 
+                // Inspect token values, not exterior "///" trivia that can make an empty multiline summary look non-empty.
                 if (content is XmlElementSyntax element && element.StartTag.Name.LocalName.Text == "summary" &&
-                    !string.IsNullOrWhiteSpace(element.Content.ToFullString()))
+                    element.Content.SelectMany(part => part.DescendantTokens()).Any(token => !string.IsNullOrWhiteSpace(token.ValueText)))
                 {
                     return true;
                 }
