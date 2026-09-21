@@ -109,6 +109,10 @@ public class StreamFailureTests
         }
 
         /// <summary>Supplies one byte once, then fails on the next read.</summary>
+        /// <param name="buffer">The destination with room for the synthetic byte.</param>
+        /// <param name="offset">The destination index at which to store that byte.</param>
+        /// <param name="count">The positive capacity offered by the acquisition loop; this test source returns only one byte.</param>
+        /// <returns>One for the first read; subsequent calls throw the configured failure.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
             if (this.reads++ != 0)
@@ -122,6 +126,9 @@ public class StreamFailureTests
         }
 
         /// <summary>Uses the same partial-read failure sequence for asynchronous acquisition.</summary>
+        /// <param name="buffer">The destination with room for at least one byte.</param>
+        /// <param name="cancellationToken">Unused: this source throws its configured cancellation instance on the second read.</param>
+        /// <returns>A completed one-byte read on the first call; later calls throw the configured failure.</returns>
         public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
             byte[] one = new byte[1];
@@ -131,12 +138,21 @@ public class StreamFailureTests
         }
 
         /// <summary>Rejects seeking by offset; the operation restores Position directly.</summary>
+        /// <param name="offset">Unused byte displacement.</param>
+        /// <param name="origin">Unused displacement origin.</param>
+        /// <returns>Never returns a position.</returns>
+        /// <exception cref="NotSupportedException">Always thrown by this test source.</exception>
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
         /// <summary>Rejects resizing the synthetic source.</summary>
+        /// <param name="value">Unused requested byte length.</param>
+        /// <exception cref="NotSupportedException">Always thrown by this test source.</exception>
         public override void SetLength(long value) => throw new NotSupportedException();
 
         /// <summary>Records a write that should never follow failed acquisition.</summary>
+        /// <param name="buffer">Unused source bytes; no data is persisted.</param>
+        /// <param name="offset">Unused source index.</param>
+        /// <param name="count">Unused byte count; the test records attempted calls, not bytes.</param>
         public override void Write(byte[] buffer, int offset, int count) => this.Writes++;
 
         /// <summary>Does nothing because this source has no pending writes.</summary>

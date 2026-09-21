@@ -11,7 +11,11 @@ function git(...args) {
   return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
 }
 
-/** Collects changed line intervals, including the surviving boundary when a comment was deleted. */
+/**
+ * Collects changed line intervals, including the following declaration when a comment was deleted.
+ * @param diff Git's unified diff text with zero context lines.
+ * @returns One-based, inclusive line ranges in the current source, not the removed version.
+ */
 export function changedRanges(diff) {
   return [...diff.matchAll(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/gm)].map((match) => {
     const count = Number(match[2] ?? 1);
@@ -21,7 +25,11 @@ export function changedRanges(diff) {
   });
 }
 
-/** Uses the app's existing TypeScript and Vue parsers; inspected scripts are never executed. */
+/**
+ * Uses the app's existing TypeScript and Vue parsers; inspected scripts are never executed.
+ * @param entries Source snapshots with file names and changed, one-based inclusive line ranges.
+ * @returns Diagnostics for undocumented changed named declarations; malformed scripts throw.
+ */
 export function inspectScripts(entries) {
   const require = createRequire(path.join(repositoryRoot, "apps/explorer/package.json"));
   const ts = require("typescript");
