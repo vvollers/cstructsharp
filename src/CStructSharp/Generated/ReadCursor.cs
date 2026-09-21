@@ -226,6 +226,7 @@ public ref struct ReadCursor
         int start = this.position;
         while (remainingElementsBytes > 0)
         {
+            this.settings.CancellationToken.ThrowIfCancellationRequested();
             int blockLength = (int)Math.Min(remainingElementsBytes, blockCapacity);
             if (blockLength > this.Remaining)
             {
@@ -256,6 +257,7 @@ public ref struct ReadCursor
     /// <exception cref="CStructReadLimitException">The total read budget is exceeded.</exception>
     public ReadOnlySpan<byte> TakeElements(int count, int elementSize, string member, string? memberType)
     {
+        this.settings.CancellationToken.ThrowIfCancellationRequested();
         if (count <= 0 || elementSize <= 0)
         {
             return ReadOnlySpan<byte>.Empty;
@@ -562,6 +564,7 @@ public ref struct ReadCursor
         int offset = 0;
         while (true)
         {
+            this.settings.CancellationToken.ThrowIfCancellationRequested();
             int bytesRead = Math.Min(Chunk, remaining.Length - offset);
             if (bytesRead == 0)
             {
@@ -659,6 +662,7 @@ public ref struct ReadCursor
     /// <exception cref="CStructReadLimitException">The nesting limit is exceeded.</exception>
     public void EnterComposite(string member, string? memberType)
     {
+        this.settings.CancellationToken.ThrowIfCancellationRequested();
         if (this.nestingDepth >= this.settings.MaxNestingDepth)
         {
             throw this.FailLimit(ReadFailures.NestingLimit, member, memberType);
@@ -710,6 +714,7 @@ public ref struct ReadCursor
     /// <exception cref="CStructReadException">The target lies outside the input or is already being read.</exception>
     public int EnterPointer(long address, int depth, long? targetSize, string targetType, string member, string? memberType)
     {
+        this.settings.CancellationToken.ThrowIfCancellationRequested();
         if (this.pointerDepth >= this.settings.MaxPointerDepth)
         {
             throw this.FailLimit(ReadFailures.PointerDepthLimit, member, memberType);

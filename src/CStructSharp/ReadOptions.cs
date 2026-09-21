@@ -16,9 +16,10 @@ public enum PointerAddressingMode
 /// </summary>
 /// <remarks>
 ///     Every operation snapshots these values before reading. Budgets are per public operation, not lifetime
-///     counters, and invalid non-positive limits fail before payload traversal.
+///     counters, and invalid non-positive limits fail before payload traversal. A record: <c>options with
+///     { TrimFixedText = true }</c> copies every other member, and two instances with the same members are equal.
 /// </remarks>
-public sealed class ReadOptions
+public sealed record ReadOptions
 {
     /// <summary>Creates the default bounded read and pointer policy.</summary>
     public ReadOptions()
@@ -78,4 +79,12 @@ public sealed class ReadOptions
     ///     before their target stream range is validated.
     /// </summary>
     public long Origin { get; init; }
+
+    /// <summary>
+    ///     Gets the token a long read observes: it is checked when a composite or a pointer target is entered, per
+    ///     block of a primitive array, per element of a composite array, and per chunk of a terminated string, and
+    ///     a cancelled token ends the operation with <see cref="OperationCanceledException"/> (not a read failure:
+    ///     <c>TryReadValue</c> lets it through). Never checked per primitive, so a small read costs nothing for it.
+    /// </summary>
+    public System.Threading.CancellationToken CancellationToken { get; init; }
 }

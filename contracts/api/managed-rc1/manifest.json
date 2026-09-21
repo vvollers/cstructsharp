@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 31,
+  "baselineRevision": 33,
   "status": "frozen",
   "workItem": "QA-07",
-  "packageVersion": "0.6.0",
+  "packageVersion": "0.7.0",
   "assembly": "CStructSharp.dll",
   "exportedTypes": 80,
   "generator": {
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 957,
-    "normalizedSha256": "79D2E5977B77D15E7529BB0EB718D04B21EA81848C12023D8E287CC9D4EC4D4D"
+    "lines": 959,
+    "normalizedSha256": "208E7282C4C307D2617418312195BA6E5AA7E5BCA32CA511D8AD027550AE16FD"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "316B9431CD25D04E2561742D8D71B5807928DB778D489041E2E914B08030A658",
+      "normalizedSha256": "1ADB82297E3F06CDCDB1042327C7A94391DBEBB382E4DE2365E7CB7D2757C22F",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "859A3B8B20B31385DC63F9D9EB7F826A409306AD9CE469825BF1D0F88AB47512",
+      "normalizedSha256": "1911F8B04411B9FC76FFFE0EB732DA2A815F95010B9451AD2EC8AF072F272E03",
       "aotCompatible": true
     }
   ],
@@ -312,6 +312,24 @@
       "combinedSha256": "0996E9DF89323892B8DE59F01A2DB099992157FA71C912A4ED2EA0A4F8EB60D1",
       "rationale": "Mapped bridge (plan 4.2): StructValue.ToMapped<T>() maps a parsed struct through a mapped class's ReadFrom.",
       "releaseImpact": "Additive to the released 0.6.0 surface."
+    },
+    {
+      "revision": 32,
+      "kind": "additive",
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "9834105870D66666EA0C0FCC44732A71C6B84FCCBCACCAEEFEF1C556722B8971",
+      "rationale": "Convenience plan 1.1: ReadOptions and CStructCompilationOptions become sealed records like WriteOptions/UpdateOptions already were, so 'with' expressions copy every other member; the baseline shows only the IEquatable<T> implementation (the generator omits the synthesized Equals/GetHashCode/ToString/PrintMembers/EqualityContract/clone members). Behaviour: two instances with the same members are now equal; the collection-typed members Codecs and Defined compare by reference.",
+      "releaseImpact": "Additive: no signature changes; equality of option instances is member-wise instead of reference, which no documented contract relied on."
+    },
+    {
+      "revision": 33,
+      "kind": "additive",
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "87068A17BD0A95A53842EF5C33A4B11522221FFB0D3B06077DA0692F213E1538",
+      "rationale": "Convenience plan 1.2: ReadOptions.CancellationToken and WriteOptions.CancellationToken (inherited by UpdateOptions) let a caller stop a long read or write; the token is observed at composite, pointer, block, element, and chunk boundaries in the runtime and in the generated cursors, and surfaces as OperationCanceledException, never as a CStructException and never as false from TryReadValue<T>.",
+      "releaseImpact": "Additive: two init properties with the none token as default; no existing signature changes."
     }
   ]
 }

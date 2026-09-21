@@ -4,6 +4,24 @@ Notable changes to CStructSharp, newest first. Release versions and dates were r
 Git history preserved before the repository history reset. Entries focus on features, fixes, and migration steps.
 Related changes are consolidated; routine formatting and benchmark bookkeeping are omitted.
 
+## Unreleased
+
+### Added
+
+- `ReadOptions.CancellationToken`, `WriteOptions.CancellationToken`, and (through `WriteOptions`)
+  `UpdateOptions.CancellationToken`: a read observes the token when it enters a struct or union, follows a pointer,
+  starts a 64 KiB block of a numeric array, an element of an array of structs, or a 256-byte chunk of a terminated
+  string; a write when it enters a composite or an element of a composite array. Cancellation is an
+  `OperationCanceledException` - never a `CStructException`, never `false` from `TryReadValue<T>` (which restores the
+  stream position and rethrows). An update stages before it commits, so a cancelled update leaves the destination
+  unchanged. Generated readers and writers observe the same token through `ReadCursor`/`WriteCursor`.
+
+### Behaviour
+
+- `ReadOptions` and `CStructCompilationOptions` are `sealed record`s, as `WriteOptions` and `UpdateOptions` already
+  were: `options with { TrimFixedText = true }` copies every other member, and two option instances with the same
+  members are equal (the collection members `Codecs` and `Defined` compare by reference). No signature changed.
+
 ## 0.7.0 — 2026-09-21
 
 ### Breaking changes

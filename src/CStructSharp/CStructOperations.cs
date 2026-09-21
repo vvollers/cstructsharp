@@ -376,6 +376,12 @@ public sealed partial class CStruct
             value = default;
             return false;
         }
+        catch (OperationCanceledException)
+        {
+            // Cancellation is not a read failure and is not swallowed; the position is restored like any expected exit.
+            stream.Position = initialPosition;
+            throw;
+        }
     }
 
     /// <summary>Attempts a typed read from a byte span; an expected CStructSharp failure returns <see langword="false"/>.</summary>

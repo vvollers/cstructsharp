@@ -74,7 +74,7 @@ namespace CStructSharp
         public static void ClearCompiledCache() { }
         public static CStructSharp.CStruct GetOrCompile(string layout, byte pointerSize = 8, bool aligned = false, bool isLittleEndian = true, CStructSharp.CStructCompilationOptions? compilationOptions = null) { }
     }
-    public sealed class CStructCompilationOptions
+    public sealed class CStructCompilationOptions : System.IEquatable<CStructSharp.CStructCompilationOptions>
     {
         public CStructCompilationOptions() { }
         public CStructSharp.BitfieldAllocation BitfieldAllocation { get; init; }
@@ -148,10 +148,11 @@ namespace CStructSharp
         Absolute = 0,
         Relative = 1,
     }
-    public sealed class ReadOptions
+    public sealed class ReadOptions : System.IEquatable<CStructSharp.ReadOptions>
     {
         public ReadOptions() { }
         public CStructSharp.PointerAddressingMode AddressingMode { get; init; }
+        public System.Threading.CancellationToken CancellationToken { get; init; }
         public bool DereferencePointers { get; init; }
         public int MaxArrayElements { get; init; }
         public int MaxNestingDepth { get; init; }
@@ -188,6 +189,7 @@ namespace CStructSharp
     {
         public WriteOptions() { }
         public CStructSharp.PointerAddressingMode AddressingMode { get; init; }
+        public System.Threading.CancellationToken CancellationToken { get; init; }
         public int MaxArrayElements { get; init; }
         public int MaxNestingDepth { get; init; }
         public long MaxStringBytes { get; init; }

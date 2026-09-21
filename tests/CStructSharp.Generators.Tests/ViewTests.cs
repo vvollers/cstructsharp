@@ -101,6 +101,16 @@ public class ViewTests
         Exception truncated = Assert.Throws<TargetInvocationException>(() => parseStream.Invoke(null, [new MemoryStream(bytes[..10]), null, null])).InnerException!;
         Assert.AreEqual(Assert.Throws<CStructReadException>(() => runtime.Parse(bytes[..10], "root")).Message, truncated.Message);
 
+        // The token on the options is observed by the cursor at composite entry: a cancelled token ends the generated read.
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        MethodInfo parseSpan = packet.GetMethods().Single(method => method.Name == "ParseRoot" && method.GetParameters()[0].ParameterType == typeof(byte[]));
+        Exception cancelledRead = Assert.Throws<TargetInvocationException>(() => parseSpan.Invoke(null, [bytes, null, new ReadOptions { CancellationToken = cancelled.Token }])).InnerException!;
+        Assert.IsInstanceOfType<OperationCanceledException>(cancelledRead);
+        MethodInfo serialize = packet.GetMethods().Single(method => method.Name == "SerializeRoot" && method.GetParameters().Length == 3 && method.ReturnType == typeof(byte[]));
+        Exception cancelledWrite = Assert.Throws<TargetInvocationException>(() => serialize.Invoke(null, [value, null, new WriteOptions { CancellationToken = cancelled.Token }])).InnerException!;
+        Assert.IsInstanceOfType<OperationCanceledException>(cancelledWrite);
+
         // Views = false emits none.
         string probeFree = Layout.Substring(0, Layout.IndexOf("public static class Probe", StringComparison.Ordinal));
         GeneratorResult without = GeneratorRunner.Run(probeFree.Replace("{0}", ", Views = false", StringComparison.Ordinal)).AssertClean();

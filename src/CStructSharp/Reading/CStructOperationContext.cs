@@ -33,10 +33,14 @@ internal sealed class CStructOperationContext
             throw new ArgumentException("Parsing requires a readable, seekable stream.", nameof(stream));
         }
 
+        // A token cancelled before the call ends the operation before any byte is read.
+        options.CancellationToken.ThrowIfCancellationRequested();
+
         this.Stream = new ReadBudgetStream(
             stream,
             options.MaxStringBytes,
-            options.MaxTotalBytesRead);
+            options.MaxTotalBytesRead,
+            options.CancellationToken);
         this.Variables = variables;
         this.CaptureAllLayoutVariables = variables is not LayoutVariables { CaptureAll: false };
         this.Aligned = aligned;
@@ -83,6 +87,9 @@ internal sealed class CStructOperationContext
     public bool Aligned { get; }
 
     public bool DereferencePointers { get; }
+
+    /// <summary>The token the operation observes at composite, pointer, block, element, and chunk boundaries (kept on the budget stream so the per-operation objects carry it once).</summary>
+    public System.Threading.CancellationToken CancellationToken => this.Stream.CancellationToken;
 
     /// <summary>
     ///     Gets or sets whether overlapping union member views must expose pointer addresses without following
@@ -182,6 +189,7 @@ internal sealed class CStructOperationContext
 
     public void EnterStructure()
     {
+        this.CancellationToken.ThrowIfCancellationRequested();
         this.EnsureStructureDepth(this.StructureDepth + 1);
         this.StructureDepth++;
     }

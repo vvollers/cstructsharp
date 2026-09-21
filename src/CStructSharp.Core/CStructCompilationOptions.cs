@@ -6,9 +6,11 @@ using CStructSharp.Codecs;
 /// <summary>Controls the resource limits applied before a C-like layout definition is parsed and compiled.</summary>
 /// <remarks>
 ///     Values are read and validated when <see cref="CStruct"/> is constructed. Later changes to the options object
-///     do not alter an already compiled layout.
+///     do not alter an already compiled layout. A record: <c>options with { CLongWidth = 32 }</c> copies every other
+///     member, and two instances with the same members are equal (<see cref="Codecs"/> and <see cref="Defined"/>
+///     compare by reference).
 /// </remarks>
-public sealed class CStructCompilationOptions
+public sealed record CStructCompilationOptions
 {
     /// <summary>Creates the default bounded compilation policy.</summary>
     public CStructCompilationOptions()

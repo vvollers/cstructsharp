@@ -510,6 +510,7 @@ public ref struct WriteCursor
     /// <exception cref="CStructWriteLimitException">The nesting limit is exceeded.</exception>
     public void EnterComposite(string member, string? memberType)
     {
+        this.options.CancellationToken.ThrowIfCancellationRequested();
         if (this.nestingDepth >= this.options.MaxNestingDepth)
         {
             throw this.FailLimit(WriteFailures.NestingLimit, member, memberType);

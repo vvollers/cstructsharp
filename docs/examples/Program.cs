@@ -18,6 +18,8 @@ internal static partial class Program
         ("runtime-payload", RuntimePayload),
         ("map-poco", MapPoco),
         ("map-mapped", MapMapped),
+        ("options-with", OptionsWith),
+        ("cancellation", Cancellation),
         ("inspect-ranges", InspectRanges),
         ("follow-pointer", FollowPointer),
         ("preserve-union", PreserveUnion),
@@ -154,6 +156,44 @@ internal static partial class Program
         Point point = layout.ReadValue<Point>(new byte[] { 0xFE, 0xFF, 0x05, 0x00 }, "point");
         Equal((short)-2, point.X);
         Equal((short)5, point.Y);
+    }
+    #endregion
+
+    #region api-guide-options-with
+    private static void OptionsWith()
+    {
+        var layout = new CStruct("struct sample { uint8 count; uint16 values[count]; char name[4]; };");
+        byte[] bytes = [1, 0x34, 0x12, (byte)'a', (byte)'b', 0, 0];
+
+        // One shared policy, and a variation that changes a single member.
+        var strict = new ReadOptions { MaxArrayElements = 8, MaxStringBytes = 64, };
+        ReadOptions trimmed = strict with { TrimFixedText = true, };
+        Equal(8, trimmed.MaxArrayElements);
+        Equal("ab\0\0", layout.Parse(bytes, "sample", options: strict).Get<string>("name"));
+        Equal("ab", layout.Parse(bytes, "sample", options: trimmed).Get<string>("name"));
+
+        // Records compare by their members, so an equal policy is the same policy.
+        True(strict == new ReadOptions { MaxArrayElements = 8, MaxStringBytes = 64, }, "equal members, equal options");
+        True(strict != trimmed, "one member differs");
+    }
+    #endregion
+
+    #region api-guide-cancellation
+    private static void Cancellation()
+    {
+        var layout = new CStruct("struct point { uint16 x; uint16 y; }; struct path { uint8 count; point points[count]; };");
+        byte[] bytes = [2, 1, 0, 2, 0, 3, 0, 4, 0];
+
+        // A token that is already cancelled ends the read at its first boundary, before any byte is decoded.
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        var options = new ReadOptions { CancellationToken = cancelled.Token, };
+        Throws<OperationCanceledException>(() => layout.Parse(bytes, "path", options: options));
+
+        // The same options with a live token read normally; a timeout is the usual source of one.
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        StructValue path = layout.Parse(bytes, "path", options: options with { CancellationToken = timeout.Token, });
+        Equal(2, path.Get<StructValue[]>("points").Length);
     }
     #endregion
 

@@ -11,7 +11,8 @@ internal readonly record struct ReadOperationSettings(
     long MaxTotalBytesRead,
     int MaxNestingDepth,
     long Origin,
-    bool TrimFixedText = false)
+    bool TrimFixedText = false,
+    System.Threading.CancellationToken CancellationToken = default)
 {
     /// <summary>Copies every read choice before variable enumeration, stream access, or another caller callback.</summary>
     public static ReadOperationSettings SnapshotReadOptions(ReadOptions? options)
@@ -41,7 +42,8 @@ internal readonly record struct ReadOperationSettings(
             options.MaxTotalBytesRead,
             options.MaxNestingDepth,
             options.Origin,
-            options.TrimFixedText);
+            options.TrimFixedText,
+            options.CancellationToken);
     }
 
     /// <summary>Maps already-snapshotted update traversal choices into the same read operation settings.</summary>
@@ -56,6 +58,7 @@ internal readonly record struct ReadOperationSettings(
             options.MaxTraversalStringBytes,
             options.MaxTraversalBytesRead,
             options.MaxTraversalNestingDepth,
-            options.Origin);
+            options.Origin,
+            CancellationToken: options.CancellationToken);
     }
 }

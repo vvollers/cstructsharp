@@ -494,6 +494,7 @@ public partial class CStruct
                             var list = (List<object?>)containerDict[compiledField.Name]!;
                             for (int element = 0; element < numFieldValues; element++)
                             {
+                                state.CancellationToken.ThrowIfCancellationRequested();
                                 var container = new StructValue(composite.Shape);
                                 this.ExecuteStaticPlan(plan, elements.Slice(element * plan.Size, plan.Size), container, state);
                                 list.Add(container);
@@ -1211,6 +1212,7 @@ public partial class CStruct
             throw new CStructReadException(ReadFailures.CyclicPointer(targetAddress));
         }
 
+        state.CancellationToken.ThrowIfCancellationRequested();
         state.PointerDereferenceDepth++;
         try
         {

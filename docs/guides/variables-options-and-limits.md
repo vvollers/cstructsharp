@@ -56,6 +56,15 @@ var options = new ReadOptions
 The public operation reads the supplied values at its outer entry. Reuse an initialized options object when several
 calls use the same policy; create another object for a different policy.
 
+The four option types are C# *records*: a `with` expression makes a copy that changes only the members you name,
+and two option objects with the same members are equal. That is how a shared policy gets one variation without
+repeating every setting:
+
+[!code-csharp[Copy options with a change](../examples/Program.cs#api-guide-options-with)]
+
+The `Codecs` and `Defined` members of `CStructCompilationOptions` hold collections, which compare by reference: two
+compilation options that carry different list instances are not equal even when the lists have the same contents.
+
 ## Understand the defaults
 
 Default limits are intentionally finite:
@@ -105,6 +114,24 @@ errors and are rejected before work begins.
 Do not respond to a limit failure by raising every limit globally. Confirm the real format maximum, distinguish
 trusted from untrusted data, and change only the relevant policy. A count that is unexpectedly huge may indicate
 wrong byte order, a wrong starting position, or an incorrect runtime variable rather than a legitimate large value.
+
+## Cancel a long operation
+
+Limits bound how much *work* an operation may do; they do not bound how long a caller is willing to wait. The
+three option records carry a `CancellationToken` for that. A token is a small handle that another part of the
+program - a timeout, a request that was abandoned, a user pressing Stop - can switch to "cancelled"; code that
+holds the token checks it at sensible points and stops. The library checks it where a read or write reaches a
+boundary: when it enters a struct or union, when it follows a pointer, between the 64 KiB blocks of a numeric
+array, between the elements of an array of structs, and between the 256-byte chunks of a terminated string. It
+never checks per primitive, so a small read costs nothing for it.
+
+[!code-csharp[Cancel a read](../examples/Program.cs#api-guide-cancellation)]
+
+Cancellation is not a read failure: the operation ends with the runtime's `OperationCanceledException`, which
+`TryReadValue<T>` lets through (it restores the stream position first) rather than turning into `false`. An update
+stages its bytes before it commits, so a cancelled update leaves the destination unchanged; a direct stream write
+may have written a prefix, as any late failure may. Generated classes observe the same token through their
+`ReadOptions`/`WriteOptions` arguments.
 
 Continue with [Handle errors and recovery](errors-and-recovery.md), or use the
 [exact language limits](../language/limits-and-diagnostics.md) when defining an input policy.

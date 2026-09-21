@@ -32,10 +32,16 @@ internal sealed unsafe class ReadBudgetStream : Stream
 
     /// <summary>Wraps a readable stream using operation-owned limit values.</summary>
     public ReadBudgetStream(Stream inner, long maxStringBytes, long maxTotalBytesRead)
+        : this(inner, maxStringBytes, maxTotalBytesRead, default)
+    {
+    }
+
+    public ReadBudgetStream(Stream inner, long maxStringBytes, long maxTotalBytesRead, System.Threading.CancellationToken cancellationToken)
     {
         this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
         this.maxTotalBytesRead = maxTotalBytesRead;
         this.MaxStringBytes = maxStringBytes;
+        this.CancellationToken = cancellationToken;
 
         // Exactly one memory backing is chosen; every other source keeps the delegating stream path.
         if (inner is FixedBufferStream fixedBuffer && fixedBuffer.TryGetReadOnlyRegion(out byte* region, out long regionLength))
@@ -58,6 +64,9 @@ internal sealed unsafe class ReadBudgetStream : Stream
 
     /// <summary>Gets the configured per-string encoded-byte budget.</summary>
     public long MaxStringBytes { get; }
+
+    /// <summary>The operation's token, checked per chunk of a terminated string and per block of a primitive array.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; }
 
     public override bool CanRead => this.inner.CanRead;
 

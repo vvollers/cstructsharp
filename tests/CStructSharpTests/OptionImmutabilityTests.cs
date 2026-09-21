@@ -86,4 +86,45 @@ public class OptionImmutabilityTests
             CollectionAssert.AreEqual(new byte[] { (byte)(index + 3), }, updateStream.ToArray());
         }
     }
+
+    /// <summary>
+    ///     Every option type is a record: a <c>with</c> expression copies the other members, equality is member-wise,
+    ///     and the collection-typed members of the compilation options compare by reference.
+    /// </summary>
+    [TestMethod]
+    public void OptionRecords_CopyWithAndCompareByMembers()
+    {
+        var read = new ReadOptions { MaxArrayElements = 12, TrimFixedText = true, Origin = 4, };
+        ReadOptions readCopy = read with { MaxTotalBytesRead = 99, };
+        Assert.AreEqual(12, readCopy.MaxArrayElements);
+        Assert.IsTrue(readCopy.TrimFixedText);
+        Assert.AreEqual(4L, readCopy.Origin);
+        Assert.AreEqual(99L, readCopy.MaxTotalBytesRead);
+        Assert.AreEqual(read, read with { }, "a copy without changes equals the original");
+        Assert.AreNotEqual(read, readCopy);
+        Assert.AreEqual(new ReadOptions { Origin = 4, }, new ReadOptions { Origin = 4, });
+        Assert.AreEqual(new ReadOptions().GetHashCode(), new ReadOptions().GetHashCode());
+
+        var write = new WriteOptions { MaxStringBytes = 7, };
+        Assert.AreEqual(7L, (write with { MaxArrayElements = 3, }).MaxStringBytes);
+        var update = new UpdateOptions { MaxStringBytes = 7, DereferencePointers = false, };
+        UpdateOptions updateCopy = update with { ClearUnionStorage = false, };
+        Assert.AreEqual(7L, updateCopy.MaxStringBytes);
+        Assert.IsFalse(updateCopy.DereferencePointers);
+        Assert.AreNotEqual<WriteOptions>(write, update, "a derived record never equals its base");
+
+        var codecs = new List<Codecs.ICustomCodec>();
+        var defined = new HashSet<string> { "A", };
+        var compilation = new CStructCompilationOptions { CLongWidth = 32, Codecs = codecs, Defined = defined, };
+        CStructCompilationOptions compilationCopy = compilation with { Prelude = "// p", };
+        Assert.AreEqual(32, compilationCopy.CLongWidth);
+        Assert.AreSame(codecs, compilationCopy.Codecs);
+        Assert.AreEqual(compilation, compilation with { });
+        Assert.AreNotEqual(compilation, compilation with { Codecs = new List<Codecs.ICustomCodec>(), }, "collection members compare by reference");
+        Assert.AreNotEqual(compilation, compilation with { Defined = new HashSet<string> { "A", }, });
+
+        // Options with the same members build the same layout, and a copied option still drives an operation.
+        var layout = new CStruct("struct root { uint8 value; };", compilationOptions: compilationCopy);
+        Assert.AreEqual((byte)5, layout.ReadValue<byte>(new byte[] { 5, }, "root.value", options: readCopy));
+    }
 }

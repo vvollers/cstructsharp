@@ -54,6 +54,14 @@ public record WriteOptions
     /// </summary>
     public long MaxTotalBytesWritten { get; init; } = 64 * 1024 * 1024;
 
+    /// <summary>
+    ///     Gets the token a long write observes: it is checked when a composite or a pointer target is entered and
+    ///     per element of a composite array, and a cancelled token ends the operation with
+    ///     <see cref="System.OperationCanceledException"/> before the destination is committed (an update stages
+    ///     first; a direct stream write may have written a prefix, as any late failure may).
+    /// </summary>
+    public System.Threading.CancellationToken CancellationToken { get; init; }
+
     /// <summary>Gets the greatest active struct or union depth one write operation may enter.</summary>
     public int MaxNestingDepth { get; init; } = 256;
 

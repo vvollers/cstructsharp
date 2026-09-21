@@ -36,7 +36,9 @@ The [first-parse example](install-and-first-parse.md) shows both a successful ty
 overload also restores the position captured before the attempt.
 
 `TryReadValue<T>` catches categorized CStructSharp failures only. It will not turn a null argument or an unrelated
-bug in application code into `false`.
+bug in application code into `false`, and it lets an `OperationCanceledException` through: cancellation through
+`ReadOptions.CancellationToken` ([cancel a long operation](variables-options-and-limits.md#cancel-a-long-operation))
+is the caller's decision to stop, not a property of the input.
 
 ## Know what can be recovered
 

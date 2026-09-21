@@ -38,7 +38,9 @@ internal sealed class CStructElementWriterState
         this.CaptureAllLayoutVariables = variables is not LayoutVariables { CaptureAll: false };
         this.Aligned = aligned;
 
-        // The public boundary has already validated this immutable option value.
+        // The public boundary has already validated this immutable option value; a token cancelled before the call
+        // ends the operation before any byte is staged or written.
+        options.CancellationToken.ThrowIfCancellationRequested();
         this.Options = options;
         this.budgetStream = new WriteBudgetStream(stream, this.Options);
         this.Stream = this.budgetStream;

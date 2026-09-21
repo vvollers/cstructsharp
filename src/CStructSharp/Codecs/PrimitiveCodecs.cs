@@ -69,9 +69,11 @@ internal static partial class PrimitiveCodecs
             StringBuilder? builder = null;
             long encodedByteCount = 0;
             long? maxStringBytes = stream is ReadBudgetStream budget ? budget.MaxStringBytes : null;
+            System.Threading.CancellationToken cancellation = stream is ReadBudgetStream budgeted ? budgeted.CancellationToken : default;
 
             while (true)
             {
+                cancellation.ThrowIfCancellationRequested();
                 int bytesRead = stream.Read(chunk, 0, TerminatedStringReadChunkSize);
                 if (bytesRead == 0)
                 {

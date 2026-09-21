@@ -162,6 +162,7 @@ internal static class PrimitiveArrayReader
         {
             while (remaining > 0)
             {
+                (stream as ReadBudgetStream)?.CancellationToken.ThrowIfCancellationRequested();
                 int blockLength = (int)Math.Min(remaining, blockCapacity);
                 BinaryPrimitiveIO.ReadExactlyOrThrow(stream, block.AsSpan(0, blockLength));
                 for (int offset = 0; offset < blockLength; offset += elementSize)
@@ -198,6 +199,7 @@ internal static class PrimitiveArrayReader
         {
             while (remaining > 0)
             {
+                stream.CancellationToken.ThrowIfCancellationRequested();
                 int blockLength = (int)Math.Min(remaining, blockCapacity);
                 int elements = blockLength / elementSize;
                 Span<T> destination = result.AsSpan(decoded, elements);

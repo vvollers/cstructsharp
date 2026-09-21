@@ -187,6 +187,7 @@ public partial class CStruct
     /// <summary>Writes one struct or union while charging exactly one active composite-depth level.</summary>
     private void WriteStruct(CompiledCompositeType composite, object data, CStructElementWriterState state)
     {
+        state.Options.CancellationToken.ThrowIfCancellationRequested();
         if (data is null)
         {
             throw new CStructWriteException("Null is not valid for struct or union value: " + composite.Name);
@@ -850,6 +851,11 @@ public partial class CStruct
 
                 for (int i = 0; i < count; i++)
                 {
+                    if (compiledField.TargetComposite is not null)
+                    {
+                        state.Options.CancellationToken.ThrowIfCancellationRequested();
+                    }
+
                     _ = this.WriteSingleFieldValue(compiledField, items[i], state);
                 }
 
