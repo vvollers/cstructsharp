@@ -70,6 +70,8 @@ function captureBrowserErrors(page) {
 }
 
 test("representative templates render without serious accessibility or console errors", async ({ page }) => {
+  // One axe scan per page: the budget grows with the list instead of sharing the default 30 seconds across every page.
+  test.setTimeout(representativePages.length * 15_000);
   const errors = captureBrowserErrors(page);
 
   for (const item of representativePages) {
