@@ -400,7 +400,7 @@
       "date": "2026-09-21",
       "packageVersion": "0.7.0",
       "combinedSha256": "DCEF94F3F13FE05534581F7AC22910CA7D530204C2F0ED921FA48066171B364A",
-      "rationale": "ParseMany over memory, sequence, and stream and ParseManyAsync: lazy record sequences (D6)",
+      "rationale": "Convenience plan 5.1: ParseMany over memory, a ReadOnlySequence, or a seekable stream and ParseManyAsync over any stream - lazy record sequences (D6)",
       "releaseImpact": "New members on CStruct; nothing removed or changed"
     },
     {
@@ -409,7 +409,7 @@
       "date": "2026-09-21",
       "packageVersion": "0.7.0",
       "combinedSha256": "66A4B4DA7DEDA37CCD01EFA2B6F9736DA97B7D5C3C58222734AFB8B7B515C798",
-      "rationale": "RecordSequence and RecordReader<T>: the shared record-sequence enumerators the generated Records forms and ParseMany run on (D6)",
+      "rationale": "Convenience plan 5.2: RecordSequence and RecordReader<T> in CStructSharp.Generated, the shared record-sequence enumerators the generated Records forms and ParseMany run on (D6)",
       "releaseImpact": "New public support types in CStructSharp.Generated; the runtime's ParseMany signatures are unchanged"
     }
   ]
