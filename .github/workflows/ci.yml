@@ -102,6 +102,7 @@ jobs:
 
       - name: Verify quality contracts
         run: |
+          node --test tools/quality/*.test.mjs
           node tools/quality/browser-contract.mjs
           node tools/quality/fuzz-corpus.mjs
           node tools/quality/compiler-fixture.mjs validate
@@ -171,4 +172,3 @@ jobs:
           name: test-results-${{ matrix.os }}
           path: artifacts/test-results/**/*.trx
           if-no-files-found: warn
-

@@ -18,6 +18,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   1200-pixel browser width while preserving the current session when resizing.
 - Keep MSVC compiler observations runnable by locally acknowledging the intentional two-byte packing warning;
   all other compiler warnings remain errors.
+- Include generator-only and shared build/toolchain changes in pull-request performance reporting while keeping
+  timing comparisons advisory.
 
 ## 0.8.0 — 2026-09-21
 

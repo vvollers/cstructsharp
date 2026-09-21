@@ -4,6 +4,10 @@
 `contracts/performance/`; benchmark output is ignored. Performance checks are maintained manual measurements plus a
 non-failing drift report in CI (`.github/workflows/benchmark-drift.yml`), not an automatic timing gate on every push.
 
+Pull requests changing the runtime, shared compiler, source generator, benchmark inputs or shared build/toolchain
+configuration schedule that report. Weekly and manual runs remain available. Timing comparisons stay advisory:
+retain instability and canary warnings, and do not refresh baselines merely to make a report look better.
+
 ## Layout
 
 | Path | Purpose |
