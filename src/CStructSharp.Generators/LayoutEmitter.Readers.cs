@@ -191,6 +191,7 @@ internal sealed partial class LayoutEmitter
         }
 
         this.EmitTryParse(writer, composite, isRoot);
+        this.EmitRecords(writer, composite, isRoot);
     }
 
     /// <summary>

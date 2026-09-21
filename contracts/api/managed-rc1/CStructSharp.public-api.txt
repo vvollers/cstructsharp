@@ -494,6 +494,17 @@ namespace CStructSharp.Generated
         public static string ShortReadText(long needed, long available) { }
         public static CStructSharp.ReadOptions? WithCancellation(CStructSharp.ReadOptions? options, System.Threading.CancellationToken cancellationToken, out System.Threading.CancellationTokenSource? linked) { }
     }
+    public delegate T RecordReader<out T>(System.ReadOnlyMemory<byte> source, int offset, int index, long shift, CStructSharp.ReadOptions? options, out int consumed);
+    public static class RecordSequence
+    {
+        public static void Complete(CStructSharp.Diagnostics.CStructException failure, int index, long offset) { }
+        public static CStructSharp.Diagnostics.CStructReadException Empty(string layoutName, int index, long offset) { }
+        public static System.Collections.Generic.IEnumerable<T> FromMemory<T>(System.ReadOnlyMemory<byte> source, int? size, string layoutName, CStructSharp.ReadOptions? options, CStructSharp.Generated.RecordReader<T> read) { }
+        public static System.Collections.Generic.IEnumerable<T> FromSequence<T>(System.Buffers.ReadOnlySequence<byte> source, int? size, string layoutName, CStructSharp.ReadOptions? options, CStructSharp.Generated.RecordReader<T> read) { }
+        public static System.Collections.Generic.IEnumerable<T> FromStream<T>(System.IO.Stream stream, int? size, string layoutName, CStructSharp.ReadOptions? options, CStructSharp.Generated.RecordReader<T> read) { }
+        public static System.Collections.Generic.IAsyncEnumerable<T> FromStreamAsync<T>(System.IO.Stream stream, int? size, string layoutName, CStructSharp.ReadOptions? options, CStructSharp.Generated.RecordReader<T> read, System.Threading.CancellationToken cancellationToken = default) { }
+        public static CStructSharp.Diagnostics.CStructReadException Partial(long remaining, int size, string layoutName, int index, long offset) { }
+    }
     public enum TerminatedTextEncoding
     {
         Ascii = 0,

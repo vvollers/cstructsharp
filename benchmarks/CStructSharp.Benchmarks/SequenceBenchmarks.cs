@@ -10,8 +10,9 @@ using CStructSharp.Values;
 /// <summary>
 ///     Segmented input and record sequences: a <see cref="ReadOnlySequence{T}"/> of one segment (read in place)
 ///     and of four segments (copied into a pooled buffer) against the span for the record and the nested fixture,
-///     runtime and generated; and 256 consecutive records through <c>ParseMany</c> against the loop a caller would
-///     write with <c>Parse</c> and an offset.
+///     runtime and generated; 256 consecutive records through <c>ParseMany</c> and the generated <c>Records</c>
+///     against the loop a caller would write with <c>Parse</c> and an offset; and the view enumerator against the
+///     offset loop over views.
 /// </summary>
 [BenchmarkCategory("Sequences")]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
@@ -115,6 +116,63 @@ public class SequenceBenchmarks
         }
 
         return count;
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("Records256")]
+    public int Generated_Records256_ParseLoop()
+    {
+        int count = 0;
+        ReadOnlySpan<byte> bytes = this.records256;
+        for (int offset = 0; offset < bytes.Length; offset += PrimRecordLayout.Sizes.Root)
+        {
+            PrimRecordLayout.Parse(bytes.Slice(offset, PrimRecordLayout.Sizes.Root));
+            count++;
+        }
+
+        return count;
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("Records256")]
+    public int Generated_Records256_Records()
+    {
+        int count = 0;
+        foreach (PrimRecordLayout.Root record in PrimRecordLayout.Records(this.records256))
+        {
+            count++;
+        }
+
+        return count;
+    }
+
+    // ---- 256 prim-le-record views: the enumerator against the offset loop a caller writes -------------------------
+    [Benchmark(Baseline = true)]
+    [BenchmarkCategory("Records256View")]
+    public double HandWritten_Records256_ViewLoop()
+    {
+        double sum = 0;
+        ReadOnlySpan<byte> bytes = this.records256;
+        for (int offset = 0; offset < bytes.Length; offset += PrimRecordLayout.Sizes.Root)
+        {
+            var view = new PrimRecordLayout.RootView(bytes.Slice(offset));
+            sum += view.C + view.F;
+        }
+
+        return sum;
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("Records256View")]
+    public double Generated_Records256_ViewEnumerator()
+    {
+        double sum = 0;
+        foreach (PrimRecordLayout.RootView view in PrimRecordLayout.RootView.Enumerate(this.records256))
+        {
+            sum += view.C + view.F;
+        }
+
+        return sum;
     }
 
     /// <summary>A sequence of <paramref name="segments"/> equal parts of <paramref name="bytes"/>.</summary>

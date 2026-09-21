@@ -230,7 +230,8 @@ public sealed partial class CStruct
         ReadOptions? options = null)
     {
         LayoutVariableInput input = LayoutVariableInput.FromIntegers(variables);
-        return RecordSequence.FromMemory(this, source, this.ResolveRecordRoot(path, input), input, options);
+        RecordRoot root = this.ResolveRecordRoot(path);
+        return RecordSequence.FromMemory(source, root.Size, root.Name, options, RecordParser.Reader(this, root, input));
     }
 
     /// <summary>Reads the records of a <see cref="ReadOnlySequence{T}"/>: a single segment is read in place, a chain of segments through one pooled copy that lives as long as the enumeration.</summary>
@@ -242,10 +243,8 @@ public sealed partial class CStruct
         ReadOptions? options = null)
     {
         LayoutVariableInput input = LayoutVariableInput.FromIntegers(variables);
-        RecordRoot root = this.ResolveRecordRoot(path, input);
-        return source.IsSingleSegment
-            ? RecordSequence.FromMemory(this, source.First, root, input, options)
-            : RecordSequence.FromSegments(this, source, root, input, options);
+        RecordRoot root = this.ResolveRecordRoot(path);
+        return RecordSequence.FromSequence(source, root.Size, root.Name, options, RecordParser.Reader(this, root, input));
     }
 
     /// <summary>
@@ -274,7 +273,7 @@ public sealed partial class CStruct
         }
 
         LayoutVariableInput input = LayoutVariableInput.FromIntegers(variables);
-        return RecordSequence.FromStream(this, stream, this.ResolveRecordRoot(path, input), input, options);
+        return RecordParser.FromStream(this, stream, this.ResolveRecordRoot(path), input, options);
     }
 
     /// <summary>
@@ -308,13 +307,13 @@ public sealed partial class CStruct
         }
 
         LayoutVariableInput input = LayoutVariableInput.FromIntegers(variables);
-        RecordRoot root = this.ResolveRecordRoot(path, input);
+        RecordRoot root = this.ResolveRecordRoot(path);
         if (root.Size is null && !stream.CanSeek)
         {
             throw new ArgumentException("Records of a runtime-sized struct are read through a window that refills from a record's start, which needs a seekable stream; a fixed-size root is read from any stream.", nameof(stream));
         }
 
-        return RecordSequence.FromStreamAsync(this, stream, root, input, options, cancellationToken);
+        return RecordSequence.FromStreamAsync(stream, root.Size, root.Name, options, RecordParser.Reader(this, root, input), cancellationToken);
     }
 
     /// <summary>One record of a sequence: the root parse of the stream form, returning the struct it selects.</summary>
@@ -325,10 +324,11 @@ public sealed partial class CStruct
 
     /// <summary>
     ///     The struct a record sequence is made of, checked before the first record: a struct declaration by name
-    ///     (a union or scalar fails as <c>Parse</c> fails; a member path is not a record), with its fixed size under
-    ///     the operation's variables when it has one.
+    ///     (a union or scalar fails as <c>Parse</c> fails; a member path is not a record), with its fixed size when
+    ///     the layout itself fixes it - the size <c>GetStructSizeInBytes</c> and a generated <c>Sizes</c> constant
+    ///     report; a struct whose extent depends on an operation variable or its own data is runtime-sized.
     /// </summary>
-    private RecordRoot ResolveRecordRoot(string? path, LayoutVariableInput variables)
+    private RecordRoot ResolveRecordRoot(string? path)
     {
         string name = this.RootOrDefault(path);
         if (this.ParsePath(name).Count != 1)
@@ -354,7 +354,7 @@ public sealed partial class CStruct
         int? size;
         try
         {
-            size = this.compiledSizeQueries.GetCompiledStructSizeInBytes(composite, variables.Resolve(this.layoutVariableResolver), requireFixedSize: true);
+            size = this.compiledSizeQueries.GetCompiledStructSizeInBytes(composite, this.staticLayoutVariables, requireFixedSize: true);
         }
         catch (CStructLayoutException)
         {

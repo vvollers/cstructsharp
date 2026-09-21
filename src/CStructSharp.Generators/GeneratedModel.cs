@@ -76,6 +76,27 @@ internal sealed class GeneratedModel
             model.ResolveMembers(model.Composites[index], compiled);
         }
 
+        // The view types derived from a composite's name may not spell another generated type (a composite whose own
+        // name already collided is left out: one diagnostic names that collision).
+        if (views)
+        {
+            foreach (GeneratedComposite composite in model.Composites)
+            {
+                if (!takenNames.TryGetValue(composite.Name, out string? owner) || owner != "generated for " + Describe(composite.Composite, composite.LayoutName))
+                {
+                    continue;
+                }
+
+                string what = "the view of '" + composite.LayoutName + "'";
+                model.Claim(composite.Name + "View", what, alreadyCSharp: true);
+                if (composite.Composite.Symbol.FixedSize is not null)
+                {
+                    model.Claim(composite.Name + "ViewEnumerable", what, alreadyCSharp: true);
+                    model.Claim(composite.Name + "ViewEnumerator", what, alreadyCSharp: true);
+                }
+            }
+        }
+
         return model;
     }
 
@@ -156,7 +177,7 @@ internal sealed class GeneratedModel
             return existing;
         }
 
-        string what = (composite.IsUnion ? "the union '" : "the struct '") + layoutName + "'";
+        string what = Describe(composite, layoutName);
         string name = this.Claim(preferredName ?? layoutName, what, preferredName is not null);
         var generated = new GeneratedComposite(name, layoutName, composite, isDeclared);
         this.Composites.Add(generated);
@@ -177,6 +198,8 @@ internal sealed class GeneratedModel
         this.takenNames[name] = $"generated for {what}";
         return name;
     }
+
+    private static string Describe(CompiledCompositeType composite, string layoutName) => (composite.IsUnion ? "the union '" : "the struct '") + layoutName + "'";
 
     private static string Capitalize(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text.Substring(1);
 

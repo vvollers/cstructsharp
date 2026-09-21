@@ -85,7 +85,21 @@ internal sealed partial class LayoutEmitter
         writer.Line("throw;");
         writer.Close();
         writer.Close();
+        if (size is { } stride)
+        {
+            writer.Line();
+            writer.Line("/// <summary>Views over the records of <paramref name=\"source\"/> - one <c>" + composite.LayoutName + "</c> of " + Int(stride) + " bytes after another until the source ends - for <c>foreach</c>, allocating nothing. Trailing bytes shorter than one record fail on the step that meets them; each record is its own region (a stored absolute pointer address counts from the record's first byte).</summary>");
+            writer.Line("/// <param name=\"source\">The bytes of the records, with nothing else after them.</param>");
+            writer.Line("/// <param name=\"options\">The read options each view's <see cref=\"ToObject\"/> uses; <see langword=\"null\"/> uses the documented defaults.</param>");
+            writer.Line("/// <returns>The enumeration.</returns>");
+            writer.Line("public static " + name + "Enumerable Enumerate(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => new " + name + "Enumerable(source, options);");
+        }
+
         writer.Close();
+        if (size is { } recordSize)
+        {
+            this.EmitViewEnumerator(writer, composite, recordSize);
+        }
     }
 
     private void EmitViewMember(SourceWriter writer, GeneratedComposite composite, GeneratedMember member)

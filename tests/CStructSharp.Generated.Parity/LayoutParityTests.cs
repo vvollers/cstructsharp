@@ -206,6 +206,36 @@ public class LayoutParityTests
             runtime.WriteAsync(runtimeTarget, root, runtimeValue, variables).AsTask().Wait();
             CollectionAssert.AreEqual(expected, runtimeTarget.ToArray(), id + ": runtime WriteAsync bytes");
 
+            // Record sequences: the fixture's bytes as one record, three times over, and with the third record cut
+            // short, through the runtime's ParseMany and the generated Records<Root> - the same records member by
+            // member, or the same failure (trailing bytes, the truncated record, a record that consumes no bytes).
+            if (runtimeValue is StructValue)
+            {
+                MethodInfo records = generated.GetMethods().Single(method => method.Name == "Records" + rootClass && method.GetParameters()[0].ParameterType == typeof(ReadOnlyMemory<byte>));
+                foreach ((string label, byte[] input) in new (string, byte[])[] { ("one record", bytes), ("three records", [.. bytes, .. bytes, .. bytes]), ("a truncated third record", [.. bytes, .. bytes, .. bytes[..Math.Max(0, bytes.Length - 1)]]), })
+                {
+                    var runtimeRecords = new List<StructValue>();
+                    Exception? runtimeError = Catch(() =>
+                    {
+                        runtimeRecords.AddRange(runtime.ParseMany(new ReadOnlyMemory<byte>(input), root, variables, options));
+                        return null;
+                    });
+                    var generatedRecords = new List<object>();
+                    Exception? generatedError = Catch(() =>
+                    {
+                        generatedRecords.AddRange(((System.Collections.IEnumerable)Invoke(records, new ReadOnlyMemory<byte>(input), variables, options)).Cast<object>());
+                        return null;
+                    });
+                    Assert.AreEqual(runtimeError?.GetType(), generatedError?.GetType(), $"{id} {label}: Records exception type ({runtimeError?.Message} vs {generatedError?.Message})");
+                    Assert.AreEqual(runtimeError?.Message, generatedError?.Message, $"{id} {label}: Records");
+                    Assert.AreEqual(runtimeRecords.Count, generatedRecords.Count, $"{id} {label}: record count");
+                    for (int index = 0; index < runtimeRecords.Count; index++)
+                    {
+                        ParityComparer.AssertSame(runtimeRecords[index], generatedRecords[index], $"[{index}].{root}");
+                    }
+                }
+            }
+
             // The runtime's debug ranges through the generated ParseWithDebug (a root only), and the fixture's addresses.
             if (root == generated.GetField("RootName")!.GetValue(null) as string && runtimeValue is StructValue)
             {

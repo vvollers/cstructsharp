@@ -308,6 +308,78 @@ namespace Demo
         /// <inheritdoc cref="TryParseH(global::System.IO.Stream, out H, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
         public static bool TryParseH(global::System.IO.Stream stream, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out H value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null) => TryParseH(stream, out value, out _, variables, options);
 
+        /// <summary>Reads the records of <paramref name="source"/> - one <c>h</c> after another until the memory ends - on the enumeration step that reaches each; each record is 2 bytes. Trailing bytes shorter than one record fail on the step that meets them; a failure names the record by its index before the path (<c>[3].h</c>). Each record is its own region: the read limits apply per record and a stored absolute pointer address counts from the record's first byte.</summary>
+        /// <param name="source">The bytes of the records, with nothing else after them.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options each record is read with; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The records, read as they are enumerated.</returns>
+        public static global::System.Collections.Generic.IEnumerable<H> RecordsH(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            => global::CStructSharp.Generated.RecordSequence.FromMemory(source, Sizes.H, "h", options, HRecordReader(variables));
+
+        /// <summary>Reads the records of a sequence of segments (one segment in place, several through one pooled copy that lives as long as the enumeration); see <see cref="RecordsH(global::System.ReadOnlyMemory{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The bytes of the records, with nothing else after them.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options each record is read with; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The records, read as they are enumerated.</returns>
+        public static global::System.Collections.Generic.IEnumerable<H> RecordsH(global::System.Buffers.ReadOnlySequence<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            => global::CStructSharp.Generated.RecordSequence.FromSequence(source, Sizes.H, "h", options, HRecordReader(variables));
+
+        /// <summary>Reads the records of a stream from its current position: exactly one record at a time, byte-exact, from any readable stream; a seekable stream sits at the record's end after each step. See <see cref="RecordsH(global::System.ReadOnlyMemory{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="stream">The stream, read from its current position.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options each record is read with; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The records, read as they are enumerated.</returns>
+        public static global::System.Collections.Generic.IEnumerable<H> RecordsH(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            global::System.ArgumentNullException.ThrowIfNull(stream);
+            if (!stream.CanRead)
+            {
+                throw new global::System.ArgumentException("Reading requires a readable stream.", nameof(stream));
+            }
+            return global::CStructSharp.Generated.RecordSequence.FromStream(stream, Sizes.H, "h", options, HRecordReader(variables));
+        }
+
+        /// <summary>Reads the records of a stream with <see cref="global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)"/>, for <c>await foreach</c>; the rules of <see cref="RecordsH(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>, with the token linked to the options' token.</summary>
+        /// <param name="stream">The stream, read from its current position.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options each record is read with; <see langword="null"/> uses the documented defaults.</param>
+        /// <param name="cancellationToken">Ends the enumeration while it waits for bytes, between records, or at the next boundary the reader checks.</param>
+        /// <returns>The records, read as they are enumerated.</returns>
+        public static global::System.Collections.Generic.IAsyncEnumerable<H> RecordsHAsync(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)
+        {
+            global::System.ArgumentNullException.ThrowIfNull(stream);
+            if (!stream.CanRead)
+            {
+                throw new global::System.ArgumentException("Reading requires a readable stream.", nameof(stream));
+            }
+            return global::CStructSharp.Generated.RecordSequence.FromStreamAsync(stream, Sizes.H, "h", options, HRecordReader(variables), cancellationToken);
+        }
+
+        /// <summary>The record reader of <c>h</c> without variables, shared by every enumeration that has none.</summary>
+        private static readonly global::CStructSharp.Generated.RecordReader<H> HRecordsWithoutVariables = (global::System.ReadOnlyMemory<byte> source, int offset, int index, long shift, global::CStructSharp.ReadOptions? options, out int consumed) => ReadHRecord(source, offset, index, shift, options, null, out consumed);
+
+        /// <summary>The record reader of <c>h</c> for <paramref name="variables"/>.</summary>
+        private static global::CStructSharp.Generated.RecordReader<H> HRecordReader(global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables)
+            => variables is null ? HRecordsWithoutVariables : (global::System.ReadOnlyMemory<byte> source, int offset, int index, long shift, global::CStructSharp.ReadOptions? options, out int consumed) => ReadHRecord(source, offset, index, shift, options, variables, out consumed);
+
+        /// <summary>Reads record <paramref name="index"/> from <paramref name="offset"/> as its own region; a failure names the record and carries the input's coordinate.</summary>
+        private static H ReadHRecord(global::System.ReadOnlyMemory<byte> source, int offset, int index, long shift, global::CStructSharp.ReadOptions? options, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, out int consumed)
+        {
+            var cursor = new global::CStructSharp.Generated.ReadCursor(source.Span.Slice(offset), options, "h");
+            try
+            {
+                H value = ReadH(ref cursor, variables, null, null);
+                consumed = cursor.Position;
+                return value;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                global::CStructSharp.Generated.RecordSequence.Complete(exception, index, shift + offset);
+                throw;
+            }
+        }
+
         /// <summary>Reads one <c>root</c> from the start of <paramref name="source"/> with the generated reader; the same value, and the same failures, as the runtime's <c>Parse</c>.</summary>
         /// <param name="source">The bytes; offset 0 is coordinate zero.</param>
         /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
@@ -606,6 +678,98 @@ namespace Demo
 
         /// <inheritdoc cref="TryParseRoot(global::System.IO.Stream, out Root, out global::CStructSharp.Diagnostics.CStructException?, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
         public static bool TryParse(global::System.IO.Stream stream, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Root value, global::CStructSharp.ReadOptions? options = null) => TryParseRoot(stream, out value, out _, null, options);
+
+        /// <summary>Reads the records of <paramref name="source"/> - one <c>root</c> after another until the memory ends - on the enumeration step that reaches each; a runtime-sized <c>root</c> advances by the bytes the previous record consumed. Trailing bytes shorter than one record fail on the step that meets them; a failure names the record by its index before the path (<c>[3].root</c>). Each record is its own region: the read limits apply per record and a stored absolute pointer address counts from the record's first byte.</summary>
+        /// <param name="source">The bytes of the records, with nothing else after them.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options each record is read with; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The records, read as they are enumerated.</returns>
+        public static global::System.Collections.Generic.IEnumerable<Root> RecordsRoot(global::System.ReadOnlyMemory<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            => global::CStructSharp.Generated.RecordSequence.FromMemory(source, null, "root", options, RootRecordReader(variables));
+
+        /// <summary>Reads the records of a sequence of segments (one segment in place, several through one pooled copy that lives as long as the enumeration); see <see cref="RecordsRoot(global::System.ReadOnlyMemory{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="source">The bytes of the records, with nothing else after them.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options each record is read with; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The records, read as they are enumerated.</returns>
+        public static global::System.Collections.Generic.IEnumerable<Root> RecordsRoot(global::System.Buffers.ReadOnlySequence<byte> source, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+            => global::CStructSharp.Generated.RecordSequence.FromSequence(source, null, "root", options, RootRecordReader(variables));
+
+        /// <summary>Reads the records of a stream from its current position: through a pooled window of the bytes left (at most the total read budget plus one) that refills from the start of a record it could not hold, which needs a seekable stream; a seekable stream sits at the record's end after each step. See <see cref="RecordsRoot(global::System.ReadOnlyMemory{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>.</summary>
+        /// <param name="stream">The stream, read from its current position.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options each record is read with; <see langword="null"/> uses the documented defaults.</param>
+        /// <returns>The records, read as they are enumerated.</returns>
+        public static global::System.Collections.Generic.IEnumerable<Root> RecordsRoot(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null)
+        {
+            global::System.ArgumentNullException.ThrowIfNull(stream);
+            if (!stream.CanRead)
+            {
+                throw new global::System.ArgumentException("Reading requires a readable stream.", nameof(stream));
+            }
+            if (!stream.CanSeek)
+            {
+                throw new global::System.ArgumentException("Records of a runtime-sized struct are read through a window that refills from a record's start, which needs a seekable stream; a fixed-size root is read from any stream.", nameof(stream));
+            }
+            return global::CStructSharp.Generated.RecordSequence.FromStream(stream, null, "root", options, RootRecordReader(variables));
+        }
+
+        /// <summary>Reads the records of a stream with <see cref="global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)"/>, for <c>await foreach</c>; the rules of <see cref="RecordsRoot(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>, with the token linked to the options' token.</summary>
+        /// <param name="stream">The stream, read from its current position.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options each record is read with; <see langword="null"/> uses the documented defaults.</param>
+        /// <param name="cancellationToken">Ends the enumeration while it waits for bytes, between records, or at the next boundary the reader checks.</param>
+        /// <returns>The records, read as they are enumerated.</returns>
+        public static global::System.Collections.Generic.IAsyncEnumerable<Root> RecordsRootAsync(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)
+        {
+            global::System.ArgumentNullException.ThrowIfNull(stream);
+            if (!stream.CanRead)
+            {
+                throw new global::System.ArgumentException("Reading requires a readable stream.", nameof(stream));
+            }
+            if (!stream.CanSeek)
+            {
+                throw new global::System.ArgumentException("Records of a runtime-sized struct are read through a window that refills from a record's start, which needs a seekable stream; a fixed-size root is read from any stream.", nameof(stream));
+            }
+            return global::CStructSharp.Generated.RecordSequence.FromStreamAsync(stream, null, "root", options, RootRecordReader(variables), cancellationToken);
+        }
+
+        /// <inheritdoc cref="RecordsRoot(global::System.ReadOnlyMemory{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static global::System.Collections.Generic.IEnumerable<Root> Records(global::System.ReadOnlyMemory<byte> source, global::CStructSharp.ReadOptions? options = null) => RecordsRoot(source, null, options);
+
+        /// <inheritdoc cref="RecordsRoot(global::System.Buffers.ReadOnlySequence{byte}, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static global::System.Collections.Generic.IEnumerable<Root> Records(global::System.Buffers.ReadOnlySequence<byte> source, global::CStructSharp.ReadOptions? options = null) => RecordsRoot(source, null, options);
+
+        /// <inheritdoc cref="RecordsRoot(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
+        public static global::System.Collections.Generic.IEnumerable<Root> Records(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null) => RecordsRoot(stream, null, options);
+
+        /// <inheritdoc cref="RecordsRootAsync(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions, global::System.Threading.CancellationToken)"/>
+        public static global::System.Collections.Generic.IAsyncEnumerable<Root> RecordsAsync(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => RecordsRootAsync(stream, null, options, cancellationToken);
+
+        /// <summary>The record reader of <c>root</c> without variables, shared by every enumeration that has none.</summary>
+        private static readonly global::CStructSharp.Generated.RecordReader<Root> RootRecordsWithoutVariables = (global::System.ReadOnlyMemory<byte> source, int offset, int index, long shift, global::CStructSharp.ReadOptions? options, out int consumed) => ReadRootRecord(source, offset, index, shift, options, null, out consumed);
+
+        /// <summary>The record reader of <c>root</c> for <paramref name="variables"/>.</summary>
+        private static global::CStructSharp.Generated.RecordReader<Root> RootRecordReader(global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables)
+            => variables is null ? RootRecordsWithoutVariables : (global::System.ReadOnlyMemory<byte> source, int offset, int index, long shift, global::CStructSharp.ReadOptions? options, out int consumed) => ReadRootRecord(source, offset, index, shift, options, variables, out consumed);
+
+        /// <summary>Reads record <paramref name="index"/> from <paramref name="offset"/> as its own region; a failure names the record and carries the input's coordinate.</summary>
+        private static Root ReadRootRecord(global::System.ReadOnlyMemory<byte> source, int offset, int index, long shift, global::CStructSharp.ReadOptions? options, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, out int consumed)
+        {
+            var cursor = new global::CStructSharp.Generated.ReadCursor(source.Span.Slice(offset), options, "root");
+            try
+            {
+                Root value = ReadRoot(ref cursor, variables, null, null);
+                consumed = cursor.Position;
+                return value;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                global::CStructSharp.Generated.RecordSequence.Complete(exception, index, shift + offset);
+                throw;
+            }
+        }
 
         /// <summary>Reads one <c>h</c> at the cursor's position.</summary>
         private static H ReadH(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
@@ -1278,6 +1442,73 @@ namespace Demo
                     cursor.Complete(exception);
                     throw;
                 }
+            }
+
+            /// <summary>Views over the records of <paramref name="source"/> - one <c>h</c> of 2 bytes after another until the source ends - for <c>foreach</c>, allocating nothing. Trailing bytes shorter than one record fail on the step that meets them; each record is its own region (a stored absolute pointer address counts from the record's first byte).</summary>
+            /// <param name="source">The bytes of the records, with nothing else after them.</param>
+            /// <param name="options">The read options each view's <see cref="ToObject"/> uses; <see langword="null"/> uses the documented defaults.</param>
+            /// <returns>The enumeration.</returns>
+            public static HViewEnumerable Enumerate(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options = null) => new HViewEnumerable(source, options);
+        }
+
+        /// <summary>The records <see cref="HView.Enumerate"/> walks: a <c>foreach</c> source whose enumerator yields one <see cref="HView"/> per <c>h</c>, allocating nothing.</summary>
+        public readonly ref struct HViewEnumerable
+        {
+            private readonly global::System.ReadOnlySpan<byte> source;
+            private readonly global::CStructSharp.ReadOptions? options;
+
+            /// <summary>Creates the enumeration over <paramref name="source"/>.</summary>
+            /// <param name="source">The bytes of the records, with nothing else after them.</param>
+            /// <param name="options">The read options each view's <c>ToObject</c> uses.</param>
+            public HViewEnumerable(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options)
+            {
+                this.source = source;
+                this.options = options;
+            }
+
+            /// <summary>The enumerator <c>foreach</c> uses.</summary>
+            /// <returns>An enumerator before the first record.</returns>
+            public HViewEnumerator GetEnumerator() => new HViewEnumerator(this.source, this.options);
+        }
+
+        /// <summary>Walks consecutive <c>h</c> records of 2 bytes; trailing bytes shorter than one record fail on the step that meets them, with the record's index in the path.</summary>
+        public ref struct HViewEnumerator
+        {
+            private readonly global::System.ReadOnlySpan<byte> source;
+            private readonly global::CStructSharp.ReadOptions? options;
+            private int offset;
+            private int index;
+
+            /// <summary>Creates an enumerator before the first record of <paramref name="source"/>.</summary>
+            /// <param name="source">The bytes of the records, with nothing else after them.</param>
+            /// <param name="options">The read options each view's <c>ToObject</c> uses.</param>
+            public HViewEnumerator(global::System.ReadOnlySpan<byte> source, global::CStructSharp.ReadOptions? options)
+            {
+                this.source = source;
+                this.options = options;
+                this.offset = 0;
+                this.index = -1;
+            }
+
+            /// <summary>Gets the view of the current record.</summary>
+            public readonly HView Current => new HView(this.source.Slice(this.offset), this.options);
+
+            /// <summary>Advances to the next record.</summary>
+            /// <returns><see langword="false"/> when the source ends exactly after the last record.</returns>
+            public bool MoveNext()
+            {
+                int next = this.index < 0 ? 0 : this.offset + 2;
+                if (next >= this.source.Length)
+                {
+                    return false;
+                }
+                if (this.source.Length - next < 2)
+                {
+                    throw global::CStructSharp.Generated.RecordSequence.Partial(this.source.Length - next, 2, "h", this.index + 1, next);
+                }
+                this.offset = next;
+                this.index++;
+                return true;
             }
         }
 

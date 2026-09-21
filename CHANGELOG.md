@@ -33,6 +33,16 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   it could not hold (a seekable stream). In the memory, sequence, and awaitable forms a stored absolute pointer
   address counts from the record's first byte; the synchronous stream form counts from the stream's first byte, as
   `Parse(Stream)` does. The analyzer's CSG200/CSG201 cover `ParseMany`, `ParseManyAsync`, and the awaitable forms.
+- Generated `Records<Name>(ReadOnlyMemory<byte> | ReadOnlySequence<byte> | Stream, variables, options)` returning
+  `IEnumerable<Name>` and `Records<Name>Async(Stream, ..., cancellationToken)` returning `IAsyncEnumerable<Name>`
+  (root forms `Records`/`RecordsAsync`): the typed twin of `ParseMany`, with the same stride, trailing-bytes, record
+  index, per-record limit, and pointer rules, driven by the new support type `CStructSharp.Generated.RecordSequence`
+  over a generated `RecordReader<T>`; a composite whose size the layout fixes (including a count that is a
+  `#define` or a constant expression, as `GetStructSizeInBytes` counts it) is read one record at a time from any
+  stream. For a composite with a static size, `<Name>View.Enumerate(ReadOnlySpan<byte>, options)` returns a
+  `foreach`-able `ref struct` enumeration of views over consecutive records that allocates nothing. `Records` and
+  `RecordsAsync` join the reserved member names, and the derived `<Name>View`, `<Name>ViewEnumerable`, and
+  `<Name>ViewEnumerator` type names join the CSG003 checks.
 - Generated `ReadValue<T>`/`TryReadValue<T>` on the layout class for the same five input kinds, forwarding to
   `Layout.ReadValue<T>(source, RootName, ...)`: a mapped class is read from the root without naming it
   (`Wire.ReadValue<HeaderRecord>(bytes)`). `ReadValue` and `TryReadValue` join the reserved member names (CSG003).

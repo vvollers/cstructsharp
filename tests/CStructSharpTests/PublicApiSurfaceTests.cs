@@ -35,6 +35,8 @@ public class PublicApiSurfaceTests
         "CStructSharp.Generated.Expressions",
         "CStructSharp.Generated.Pointer`1",
         "CStructSharp.Generated.ReadCursor",
+        "CStructSharp.Generated.RecordReader`1",
+        "CStructSharp.Generated.RecordSequence",
         "CStructSharp.Generated.TerminatedTextEncoding",
         "CStructSharp.Generated.WriteCursor",
         "CStructSharp.Introspection.LayoutArrayKind",

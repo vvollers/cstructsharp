@@ -186,7 +186,7 @@ public class ViewTests
     }
 
     /// <summary>A sequence whose segments split <paramref name="bytes"/> at the given lengths (the rest is a final segment).</summary>
-    private static System.Buffers.ReadOnlySequence<byte> Segmented(byte[] bytes, params int[] lengths)
+    internal static System.Buffers.ReadOnlySequence<byte> Segmented(byte[] bytes, params int[] lengths)
     {
         var first = new Segment(bytes.AsMemory(0, lengths[0]), 0);
         Segment last = first;
