@@ -96,8 +96,10 @@ linked files, and Stryker matches a pattern against a file's full path or its pa
 
 - mutates the main `src/CStructSharp` library;
 - uses `tests/CStructSharpTests` to test each mutation;
-- limits mutation to 64 files that contain the main parsing and binary-data logic, including the compile-time core in
-  `src/CStructSharp.Core` and the `Generated` support types the source generator's output calls;
+- limits mutation to 71 files that contain the main parsing and binary-data logic, including the compile-time core in
+  `src/CStructSharp.Core`, the `Generated` support types the source generator's output calls, and the awaitable and
+  record-sequence forms (`CStructOperations.Async.cs`, `.AsyncWrite.cs`, `.Sequences.cs`, `Streams/AsyncStreamBuffer.cs`,
+  `Reading/RecordParser.cs`, `Generated/RecordSequence.cs`, `Values/ReadAttempt.cs`);
 - runs the complete test project instead of selecting tests from coverage data;
 - writes progress, JSON, and HTML reports; and
 - requires a mutation score of at least 75%.
