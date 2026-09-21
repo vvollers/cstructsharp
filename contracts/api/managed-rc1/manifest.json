@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 40,
+  "baselineRevision": 41,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.7.0",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 996,
-    "normalizedSha256": "5804B4CEA363D9BD8B95BA1976452B0968DA07094EB0A2666A1D44ADE3DE8619"
+    "lines": 1000,
+    "normalizedSha256": "62FB5FD10B123205B7125284D32326868F78F3DBF2439CE4DE8B2520F2BB077A"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "5259E369ABAC6A0FEA9F70EDF58C488B5C50DAF9BFABAE837B030576B245CC6F",
+      "normalizedSha256": "9F372C052C13DECE466F1654B8A6265CB3896AFE87E4B8D3FDF3D9342DF0D524",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "580217CCA6F4D186B6924D103CEBBACAD5D08EB4F43733D86D68669B342DB1A2",
+      "normalizedSha256": "1F395274E07229AA5FF3982091F3BA5A55AAF6F73B286F6C723BE6810886CE13",
       "aotCompatible": true
     }
   ],
@@ -393,6 +393,15 @@
       "combinedSha256": "26C3C00121C9B9C0EA910F662AF65E89021A626B299630780B91BB347788393E",
       "rationale": "Convenience plan 4.2: StructValue.TryGet<T>(path, out value, out CStructException? failure) and UnionValue.TryGet<T>(...) hand back the path or read exception Get<T> would have thrown without throwing it, so an absent member and an unconvertible one can be told apart; StructValue.GetOrDefault<T>(path, fallback) and UnionValue.GetOrDefault<T>(path, fallback) return the fallback for both.",
       "releaseImpact": "Additive: four methods; the existing two-argument TryGet<T> is unchanged."
+    },
+    {
+      "revision": 41,
+      "kind": "additive",
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "DCEF94F3F13FE05534581F7AC22910CA7D530204C2F0ED921FA48066171B364A",
+      "rationale": "ParseMany over memory, sequence, and stream and ParseManyAsync: lazy record sequences (D6)",
+      "releaseImpact": "New members on CStruct; nothing removed or changed"
     }
   ]
 }

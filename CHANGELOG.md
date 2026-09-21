@@ -22,6 +22,17 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   `ReadOnlySequence<byte>`, `Stream`), each with and without an `out CStructException? failure`: a read, path, or
   limit failure becomes `false` with the exception the throwing form would have raised; cancellation and argument
   errors throw as before; a stream is left at its origin after a failure.
+- `ParseMany(ReadOnlyMemory<byte> | ReadOnlySequence<byte> | Stream, path, variables, options)` returning
+  `IEnumerable<StructValue>` and `ParseManyAsync(Stream, ..., cancellationToken)` returning
+  `IAsyncEnumerable<StructValue>`: one root struct after another until the input ends, each parsed on the step that
+  reaches it with the read limits applied per record. A fixed-size root advances by its size, a runtime-sized root
+  by the previous record's end; trailing bytes shorter than one record fail on the step that meets them (a
+  fixed-size root with the partial-element text of a `T v[EOF]` array); a failure names the record by its index
+  before the path (`[3].header.length`). The awaitable form reads a fixed-size root exactly one record at a time
+  (any readable stream, byte-exact) and a runtime-sized root through a pooled window that refills from the record
+  it could not hold (a seekable stream). In the memory, sequence, and awaitable forms a stored absolute pointer
+  address counts from the record's first byte; the synchronous stream form counts from the stream's first byte, as
+  `Parse(Stream)` does. The analyzer's CSG200/CSG201 cover `ParseMany`, `ParseManyAsync`, and the awaitable forms.
 - Generated `ReadValue<T>`/`TryReadValue<T>` on the layout class for the same five input kinds, forwarding to
   `Layout.ReadValue<T>(source, RootName, ...)`: a mapped class is read from the root without naming it
   (`Wire.ReadValue<HeaderRecord>(bytes)`). `ReadValue` and `TryReadValue` join the reserved member names (CSG003).

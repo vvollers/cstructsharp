@@ -30,15 +30,35 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
     private static readonly ImmutableHashSet<string> PathMethods = ImmutableHashSet.Create(
         StringComparer.Ordinal,
         "Parse",
+        "ParseAsync",
+        "ParseMany",
+        "ParseManyAsync",
         "ParseWithDebug",
+        "ParseWithDebugAsync",
         "ReadValue",
+        "ReadValueAsync",
         "ReadValueWithDebug",
+        "ReadValueWithDebugAsync",
         "ResolveAddress",
+        "ResolveAddressAsync",
         "GetArrayLength",
+        "GetArrayLengthAsync",
         "Serialize",
         "Write",
+        "WriteAsync",
         "Update",
+        "UpdateAsync",
         "GetStructSizeInBytes");
+
+    /// <summary>The operations that return a struct and reject a union or scalar root at run time (CSG201).</summary>
+    private static readonly ImmutableHashSet<string> StructOnlyMethods = ImmutableHashSet.Create(
+        StringComparer.Ordinal,
+        "Parse",
+        "ParseAsync",
+        "ParseMany",
+        "ParseManyAsync",
+        "ParseWithDebug",
+        "ParseWithDebugAsync");
 
     private readonly ConcurrentDictionary<string, LayoutCompilation?> layouts = new(StringComparer.Ordinal);
 
@@ -94,7 +114,7 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
         }
 
         CompiledCompositeType? composite = FindComposite(layout, root);
-        if (method.Name is "Parse" or "ParseWithDebug" && segments.Count == 1 && (composite is null || composite.IsUnion))
+        if (StructOnlyMethods.Contains(method.Name) && segments.Count == 1 && (composite is null || composite.IsUnion))
         {
             context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.ParseNotStruct, pathArgument.Syntax.GetLocation(), path, composite is null ? "not a struct" : "a union"));
             return;

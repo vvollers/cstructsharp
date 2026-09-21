@@ -90,15 +90,22 @@ public class AnalyzerTests
                     layout.Parse(bytes, "word");
                     layout.Parse(bytes, "root");
                     layout.ReadValue(bytes, "choice");
+                    layout.ParseMany(bytes, "choice");
+                    layout.ParseManyAsync(new System.IO.MemoryStream(bytes), "word");
+                    layout.ParseAsync(new System.IO.MemoryStream(bytes), "root");
+                    layout.ParseMany(bytes, "root.missing");
                 }
             }
             """);
 
         string[] messages = diagnostics.Where(diagnostic => diagnostic.Id == "CSG201").Select(diagnostic => diagnostic.GetMessage()).ToArray();
-        Assert.AreEqual(2, messages.Length, string.Join("\n", diagnostics));
+        Assert.AreEqual(4, messages.Length, string.Join("\n", diagnostics));
         StringAssert.Contains(messages[0], "'choice' is a union");
         StringAssert.Contains(messages[1], "'word' is not a struct");
-        Assert.AreEqual(DiagnosticSeverity.Info, diagnostics.Single(diagnostic => diagnostic.Id == "CSG201" && diagnostic.GetMessage().Contains("choice", StringComparison.Ordinal)).Severity);
+        StringAssert.Contains(messages[2], "'choice' is a union");
+        StringAssert.Contains(messages[3], "'word' is not a struct");
+        StringAssert.Contains(diagnostics.Single(diagnostic => diagnostic.Id == "CSG200").GetMessage(), "'root' has no member 'missing'");
+        Assert.AreEqual(DiagnosticSeverity.Info, diagnostics.First(diagnostic => diagnostic.Id == "CSG201" && diagnostic.GetMessage().Contains("choice", StringComparison.Ordinal)).Severity);
     }
 
     [TestMethod]

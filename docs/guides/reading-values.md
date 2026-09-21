@@ -166,6 +166,33 @@ region starts at the stream's current position, so a stored absolute pointer add
 does for a span or memory input), not from the stream's first byte - read a stream whose addresses are absolute
 positions from position 0, or use the synchronous form.
 
+## Read a sequence of records
+
+A file or a message body often holds one struct after another - a log of fixed-size entries, a stream of
+count-prefixed frames - with nothing else in between. `ParseMany` reads such a sequence one record at a time: each
+`MoveNext` of the returned `IEnumerable<StructValue>` parses the next record, so a `foreach` over a million-entry
+file holds one value at a time and stops early whenever you `break`.
+
+[!code-csharp[Read records from memory and from a stream](../examples/Program.cs#api-guide-parse-many)]
+
+The root must be a struct declaration (`ParseMany` rejects a union or a scalar root as `Parse` does, before the first
+record). A root with a fixed size advances by its size; a root that depends on its own data (a count-prefixed
+payload) advances by the bytes the previous record consumed. Trailing bytes shorter than one record are not ignored:
+the step that meets them throws, for a fixed-size root with the message a `T v[EOF]` array uses for a partial
+element ("The remaining 2 bytes are not a whole number of 5-byte elements"); slice the input first when a trailer is
+expected. A failure names the record by its index before the path - `[3].header.length` - and the read limits apply
+to each record on its own (`MaxArrayElements` counts the elements *inside* a record; a sequence is not an array).
+
+`ParseMany` takes a `ReadOnlyMemory<byte>`, a `ReadOnlySequence<byte>`, or a seekable `Stream` (read with the
+stream reader, byte-exact, the stream left after each record). `ParseManyAsync` returns an `IAsyncEnumerable` for
+`await foreach`: a fixed-size root is read exactly one record at a time with `ReadAsync`, which works on a stream
+that cannot seek (a socket, a pipe); a runtime-sized root is read through a pooled window of at most
+`MaxTotalBytesRead` plus one byte that refills from the start of a record it could not hold, which needs a seekable
+stream. In the memory, sequence, and awaitable forms each record is its own region, so a stored absolute pointer
+address counts from the record's first byte; the synchronous stream form counts from the stream's first byte, as
+`Parse(Stream)` does. The generated series has the typed twin, `Records`, in
+[Sequences and TryParse](generated/sequences-and-try-parse.md).
+
 ## Verify and troubleshoot
 
 To verify a selected read:

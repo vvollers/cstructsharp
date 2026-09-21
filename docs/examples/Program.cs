@@ -21,6 +21,7 @@ internal static partial class Program
         ("options-with", OptionsWith),
         ("cancellation", Cancellation),
         ("parse-async", () => ParseAsyncExample().GetAwaiter().GetResult()),
+        ("parse-many", () => ParseManyExample().GetAwaiter().GetResult()),
         ("write-async", () => WriteAsyncExample().GetAwaiter().GetResult()),
         ("update-async", () => UpdateAsyncExample().GetAwaiter().GetResult()),
         ("try-get", TryGetAndGetOrDefault),
@@ -227,6 +228,48 @@ internal static partial class Program
         finally
         {
             File.Delete(path);
+        }
+    }
+    #endregion
+
+    #region api-guide-parse-many
+    private static async Task ParseManyExample()
+    {
+        // Three fixed-size entries, then two count-prefixed frames: each record is parsed when the loop reaches it.
+        var log = new CStruct("struct entry { uint16 id; uint8 level; };");
+        byte[] entries = [1, 0, 3, 2, 0, 1, 3, 0, 2];
+        var levels = new List<byte>();
+        foreach (StructValue entry in log.ParseMany(entries, "entry"))
+        {
+            levels.Add(entry.Get<byte>("level"));
+        }
+
+        Equal("3,1,2", string.Join(",", levels));
+
+        var frames = new CStruct("struct frame { uint8 count; uint8 payload[count]; };");
+        byte[] framed = [2, 0xAA, 0xBB, 1, 0xCC];
+        using var stream = new MemoryStream(framed);
+        var sizes = new List<int>();
+        await foreach (StructValue frame in frames.ParseManyAsync(stream, "frame"))
+        {
+            sizes.Add(frame.Get<byte[]>("payload").Length);
+        }
+
+        Equal("2,1", string.Join(",", sizes));
+
+        // A trailing byte that is not a whole entry fails on the step that reaches it, naming the record.
+        byte[] trailing = [1, 0, 3, 9];
+        using IEnumerator<StructValue> records = log.ParseMany(trailing, "entry").GetEnumerator();
+        True(records.MoveNext(), "the first entry is whole");
+        try
+        {
+            records.MoveNext();
+            True(false, "unreachable");
+        }
+        catch (CStructReadException failure)
+        {
+            True(failure.Message.Contains("remaining 1 bytes are not a whole number of 3-byte elements", StringComparison.Ordinal), failure.Message);
+            Equal("[1].entry", failure.Path);
         }
     }
     #endregion

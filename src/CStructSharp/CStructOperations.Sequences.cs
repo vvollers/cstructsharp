@@ -4,8 +4,13 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Threading;
+using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
+using CStructSharp.Expressions;
 using CStructSharp.Generated;
+using CStructSharp.Reading;
 using CStructSharp.Values;
 
 /// <summary>
@@ -14,6 +19,16 @@ using CStructSharp.Values;
 ///     multi-segment one is copied into a pooled buffer bounded by <see cref="ReadOptions.MaxTotalBytesRead"/> plus
 ///     one byte, so a sequence longer than the budget fails with the budget text, as a stream would. Coordinates are
 ///     zero-based at the sequence's start.
+///     <para>
+///         <c>ParseMany</c> and <c>ParseManyAsync</c> read a sequence of records - one root struct after another
+///         until the input ends - each parsed on the <c>MoveNext</c> that reaches it, with the read limits applied per
+///         record. Trailing bytes shorter than one record are a failure on the <c>MoveNext</c> that meets them, with
+///         the text a <c>T v[EOF]</c> array uses for a partial element when the root has a fixed size; a caller who
+///         expects them slices first. A failure names the record by its index before the path (<c>[3].header.length</c>).
+///         In the memory, sequence, and asynchronous forms each record is its own region, so a stored absolute pointer
+///         address counts from the record's first byte; the synchronous stream form runs the stream reader, so there
+///         it counts from the stream's first byte, as in <c>Parse(Stream)</c>.
+///     </para>
 /// </summary>
 public sealed partial class CStruct
 {
@@ -196,5 +211,156 @@ public sealed partial class CStruct
         {
             ArrayPool<byte>.Shared.Return(buffer);
         }
+    }
+
+    // ------------------------------------------------------------------------------------------------- ParseMany
+
+    /// <summary>Reads the records of <paramref name="source"/> lazily: one root struct after another until the memory ends; see the class remarks for the trailing-bytes and pointer rules.</summary>
+    /// <param name="source">The bytes of the records, with nothing else after them.</param>
+    /// <param name="path">The case-sensitive name of the root struct each record is; <see langword="null"/> selects the first declared struct.</param>
+    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
+    /// <param name="options">Optional read limits and pointer settings, applied to every record; <see langword="null"/> uses the documented defaults.</param>
+    /// <returns>The records, parsed as they are enumerated.</returns>
+    /// <exception cref="CStructPathException"><paramref name="path"/> does not name a struct declaration (a union or scalar root is read with <c>ReadValue</c>).</exception>
+    /// <exception cref="CStructReadException">A record cannot be read, or the trailing bytes are shorter than one record; raised by the enumeration that reaches it.</exception>
+    public IEnumerable<StructValue> ParseMany(
+        ReadOnlyMemory<byte> source,
+        string? path = null,
+        IReadOnlyDictionary<string, int>? variables = null,
+        ReadOptions? options = null)
+    {
+        LayoutVariableInput input = LayoutVariableInput.FromIntegers(variables);
+        return RecordSequence.FromMemory(this, source, this.ResolveRecordRoot(path, input), input, options);
+    }
+
+    /// <summary>Reads the records of a <see cref="ReadOnlySequence{T}"/>: a single segment is read in place, a chain of segments through one pooled copy that lives as long as the enumeration.</summary>
+    /// <inheritdoc cref="ParseMany(ReadOnlyMemory{byte}, string?, IReadOnlyDictionary{string, int}?, ReadOptions?)"/>
+    public IEnumerable<StructValue> ParseMany(
+        ReadOnlySequence<byte> source,
+        string? path = null,
+        IReadOnlyDictionary<string, int>? variables = null,
+        ReadOptions? options = null)
+    {
+        LayoutVariableInput input = LayoutVariableInput.FromIntegers(variables);
+        RecordRoot root = this.ResolveRecordRoot(path, input);
+        return source.IsSingleSegment
+            ? RecordSequence.FromMemory(this, source.First, root, input, options)
+            : RecordSequence.FromSegments(this, source, root, input, options);
+    }
+
+    /// <summary>
+    ///     Reads the records of a seekable stream from its current position to its end with the stream reader, one
+    ///     record per enumeration step, byte-exact: the stream is left after the last record read, or where a failed
+    ///     read stopped. A stream that cannot seek is read with <c>ParseManyAsync</c>.
+    /// </summary>
+    /// <param name="stream">The readable, seekable stream whose current position is the first record's start.</param>
+    /// <param name="path">The case-sensitive name of the root struct each record is; <see langword="null"/> selects the first declared struct.</param>
+    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
+    /// <param name="options">Optional read limits and pointer settings, applied to every record; <see langword="null"/> uses the documented defaults.</param>
+    /// <returns>The records, parsed as they are enumerated.</returns>
+    /// <exception cref="ArgumentException"><paramref name="stream"/> cannot be read or cannot seek.</exception>
+    /// <exception cref="CStructPathException"><paramref name="path"/> does not name a struct declaration.</exception>
+    /// <exception cref="CStructReadException">A record cannot be read, or the trailing bytes are shorter than one record; raised by the enumeration that reaches it.</exception>
+    public IEnumerable<StructValue> ParseMany(
+        Stream stream,
+        string? path = null,
+        IReadOnlyDictionary<string, int>? variables = null,
+        ReadOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        if (!stream.CanRead || !stream.CanSeek)
+        {
+            throw new ArgumentException("Parsing requires a readable, seekable stream.", nameof(stream));
+        }
+
+        LayoutVariableInput input = LayoutVariableInput.FromIntegers(variables);
+        return RecordSequence.FromStream(this, stream, this.ResolveRecordRoot(path, input), input, options);
+    }
+
+    /// <summary>
+    ///     Reads the records of a stream with <see cref="Stream.ReadAsync(Memory{byte}, CancellationToken)"/>. A
+    ///     root with a fixed size is read exactly one record at a time, so any readable stream serves, byte-exact; a
+    ///     runtime-sized root is read through a pooled window of the bytes left (at most
+    ///     <see cref="ReadOptions.MaxTotalBytesRead"/> plus one) that refills from the start of a record it could not
+    ///     hold, which needs a seekable stream. After each record a seekable stream sits at the record's end.
+    /// </summary>
+    /// <param name="stream">The readable stream whose current position is the first record's start.</param>
+    /// <param name="path">The case-sensitive name of the root struct each record is; <see langword="null"/> selects the first declared struct.</param>
+    /// <param name="variables">Optional per-operation integer layout variables; entries are snapshotted and never mutated.</param>
+    /// <param name="options">Optional read limits and pointer settings, applied to every record; <see langword="null"/> uses the documented defaults.</param>
+    /// <param name="cancellationToken">Ends the enumeration while it waits for bytes, between records, or at the next boundary the reader checks; linked with <see cref="ReadOptions.CancellationToken"/>.</param>
+    /// <returns>The records, parsed as they are enumerated.</returns>
+    /// <exception cref="ArgumentException"><paramref name="stream"/> cannot be read, or cannot seek while the root has no fixed size.</exception>
+    /// <exception cref="CStructPathException"><paramref name="path"/> does not name a struct declaration.</exception>
+    /// <exception cref="CStructReadException">A record cannot be read, or the trailing bytes are shorter than one record; raised by the enumeration that reaches it.</exception>
+    /// <exception cref="OperationCanceledException">The token was cancelled.</exception>
+    public IAsyncEnumerable<StructValue> ParseManyAsync(
+        Stream stream,
+        string? path = null,
+        IReadOnlyDictionary<string, int>? variables = null,
+        ReadOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        if (!stream.CanRead)
+        {
+            throw new ArgumentException("Reading requires a readable stream.", nameof(stream));
+        }
+
+        LayoutVariableInput input = LayoutVariableInput.FromIntegers(variables);
+        RecordRoot root = this.ResolveRecordRoot(path, input);
+        if (root.Size is null && !stream.CanSeek)
+        {
+            throw new ArgumentException("Records of a runtime-sized struct are read through a window that refills from a record's start, which needs a seekable stream; a fixed-size root is read from any stream.", nameof(stream));
+        }
+
+        return RecordSequence.FromStreamAsync(this, stream, root, input, options, cancellationToken);
+    }
+
+    /// <summary>One record of a sequence: the root parse of the stream form, returning the struct it selects.</summary>
+    internal StructValue ParseRecordCore(Stream stream, string root, LayoutVariableInput variables, ReadOptions? options)
+    {
+        return RequireStruct(this.ParseStreamCore(stream, root, variables, options), root);
+    }
+
+    /// <summary>
+    ///     The struct a record sequence is made of, checked before the first record: a struct declaration by name
+    ///     (a union or scalar fails as <c>Parse</c> fails; a member path is not a record), with its fixed size under
+    ///     the operation's variables when it has one.
+    /// </summary>
+    private RecordRoot ResolveRecordRoot(string? path, LayoutVariableInput variables)
+    {
+        string name = this.RootOrDefault(path);
+        if (this.ParsePath(name).Count != 1)
+        {
+            throw new CStructPathException($"'{name}' selects a member; a sequence of records is read by the name of its struct declaration.");
+        }
+
+        CompiledCompositeType composite;
+        try
+        {
+            composite = this.compiledSizeQueries.GetCompiledComposite(this.compilation.GetStruct(name));
+        }
+        catch (CStructPathException) when (this.compiledModelQueries.TryGetCompiledDeclaration(name, out _))
+        {
+            throw new CStructPathException($"'{name}' does not select a struct; use ReadValue or ReadValueWithDebug for a scalar, array, or pointer value.");
+        }
+
+        if (composite.IsUnion)
+        {
+            throw new CStructPathException($"'{name}' is a union; use ReadValue or ReadValueWithDebug to read it as a UnionValue.");
+        }
+
+        int? size;
+        try
+        {
+            size = this.compiledSizeQueries.GetCompiledStructSizeInBytes(composite, variables.Resolve(this.layoutVariableResolver), requireFixedSize: true);
+        }
+        catch (CStructLayoutException)
+        {
+            size = null;
+        }
+
+        return new RecordRoot(name, size);
     }
 }
