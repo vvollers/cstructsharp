@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Validates the permanent mutation gate: the Stryker configuration (project, thresholds, the 71-file allowlist)
- * and a JSON report against it (every configured file mutated, no surviving/uncovered/runtime-error mutants,
+ * and a JSON report against it (every configured file measured or explicitly qualified as non-mutable,
+ * no surviving/uncovered/runtime-error mutants,
  * score at or above 75 %).
  *
  *   node tools/quality/mutation-report.mjs --report-path <mutation-report.json> [--config-path stryker-config.json]
@@ -10,6 +11,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { assertCondition, main, parseArguments, repositoryRoot } from "../lib/tooling.mjs";
+import { loadNonMutableDeclarations, qualifyNonMutableDeclaration } from "../lib/mutation-declarations.mjs";
 
 const options = parseArguments(process.argv.slice(2), { "config-path": "string", "report-path": "string" }, {
   defaults: { "config-path": path.join(repositoryRoot, "stryker-config.json") },
@@ -19,6 +21,7 @@ const EXPORT_LIST_TEST = "CStructSharp.Tests.PublicApiSurfaceTests.ExportedTypes
 const countStatus = (mutants, status) => mutants.filter((mutant) => String(mutant.status) === status).length;
 const validCountOf = (mutants) => ["Killed", "Timeout", "Survived", "NoCoverage", "RuntimeError"].reduce((sum, status) => sum + countStatus(mutants, status), 0);
 
+// Validate the full configured population before calculating scores; non-applicability is never a detected mutant.
 await main(() => {
   const configPath = path.resolve(options["config-path"]);
   const reportPath = path.resolve(options["report-path"]);
@@ -44,6 +47,8 @@ await main(() => {
   assertCondition(configuredFiles.length === 71, `The permanent mutation allowlist must contain exactly 71 semantic files; found ${configuredFiles.length}.`);
   assertCondition(new Set(configuredFiles).size === configuredFiles.length, "The permanent mutation allowlist contains duplicate files.");
   assertCondition(configuredFiles.includes("**/CStructSharp.Core/Parsing/LayoutParser.cs"), "The layout parser must remain in the permanent mutation allowlist.");
+  const nonMutableDeclarations = loadNonMutableDeclarations(repositoryRoot, configuredFiles);
+  const qualifiedDeclarations = [];
 
   assertCondition(String(report.schemaVersion) === "2", `Unsupported Stryker report schema '${report.schemaVersion}'.`);
   assertCondition(Number(report.thresholds.high) === 75 && Number(report.thresholds.low) === 75, "The report was not produced with the final 75% mutation thresholds.");
@@ -71,7 +76,10 @@ await main(() => {
     const suffix = suffixOf(configuredFile);
     const matching = reportFiles.filter(([name]) => name.toLowerCase().endsWith(suffix));
     assertCondition(matching.length === 1, `The report is missing configured file '${configuredFile}'.`);
-    assertCondition(validCountOf(matching[0][1].mutants ?? []) > 0, `Configured semantic file '${configuredFile}' produced no valid mutants.`);
+    if (validCountOf(matching[0][1].mutants ?? []) === 0) {
+      assertCondition(qualifyNonMutableDeclaration(nonMutableDeclarations, configuredFile, matching[0][1]), `Configured semantic file '${configuredFile}' produced no valid mutants.`);
+      qualifiedDeclarations.push(configuredFile);
+    }
   }
 
   const killed = countStatus(allMutants, "Killed");
@@ -93,6 +101,7 @@ await main(() => {
 
   const hash = crypto.createHash("sha256").update(fs.readFileSync(reportPath)).digest("hex").toUpperCase();
   console.log(
-    `Permanent mutation gate passed: ${detected}/${valid} detected (${scoreText}%), ${killed} killed, ${timedOut} timed out, ${survived} survived, ${noCoverage} uncovered, ${runtimeErrors} runtime errors; ${compileErrors} compile errors, ${ignored} ignored; ${testCount} tests; 71 configured files; SHA-256 ${hash}.`,
+    `Permanent mutation gate passed: ${detected}/${valid} detected (${scoreText}%), ${killed} killed, ${timedOut} timed out, ${survived} survived, ${noCoverage} uncovered, ${runtimeErrors} runtime errors; ${compileErrors} compile errors, ${ignored} ignored; ${testCount} tests; 71 configured files; ${qualifiedDeclarations.length} reviewed non-mutable declarations; SHA-256 ${hash}.`,
   );
+  for (const declaration of qualifiedDeclarations) console.log(`Not applicable (no mutation opportunities): ${declaration}: ${nonMutableDeclarations.get(declaration).reason}`);
 });

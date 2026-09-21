@@ -130,6 +130,11 @@ fail. A surviving mutation can reveal an assertion gap even when line coverage i
 `mutation-report.mjs` checks the permanent-scope Stryker report. The exact pinned mutation command is in
 the repository root `MUTATION_TESTING.md`.
 
+Exact reviewed declarations with no mutation opportunities are reported as not applicable, not detected behavior.
+They remain in the configured scope and must have a present report with identical source and no mutants.
+`contracts/quality/mutation-non-mutable.json` pins their source hashes, Stryker version and reasons. Missing reports
+and compiler-rejected mutations do not qualify; executable code retains the score and survivor requirements.
+
 The layout parser has its own oracle: `ParserDifferentialTests` parses every fixture, contract, demo, and
 documentation layout - and thousands of deterministic mutations of them - through both `LayoutParser` and the
 frozen Pidgin reference grammar kept under `tests/CStructSharpTests/Reference/`, requiring identical accept/reject

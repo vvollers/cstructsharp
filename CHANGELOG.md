@@ -23,7 +23,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - Enforce whole-library coverage using merged runtime, generated-parity and generator-consumer evidence, with
   explicit compile-time metadata qualification and regression tests for array, lookup and write-failure contracts.
 - Partition the complete permanent mutation scope with checked report aggregation, independent memory mutation,
-  retained diagnostics and measured execution times; preserve all reviewed files and score gates.
+  retained diagnostics and measured execution times; preserve all reviewed files and score gates. Explicitly
+  account for exact reviewed declarations with no mutation opportunities, without counting them as detected behavior.
 - Correct learning-path and dependency guidance, current inspector/JavaScript references, and benchmark fixture
   claims. Derive volatile fixture and executable-scenario counts from their owning definitions.
 - Explain cursor ownership, generated reads and inspector invalidation at the relevant source boundaries, and

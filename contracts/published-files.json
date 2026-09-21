@@ -15,5 +15,6 @@
   "quality/compiler-fixtures/baselines/linux-x64-gcc.json",
   "quality/compiler-fixtures/shapes.json",
   "quality/coverage-population.json",
-  "quality/feature-operation-matrix.json"
+  "quality/feature-operation-matrix.json",
+  "quality/mutation-non-mutable.json"
 ]

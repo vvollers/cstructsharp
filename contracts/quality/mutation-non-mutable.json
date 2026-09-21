@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "strykerVersion": "5.0.0",
+  "declarations": [
+    {
+      "pattern": "Values/ReadAttempt.cs",
+      "sourceSha256": "3476b8ae4797f137dfefc51a0893e6f33ce686ce571b385a0f9ab0d331d1f6a8",
+      "reason": "ReadAttempt<T> is a positional record declaration with no authored executable body. Stryker 5.0.0 visits the exact source but creates no mutants. Its generated members are not mutation opportunities in this tool."
+    }
+  ]
+}
