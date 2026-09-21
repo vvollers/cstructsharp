@@ -163,7 +163,7 @@ public class SequenceBenchmarks
     }
 
     [Benchmark]
-    [BenchmarkCategory("Records256View")]
+    [BenchmarkCategory("Records256View", "ReleaseGate")]
     public double Generated_Records256_ViewEnumerator()
     {
         double sum = 0;

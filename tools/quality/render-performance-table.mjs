@@ -2,7 +2,8 @@
 /**
  * Renders the "Typical costs" section of docs/guides/performance.md from measured data: the BenchmarkDotNet
  * summary that convert-benchmark-baseline.mjs writes (a curated subset of its cases, and the generated-code
- * comparison when the summary holds GeneratedBenchmarks), the JS harness's Node
+ * comparison when the summary holds GeneratedBenchmarks, the async and sequence table when it holds
+ * AsyncBenchmarks and SequenceBenchmarks), the JS harness's Node
  * results (benchmarks/js), and the web artifact measurement (tools/quality/measure-web-artifacts.mjs) for the
  * runtime size. The page keeps the rendered block between two HTML comment markers; everything outside them is
  * hand-written. `--check` fails when the page's block differs from what the inputs render, so a stale table is
@@ -65,6 +66,31 @@ export const GENERATED_ROWS = [
   { method: "Generated_PrimRecord_Update", operation: "Generated typed setter for the same field (`Update.C`)" },
   { method: "Runtime_PrimRecord_ParseWithDebug", operation: "Runtime `ParseWithDebug` of the record" },
   { method: "Generated_PrimRecord_ParseWithDebug", operation: "Generated `ParseWithDebug` (the generated value plus the runtime's ranges)" },
+];
+
+/**
+ * The async and record-sequence rows, in page order: the stream read against its awaitable twin (in place, through
+ * a copy, from a file), the write and update pairs, then 256 records through a `Parse` loop, `ParseMany`, the
+ * generated `Records`, and the view enumerator against the hand-written view loop. Rendered only when the summary
+ * contains `AsyncBenchmarks` and `SequenceBenchmarks`.
+ */
+export const ASYNC_ROWS = [
+  { type: "AsyncBenchmarks", method: "Runtime_PrimRecord_ParseStream", operation: "Runtime `Parse(Stream)` of the 28-byte record from a `MemoryStream`" },
+  { type: "AsyncBenchmarks", method: "Runtime_PrimRecord_ParseAsync_MemoryStream", operation: "Runtime `ParseAsync` of the same stream (read in place, the task already complete)" },
+  { type: "AsyncBenchmarks", method: "Runtime_PrimRecord_ParseAsync_HiddenBuffer", operation: "Runtime `ParseAsync` of a stream that hides its buffer (one pooled copy)" },
+  { type: "AsyncBenchmarks", method: "Runtime_PrimRecord_ParseAsync_File", operation: "Runtime `ParseAsync` of a `FileStream` opened for asynchronous I/O" },
+  { type: "AsyncBenchmarks", method: "Runtime_PrimRecord_WriteStream", operation: "Runtime `Write(Stream)` of the record" },
+  { type: "AsyncBenchmarks", method: "Runtime_PrimRecord_WriteAsync", operation: "Runtime `WriteAsync` of the record (serialized first, one `WriteAsync`)" },
+  { type: "AsyncBenchmarks", method: "Runtime_PrimRecord_UpdateStream", operation: "Runtime `Update(Stream)` of one field" },
+  { type: "AsyncBenchmarks", method: "Runtime_PrimRecord_UpdateAsync", operation: "Runtime `UpdateAsync` of the same field (the region buffered, the changed run written back)" },
+  { type: "AsyncBenchmarks", method: "Generated_PrimRecord_ParseStream", operation: "Generated `Parse(Stream)` of the record" },
+  { type: "AsyncBenchmarks", method: "Generated_PrimRecord_ParseAsync", operation: "Generated `ParseAsync` of the same stream" },
+  { type: "SequenceBenchmarks", method: "Runtime_Records256_ParseLoop", operation: "Runtime `Parse` in a loop over 256 consecutive records (7,168 bytes)" },
+  { type: "SequenceBenchmarks", method: "Runtime_Records256_ParseMany", operation: "Runtime `ParseMany` over the same 256 records" },
+  { type: "SequenceBenchmarks", method: "Generated_Records256_ParseLoop", operation: "Generated `Parse` in a loop over the 256 records" },
+  { type: "SequenceBenchmarks", method: "Generated_Records256_Records", operation: "Generated `Records` over the same 256 records" },
+  { type: "SequenceBenchmarks", method: "HandWritten_Records256_ViewLoop", operation: "Hand-written offset loop over 256 views (two members read each)" },
+  { type: "SequenceBenchmarks", method: "Generated_Records256_ViewEnumerator", operation: "Generated view enumerator (`RootView.Enumerate`) over the same 256 records" },
 ];
 
 /** The JavaScript rows, in page order; the Node results supply the median. */
@@ -161,6 +187,31 @@ export function renderBlock({ summary, js, web }) {
     );
   }
 
+  if (byKey.has(`${ASYNC_ROWS[0].type}|${ASYNC_ROWS[0].method}|`) && byKey.has(`SequenceBenchmarks|${ASYNC_ROWS[ASYNC_ROWS.length - 1].method}|`)) {
+    lines.push(
+      "",
+      "The awaitable forms read the stream with `ReadAsync` into a pooled buffer and run the same reader over it, so",
+      "their cost is the synchronous read plus the buffering and the state machine; a record sequence parses one",
+      "record per step (`AsyncBenchmarks`, `SequenceBenchmarks`; [async and pipelines](async-and-pipelines.md),",
+      "[sequences and TryParse](generated/sequences-and-try-parse.md)):",
+      "",
+      "| Operation | Median | Allocated |",
+      "| --- | ---: | ---: |",
+    );
+    for (const row of ASYNC_ROWS) {
+      const benchmark = byKey.get(`${row.type}|${row.method}|`);
+      assertCondition(benchmark, `The summary has no case ${row.type}.${row.method}.`);
+      lines.push(`| ${row.operation} | ${formatDuration(benchmark.medianNanoseconds)} | ${formatBytes(benchmark.allocatedBytes)} |`);
+    }
+    lines.push(
+      "",
+      "A `MemoryStream` that exposes its buffer is read in place and the `ValueTask` is already complete when it is",
+      "returned; a file pays the real asynchronous I/O. `ParseMany` and the generated `Records` cost what the loop a",
+      "caller would write costs, and the view enumerator allocates nothing and sits next to the hand-written offset",
+      "loop.",
+    );
+  }
+
   if (js) {
     assertCondition(js.schemaVersion === 1 && Array.isArray(js.results), "The JS results have an unsupported shape.");
     const results = new Map(js.results.map((result) => [result.name, result]));
@@ -215,6 +266,7 @@ function selfTest() {
     benchmarks: [
       ...MANAGED_ROWS.map((row, index) => ({ type: row.type, method: row.method, parameters: row.parameters, medianNanoseconds: 10 ** (index % 7) * 1.5, allocatedBytes: 100 * index })),
       ...GENERATED_ROWS.map((row, index) => ({ type: "GeneratedBenchmarks", method: row.method, parameters: "", medianNanoseconds: 50 + index, allocatedBytes: index === 2 ? 0 : 48 })),
+      ...ASYNC_ROWS.map((row, index) => ({ type: row.type, method: row.method, parameters: "", medianNanoseconds: 300 + index, allocatedBytes: index === ASYNC_ROWS.length - 1 ? 0 : 784 })),
     ],
   };
   const js = { schemaVersion: 1, environment: { capturedAtUtc: "2026-09-18T12:52:14.072Z", node: { node: "22.0.0" } }, results: JS_ROWS.map((row) => ({ name: row.name, medianNanoseconds: 4000 })) };
@@ -225,6 +277,16 @@ function selfTest() {
   assertCondition(block.includes("Measured 2026-09-18 on Test CPU, .NET 10.0.0, Test OS."), "Self-test: the caption is wrong.");
   assertCondition(block.includes("| Generated view of the same record (every member read, nothing allocated) | 52.0 ns | 0 B |"), "Self-test: the generated table is wrong.");
   assertCondition(!renderBlock({ summary: { ...summary, benchmarks: summary.benchmarks.slice(0, MANAGED_ROWS.length) } }).includes("GeneratedBenchmarks"), "Self-test: a summary without generated cases must render no generated table.");
+  assertCondition(block.includes("| Generated view enumerator (`RootView.Enumerate`) over the same 256 records | 315 ns | 0 B |"), "Self-test: the async and sequences table is wrong.");
+  const withoutSequences = renderBlock({ summary: { ...summary, benchmarks: summary.benchmarks.filter((benchmark) => benchmark.type !== "SequenceBenchmarks") } });
+  assertCondition(!withoutSequences.includes("AsyncBenchmarks") && withoutSequences.includes("GeneratedBenchmarks"), "Self-test: a summary without the sequence cases must render no async table.");
+  let partialAsync = false;
+  try {
+    renderBlock({ summary: { ...summary, benchmarks: summary.benchmarks.filter((benchmark) => benchmark.method !== ASYNC_ROWS[3].method) } });
+  } catch {
+    partialAsync = true;
+  }
+  assertCondition(partialAsync, "Self-test: a partial async set was not rejected.");
   let partial = false;
   try {
     renderBlock({ summary: { ...summary, benchmarks: summary.benchmarks.slice(0, MANAGED_ROWS.length + 1) } });
@@ -270,5 +332,5 @@ await main(() => {
   }
 
   fs.writeFileSync(options.page, rendered);
-  console.log(`Rendered ${MANAGED_ROWS.length} managed rows${block.includes("GeneratedBenchmarks") ? `, ${GENERATED_ROWS.length} generated rows,` : ""}${options.js ? ` and ${JS_ROWS.length} JavaScript rows` : ""} into ${path.relative(repositoryRoot, options.page)}.`);
+  console.log(`Rendered ${MANAGED_ROWS.length} managed rows${block.includes("GeneratedBenchmarks") ? `, ${GENERATED_ROWS.length} generated rows,` : ""}${block.includes("AsyncBenchmarks") ? ` ${ASYNC_ROWS.length} async and sequence rows,` : ""}${options.js ? ` and ${JS_ROWS.length} JavaScript rows` : ""} into ${path.relative(repositoryRoot, options.page)}.`);
 });

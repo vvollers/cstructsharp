@@ -8,7 +8,7 @@ non-failing drift report in CI (`.github/workflows/benchmark-drift.yml`), not an
 
 | Path | Purpose |
 | --- | --- |
-| `CStructSharp.Benchmarks/` | BenchmarkDotNet host. Original release-gate cases (`ReleaseGate` category) plus the Phase 0 `Baseline0/` scenario-matrix cases and hand-written comparators. `--profile <scenario>` runs a manual loop for sampling profilers. |
+| `CStructSharp.Benchmarks/` | BenchmarkDotNet host. Original release-gate cases (`ReleaseGate` category) plus the Phase 0 `Baseline0/` scenario-matrix cases and hand-written comparators; `GeneratedBenchmarks` (category `Generated`) compares generated code with the runtime, `AsyncBenchmarks` (category `Async`) the stream forms with their awaitable twins, `SequenceBenchmarks` (category `Sequences`) segmented input and record sequences (`ParseMany`, `Records`, the view enumerator) with the loops a caller would write. The release gate holds 18 cases: 15 runtime, 2 generated parses, and the generated view enumerator. `--profile <scenario>` runs a manual loop for sampling profilers. |
 | `CStructSharp.FixtureTool/` | Fills and verifies `fixtures/` expectations with the managed library; also the shared fixture loader the benchmarks use. |
 | `fixtures/` | Seeded fixture corpus shared by .NET, Node, and browser harnesses (see its README). |
 | `js/` | Node + headless-Chromium harness for the WASM bridge (see its README). |

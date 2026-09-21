@@ -85,6 +85,13 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   stream position and rethrows). An update stages before it commits, so a cancelled update leaves the destination
   unchanged. Generated readers and writers observe the same token through `ReadCursor`/`WriteCursor`.
 
+- Benchmarks: `AsyncBenchmarks` (category `Async`: every stream form against its awaitable twin, runtime and
+  generated) and `SequenceBenchmarks` (category `Sequences`: segmented input, and 256 records through `ParseMany`,
+  the generated `Records`, and the view enumerator against the loops a caller would write). The release gate
+  (`contracts/performance/non-web-rc1.json`) gains `Runtime_PrimRecord_ParseAsync_MemoryStream` and
+  `Generated_Records256_ViewEnumerator` (18 cases), and the performance page's rendered block gains an "async and
+  sequences" table.
+
 ### Fixed
 
 - An in-place update of a terminated value (`cstring` and the other terminated strings, an array ended by an all-zero

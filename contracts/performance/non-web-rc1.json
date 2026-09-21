@@ -145,6 +145,20 @@
         "parameters": "",
         "baselineMedianNanoseconds": 35.525,
         "baselineAllocatedBytes": 48
+      },
+      {
+        "type": "AsyncBenchmarks",
+        "method": "Runtime_PrimRecord_ParseAsync_MemoryStream",
+        "parameters": "",
+        "baselineMedianNanoseconds": 333.079,
+        "baselineAllocatedBytes": 904
+      },
+      {
+        "type": "SequenceBenchmarks",
+        "method": "Generated_Records256_ViewEnumerator",
+        "parameters": "",
+        "baselineMedianNanoseconds": 194.988,
+        "baselineAllocatedBytes": 0
       }
     ],
     "generatedBaselineEvidence": {
@@ -153,6 +167,15 @@
       "environment": "Linux Ubuntu 26.04.1 LTS (Resolute Raccoon); AMD EPYC 9645; X64; .NET 10.0.10 (10.0.10, 10.0.1026.32716); SDK 10.0.302",
       "date": "2026-09-20",
       "note": "The two GeneratedBenchmarks cases (generated Parse of the primitives record and of the 256 nested records, category ReleaseGate) were measured on the same devbox with the Gate job after the generator plan's Phase 6; their budgets use the policy's minimum median budget and allocation headroom, which cover a 36 ns / 48 B case."
+    },
+    "convenienceBaselineEvidence": {
+      "summary": "artifacts/baseline/convenience-gate/summary.json",
+      "summarySha256": "9CE6BEFB5529284D09B3DEF74E27EA797947761007D1BE1C08A4E8CDB2CB7875",
+      "environment": "Linux Ubuntu 26.04.1 LTS (Resolute Raccoon); AMD EPYC 9645; X64; .NET 10.0.10 (10.0.10, 10.0.1026.32716); SDK 10.0.302",
+      "date": "2026-09-21",
+      "revision": "f1c756f9a7b8f8fdbdb8c4825fe018f0d8b79497",
+      "worktreeDirty": true,
+      "note": "The runtime ParseAsync of the 28-byte record over a MemoryStream read in place (AsyncBenchmarks) and the generated view enumerator over 256 records (SequenceBenchmarks), category ReleaseGate, measured on the same devbox with the Gate job after the convenience plan's Phase 5 (24 samples each, RSD 5 % / 3 %). The tree differed from the recorded revision only by this contract, the ReleaseGate attribute on the enumerator case, and the performance-table renderer; the library and the benchmark bodies are those of the revision. The policy's minimum median budget and allocation headroom bound both cases; the enumerator's budget is the headroom alone since it allocates nothing."
     }
   },
   "package": {
