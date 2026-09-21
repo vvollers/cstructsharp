@@ -93,7 +93,9 @@ then enforces all 71 files, the 75% score floor and zero surviving/uncovered/run
 fail; compile errors remain compile errors. Raw JSON/HTML reports and Stryker trace logs are retained even when a
 partition fails. A job timeout cannot be counted as a completed report.
 
-Each mutation job has a 180-minute limit; partitions run concurrently where runner capacity permits. The
+Each mutation step has a 180-minute limit within a 195-minute job budget. The remaining allowance covers normal
+setup and diagnostic uploads after a step times out; it does not turn a timeout into successful evidence.
+Runner loss can still prevent uploads. Partitions run concurrently where runner capacity permits. The
 `aggregation.json` artifact records each Stryker process's elapsed time and their sum. Compare those measurements
 with the Actions job start/end times: total runner time also includes setup and uploads, while workflow elapsed
 time includes queuing. Parallelism can shorten feedback without reducing runner cost. Revisit the partition count

@@ -29,7 +29,8 @@ jobs:
     name: Permanent mutation ${{ matrix.id }} (${{ matrix.files }} files)
     needs: plan
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    # Leave setup/upload time outside the mutation step's budget so a timed-out step can still retain logs.
+    timeout-minutes: 195
     strategy:
       fail-fast: false
       max-parallel: 16
@@ -51,6 +52,7 @@ jobs:
           dotnet restore ./tests/CStructSharpTests/CStructSharpTests.csproj
 
       - name: Mutate this complete file partition
+        timeout-minutes: 180
         run: node tools/quality/mutation-partitions.mjs --mode run --partition ${{ matrix.id }} --output-directory artifacts/mutation/${{ matrix.id }}
 
       - name: Retain partition report, execution evidence and Stryker logs
@@ -89,7 +91,7 @@ jobs:
   memory:
     name: Independent memory mutation
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 195
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -103,6 +105,7 @@ jobs:
           dotnet tool restore
           dotnet restore tests/CStructSharpTests/CStructSharpTests.csproj
       - name: Mutate and validate the complete memory scope
+        timeout-minutes: 180
         run: node tools/quality/mutation-partitions.mjs --mode memory --output-directory artifacts/mutation/memory
       - name: Retain memory report and Stryker logs
         if: always()

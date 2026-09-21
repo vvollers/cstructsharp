@@ -8,6 +8,23 @@ import test from "node:test";
 import { aggregateMutationPartitions, planMutationPartitions } from "../lib/mutation-partitions.mjs";
 import { repositoryRoot } from "../lib/tooling.mjs";
 
+// A step timeout must leave ordinary setup/upload headroom; incomplete evidence must still fail aggregation.
+test("mutation jobs reserve time to upload diagnostics after the execution limit", () => {
+  const lines = fs.readFileSync(path.join(repositoryRoot, ".github/workflows/mutation.yml"), "utf8").split(/\r?\n/);
+  for (const job of ["permanent", "memory"]) {
+    const start = lines.indexOf(`  ${job}:`);
+    assert.ok(start >= 0, `${job} job is required`);
+    // Only a two-space key begins the next job; nested steps and matrices belong to the current body.
+    const next = lines.findIndex((line, index) => index > start && /^ {2}\S/.test(line));
+    const body = lines.slice(start, next < 0 ? lines.length : next).join("\n");
+    const jobMinutes = Number(body.match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
+    const stepMinutes = Number(body.match(/^ {6}- name: Mutate[^\n]*\n {8}timeout-minutes: (\d+)$/m)?.[1]);
+    assert.equal(stepMinutes, 180, "Keep the complete mutation execution budget");
+    assert.ok(jobMinutes >= stepMinutes + 15, `${job} needs setup/upload headroom`);
+    assert.match(body, /^ {6}- name: Retain[^\n]*\n {8}if: always\(\)$/m);
+  }
+});
+
 /** Creates two independent synthetic Stryker reports whose local test and mutant IDs deliberately collide. */
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cstruct-mutation-partitions-"));
