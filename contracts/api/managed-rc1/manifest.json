@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 37,
+  "baselineRevision": 38,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.7.0",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 989,
-    "normalizedSha256": "C024211FCB9642CA7AE821EE72BAC42EA17490D1E4669DE6A8D80FE1BDE61DAD"
+    "lines": 991,
+    "normalizedSha256": "D3B78FCCF1327F4E3A8EF3253063E6EA40A7AC25900777E87B0CD9575F9270F1"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "511BDD4650E3E7A54CE733CC4E32E7F0505C2FB5B31495AE315507BC36E9FB73",
+      "normalizedSha256": "36B96E4AD662CE9DCEE5565E5342ED4078C7BC910730E679C8EE9905CD1EA8FE",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "77A55106A143EADB5C1310652CDBAB0BC62D23F2F0AB46B0C05F5411D92F5C5D",
+      "normalizedSha256": "4FE668035F635CC0660B8D4A51BBE203F096763B5401C4A2D17780EBC536C66D",
       "aotCompatible": true
     }
   ],
@@ -366,6 +366,15 @@
       "combinedSha256": "8D2300E2BEDC1B887D3B01B492506F35743F01D8FBF9732338EA200D9DB63621",
       "rationale": "Convenience plan 3.2: WriteAsync (serialize first, one WriteAsync, nothing written on a validation failure) and UpdateAsync (a seekable stream's region read into a buffer, the in-place update over it, only the changed byte runs written back, the position restored), each with a CancellationToken linked with the options' token.",
       "releaseImpact": "Additive: two methods; the synchronous forms are unchanged. The fix to terminated-value updates (a replacement of another encoded length is now rejected) changes behaviour only where bytes were silently corrupted before."
+    },
+    {
+      "revision": 38,
+      "kind": "additive",
+      "date": "2026-09-21",
+      "packageVersion": "0.7.0",
+      "combinedSha256": "E7F7FC5E9228593A588DD22B67EF4031AEBCB09ED700BC6150F3438FE9EE4799",
+      "rationale": "Convenience plan 3.3: ReadCursor.WithCancellation and WriteCursor.WithCancellation give the generated ParseAsync/WriteAsync forms the options carrying the linked token (the options' token, the method's token, or a source linked from both); the generated classes gain Parse<Name>Async/ParseAsync and Write<Name>Async/WriteAsync over BufferStreamAsync and one WriteAsync.",
+      "releaseImpact": "Additive: two static helpers on the generated-support cursors; the generated Parse(Stream) now restores a seekable stream to its origin on failure (it used to leave it where the buffering stopped)."
     }
   ]
 }

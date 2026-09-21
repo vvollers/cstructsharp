@@ -15,7 +15,9 @@ The generated writer validates exactly what the runtime writer validates and say
 - `Wire.Serialize(header)` returns a new `byte[]` of exactly the value's size.
 - `Wire.Serialize(header, span)` writes into memory you own and returns the number of bytes; a destination that is
   too small fails with the runtime's capacity message before anything is written past it.
-- `Wire.Write(stream, header)` writes the bytes to a stream at its current position.
+- `Wire.Write(stream, header)` writes the bytes to a stream at its current position; `Wire.WriteAsync(stream, header)`
+  does the same with one awaitable write, and `Wire.ParseAsync(stream)` is the awaitable reader (the
+  [sequences and TryParse](sequences-and-try-parse.md) lesson covers both).
 
 Every struct also has `Serialize<Name>`/`Write<Name>` overloads that accept a `variables` dictionary for the
 layout's free identifiers.

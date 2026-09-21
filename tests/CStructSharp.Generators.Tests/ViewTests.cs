@@ -101,6 +101,27 @@ public class ViewTests
         Exception truncated = Assert.Throws<TargetInvocationException>(() => parseStream.Invoke(null, [new MemoryStream(bytes[..10]), null, null])).InnerException!;
         Assert.AreEqual(Assert.Throws<CStructReadException>(() => runtime.Parse(bytes[..10], "root")).Message, truncated.Message);
 
+        // The awaitable forms: ParseRootAsync over a hidden-buffer stream (copied) reads the same value and leaves the
+        // stream after the value, restores the origin on a failure, and WriteRootAsync writes the serialized bytes.
+        MethodInfo parseAsync = packet.GetMethods().Single(method => method.Name == "ParseRootAsync");
+        using var asyncStream = new MemoryStream([0xEE, .. bytes, 0xFF], 0, bytes.Length + 2, writable: false, publiclyVisible: false) { Position = 1 };
+        object asyncValue = ((dynamic)parseAsync.Invoke(null, [asyncStream, null, null, CancellationToken.None])!).AsTask().Result;
+        ParityComparer.AssertSame(runtime.Parse(bytes, "root"), asyncValue, "root");
+        Assert.AreEqual(1 + bytes.Length, asyncStream.Position);
+        asyncStream.Position = 1;
+        using var shortStream = new MemoryStream(bytes[..10]) { Position = 0 };
+        AggregateException asyncFailure = Assert.Throws<AggregateException>(() => { ((dynamic)parseAsync.Invoke(null, [shortStream, null, null, CancellationToken.None])!).AsTask().Wait(); });
+        Assert.AreEqual(truncated.Message, asyncFailure.InnerException!.Message);
+        Assert.AreEqual(0L, shortStream.Position, "a failed async read restores the origin");
+        MethodInfo writeAsync = packet.GetMethods().Single(method => method.Name == "WriteRootAsync");
+        using var written = new MemoryStream();
+        ((dynamic)writeAsync.Invoke(null, [written, value, null, null, CancellationToken.None])!).AsTask().Wait();
+        CollectionAssert.AreEqual(runtime.Serialize("root", runtime.Parse(bytes, "root")), written.ToArray());
+        using var cancelledSource = new CancellationTokenSource();
+        cancelledSource.Cancel();
+        AggregateException cancelledAsync = Assert.Throws<AggregateException>(() => { ((dynamic)parseAsync.Invoke(null, [new MemoryStream(bytes), null, null, cancelledSource.Token])!).AsTask().Wait(); });
+        Assert.IsInstanceOfType<OperationCanceledException>(cancelledAsync.InnerException);
+
         // A ReadOnlySequence<byte>: one segment reads in place; several are copied and read like the flat bytes.
         MethodInfo parseSequence = packet.GetMethods().Single(method => method.Name == "ParseRoot" && method.GetParameters()[0].ParameterType == typeof(System.Buffers.ReadOnlySequence<byte>));
         ParityComparer.AssertSame(runtime.Parse(bytes, "root"), parseSequence.Invoke(null, [new System.Buffers.ReadOnlySequence<byte>(bytes), null, null])!, "root");

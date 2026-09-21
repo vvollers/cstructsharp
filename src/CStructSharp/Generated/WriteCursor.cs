@@ -110,6 +110,21 @@ public ref struct WriteCursor
     }
 
     /// <summary>
+    ///     The options an awaitable generated write runs with: <paramref name="options"/> carrying the token that
+    ///     ends the operation - the options' own token, <paramref name="cancellationToken"/>, or a source linked from
+    ///     both when both can cancel (the caller disposes <paramref name="linked"/> after the operation).
+    /// </summary>
+    /// <param name="options">The caller's write options, or <see langword="null"/>.</param>
+    /// <param name="cancellationToken">The token given to the async method.</param>
+    /// <param name="linked">The linked source when both tokens can cancel; otherwise <see langword="null"/>.</param>
+    /// <returns>The options to write with; <see langword="null"/> when neither token can cancel and none were given.</returns>
+    public static WriteOptions? WithCancellation(WriteOptions? options, System.Threading.CancellationToken cancellationToken, out System.Threading.CancellationTokenSource? linked)
+    {
+        System.Threading.CancellationToken token = Streams.AsyncStreamBuffer.Link(options, cancellationToken, out linked);
+        return token.CanBeCanceled ? (options ?? new WriteOptions()) with { CancellationToken = token, } : options;
+    }
+
+    /// <summary>
     ///     Reserves <paramref name="count"/> bytes for a member: checks the total byte budget and the destination
     ///     capacity, advances, and returns the slice to encode into.
     /// </summary>

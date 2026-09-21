@@ -19,6 +19,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   stream is accepted and consumed up to the budget. A `MemoryStream` that exposes its buffer is read in place and
   the `ValueTask` completes synchronously. The buffered region starts at the origin, so a stored absolute pointer
   address counts from the origin, as in the span and memory forms (the synchronous stream form counts from byte 0).
+- Generated classes gain the same forms: `Parse<Name>Async`/`ParseAsync(Stream, options, cancellationToken)` and
+  `Write<Name>Async`/`WriteAsync(Stream, value, options, cancellationToken)` (`ReadCursor.WithCancellation` and
+  `WriteCursor.WithCancellation` link the token as the runtime does); the generated `Parse(Stream)` now leaves a
+  seekable stream at its origin when the read fails, as the awaitable forms do.
 - Awaitable writes: `WriteAsync` serializes the value first (a validation failure writes nothing) and writes the
   bytes with one `WriteAsync`; `UpdateAsync` reads the region from the current position of a seekable stream, runs
   the in-place update over it, and writes back only the byte runs that changed, leaving the position at the origin

@@ -119,6 +119,36 @@ internal sealed partial class LayoutEmitter
         writer.Line("long start = stream.CanSeek ? stream.Position : 0;");
         writer.Line("byte[] buffer = " + Cursor + ".BufferStream(stream, options, out int length);");
         writer.Open("try");
+        writer.Line("return " + method + "Buffered(buffer, length, stream, start, variables, options);");
+        writer.Close();
+        writer.Open("finally");
+        writer.Line("global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);");
+        writer.Close();
+        writer.Close();
+        writer.Line();
+        writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> from <paramref name=\"stream\"/> with the bytes read by <see cref=\"global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)\"/>: the same buffering and the same reader as the synchronous form; a seekable stream is left after the value (at its origin on failure), a stream that cannot seek is consumed up to the total read budget plus one byte. A stored absolute pointer address counts from the origin, as in the span form.</summary>");
+        writer.Line("/// <param name=\"stream\">The stream, read from its current position.</param>");
+        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line("/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line("/// <param name=\"cancellationToken\">Ends the read while it waits for bytes or at the next boundary the reader checks; linked with the options' token.</param>");
+        writer.Line("/// <returns>The parsed value.</returns>");
+        writer.Open("public static async global::System.Threading.Tasks.ValueTask<" + name + "> " + method + "Async(global::System.IO.Stream stream, " + VariablesType + " variables = null, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)");
+        writer.Line("global::System.ArgumentNullException.ThrowIfNull(stream);");
+        writer.Line("global::CStructSharp.ReadOptions? effective = " + Cursor + ".WithCancellation(options, cancellationToken, out global::System.Threading.CancellationTokenSource? linked);");
+        writer.Open("using (linked)");
+        writer.Line("long start = stream.CanSeek ? stream.Position : 0;");
+        writer.Line("(byte[] buffer, int length) = await " + Cursor + ".BufferStreamAsync(stream, effective, effective?.CancellationToken ?? default).ConfigureAwait(false);");
+        writer.Open("try");
+        writer.Line("return " + method + "Buffered(buffer, length, stream, start, variables, effective);");
+        writer.Close();
+        writer.Open("finally");
+        writer.Line("global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);");
+        writer.Close();
+        writer.Close();
+        writer.Close();
+        writer.Line();
+        writer.Line("/// <summary>The synchronous half of the stream forms: the span reader over the buffered bytes, then the stream's final position (after the value, or the origin on failure).</summary>");
+        writer.Open("private static " + name + " " + method + "Buffered(byte[] buffer, int length, global::System.IO.Stream stream, long start, " + VariablesType + " variables, global::CStructSharp.ReadOptions? options)");
         writer.Line("var cursor = new " + Cursor + "(new global::System.ReadOnlySpan<byte>(buffer, 0, length), options, " + SourceWriter.Literal(composite.LayoutName) + ");");
         writer.Open("try");
         writer.Line(name + " value = Read" + name + "(ref cursor, variables, null, null);");
@@ -129,11 +159,10 @@ internal sealed partial class LayoutEmitter
         writer.Close();
         writer.Open("catch (global::CStructSharp.Diagnostics.CStructException exception)");
         writer.Line("cursor.Complete(exception);");
+        writer.Open("if (stream.CanSeek)");
+        writer.Line("stream.Position = start;");
+        writer.Close();
         writer.Line("throw;");
-        writer.Close();
-        writer.Close();
-        writer.Open("finally");
-        writer.Line("global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);");
         writer.Close();
         writer.Close();
         if (isRoot)
@@ -156,6 +185,9 @@ internal sealed partial class LayoutEmitter
             writer.Line();
             writer.Line("/// <inheritdoc cref=\"" + method + "(global::System.IO.Stream, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions)\"/>");
             writer.Line("public static " + name + " Parse(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null) => " + method + "(stream, null, options);");
+            writer.Line();
+            writer.Line("/// <inheritdoc cref=\"" + method + "Async(global::System.IO.Stream, " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.ReadOptions, global::System.Threading.CancellationToken)\"/>");
+            writer.Line("public static global::System.Threading.Tasks.ValueTask<" + name + "> ParseAsync(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => " + method + "Async(stream, null, options, cancellationToken);");
         }
     }
 

@@ -487,6 +487,7 @@ namespace CStructSharp.Generated
         public static System.Threading.Tasks.ValueTask<System.ValueTuple<byte[], int>> BufferStreamAsync(System.IO.Stream stream, CStructSharp.ReadOptions? options, System.Threading.CancellationToken cancellationToken) { }
         public static byte[] CopySequence(System.Buffers.ReadOnlySequence<byte> source, CStructSharp.ReadOptions? options, out int length) { }
         public static string ShortReadText(long needed, long available) { }
+        public static CStructSharp.ReadOptions? WithCancellation(CStructSharp.ReadOptions? options, System.Threading.CancellationToken cancellationToken, out System.Threading.CancellationTokenSource? linked) { }
     }
     public enum TerminatedTextEncoding
     {
@@ -532,6 +533,7 @@ namespace CStructSharp.Generated
         public void WritePointerAddress(long address, int pointerSize, bool littleEndian, string member, string? memberType) { }
         public void WriteTerminatedString(CStructSharp.Generated.TerminatedTextEncoding encoding, char terminator, string value, string member, string? memberType) { }
         public static CStructSharp.Generated.WriteCursor ForUpdate(System.Span<byte> target, CStructSharp.WriteOptions? options = null, string? path = null) { }
+        public static CStructSharp.WriteOptions? WithCancellation(CStructSharp.WriteOptions? options, System.Threading.CancellationToken cancellationToken, out System.Threading.CancellationTokenSource? linked) { }
     }
 }
 namespace CStructSharp.Introspection

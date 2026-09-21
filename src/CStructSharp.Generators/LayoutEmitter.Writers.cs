@@ -90,6 +90,25 @@ internal sealed partial class LayoutEmitter
         writer.Line("byte[] bytes = " + method + "(value, variables, options);");
         writer.Line("stream.Write(bytes, 0, bytes.Length);");
         writer.Close();
+        writer.Line();
+        writer.Line("/// <summary>Writes one <c>" + composite.LayoutName + "</c> to <paramref name=\"stream\"/> with <see cref=\"global::System.IO.Stream.WriteAsync(global::System.ReadOnlyMemory{byte}, global::System.Threading.CancellationToken)\"/>: the value is serialized first (a validation failure writes nothing), then sent in one write.</summary>");
+        writer.Line("/// <param name=\"stream\">The writable stream; the current position is the output origin.</param>");
+        writer.Line("/// <param name=\"value\">The value to write.</param>");
+        writer.Line("/// <param name=\"variables\">Values for the layout's free identifiers, or <see langword=\"null\"/>.</param>");
+        writer.Line("/// <param name=\"options\">The write options; <see langword=\"null\"/> uses the documented defaults.</param>");
+        writer.Line("/// <param name=\"cancellationToken\">Ends the write before the bytes are sent or at the next boundary the writer checks; linked with the options' token.</param>");
+        writer.Line("/// <returns>A task that completes when the bytes have been written.</returns>");
+        writer.Open("public static async global::System.Threading.Tasks.ValueTask Write" + name + "Async(global::System.IO.Stream stream, " + name + " value, " + VariablesType + " variables = null, global::CStructSharp.WriteOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)");
+        writer.Line("global::System.ArgumentNullException.ThrowIfNull(stream);");
+        writer.Open("if (!stream.CanWrite)");
+        writer.Line("throw new global::System.ArgumentException(\"Writing requires a writable stream.\", nameof(stream));");
+        writer.Close();
+        writer.Line("global::CStructSharp.WriteOptions? effective = global::CStructSharp.Generated.WriteCursor.WithCancellation(options, cancellationToken, out global::System.Threading.CancellationTokenSource? linked);");
+        writer.Open("using (linked)");
+        writer.Line("byte[] bytes = " + method + "(value, variables, effective);");
+        writer.Line("await stream.WriteAsync(bytes, effective?.CancellationToken ?? default).ConfigureAwait(false);");
+        writer.Close();
+        writer.Close();
         if (isRoot)
         {
             writer.Line();
@@ -111,6 +130,9 @@ internal sealed partial class LayoutEmitter
             writer.Line("/// <param name=\"value\">The value to write.</param>");
             writer.Line("/// <param name=\"options\">The write options; <see langword=\"null\"/> uses the documented defaults.</param>");
             writer.Line("public static void Write(global::System.IO.Stream stream, " + name + " value, global::CStructSharp.WriteOptions? options = null) => Write" + name + "(stream, value, null, options);");
+            writer.Line();
+            writer.Line("/// <inheritdoc cref=\"Write" + name + "Async(global::System.IO.Stream, " + name + ", " + VariablesType.TrimEnd('?').Replace("<string, int>", "{string, int}") + ", global::CStructSharp.WriteOptions, global::System.Threading.CancellationToken)\"/>");
+            writer.Line("public static global::System.Threading.Tasks.ValueTask WriteAsync(global::System.IO.Stream stream, " + name + " value, global::CStructSharp.WriteOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => Write" + name + "Async(stream, value, null, options, cancellationToken);");
         }
     }
 

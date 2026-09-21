@@ -189,6 +189,22 @@ public class LayoutParityTests
 
             CollectionAssert.AreEqual(expected, (byte[])Invoke(serialize, generatedValue, variables, null), id + ": serialized bytes");
 
+            // The awaitable stream forms: the same value through ParseAsync (a hidden-buffer stream, so the bytes are
+            // copied) and the same bytes through WriteAsync, on both the generated class and the runtime.
+            MethodInfo parseAsync = generated.GetMethods().Single(method => method.Name == "Parse" + rootClass + "Async");
+            MethodInfo writeAsync = generated.GetMethods().Single(method => method.Name == "Write" + rootClass + "Async");
+            using var asyncSource = new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false);
+            object generatedAsync = Await(parseAsync.Invoke(null, [asyncSource, variables, options, CancellationToken.None])!)!;
+            ParityComparer.AssertSame(runtimeValue, generatedAsync, root);
+            object runtimeAsync = runtime.ReadValueAsync(new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false), root, variables, options).AsTask().Result!;
+            CollectionAssert.AreEqual(expected, runtime.Serialize(root, runtimeAsync, variables), id + ": runtime ReadValueAsync value");
+            using var generatedTarget = new MemoryStream();
+            Await(writeAsync.Invoke(null, [generatedTarget, generatedValue, variables, null, CancellationToken.None])!);
+            CollectionAssert.AreEqual(expected, generatedTarget.ToArray(), id + ": WriteAsync bytes");
+            using var runtimeTarget = new MemoryStream();
+            runtime.WriteAsync(runtimeTarget, root, runtimeValue, variables).AsTask().Wait();
+            CollectionAssert.AreEqual(expected, runtimeTarget.ToArray(), id + ": runtime WriteAsync bytes");
+
             // The runtime's debug ranges through the generated ParseWithDebug (a root only), and the fixture's addresses.
             if (root == generated.GetField("RootName")!.GetValue(null) as string && runtimeValue is StructValue)
             {
@@ -295,6 +311,23 @@ public class LayoutParityTests
         for (int prefix = Math.Max(64, length - 16); prefix < length; prefix++)
         {
             yield return prefix;
+        }
+    }
+
+    /// <summary>Completes a generated <c>ValueTask</c>/<c>ValueTask&lt;T&gt;</c> obtained through reflection and returns its result (<see langword="null"/> for a plain task).</summary>
+    private static object? Await(object task)
+    {
+        try
+        {
+            Type type = task.GetType();
+            var asTask = (Task)type.GetMethod("AsTask")!.Invoke(task, null)!;
+            asTask.Wait();
+            return type.IsGenericType ? asTask.GetType().GetProperty("Result")!.GetValue(asTask) : null;
+        }
+        catch (AggregateException exception) when (exception.InnerException is not null)
+        {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception.InnerException).Throw();
+            throw;
         }
     }
 

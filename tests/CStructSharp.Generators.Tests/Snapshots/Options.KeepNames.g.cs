@@ -114,25 +114,60 @@ namespace Demo
             byte[] buffer = global::CStructSharp.Generated.ReadCursor.BufferStream(stream, options, out int length);
             try
             {
-                var cursor = new global::CStructSharp.Generated.ReadCursor(new global::System.ReadOnlySpan<byte>(buffer, 0, length), options, "root");
-                try
-                {
-                    root value = Readroot(ref cursor, variables, null, null);
-                    if (stream.CanSeek)
-                    {
-                        stream.Position = start + cursor.Position;
-                    }
-                    return value;
-                }
-                catch (global::CStructSharp.Diagnostics.CStructException exception)
-                {
-                    cursor.Complete(exception);
-                    throw;
-                }
+                return ParserootBuffered(buffer, length, stream, start, variables, options);
             }
             finally
             {
                 global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
+        /// <summary>Reads one <c>root</c> from <paramref name="stream"/> with the bytes read by <see cref="global::System.IO.Stream.ReadAsync(global::System.Memory{byte}, global::System.Threading.CancellationToken)"/>: the same buffering and the same reader as the synchronous form; a seekable stream is left after the value (at its origin on failure), a stream that cannot seek is consumed up to the total read budget plus one byte. A stored absolute pointer address counts from the origin, as in the span form.</summary>
+        /// <param name="stream">The stream, read from its current position.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The read options; <see langword="null"/> uses the documented defaults.</param>
+        /// <param name="cancellationToken">Ends the read while it waits for bytes or at the next boundary the reader checks; linked with the options' token.</param>
+        /// <returns>The parsed value.</returns>
+        public static async global::System.Threading.Tasks.ValueTask<root> ParserootAsync(global::System.IO.Stream stream, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)
+        {
+            global::System.ArgumentNullException.ThrowIfNull(stream);
+            global::CStructSharp.ReadOptions? effective = global::CStructSharp.Generated.ReadCursor.WithCancellation(options, cancellationToken, out global::System.Threading.CancellationTokenSource? linked);
+            using (linked)
+            {
+                long start = stream.CanSeek ? stream.Position : 0;
+                (byte[] buffer, int length) = await global::CStructSharp.Generated.ReadCursor.BufferStreamAsync(stream, effective, effective?.CancellationToken ?? default).ConfigureAwait(false);
+                try
+                {
+                    return ParserootBuffered(buffer, length, stream, start, variables, effective);
+                }
+                finally
+                {
+                    global::System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+                }
+            }
+        }
+
+        /// <summary>The synchronous half of the stream forms: the span reader over the buffered bytes, then the stream's final position (after the value, or the origin on failure).</summary>
+        private static root ParserootBuffered(byte[] buffer, int length, global::System.IO.Stream stream, long start, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, global::CStructSharp.ReadOptions? options)
+        {
+            var cursor = new global::CStructSharp.Generated.ReadCursor(new global::System.ReadOnlySpan<byte>(buffer, 0, length), options, "root");
+            try
+            {
+                root value = Readroot(ref cursor, variables, null, null);
+                if (stream.CanSeek)
+                {
+                    stream.Position = start + cursor.Position;
+                }
+                return value;
+            }
+            catch (global::CStructSharp.Diagnostics.CStructException exception)
+            {
+                cursor.Complete(exception);
+                if (stream.CanSeek)
+                {
+                    stream.Position = start;
+                }
+                throw;
             }
         }
 
@@ -153,6 +188,9 @@ namespace Demo
 
         /// <inheritdoc cref="Parseroot(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions)"/>
         public static root Parse(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null) => Parseroot(stream, null, options);
+
+        /// <inheritdoc cref="ParserootAsync(global::System.IO.Stream, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.ReadOptions, global::System.Threading.CancellationToken)"/>
+        public static global::System.Threading.Tasks.ValueTask<root> ParseAsync(global::System.IO.Stream stream, global::CStructSharp.ReadOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => ParserootAsync(stream, null, options, cancellationToken);
 
         /// <summary>Reads one <c>root</c> at the cursor's position.</summary>
         private static root Readroot(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
@@ -282,6 +320,28 @@ namespace Demo
             stream.Write(bytes, 0, bytes.Length);
         }
 
+        /// <summary>Writes one <c>root</c> to <paramref name="stream"/> with <see cref="global::System.IO.Stream.WriteAsync(global::System.ReadOnlyMemory{byte}, global::System.Threading.CancellationToken)"/>: the value is serialized first (a validation failure writes nothing), then sent in one write.</summary>
+        /// <param name="stream">The writable stream; the current position is the output origin.</param>
+        /// <param name="value">The value to write.</param>
+        /// <param name="variables">Values for the layout's free identifiers, or <see langword="null"/>.</param>
+        /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
+        /// <param name="cancellationToken">Ends the write before the bytes are sent or at the next boundary the writer checks; linked with the options' token.</param>
+        /// <returns>A task that completes when the bytes have been written.</returns>
+        public static async global::System.Threading.Tasks.ValueTask WriterootAsync(global::System.IO.Stream stream, root value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, global::CStructSharp.WriteOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default)
+        {
+            global::System.ArgumentNullException.ThrowIfNull(stream);
+            if (!stream.CanWrite)
+            {
+                throw new global::System.ArgumentException("Writing requires a writable stream.", nameof(stream));
+            }
+            global::CStructSharp.WriteOptions? effective = global::CStructSharp.Generated.WriteCursor.WithCancellation(options, cancellationToken, out global::System.Threading.CancellationTokenSource? linked);
+            using (linked)
+            {
+                byte[] bytes = Serializeroot(value, variables, effective);
+                await stream.WriteAsync(bytes, effective?.CancellationToken ?? default).ConfigureAwait(false);
+            }
+        }
+
         /// <summary>Writes the root declaration (<c>root</c>) into a new array; see <see cref="Serializeroot(root, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.WriteOptions)"/>.</summary>
         /// <param name="value">The value to write.</param>
         /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
@@ -300,6 +360,9 @@ namespace Demo
         /// <param name="value">The value to write.</param>
         /// <param name="options">The write options; <see langword="null"/> uses the documented defaults.</param>
         public static void Write(global::System.IO.Stream stream, root value, global::CStructSharp.WriteOptions? options = null) => Writeroot(stream, value, null, options);
+
+        /// <inheritdoc cref="WriterootAsync(global::System.IO.Stream, root, global::System.Collections.Generic.IReadOnlyDictionary{string, int}, global::CStructSharp.WriteOptions, global::System.Threading.CancellationToken)"/>
+        public static global::System.Threading.Tasks.ValueTask WriteAsync(global::System.IO.Stream stream, root value, global::CStructSharp.WriteOptions? options = null, global::System.Threading.CancellationToken cancellationToken = default) => WriterootAsync(stream, value, null, options, cancellationToken);
 
         /// <summary>Writes one <c>root</c> at the cursor's position.</summary>
         private static void Encoderoot(ref global::CStructSharp.Generated.WriteCursor cursor, root? value, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)

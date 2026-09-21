@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using CStructSharp.Benchmarks.Baseline0;
+using CStructSharp.Benchmarks.GeneratedLayouts;
 using CStructSharp.Values;
 
 /// <summary>
@@ -27,6 +28,7 @@ public class AsyncBenchmarks
     private StructValue primRecordValue = null!;
     private MemoryStream writeTarget = null!;
     private MemoryStream updateTarget = null!;
+    private PrimRecordLayout.Root generatedRecord = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -43,6 +45,7 @@ public class AsyncBenchmarks
         this.primRecordValue = this.primRecord.Layout.Parse(this.primRecord.Bytes.AsSpan(), "root");
         this.writeTarget = new MemoryStream(new byte[this.primRecord.Bytes.Length]);
         this.updateTarget = new MemoryStream((byte[])this.primRecord.Bytes.Clone());
+        this.generatedRecord = PrimRecordLayout.Parse(this.primRecord.Bytes);
     }
 
     [GlobalCleanup]
@@ -115,6 +118,46 @@ public class AsyncBenchmarks
     {
         this.updateTarget.Position = 0;
         return this.primRecord.Layout.UpdateAsync(this.updateTarget, "root.c", 7u);
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("GeneratedPrimRecord")]
+    public PrimRecordLayout.Root Generated_PrimRecord_ParseStream()
+    {
+        this.primRecordHidden.Position = 0;
+        return PrimRecordLayout.Parse(this.primRecordHidden);
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("GeneratedPrimRecord")]
+    public ValueTask<PrimRecordLayout.Root> Generated_PrimRecord_ParseAsync()
+    {
+        this.primRecordHidden.Position = 0;
+        return PrimRecordLayout.ParseAsync(this.primRecordHidden);
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("GeneratedPrimRecord")]
+    public ValueTask<PrimRecordLayout.Root> Generated_PrimRecord_ParseAsync_File()
+    {
+        this.primRecordFile.Position = 0;
+        return PrimRecordLayout.ParseAsync(this.primRecordFile);
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("GeneratedPrimRecordWrite")]
+    public void Generated_PrimRecord_WriteStream()
+    {
+        this.writeTarget.Position = 0;
+        PrimRecordLayout.Write(this.writeTarget, this.generatedRecord);
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("GeneratedPrimRecordWrite")]
+    public ValueTask Generated_PrimRecord_WriteAsync()
+    {
+        this.writeTarget.Position = 0;
+        return PrimRecordLayout.WriteAsync(this.writeTarget, this.generatedRecord);
     }
 
     // ---- nested-x256: 6,400 bytes --------------------------------------------------------------------------------------

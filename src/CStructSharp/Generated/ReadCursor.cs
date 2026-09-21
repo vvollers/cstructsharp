@@ -121,6 +121,21 @@ public ref struct ReadCursor
         => Streams.AsyncStreamBuffer.RentAsync(stream, options, cancellationToken);
 
     /// <summary>
+    ///     The options an awaitable generated read runs with: <paramref name="options"/> carrying the token that
+    ///     ends the operation - the options' own token, <paramref name="cancellationToken"/>, or a source linked from
+    ///     both when both can cancel (the caller disposes <paramref name="linked"/> after the operation).
+    /// </summary>
+    /// <param name="options">The caller's read options, or <see langword="null"/>.</param>
+    /// <param name="cancellationToken">The token given to the async method.</param>
+    /// <param name="linked">The linked source when both tokens can cancel; otherwise <see langword="null"/>.</param>
+    /// <returns>The options to read with; <see langword="null"/> when neither token can cancel and none were given.</returns>
+    public static ReadOptions? WithCancellation(ReadOptions? options, System.Threading.CancellationToken cancellationToken, out System.Threading.CancellationTokenSource? linked)
+    {
+        System.Threading.CancellationToken token = Streams.AsyncStreamBuffer.Link(options, cancellationToken, out linked);
+        return token.CanBeCanceled ? (options ?? new ReadOptions()) with { CancellationToken = token, } : options;
+    }
+
+    /// <summary>
     ///     Copies a multi-segment <see cref="System.Buffers.ReadOnlySequence{T}"/> into one pooled array so it can be
     ///     read through the span reader: at most the total read budget plus one byte is copied (the extra byte lets
     ///     the reader report the budget failure instead of a short read, as <see cref="BufferStream"/> does). A

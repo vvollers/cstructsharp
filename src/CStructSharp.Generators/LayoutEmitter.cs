@@ -58,7 +58,7 @@ internal sealed partial class LayoutEmitter
     /// <summary>The members every generated class has, which no generated type or the class itself may be named like.</summary>
     private static readonly string[] ReservedMembers =
     [
-        "Layout", "RootName", "Definition", "Parse", "Serialize", "Write", "ParseWithDebug", "ResolveAddress", "GetArrayLength", "UpdatePath",
+        "Layout", "RootName", "Definition", "Parse", "ParseAsync", "Serialize", "Write", "WriteAsync", "ParseWithDebug", "ResolveAddress", "GetArrayLength", "UpdatePath",
         "Sizes", "Offsets", "Update", "CreateCodecs", "CodecInstances", "LayoutInstance", "CreateLayout", "ToStructValue", "ToMapped", "SerializeMapped", "ParseMapped",
     ];
 
