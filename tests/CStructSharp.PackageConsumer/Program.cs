@@ -29,6 +29,10 @@ GeneratedRoot generatedRoot = cstruct.ReadValue<GeneratedRoot>(input, "root");
 AssertEqual((ushort)0x1234, generatedRoot.Value, "generated mapper");
 AssertEqual(true, MappedTypes.IsMapped(typeof(GeneratedRoot)), "generated mapper registered");
 
+// The awaitable and sequence forms from the package (in a method of their own: the program's views are ref structs,
+// which an async method cannot hold under C# 12).
+ConvenienceForms(cstruct, input).GetAwaiter().GetResult();
+
 using (var stream = new MemoryStream(input))
 {
     IDictionary<string, object?> parsed = cstruct.Parse(stream, "root");
@@ -256,6 +260,32 @@ using (var stream = new MemoryStream(input))
 }
 
 Console.WriteLine($"CStructSharp package consumer smoke passed on {AppContext.TargetFrameworkName}.");
+
+/// <summary>A generated ParseAsync, the runtime's ParseAsync, two records through Records and ParseManyAsync, and TryParse.</summary>
+static async Task ConvenienceForms(CStruct cstruct, byte[] input)
+{
+    WireLayout.Wire awaitedWire = await WireLayout.ParseAsync(new MemoryStream(input, 0, input.Length, writable: false, publiclyVisible: false));
+    AssertEqual((byte)0x7E, awaitedWire.Target.Value, "generated ParseAsync");
+    StructValue awaitedRoot = await cstruct.ParseAsync(new MemoryStream(input), "root");
+    AssertEqual((ushort)0x1234, awaitedRoot.Get<ushort>("value"), "runtime ParseAsync");
+    byte[] pairs = [1, 2, 3, 4,];
+    int generatedRecords = 0;
+    foreach (PairLayout.Pair record in PairLayout.Records(pairs))
+    {
+        generatedRecords += record.Second;
+    }
+
+    AssertEqual(6, generatedRecords, "generated Records");
+    int runtimeRecords = 0;
+    var pairLayout = new CStruct(PairLayout.Definition);
+    await foreach (StructValue record in pairLayout.ParseManyAsync(new MemoryStream(pairs), "pair"))
+    {
+        runtimeRecords += record.Get<byte>("second");
+    }
+
+    AssertEqual(6, runtimeRecords, "runtime ParseManyAsync");
+    AssertEqual(true, WireLayout.TryParse(input, out WireLayout.Wire? triedWire) && triedWire.Marker == 0xA5, "generated TryParse");
+}
 
 static void AssertAddress(CStruct cstruct, Stream stream, string path, long expected)
 {

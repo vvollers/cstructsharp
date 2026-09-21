@@ -93,6 +93,44 @@ Check(mapped.Tag == 7 && mapped.Corners.Count == 2 && mapped.Corners[0].Y == 2 &
 Check(records.Serialize("record", mapped).AsSpan().SequenceEqual(recordBytes), "generated mapper write");
 Check(Shapes.ToMapped<MappedRecord>(generated).Origin.X == -2, "generated to mapped");
 
+// The convenience forms: an awaitable parse, the non-throwing parse, the record sequence and the view enumerator,
+// the layout class reading into the mapped class, and a copy of the options - all through generated or runtime
+// code that needs no reflection.
+var options = new ReadOptions { MaxTotalBytesRead = 1024, } with { TrimFixedText = true, };
+Check(options.MaxTotalBytesRead == 1024 && options.TrimFixedText, "options with");
+using var recordStream = new MemoryStream(recordBytes, 0, recordBytes.Length, writable: false, publiclyVisible: false);
+Shapes.Record awaited = await Shapes.ParseAsync(recordStream, options);
+Check(awaited.Tag == 7 && recordStream.Position == recordBytes.Length, "generated ParseAsync");
+StructValue awaitedRuntime = await records.ParseAsync(new MemoryStream(recordBytes), "record");
+Check(awaitedRuntime.Get<byte>("tag") == 7, "runtime ParseAsync");
+Check(Shapes.TryParse(recordBytes, out Shapes.Record? tried) && tried.Tag == 7, "generated TryParse");
+Check(!Shapes.TryParse(recordBytes.AsSpan(0, 3), out _, out CStructException? failure) && failure is CStructReadException, "generated TryParse failure");
+byte[] twoRecords = [.. recordBytes, .. recordBytes,];
+int counted = 0;
+foreach (Shapes.Record item in Shapes.Records(twoRecords))
+{
+    counted += item.Tag;
+}
+
+Check(counted == 14, "generated Records");
+int viewed = 0;
+foreach (Shapes.RecordView view in Shapes.RecordView.Enumerate(twoRecords))
+{
+    viewed += view.Origin.X;
+}
+
+Check(viewed == -4, "generated view enumerator");
+int many = 0;
+await foreach (StructValue item in records.ParseManyAsync(new MemoryStream(twoRecords), "record"))
+{
+    many += item.Get<byte>("tag");
+}
+
+Check(many == 14, "runtime ParseManyAsync");
+Check(Shapes.ReadValue<MappedRecord>(recordBytes).Corners.Count == 2, "generated ReadValue<T>");
+Check(header.TryGet("length", out uint viaTryGet, out CStructException? absent) && viaTryGet == 6 && absent is null, "TryGet with failure");
+Check(header.GetOrDefault("missing", 9u) == 9, "GetOrDefault");
+
 Console.WriteLine("PASS Native AOT consumer");
 return 0;
 
