@@ -140,6 +140,10 @@ are explained in [MUTATION_TESTING.md](MUTATION_TESTING.md).
 library reproduces it). The observations are evidence, not a promise that CStructSharp follows a host compiler's
 ABI; `CompilerDifferentialFixtureTests` verifies every claim against every checked-in baseline.
 
+The two-byte packing shape intentionally triggers MSVC's member-alignment warning C4121. The fixture suppresses
+only that warning around that shape; all other diagnostics remain errors. Review fresh observations before adopting
+a baseline, including when a source-only change requires a new fixture hash.
+
 If you change the C file or the shapes, re-record the baselines you can (`node tools/quality/compiler-fixture.mjs
 record --compiler gcc --output contracts/quality/compiler-fixtures/baselines/<platform>-<compiler>.json`), let the
 `compiler-fixtures` workflow record the other platforms, run the managed tests on both .NET versions, and then run:

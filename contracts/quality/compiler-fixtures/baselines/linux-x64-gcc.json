@@ -5,7 +5,7 @@
   "fixture": {
     "id": "portable-host-facts",
     "source": "tools/compiler-fixtures/portable-host-facts.c",
-    "sha256": "792D9954E0E27A9A6D2E8587FE251B11C7D8FA0AE4C98BFB6A621833DE435DCB"
+    "sha256": "125686C6D7443411F83DBD3BDDA1C410897F9FF32B52D200C225EDBF2E7AE869"
   },
   "compiler": {
     "family": "GCC",

@@ -63,7 +63,16 @@ enum shape_big_enum { SHAPE_BIG_ENUM_ZERO = 0, SHAPE_BIG_ENUM_BIG = 0x7FFFFFFF }
 struct shape_enum_large { uint8_t a; enum shape_big_enum b; };
 struct shape_bool { uint8_t a; _Bool b; uint16_t c; };
 #pragma pack(push, 2)
+#if defined(_MSC_VER) && !defined(__clang__)
+/* This shape deliberately packs uint32_t array elements at two-byte alignment. C4121 describes the
+ * condition being measured, not a fixture mistake; keep every other MSVC warning fatal. */
+#pragma warning(push)
+#pragma warning(disable: 4121)
+#endif
 struct shape_pack2_array { uint8_t a; uint32_t b[2]; uint8_t c; };
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma warning(pop)
+#endif
 #pragma pack(pop)
 struct shape_inner { uint8_t a; uint32_t b; };
 struct shape_nested_align { uint8_t x; struct shape_inner in; uint8_t y; };

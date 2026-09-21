@@ -16,6 +16,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   byte budget does not prevent consuming a byte from the next record.
 - Clarify that inspector edits are temporary, without a download feature. Show desktop-use guidance below a
   1200-pixel browser width while preserving the current session when resizing.
+- Keep MSVC compiler observations runnable by locally acknowledging the intentional two-byte packing warning;
+  all other compiler warnings remain errors.
 
 ## 0.8.0 — 2026-09-21
 
