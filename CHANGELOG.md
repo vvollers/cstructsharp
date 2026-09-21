@@ -28,6 +28,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   claims. Derive volatile fixture and executable-scenario counts from their owning definitions.
 - Explain cursor ownership, generated reads and inspector invalidation at the relevant source boundaries, and
   check documentation on changed named declarations without requiring unrelated legacy rewrites.
+- Reuse ordinary managed, frontend and documentation verification in releases on the exact source commit;
+  require those gates before publication while retaining versioned-artifact tests and original-run recovery.
 
 ## 0.8.0 — 2026-09-21
 

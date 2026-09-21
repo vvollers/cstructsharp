@@ -1,3 +1,4 @@
+/** Creates, verifies and tags immutable release artifacts. Usage: node tools/release/release-artifacts.mjs create|verify|tag. */
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -5,6 +6,7 @@ import path from "node:path";
 import { root, npmArtifacts, run } from "../packaging/npm-package-utils.mjs";
 import { validatePackageInfo } from "./npm-release.mjs";
 import { tagRelease } from "./release-state.mjs";
+import { verifySourceJobs } from "../lib/release-verification.mjs";
 
 const manifestPath = path.join(root, "artifacts", "release-manifest.json");
 const versionFiles = [
@@ -83,6 +85,7 @@ if (process.argv[2] === "create") {
     ]),
   );
   const jobs = jobPages.flatMap((page) => page.jobs);
+  verifySourceJobs(jobs, manifest.sourceSha);
   assert.ok(
     jobs.some(
       (job) =>

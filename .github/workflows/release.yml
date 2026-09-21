@@ -46,8 +46,34 @@ jobs:
             echo 'Only recover mode accepts a recovery run ID'; exit 1
           fi
 
-  verify:
+  # Local reusable workflows are resolved from this exact workflow commit. Their ordinary CI triggers and
+  # fast frontend jobs remain independent; release never relies on a possibly stale external green badge.
+  managed:
+    name: Managed verification
     needs: validate
+    if: inputs.mode != 'recover'
+    uses: ./.github/workflows/ci.yml
+
+  explorer:
+    name: Explorer verification
+    needs: validate
+    if: inputs.mode != 'recover'
+    uses: ./.github/workflows/web-ci.yml
+
+  inspector:
+    name: Inspector verification
+    needs: validate
+    if: inputs.mode != 'recover'
+    uses: ./.github/workflows/inspector-ci.yml
+
+  documentation:
+    name: Documentation verification
+    needs: validate
+    if: inputs.mode != 'recover'
+    uses: ./.github/workflows/docs.yml
+
+  verify:
+    needs: [validate, managed, explorer, inspector, documentation]
     if: inputs.mode != 'recover' && github.ref == 'refs/heads/main'
     name: Build, test, and verify release artifacts
     runs-on: ubuntu-latest
@@ -69,10 +95,6 @@ jobs:
         with:
           global-json-file: global.json
           dotnet-version: 8.0.x
-
-      # Nothing below this step may run against an untested build: this is the release's test gate.
-      - name: Run managed test suite
-        run: dotnet test ./tests/CStructSharpTests/CStructSharpTests.csproj -c Release
 
       - name: Set up Node.js for documentation
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -196,16 +218,16 @@ jobs:
         run: |
           npm run pack:npm
           npm run test:npm
-          npm run test:bootstrap
-          npm run test:wasm-publication
           npm run test:npm-release
           node tools/release/npm-release.mjs --require-missing
 
       - name: Verify explorer lessons
         working-directory: apps/explorer
         run: |
-          npm run test:unit
+          npm run test:demos
+          npm run test:generated-csharp
           npm run test:e2e
+          npm run --prefix ../.. test:wasm-reproducibility
 
       # apps/inspector pins the same @playwright/test range as apps/explorer, but each app's own
       # lockfile can independently drift to a different resolved patch version - and different patches can
@@ -217,9 +239,7 @@ jobs:
 
       - name: Verify binary inspector
         working-directory: apps/inspector
-        run: |
-          npm run test:unit
-          npm run test:e2e
+        run: npm run test:e2e
 
       - name: Verify onboarding against the WASM archive
         env:
