@@ -8,6 +8,16 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Added
 
+- Awaitable reads: `ParseAsync`, `ParseWithDebugAsync`, `ReadValueAsync`, `ReadValueAsync<T>`, `ReadValueWithDebugAsync`,
+  `TryReadValueAsync<T>` (returning the new `ReadAttempt<T>` - `Succeeded`, `Value`, `Failure` - since an `out`
+  parameter cannot cross an `await`), `ResolveAddressAsync`, and `GetArrayLengthAsync`, each with a
+  `CancellationToken` parameter linked with the options' token. The stream is read with `ReadAsync` into a pooled
+  buffer (a seekable stream up to its remaining length, any stream up to `MaxTotalBytesRead`, plus one byte) and the
+  synchronous span reader runs over it, so values, limits, and failure texts are the stream reader's; debug ranges,
+  addresses, and failure offsets are stream coordinates for a seekable stream, which ends just after the value on
+  success and at its origin on any failure (address and length queries always end at the origin); a non-seekable
+  stream is accepted and consumed up to the budget. A `MemoryStream` that exposes its buffer is read in place and
+  the `ValueTask` completes synchronously.
 - `ReadCursor.BufferStreamAsync`, the awaitable form of the buffering every stream form that runs the span reader
   uses (a seekable stream up to its remaining length, any stream up to `MaxTotalBytesRead`, plus one byte so a
   value larger than the budget reports the budget failure rather than a short read); the generated `Parse(Stream)`

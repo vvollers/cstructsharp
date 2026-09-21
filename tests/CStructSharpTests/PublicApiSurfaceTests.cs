@@ -87,6 +87,7 @@ public class PublicApiSurfaceTests
         "CStructSharp.Values.ParseResult",
         "CStructSharp.Values.Pointer",
         "CStructSharp.Values.PrimitiveArray`1",
+        "CStructSharp.Values.ReadAttempt`1",
         "CStructSharp.Values.ReadResult",
         "CStructSharp.Values.StructValue",
         "CStructSharp.Values.StructValue+Enumerator",

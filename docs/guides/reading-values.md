@@ -138,6 +138,23 @@ default value to its output.
 than consumption. Do not assume every method has the same position behavior; check the relevant API reference when
 combining several operations on one stream.
 
+## Read asynchronously
+
+Every stream read has an awaitable twin - `ParseAsync`, `ReadValueAsync`, `ReadValueAsync<T>`, `ParseWithDebugAsync`,
+`ReadValueWithDebugAsync`, `ResolveAddressAsync`, `GetArrayLengthAsync`, and `TryReadValueAsync<T>` - for a
+`FileStream` opened for asynchronous I/O, a network stream, or a request body: the bytes are read with
+`ReadAsync` while the thread is free, and the value is then decoded by the same reader the synchronous forms use,
+with the same limits and messages. A `MemoryStream` that exposes its buffer is read in place and the returned
+`ValueTask` is already complete.
+
+[!code-csharp[Parse a file asynchronously](../examples/Program.cs#api-guide-parse-async)]
+
+A seekable stream ends just after the value on success and back at its origin on any failure; a stream that cannot
+seek is consumed up to `MaxTotalBytesRead` plus one byte, whatever the value needed. `TryReadValueAsync<T>` returns a
+`ReadAttempt<T>` - `Succeeded`, `Value`, `Failure` - because an `out` parameter cannot cross an `await`. The
+`cancellationToken` parameter ends the wait for bytes and the decode at its next boundary; it is linked with
+`ReadOptions.CancellationToken` when both are given.
+
 ## Verify and troubleshoot
 
 To verify a selected read:

@@ -72,6 +72,25 @@ public class ManualLanguageFixtureTests
         }
     }
 
+    /// <summary>Every valid feature example reads the same bytes through <c>ReadValueAsync</c> as through <c>ReadValue(Stream)</c>, and both leave the stream after the value.</summary>
+    [TestMethod]
+    public async Task ValidFixtures_ReadTheSameAsynchronously()
+    {
+        foreach (FeaturePair pair in Fixtures.Value.FeaturePairs)
+        {
+            ValidFixture fixture = pair.Valid;
+            var cstruct = new CStruct(fixture.Definition, (byte)fixture.PointerSize, fixture.Aligned, fixture.LittleEndian, CreateCompilationOptions(fixture.Compilation));
+            byte[] bytes = Convert.FromHexString(fixture.Bytes);
+            var readOptions = new ReadOptions { DereferencePointers = false, };
+            using var sync = new MemoryStream(bytes);
+            using var async = new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false);
+            object expected = cstruct.ReadValue(sync, fixture.Root, fixture.Variables, readOptions)!;
+            object actual = (await cstruct.ReadValueAsync(async, fixture.Root, fixture.Variables, readOptions))!;
+            CollectionAssert.AreEqual(cstruct.Serialize(fixture.Root, expected, fixture.Variables), cstruct.Serialize(fixture.Root, actual, fixture.Variables), pair.Id);
+            Assert.AreEqual(sync.Position, async.Position, pair.Id);
+        }
+    }
+
     /// <summary>
     ///     Each valid feature example has a paired invalid form or bounded-read failure.
     /// </summary>

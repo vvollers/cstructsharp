@@ -54,6 +54,16 @@ public abstract class CStructException : Exception
         this.Offset ??= offset;
     }
 
+    /// <summary>Moves an attached offset by <paramref name="delta"/> bytes: a buffered read reports stream coordinates.</summary>
+    /// <param name="delta">The origin the buffer started at.</param>
+    internal void ShiftOffset(long delta)
+    {
+        if (this.Offset is { } offset && delta != 0)
+        {
+            this.Offset = offset + delta;
+        }
+    }
+
     /// <summary>
     ///     Qualifies a path recorded relative to a nested value with the path of that value, so a failure a mapper
     ///     raises through <c>StructValue.Get&lt;T&gt;("v")</c> while mapping <c>root.leaves[0]</c> reads

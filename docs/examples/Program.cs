@@ -20,6 +20,7 @@ internal static partial class Program
         ("map-mapped", MapMapped),
         ("options-with", OptionsWith),
         ("cancellation", Cancellation),
+        ("parse-async", () => ParseAsyncExample().GetAwaiter().GetResult()),
         ("inspect-ranges", InspectRanges),
         ("follow-pointer", FollowPointer),
         ("preserve-union", PreserveUnion),
@@ -194,6 +195,36 @@ internal static partial class Program
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         StructValue path = layout.Parse(bytes, "path", options: options with { CancellationToken = timeout.Token, });
         Equal(2, path.Get<StructValue[]>("points").Length);
+    }
+    #endregion
+
+    #region api-guide-parse-async
+    private static async Task ParseAsyncExample()
+    {
+        var layout = new CStruct("struct header { uint16 kind; uint32 length; };");
+        byte[] bytes = [0x02, 0x00, 0x06, 0x00, 0x00, 0x00, 0xFF];
+        string path = Path.Combine(Path.GetTempPath(), $"cstructsharp-{Guid.NewGuid():N}.bin");
+        await File.WriteAllBytesAsync(path, bytes);
+        try
+        {
+            // The bytes are read with ReadAsync while the thread is free; the decode itself is the ordinary reader.
+            await using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            StructValue header = await layout.ParseAsync(file, "header", cancellationToken: timeout.Token);
+            Equal(6u, header.Get<uint>("length"));
+            Equal(6L, file.Position);
+
+            // The non-throwing form reports a failure instead of throwing it; the stream is back at its origin.
+            file.Position = 3;
+            ReadAttempt<StructValue> attempt = await layout.TryReadValueAsync<StructValue>(file, "header");
+            True(!attempt.Succeeded, "four bytes are not a header");
+            True(attempt.Failure is CStructReadException, "the failure is the read exception the throwing form raises");
+            Equal(3L, file.Position);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
     #endregion
 

@@ -32,6 +32,7 @@ namespace CStructSharp
         public int GetArrayLength(System.ReadOnlyMemory<byte> source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public int GetArrayLength(System.ReadOnlySpan<byte> source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public int GetArrayLength(byte[] source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public System.Threading.Tasks.ValueTask<int> GetArrayLengthAsync(System.IO.Stream stream, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public int GetStructAlignmentInBytes(string name) { }
         public int GetStructSizeInBytes(string name) { }
         public CStructSharp.Values.StructValue Parse(System.Buffers.ReadOnlySequence<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
@@ -39,11 +40,13 @@ namespace CStructSharp
         public CStructSharp.Values.StructValue Parse(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.StructValue Parse(System.ReadOnlySpan<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.StructValue Parse(byte[] source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public System.Threading.Tasks.ValueTask<CStructSharp.Values.StructValue> ParseAsync(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public CStructSharp.Values.ParseResult ParseWithDebug(System.Buffers.ReadOnlySequence<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ParseResult ParseWithDebug(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ParseResult ParseWithDebug(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ParseResult ParseWithDebug(System.ReadOnlySpan<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ParseResult ParseWithDebug(byte[] source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public System.Threading.Tasks.ValueTask<CStructSharp.Values.ParseResult> ParseWithDebugAsync(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public object? ReadValue(System.Buffers.ReadOnlySequence<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public object? ReadValue(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public object? ReadValue(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
@@ -54,16 +57,20 @@ namespace CStructSharp
         public T ReadValue<T>(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public T ReadValue<T>(System.ReadOnlySpan<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public T ReadValue<T>(byte[] source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public System.Threading.Tasks.ValueTask<object?> ReadValueAsync(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public System.Threading.Tasks.ValueTask<T> ReadValueAsync<T>(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public CStructSharp.Values.ReadResult ReadValueWithDebug(System.Buffers.ReadOnlySequence<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ReadResult ReadValueWithDebug(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ReadResult ReadValueWithDebug(System.ReadOnlyMemory<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ReadResult ReadValueWithDebug(System.ReadOnlySpan<byte> source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public CStructSharp.Values.ReadResult ReadValueWithDebug(byte[] source, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public System.Threading.Tasks.ValueTask<CStructSharp.Values.ReadResult> ReadValueWithDebugAsync(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public long ResolveAddress(System.Buffers.ReadOnlySequence<byte> source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public long ResolveAddress(System.IO.Stream stream, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public long ResolveAddress(System.ReadOnlyMemory<byte> source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public long ResolveAddress(System.ReadOnlySpan<byte> source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public long ResolveAddress(byte[] source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public System.Threading.Tasks.ValueTask<long> ResolveAddressAsync(System.IO.Stream stream, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public byte[] Serialize(string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.WriteOptions? options = null) { }
         public long Serialize(System.Buffers.IBufferWriter<byte> destination, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.WriteOptions? options = null) { }
         public int Serialize(System.Span<byte> destination, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.WriteOptions? options = null) { }
@@ -73,6 +80,7 @@ namespace CStructSharp
         public bool TryReadValue<T>(System.ReadOnlyMemory<byte> source, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public bool TryReadValue<T>(System.ReadOnlySpan<byte> source, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public bool TryReadValue<T>(byte[] source, string? path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
+        public System.Threading.Tasks.ValueTask<CStructSharp.Values.ReadAttempt<T>> TryReadValueAsync<T>(System.IO.Stream stream, string? path = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public void Update(System.IO.Stream stream, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.UpdateOptions? options = null) { }
         public void Update(System.Span<byte> data, string path, object value, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.UpdateOptions? options = null) { }
         public CStructSharp.CStruct WithAlignment(bool aligned) { }
@@ -911,6 +919,13 @@ namespace CStructSharp.Values
         public int IndexOf(object? item) { }
         public T[] ToArray() { }
         public override string ToString() { }
+    }
+    public readonly struct ReadAttempt<T> : System.IEquatable<CStructSharp.Values.ReadAttempt<T>>
+    {
+        public ReadAttempt(bool Succeeded, T? Value, CStructSharp.Diagnostics.CStructException? Failure) { }
+        public CStructSharp.Diagnostics.CStructException? Failure { get; init; }
+        public bool Succeeded { get; init; }
+        public T Value { get; init; }
     }
     public sealed class ReadResult : System.IEquatable<CStructSharp.Values.ReadResult>
     {
