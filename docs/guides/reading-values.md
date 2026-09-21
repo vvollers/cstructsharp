@@ -35,6 +35,14 @@ fit throws `CStructReadException`, and a name that does not exist throws `CStruc
 that do. The path form reaches nested values - `packet.Get<byte>("items[2].tag")`, `node.Get<uint>("next.value.id")`
 through a dereferenced pointer - and `TryGet<T>` returns `false` instead of throwing.
 
+Two more forms avoid the exception without losing the reason. `TryGet<T>(path, out value, out failure)` hands back
+the exception `Get<T>` would have thrown - a `CStructPathException` when the member is not there (a conditional
+arm that was not selected, a misspelled name), a `CStructReadException` when it is there but does not convert to
+`T` - so code can tell the two apart without a `catch`. `GetOrDefault<T>(path, fallback)` returns the fallback in
+both cases and the member otherwise:
+
+[!code-csharp[TryGet with the failure, and GetOrDefault](../examples/Program.cs#api-guide-try-get)]
+
 The same object is also an `IDictionary<string, object?>` (`header["kind"]`, `header.ContainsKey("kind")`,
 enumeration in declaration order) and supports `dynamic` member access - see [Dynamic access](#dynamic-access)
 below for what that trades away.

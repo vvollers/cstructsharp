@@ -23,6 +23,7 @@ internal static partial class Program
         ("parse-async", () => ParseAsyncExample().GetAwaiter().GetResult()),
         ("write-async", () => WriteAsyncExample().GetAwaiter().GetResult()),
         ("update-async", () => UpdateAsyncExample().GetAwaiter().GetResult()),
+        ("try-get", TryGetAndGetOrDefault),
         ("inspect-ranges", InspectRanges),
         ("follow-pointer", FollowPointer),
         ("preserve-union", PreserveUnion),
@@ -262,6 +263,25 @@ internal static partial class Program
         await layout.UpdateAsync(stream, "header.kind", (ushort)3);
         SequenceEqual([0x03, 0x00, 0x06, 0x00, 0x00, 0x00], stream.ToArray());
         Equal(0L, stream.Position);
+    }
+    #endregion
+
+    #region api-guide-try-get
+    private static void TryGetAndGetOrDefault()
+    {
+        var layout = new CStruct("struct message { uint8 kind; if (kind == 1) { uint32 code; } uint8 tail; };");
+        StructValue plain = layout.Parse([2, 9], "message");
+
+        // 'code' belongs to an arm that was not selected: absent, a path failure.
+        True(!plain.TryGet("code", out uint _, out CStructException? absent), "code was not read");
+        True(absent is CStructPathException, "absent members are path failures");
+        Equal(0u, plain.GetOrDefault("code", 0u));
+
+        // 'kind' is there but 200 does not fit a signed byte: unconvertible, a read failure.
+        StructValue wide = layout.Parse([200, 9], "message");
+        True(!wide.TryGet("kind", out sbyte _, out CStructException? unconvertible), "200 is not an sbyte");
+        True(unconvertible is CStructReadException, "conversions that lose data are read failures");
+        Equal((byte)200, wide.GetOrDefault("kind", (byte)0));
     }
     #endregion
 

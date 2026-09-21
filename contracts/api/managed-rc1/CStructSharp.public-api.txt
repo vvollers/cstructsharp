@@ -951,11 +951,13 @@ namespace CStructSharp.Values
         public bool ContainsKey(string name) { }
         public T Get<T>(string path) { }
         public CStructSharp.Values.StructValue.Enumerator GetEnumerator() { }
+        public T GetOrDefault<T>(string path, T fallback) { }
         public bool Remove(string name) { }
         public T ToMapped<T>()
             where T : CStructSharp.ICStructMapped<T> { }
         public override string ToString() { }
         public bool TryGet<T>(string path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value) { }
+        public bool TryGet<T>(string path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, out CStructSharp.Diagnostics.CStructException? failure) { }
         public bool TryGetValue(string name, out object? value) { }
         public struct Enumerator : System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, object?>>, System.Collections.IEnumerator, System.IDisposable
         {
@@ -981,8 +983,10 @@ namespace CStructSharp.Values
         public bool ContainsKey(string key) { }
         public T Get<T>(string path) { }
         public System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, object?>> GetEnumerator() { }
+        public T GetOrDefault<T>(string path, T fallback) { }
         public override string ToString() { }
         public bool TryGet<T>(string path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value) { }
+        public bool TryGet<T>(string path, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value, out CStructSharp.Diagnostics.CStructException? failure) { }
         public bool TryGetValue(string key, out object? value) { }
         public CStructSharp.Values.UnionValue WithSelectedMember(string memberName, object? value) { }
         public CStructSharp.Values.UnionValue WithoutSelection() { }

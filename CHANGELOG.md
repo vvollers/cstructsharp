@@ -14,6 +14,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Added
 
+- `StructValue.TryGet<T>(path, out value, out CStructException? failure)` and `UnionValue.TryGet<T>(...)` hand back
+  the path or read exception `Get<T>` would have thrown - so an absent member (a `CStructPathException`) and an
+  unconvertible one (a `CStructReadException`) can be told apart without a `catch` - and `GetOrDefault<T>(path,
+  fallback)` on both returns the fallback in either case.
 - Generated `TryParse<Name>`/`TryParse` for every input kind (`ReadOnlySpan<byte>`, `byte[]`, `ReadOnlyMemory<byte>`,
   `ReadOnlySequence<byte>`, `Stream`), each with and without an `out CStructException? failure`: a read, path, or
   limit failure becomes `false` with the exception the throwing form would have raised; cancellation and argument

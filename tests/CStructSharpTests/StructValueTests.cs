@@ -133,4 +133,53 @@ public class StructValueTests
         Assert.AreEqual(4, ((IDictionary<string, object?>)a).Count);
         Assert.ThrowsExactly<Microsoft.CSharp.RuntimeBinder.RuntimeBinderException>(() => _ = b.custom);
     }
+
+    /// <summary>
+    ///     <c>TryGet</c> with a failure tells an absent member (a path failure) from an unconvertible one (a read
+    ///     failure), returning the exception <c>Get</c> would have thrown without throwing it; <c>GetOrDefault</c>
+    ///     returns the fallback in both cases and for a null value into a non-nullable type, the member otherwise.
+    /// </summary>
+    [TestMethod]
+    public void TryGetWithFailure_AndGetOrDefault_DistinguishAbsentFromUnconvertible()
+    {
+        var layout = new CStruct("struct point { int16 x; int16 y; }; struct root { uint8 kind; point origin; point corners[2]; uint8 *maybe; };", pointerSize: 1);
+        StructValue value = layout.Parse(new byte[] { 7, 0xFE, 0xFF, 5, 0, 1, 0, 2, 0, 3, 0, 4, 0, 0 }, "root", options: new ReadOptions { DereferencePointers = false, });
+
+        Assert.IsTrue(value.TryGet("origin.x", out short x, out Diagnostics.CStructException? none));
+        Assert.AreEqual((short)-2, x);
+        Assert.IsNull(none);
+        Assert.IsTrue(value.TryGet("corners[1].y", out short y, out _));
+        Assert.AreEqual((short)4, y);
+
+        Assert.IsFalse(value.TryGet("origin.z", out short _, out Diagnostics.CStructException? absent));
+        Assert.IsInstanceOfType<Diagnostics.CStructPathException>(absent);
+        Assert.AreEqual(Assert.Throws<Diagnostics.CStructPathException>(() => value.Get<short>("origin.z")).Message, absent!.Message);
+
+        Assert.IsFalse(value.TryGet("kind", out DateTime _, out Diagnostics.CStructException? unconvertible));
+        Assert.IsInstanceOfType<Diagnostics.CStructReadException>(unconvertible);
+        Assert.AreEqual(Assert.Throws<Diagnostics.CStructReadException>(() => value.Get<DateTime>("kind")).Message, unconvertible!.Message);
+
+        Assert.AreEqual((short)-2, value.GetOrDefault("origin.x", (short)9));
+        Assert.AreEqual((short)9, value.GetOrDefault("origin.z", (short)9), "absent: the fallback");
+        Assert.AreEqual(DateTime.UnixEpoch, value.GetOrDefault("kind", DateTime.UnixEpoch), "unconvertible: the fallback");
+        Assert.IsNull(value.GetOrDefault<string>("origin.z", null!), "a reference fallback may be null");
+        Assert.IsTrue(value.TryGet("maybe", out Pointer? pointer, out _));
+        Assert.IsFalse(pointer!.IsDereferenced);
+
+        // The two-argument TryGet keeps its contract.
+        Assert.IsFalse(value.TryGet("origin.z", out short _));
+        Assert.IsTrue(value.TryGet("kind", out byte kind));
+        Assert.AreEqual((byte)7, kind);
+        Assert.Throws<ArgumentNullException>(() => value.TryGet<int>(null!, out _, out _));
+
+        // A union has the same members.
+        var unions = new CStruct("union choice { uint8 small; uint32 wide; };");
+        var union = (UnionValue)unions.ReadValue(new byte[] { 1, 0, 0, 0 }, "choice")!;
+        Assert.IsTrue(union.TryGet("wide", out uint wide, out _));
+        Assert.AreEqual(1u, wide);
+        Assert.IsFalse(union.TryGet("other", out uint _, out Diagnostics.CStructException? unionAbsent));
+        Assert.IsInstanceOfType<Diagnostics.CStructPathException>(unionAbsent);
+        Assert.AreEqual((byte)1, union.GetOrDefault("small", (byte)0));
+        Assert.AreEqual(42u, union.GetOrDefault("other", 42u));
+    }
 }

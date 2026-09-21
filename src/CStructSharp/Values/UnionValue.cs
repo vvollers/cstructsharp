@@ -245,6 +245,51 @@ public sealed class UnionValue : IDynamicMetaObjectProvider, IReadOnlyDictionary
     }
 
     /// <summary>
+    ///     The non-throwing read that says why it failed: <paramref name="failure"/> is the <see cref="CStructPathException"/>
+    ///     <see cref="Get{T}"/> raises for a member that is not there or the <see cref="CStructReadException"/> it raises
+    ///     for a value that does not convert to <typeparamref name="T"/>, unthrown.
+    /// </summary>
+    /// <typeparam name="T">The requested type.</typeparam>
+    /// <param name="path">The member name or nested path.</param>
+    /// <param name="value">The converted value, or the default when the read failed.</param>
+    /// <param name="failure">The failure, or <see langword="null"/>.</param>
+    /// <returns>Whether <paramref name="value"/> holds the member.</returns>
+    public bool TryGet<T>(string path, [MaybeNullWhen(false)] out T value, out CStructException? failure)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        if (!ValuePath.TryResolve(this, path, out object? natural, out string? missing))
+        {
+            value = default;
+            failure = new CStructPathException(missing);
+            return false;
+        }
+
+        try
+        {
+            value = (T)TypedValueConverter.Convert(natural, typeof(T), path)!;
+            failure = null;
+            return true;
+        }
+        catch (CStructReadException exception)
+        {
+            value = default;
+            failure = exception;
+            return false;
+        }
+    }
+
+    /// <summary>
+    ///     <see cref="Get{T}"/> with a fallback: <paramref name="fallback"/> when the member is not there, holds
+    ///     <see langword="null"/> where <typeparamref name="T"/> cannot, or does not convert; the value otherwise.
+    /// </summary>
+    /// <typeparam name="T">The requested type.</typeparam>
+    /// <param name="path">The member name or nested path.</param>
+    /// <param name="fallback">The value to return when the member cannot be read as <typeparamref name="T"/>.</param>
+    /// <returns>The member or <paramref name="fallback"/>.</returns>
+    public T GetOrDefault<T>(string path, T fallback)
+        => this.TryGet(path, out T? value, out _) ? value! : fallback;
+
+    /// <summary>
     ///     Describes the union for debugging: its name, the selected member when one is set, every decoded member,
     ///     and the raw storage length when the value carries the bytes as read.
     /// </summary>
