@@ -32,7 +32,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   tests, including short reads, original input offsets, cancellation between records, pooled-buffer returns and
   asynchronous continuation independence from the caller's synchronization context.
   Verify generated cursor array, text, identifier and pointer behavior at byte-budget, encoding and lifetime boundaries.
-  Check writer padding, buffer growth, exact text limits, layout diagnostics, size arithmetic and physical-I/O failures.
+  Check writer padding, buffer growth, exact text limits, layout diagnostics, bitfield separators, size arithmetic
+  and physical-I/O failures. Keep existing-buffer positioning independent of the write budget.
   Isolate allocation comparisons from parallel tests and verify borrowed sequence storage directly.
   Check failed sequence-copy buffer returns, negative-read budget accounting and exact declaration/literal diagnostics.
   Pin custom-codec zero-byte results, fixed windows, invalid byte counts and exact growth limits.

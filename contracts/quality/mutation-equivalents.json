@@ -3,6 +3,30 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "**/CStructSharp.Core/Compilation/BitfieldPlacement.cs",
+      "sourceSha256": "a6ac29d369776cba4495080b928c994db4460cea03e166f173db0f2c05fde50b",
+      "mutants": [
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?this.unitStart + this.unitSize :current)",
+          "location": { "start": { "line": 91, "column": 25 }, "end": { "line": 91, "column": 82 } },
+          "reason": "For MSVC, RunEnd is unitStart + unitSize. All three owners (PlaceCompiledFields, CompositeFieldPlacementCursor and generated CompositeCursor) set current to RunEnd after every placed bitfield or separator. Ordinary fields close the run before changing current. Thus when a run is active both alternatives are equal; when inactive the original already selects current."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": { "start": { "line": 92, "column": 13 }, "end": { "line": 92, "column": 26 } },
+          "reason": "The separator immediately sets runActive true, unitStart to next and unitSize zero, overwriting Close's relevant placement changes. The remaining difference is stale BitsUsed and cellEnd: cellEnd is never used in MSVC placement, and the next nonzero field must start a new unit because its positive declared size differs from zero, resetting BitsUsed before use. Repeated separators and Close also ignore or reset that stale state."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?this.unitStart + this.unitSize :current)",
+          "location": { "start": { "line": 116, "column": 25 }, "end": { "line": 116, "column": 82 } },
+          "reason": "All placement owners update current to the MSVC RunEnd (unitStart + unitSize) after each bitfield or separator and close the run before an ordinary field changes current. Opening the next unit therefore selects the same byte position with either active-run alternative. For an inactive run both versions already use current."
+        }
+      ]
+    },
+    {
       "pattern": "Addressing/CStructPointerArithmetic.cs",
       "sourceSha256": "e3666e5e9e65dd4a7ecbc6c31df15e1081613c063151b46941897793dd2bc7a2",
       "mutants": [
@@ -138,6 +162,18 @@
       "pattern": "Generated/WriteCursor.cs",
       "sourceSha256": "559f67c77add2f8cc74aba5c2ee31dc84706b50e80767acb36b716f1210865d1",
       "mutants": [
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": { "start": { "line": 195, "column": 13 }, "end": { "line": 195, "column": 20 } },
+          "reason": "A successful forward seek starts Reserve at the old length and reserves requested position minus that length, leaving position exactly equal to the requested position. Without the return, the following assignment writes that same value. A failing Reserve still throws before either path can continue."
+        },
+        {
+          "mutatorName": "Arithmetic mutation",
+          "replacement": "Math.Min(int.MaxValue / 2, this.destination.Length) / 2",
+          "location": { "start": { "line": 497, "column": 43 }, "end": { "line": 497, "column": 98 } },
+          "reason": "Grow is called only when required exceeds the old destination length. Math.Max still makes the requested rental at least required after this mutation; copying the written prefix, clearing the remaining capacity and replacing/returning buffers are unchanged. Future reservations remain capacity-checked. Only the private spare-capacity policy and resulting allocation frequency change, not encoded bytes, positions, limits or buffer ownership."
+        },
         {
           "mutatorName": "Equality mutation",
           "replacement": "this.position >= this.length",
