@@ -3,6 +3,27 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "**/CStructSharp.Core/Diagnostics/ExceptionContext.cs",
+      "sourceSha256": "d208faaad5698e0f9565f9ace698436b3faac410883ae3b81967ddb51006bdc0",
+      "mutants": [
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 40,
+              "column": 9
+            },
+            "end": {
+              "line": 43,
+              "column": 10
+            }
+          },
+          "reason": "TryGetDiagnosticPosition returns nullable Int64. Removing its catch body still swallows the same failed Position query; Stryker 5.0.0 appends its default-return fallback after the try/catch. That fallback returns default(long?), which is null, exactly like the original catch. Successful queries still return the same position. Both forms preserve the primary exception and attach an unavailable offset after a diagnostic failure. Tool implementation: EndingReturnEngine.InjectReturn, https://github.com/stryker-mutator/stryker-net/blob/6e77a3451bac4793e9c839c3ff4055c1b30ca3af/src/Stryker.Core/Stryker.Core/Instrumentation/EndingReturnEngine.cs."
+        }
+      ]
+    },
+    {
       "pattern": "Streams/ReadBudgetStream.cs",
       "sourceSha256": "297c449979513b0009fdf0cb3b796448db18044b467084582984534733e40271",
       "mutants": [
