@@ -8,6 +8,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- Keep typedef-root debug paths consistent across inline, separate and chained declarations, without duplicating
+  the requested alias name.
 - Zero explicit unnamed padding when writing existing buffers and runtime-sized records, including fixed-size
   custom-codec padding without invoking its value encoder. Preserve implicit alignment gaps and enforce padding write limits.
   Clarify the existing enum and non-composite pointer padding support with executable boundary tests.

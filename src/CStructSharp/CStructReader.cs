@@ -239,13 +239,8 @@ public partial class CStruct
                         continue;
                     }
 
-                    if (state.Debug)
-                    {
-                        // Preserve the alias in debug metadata even though its underlying type does the actual reading.
-                        debugStack = new DebugPath(debugStack, t.Name.Name);
-                    }
-
-                    // Root aliases use a precompiled field projection, including aliases of structs and pointers.
+                    // The root field projection carries the alias name, including for structs and pointers.
+                    // Its Field branch adds that name to the debug path exactly once.
                     fieldDescriptor = this.compiledModelQueries.GetCompiledRootField(t);
                     el = fieldDescriptor.EffectiveField;
 

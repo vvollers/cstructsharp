@@ -3577,7 +3577,7 @@
     },
     {
       "pattern": "CStructReader.cs",
-      "sourceSha256": "4d6252b82866f05d85e6f8333be119b8ec90d778917fb053ba455b70d1d5e3d0",
+      "sourceSha256": "f2d90bba1a25bbb45ae0548758df968f3dcd715d933514b98f17c643027b2bcb",
       "mutants": [
         {
           "mutatorName": "Statement mutation",
@@ -3592,8 +3592,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": { "line": 999, "column": 13 },
-            "end": { "line": 999, "column": 70 }
+            "start": { "line": 994, "column": 13 },
+            "end": { "line": 994, "column": 70 }
           },
           "reason": "ParseStreamRoot is private and called only by ParseStreamInternal after that caller successfully resolves the same rootName through TryGetCompiledDeclaration. The compiled declaration snapshot is immutable; synthetic root entries are cached without removal. No intervening operation can invalidate the declaration. This second missing-root throw is therefore unreachable, including through typedef and synthetic roots. The earlier public-path guard and its full UnknownRoot diagnostic remain unchanged, as do root construction, parsing, failure handling and state completion."
         },
@@ -3601,8 +3601,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": { "line": 1034, "column": 13 },
-            "end": { "line": 1034, "column": 70 }
+            "start": { "line": 1029, "column": 13 },
+            "end": { "line": 1029, "column": 70 }
           },
           "reason": "ParseStreamRootDebug is private and called only by ParseStreamInternal after that caller successfully resolves the same rootName through TryGetCompiledDeclaration. Immutable compiled declarations and non-removing synthetic-root caching preserve that successful resolution until this repeated lookup. The missing-root throw is unreachable; removing it changes neither the reachable outer UnknownRoot diagnostic nor debug-state construction, byte ranges, decoding or completion. The ordinary and debug public paths retain their original root validation."
         },
@@ -3610,8 +3610,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": { "line": 1120, "column": 35 },
-            "end": { "line": 1120, "column": 74 }
+            "start": { "line": 1115, "column": 35 },
+            "end": { "line": 1115, "column": 74 }
           },
           "reason": "EnumIntegerCodecTable permits only built-in signed/unsigned 8/16/32/64-bit backing codecs after alias resolution. Custom codecs cannot back enums or replace those built-in registrations. Compiled enum fields and root views carry the backing primitive's codec id, and BuildCodecTable installs every canonical reader. Each permitted backing reader returns a boxed integer or throws; it never returns null. Both the missing-delegate and null-result sides of this fallback are therefore unreachable. This proof does not cover ordinary fields or pointer targets, whose custom reader delegates can return null."
         },
@@ -3619,8 +3619,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": { "line": 337, "column": 37 },
-            "end": { "line": 337, "column": 79 }
+            "start": { "line": 332, "column": 37 },
+            "end": { "line": 332, "column": 79 }
           },
           "reason": "The reader reaches this expression only for a single fixed/runtime dimension; scalar, data-sized, flexible and multidimensional shapes are handled separately. CompileSingleArrayDimension stores the validated non-null dimension expression for Fixed and Runtime. Peeled dimensions retain their CompiledArrayDimension.CountExpression, placement retains the shape, and synthetic roots use the same compiler. No production CompiledArrayShape construction creates a fixed/runtime shape without that expression. Therefore changing only the unreachable missing-expression diagnostic leaves evaluation, counts and failures unchanged."
         },
@@ -3629,11 +3629,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 323,
+              "line": 318,
               "column": 50
             },
             "end": {
-              "line": 323,
+              "line": 318,
               "column": 109
             }
           },
@@ -3644,11 +3644,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 853,
+              "line": 848,
               "column": 54
             },
             "end": {
-              "line": 853,
+              "line": 848,
               "column": 109
             }
           },
@@ -3689,11 +3689,11 @@
           "replacement": "state.CurrentBitOffset < 0",
           "location": {
             "start": {
-              "line": 375,
+              "line": 370,
               "column": 29
             },
             "end": {
-              "line": 375,
+              "line": 370,
               "column": 55
             }
           },
@@ -3704,11 +3704,11 @@
           "replacement": "(compiledField.BitStorageSize ??\n                                     throw new InvalidOperationException(\n                                         \"Compiled bitfield has no storage size: \" + compiledField.Name)) / 8",
           "location": {
             "start": {
-              "line": 648,
+              "line": 643,
               "column": 37
             },
             "end": {
-              "line": 650,
+              "line": 645,
               "column": 110
             }
           },
@@ -3719,11 +3719,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 650,
+              "line": 645,
               "column": 42
             },
             "end": {
-              "line": 650,
+              "line": 645,
               "column": 83
             }
           },
@@ -3734,11 +3734,11 @@
           "replacement": "(true?0\n:state.CurrentBitfieldSize)",
           "location": {
             "start": {
-              "line": 651,
+              "line": 646,
               "column": 54
             },
             "end": {
-              "line": 653,
+              "line": 648,
               "column": 85
             }
           },
@@ -3749,11 +3749,11 @@
           "replacement": "(false?0\n:state.CurrentBitfieldSize)",
           "location": {
             "start": {
-              "line": 651,
+              "line": 646,
               "column": 54
             },
             "end": {
-              "line": 653,
+              "line": 648,
               "column": 85
             }
           },
@@ -3764,11 +3764,11 @@
           "replacement": "state.CurrentBitfieldType is not null",
           "location": {
             "start": {
-              "line": 651,
+              "line": 646,
               "column": 54
             },
             "end": {
-              "line": 651,
+              "line": 646,
               "column": 87
             }
           },
@@ -3779,11 +3779,11 @@
           "replacement": "state.CurrentBitOffset < 0",
           "location": {
             "start": {
-              "line": 657,
+              "line": 652,
               "column": 61
             },
             "end": {
-              "line": 657,
+              "line": 652,
               "column": 87
             }
           },
@@ -3794,11 +3794,11 @@
           "replacement": "activeUnitSize != bitCapacity / 8 &&\n                                                            state.CurrentBitOffset + compiledField.BitSize > bitCapacity",
           "location": {
             "start": {
-              "line": 658,
+              "line": 653,
               "column": 61
             },
             "end": {
-              "line": 659,
+              "line": 654,
               "column": 121
             }
           },
@@ -3809,11 +3809,11 @@
           "replacement": "activeUnitSize == bitCapacity / 8",
           "location": {
             "start": {
-              "line": 658,
+              "line": 653,
               "column": 61
             },
             "end": {
-              "line": 658,
+              "line": 653,
               "column": 94
             }
           },
@@ -3824,11 +3824,11 @@
           "replacement": "bitCapacity * 8",
           "location": {
             "start": {
-              "line": 658,
+              "line": 653,
               "column": 79
             },
             "end": {
-              "line": 658,
+              "line": 653,
               "column": 94
             }
           },
@@ -3839,11 +3839,11 @@
           "replacement": "state.CurrentBitOffset + compiledField.BitSize < bitCapacity",
           "location": {
             "start": {
-              "line": 659,
+              "line": 654,
               "column": 61
             },
             "end": {
-              "line": 659,
+              "line": 654,
               "column": 121
             }
           },
@@ -3854,11 +3854,11 @@
           "replacement": "state.CurrentBitOffset + compiledField.BitSize >= bitCapacity",
           "location": {
             "start": {
-              "line": 659,
+              "line": 654,
               "column": 61
             },
             "end": {
-              "line": 659,
+              "line": 654,
               "column": 121
             }
           },
@@ -3869,11 +3869,11 @@
           "replacement": "state.CurrentBitOffset - compiledField.BitSize",
           "location": {
             "start": {
-              "line": 659,
+              "line": 654,
               "column": 61
             },
             "end": {
-              "line": 659,
+              "line": 654,
               "column": 107
             }
           },
@@ -3884,11 +3884,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 672,
+              "line": 667,
               "column": 69
             },
             "end": {
-              "line": 672,
+              "line": 667,
               "column": 110
             }
           },
@@ -3899,11 +3899,11 @@
           "replacement": "structAlignment == state.CurrentFieldAlignment",
           "location": {
             "start": {
-              "line": 685,
+              "line": 680,
               "column": 37
             },
             "end": {
-              "line": 685,
+              "line": 680,
               "column": 83
             }
           },
@@ -3914,11 +3914,11 @@
           "replacement": "state.CurrentBitOffset < 0",
           "location": {
             "start": {
-              "line": 685,
+              "line": 680,
               "column": 87
             },
             "end": {
-              "line": 685,
+              "line": 680,
               "column": 113
             }
           },
@@ -3929,11 +3929,11 @@
           "replacement": "false",
           "location": {
             "start": {
-              "line": 710,
+              "line": 705,
               "column": 174
             },
             "end": {
-              "line": 710,
+              "line": 705,
               "column": 178
             }
           },
@@ -3944,11 +3944,11 @@
           "replacement": "(compiledField.BitStorageSize ??\n                                     throw new InvalidOperationException(\n                                         \"Compiled bitfield has no storage size: \" + compiledField.Name)) * 8",
           "location": {
             "start": {
-              "line": 647,
+              "line": 642,
               "column": 51
             },
             "end": {
-              "line": 650,
+              "line": 645,
               "column": 111
             }
           },
@@ -3959,11 +3959,11 @@
           "replacement": "state.CurrentBitfieldSize * 8",
           "location": {
             "start": {
-              "line": 725,
+              "line": 720,
               "column": 54
             },
             "end": {
-              "line": 725,
+              "line": 720,
               "column": 92
             }
           },
@@ -3974,11 +3974,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 1064,
+              "line": 1059,
               "column": 56
             },
             "end": {
-              "line": 1064,
+              "line": 1059,
               "column": 80
             }
           },

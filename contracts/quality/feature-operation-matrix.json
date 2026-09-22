@@ -12,7 +12,7 @@
     {
       "id": "debug",
       "api": "CStruct.ParseWithDebug",
-      "contract": "Read values and exact source byte ranges."
+      "contract": "Read values and exact source byte ranges. Typedef roots use the requested alias once in each debug path, including inline, separate and chained aliases."
     },
     {
       "id": "address",

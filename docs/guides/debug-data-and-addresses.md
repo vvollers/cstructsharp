@@ -31,6 +31,9 @@ With input `A1 34 12`, `sample.value` occupies the half-open range `[1, 3)`: it 
 before position 3. Half-open ranges make the byte count easy to calculate: `End - Start`, or `3 - 1 = 2`; the
 record's `Length` property does this for you.
 
+A typedef root keeps the name you selected. For `typedef sample packet;`, reading `packet` reports
+`packet.value`, not `sample.value` or `packet.packet.value`. Inline and chained aliases follow the same rule.
+
 Each `DebugData` record is an immutable value with the item's `Path` (`sample.value`), `Start` and `End`
 positions, `TypeName`, and decoded `Value`. Select the bytes from your own input with `Start..End`; only a union
 captured as raw storage carries its bytes in `Bytes`. Treat records as diagnostic output. They expose exact input
