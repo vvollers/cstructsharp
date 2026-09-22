@@ -23,6 +23,291 @@
             "end": { "line": 718, "column": 95 }
           },
           "reason": "LayoutCompilation.Model obtains BitStorageSize from BitfieldCodecTable.ValidateBitField. The table's integral primitive and alias entries have only 1, 2, 4 or 8 bytes, including enum backing types. Multiplying the immutable compiled size by eight is bounded by 64, so checked cannot throw. The null-coalescing failure remains unchanged in this exact replacement."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 39,
+              "column": 13
+            },
+            "end": {
+              "line": 39,
+              "column": 81
+            }
+          },
+          "reason": "LayoutCompilation.Model validates every positive bitfield with BitfieldCodecTable.ValidateBitField before constructing its immutable CompiledField. Only direct integral storage (including an enum's integral backing type) is accepted, and both ByteSize and IsLittleEndian are stored. A composite cannot pass that validation, so this defensive composite-bitfield throw is unreachable."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 39,
+              "column": 49
+            },
+            "end": {
+              "line": 39,
+              "column": 79
+            }
+          },
+          "reason": "LayoutCompilation.Model validates every positive bitfield with BitfieldCodecTable.ValidateBitField before constructing its immutable CompiledField. Only direct integral storage (including an enum's integral backing type) is accepted, and both ByteSize and IsLittleEndian are stored. The defensive composite-bitfield failure cannot occur; changing only its message has no observable effect."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 54,
+              "column": 34
+            },
+            "end": {
+              "line": 54,
+              "column": 75
+            }
+          },
+          "reason": "LayoutCompilation.Model validates every positive bitfield with BitfieldCodecTable.ValidateBitField before constructing its immutable CompiledField. Only direct integral storage (including an enum's integral backing type) is accepted, and both ByteSize and IsLittleEndian are stored. BitStorageSize cannot be null when WriteBitFieldValue is called for a positive bitfield, so its fallback diagnostic cannot be observed."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 57,
+              "column": 42
+            },
+            "end": {
+              "line": 57,
+              "column": 81
+            }
+          },
+          "reason": "LayoutCompilation.Model validates every positive bitfield with BitfieldCodecTable.ValidateBitField before constructing its immutable CompiledField. Only direct integral storage (including an enum's integral backing type) is accepted, and both ByteSize and IsLittleEndian are stored. BitStorageIsLittleEndian cannot be null when WriteBitFieldValue is called, so its fallback diagnostic cannot be observed."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitOffset < 0",
+          "location": {
+            "start": {
+              "line": 700,
+              "column": 17
+            },
+            "end": {
+              "line": 700,
+              "column": 43
+            }
+          },
+          "reason": "Every cursor-less root/selected Write or union staging state starts with zero bit offset. The only positive legacy-entry offset is a selected Update bitfield, whose BitSize is positive, making the other conjunct false. Thus both > 0 and < 0 give a false normal-field reset condition; ordinary struct traversal uses its placement cursor."
+        },
+        {
+          "mutatorName": "Arithmetic mutation",
+          "replacement": "(compiledField.BitStorageSize ??\n                     throw new InvalidOperationException(\n                         \"Compiled bitfield has no storage size: \" + compiledField.Name)) / 8",
+          "location": {
+            "start": {
+              "line": 716,
+              "column": 21
+            },
+            "end": {
+              "line": 718,
+              "column": 94
+            }
+          },
+          "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. Consequently CurrentBitOffset is zero here and the startsNewStorageUnit right operand is never evaluated. bitCapacity has no other consumer, so replacing its multiplication with division changes only an unused local value."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 718,
+              "column": 26
+            },
+            "end": {
+              "line": 718,
+              "column": 67
+            }
+          },
+          "reason": "LayoutCompilation.Model validates every positive bitfield with BitfieldCodecTable.ValidateBitField before constructing its immutable CompiledField. Only direct integral storage (including an enum's integral backing type) is accepted, and both ByteSize and IsLittleEndian are stored. This legacy positive-bitfield branch cannot observe a null BitStorageSize; changing only the fallback message is equivalent."
+        },
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?0\n:state.CurrentBitfieldSize)",
+          "location": {
+            "start": {
+              "line": 719,
+              "column": 38
+            },
+            "end": {
+              "line": 721,
+              "column": 69
+            }
+          },
+          "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. The legacy state has null CurrentBitfieldType and zero CurrentBitfieldSize, so selecting constant zero unconditionally preserves activeUnitSize."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?0\n:state.CurrentBitfieldSize)",
+          "location": {
+            "start": {
+              "line": 719,
+              "column": 38
+            },
+            "end": {
+              "line": 721,
+              "column": 69
+            }
+          },
+          "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. The legacy state has null CurrentBitfieldType and zero CurrentBitfieldSize, so selecting CurrentBitfieldSize unconditionally still gives zero."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitfieldType is not null",
+          "location": {
+            "start": {
+              "line": 719,
+              "column": 38
+            },
+            "end": {
+              "line": 719,
+              "column": 71
+            }
+          },
+          "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. Both alternatives of this conditional are zero at this point, so reversing the null test cannot change activeUnitSize."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitOffset < 0",
+          "location": {
+            "start": {
+              "line": 725,
+              "column": 45
+            },
+            "end": {
+              "line": 725,
+              "column": 71
+            }
+          },
+          "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. CurrentBitOffset is zero in this branch, so both > 0 and < 0 short-circuit startsNewStorageUnit to false."
+        },
+        {
+          "mutatorName": "Logical mutation",
+          "replacement": "activeUnitSize != bitCapacity / 8 &&\n                                             state.CurrentBitOffset + compiledField.BitSize > bitCapacity",
+          "location": {
+            "start": {
+              "line": 726,
+              "column": 46
+            },
+            "end": {
+              "line": 727,
+              "column": 106
+            }
+          },
+          "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. CurrentBitOffset is zero, so the outer && short-circuits before this inner ||; replacing the inner operator cannot affect state, output or failures."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "activeUnitSize == bitCapacity / 8",
+          "location": {
+            "start": {
+              "line": 726,
+              "column": 46
+            },
+            "end": {
+              "line": 726,
+              "column": 79
+            }
+          },
+          "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. CurrentBitOffset is zero, so the outer && never evaluates this size comparison; reversing only that comparison has no effect."
+        },
+        {
+          "mutatorName": "Arithmetic mutation",
+          "replacement": "bitCapacity * 8",
+          "location": {
+            "start": {
+              "line": 726,
+              "column": 64
+            },
+            "end": {
+              "line": 726,
+              "column": 79
+            }
+          },
+          "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. CurrentBitOffset is zero, so the outer && never evaluates this division; changing only that unexecuted arithmetic has no effect."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 729,
+              "column": 17
+            },
+            "end": {
+              "line": 733,
+              "column": 18
+            }
+          },
+          "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. CurrentBitOffset is zero and startsNewStorageUnit is therefore false; removing only its unentered body has no effect."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 740,
+              "column": 53
+            },
+            "end": {
+              "line": 740,
+              "column": 94
+            }
+          },
+          "reason": "LayoutCompilation.Model validates every positive bitfield with BitfieldCodecTable.ValidateBitField before constructing its immutable CompiledField. Only direct integral storage (including an enum's integral backing type) is accepted, and both ByteSize and IsLittleEndian are stored. A positive legacy bitfield always has its compiled storage width; changing only this fallback diagnostic is unobservable."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "structAlignment == state.CurrentFieldAlignment",
+          "location": {
+            "start": {
+              "line": 751,
+              "column": 21
+            },
+            "end": {
+              "line": 751,
+              "column": 67
+            }
+          },
+          "reason": "Cursor-less Write/root/union entry has zero bit offset. A selected Update can have a positive seeded offset, but its PositionIsResolvedTarget flag skips this entire alignment block. Ordinary struct traversal uses the placement cursor instead. The alignment-change condition always has a false bit-offset conjunct; reversing only its alignment comparison cannot enter the body."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitOffset < 0",
+          "location": {
+            "start": {
+              "line": 751,
+              "column": 71
+            },
+            "end": {
+              "line": 751,
+              "column": 97
+            }
+          },
+          "reason": "Cursor-less Write/root/union entry has zero bit offset. A selected Update can have a positive seeded offset, but its PositionIsResolvedTarget flag skips this entire alignment block. Ordinary struct traversal uses the placement cursor instead. The bit offset is zero whenever this alignment block runs, so both > 0 and < 0 keep its conjunction false."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 752,
+              "column": 17
+            },
+            "end": {
+              "line": 756,
+              "column": 18
+            }
+          },
+          "reason": "Cursor-less Write/root/union entry has zero bit offset. A selected Update can have a positive seeded offset, but its PositionIsResolvedTarget flag skips this entire alignment block. Ordinary struct traversal uses the placement cursor instead. The alignment-change body is never entered through these callers; removing only that body preserves behavior."
         }
       ]
     },
