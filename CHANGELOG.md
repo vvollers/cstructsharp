@@ -8,6 +8,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- Read selected fields from their resolved address without applying parent alignment again. Scalar, enum and
+  bitfield views of unaligned unions now agree with whole-value reads. Selected arrays retain their field start
+  without adding per-element enum/pointer padding or moving the first nested record.
 - Reject multiplication inside `sizeof`/`offsetof` type arguments instead of joining its operands into an
   unintended pointer type name. Multiword types and trailing pointer stars remain supported.
 - Start a new packed SysV bitfield storage run after a zero-width separator. Wider fields following an ordinary

@@ -94,6 +94,11 @@ public sealed partial class CStruct
         }
     }
 
+    /// <summary>Decodes a resolved selection at its exact address without applying its parent placement again.</summary>
+    /// <param name="state">The stream, limits and variables for this read.</param>
+    /// <param name="target">The resolved field, array item, pointer level or root.</param>
+    /// <param name="rootName">The exported declaration name used for a root selection.</param>
+    /// <returns>The natural decoded value, or null for a null pointer target.</returns>
     private object? ReadResolvedValue(
         CStructOperationContext state,
         ResolvedTarget target,
@@ -169,6 +174,9 @@ public sealed partial class CStruct
         }
 
         var container = new StructValue(this.compiledModelQueries.GetRootShape(selectedField.Name));
+
+        // Resolution already placed the whole field. Aligning again can move an unaligned union view, or
+        // incorrectly add alignment padding between the elements of a selected enum array.
         this.HandleCStructElement(
             selectedField.EffectiveField,
             container,
@@ -176,7 +184,8 @@ public sealed partial class CStruct
             null,
             -1,
             false,
-            selectedField);
+            selectedField,
+            positionIsResolvedTarget: true);
         return ExtractOnlyValue(container, selectedField.Name);
     }
 

@@ -73,6 +73,10 @@ A struct segment follows normal sequential placement. A union member begins at t
 first byte position is the same. If that member is a struct, its own child fields then advance within the selected
 view.
 
+`ReadValue` reads the selected field at its resolved address. It does not round that address up again, even when a
+pointer reaches a union at an unaligned byte position. An array's field alignment applies to its start, not
+separately to each enum element. Nested structs still place their own fields according to their compiled layout.
+
 Selecting a whole struct/union and selecting one scalar are different result shapes. Use `Parse` for a
 struct (`StructValue`) or `ReadValue` for any selection, including unions (`UnionValue`) and single direct values.
 

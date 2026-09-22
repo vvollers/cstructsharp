@@ -186,6 +186,15 @@ public partial class CStruct
     ///     Reads one layout element and adds its value to the current object.
     ///     Structs, typedefs, fields, arrays, unions, pointers, and debug tracking all meet here so they advance through the stream consistently.
     /// </summary>
+    /// <param name="el">The declaration to read.</param>
+    /// <param name="currentContainer">The destination object receiving the decoded value.</param>
+    /// <param name="state">The current stream, limits and expression context.</param>
+    /// <param name="debugStack">The optional parent path for recorded byte ranges.</param>
+    /// <param name="unionPosition">The common union-member byte address, or -1 outside a union view.</param>
+    /// <param name="alignInlineStructStart">Whether an inline composite needs its parent placement applied.</param>
+    /// <param name="fieldDescriptor">The compiled field metadata, when the caller already resolved it.</param>
+    /// <param name="cursor">The containing composite's placement cursor, when traversing its fields.</param>
+    /// <param name="positionIsResolvedTarget">Whether the stream is already at the field's exact resolved address.</param>
     private void HandleCStructElement(
         CStructElement el,
         StructValue currentContainer,
@@ -194,7 +203,8 @@ public partial class CStruct
         long unionPosition = -1,
         bool alignInlineStructStart = false,
         CompiledField? fieldDescriptor = null,
-        CompositeFieldPlacementCursor? cursor = null)
+        CompositeFieldPlacementCursor? cursor = null,
+        bool positionIsResolvedTarget = false)
     {
         // A typedef can resolve to another element, so loop until this call reaches a concrete struct, field, or define.
         // A root requested through a typedef alias (`typedef struct _X { } X;` parsed as `X`) is stored and
@@ -536,7 +546,7 @@ public partial class CStruct
                                 // it is available; only the legacy single-field/root path still aligns here.
                                 long curPos = state.Stream.Position;
 
-                                if (useLegacyPlacement && state.Aligned && unionPosition == -1)
+                                if (useLegacyPlacement && state.Aligned && unionPosition == -1 && !positionIsResolvedTarget)
                                 {
                                     int structAlignment = compiledField.Alignment;
                                     state.Stream.Position = LayoutMath.AlignUp(curPos, structAlignment);
@@ -580,7 +590,7 @@ public partial class CStruct
                             else
                             {
                                 CompiledCompositeType strct = nestedComposite!;
-                                if (useLegacyPlacement)
+                                if (useLegacyPlacement && !positionIsResolvedTarget)
                                 {
                                     this.PrepareNestedStructStart(strct, state, unionPosition);
                                 }
@@ -666,7 +676,7 @@ public partial class CStruct
 
                             long curPos = state.Stream.Position;
 
-                            if (useLegacyPlacement && state.Aligned && unionPosition == -1)
+                            if (useLegacyPlacement && state.Aligned && unionPosition == -1 && !positionIsResolvedTarget)
                             {
                                 // A union's compiled start already establishes its boundary; every member begins exactly
                                 // there, including when a pointer target is not naturally aligned in the containing stream.
