@@ -8,6 +8,19 @@ using CStructSharp.Generated;
 [TestClass]
 public class ReadCursorTextBoundaryTests
 {
+    /// <summary>The encoded-byte limit takes precedence over invalid text later in the same unterminated chunk.</summary>
+    [TestMethod]
+    public void TerminatedText_EnforcesItsLimitBeforeDecodingTheChunk()
+    {
+        byte[] source = [.. Enumerable.Repeat((byte)'a', 300), 0,];
+        source[20] = 0xFF;
+
+        // The limit is crossed at byte eleven, before the invalid ASCII byte could be decoded.
+        CStructReadLimitException failure = Assert.Throws<CStructReadLimitException>(() => new ReadCursor(source, new ReadOptions { MaxStringBytes = 10, }).TakeTerminatedString(TerminatedTextEncoding.Ascii, '\0', "text", "string"));
+        StringAssert.Contains(failure.Message, "configured encoded-byte limit");
+        Assert.IsNull(failure.InnerException);
+    }
+
     /// <summary>Chunk failures retain input-relative offsets and enforce the string limit before finding a later terminator.</summary>
     [TestMethod]
     public void TerminatedText_ReportsLimitsAtTheFailingChunk()
