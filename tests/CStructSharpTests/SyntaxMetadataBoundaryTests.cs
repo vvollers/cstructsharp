@@ -9,6 +9,54 @@ using SyntaxEnum = CStructSharp.Syntax.Enum;
 [TestClass]
 public class SyntaxMetadataBoundaryTests
 {
+    /// <summary>Array dimensions contribute to field hashing rather than collapsing distinct shapes into one bucket.</summary>
+    /// <param name="dimension">The array dimension varied while the other dimension remains fixed.</param>
+    [TestMethod]
+    [DataRow(0)]
+    [DataRow(1)]
+    public void FieldHash_UsesEveryArrayDimension(int dimension)
+    {
+        var hashes = new HashSet<int>();
+        for (int index = 1; index <= 32; index++)
+        {
+            Expr[] dimensions = { new Literal(dimension == 0 ? index : 2), new Literal(dimension == 1 ? index : 3), };
+            var field = new Field(new Identifier("uint8"), new Identifier("matrix"), dimensions, 0);
+            hashes.Add(field.GetHashCode());
+        }
+
+        Assert.IsGreaterThan(1, hashes.Count, "Distinct array shapes must not all collapse into one hash bucket.");
+    }
+
+    /// <summary>Already known and absent bit widths do not allocate an expression evaluation on every metadata read.</summary>
+    /// <param name="resolved">Whether the width is already resolved rather than absent from the declaration.</param>
+    [TestMethod]
+    [DoNotParallelize]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void KnownBitWidth_ReadsWithoutRepeatedEvaluationAllocation(bool resolved)
+    {
+        var type = new Identifier("uint8");
+        var name = new Identifier("value");
+        Field field = resolved ? new Field(type, name, Field.NoArray, 3) : new Field(type, name, Field.NoArray, NoneExpr.Instance);
+        int expected = resolved ? 3 : 0;
+        for (int index = 0; index < 32; index++)
+        {
+            Assert.AreEqual(expected, field.BitSize);
+        }
+
+        // Warm up before measuring only repeated property reads, not construction or test assertions.
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        int total = 0;
+        for (int index = 0; index < 256; index++)
+        {
+            total += field.BitSize;
+        }
+
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.AreEqual(expected * 256, total);
+        Assert.IsLessThanOrEqualTo(1024L, allocated, "Known widths should reuse metadata without allocating an evaluator per read.");
+    }
+
     /// <summary>Enum hash codes distribute declarations that differ in each identity component across hash buckets.</summary>
     /// <param name="component">The identity component varied while the others remain fixed.</param>
     [TestMethod]
