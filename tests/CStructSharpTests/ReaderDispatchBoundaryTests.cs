@@ -1,5 +1,7 @@
 namespace CStructSharp.Tests;
 
+using System.Buffers;
+using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
@@ -7,6 +9,30 @@ using CStructSharp.Values;
 [TestClass]
 public class ReaderDispatchBoundaryTests
 {
+    /// <summary>A missing decoded value reports its type and retains the correct parent cursor.</summary>
+    /// <param name="fragmented">Whether the codec receives a stream scratch window instead of borrowed memory.</param>
+    /// <param name="pointer">Whether decoding follows a pointer and must restore the post-address position.</param>
+    [TestMethod]
+    [DataRow(false, false)]
+    [DataRow(false, true)]
+    [DataRow(true, false)]
+    [DataRow(true, true)]
+    public void NullCodecResult_ExplainsFailureAndKeepsCursor(bool fragmented, bool pointer)
+    {
+        var layout = new CStruct(
+            pointer ? "struct root { emptyvalue *data; };" : "struct root { emptyvalue data; };",
+            pointerSize: 1,
+            compilationOptions: new CStructCompilationOptions { Codecs = [new NullResultCodec(),], });
+        byte[] bytes = pointer ? [1, 99,] : [99,];
+        using Stream stream = fragmented ? new ChunkedMemoryStream(bytes, 1, false) : new MemoryStream(bytes);
+
+        // The codec claims success without a value; each reader must explain the failed value lookup.
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => layout.Parse(stream, "root"));
+        string reason = pointer ? "Compiled pointer target has no reader: emptyvalue" : "Compiled field has no reader: emptyvalue";
+        StringAssert.Contains(failure.Message, reason);
+        Assert.AreEqual(1L, stream.Position);
+    }
+
     /// <summary>A void alias has no standalone value reader, even when the input contains bytes.</summary>
     [TestMethod]
     public void VoidAliasRead_ExplainsMissingValueHandler()
@@ -71,5 +97,41 @@ public class ReaderDispatchBoundaryTests
         Assert.AreEqual(0L, padding.Start);
         Assert.AreEqual(1L, padding.End);
         Assert.AreEqual(2L, stream.Position);
+    }
+
+    /// <summary>Claims a one-byte decode without supplying a value, to exercise the reader's missing-value fallback.</summary>
+    private sealed class NullResultCodec : ICustomCodec
+    {
+        /// <summary>Gets the layout spelling used only by this diagnostic test.</summary>
+        public string Name => "emptyvalue";
+
+        /// <summary>Gets the single byte consumed on success.</summary>
+        public int? FixedSize => 1;
+
+        /// <summary>Gets the byte alignment of the test codec.</summary>
+        public int Alignment => 1;
+
+        /// <summary>Reports success for one available byte but deliberately supplies no decoded value.</summary>
+        /// <param name="source">The bytes offered by the adapter.</param>
+        /// <param name="value">Always null, including when the codec reports success.</param>
+        /// <param name="bytesConsumed">One on success, otherwise zero.</param>
+        /// <returns>Done for nonempty input, otherwise NeedMoreData.</returns>
+        public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
+        {
+            value = null;
+            bytesConsumed = source.IsEmpty ? 0 : 1;
+            return source.IsEmpty ? OperationStatus.NeedMoreData : OperationStatus.Done;
+        }
+
+        /// <summary>Rejects encoding because this helper exercises decoding only.</summary>
+        /// <param name="destination">Unused output window.</param>
+        /// <param name="value">Unused value.</param>
+        /// <param name="bytesWritten">No output is returned.</param>
+        /// <returns>Never returns a status.</returns>
+        /// <exception cref="NotSupportedException">Always thrown because encoding is outside this helper's purpose.</exception>
+        public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
+        {
+            throw new NotSupportedException();
+        }
     }
 }
