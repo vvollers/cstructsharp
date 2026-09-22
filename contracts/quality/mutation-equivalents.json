@@ -1840,6 +1840,12 @@
       "sourceSha256": "74dc7e30a98926d4b4b495ceb7d667970682b66f12aa3a2ea8a9abb5b526fbdf",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": { "start": { "line": 287, "column": 21 }, "end": { "line": 287, "column": 27 } },
+          "reason": "This rethrow is inside catch (CStructException exception) when (exception.NoteMember(...)). The nonvirtual CStructException.NoteMember method attaches the innermost member context and unconditionally returns false. The exception therefore continues unwinding without entering this catch body. Removing its unreachable throw preserves the filter call, context attachment and original exception propagation. This qualification does not apply to the following conditional-scope CompleteField call or any cancellation checkpoint."
+        },
+        {
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
