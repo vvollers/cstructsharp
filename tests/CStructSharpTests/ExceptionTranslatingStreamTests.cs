@@ -35,6 +35,7 @@ public class ExceptionTranslatingStreamTests
     [TestMethod]
     public void ReadBudgetStream_TranslatesEveryPhysicalIoShape()
     {
+        // Each callback invokes one physical operation so its translated message can name that operation.
         (FaultPoint Point, Action<ReadBudgetStream> Operation)[] cases =
         [
             (FaultPoint.Length, stream => _ = stream.Length),
@@ -58,9 +59,29 @@ public class ExceptionTranslatingStreamTests
                 point.ToString());
             Assert.AreSame(cause, failure.InnerException, point.ToString());
             Assert.AreEqual(CStructErrorCode.ReadFailed, failure.Code, point.ToString());
-            Assert.IsFalse(string.IsNullOrWhiteSpace(failure.Message), point.ToString());
+            string expectedMessage = point switch
+            {
+                FaultPoint.Length => "Cannot read the source stream length.",
+                FaultPoint.PositionGet => "Cannot read the source stream position.",
+                FaultPoint.PositionSet => "Cannot change the source stream position.",
+                FaultPoint.Flush => "Cannot flush the source stream.",
+                FaultPoint.Seek => "Cannot seek in the source stream.",
+                _ => "Cannot read from the source stream.",
+            };
+            StringAssert.StartsWith(failure.Message, expectedMessage.TrimEnd('.'), point.ToString());
             Assert.AreEqual(point == FaultPoint.PositionGet ? null : 0L, failure.Offset, point.ToString());
         }
+    }
+
+    /// <summary>Unavailable stream length declines optimized preflight instead of claiming missing or available bytes.</summary>
+    [TestMethod]
+    public void ReadPreflight_DeclinesWhenLengthCannotBeRead()
+    {
+        using var inner = new SelectiveFaultStream(new IOException("length unavailable")) { Point = FaultPoint.Length, };
+        using var reader = new ReadBudgetStream(inner, new ReadOptions());
+        Assert.IsFalse(reader.IsShortBy(1));
+        Assert.IsFalse(reader.TryReadBlockWithinBudget(new byte[1]));
+        Assert.AreEqual(0L, inner.Position);
     }
 
     /// <summary>
