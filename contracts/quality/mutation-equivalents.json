@@ -3,6 +3,27 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Paths.cs",
+      "sourceSha256": "f9ec50046612fb4e6fdd39980c88f9f525785972a81d33cfa06463b79fd476ce",
+      "mutants": [
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "segmentIndex <= segments.Count",
+          "location": {
+            "start": {
+              "line": 31,
+              "column": 36
+            },
+            "end": {
+              "line": 31,
+              "column": 65
+            }
+          },
+          "reason": "The sole production caller is CStruct.WriteStreamCore after paths with one segment have returned; childSegments therefore contains at least one element. Within ResolveElementPath every iteration either throws or, at segmentIndex == segments.Count - 1, returns writableField before incrementing. The loop condition is never evaluated at segmentIndex == segments.Count on a reachable invocation, so changing < to <= cannot add an iteration."
+        }
+      ]
+    },
+    {
       "pattern": "Streams/SparseUpdateStream.cs",
       "sourceSha256": "38d92a361428222368d550ff6bde007c22c32dc7f67dbfaca78966a967b1ba5e",
       "mutants": [
