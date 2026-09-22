@@ -42,6 +42,7 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   Verify cancellation before buffer rental, async continuation independence and exact read-window boundaries.
   Check layout-call arity, recursive size diagnostics, root capture plans, union padding and fixed-extent overflow;
   verify that text byte limits take precedence over invalid text later in the same chunk.
+  Pin selected-path array/pointer diagnostics, total leaf-count limits and runtime offset assertions.
 - Correct learning-path and dependency guidance, current inspector/JavaScript references, and benchmark fixture
   claims. Derive volatile fixture and executable-scenario counts from their owning definitions.
 - Explain cursor ownership, generated reads and inspector invalidation at the relevant source boundaries, and
