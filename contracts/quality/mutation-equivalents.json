@@ -3,6 +3,30 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "CStructWriter.cs",
+      "sourceSha256": "4f8c1be706169934ce168d69177412602cb2638cf4a20e79c73955220235dabe",
+      "mutants": [
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "byteSize * 8",
+          "location": {
+            "start": { "line": 58, "column": 30 },
+            "end": { "line": 58, "column": 51 }
+          },
+          "reason": "WriteBitFieldValue receives either the compiled storage width or a placed storage window. LayoutCompilation.Model derives the former from BitfieldCodecTable, which permits only 1, 2, 4 or 8 bytes. BitfieldPlacement rejects packed SysV windows larger than 8 bytes; MSVC and aligned windows retain the declared width. The selected-write path seeds the same resolved placement. Multiplication by eight therefore produces at most 64 and cannot overflow Int32; removing checked preserves all values and failures."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(compiledField.BitStorageSize ??\n                     throw new InvalidOperationException(\n                         \"Compiled bitfield has no storage size: \" + compiledField.Name)) * 8",
+          "location": {
+            "start": { "line": 715, "column": 35 },
+            "end": { "line": 718, "column": 95 }
+          },
+          "reason": "LayoutCompilation.Model obtains BitStorageSize from BitfieldCodecTable.ValidateBitField. The table's integral primitive and alias entries have only 1, 2, 4 or 8 bytes, including enum backing types. Multiplying the immutable compiled size by eight is bounded by 64, so checked cannot throw. The null-coalescing failure remains unchanged in this exact replacement."
+        }
+      ]
+    },
+    {
       "pattern": "Generated/Codec.cs",
       "sourceSha256": "71371e0185343bd08c160d639e5331fb7a20ee27116eed6f906ce459c7721eb3",
       "mutants": [
