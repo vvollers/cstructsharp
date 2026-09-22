@@ -9,6 +9,25 @@ using CStructSharp.Syntax;
 [TestClass]
 public class RuntimeLookupContractTests
 {
+    /// <summary>Layouts without custom codecs reuse one immutable table per byte-order and C-long-width setting.</summary>
+    /// <param name="littleEndian">The byte order shared by two independently compiled layouts.</param>
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void PrimitiveLayouts_ReuseTheirCodecTable(bool littleEndian)
+    {
+        var first = new CStruct("struct first { uint8 value; };", isLittleEndian: littleEndian);
+        var second = new CStruct("struct second { uint16 value; };", isLittleEndian: littleEndian);
+        var opposite = new CStruct("struct third { uint8 value; };", isLittleEndian: !littleEndian);
+
+        // Inspect the retained table, not delegate equality: rebuilding its arrays would defeat this shared cache.
+        System.Reflection.FieldInfo field = typeof(CStruct).GetField("codecs", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        object? table = field.GetValue(first);
+        Assert.IsNotNull(table);
+        Assert.AreSame(table, field.GetValue(second));
+        Assert.AreNotSame(table, field.GetValue(opposite));
+    }
+
     /// <summary>Codec tables reject incomplete directions and distinguish unknown names from registered delegates.</summary>
     [TestMethod]
     public void CodecTable_RequiresCompleteDirectionsAndPreservesDelegateIdentity()

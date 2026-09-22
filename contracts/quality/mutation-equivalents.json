@@ -3,6 +3,72 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "CStructPrimitiveCodecs.cs",
+      "sourceSha256": "5fcf8003d698390ff5b594c6e184e07f443ee81bcbf05b6fb54ae5b6f851bb26",
+      "mutants": [
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 71,
+              "column": 13
+            },
+            "end": {
+              "line": 71,
+              "column": 132
+            }
+          },
+          "reason": "BuildCodecTable is private and has two callers. GetSharedCodecTable passes a catalog from PrimitiveCatalog.For (no custom descriptors) and an empty instance array. RegisterCustomCodecs constructs one descriptor and one instance in the same loop; WithCustomCodecs validates and retains every descriptor or throws before BuildCodecTable. Both immutable arrays therefore have identical lengths at this guard. Removing its unreachable throw cannot change supported behavior."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 71,
+              "column": 49
+            },
+            "end": {
+              "line": 71,
+              "column": 130
+            }
+          },
+          "reason": "This diagnostic is guarded by different custom descriptor and instance counts. Both private callers construct matching counts: zero for the shared primitive catalog, or one descriptor and instance per registered codec. WithCustomCodecs retains all validated descriptors or throws first. No caller can reach this message with unequal immutable arrays."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {
+            "start": {
+              "line": 101,
+              "column": 83
+            },
+            "end": {
+              "line": 101,
+              "column": 88
+            }
+          },
+          "reason": "This canonical ufixed8_8 big-endian reader always passes width 16 to FixedPointCodec.Read. That method selects ReadUInt16 solely from width == 16, and never inspects signed on this branch. Flipping only signed leaves the raw value, byte order, consumed bytes and DecodeFixedPoint call unchanged for every input."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {
+            "start": {
+              "line": 102,
+              "column": 82
+            },
+            "end": {
+              "line": 102,
+              "column": 87
+            }
+          },
+          "reason": "This canonical ufixed8_8 little-endian reader always passes width 16. FixedPointCodec.Read unconditionally uses ReadUInt16 for that width; signed is consulted only for the 32-bit branch. Changing this unused argument preserves reads, failures, byte consumption and decoded values."
+        }
+      ]
+    },
+    {
       "pattern": "**/CStructSharp.Core/Expressions/ExpressionEvaluator.cs",
       "sourceSha256": "97d364232d87f56bae4c95f89fc15f09db4a40f3fc0bf599aca61f745fe05c07",
       "mutants": [
