@@ -7,6 +7,43 @@ using CStructSharp.Values;
 [TestClass]
 public class RuntimeWriterBoundaryTests
 {
+    /// <summary>A multidimensional write counts leaf elements and accepts exactly the configured limit.</summary>
+    [TestMethod]
+    public void MultidimensionalArray_EnforcesTotalLeafLimit()
+    {
+        var layout = new CStruct("struct root { uint8 values[2][2]; uint8 tail; };");
+        var data = new Dictionary<string, object?>
+        {
+            ["values"] = new byte[][] { new byte[] { 1, 2, }, new byte[] { 3, 4, }, },
+            ["tail"] = (byte)5,
+        };
+        CollectionAssert.AreEqual(new byte[] { 1, 2, 3, 4, 5, }, layout.Serialize("root", data, options: new WriteOptions { MaxArrayElements = 4, }));
+
+        // The limit applies to all four leaves, not just the two outer rows.
+        CStructWriteLimitException failure = Assert.Throws<CStructWriteLimitException>(() =>
+            layout.Serialize("root", data, options: new WriteOptions { MaxArrayElements = 3, }));
+        StringAssert.Contains(failure.Message, "Array length exceeds the configured write limit: values");
+    }
+
+    /// <summary>An empty write path is rejected before changing the destination or its position.</summary>
+    /// <param name="path">An empty or whitespace-only root selection.</param>
+    [TestMethod]
+    [DataRow("")]
+    [DataRow(" \t")]
+    public void EmptyPath_PreservesDestination(string path)
+    {
+        var layout = new CStruct("struct root { uint8 value; };");
+        using var destination = new MemoryStream(new byte[] { 11, 22, 33, });
+        destination.Position = 1;
+
+        // Validate the path before output begins, even when the caller supplied otherwise valid data.
+        CStructPathException failure = Assert.Throws<CStructPathException>(() =>
+            layout.Write(destination, path, new Dictionary<string, object?> { ["value"] = (byte)7, }));
+        StringAssert.StartsWith(failure.Message, "Path is empty");
+        Assert.AreEqual(1L, destination.Position);
+        CollectionAssert.AreEqual(new byte[] { 11, 22, 33, }, destination.ToArray());
+    }
+
     /// <summary>Whole-union input failures identify the violated type, storage or member contract.</summary>
     /// <param name="kind">The invalid union value shape.</param>
     /// <param name="reason">The required explanation before diagnostic context.</param>
