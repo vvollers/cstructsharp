@@ -5,11 +5,12 @@ namespace CStructSharp.Tests;
 public class NullReadStreamBoundaryTests
 {
     /// <summary>A null stream is the primary argument error even when the selected path is empty.</summary>
-    /// <param name="operation">The typed, natural-value or array-length entry point.</param>
+    /// <param name="operation">The typed, natural-value, array-length or address-query entry point.</param>
     [TestMethod]
     [DataRow("typed")]
     [DataRow("natural")]
     [DataRow("length")]
+    [DataRow("address")]
     public void NullStream_IsRejectedBeforeAnEmptyPath(string operation)
     {
         var layout = new CStruct("struct root { uint8 values[2]; };");
@@ -24,6 +25,9 @@ public class NullReadStreamBoundaryTests
                 break;
             case "natural":
                 _ = layout.ReadValue((Stream)null!, string.Empty);
+                break;
+            case "address":
+                _ = layout.ResolveAddress((Stream)null!, string.Empty);
                 break;
             default:
                 _ = layout.GetArrayLength((Stream)null!, string.Empty);

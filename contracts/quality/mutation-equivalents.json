@@ -7,6 +7,60 @@
       "sourceSha256": "52f1dccaf61ba2bd55291efbc920c6955352309cee02784d71d81b276e9c918c",
       "mutants": [
         {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?target.WritableCompiledField\n:target.EffectiveCompiledField)",
+          "location": {
+            "start": { "line": 160, "column": 14 },
+            "end": { "line": 162, "column": 49 }
+          },
+          "reason": "Root, PointerAddress and PointerValue targets return before this branch. The remaining Field and ArrayElement targets are created only by CreateFieldTarget, which supplies the same already-peeled resolvedField instance for both EffectiveCompiledField and WritableCompiledField. This includes partially indexed multidimensional arrays. Selecting WritableCompiledField unconditionally therefore returns the identical descriptor without additional work, changing no array shape, pointer depth, placement, decoding or failure."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?target.WritableCompiledField\n:target.EffectiveCompiledField)",
+          "location": {
+            "start": { "line": 160, "column": 14 },
+            "end": { "line": 162, "column": 49 }
+          },
+          "reason": "Only Field and ArrayElement targets reach this descriptor selection; root and pointer-accessor cases return earlier. CreateFieldTarget supplies its non-null already-peeled resolvedField as both descriptor properties. Choosing EffectiveCompiledField even for an array element thus returns the very same object as WritableCompiledField, including when only some dimensions were indexed. No extra peeling, lookup, allocation or decoding change occurs."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "target.Kind != ResolvedTargetKind.ArrayElement",
+          "location": {
+            "start": { "line": 160, "column": 14 },
+            "end": { "line": 160, "column": 60 }
+          },
+          "reason": "Reversing this condition only exchanges two properties containing the same CompiledField instance. Every Field or ArrayElement target is created by CreateFieldTarget with resolvedField passed twice; all other target kinds return before this branch. The shared descriptor already represents the exact remaining dimensions and pointer depth. Consequently both sides produce identical reads, positions, limits and diagnostics."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 163, "column": 49 },
+            "end": { "line": 163, "column": 90 }
+          },
+          "reason": "The preceding early returns handle Root, PointerAddress and PointerValue. All remaining targets come from CreateFieldTarget, which passes its non-null resolvedField to both descriptor properties after performing any array peeling. Neither ternary result can be null, so this missing-decoder diagnostic is unreachable. This does not qualify errors raised by an actual codec, invalid path, index or pointer target."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 127, "column": 47 },
+            "end": { "line": 127, "column": 95 }
+          },
+          "reason": "PointerValue targets are created only by CreatePointerValueTarget. It first constructs a non-null descriptor through CreatePointerTargetCompiledField and passes that descriptor as WritableCompiledField. Construction either succeeds with that field or throws before any target exists. The null-pointer-address case returns before this lookup. Changing only the missing-field diagnostic therefore cannot affect any supported pointer target, including remaining pointer levels and terminated text."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 197, "column": 13 },
+            "end": { "line": 197, "column": 67 }
+          },
+          "reason": "ReadRootValue is private and reached only from ReadResolvedValue after ResolveTargetFromLayout successfully resolved the same first path segment. Root resolution checks TryGetCompiledDeclaration before constructing the Root target. The immutable declarations and add-only synthetic-root cache cannot lose that successful binding. This repeated missing-root throw is unreachable; the earlier UnknownRoot failure remains fully validated and keeps its original diagnostic."
+        },
+        {
           "mutatorName": "Linq method mutation (Single() to SingleOrDefault())",
           "replacement": "values.Values.SingleOrDefault",
           "location": {
