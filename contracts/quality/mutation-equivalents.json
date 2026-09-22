@@ -7,6 +7,15 @@
       "sourceSha256": "52f1dccaf61ba2bd55291efbc920c6955352309cee02784d71d81b276e9c918c",
       "mutants": [
         {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {
+            "start": { "line": 186, "column": 13 },
+            "end": { "line": 186, "column": 18 }
+          },
+          "reason": "This argument is alignInlineStructStart, which HandleCStructElement consults only in its Struct declaration branch. This call instead passes selectedField.EffectiveField: compilation and every array/pointer projection construct an ordinary Field for that property. Inline composite declarations are kept separately in Declaration, and selected composite objects return through ParseCompiledStructAt before this call. Thus changing this unused flag cannot affect selected primitive, enum, array or pointer-field placement; positionIsResolvedTarget remains true."
+        },
+        {
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?target.WritableCompiledField\n:target.EffectiveCompiledField)",
           "location": {
@@ -3612,6 +3621,33 @@
       "pattern": "CStruct.cs",
       "sourceSha256": "e495d8356e97358f3226ded2e12887ed56dfae2bfe5e7ad960eb9d7b22bff488",
       "mutants": [
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 318, "column": 55 },
+            "end": { "line": 318, "column": 102 }
+          },
+          "reason": "This fallback is reached only for Fixed, Runtime, ToEnd or Terminated array shapes. Root resolution calculates rootArrayLength with GetBoundedArrayCount for those exact kinds. Field resolution peels every supplied index, then calculates arrayLength for those same remaining kinds before CreateFieldTarget; invalid or unavailable counts throw before constructing the target. Pointer accessors require a scalar selection and cannot introduce an uncounted array here. Every target admitted by this guard therefore has an integer ArrayLength, including zero, so the missing-length diagnostic cannot execute."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 326, "column": 51 },
+            "end": { "line": 326, "column": 99 }
+          },
+          "reason": "The branch requires the already-validated non-null descriptor to be a Flexible character array. Compilation assigns such char/wchar fields their canonical terminated-string codec id, including typedef and synthetic root projections. The canonical catalog contains each handler, and BuildCodecTable installs every canonical delegate or fails layout construction before an operation can begin. Custom codecs cannot replace these built-in registrations. Neither the repeated field lookup nor TerminatedReaderOf can be null here; changing this fallback text leaves string decoding, limits and actual input failures unchanged."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 335, "column": 51 },
+            "end": { "line": 335, "column": 105 }
+          },
+          "reason": "IsTerminatedText identifies canonical terminated-text primitives, not arbitrary custom codecs or composites. Their compiled codec ids refer to the built-in reader table populated by BuildCodecTable for every canonical name before construction succeeds. Aliases retain that resolved id, and custom registration cannot override built-in names. ReaderOf therefore returns a delegate in this guarded branch. Only the unreachable missing-delegate message changes; delegate execution, text limits and malformed-input diagnostics remain intact."
+        },
         {
           "mutatorName": "Statement mutation",
           "replacement": ";",

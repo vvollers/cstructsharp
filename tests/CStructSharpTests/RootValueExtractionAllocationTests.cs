@@ -41,7 +41,7 @@ public class RootValueExtractionAllocationTests
         Assert.IsTrue(namedBytes < enumeratedBytes, $"Named lookup allocated {namedBytes} bytes; enumeration allocated {enumeratedBytes}.");
     }
 
-    /// <summary>A selected composite does not need more allocation through ReadValue than through Parse.</summary>
+    /// <summary>Selected composite readers share their traversal without extra wrappers or unused debug paths.</summary>
     [TestMethod]
     public void SelectedComposite_AvoidsAnExtraResultWrapper()
     {
@@ -76,7 +76,7 @@ public class RootValueExtractionAllocationTests
             parseBytes = Math.Min(parseBytes, Measure(parse));
         }
 
-        Assert.IsTrue(valueBytes <= parseBytes, $"ReadValue allocated {valueBytes} bytes; Parse allocated {parseBytes}.");
+        Assert.AreEqual(valueBytes, parseBytes, $"ReadValue allocated {valueBytes} bytes; Parse allocated {parseBytes}.");
     }
 
     /// <summary>Ordinary parsing avoids the extra records allocated only when debug byte ranges are requested.</summary>
