@@ -1,11 +1,43 @@
 namespace CStructSharp.Tests;
 
+using System.Text;
+using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
 /// <summary>Checks exact reader limits and caller-visible names retained by debug traversal.</summary>
 [TestClass]
 public class ReaderBoundaryTests
 {
+    /// <summary>A UTF-16 surrogate pair cannot cross independently decoded rows of a fixed string table.</summary>
+    /// <param name="littleEndian">Whether each UTF-16 code unit stores its low byte first.</param>
+    /// <param name="debug">Whether the reader also records field ranges.</param>
+    [TestMethod]
+    [DataRow(false, false)]
+    [DataRow(false, true)]
+    [DataRow(true, false)]
+    [DataRow(true, true)]
+    public void WideStringTable_RejectsSurrogatesSplitAcrossRows(bool littleEndian, bool debug)
+    {
+        string type = littleEndian ? "wchar<" : "wchar>";
+        var layout = new CStruct($"struct root {{ {type} rows[2][1]; }};");
+        byte[] bytes = littleEndian ? new byte[] { 0, 0xD8, 0, 0xDC, } : new byte[] { 0xD8, 0, 0xDC, 0, };
+
+        // The combined units form a pair, but each one-unit row is an invalid independent UTF-16 string.
+        CStructReadException failure = Assert.Throws<CStructReadException>(() =>
+        {
+            if (debug)
+            {
+                layout.ParseWithDebug(bytes, "root");
+            }
+            else
+            {
+                layout.Parse(bytes, "root");
+            }
+        });
+        StringAssert.StartsWith(failure.Message, "Wide-character buffer contains an invalid UTF-16 code-unit sequence");
+        Assert.IsInstanceOfType<EncoderFallbackException>(failure.InnerException);
+    }
+
     /// <summary>A union reached through an unaligned pointer still starts each composite member at the union address.</summary>
     /// <param name="address">The stored pointer target, deliberately not aligned to the composite member's two-byte boundary.</param>
     /// <param name="debug">Whether the reader also captures field ranges.</param>
