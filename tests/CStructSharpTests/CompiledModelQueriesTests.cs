@@ -46,7 +46,7 @@ public class CompiledModelQueriesTests
         Assert.Throws<InvalidOperationException>(() => queries.GetCompiledRootField(declaration));
     }
 
-    /// <summary>A known enum resolves to its compiled integer domain.</summary>
+    /// <summary>A known enum resolves to the same compiled integer domain used by the browser bridge.</summary>
     [TestMethod]
     public void GetCompiledEnum_KnownEnum_ReturnsCompiledType()
     {
@@ -56,6 +56,7 @@ public class CompiledModelQueriesTests
         CompiledEnumType compiled = queries.GetCompiledEnum(enm);
 
         Assert.AreEqual("uint8", compiled.Underlying.TerminalName);
+        Assert.AreSame(compiled, cstruct.GetCompiledEnumForInterop(enm));
     }
 
     /// <summary>A known exported name is found in the compiled declaration snapshot.</summary>
