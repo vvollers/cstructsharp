@@ -50,7 +50,7 @@ public class RuntimeWriterBoundaryTests
         StringAssert.Contains(failure.Message, "Array length exceeds the configured write limit: values");
     }
 
-    /// <summary>An empty write path is rejected before changing the destination or its position.</summary>
+    /// <summary>An empty write path is rejected before validating write budgets or changing the destination.</summary>
     /// <param name="path">An empty or whitespace-only root selection.</param>
     [TestMethod]
     [DataRow("")]
@@ -65,6 +65,11 @@ public class RuntimeWriterBoundaryTests
         CStructPathException failure = Assert.Throws<CStructPathException>(() =>
             layout.Write(destination, path, new Dictionary<string, object?> { ["value"] = (byte)7, }));
         StringAssert.StartsWith(failure.Message, "Path is empty");
+
+        // Path validation also takes precedence over an invalid budget; it is not deferred until layout traversal.
+        CStructPathException invalidBudgetFailure = Assert.Throws<CStructPathException>(() =>
+            layout.Write(destination, path, new Dictionary<string, object?> { ["value"] = (byte)7, }, options: new WriteOptions { MaxArrayElements = -1, }));
+        StringAssert.StartsWith(invalidBudgetFailure.Message, "Path is empty");
         Assert.AreEqual(1L, destination.Position);
         CollectionAssert.AreEqual(new byte[] { 11, 22, 33, }, destination.ToArray());
     }
