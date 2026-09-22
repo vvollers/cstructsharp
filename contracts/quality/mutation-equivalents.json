@@ -206,6 +206,141 @@
           "replacement": "\"\"",
           "location": {
             "start": {
+              "line": 676,
+              "column": 57
+            },
+            "end": {
+              "line": 676,
+              "column": 109
+            }
+          },
+          "reason": "ExactEvaluationContext is private. EvaluateExact compiles the entire root with GetProgram before entering it, and its EvaluateIdentifier compiles each selected dependency before recursive evaluation. CompileExpression rejects Call nodes in every subtree, even unselected branches. Syntax child references are read-only and cannot change between validation and execution. The exact interpreter's duplicate Call rejection is therefore unreachable; only its message is changed."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 678,
+              "column": 21
+            },
+            "end": {
+              "line": 678,
+              "column": 57
+            }
+          },
+          "reason": "The private exact interpreter receives a root only after EvaluateExact calls GetProgram, and receives a dependency only after its own EvaluateIdentifier calls GetProgram. CompileExpression rejects every unsupported node type while traversing the complete immutable tree. Supported expression child references are read-only; their runtime types cannot change after compilation. Thus the exact interpreter's unsupported-node fallback is unreachable, and changing only its prefix cannot alter an observable diagnostic."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 735,
+              "column": 58
+            },
+            "end": {
+              "line": 735,
+              "column": 84
+            }
+          },
+          "reason": "Every tree reaching ExactEvaluationContext was first compiled through GetProgram at the root or named-dependency boundary. Compilation's CreateOperatorInstruction rejects all unknown UnaryOperatorType values before exact evaluation starts. UnaryOp.Type and its child reference are read-only, so the checked operator cannot become invalid afterward. The exact unary fallback message is unreachable; the earlier compiler diagnostic is unchanged."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 773,
+              "column": 58
+            },
+            "end": {
+              "line": 773,
+              "column": 85
+            }
+          },
+          "reason": "The exact interpreter validates roots and named dependencies through GetProgram before evaluating them. CreateOperatorInstruction rejects an unknown BinaryOperatorType during compilation, including in unselected syntax branches. BinaryOp.Type and its child references are read-only, so successful compilation cannot be followed by a newly invalid operator. This changes only the unreachable duplicate exact-interpreter fallback message; compiler failures remain intact."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {
+            "start": {
+              "line": 317,
+              "column": 72
+            },
+            "end": {
+              "line": 317,
+              "column": 77
+            }
+          },
+          "reason": "This exact Boolean is CompilationFrame.EmitOperator, not its Conditional flag. The same immutable frame is created with BranchStage 2, which emits the logical combining operator and patches its target. CompileExpression handles that stage and unconditionally continues before reading EmitOperator. Changing only this otherwise-unused flag cannot alter emitted instructions, patch targets, dependency flags, depth, work or failures."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {
+            "start": {
+              "line": 319,
+              "column": 72
+            },
+            "end": {
+              "line": 319,
+              "column": 77
+            }
+          },
+          "reason": "This exact Boolean is CompilationFrame.EmitOperator, not its Conditional flag. The same immutable frame is created with BranchStage 1, which emits the logical short-circuit jump. CompileExpression handles that stage and unconditionally continues before reading EmitOperator. Changing only this otherwise-unused flag cannot alter emitted instructions, patch targets, dependency flags, depth, work or failures."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {
+            "start": {
+              "line": 330,
+              "column": 77
+            },
+            "end": {
+              "line": 330,
+              "column": 82
+            }
+          },
+          "reason": "This exact Boolean is CompilationFrame.EmitOperator, not its Conditional flag. The same immutable frame is created with BranchStage 5, which emits the conditional join and patches its target. CompileExpression handles that stage and unconditionally continues before reading EmitOperator. Changing only this otherwise-unused flag cannot alter emitted instructions, patch targets, dependency flags, depth, work or failures."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {
+            "start": {
+              "line": 332,
+              "column": 77
+            },
+            "end": {
+              "line": 332,
+              "column": 82
+            }
+          },
+          "reason": "This exact Boolean is CompilationFrame.EmitOperator, not its Conditional flag. The same immutable frame is created with BranchStage 4, which emits the conditional end jump and patches the else target. CompileExpression handles that stage and unconditionally continues before reading EmitOperator. Changing only this otherwise-unused flag cannot alter emitted instructions, patch targets, dependency flags, depth, work or failures."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {
+            "start": {
+              "line": 334,
+              "column": 77
+            },
+            "end": {
+              "line": 334,
+              "column": 82
+            }
+          },
+          "reason": "This exact Boolean is CompilationFrame.EmitOperator, not its Conditional flag. The same immutable frame is created with BranchStage 3, which emits the conditional false-branch jump. CompileExpression handles that stage and unconditionally continues before reading EmitOperator. Changing only this otherwise-unused flag cannot alter emitted instructions, patch targets, dependency flags, depth, work or failures."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
               "line": 378,
               "column": 54
             },
