@@ -81,8 +81,10 @@ public class ExceptionTranslatingStreamTests
                 () => new WriteBudgetStream(inner, new WriteOptions()));
             Assert.AreSame(constructorCause, failure.InnerException);
             Assert.AreEqual(0L, failure.Offset);
+            StringAssert.StartsWith(failure.Message, "Cannot read the destination stream length");
         }
 
+        // Each callback invokes one physical operation; the expected text identifies that operation to callers.
         (FaultPoint Point, bool IsRead, Action<WriteBudgetStream> Operation)[] cases =
         [
             (FaultPoint.Length, false, stream => _ = stream.Length),
@@ -96,6 +98,7 @@ public class ExceptionTranslatingStreamTests
             (FaultPoint.SetLength, false, stream => stream.SetLength(1)),
             (FaultPoint.WriteArray, false, stream => stream.Write(new byte[1], 0, 1)),
             (FaultPoint.WriteSpan, false, stream => stream.Write(new byte[1].AsSpan())),
+            (FaultPoint.WriteSpan, false, stream => stream.WriteBlock(new byte[1], 1)),
             (FaultPoint.WriteByte, false, stream => stream.WriteByte(1)),
         ];
 
@@ -106,6 +109,7 @@ public class ExceptionTranslatingStreamTests
             using var stream = new WriteBudgetStream(inner, new WriteOptions());
             inner.Point = point;
 
+            // Execute the selected operation through the wrapper, preserving its read/write error category.
             CStructException failure = isRead
                                            ? Assert.Throws<CStructReadException>(() => operation(stream), point.ToString())
                                            : Assert.Throws<CStructWriteException>(() => operation(stream), point.ToString());
@@ -115,6 +119,19 @@ public class ExceptionTranslatingStreamTests
                 failure.Code,
                 point.ToString());
             Assert.IsFalse(string.IsNullOrWhiteSpace(failure.Message), point.ToString());
+            string expected = point switch
+            {
+                FaultPoint.Length => "Cannot read the destination stream length.",
+                FaultPoint.PositionGet => "Cannot read the destination stream position.",
+                FaultPoint.PositionSet => "Cannot change the destination stream position.",
+                FaultPoint.Flush => "Cannot flush the destination stream.",
+                FaultPoint.ReadArray or FaultPoint.ReadSpan => "Cannot read existing destination bytes.",
+                FaultPoint.ReadByte => "Cannot read an existing destination byte.",
+                FaultPoint.Seek => "Cannot seek in the destination stream.",
+                FaultPoint.SetLength => "Cannot change the destination stream length.",
+                _ => "Cannot write to the destination stream.",
+            };
+            StringAssert.StartsWith(failure.Message, expected.TrimEnd('.'), point.ToString());
             Assert.AreEqual(point == FaultPoint.PositionGet ? null : 0L, failure.Offset, point.ToString());
         }
     }

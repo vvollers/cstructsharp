@@ -169,7 +169,31 @@ public class WriteBudgetStreamTests
 
         CStructWriteException exception = Assert.Throws<CStructWriteException>(() => stream.WriteByte(1));
         Assert.IsInstanceOfType<OverflowException>(exception.InnerException);
+        StringAssert.StartsWith(exception.Message, "Write output accounting overflowed the supported stream range.");
         Assert.AreEqual(0, inner.WriteCount);
+    }
+
+    /// <summary>Block preflight includes existing output, cumulative traffic and the inclusive budget boundary.</summary>
+    [TestMethod]
+    public void BlockPreflight_AccountsForExistingExtentAndRepeatedWrites()
+    {
+        using var inner = new MemoryStream(new byte[8]);
+        using var stream = new WriteBudgetStream(inner, new WriteOptions { MaxTotalBytesWritten = 4, });
+        Assert.IsTrue(stream.CanAffordBlock(4, 4));
+        stream.WriteBlock(new byte[] { 1, 2, }, 2);
+        stream.Position = 0;
+        Assert.IsTrue(stream.CanAffordBlock(4, 2));
+        Assert.IsFalse(stream.CanAffordBlock(4, 3));
+        stream.WriteBlock(new byte[] { 3, 4, 5, 6, }, 2);
+        Assert.IsTrue(stream.CanAffordBlock(0, 0));
+        Assert.IsFalse(stream.CanAffordBlock(1, 1));
+        CollectionAssert.AreEqual(new byte[] { 3, 4, 5, 6, 0, 0, 0, 0 }, inner.ToArray());
+
+        // An address beyond Int64 cannot be promised even if the requested physical charge is zero.
+        using var extreme = new ExtremePositionStream();
+        using var bounded = new WriteBudgetStream(extreme, new WriteOptions { MaxTotalBytesWritten = long.MaxValue, });
+        Assert.IsFalse(bounded.CanAffordBlock(1, 0));
+        Assert.AreEqual(0, extreme.WriteCount);
     }
 
     /// <summary>

@@ -3,6 +3,24 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "Generated/WriteCursor.cs",
+      "sourceSha256": "559f67c77add2f8cc74aba5c2ee31dc84706b50e80767acb36b716f1210865d1",
+      "mutants": [
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "this.position >= this.length",
+          "location": { "start": { "line": 161, "column": 13 }, "end": { "line": 161, "column": 40 } },
+          "reason": "The only newly entered case is position equal to length. Its body only assigns length = position, leaving the same integer state. Both versions return the same reserved span and perform identical capacity and budget checks."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?new CStructWriteException(message) :new CStructWriteException(message, cause))",
+          "location": { "start": { "line": 611, "column": 25 }, "end": { "line": 611, "column": 119 } },
+          "reason": "For a non-null cause this already chooses the two-argument constructor. For null, both CStructWriteException constructors delegate to the same protected constructor with Code WriteFailed, the same message and a null inner exception. The exception type, diagnostic context and cause therefore remain identical."
+        }
+      ]
+    },
+    {
       "pattern": "Generated/RecordSequence.cs",
       "sourceSha256": "102bbef90178bd5fc13a00c81bd9525200036628ce91ba0c8e6d6778612f1c4a",
       "mutants": [
