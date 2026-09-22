@@ -1,11 +1,33 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
 /// <summary>Checks implicit padding values, recursive promoted-union selection and expression diagnostics during writing.</summary>
 [TestClass]
 public class WriterPaddingAndPromotionTests
 {
+    /// <summary>A caller's invalid union count is a runtime read-domain size error, not a construction failure.</summary>
+    /// <param name="promoted">Whether the union is anonymous inside a struct rather than an explicit root.</param>
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void UnionCountOverride_PreservesRuntimeFailureKind(bool promoted)
+    {
+        string declaration = promoted
+                                 ? "struct root { union { uint8 values[COUNT]; uint8 small; }; };"
+                                 : "union root { uint8 values[COUNT]; uint8 small; };";
+        var layout = new CStruct("#define COUNT 2\n" + declaration);
+        object data = promoted
+                          ? new Dictionary<string, object?> { ["small"] = (byte)7, }
+                          : UnionValue.FromMember("root", "small", (byte)7);
+        var variables = new Dictionary<string, int> { ["COUNT"] = -1, };
+
+        // Construction accepted the original count; the supplied override fails when this write sizes the union.
+        CStructReadException failure = Assert.Throws<CStructReadException>(() => layout.Serialize("root", data, variables));
+        StringAssert.Contains(failure.Message, "Array length cannot be negative: values");
+    }
+
     /// <summary>An empty input key cannot select unnamed padding as an anonymous union's active view.</summary>
     /// <param name="nested">Whether the padding belongs to a promoted struct inside the union.</param>
     [TestMethod]
