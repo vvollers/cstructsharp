@@ -8,6 +8,29 @@ using CStructSharp.Streams;
 [TestClass]
 public class SparseUpdatePoolTests
 {
+    /// <summary>The independently disposable sparse page returns its rental once even when disposed repeatedly.</summary>
+    [TestMethod]
+    public void SparseChunk_RepeatedDisposalReturnsItsRentalOnce()
+    {
+        var pool = new TrackingPool();
+        Type chunkType = typeof(SparseUpdateStream).GetNestedType("StagedChunk", System.Reflection.BindingFlags.NonPublic)!;
+
+        // Exercise the page's ownership contract directly; the outer stream suppresses its own repeated cleanup.
+        var chunk = (IDisposable)Activator.CreateInstance(chunkType, pool)!;
+        try
+        {
+            Assert.HasCount(1, pool.Rentals);
+        }
+        finally
+        {
+            chunk.Dispose();
+        }
+
+        chunk.Dispose();
+        Assert.HasCount(1, pool.Returns);
+        Assert.AreSame(pool.Rentals[0], pool.Returns[0]);
+    }
+
     /// <summary>Two distant edits allocate only their sparse pages and compact metadata, not the untouched input extent.</summary>
     [TestMethod]
     [DoNotParallelize]
