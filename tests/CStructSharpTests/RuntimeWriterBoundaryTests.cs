@@ -7,6 +7,31 @@ using CStructSharp.Values;
 [TestClass]
 public class RuntimeWriterBoundaryTests
 {
+    /// <summary>Preserving an incomplete union or bitfield fails with a useful explanation and leaves the source unchanged.</summary>
+    /// <param name="union">Whether the update preserves a union rather than a shared bitfield unit.</param>
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void TruncatedUpdate_ExplainsTheMissingStorage(bool union)
+    {
+        var layout = new CStruct(union
+            ? "union root { uint16 wide; uint8 small; };"
+            : "struct root { uint16 low:4; uint16 high:12; };");
+        using var stream = new MemoryStream(new byte[] { 0xA5, });
+        string path = union ? "root" : "root.low";
+        object value = union ? UnionValue.FromMember("root", "small", (byte)3) : 3;
+
+        // Preservation needs the complete old storage before a replacement can be staged.
+        CStructReadException failure = Assert.Throws<CStructReadException>(() =>
+            layout.Update(stream, path, value, options: new UpdateOptions { ClearUnionStorage = false, }));
+        string reason = union
+            ? "Cannot preserve union storage because the complete existing extent is not present"
+            : "Cannot update a bitfield whose complete storage unit is not present";
+        StringAssert.Contains(failure.Message, reason);
+        Assert.AreEqual(0L, stream.Position);
+        CollectionAssert.AreEqual(new byte[] { 0xA5, }, stream.ToArray());
+    }
+
     /// <summary>A multidimensional write counts leaf elements and accepts exactly the configured limit.</summary>
     [TestMethod]
     public void MultidimensionalArray_EnforcesTotalLeafLimit()

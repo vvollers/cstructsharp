@@ -22,7 +22,7 @@ public class Leb128Tests
         }
     }
 
-    /// <summary>Variable-width arrays leave following fields and selected indices at their actual positions.</summary>
+    /// <summary>Variable-width arrays preserve selected positions and explain why an update cannot change encoded length.</summary>
     [TestMethod]
     public void DynamicArrays_ResolveActualExtents()
     {
@@ -45,7 +45,10 @@ public class Leb128Tests
         Assert.AreEqual(129, parser.ReadValue<int>(stream, "root.values[1]"));
         byte[] before = stream.ToArray();
         stream.Position = 0;
-        Assert.Throws<CStructWriteException>(() => parser.Update(stream, "root.values[1]", 1));
+
+        // Replacing a two-byte integer with a one-byte encoding must explain the unchanged-extent rule.
+        CStructWriteException failure = Assert.Throws<CStructWriteException>(() => parser.Update(stream, "root.values[1]", 1));
+        StringAssert.Contains(failure.Message, "updates must preserve the existing encoded byte length");
         CollectionAssert.AreEqual(before, stream.ToArray());
     }
 
