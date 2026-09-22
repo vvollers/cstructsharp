@@ -3,6 +3,36 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "Streams/WriteBudgetStream.cs",
+      "sourceSha256": "597491e867adc0b657a90e551923844eb1855931b76dba2209365109af5373b0",
+      "mutants": [
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "value - this.initialLength",
+          "location": { "start": { "line": 136, "column": 38 }, "end": { "line": 136, "column": 73 } },
+          "reason": "For a supported SetLength request, value and the original Stream.Length are both nonnegative Int64 byte lengths. Their difference is between -Int64.MaxValue and Int64.MaxValue, so this subtraction cannot overflow. The same Math.Max, budget check and underlying SetLength run. Negative requested lengths or a stream reporting a negative Length violate the stream operation's input contract and are not equivalent-input claims."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "checked(this.inner.Position + length) - this.initialLength",
+          "location": { "start": { "line": 190, "column": 42 }, "end": { "line": 190, "column": 109 } },
+          "reason": "For supported streams and block lengths, Position, length and initialLength are nonnegative. The retained inner checked addition either throws as before or produces a nonnegative Int64 write end. Subtracting a nonnegative Int64 initial length from that end cannot exceed either signed bound, so removing only the outer subtraction check changes no result or overflow handling."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "writeEnd - this.initialLength",
+          "location": { "start": { "line": 287, "column": 42 }, "end": { "line": 287, "column": 80 } },
+          "reason": "Supported write counts and stream positions are nonnegative. The preceding checked Position + count either throws before this line or yields a nonnegative Int64 writeEnd; initialLength is also nonnegative. Their difference therefore lies within the signed Int64 range. The separate cumulative-traffic and write-end addition checks remain unchanged."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "this.inner.Position + length",
+          "location": { "start": { "line": 190, "column": 50 }, "end": { "line": 190, "column": 87 } },
+          "reason": "Removing the inner checked wrapper leaves the addition textually inside the outer checked expression around addition minus initialLength. C# checked context covers both integral operators in that expression, so overflow from Position + length still reaches the same catch and returns false. The existing extreme-position preflight regression exercises this boundary."
+        }
+      ]
+    },
+    {
       "pattern": "**/CStructSharp.Core/Compilation/BitfieldPlacement.cs",
       "sourceSha256": "a6ac29d369776cba4495080b928c994db4460cea03e166f173db0f2c05fde50b",
       "mutants": [
@@ -66,6 +96,18 @@
       "pattern": "Generated/ReadCursor.cs",
       "sourceSha256": "7c0dda0759122c4c41a82abdeee5a41de4f9bb13e5bf10bff5a0ab93f1fa8193",
       "mutants": [
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "count < 0",
+          "location": { "start": { "line": 287, "column": 13 }, "end": { "line": 287, "column": 23 } },
+          "reason": "Only count zero with a positive element size newly reaches the body. The total is zero, remaining bytes and affordable bytes are nonnegative, both failure conditions stay false, and Take(0) returns an empty view without charging or moving. Cancellation is checked before either branch. Empty-span backing identity is unspecified; the supported result is the same empty element sequence and unchanged cursor/budget."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": ">= 0",
+          "location": { "start": { "line": 797, "column": 48 }, "end": { "line": 797, "column": 51 } },
+          "reason": "ExitPointer's supported use returns from one successful unmatched EnterPointer, which pushes exactly one target before returning its resume position. Thus the stack contains at least one entry on every valid exit and both predicates pop the same target. LayoutEmitter.Arrays emits EnterPointer before its try and exactly one ExitPointer in finally, including nested targets. An extra exit without a matching entry violates the documented pairing and is not an equivalent-input claim."
+        },
         {
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
