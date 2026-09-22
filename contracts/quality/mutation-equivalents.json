@@ -1840,6 +1840,12 @@
       "sourceSha256": "56c5df26eca8fb0833ba6edb0520c087528f20f5ab434cf10e459f173fe82a28",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": { "start": { "line": 245, "column": 25 }, "end": { "line": 245, "column": 78 } },
+          "reason": "WritePromotedUnion encodes its one selected member using a new LayoutVariables dictionary copied from the parent's variables. Size queries read the parent through IReadOnlyDictionary; member lookup and staging cannot mutate that operation-owned parent dictionary. Therefore every parent variable is unchanged when this call is reached. ConditionalVariableScope starts with its local names removed and null local slots, and each preceding active ordinary/promoted-struct field completes its capture/restoration before traversal continues; inactive fields do not change variables. Thus the parent dictionary and its saved local slots already agree. This CompleteField call only recaptures or restores those same values, so removing it changes neither later conditional/array expressions nor bytes. Ordinary and promoted-struct completion calls, whose nested writes share the parent variables, remain required and are not qualified."
+        },
+        {
           "mutatorName": "Arithmetic mutation",
           "replacement": "curPos - byteSize",
           "location": {
