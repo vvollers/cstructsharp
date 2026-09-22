@@ -11,6 +11,23 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class LayoutMathTests
 {
+    /// <summary>Invalid alignments retain their rule and, for explicit overrides, the field and rejected value.</summary>
+    [TestMethod]
+    public void InvalidAlignment_ExplainsTheViolatedRule()
+    {
+        // Check each overload because byte and bit placements use different integer widths.
+        CStructLayoutException narrow = Assert.Throws<CStructLayoutException>(() => LayoutMath.AlignUp(4, 0));
+        CStructLayoutException wide = Assert.Throws<CStructLayoutException>(() => LayoutMath.AlignUp(4L, 0));
+        CStructLayoutException bits = Assert.Throws<CStructLayoutException>(() => LayoutMath.AlignUp(4L, 0L));
+        Assert.AreEqual("Alignment must be greater than zero.", narrow.Message);
+        Assert.AreEqual(narrow.Message, wide.Message);
+        Assert.AreEqual(narrow.Message, bits.Message);
+
+        // Three is positive but is not a power of two, so the override must identify its invalid value.
+        CStructLayoutException explicitAlignment = Assert.Throws<CStructLayoutException>(() => LayoutMath.ValidateExplicitAlignment(3, "value"));
+        Assert.AreEqual("Explicit alignment override must be a positive power of two: value = 3", explicitAlignment.Message);
+    }
+
     /// <summary>An already-aligned offset must be returned unchanged, never rounded up to the next unit.</summary>
     [TestMethod]
     public void AlignUpInt32_ValueAlreadyAligned_ReturnsSameValue()
