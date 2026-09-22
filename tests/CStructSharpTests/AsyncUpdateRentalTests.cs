@@ -9,6 +9,7 @@ public class AsyncUpdateRentalTests
 {
     /// <summary>The original-byte snapshot is returned after either successful staging or a value-validation failure.</summary>
     /// <param name="invalidValue">Whether to supply a number outside the selected byte field's range.</param>
+    /// <returns>Completion after update and exact buffer-return assertions.</returns>
     [TestMethod]
     [DoNotParallelize]
     [DataRow(false)]

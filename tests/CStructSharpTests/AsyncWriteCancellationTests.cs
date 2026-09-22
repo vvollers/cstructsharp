@@ -3,10 +3,30 @@ namespace CStructSharp.Tests;
 using System.Buffers;
 using CStructSharp.Codecs;
 
-/// <summary>Checks cancellation before async output acquisition and between staged composite-array elements.</summary>
+/// <summary>Checks cancellation before acquisition, between staged elements and before physical write-back.</summary>
 [TestClass]
 public class AsyncWriteCancellationTests
 {
+    /// <summary>Cancellation after the final staged value prevents submitting bytes even to a stream that ignores its token.</summary>
+    /// <returns>Completion after cancellation and unchanged-destination assertions.</returns>
+    [TestMethod]
+    public async Task CancellationAfterStaging_PreventsPhysicalWriteBack()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var codec = new CancellingCodec(cancellation);
+        var layout = new CStruct("struct root { cancel_byte value; };", compilationOptions: new CStructCompilationOptions { Codecs = [codec,], });
+        using var destination = new TokenIgnoringStream();
+        var data = new Dictionary<string, object?> { ["value"] = (byte)8, };
+
+        // The only value completes staging before cancellation; there is no second element to stop the update.
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await layout.UpdateAsync(destination, "root", data, cancellationToken: cancellation.Token));
+        Assert.AreEqual(1, codec.Writes);
+        Assert.AreEqual(0, destination.WriteCalls);
+        Assert.AreEqual(1L, destination.Position);
+        CollectionAssert.AreEqual(new byte[] { 0xAA, 7, 0xBB, }, destination.ToArray());
+    }
+
     /// <summary>A direct operation token reaches the synchronous staging writer before a second record is encoded.</summary>
     /// <param name="update">Whether to replace existing bytes rather than write a newly serialized value.</param>
     [TestMethod]
@@ -110,6 +130,30 @@ public class AsyncWriteCancellationTests
             this.Writes++;
             cancellation.Cancel();
             return OperationStatus.Done;
+        }
+    }
+
+    /// <summary>Records writes without honoring cancellation, making the library's pre-submit check observable.</summary>
+    private sealed class TokenIgnoringStream : MemoryStream
+    {
+        /// <summary>Creates a one-byte update region between two sentinel bytes.</summary>
+        public TokenIgnoringStream()
+            : base([0xAA, 7, 0xBB,])
+        {
+            this.Position = 1;
+        }
+
+        public int WriteCalls { get; private set; }
+
+        /// <summary>Records and performs an output write regardless of the token's state.</summary>
+        /// <param name="buffer">The changed bytes submitted by the library.</param>
+        /// <param name="cancellationToken">Deliberately ignored; cancellation is cooperative.</param>
+        /// <returns>Immediate completion after writing.</returns>
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            this.WriteCalls++;
+            this.Write(buffer.Span);
+            return ValueTask.CompletedTask;
         }
     }
 

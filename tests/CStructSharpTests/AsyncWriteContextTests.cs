@@ -7,6 +7,7 @@ public class AsyncWriteContextTests
     /// <summary>A genuinely pending I/O operation resumes without posting through the caller's context.</summary>
     /// <param name="update">Whether to update existing bytes instead of writing a new encoded value.</param>
     /// <param name="operation">The I/O boundary held pending until the caller context has been restored.</param>
+    /// <returns>Completion after the released operation and its continuation assertions.</returns>
     [TestMethod]
     [DataRow(false, "write")]
     [DataRow(true, "read")]

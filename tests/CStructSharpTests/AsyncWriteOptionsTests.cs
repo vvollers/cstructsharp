@@ -5,6 +5,7 @@ namespace CStructSharp.Tests;
 public class AsyncWriteOptionsTests
 {
     /// <summary>A non-cancellable wrapper does not invoke a caller-defined record copy constructor an extra time.</summary>
+    /// <returns>Completion after the write and comparison with synchronous snapshot behavior.</returns>
     [TestMethod]
     public async Task NonCancellableWrite_DoesNotAddAnOptionsCopy()
     {
