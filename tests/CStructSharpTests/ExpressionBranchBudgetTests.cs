@@ -49,6 +49,27 @@ public class ExpressionBranchBudgetTests
         Assert.AreEqual("Maximum expression evaluation depth exceeded.", failure.Message);
     }
 
+    /// <summary>A selected conditional dependency must fit the cumulative depth even when it has no further names.</summary>
+    /// <param name="source">A conditional selecting a unary dependency through either result arm.</param>
+    [TestMethod]
+    [DataRow("1 ? value : 0")]
+    [DataRow("0 ? 0 : value")]
+    public void SessionConditionalDepth_IncludesTheSelectedProgram(string source)
+    {
+        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        var variables = new Dictionary<string, Expr> { ["value"] = CStructDefinitionParser.ParseExpression("-1"), };
+        var sufficient = new ExpressionEvaluator(new ExpressionEvaluationLimits(4, 100));
+        Assert.AreEqual(-1, sufficient.Evaluate(expression, variables));
+        Assert.AreEqual(-1, sufficient.CreateSession(variables).Evaluate(expression));
+        var limited = new ExpressionEvaluator(new ExpressionEvaluationLimits(3, 100));
+
+        // The selected program has no names of its own; its unary tree still contributes two levels.
+        CStructLayoutException direct = Assert.Throws<CStructLayoutException>(() => limited.Evaluate(expression, variables));
+        CStructLayoutException session = Assert.Throws<CStructLayoutException>(() => limited.CreateSession(variables).Evaluate(expression));
+        Assert.AreEqual("Maximum expression evaluation depth exceeded.", direct.Message);
+        Assert.AreEqual(direct.Message, session.Message);
+    }
+
     /// <summary>Repeated failed dependencies consume execution work even when their validation has been cached.</summary>
     [TestMethod]
     public void FailedSessionEvaluations_StillConsumeWork()
