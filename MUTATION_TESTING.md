@@ -180,8 +180,9 @@ linked files, and Stryker matches a pattern against a file's full path or its pa
 - writes progress, JSON, and HTML reports; and
 - requires a mutation score of at least 75%.
 
-The report validator also checks that there are no surviving mutations, uncovered mutations, or mutations that fail
-at runtime. This is stricter than checking the percentage alone.
+The report validator also checks that there are no unexplained surviving mutations, uncovered mutations, or mutations
+that fail at runtime. Only the exact reviewed equivalent survivors described above qualify. This is stricter than
+checking the percentage alone.
 
 ## The layout parser
 
@@ -233,7 +234,7 @@ mutations. The goal is to find weak tests, not to make the percentage look bette
 The reviewed scope replaces six obsolete partial-class filenames with their current enum, exception, bitfield,
 layout-math, read/write-state and symbol-validation implementations. It also includes the new conditional-selection,
 compiled scope/field/size metadata, debug-path and fixed-point helpers. This expands semantic coverage; the 75%
-threshold and zero surviving/uncovered/runtime-error requirements remain unchanged. Compiler-rejected mutations
+threshold, zero unexplained survivors, and zero uncovered/runtime-error requirements remain unchanged. Compiler-rejected mutations
 remain tool limitations, not detected behavior.
 
 The mutation run excludes exactly the API export-list reflection test through `test-case-filter`. Stryker changes

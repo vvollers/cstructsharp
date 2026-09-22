@@ -6,6 +6,34 @@ using CStructSharp.Values;
 [TestClass]
 public class ReaderBoundaryTests
 {
+    /// <summary>A union reached through an unaligned pointer still starts each composite member at the union address.</summary>
+    /// <param name="address">The stored pointer target, deliberately not aligned to the composite member's two-byte boundary.</param>
+    /// <param name="debug">Whether the reader also captures field ranges.</param>
+    [TestMethod]
+    [DataRow(1, false)]
+    [DataRow(1, true)]
+    [DataRow(3, false)]
+    [DataRow(3, true)]
+    public void UnionPointer_CompositeMemberBeginsAtTheStoredTarget(int address, bool debug)
+    {
+        var layout = new CStruct("union choice { struct { uint8 first; uint16 second; } item; uint32 raw; }; struct root { choice *target; };", pointerSize: 1, aligned: true);
+        byte[] bytes = new byte[12];
+        bytes[0] = (byte)address;
+        bytes[address] = 0xA1;
+        bytes[address + 1] = 0xB2;
+        bytes[address + 2] = 0xC3;
+        bytes[address + 3] = 0xD4;
+        using var source = new MemoryStream(bytes);
+        StructValue parsed = debug ? layout.ParseWithDebug(source, "root").Value : layout.Parse(source, "root");
+        var pointer = (Pointer)parsed["target"]!;
+        Assert.AreEqual((long)address, pointer.Address);
+        Assert.IsTrue(pointer.IsDereferenced);
+        var union = (UnionValue)pointer.Value!;
+        Assert.AreEqual((byte)0xA1, ((StructValue)union["item"]!)["first"]);
+        Assert.AreEqual(0xD4C3B2A1U, union["raw"]);
+        Assert.AreEqual(1L, source.Position, "Following the target must restore the pointer's continuation position.");
+    }
+
     /// <summary>A multidimensional array may contain exactly the configured maximum number of leaf elements.</summary>
     /// <param name="debug">Whether the reader also captures field ranges.</param>
     [TestMethod]
