@@ -3,6 +3,42 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "**/CStructSharp.Core/Compilation/CompiledField.cs",
+      "sourceSha256": "76487881430ff1d6afac6ccdffe9fca1e1ba4324c9666d6c6a9f93bc35606839",
+      "mutants": [
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"Stryker was here!\"",
+          "location": {
+            "start": {
+              "line": 154,
+              "column": 48
+            },
+            "end": {
+              "line": 154,
+              "column": 60
+            }
+          },
+          "reason": "Both CompiledField constructors unconditionally assign Name and TypeSpelling from effectiveField before calling SetCharacterFacts, resolving a codec or exposing the constructed instance. Neither constructor publishes this before those assignments. Changing this property initializer therefore changes only an overwritten value that no supported caller can observe; constructor failures expose no instance."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"Stryker was here!\"",
+          "location": {
+            "start": {
+              "line": 160,
+              "column": 56
+            },
+            "end": {
+              "line": 160,
+              "column": 68
+            }
+          },
+          "reason": "Both CompiledField constructors unconditionally assign Name and TypeSpelling from effectiveField before calling SetCharacterFacts, resolving a codec or exposing the constructed instance. Neither constructor publishes this before those assignments. Changing this property initializer therefore changes only an overwritten value that no supported caller can observe; constructor failures expose no instance."
+        }
+      ]
+    },
+    {
       "pattern": "**/CStructSharp.Core/Compilation/CompiledCompositeType.cs",
       "sourceSha256": "feca6f351306cfcae6238bf9df37b73eaa3506f4b78cc54592b99d19e0340995",
       "mutants": [
