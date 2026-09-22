@@ -1078,6 +1078,15 @@
       "sourceSha256": "e9f21bf75824129bc4e8b5262eafe032f73f9ec6c16529b2d8bee34486cc75bd",
       "mutants": [
         {
+          "mutatorName": "Equality mutation",
+          "replacement": "builder.Length >= 0",
+          "location": {
+            "start": { "line": 1122, "column": 21 },
+            "end": { "line": 1122, "column": 39 }
+          },
+          "reason": "ReadRestOfLine has only two callers. The macro caller starts at its required opening parenthesis, which is appended before any continuation. The text fallback starts at valueStart after SkipInlineTrivia has consumed every leading whitespace/comment/valid continuation; empty or line-ended bodies already returned, so its first character is appended normally. The builder is never cleared. Consequently every later continuation reaches this guard with Length > 0, and changing it to >= 0 neither accesses an empty builder nor changes separator insertion. Invalid backslashes are appended as ordinary characters and preserve the same invariant."
+        },
+        {
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {

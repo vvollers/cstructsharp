@@ -16,7 +16,10 @@ public class HexadecimalTokenBoundaryTests
     [DataRow("0x/")]
     public void HexadecimalLiterals_RejectNonDigits(string source)
     {
+        // Require hexadecimal input; automatic literal parsing may accept just the leading decimal zero.
         Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLiteral(source, 16));
+
+        // The expression entry point must consume the complete input instead of accepting a valid prefix.
         Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseExpression(source));
     }
 }

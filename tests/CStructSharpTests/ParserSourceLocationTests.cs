@@ -17,6 +17,7 @@ public class ParserSourceLocationTests
     [DataRow("struct root { missing : 3; };", "missing", "Unknown type")]
     public void InvalidDeclarations_RetainTheirTokenOffset(string source, string token, string detail)
     {
+        // Compile the declaration so the reported location includes the semantic validation failure.
         CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => new CStruct(source));
         StringAssert.Contains(failure.Message, detail);
         Assert.AreEqual(source.LastIndexOf(token, StringComparison.Ordinal), failure.SourceOffset);
@@ -31,6 +32,7 @@ public class ParserSourceLocationTests
     [DataRow("switch (1) { case 1: { uint8 value; } }")]
     public void UnionBodies_RejectConditionalMembers(string body)
     {
+        // Check the parser itself; a later compiler rejection would hide an overly permissive union grammar.
         Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLayout("union root { " + body + " };"));
         Assert.HasCount(1, LayoutParser.ParseLayout("struct root { " + body + " };"));
     }
