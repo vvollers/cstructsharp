@@ -3,6 +3,48 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "CStructConditionalFields.cs",
+      "sourceSha256": "fe75dfd8b0a44a26afc65969ab75846ed64fc8da4f5e8420f1bf128797490ba0",
+      "mutants": [
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 59,
+              "column": 13
+            },
+            "end": {
+              "line": 59,
+              "column": 30
+            }
+          },
+          "reason": "CaptureUpdateLayout is private and its three call sites pass either readState.Stream (a ReadBudgetStream) or stagingStream (a SparseUpdateStream). Its new operation context wraps that object in another ReadBudgetStream. Memory backing is selected only for a FixedBufferStream or an exposed MemoryStream; neither permitted input is one. Complete therefore calls FlushPosition on a non-memory-backed wrapper, which is a no-op. Stream-mode reads already delegate their position changes, and the update owner restores its original position separately."
+        }
+      ]
+    },
+    {
+      "pattern": "**/CStructSharp.Core/Expressions/ExpressionArithmetic.cs",
+      "sourceSha256": "f96ee8cd5b6332cdafc23a8c0b1997733ebcb89c908a83f77dadf1913eb783bd",
+      "mutants": [
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "left % right",
+          "location": {
+            "start": {
+              "line": 22,
+              "column": 54
+            },
+            "end": {
+              "line": 22,
+              "column": 75
+            }
+          },
+          "reason": "The built-in signed Int32 remainder emits the same remainder operation in checked and unchecked contexts; there is no alternate wrapping remainder instruction. Removing checked leaves ordinary signed remainders, DivideByZeroException for a zero divisor and the CLR minimum-integer/minus-one overflow behavior unchanged. ModuloBoundaryTests exercises ordinary signs, integer endpoints and both exceptional divisors on .NET 8 and .NET 10."
+        }
+      ]
+    },
+    {
       "pattern": "Values/TypedValueConverter.cs",
       "sourceSha256": "d02b09dc827429f59574717773c307127ebe7a1291e25d9cb8a44da116feeca4",
       "mutants": [
@@ -846,6 +888,21 @@
       "pattern": "Generated/Codec.cs",
       "sourceSha256": "71371e0185343bd08c160d639e5331fb7a20ee27116eed6f906ce459c7721eb3",
       "mutants": [
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 830,
+              "column": 9
+            },
+            "end": {
+              "line": 832,
+              "column": 10
+            }
+          },
+          "reason": "For supported one-byte encoding units (ASCII/UTF-8 NUL or newline terminators), the encoded terminator has one byte and the first encoding boundary is offset zero. Both production callers calculate alignmentOffset modulo unitSize, which is zero when unitSize is one. Removing this vectorized IndexOf fast path therefore falls through to a loop comparing that same byte at every index from zero, returning the same first match or minus one. Two-byte encodings already use the loop and are unchanged. This is an optimization-only change for supported terminator inputs, not a claim about malformed helper arguments."
+        },
         {
           "mutatorName": "OrAssignmentExpression to ExclusiveOrAssignmentExpression mutation",
           "replacement": "value ^= (ulong)source[index] << shift",

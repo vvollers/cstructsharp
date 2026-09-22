@@ -7,6 +7,28 @@ using CStructSharp.Compilation;
 [TestClass]
 public class ConstructionDictionaryTests
 {
+    /// <summary>The visible count includes unshadowed baseline keys, regardless of how many locals replace them.</summary>
+    /// <param name="shadowed">The number of baseline keys replaced by local values.</param>
+    [TestMethod]
+    [DataRow(0)]
+    [DataRow(1)]
+    [DataRow(2)]
+    [DataRow(3)]
+    public void Baseline_CountIncludesOnlyUnshadowedKeys(int shadowed)
+    {
+        var baseline = new Dictionary<string, int> { ["a"] = 1, ["b"] = 2, ["c"] = 3, };
+        var table = new ConstructionDictionary<string, int>(StringComparer.Ordinal, baseline);
+        for (int index = 0; index < shadowed; index++)
+        {
+            table.Add(((char)('a' + index)).ToString(), 10 + index);
+        }
+
+        Assert.AreEqual(3, table.Count);
+        table.Freeze();
+        Assert.AreEqual(3, table.Count);
+        Assert.HasCount(3, table.ToArray());
+    }
+
     /// <summary>Local entries shadow a shared baseline in lookup, count, enumeration and collection copies.</summary>
     [TestMethod]
     public void Baseline_ShadowingPreservesEveryVisibleEntryExactlyOnce()
