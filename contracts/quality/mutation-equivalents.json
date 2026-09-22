@@ -3,6 +3,57 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "Streams/ReadBudgetStream.cs",
+      "sourceSha256": "297c449979513b0009fdf0cb3b796448db18044b467084582984534733e40271",
+      "mutants": [
+        {
+          "mutatorName": "Logical mutation",
+          "replacement": "this.memoryBacked || count <= this.memoryLength - this.position",
+          "location": {
+            "start": {
+              "line": 227,
+              "column": 13
+            },
+            "end": {
+              "line": 227,
+              "column": 76
+            }
+          },
+          "reason": "This changes only the availability subexpression of the outer preflight; its byte-budget condition remains required. A newly admitted case still calls TryReadSpan, which repeats the original memoryBacked and remaining-length checks before touching bytes or accounting. It returns false with a default span on every unavailable/non-memory case. Cases admitted by the original outer check remain admitted, with identical reads and budget charges."
+        },
+        {
+          "mutatorName": "Arithmetic mutation",
+          "replacement": "this.memoryLength + this.position",
+          "location": {
+            "start": {
+              "line": 227,
+              "column": 43
+            },
+            "end": {
+              "line": 227,
+              "column": 76
+            }
+          },
+          "reason": "TryReadSpan repeats the original subtraction-based availability check. If a nonnegative requested count is available, position is within the Int32-sized MemoryStream array or FixedBufferStream capacity, so length + position cannot overflow Int64 and is at least length - position. Thus every originally successful preflight still reaches the same read. Extra candidates, including positions beyond the region, are rejected by the unchanged inner check without consuming or charging bytes."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 472,
+              "column": 9
+            },
+            "end": {
+              "line": 475,
+              "column": 10
+            }
+          },
+          "reason": "TryGetPosition returns nullable Int64. If querying the source position throws, the original catch returns null. Stryker 5.0.0 makes this block-removal mutant compilable with its default-return fallback; default(long?) is also null. Both paths preserve the original physical-stream exception with no available offset and perform the same single failed position query. Tool implementation: EndingReturnEngine.InjectReturn, https://github.com/stryker-mutator/stryker-net/blob/6e77a3451bac4793e9c839c3ff4055c1b30ca3af/src/Stryker.Core/Stryker.Core/Instrumentation/EndingReturnEngine.cs."
+        }
+      ]
+    },
+    {
       "pattern": "Codecs/PrimitiveCodecs.cs",
       "sourceSha256": "8cc4ae2b935782cfa7823232a3505f29705c12abade990af562151fd1c2fa4ab",
       "mutants": [
