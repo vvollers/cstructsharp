@@ -40,7 +40,7 @@ public class SequenceInputTests
     }
 
     /// <summary>A single-segment sequence reads in place: the same result as the span, with no allocation beyond the span path's.</summary>
-    /// <remarks>Run alone so concurrent tests cannot perturb shared caches or buffer pools between the two measurements.</remarks>
+    /// <remarks>Run alone and compare repeated steady-state minima so one-time runtime or coverage-instrumentation allocations do not affect the equality check.</remarks>
     [TestMethod]
     [DoNotParallelize]
     public void SingleSegment_ReadsInPlace()
@@ -61,20 +61,29 @@ public class SequenceInputTests
             layout.Parse(Bytes.AsSpan(), "root");
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int index = 0; index < 100; index++)
+        long span = long.MaxValue;
+        long sequence = long.MaxValue;
+
+        // A persistent per-read allocation appears in every sample. Taking independent minima removes
+        // incidental one-time overhead without allowing any extra steady-state bytes for the sequence path.
+        for (int sample = 0; sample < 5; sample++)
         {
-            layout.Parse(Bytes.AsSpan(), "root");
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            for (int index = 0; index < 100; index++)
+            {
+                layout.Parse(Bytes.AsSpan(), "root");
+            }
+
+            span = Math.Min(span, GC.GetAllocatedBytesForCurrentThread() - before);
+            before = GC.GetAllocatedBytesForCurrentThread();
+            for (int index = 0; index < 100; index++)
+            {
+                layout.Parse(single, "root");
+            }
+
+            sequence = Math.Min(sequence, GC.GetAllocatedBytesForCurrentThread() - before);
         }
 
-        long span = GC.GetAllocatedBytesForCurrentThread() - before;
-        before = GC.GetAllocatedBytesForCurrentThread();
-        for (int index = 0; index < 100; index++)
-        {
-            layout.Parse(single, "root");
-        }
-
-        long sequence = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.AreEqual(span, sequence, "a single segment takes the span path without a copy");
     }
 

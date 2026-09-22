@@ -47,7 +47,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   Check writer padding, buffer growth, exact text limits, layout diagnostics, bitfield separators, size arithmetic
   and physical-I/O failures. Keep existing-buffer positioning independent of the write budget, and reject
   cumulative output overflow before writing another byte.
-  Isolate allocation comparisons from parallel tests and verify borrowed sequence storage directly.
+  Isolate allocation comparisons from parallel tests, compare repeated steady-state samples and verify borrowed
+  sequence storage directly. Check exact temporary-buffer returns across segmented-input operations.
   Check failed sequence-copy buffer returns, negative-read budget accounting and exact declaration/literal diagnostics.
   Pin custom-codec zero-byte results, fixed windows, invalid byte counts and exact growth limits. Verify exact
   pool-buffer returns during writer/codec growth, failure, ownership transfer and disposal. Use an internal
