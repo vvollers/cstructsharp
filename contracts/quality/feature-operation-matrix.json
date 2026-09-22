@@ -2475,6 +2475,10 @@
           "operations": ["serialize", "write"]
         },
         {
+          "test": "tests/CStructSharpTests/WriterPaddingValueTests.cs#PrimitivePointerPadding_UsesZeroAddress",
+          "operations": ["serialize", "write"]
+        },
+        {
           "test": "tests/CStructSharpTests/StaticWritePlanTests.cs#UnnamedPadding_UsesGeneralWritesAndRetainsStaticReads",
           "operations": ["serialize", "write"]
         },

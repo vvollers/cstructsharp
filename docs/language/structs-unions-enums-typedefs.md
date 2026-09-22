@@ -78,8 +78,10 @@ that type (with every declarator shape: `} gen[2];`, `} *p;`), and the form with
 
 A field named `_` is unnamed padding, the way an [anonymous bitfield](bitfields.md) is: it is read and skipped,
 written as zeroes without a caller value, absent from every result, addressable by nobody, and free to repeat in
-one body. It must be a fixed-size primitive or a fixed primitive array (`uint32 _; char _[3];`); a struct, pointer,
-or runtime-sized `_` is rejected.
+one body. It needs fixed-size storage with a non-composite target: for example, `uint32 _;`, `char _[3];`, or an
+enum with fixed-width backing storage. A pointer to a non-composite type (`uint8 *_;`) reserves the configured
+pointer width and writes the null address. Struct or union targets, including pointers to them, and runtime-sized
+`_` fields are rejected.
 
 Writing into an existing buffer also replaces explicit `_` padding with zeroes. Fixed-size custom-codec padding
 uses its declared storage size without invoking the codec's value encoder. These bytes count toward write limits.

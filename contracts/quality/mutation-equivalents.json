@@ -1840,6 +1840,96 @@
       "sourceSha256": "56c5df26eca8fb0833ba6edb0520c087528f20f5ab434cf10e459f173fe82a28",
       "mutants": [
         {
+          "mutatorName": "Arithmetic mutation",
+          "replacement": "curPos - byteSize",
+          "location": {
+            "start": {
+              "line": 120,
+              "column": 34
+            },
+            "end": {
+              "line": 120,
+              "column": 51
+            }
+          },
+          "reason": "This assignment follows the completed physical bitfield write and changes only NextPosition for a partially filled unit. Struct traversal places the following field through CompositeFieldPlacementCursor, which uses its own reserved end and never consumes NextPosition. Nested composites likewise use their own cursor; bitfield arrays are rejected. The only NextPosition reads are inside legacy placement branches requiring a carried positive bit offset, but cursor-less selected/root writes and union staging start fresh, while seeded Update bitfields skip those derivations and discard the state after one field. Tail completion uses cursor.Current. The altered address cannot reach a supported later seek, byte write or return value."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 698,
+              "column": 9
+            },
+            "end": {
+              "line": 703,
+              "column": 10
+            }
+          },
+          "reason": "The only callers supplying unionPosition other than -1 are WriteUnion and WritePromotedUnion. Both create a new MemoryStream over their private staging array and a new writer state, then call WriteFieldValue once with unionPosition zero. No prior field or stream operation has advanced that staging stream; bit offset and bitfield type are already zero/null. Array-expression evaluation before this block only reads operation-owned layout expressions and variables. Removing these assignments therefore leaves exactly the same initial staging position and bit state. Public destination streams are not the stream in this branch."
+        },
+        {
+          "mutatorName": "Logical mutation",
+          "replacement": "compiledField.BitSize > 0 || state.BitfieldUnitSeeded",
+          "location": {
+            "start": {
+              "line": 715,
+              "column": 17
+            },
+            "end": {
+              "line": 715,
+              "column": 70
+            }
+          },
+          "reason": "Changing AND to OR additionally selects this branch for an unseeded positive bitfield. Such cursor-less writes are a single selected/root field or one union member in fresh staging state: offset and storage size start at zero, with null bitfield type. Skipping legacy initialization leaves that zero size, but WriteBitFieldValue selects the same validated compiled BitStorageSize through its existing fallback. The merge offset remains zero and the alignment path is unchanged. The omitted type metadata is not read by this one-field operation. Seeded Update targets already take the original branch, and their descriptors are positive bitfields; ordinary multi-field structs use their placement cursor instead."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "compiledField.BitSize >= 0",
+          "location": {
+            "start": {
+              "line": 715,
+              "column": 17
+            },
+            "end": {
+              "line": 715,
+              "column": 42
+            }
+          },
+          "reason": "BitfieldUnitSeeded is set only after UpdateStreamCore resolves a selected target with BitStorageSize greater than zero and installs its resolved bit offset/unit. Only positive-width bitfields expose such selectable storage; unnamed zero-width separators cannot be selected. Thus whenever the right conjunct is true, BitSize is strictly positive and both comparisons agree. With an unseeded state, the unchanged right conjunct keeps either comparison false. No placement, state consumption or output changes."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "compiledField.BitSize < 0",
+          "location": {
+            "start": {
+              "line": 720,
+              "column": 22
+            },
+            "end": {
+              "line": 720,
+              "column": 47
+            }
+          },
+          "reason": "This legacy branch is reached for positive unseeded bitfields only in a fresh selected/root write or fresh union staging state. Seeded Update targets take the preceding branch; ordinary structs use a placement cursor. Reversing the positive-width test skips installing the compiled type and size, but the bit offset remains zero and WriteBitFieldValue falls back from CurrentBitfieldSize zero to that same non-null compiled storage size. Its value-range checks, alignment, merge and bytes are unchanged. No subsequent legacy field consumes the omitted type/size metadata: bitfield arrays are rejected and this operation writes one field before discarding its state."
+        },
+        {
+          "mutatorName": "Linq method mutation (Max() to Min())",
+          "replacement": "Math.Min",
+          "location": {
+            "start": {
+              "line": 885,
+              "column": 30
+            },
+            "end": {
+              "line": 885,
+              "column": 38
+            }
+          },
+          "reason": "This assignment modifies only NextPosition after a field has already written its bytes. Every actual NextPosition read is in a legacy-placement branch needing a carried positive bit offset. Those branches are unreachable through current callers: selected/root writes and union staging start with fresh state, selected bitfield Update consumes a resolved seed and ends after its one field, and ordinary composite traversal uses CompositeFieldPlacementCursor rather than legacy derivation. Arrays cannot contain bitfield declarators; nested composite elements use their own cursors. Struct tail completion uses cursor.Current and, when needed, replaces NextPosition outright. Selecting the smaller value therefore changes no consumed position, byte, failure or caller result."
+        },
+        {
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": { "start": { "line": 506, "column": 13 }, "end": { "line": 506, "column": 20 } },
