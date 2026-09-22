@@ -1,11 +1,26 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Compilation;
+using CStructSharp.Syntax;
 
 /// <summary>Verifies the compiled variable-capture plan for nested expressions and indirect text references.</summary>
 [TestClass]
 public class LayoutCaptureBoundaryTests
 {
+    /// <summary>A deferred internal definition override captures an otherwise unreferenced field while reading.</summary>
+    [TestMethod]
+    public void DeferredDefinition_ReadsItsRuntimeCountField()
+    {
+        var layout = new CStruct("#define COUNT 1\nstruct root { uint8 count; uint8 values[COUNT]; };");
+        var variables = new Dictionary<string, Expr> { ["COUNT"] = new Identifier("count"), };
+        using var input = new MemoryStream(new byte[] { 2, 11, 12, });
+
+        dynamic parsed = layout.Parse(input, "root", variables);
+        Assert.AreEqual((byte)2, parsed.count);
+        CollectionAssert.AreEqual(new object?[] { (byte)11, (byte)12, }, ((IList<object?>)parsed.values).ToArray());
+        Assert.AreEqual(3L, input.Position);
+    }
+
     /// <summary>Both conditional arms and unary operands contribute dependencies before an input selects one arm.</summary>
     [TestMethod]
     public void ConditionalAndUnaryCounts_CaptureEveryReferencedField()
