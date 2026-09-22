@@ -9,6 +9,22 @@ using CStructSharp.Syntax;
 [TestClass]
 public class CompiledSizeBoundaryTests
 {
+    /// <summary>Individually valid runtime fields cannot wrap the completed composite's reported Int32 extent.</summary>
+    /// <param name="requireFixedSize">Whether expression failures use the fixed-query diagnostic domain.</param>
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void CompletedCompositeExtent_RejectsCumulativeOverflow(bool requireFixedSize)
+    {
+        var layout = new CStruct("struct root { uint8 first[count]; uint8 second[count]; };");
+        CompiledSizeQueries queries = Queries(layout);
+        CompiledCompositeType root = queries.GetCompiledComposite(layout.GetStruct("root"));
+        var variables = new Dictionary<string, Expr> { ["count"] = new Literal((int.MaxValue / 2) + 1), };
+
+        // Each field fits Int32; their sum does not. This arithmetic-only query must fail without allocating data.
+        Assert.Throws<OverflowException>(() => queries.GetCompiledStructSizeInBytes(root, variables, requireFixedSize));
+    }
+
     /// <summary>Missing conditional data is a layout error for fixed queries and a read error for live queries.</summary>
     [TestMethod]
     public void ConditionalFailure_UsesTheQueryErrorDomain()

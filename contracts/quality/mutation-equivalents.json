@@ -3,6 +3,72 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "**/CStructSharp.Core/Compilation/CompiledCompositeType.cs",
+      "sourceSha256": "feca6f351306cfcae6238bf9df37b73eaa3506f4b78cc54592b99d19e0340995",
+      "mutants": [
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 27,
+              "column": 21
+            },
+            "end": {
+              "line": 27,
+              "column": 30
+            }
+          },
+          "reason": "A field with no BranchConditions starts with ConditionalBranches equal to ImmutableArray.Empty. Without the continue, its zero-capacity builder executes no branch iteration and MoveToImmutable assigns the same empty sequence. No group slot is created, so conditional selection and group counts are unchanged."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 162,
+              "column": 13
+            },
+            "end": {
+              "line": 162,
+              "column": 20
+            }
+          },
+          "reason": "CollectShapeNames follows only promoted anonymous by-value composites. LayoutCompilation.Model rejects recursive by-value declarations before exposing the compiled model; pointer edges are not promoted composites. The active visiting set therefore never contains a valid child being entered. Its defensive cycle return is unreachable for compiled layouts."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 174,
+              "column": 17
+            },
+            "end": {
+              "line": 174,
+              "column": 26
+            }
+          },
+          "reason": "PromotedFields contains only declarations matching Struct with an empty name. Without this continue, the subsequent ordinary-name branch still rejects name.Length equal to zero. Recursive collection already occurred and no empty name is added, so the final shape is identical."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 184,
+              "column": 9
+            },
+            "end": {
+              "line": 184,
+              "column": 31
+            }
+          },
+          "reason": "CollectShapeNames visits a finite acyclic graph of promoted by-value composites and deduplicates output names in the separate seen set. Leaving a completed composite in visiting can only skip a later traversal of that identical composite; its entire reachable name sequence was already visited and every name is already in seen. Thus neither final names nor their first-occurrence order changes. The visiting set is private to one BuildShape call."
+        }
+      ]
+    },
+    {
       "pattern": "CStructOperations.Async.cs",
       "sourceSha256": "40a40226315af1cf2f88daf8e15fe4452ec1703bfadb35a9f52068467920c5dc",
       "mutants": [
@@ -1080,6 +1146,51 @@
       "pattern": "**/CStructSharp.Core/Compilation/CompiledSizeQueries.cs",
       "sourceSha256": "bb0e1665964b26dcde31d66390ee9254ee1c6e9e227f3c1f9a6038cda89ca1a8",
       "mutants": [
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 53,
+              "column": 9
+            },
+            "end": {
+              "line": 55,
+              "column": 10
+            }
+          },
+          "reason": "An empty compiled composite has no conditional fields and no storage. The ordinary struct cursor starts at zero and its empty traversal finishes at zero; an empty union also has largest extent zero. Validated positive alignment leaves zero unchanged. Removing the early empty-fields return therefore still returns zero without evaluating any field expression."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 146,
+              "column": 31
+            },
+            "end": {
+              "line": 146,
+              "column": 82
+            }
+          },
+          "reason": "After the scalar return and Flexible/ToEnd/Terminated rejection, only Fixed and Runtime shapes remain. Every production shape constructor in LayoutCompilation.Model assigns their parsed dimension expression, and PeelOuterDimension copies the next validated fixed dimension. Their CountExpression cannot be null; changing this defensive message affects no compiled layout."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 178,
+              "column": 35
+            },
+            "end": {
+              "line": 178,
+              "column": 87
+            }
+          },
+          "reason": "All Fixed and Runtime dimensions are created from parsed non-null expressions by LayoutCompilation.Model. Scalar shapes return before this loop and data-sized shapes throw before it. Peeling preserves those expressions. Thus the per-dimension null-expression fallback cannot be reached by a compiled layout; changing only its text has no effect."
+        },
         {
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?new ConditionalFieldSelection(this.expressionEvaluator, composite.ConditionalGroupCount, requireFixedSize ? ExpressionFailureDomain.Layout : ExpressionFailureDomain.Read) :null)",
