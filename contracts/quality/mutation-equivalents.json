@@ -202,6 +202,51 @@
       "sourceSha256": "97d364232d87f56bae4c95f89fc15f09db4a40f3fc0bf599aca61f745fe05c07",
       "mutants": [
         {
+          "mutatorName": "Logical mutation",
+          "replacement": "ExpressionOpcode.Identifier or ExpressionOpcode.Literal or\n                ExpressionOpcode.JumpIfFalse and ExpressionOpcode.JumpIfTrue",
+          "location": {
+            "start": {
+              "line": 62,
+              "column": 52
+            },
+            "end": {
+              "line": 63,
+              "column": 76
+            }
+          },
+          "reason": "This exact pattern change removes only JumpIfFalse/JumpIfTrue from the three-instruction fast-path exclusion. CompileExpression is the sole producer of the private immutable program: logical operators emit their left program, a jump, the right program and a combining operator, so they require at least four instructions. A three-instruction program cannot end in either jump; the unary exclusions and operand validation remain unchanged. The affected match therefore has the same result before any variable lookup or budget accounting."
+        },
+        {
+          "mutatorName": "Logical mutation",
+          "replacement": "ExpressionOpcode.Identifier or ExpressionOpcode.Literal and\n                ExpressionOpcode.JumpIfFalse",
+          "location": {
+            "start": {
+              "line": 62,
+              "column": 52
+            },
+            "end": {
+              "line": 63,
+              "column": 45
+            }
+          },
+          "reason": "This exact pattern change removes only Literal and JumpIfFalse from the three-instruction fast-path exclusion because their enum values cannot match simultaneously. CompileExpression emits a leaf as one instruction, never as the final instruction of a three-instruction root. Logical expressions contain at least four instructions and no complete root ends at their intermediate jump. Other exclusions, including all unary operators, remain unchanged; the guard result and every subsequent operation are identical."
+        },
+        {
+          "mutatorName": "Logical mutation",
+          "replacement": "ExpressionOpcode.Identifier and ExpressionOpcode.Literal",
+          "location": {
+            "start": {
+              "line": 62,
+              "column": 52
+            },
+            "end": {
+              "line": 62,
+              "column": 107
+            }
+          },
+          "reason": "This exact pattern change replaces the Identifier-or-Literal subpattern with an impossible intersection. A scalar leaf compiles to exactly one instruction. Every larger compiler-produced program ends in its root operator or conditional Join, never a leaf. The private instruction array cannot be caller-supplied. Thus the removed leaf alternatives are impossible when code.Length is three; all other exclusions and lookup/budget behavior remain unchanged."
+        },
+        {
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
