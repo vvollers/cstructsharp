@@ -3,6 +3,42 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "**/CStructSharp.Core/Expressions/LayoutVariableResolver.cs",
+      "sourceSha256": "64729ea1c7ca1342a96e075bb1c58cb11a575d5085bd436a193fa553fc444357",
+      "mutants": [
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 259,
+              "column": 21
+            },
+            "end": {
+              "line": 259,
+              "column": 30
+            }
+          },
+          "reason": "BuildReverseDependents inserts dependent names only from definitionDependencies.Keys, which are exactly definitions.Keys. GetTopologicallySortedDefinitions initializes dependencyCounts with all of those same keys and changes only values, never removes keys. Every dependent reached in this loop is therefore present; the missing-key continue is unreachable."
+        },
+        {
+          "mutatorName": "Linq method mutation (First() to FirstOrDefault())",
+          "replacement": "dependencyCounts.FirstOrDefault",
+          "location": {
+            "start": {
+              "line": 273,
+              "column": 32
+            },
+            "end": {
+              "line": 273,
+              "column": 54
+            }
+          },
+          "reason": "The graph has one entry per definition and unique dependency edges. A node is queued initially at zero or exactly when its remaining count becomes zero; each node is processed once and counts never become negative. If fewer nodes were ordered than definitions, at least one unresolved cycle node has a positive count. The positive-count predicate therefore always matches here, so First and FirstOrDefault return the same first pair."
+        }
+      ]
+    },
+    {
       "pattern": "CStructPrimitiveCodecs.cs",
       "sourceSha256": "5fcf8003d698390ff5b594c6e184e07f443ee81bcbf05b6fb54ae5b6f851bb26",
       "mutants": [
