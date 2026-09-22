@@ -9,6 +9,17 @@ using CStructSharp.Streams;
 [TestClass]
 public class CustomCodecBoundaryTests
 {
+    /// <summary>A full codec window needs no extra zero-byte read from the caller-owned stream.</summary>
+    [TestMethod]
+    public void FullReadWindow_DoesNotTouchTheSourceAgain()
+    {
+        var codec = new RecordingCodec(4, 4);
+        using var source = new NoEmptyReadStream();
+        Assert.AreEqual((byte)17, CustomCodecAdapter.Read(codec, source));
+        Assert.AreEqual(4L, source.Position);
+        CollectionAssert.AreEqual(new[] { 4, }, codec.ReadWindows);
+    }
+
     /// <summary>Growing scratch windows are returned between attempts, and a successful read releases its final rental.</summary>
     [TestMethod]
     [DoNotParallelize]
@@ -147,6 +158,30 @@ public class CustomCodecBoundaryTests
         CollectionAssert.AreEqual(new[] { 256, 300, }, codec.ReadWindows);
         Assert.Throws<CStructWriteLimitException>(() => CustomCodecAdapter.EncodeToRented(codec, (byte)17, 300, out _));
         CollectionAssert.AreEqual(new[] { 256, 300, }, codec.WriteWindows);
+    }
+
+    /// <summary>Models a source that reports an I/O failure if asked to read after its requested window is already full.</summary>
+    private sealed class NoEmptyReadStream : MemoryStream
+    {
+        /// <summary>Creates enough bytes for one fixed-size value and a following value.</summary>
+        public NoEmptyReadStream()
+            : base(new byte[8])
+        {
+        }
+
+        /// <summary>Rejects an unnecessary empty read and otherwise reads ordinary source bytes.</summary>
+        /// <param name="buffer">The requested input window.</param>
+        /// <returns>The number of bytes supplied.</returns>
+        /// <exception cref="IOException">The caller requested an empty window.</exception>
+        public override int Read(Span<byte> buffer)
+        {
+            if (buffer.IsEmpty)
+            {
+                throw new IOException("An extra empty read reached the source.");
+            }
+
+            return base.Read(buffer);
+        }
     }
 
     /// <summary>Records actual input and output windows while requesting one controlled value extent.</summary>

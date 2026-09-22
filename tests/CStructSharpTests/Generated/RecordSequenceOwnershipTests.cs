@@ -80,8 +80,8 @@ public class RecordSequenceOwnershipTests
     [TestMethod]
     public async Task AsyncRecordRead_DoesNotCaptureTheCallersContext()
     {
-        using var stream = new GatedStream();
-        var context = new RecordingContext();
+        using var stream = new AsyncReadTestSupport.GatedStream();
+        var context = new AsyncReadTestSupport.RecordingContext();
         await using var records = RecordSequence.FromStreamAsync(stream, 2, "pair", null, ReadBufferIdentity).GetAsyncEnumerator();
         SynchronizationContext? previous = SynchronizationContext.Current;
         Task<bool> pending;
@@ -154,52 +154,6 @@ public class RecordSequenceOwnershipTests
         /// <param name="disposing">Whether disposal is explicit.</param>
         protected override void Dispose(bool disposing)
         {
-        }
-    }
-
-    /// <summary>Counts context dispatches while allowing them to finish, so an accidental capture cannot hang the test.</summary>
-    private sealed class RecordingContext : SynchronizationContext
-    {
-        private int posts;
-
-        public int Posts => Volatile.Read(ref this.posts);
-
-        /// <summary>Records the dispatch and delegates execution to the thread pool.</summary>
-        /// <param name="d">The continuation to execute.</param>
-        /// <param name="state">The continuation's state.</param>
-        public override void Post(SendOrPostCallback d, object? state)
-        {
-            Interlocked.Increment(ref this.posts);
-            base.Post(d, state);
-        }
-    }
-
-    /// <summary>A controlled asynchronous source whose first read stays pending until the test releases it.</summary>
-    private sealed class GatedStream : MemoryStream
-    {
-        private readonly TaskCompletionSource<int> completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private Memory<byte> destination;
-
-        /// <summary>Creates a source containing one two-byte record.</summary>
-        public GatedStream()
-            : base([1, 2,])
-        {
-        }
-
-        /// <summary>Copies the pending bytes and completes the asynchronous read after the caller context was restored.</summary>
-        public void ReleaseRead()
-        {
-            this.completion.SetResult(this.Read(this.destination.Span));
-        }
-
-        /// <summary>Holds the requested destination until ReleaseRead supplies its bytes.</summary>
-        /// <param name="buffer">Memory that remains owned by the pending reader.</param>
-        /// <param name="cancellationToken">Unused token; the test explicitly controls completion.</param>
-        /// <returns>A pending read that completes when released by the test.</returns>
-        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
-        {
-            this.destination = buffer;
-            return new ValueTask<int>(this.completion.Task);
         }
     }
 

@@ -39,6 +39,7 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   Check failed sequence-copy buffer returns, negative-read budget accounting and exact declaration/literal diagnostics.
   Pin custom-codec zero-byte results, fixed windows, invalid byte counts and exact growth limits. Verify exact
   pool-buffer returns during writer/codec growth, failure, ownership transfer and disposal.
+  Verify cancellation before buffer rental, async continuation independence and exact read-window boundaries.
 - Correct learning-path and dependency guidance, current inspector/JavaScript references, and benchmark fixture
   claims. Derive volatile fixture and executable-scenario counts from their owning definitions.
 - Explain cursor ownership, generated reads and inspector invalidation at the relevant source boundaries, and

@@ -1,0 +1,101 @@
+namespace CStructSharp.Tests;
+
+using System.Buffers;
+using CStructSharp.Streams;
+
+/// <summary>Checks cancellation, empty-read boundaries and continuation ownership in shared input buffering.</summary>
+[TestClass]
+public class AsyncBufferBoundaryTests
+{
+    /// <summary>A pre-cancelled read allocates no buffer; a missing stream is still reported as an invalid argument first.</summary>
+    [TestMethod]
+    public async Task CancellationAndNullInput_FailBeforeRenting()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        using var stream = new MemoryStream(new byte[2]);
+        var pool = new CountingPool();
+
+        // Cancellation must be checked before acquiring pooled storage.
+        await Assert.ThrowsAsync<OperationCanceledException>(async () => await AsyncStreamBuffer.RentAsync(stream, null, pool, cancellation.Token));
+        Assert.AreEqual(0, pool.Rented);
+        Assert.AreEqual(0L, stream.Position);
+
+        // Argument validation precedes cancellation and must name the missing input.
+        ArgumentNullException failure = await Assert.ThrowsAsync<ArgumentNullException>(async () => await AsyncStreamBuffer.RentAsync(null!, null, pool, cancellation.Token));
+        Assert.AreEqual("stream", failure.ParamName);
+        Assert.AreEqual(0, pool.Rented);
+    }
+
+    /// <summary>Synchronous buffering stops at capacity without asking a forward-only source for an empty extra read.</summary>
+    [TestMethod]
+    public void SynchronousBuffering_StopsExactlyAtCapacity()
+    {
+        using var source = new CStructSharpTests.AsyncStreamBufferTests.NonSeekableStream([1, 2, 3, 4,]);
+        byte[] buffer = AsyncStreamBuffer.Rent(source, new ReadOptions { MaxTotalBytesRead = 1, }, out int length);
+        try
+        {
+            Assert.AreEqual(2, length);
+            Assert.AreEqual(2, source.BytesRead);
+            CollectionAssert.AreEqual(new byte[] { 1, 2, }, buffer[..length]);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    /// <summary>A pending source read resumes library buffering without dispatching through the caller's context.</summary>
+    [TestMethod]
+    public async Task Buffering_DoesNotCaptureTheCallersContext()
+    {
+        using var stream = new AsyncReadTestSupport.GatedStream();
+        var context = new AsyncReadTestSupport.RecordingContext();
+        SynchronizationContext? previous = SynchronizationContext.Current;
+        Task<(byte[] Buffer, int Length)> pending;
+        try
+        {
+            SynchronizationContext.SetSynchronizationContext(context);
+            pending = AsyncStreamBuffer.RentAsync(stream, null, CancellationToken.None).AsTask();
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+
+        stream.ReleaseRead();
+        (byte[] buffer, int length) = await pending.WaitAsync(TimeSpan.FromSeconds(10));
+        try
+        {
+            Assert.AreEqual(2, length);
+            CollectionAssert.AreEqual(new byte[] { 1, 2, }, buffer[..length]);
+            Assert.AreEqual(0, context.Posts);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    /// <summary>Counts unexpected acquisitions in tests that must fail before renting any storage.</summary>
+    private sealed class CountingPool : ArrayPool<byte>
+    {
+        public int Rented { get; private set; }
+
+        /// <summary>Counts the acquisition and supplies ordinary test-owned storage.</summary>
+        /// <param name="minimumLength">The requested minimum capacity.</param>
+        /// <returns>A fresh array of that capacity.</returns>
+        public override byte[] Rent(int minimumLength)
+        {
+            this.Rented++;
+            return new byte[minimumLength];
+        }
+
+        /// <summary>Releases no pooled resources because every test rental is an ordinary managed array.</summary>
+        /// <param name="array">The returned array.</param>
+        /// <param name="clearArray">Unused clearing request.</param>
+        public override void Return(byte[] array, bool clearArray = false)
+        {
+        }
+    }
+}
