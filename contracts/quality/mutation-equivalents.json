@@ -1534,6 +1534,24 @@
       "sourceSha256": "74dc7e30a98926d4b4b495ceb7d667970682b66f12aa3a2ea8a9abb5b526fbdf",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 1399, "column": 13 },
+            "end": { "line": 1399, "column": 62 }
+          },
+          "reason": "WriteStreamCore rejects blank paths before ParsePath. CStructPathResolver.ParseUncached starts segmentCount at one and either throws or returns an array of that positive length. Both successful TryCreateSyntheticRoot branches return exactly one segment; false branches cannot replace the parsed result. The two private caches only store these successful results, and no caller changes their length. Therefore ParsePath cannot return an empty segment list to this writer. Removing only the second, unreachable empty-list throw changes neither accepted paths nor the earlier empty-path diagnostic."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 1399, "column": 44 },
+            "end": { "line": 1399, "column": 60 }
+          },
+          "reason": "WriteStreamCore rejects blank paths before ParsePath. The ordinary path parser returns an array with at least one segment or throws; successful synthetic roots contain exactly one segment. Their private caches retain only these nonempty results. Thus the second empty-list guard cannot be reached, and changing only its diagnostic string has no observable effect. The earlier reachable empty-path exception remains unchanged."
+        },
+        {
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
