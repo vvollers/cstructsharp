@@ -8,6 +8,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- Start a new packed SysV bitfield storage run after a zero-width separator. Wider fields following an ordinary
+  prefix or an earlier bitfield now resolve, read, serialize and update at the aligned position in runtime and
+  generated operations without reading outside their packed storage window.
+
 - Correct the landing-page JavaScript starter and verify its exact success and error paths against the built npm
   package, including the assembled website before publication.
 - Restore seekable stream origins when buffered runtime or generated reads and async updates fail during input

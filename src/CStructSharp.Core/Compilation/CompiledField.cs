@@ -176,7 +176,7 @@ internal sealed class CompiledField
 
     /// <summary>
     ///     The bit length of the run of adjacent bitfields this field belongs to, measured from the run's first bit
-    ///     with the packed SysV rule (contiguous bits; a separator rounds up). It depends only on the run's own
+    ///     with the packed SysV rule (contiguous bits, ending at a separator). It depends only on the run's own
     ///     declarations, so the runtime cursor can clamp packed storage units to the run's bytes.
     /// </summary>
     public int BitRunBits { get; internal set; }

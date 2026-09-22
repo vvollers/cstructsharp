@@ -171,17 +171,18 @@ internal sealed partial class LayoutCompilation
     }
 
     /// <summary>
-    ///     Records on every bitfield the bit length of its run of adjacent bitfields, measured with the packed SysV
-    ///     rule from the run's first bit: contiguous widths, a zero-width separator rounding up to its type's size.
+    ///     Records on every bitfield the bit length of its run of adjacent positive-width bitfields. A zero-width
+    ///     separator ends the run; placement aligns its successor before starting the next independent run.
     ///     The value depends only on the run's declarations, so the runtime cursor can clamp packed units without
     ///     looking ahead.
     /// </summary>
+    /// <param name="fields">The composite's compiled fields in declaration order.</param>
     private static void MeasureBitfieldRuns(ImmutableArray<CompiledField> fields)
     {
         int index = 0;
         while (index < fields.Length)
         {
-            if (!fields[index].BitStorageSize.HasValue || fields[index].Declaration.Condition is not null)
+            if (!fields[index].BitStorageSize.HasValue || fields[index].IsZeroWidthBitfield || fields[index].Declaration.Condition is not null)
             {
                 index++;
                 continue;
@@ -189,12 +190,11 @@ internal sealed partial class LayoutCompilation
 
             int start = index;
             long bits = 0;
-            while (index < fields.Length && fields[index].BitStorageSize.HasValue && fields[index].Declaration.Condition is null)
+            while (index < fields.Length && fields[index].BitStorageSize.HasValue && !fields[index].IsZeroWidthBitfield && fields[index].Declaration.Condition is null)
             {
+                // Separator padding belongs to placement, not to either neighboring run's storage window.
                 CompiledField field = fields[index];
-                bits = field.IsZeroWidthBitfield
-                           ? LayoutMath.AlignUp(bits, field.BitStorageSize!.Value * 8L)
-                           : bits + field.EffectiveField.BitSize;
+                bits += field.EffectiveField.BitSize;
                 index++;
             }
 

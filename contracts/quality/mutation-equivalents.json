@@ -76,24 +76,24 @@
     },
     {
       "pattern": "**/CStructSharp.Core/Compilation/BitfieldPlacement.cs",
-      "sourceSha256": "a6ac29d369776cba4495080b928c994db4460cea03e166f173db0f2c05fde50b",
+      "sourceSha256": "288757fdf8b3acb078792ce1e4104d30860b3ccd36fa0b6170463351109e6581",
       "mutants": [
         {
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?this.unitStart + this.unitSize :current)",
-          "location": { "start": { "line": 91, "column": 25 }, "end": { "line": 91, "column": 82 } },
+          "location": { "start": { "line": 95, "column": 25 }, "end": { "line": 95, "column": 82 } },
           "reason": "For MSVC, RunEnd is unitStart + unitSize. All three owners (PlaceCompiledFields, CompositeFieldPlacementCursor and generated CompositeCursor) set current to RunEnd after every placed bitfield or separator. Ordinary fields close the run before changing current. Thus when a run is active both alternatives are equal; when inactive the original already selects current."
         },
         {
           "mutatorName": "Statement mutation",
           "replacement": ";",
-          "location": { "start": { "line": 92, "column": 13 }, "end": { "line": 92, "column": 26 } },
+          "location": { "start": { "line": 96, "column": 13 }, "end": { "line": 96, "column": 26 } },
           "reason": "The separator immediately sets runActive true, unitStart to next and unitSize zero, overwriting Close's relevant placement changes. The remaining difference is stale BitsUsed and cellEnd: cellEnd is never used in MSVC placement, and the next nonzero field must start a new unit because its positive declared size differs from zero, resetting BitsUsed before use. Repeated separators and Close also ignore or reset that stale state."
         },
         {
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?this.unitStart + this.unitSize :current)",
-          "location": { "start": { "line": 116, "column": 25 }, "end": { "line": 116, "column": 82 } },
+          "location": { "start": { "line": 123, "column": 25 }, "end": { "line": 123, "column": 82 } },
           "reason": "All placement owners update current to the MSVC RunEnd (unitStart + unitSize) after each bitfield or separator and close the run before an ordinary field changes current. Opening the next unit therefore selects the same byte position with either active-run alternative. For an inactive run both versions already use current."
         }
       ]
@@ -226,7 +226,7 @@
     },
     {
       "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Model.cs",
-      "sourceSha256": "b56fec25c43fb114b652d769e2af372bd6caf8d8be73dfb3c7902e9c87113412",
+      "sourceSha256": "a80ddb4d303e325573392b7f1a27f39e849a73eb0aed0a6ef89e691295a736ae",
       "mutants": [
         {
           "mutatorName": "Boolean mutation",

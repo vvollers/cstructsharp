@@ -7,6 +7,18 @@ using CStructSharp.Generated;
 [TestClass]
 public class CompositeCursorBoundaryTests
 {
+    /// <summary>A packed field wholly inside a declared cell retains that shared storage window, including its final bit.</summary>
+    /// <param name="precedingBits">Bits already placed in the four-byte cell.</param>
+    [TestMethod]
+    [DataRow(9)]
+    [DataRow(31)]
+    public void PackedFieldWithinCell_RetainsTheDeclaredWindow(int precedingBits)
+    {
+        var cursor = CompositeCursor.Start(0, false, BitfieldPacking.SysV, BitfieldAllocation.LowBitFirst);
+        Assert.AreEqual(new BitfieldSlot(0, 4, 0), cursor.AdvanceToBitfield(4, 4, precedingBits, 32, true, "before"));
+        Assert.AreEqual(new BitfieldSlot(0, 4, precedingBits), cursor.AdvanceToBitfield(4, 4, 1, 32, true, "after"));
+    }
+
     /// <summary>A leading MSVC separator starts from the actual origin and adds alignment only when requested.</summary>
     /// <param name="aligned">Whether the separator's declared alignment applies.</param>
     /// <param name="expected">The next field's input-relative byte offset.</param>

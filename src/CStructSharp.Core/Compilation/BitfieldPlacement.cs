@@ -83,6 +83,10 @@ internal struct BitfieldPlacement
     }
 
     /// <summary>A zero-width bitfield: no storage, but the next bitfield starts on a boundary of the declared type.</summary>
+    /// <param name="current">The byte position after the preceding field or storage unit.</param>
+    /// <param name="declaredSize">The separator's declared storage width in bytes.</param>
+    /// <param name="alignment">The declared byte alignment used by aligned MSVC placement.</param>
+    /// <param name="runBits">The separator's compiled run metadata; the next value starts an independent run.</param>
     public void PlaceSeparator(long current, int declaredSize, int alignment, int runBits)
     {
         if (this.packing == BitfieldPacking.Msvc)
@@ -105,7 +109,10 @@ internal struct BitfieldPlacement
         }
 
         this.bitPosition = Math.Max(LayoutMath.AlignUp(this.bitPosition, declaredSize * 8L), this.cellEnd * 8);
-        this.runActive = true;
+
+        // The next run is anchored at this aligned position. Keeping the old origin would clamp a wider
+        // following storage window against bytes before the separator, especially after an ordinary prefix.
+        this.runActive = false;
     }
 
     private (long UnitStart, int UnitSize, int BitOffset) PlaceMsvc(long current, int declaredSize, int alignment, int width)

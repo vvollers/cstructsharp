@@ -100,6 +100,17 @@ An unnamed zero-width declarator, `uint16 : 0;`, is a separator: it stores nothi
 the next bitfield starts on the next boundary of the separator's type (a whole new unit under `Msvc`). Under `SysV`
 its type does not raise the struct's alignment, as on x86-64; under `Msvc` it does.
 
+Each side of a separator has its own packed storage window. For example, in a packed, low-bit-first,
+little-endian `SysV` layout:
+
+```c
+struct sample { uint8 prefix; uint32 :0; uint64 value:1; };
+```
+
+The prefix occupies byte 0. The separator skips bytes 1–3, and `value` starts a new run at byte 4.
+Input `63 00 00 00 01` therefore gives `prefix = 99` and `value = 1`; the structure occupies five bytes.
+The `uint64` declaration does not make this packed one-bit run read eight bytes or reuse the prefix's window.
+
 Bit numbering is independent of placement: `BitfieldAllocation` counts from the low or the high bit of the storage
 unit. Real compilers pair little-endian units with low-bit-first numbering and big-endian units with high-bit-first;
 in the other two pairings the bits fill a unit from its last byte, so SysV placement keeps whole declared cells
