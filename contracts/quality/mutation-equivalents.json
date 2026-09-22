@@ -628,6 +628,24 @@
       "sourceSha256": "f9ec50046612fb4e6fdd39980c88f9f525785972a81d33cfa06463b79fd476ce",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 88, "column": 9 },
+            "end": { "line": 88, "column": 91 }
+          },
+          "reason": "The sole caller is WriteStreamCore after its one-segment root branch has returned. It passes childSegments = segments.Skip(1).ToArray(), which is nonempty and private to this operation. ResolveElementPath either throws during traversal or returns writableField on the final segment before the loop increment. No callback can resize the array or change its Count, and there is no other exit from the loop. The post-loop defensive throw is therefore unreachable in supported writes; removing it cannot suppress any reachable path diagnostic. The earlier array-count and missing-index failures remain required and are covered separately."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 88, "column": 40 },
+            "end": { "line": 88, "column": 89 }
+          },
+          "reason": "WriteStreamCore is the only caller and always supplies at least one child segment after handling complete roots. The private segment array has a fixed positive Count. Each ResolveElementPath invocation throws within traversal or returns its selected field on the last iteration; it cannot reach the post-loop throw containing this string. Changing only that unreachable message does not change errors for invalid fields, indices, pointer traversal or runtime counts."
+        },
+        {
           "mutatorName": "Equality mutation",
           "replacement": "segmentIndex <= segments.Count",
           "location": {
