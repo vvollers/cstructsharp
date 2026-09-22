@@ -3061,6 +3061,12 @@
       "sourceSha256": "bb0e1665964b26dcde31d66390ee9254ee1c6e9e227f3c1f9a6038cda89ca1a8",
       "mutants": [
         {
+          "mutatorName": "Remove checked expression",
+          "replacement": "fieldStart + this.GetCompiledFieldStorageSize(field, variables, requireFixedSize)",
+          "location": { "start": { "line": 86, "column": 21 }, "end": { "line": 86, "column": 111 } },
+          "reason": "This sizing cursor always starts at zero; it never starts at a caller's stream address. Its immutable Fields array has at most Int32.MaxValue entries. Each validated alignment adds at most Int32.MaxValue - 1 padding bytes, and each successfully computed field storage is a nonnegative Int32; bitfield placement advances by at most its alignment padding plus an at-most-eight-byte unit. With M = Int32.MaxValue, even M ordinary fields therefore end at or below M * (2*M - 1) = 9223372026117357571, below Int64.MaxValue. This particular Int64 addition cannot overflow. Removing its checked wrapper preserves nested sizing failures and the final checked Int32 conversion. This proof does not cover Int32 array-count or storage multiplication, nor cursors based at caller-supplied stream positions."
+        },
+        {
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
