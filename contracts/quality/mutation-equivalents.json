@@ -394,6 +394,141 @@
       "sourceSha256": "38d92a361428222368d550ff6bde007c22c32dc7f67dbfaca78966a967b1ba5e",
       "mutants": [
         {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 329,
+              "column": 9
+            },
+            "end": {
+              "line": 331,
+              "column": 10
+            }
+          },
+          "reason": "TryGetPosition returns nullable Int64. If Position throws, the original catch returns null. Removing its body still catches that exception, and Stryker 5.0.0's EndingReturnEngine appends default(long?), also null. The caller therefore retains the same attempted-offset fallback and original commit failure. Tool implementation: https://github.com/stryker-mutator/stryker-net/blob/6e77a3451bac4793e9c839c3ff4055c1b30ca3af/src/Stryker.Core/Stryker.Core/Instrumentation/EndingReturnEngine.cs."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "this.rangeLength >= 0",
+          "location": {
+            "start": {
+              "line": 385,
+              "column": 17
+            },
+            "end": {
+              "line": 385,
+              "column": 37
+            }
+          },
+          "reason": "Only the empty-range case is newly admitted by rangeLength >= 0. The unchanged following bounds require address >= rangeStart and address < rangeStart + 0 simultaneously, which is impossible. The body never indexes the null buffer; the same false result and zero out value follow. Nonempty ranges behave identically."
+        },
+        {
+          "mutatorName": "CoalesceAssignmentExpression to SimpleAssignmentExpression mutation",
+          "replacement": "this.rangeBytes = this.pool.Rent(Math.Max(source.Length, 64))",
+          "location": {
+            "start": {
+              "line": 419,
+              "column": 13
+            },
+            "end": {
+              "line": 419,
+              "column": 76
+            }
+          },
+          "reason": "TryStageInRange is called only while chunks is null. Before its first successful write rangeLength is zero and rangeBytes is null, so assignment and null-coalescing assignment rent the same buffer. Subsequent contiguous writes have positive rangeLength; promotion sets chunks non-null and this helper is never called again. Public updates own this internal staging stream in one using scope and never write after disposal. No supported operation reaches this line with an existing range buffer."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 422,
+              "column": 17
+            },
+            "end": {
+              "line": 422,
+              "column": 69
+            }
+          },
+          "reason": "On every supported entry to this initial-range branch, rangeBytes is null and the preceding Rent requests at least source.Length. The ArrayPool contract guarantees at least that capacity. Its Length < source.Length branch therefore cannot execute; removing this unreachable return does not lose a rental. This does not qualify any return on the reachable contiguous-growth or promotion paths."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "false",
+          "location": {
+            "start": {
+              "line": 422,
+              "column": 63
+            },
+            "end": {
+              "line": 422,
+              "column": 67
+            }
+          },
+          "reason": "The initial-range branch rents at least source.Length when rangeBytes is null. This is the only supported pre-write state with zero rangeLength and no chunks: later writes are positive-length or use the chunk map. ArrayPool guarantees at least the requested capacity, so the smaller-buffer branch cannot execute and changing its unreachable clearArray argument has no effect."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "this.rangeLength >= 0",
+          "location": {
+            "start": {
+              "line": 457,
+              "column": 13
+            },
+            "end": {
+              "line": 457,
+              "column": 33
+            }
+          },
+          "reason": "PromoteRangeToChunks is called only after TryStageInRange returns false. That helper always handles rangeLength == 0 and returns true; only a gap outside an existing positive-length range returns false. Thus promotion always sees rangeLength > 0. Replacing > with >= leaves its copy, return and reset operations unchanged."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "offset <= this.maximumWrittenExclusive",
+          "location": {
+            "start": {
+              "line": 526,
+              "column": 20
+            },
+            "end": {
+              "line": 526,
+              "column": 57
+            }
+          },
+          "reason": "The bitmap's maximumWrittenExclusive is one past its last written byte. After the last emitted run offset equals that bound. Changing the outer loop to <= enters one extra iteration, but the unchanged inner loop short-circuits and the following equality immediately yields break. It emits no extra range and performs no bitmap lookup or I/O."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "offset <= this.maximumWrittenExclusive",
+          "location": {
+            "start": {
+              "line": 528,
+              "column": 24
+            },
+            "end": {
+              "line": 528,
+              "column": 61
+            }
+          },
+          "reason": "The unchanged outer loop starts this gap scan strictly below maximumWrittenExclusive. Every chunk is populated by a nonempty Write, which sets the bit at maximumWrittenExclusive - 1. The gap scan therefore encounters a written byte before reaching the exclusive bound. Changing only its < comparison to <= never evaluates IsWritten at the bound and yields identical runs."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 535,
+              "column": 21
+            },
+            "end": {
+              "line": 535,
+              "column": 33
+            }
+          },
+          "reason": "Within the unchanged outer loop offset starts below maximumWrittenExclusive. The gap scan cannot pass the last written byte at maximumWrittenExclusive - 1, because Write sets that bit whenever it extends the maximum. Thus offset == maximumWrittenExclusive is false at this point on every reachable iteration; removing this defensive yield break changes no run or I/O."
+        },
+        {
           "mutatorName": "Equality mutation",
           "replacement": "this.position > this.baselineLength",
           "location": {
