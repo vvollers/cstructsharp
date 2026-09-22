@@ -139,18 +139,20 @@ internal sealed unsafe class ReadBudgetStream : Stream
         }
     }
 
-    /// <summary>Flushes the wrapped stream without closing or otherwise taking ownership of it.</summary>
     /// <summary>
     ///     Reports whether the source provably cannot supply <paramref name="count"/> more bytes: the region or seekable
     ///     stream ends before them. Only a definite shortfall returns <see langword="true"/>; a non-seekable stream, or
     ///     one whose length cannot be read, returns <see langword="false"/> so the caller reads and lets the ordinary
     ///     short-read failure decide. Lets a bulk reader fail before it allocates for a count the data cannot back.
     /// </summary>
+    /// <param name="count">The nonnegative number of requested bytes.</param>
+    /// <returns>Whether the remaining source length proves a shortfall, without consuming bytes.</returns>
     public bool IsShortBy(long count)
     {
         if (this.memoryBacked)
         {
-            return this.position + count > this.memoryLength;
+            // Subtraction cannot overflow for nonnegative lengths and positions; adding the requested count can.
+            return count > this.memoryLength - this.position;
         }
 
         try
@@ -168,9 +170,12 @@ internal sealed unsafe class ReadBudgetStream : Stream
     ///     the budget exactly like a read would. False when the source is a stream or the bytes are not all available,
     ///     in which case the caller takes the ordinary stream path (which then produces the usual short-read error).
     /// </summary>
+    /// <param name="count">The nonnegative number of requested bytes.</param>
+    /// <param name="bytes">The borrowed source span on success, or an empty span on failure.</param>
+    /// <returns>Whether the bytes were available in memory; false leaves the position and budget unchanged.</returns>
     public bool TryReadSpan(int count, out ReadOnlySpan<byte> bytes)
     {
-        if (this.memoryBacked && this.position + count <= this.memoryLength)
+        if (this.memoryBacked && count <= this.memoryLength - this.position)
         {
             bytes = this.memoryArray is null
                         ? new ReadOnlySpan<byte>(this.memoryPointer + this.position, count)
@@ -214,9 +219,12 @@ internal sealed unsafe class ReadBudgetStream : Stream
     ///     Like <see cref="TryReadSpan"/> but also fails, without charging or throwing, when the read would exceed the
     ///     total read budget - so a caller can fall back to a path that reports the limit failure at its usual place.
     /// </summary>
+    /// <param name="count">The nonnegative number of requested bytes.</param>
+    /// <param name="bytes">The borrowed source span on success, or an empty span on failure.</param>
+    /// <returns>Whether the bytes were available within the budget; false consumes neither bytes nor budget.</returns>
     public bool TryReadSpanWithinBudget(int count, out ReadOnlySpan<byte> bytes)
     {
-        if (this.memoryBacked && this.position + count <= this.memoryLength && this.bytesRead + (long)count <= this.maxTotalBytesRead)
+        if (this.memoryBacked && count <= this.memoryLength - this.position && this.bytesRead + (long)count <= this.maxTotalBytesRead)
         {
             return this.TryReadSpan(count, out bytes);
         }

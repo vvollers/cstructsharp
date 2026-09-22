@@ -8,6 +8,7 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- Avoid overflow in memory-backed read availability checks when the cursor or requested byte count is very large.
 - Publish nested enum values under their complete field path when writing runtime-sized records, so later array
   lengths can refer to them just as they can refer to ordinary integer fields.
 - Read selected fields from their resolved address without applying parent alignment again. Scalar, enum and

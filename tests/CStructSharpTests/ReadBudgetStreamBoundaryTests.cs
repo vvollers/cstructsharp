@@ -7,6 +7,42 @@ using CStructSharp.Streams;
 [TestClass]
 public class ReadBudgetStreamBoundaryTests
 {
+    /// <summary>A position beyond the memory window cannot wrap into a successful preflight or an invalid array slice.</summary>
+    /// <param name="operation">The availability check to exercise with a large position or requested count.</param>
+    [TestMethod]
+    [DataRow("shortfall")]
+    [DataRow("span")]
+    [DataRow("budgeted-span")]
+    [DataRow("large-count")]
+    public void MemoryPreflight_LargePositionCannotWrap(string operation)
+    {
+        using var source = new MemoryStream([11, 12, 13,], 0, 3, writable: false, publiclyVisible: true);
+        using var reader = new ReadBudgetStream(source, 100, 1);
+        long position = operation == "large-count" ? 1 : long.MaxValue;
+        reader.Position = position;
+        if (operation == "shortfall")
+        {
+            Assert.IsTrue(reader.IsShortBy(1));
+        }
+        else if (operation == "large-count")
+        {
+            Assert.IsTrue(reader.IsShortBy(long.MaxValue));
+        }
+        else if (operation == "span")
+        {
+            Assert.IsFalse(reader.TryReadSpan(1, out _));
+        }
+        else
+        {
+            Assert.IsFalse(reader.TryReadSpanWithinBudget(1, out _));
+        }
+
+        Assert.AreEqual(position, reader.Position);
+        reader.Position = 0;
+        Assert.IsTrue(reader.TryReadSpanWithinBudget(1, out ReadOnlySpan<byte> bytes));
+        Assert.AreEqual((byte)11, bytes[0], "Failed availability checks must not consume the byte budget.");
+    }
+
     /// <summary>Exposed MemoryStream slices retain their origin while peek, span reads and position flush share one cursor.</summary>
     [TestMethod]
     public void ExposedSlice_UsesItsArrayOffsetAndCurrentPosition()

@@ -34,6 +34,9 @@ already in your process.
 Coordinates start at zero within the region you supply. If you pass `largeBuffer.AsSpan(100, 20)`, offset 0 means
 index 100 in the original array, and pointers cannot follow bytes outside those 20 supplied bytes.
 
+Read availability checks compare the requested byte count with the bytes remaining in the supplied region.
+A very large position or count cannot wrap around and make unavailable bytes appear readable.
+
 Bytes that arrive in pieces - a `PipeReader`'s buffer, a chain of pooled segments - are a `ReadOnlySequence<byte>`,
 and every read operation accepts one. A sequence with a single segment is read in place, at the span path's cost; a
 sequence with several segments is copied into a pooled buffer first, bounded by `MaxTotalBytesRead` plus one byte,
