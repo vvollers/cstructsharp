@@ -9,6 +9,46 @@ using CStructSharp.Values;
 [TestClass]
 public class TypedConversionBoundaryTests
 {
+    /// <summary>Projecting an already typed primitive array copies its storage without boxing every element.</summary>
+    /// <remarks>Independent steady-state minima remove one-time runtime overhead without allowing extra per-element allocation.</remarks>
+    [TestMethod]
+    [DoNotParallelize]
+    public void PrimitiveArrayConversion_AvoidsPerElementBoxing()
+    {
+        int[] values = Enumerable.Range(0, 256).ToArray();
+        var source = new PrimitiveArray<int>(values);
+        var converted = (int[])TypedValueConverter.Convert(source, typeof(int[]), "root.values")!;
+        CollectionAssert.AreEqual(values, converted);
+        Assert.AreNotSame(values, converted);
+        for (int warm = 0; warm < 50; warm++)
+        {
+            GC.KeepAlive(source.ToArray());
+            GC.KeepAlive(TypedValueConverter.Convert(source, typeof(int[]), "root.values"));
+        }
+
+        long clone = long.MaxValue;
+        long projection = long.MaxValue;
+        for (int sample = 0; sample < 5; sample++)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            for (int index = 0; index < 100; index++)
+            {
+                GC.KeepAlive(source.ToArray());
+            }
+
+            clone = Math.Min(clone, GC.GetAllocatedBytesForCurrentThread() - before);
+            before = GC.GetAllocatedBytesForCurrentThread();
+            for (int index = 0; index < 100; index++)
+            {
+                GC.KeepAlive(TypedValueConverter.Convert(source, typeof(int[]), "root.values"));
+            }
+
+            projection = Math.Min(projection, GC.GetAllocatedBytesForCurrentThread() - before);
+        }
+
+        Assert.AreEqual(clone, projection, "Same-element projection must allocate only the independent typed storage copy.");
+    }
+
     /// <summary>Every integral target accepts both endpoints and rejects the adjacent integers without wrapping.</summary>
     /// <param name="target">The requested CLR integer type.</param>
     /// <param name="minimum">Its inclusive minimum in invariant decimal notation.</param>

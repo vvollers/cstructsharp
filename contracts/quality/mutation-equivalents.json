@@ -337,6 +337,36 @@
       "sourceSha256": "40a40226315af1cf2f88daf8e15fe4452ec1703bfadb35a9f52068467920c5dc",
       "mutants": [
         {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {
+            "start": {
+              "line": 52,
+              "column": 117
+            },
+            "end": {
+              "line": 52,
+              "column": 122
+            }
+          },
+          "reason": "ParseAsync returns only the StructValue in ParseStreamCoreImpl.Result. Enabling debug also collects member ranges into an operation-private DebugMapping list and uses the general reader instead of the equivalent static-plan optimization, but the ParseAsync callback discards that list. No debug result or state escapes this operation; value, final consumed position and reported read failures retain the same read contract. This mutation adds tracing work and allocations, not an observable debug result."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?origin :origin + consumed)",
+          "location": {
+            "start": {
+              "line": 336,
+              "column": 35
+            },
+            "end": {
+              "line": 336,
+              "column": 77
+            }
+          },
+          "reason": "restoreOrigin is true only for ResolveAddressAsync and GetArrayLengthAsync. Their synchronous core operations restore their borrowed FixedBufferStream to its initial position zero in finally, so consumed is zero on every successful query. origin + consumed is therefore origin when this branch changes. All consuming operations pass false and already take the unchanged origin + consumed branch; failures follow the separate restoration catch."
+        },
+        {
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?result :new ParseResult(result.Value, Shift(result.Debug, origin)))",
           "location": {

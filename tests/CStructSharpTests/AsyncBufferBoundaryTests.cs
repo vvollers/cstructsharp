@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using System.Buffers;
+using System.Runtime.InteropServices;
 using CStructSharp.Diagnostics;
 using CStructSharp.Streams;
 
@@ -8,6 +9,33 @@ using CStructSharp.Streams;
 [TestClass]
 public class AsyncBufferBoundaryTests
 {
+    /// <summary>A buffered public read releases its exact input array after decoding succeeds or fails.</summary>
+    /// <param name="truncated">Whether the selected value needs more bytes than the source supplies.</param>
+    [TestMethod]
+    [DoNotParallelize]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task PublicRead_ReturnsItsInputRental(bool truncated)
+    {
+        using var returns = new PoolReturnListener();
+        using var source = new ObservedReadStream(returns) { Position = 1, };
+        var layout = new CStruct(truncated ? "struct root { uint32 value; };" : "struct root { uint8 value; };");
+        if (truncated)
+        {
+            // Decoding failure occurs after acquisition transfers its rental to the public operation.
+            await Assert.ThrowsAsync<CStructReadException>(async () => await layout.ParseAsync(source, "root"));
+            Assert.AreEqual(1L, source.Position);
+        }
+        else
+        {
+            Assert.AreEqual((byte)7, (await layout.ParseAsync(source, "root")).Get<byte>("value"));
+            Assert.AreEqual(2L, source.Position);
+        }
+
+        Assert.IsTrue(source.ObservedRental);
+        Assert.IsTrue(returns.Returned, "The operation owns and must return the exact acquisition array.");
+    }
+
     /// <summary>Async reads use the selected array slice and remaining length, not bytes outside that slice.</summary>
     /// <param name="visible">Whether reading borrows the underlying array or acquires a separate buffer.</param>
     [TestMethod]
@@ -97,6 +125,30 @@ public class AsyncBufferBoundaryTests
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    /// <summary>Observes the actual memory supplied to async acquisition without exposing its own source array.</summary>
+    /// <param name="returns">Observer for the acquisition array's eventual return.</param>
+    private sealed class ObservedReadStream(PoolReturnListener returns) : MemoryStream(new byte[] { 0xAA, 7, })
+    {
+        public bool ObservedRental { get; private set; }
+
+        /// <summary>Records the first acquisition array and completes the read synchronously.</summary>
+        /// <param name="buffer">The rented destination memory.</param>
+        /// <param name="cancellationToken">Cancellation checked before consuming source bytes.</param>
+        /// <returns>The number of source bytes copied.</returns>
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!this.ObservedRental)
+            {
+                Assert.IsTrue(MemoryMarshal.TryGetArray((ReadOnlyMemory<byte>)buffer, out ArraySegment<byte> segment));
+                returns.Watch(segment.Array!.GetHashCode());
+                this.ObservedRental = true;
+            }
+
+            return ValueTask.FromResult(this.Read(buffer.Span));
         }
     }
 
