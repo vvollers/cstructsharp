@@ -32,7 +32,7 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   tests, including short reads, original input offsets, cancellation between records, pooled-buffer returns and
   asynchronous continuation independence from the caller's synchronization context.
   Verify generated cursor array, text, identifier and pointer behavior at byte-budget, encoding and lifetime boundaries.
-  Check writer padding, buffer growth, exact text limits and operation-specific physical-I/O diagnostics.
+  Check writer padding, buffer growth, exact text limits, layout diagnostics, size arithmetic and physical-I/O failures.
 - Correct learning-path and dependency guidance, current inspector/JavaScript references, and benchmark fixture
   claims. Derive volatile fixture and executable-scenario counts from their owning definitions.
 - Explain cursor ownership, generated reads and inspector invalidation at the relevant source boundaries, and

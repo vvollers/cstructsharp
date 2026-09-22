@@ -3,6 +3,24 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "**/CStructSharp.Core/Compilation/CompiledSizeQueries.cs",
+      "sourceSha256": "bb0e1665964b26dcde31d66390ee9254ee1c6e9e227f3c1f9a6038cda89ca1a8",
+      "mutants": [
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?new ConditionalFieldSelection(this.expressionEvaluator, composite.ConditionalGroupCount, requireFixedSize ? ExpressionFailureDomain.Layout : ExpressionFailureDomain.Read) :null)",
+          "location": { "start": { "line": 74, "column": 25 }, "end": { "line": 74, "column": 241 } },
+          "reason": "Only composites without direct conditions gain a selection object. Their constructor leaves every field's ConditionalBranches empty, so IsActive returns true without evaluating anything. The original null selection also skips no field. The same placement and size arithmetic runs; only an unused selection allocation is added."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": { "start": { "line": 163, "column": 9 }, "end": { "line": 165, "column": 10 } },
+          "reason": "Every scalar shape produced by the compiler uses CompiledArrayShape.Scalar with an empty Dimensions array. Without the fast return it bypasses the flexible-kind check, starts total at 1, executes zero loop iterations and returns 1. Other array kinds already bypass this block."
+        }
+      ]
+    },
+    {
       "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Model.cs",
       "sourceSha256": "b56fec25c43fb114b652d769e2af372bd6caf8d8be73dfb3c7902e9c87113412",
       "mutants": [

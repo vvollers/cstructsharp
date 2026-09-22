@@ -70,11 +70,13 @@ public class BitfieldCodecTableTests
         Dictionary<string, byte> alignments = ValidAlignments();
         alignments["byte"] = 2;
 
-        Assert.Throws<InvalidOperationException>(
+        // The message must identify the conflicting registration, not just the exception category.
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(
             () => new BitfieldCodecTable(
                 true,
                 alignments,
                 new Dictionary<string, string>()));
+        Assert.AreEqual("Integral bitfield codec registration is inconsistent: byte", failure.Message);
     }
 
     /// <summary>An array field, regardless of its element type, cannot be a bitfield.</summary>
@@ -84,7 +86,9 @@ public class BitfieldCodecTableTests
         BitfieldCodecTable table = CreateValidTable(true, out _);
         var arrayField = new Field(new Identifier("uint8"), new Identifier("values"), [new Literal(4),], 3);
 
-        Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(arrayField));
+        // Array storage must fail before interpreting its element as scalar bitfield storage.
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(arrayField));
+        Assert.AreEqual("Arrays cannot be bitfields.", failure.Message);
     }
 
     /// <summary>A pointer field cannot be a bitfield, even if its pointee type is otherwise valid storage.</summary>
@@ -94,7 +98,9 @@ public class BitfieldCodecTableTests
         BitfieldCodecTable table = CreateValidTable(true, out _);
         var pointerField = new Field(new Identifier("uint8"), new Identifier("ptr"), Field.NoArray, 3, pointerDepth: 1);
 
-        Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(pointerField));
+        // A valid pointee type does not make a pointer itself integral bitfield storage.
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(pointerField));
+        Assert.AreEqual("Pointers cannot be bitfields.", failure.Message);
     }
 
     /// <summary>A type that was never registered as bitfield-capable storage (here, a made-up name) is rejected.</summary>
@@ -103,7 +109,9 @@ public class BitfieldCodecTableTests
     {
         BitfieldCodecTable table = CreateValidTable(true, out _);
 
-        Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(BitfieldField("not_a_real_type", bitSize: 3)));
+        // Unknown storage names must not silently use the default empty codec entry.
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(BitfieldField("not_a_real_type", bitSize: 3)));
+        Assert.AreEqual("Bitfield storage type 'not_a_real_type' is not a direct scalar integral codec.", failure.Message);
     }
 
     /// <summary>A declared bit width that exceeds the storage unit's capacity is rejected.</summary>
@@ -112,7 +120,43 @@ public class BitfieldCodecTableTests
     {
         BitfieldCodecTable table = CreateValidTable(true, out _);
 
-        Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(BitfieldField("uint8", bitSize: 9)));
+        // The upper diagnostic boundary reflects the selected codec's actual capacity.
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(BitfieldField("uint8", bitSize: 9)));
+        Assert.AreEqual("Bitfield width for value must be between 1 and 8.", failure.Message);
+
+        // A zero-width separator is handled by layout placement, not as a writable value codec.
+        InvalidOperationException zero = Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(BitfieldField("uint8", bitSize: 0)));
+        Assert.AreEqual("Bitfield width for value must be between 1 and 8.", zero.Message);
+    }
+
+    /// <summary>Infinite floating-point values fail the integer-domain check before any numeric conversion.</summary>
+    [TestMethod]
+    public void InfiniteWriteValues_RejectWithoutInventingAConversionCause()
+    {
+        foreach (object value in new object[] { double.PositiveInfinity, double.NegativeInfinity, float.PositiveInfinity, float.NegativeInfinity })
+        {
+            // Non-finite values are outside the unsigned integer domain before conversion is attempted.
+            CStructWriteException failure = Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue("bits", 3, value));
+            Assert.AreEqual("Bitfield value for 'bits' must be an unsigned integer that fits 3 bits.", failure.Message);
+            Assert.IsNull(failure.InnerException);
+        }
+
+        // A string that cannot represent an integer instead retains the converter's specific cause.
+        CStructWriteException invalidText = Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue("bits", 3, "bad"));
+        Assert.AreEqual("Bitfield value for 'bits' must be an unsigned integer that fits 3 bits.", invalidText.Message);
+        Assert.IsInstanceOfType<FormatException>(invalidText.InnerException);
+    }
+
+    /// <summary>Converting a descriptor's byte width into bits retains checked integer arithmetic.</summary>
+    [TestMethod]
+    public void EntryCapacity_RejectsOverflowWithoutAllocatingStorage()
+    {
+        var largest = new BitfieldCodecTable.Entry(int.MaxValue / 8, true);
+        Assert.AreEqual(2_147_483_640, largest.BitCapacity);
+        var oversized = new BitfieldCodecTable.Entry((int.MaxValue / 8) + 1, true);
+
+        // The descriptor must reject the arithmetic overflow instead of publishing a negative capacity.
+        Assert.Throws<OverflowException>(() => _ = oversized.BitCapacity);
     }
 
     /// <summary>Extracting then merging the same slice back must reproduce the original storage value exactly.</summary>
