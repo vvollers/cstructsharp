@@ -1078,6 +1078,15 @@
       "sourceSha256": "e9f21bf75824129bc4e8b5262eafe032f73f9ec6c16529b2d8bee34486cc75bd",
       "mutants": [
         {
+          "mutatorName": "Equality mutation",
+          "replacement": "index <= this.source.Length",
+          "location": {
+            "start": { "line": 956, "column": 48 },
+            "end": { "line": 956, "column": 74 }
+          },
+          "reason": "LineBreakBetween is called only by ParseDefine with end equal to the current parser position, after the preceding AtEnd condition in the same OR expression was false. Therefore end < source.Length. The loop's unchanged index < end condition is evaluated first and guarantees index < source.Length whenever this second bound is reached. Both < and <= source.Length are true for every such index, including empty ranges where neither is evaluated. No additional character, line break or continuation is examined."
+        },
+        {
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {

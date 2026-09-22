@@ -4,11 +4,12 @@ namespace CStructSharp.Tests;
 [TestClass]
 public class HoistedCompositeTagTests
 {
-    /// <summary>Union and typedef bodies publish their inline tags even when no declaration follows them.</summary>
+    /// <summary>Named inline types remain available even when their containing declaration is last in the layout.</summary>
     /// <param name="container">The declaration containing a named inline child.</param>
     [TestMethod]
     [DataRow("union container { struct child { uint8 value; } member; };")]
     [DataRow("typedef struct container { struct child { uint8 value; } member; } alias;")]
+    [DataRow("struct container { union child { uint8 value; } member; };")]
     public void InlineTags_AreAvailableAtTheEndOfTheLayout(string container)
     {
         var layout = new CStruct(container);
