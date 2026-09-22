@@ -3,6 +3,252 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "Generated/Codec.cs",
+      "sourceSha256": "71371e0185343bd08c160d639e5331fb7a20ee27116eed6f906ce459c7721eb3",
+      "mutants": [
+        {
+          "mutatorName": "OrAssignmentExpression to ExclusiveOrAssignmentExpression mutation",
+          "replacement": "value ^= (ulong)source[index] << shift",
+          "location": {
+            "start": {
+              "line": 89,
+              "column": 13
+            },
+            "end": {
+              "line": 89,
+              "column": 51
+            }
+          },
+          "reason": "ReadUInt48 starts with zero and places each of six bytes at a distinct multiple-of-eight shift, in either byte order. The new byte's bit positions never overlap accumulated bits, so OR and XOR produce identical 48-bit values."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "< 8",
+          "location": {
+            "start": {
+              "line": 170,
+              "column": 22
+            },
+            "end": {
+              "line": 170,
+              "column": 26
+            }
+          },
+          "reason": "The preceding exact case 8 already returns ReadUInt64 for every eight-byte input. This fallback only receives widths 3, 5, 6 and 7; changing its upper bound from <= 8 to < 8 cannot change any selected case or result."
+        },
+        {
+          "mutatorName": "OrAssignmentExpression to ExclusiveOrAssignmentExpression mutation",
+          "replacement": "value ^= (ulong)source[index] << shift",
+          "location": {
+            "start": {
+              "line": 177,
+              "column": 21
+            },
+            "end": {
+              "line": 177,
+              "column": 59
+            }
+          },
+          "reason": "The generic ReadUnsigned loop starts with zero and assigns each source byte a distinct eight-bit position within at most 64 bits. The new byte cannot overlap previously accumulated bits, so OR and XOR yield the same value for both byte orders."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "< 8",
+          "location": {
+            "start": {
+              "line": 454,
+              "column": 22
+            },
+            "end": {
+              "line": 454,
+              "column": 26
+            }
+          },
+          "reason": "The preceding exact case 8 already writes all eight-byte destinations and breaks. The generic fallback only receives widths 3, 5, 6 and 7, so changing its upper bound to < 8 does not change dispatch or output."
+        },
+        {
+          "mutatorName": "Bitwise mutation",
+          "replacement": "value >>> shift",
+          "location": {
+            "start": {
+              "line": 458,
+              "column": 45
+            },
+            "end": {
+              "line": 458,
+              "column": 59
+            }
+          },
+          "reason": "WriteUnsigned's value is ulong. Both >> and >>> shift this unsigned operand with zero fill and the same masked shift count, producing identical destination bytes."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "index <= MaximumLeb128Bytes",
+          "location": {
+            "start": {
+              "line": 483,
+              "column": 54
+            },
+            "end": {
+              "line": 483,
+              "column": 80
+            }
+          },
+          "reason": "For the documented widths 32 and 64, Leb128Decoder.Push either finishes or rejects continuation at the fifth or tenth byte respectively. The loop can never reach index ten without already returning or throwing, so permitting index == MaximumLeb128Bytes changes no supported decoding path, including malformed inputs."
+        },
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?Leb128Decoder.ShortRead :Leb128Decoder.Unterminated)",
+          "location": {
+            "start": {
+              "line": 492,
+              "column": 40
+            },
+            "end": {
+              "line": 492,
+              "column": 129
+            }
+          },
+          "reason": "For documented 32/64-bit inputs, a source of ten or more bytes cannot reach this final throw: Push returns on termination or rejects continuation by the fifth/tenth byte. Every reachable final throw therefore has source.Length < MaximumLeb128Bytes and already selects ShortRead. Unsupported widths are not claimed equivalent."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "source.Length <= MaximumLeb128Bytes",
+          "location": {
+            "start": {
+              "line": 492,
+              "column": 40
+            },
+            "end": {
+              "line": 492,
+              "column": 74
+            }
+          },
+          "reason": "Only source.Length == ten changes this choice. For supported widths 32 and 64 the decoder returns or throws no later than the fifth/tenth Push, so a ten-byte source cannot reach this conditional. All reachable short-span diagnostics are unchanged."
+        },
+        {
+          "mutatorName": "RightShiftAssignmentExpression to UnsignedRightShiftAssignmentExpression mutation",
+          "replacement": "value >>>= 7",
+          "location": {
+            "start": {
+              "line": 505,
+              "column": 13
+            },
+            "end": {
+              "line": 505,
+              "column": 24
+            }
+          },
+          "reason": "WriteULeb128's value is ulong. Compound >>= and >>>= both use zero-fill shifts for this unsigned operand, so every subsequent value, continuation bit and output byte is identical."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "exact * (decimal)scale",
+          "location": {
+            "start": {
+              "line": 559,
+              "column": 30
+            },
+            "end": {
+              "line": 559,
+              "column": 61
+            }
+          },
+          "reason": "Decimal multiplication and conversion from double to decimal throw OverflowException on an unrepresentable result regardless of checked context. Removing this checked expression does not turn either decimal operation into wrapping arithmetic, and exact-grid validation still receives the same scaled decimal or the same exception."
+        },
+        {
+          "mutatorName": "Bitwise mutation",
+          "replacement": "unit >>> shift",
+          "location": {
+            "start": {
+              "line": 637,
+              "column": 13
+            },
+            "end": {
+              "line": 637,
+              "column": 26
+            }
+          },
+          "reason": "ExtractBits receives unit as ulong. Both right-shift operators zero-fill the same unsigned bits with the same shift-count masking before the unchanged bit mask is applied."
+        },
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?PrimitiveCodecs.StrictUtf16LittleEndianEncoding :PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
+          "location": {
+            "start": {
+              "line": 874,
+              "column": 18
+            },
+            "end": {
+              "line": 874,
+              "column": 127
+            }
+          },
+          "reason": "ReadChar has already decoded source bytes using the requested endianness. The selected strict UTF-16 encoder is used only for GetByteCount validation on the resulting string: both byte orders reject the same invalid surrogate sequences and count the same bytes for valid text. No encoded bytes or byte-order-specific output is returned here."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?PrimitiveCodecs.StrictUtf16LittleEndianEncoding :PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
+          "location": {
+            "start": {
+              "line": 874,
+              "column": 18
+            },
+            "end": {
+              "line": 874,
+              "column": 127
+            }
+          },
+          "reason": "ReadChar has already decoded source bytes using the requested endianness. Selecting the strict big-endian UTF-16 encoder solely for GetByteCount validates the same surrogate sequences as the little-endian encoder. Their counts are identical, the count is discarded, and the decoded string and trimming behavior are unchanged."
+        },
+        {
+          "mutatorName": "Bitwise mutation",
+          "replacement": "value >>> 8",
+          "location": {
+            "start": {
+              "line": 893,
+              "column": 33
+            },
+            "end": {
+              "line": 893,
+              "column": 43
+            }
+          },
+          "reason": "WriteUInt24Unchecked's value is uint, so >> and >>> both zero-fill before conversion to the middle output byte. The same eight low bits are written."
+        },
+        {
+          "mutatorName": "Bitwise mutation",
+          "replacement": "value >>> 16",
+          "location": {
+            "start": {
+              "line": 895,
+              "column": 52
+            },
+            "end": {
+              "line": 895,
+              "column": 63
+            }
+          },
+          "reason": "WriteUInt24Unchecked's value is uint, so >> and >>> both zero-fill before conversion to the high output byte. The byte-order-dependent destination index and written byte are unchanged."
+        },
+        {
+          "mutatorName": "Bitwise mutation",
+          "replacement": "value >>> shift",
+          "location": {
+            "start": {
+              "line": 903,
+              "column": 41
+            },
+            "end": {
+              "line": 903,
+              "column": 55
+            }
+          },
+          "reason": "WriteUInt48Unchecked's value is ulong. Both shift operators zero-fill this unsigned operand, preserving all six extracted bytes for either byte order."
+        }
+      ]
+    },
+    {
       "pattern": "**/CStructSharp.Core/Compilation/ConstructionDictionary.cs",
       "sourceSha256": "740156a7b8468a1d8cb8935e19191fa869273fb55f7c01232c203a4e54eab71d",
       "mutants": [
