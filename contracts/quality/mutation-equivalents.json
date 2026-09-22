@@ -1801,6 +1801,24 @@
       "sourceSha256": "74dc7e30a98926d4b4b495ceb7d667970682b66f12aa3a2ea8a9abb5b526fbdf",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 266, "column": 21 },
+            "end": { "line": 266, "column": 74 }
+          },
+          "reason": "This CompleteField call belongs only to a zero-width bitfield separator. Compilation permits width zero only with an empty declaration name and validates an integer or enum storage type, never a composite. CompleteConditionalScope therefore gives the separator no visible names or captured slots, and skips nested-shadow analysis for its non-composite type, leaving restored slots empty too. ConditionalVariableScope.CompleteField performs only its two slot loops; both are empty for this exact field. If the scope is null the original call also does nothing. Removing this call cannot affect variables or the placement/reset statements that precede it. Ordinary and promoted-struct CompleteField calls are not covered and are required by the nested-count regressions."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 312, "column": 9 },
+            "end": { "line": 312, "column": 86 }
+          },
+          "reason": "WritePromotedUnion is called only for a field in PromotedFields whose composite is a union. PromotedFields contains anonymous inline Struct declarations. Struct's sole constructor passes no offset assertion to its Field base, whose OffsetAssertionExpression is get-only; ParseInlineComposite accepts an optional name and semicolon, not a placement suffix for the anonymous declaration. ValidateOffsetAssertionAtRuntime reads that declaration property and returns immediately when it is null, before evaluating expressions or inspecting any stream state. Removing this particular call therefore removes a no-op. Offset assertions on ordinary fields remain reachable through WriteFieldValue and are not qualified here; composite @align is a separate property and still participates in cursor placement."
+        },
+        {
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
