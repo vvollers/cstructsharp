@@ -395,6 +395,18 @@
           "replacement": "(false?this.unitStart + this.unitSize :current)",
           "location": { "start": { "line": 123, "column": 25 }, "end": { "line": 123, "column": 82 } },
           "reason": "All placement owners update current to the MSVC RunEnd (unitStart + unitSize) after each bitfield or separator and close the run before an ordinary field changes current. Opening the next unit therefore selects the same byte position with either active-run alternative. For an inactive run both versions already use current."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "false",
+          "location": { "start": { "line": 97, "column": 30 }, "end": { "line": 97, "column": 34 } },
+          "reason": "After an MSVC separator, unitSize is zero and all three owners assign current = RunEnd = unitStart. No production consumer reads InRun. The next positive-size field starts a new unit with either flag value, using identical current/unitStart and resetting BitsUsed; another separator also chooses equal positions, and an ordinary field closes the run. Thus the changed intermediate flag affects neither placement nor storage."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": { "start": { "line": 100, "column": 13 }, "end": { "line": 100, "column": 20 } },
+          "reason": "The immediately preceding unconditional Close call already sets unitSize to zero. The intervening assignments change only runActive and unitStart. Removing this second unitSize = 0 assignment therefore leaves exactly the same complete placement state."
         }
       ]
     },
@@ -647,6 +659,108 @@
           "replacement": "{}",
           "location": { "start": { "line": 51, "column": 9 }, "end": { "line": 53, "column": 10 } },
           "reason": "Removing the exact-match fast return preserves the returned name: no exact match already uses the later search; one case-insensitive match returns the exact spelling; multiple case-insensitive matches return propertyName, which is the exact spelling. Only comparison work and equal-string reference identity can differ, neither of which is this method's result contract."
+        }
+      ]
+    },
+    {
+      "pattern": "Values/WriteDataBinding.cs",
+      "sourceSha256": "30e37faa2fdb8362a720099de33a3dea2804f30e5c4db4626c1b3af8742a4829",
+      "mutants": [
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?value :Materialize(value, nested))",
+          "location": {
+            "start": {
+              "line": 89,
+              "column": 16
+            },
+            "end": {
+              "line": 89,
+              "column": 97
+            }
+          },
+          "reason": "MaterializeElement receives non-null values only. For member sources, Materialize returns the same object immediately. For sealed UnionValue, which cannot implement the constrained mapping interface, TryWrite cannot find a registered mapper and Materialize returns the same object. All other values already use Materialize. Only an unused temporary StructValue allocation can differ; returned identity, nested mapping and caller data are unchanged."
+        },
+        {
+          "mutatorName": "Logical mutation",
+          "replacement": "IsMemberSource(value) && value is UnionValue",
+          "location": {
+            "start": {
+              "line": 89,
+              "column": 16
+            },
+            "end": {
+              "line": 89,
+              "column": 60
+            }
+          },
+          "reason": "IsMemberSource and UnionValue are disjoint: sealed UnionValue implements IReadOnlyDictionary, not IDictionary. Replacing OR with AND sends these two cases through Materialize, which returns member sources immediately and returns the unregistered sealed UnionValue unchanged. Other values already take that path. The extra temporary allocation for UnionValue does not change returned identity or mapping behavior."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 163,
+              "column": 9
+            },
+            "end": {
+              "line": 169,
+              "column": 10
+            }
+          },
+          "reason": "Nullable reference annotations do not produce distinct CLR types. IDictionary<string, object?> and IDictionary<string, object> match exactly the same objects. Removing the first branch falls through to the second identical TryGetValue assignment and return; found, value and dictionary side effects are unchanged."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 172,
+              "column": 9
+            },
+            "end": {
+              "line": 177,
+              "column": 10
+            }
+          },
+          "reason": "The earlier IDictionary<string, object?> branch matches exactly the same CLR type as IDictionary<string, object> and always returns. This second branch is unreachable; removing it cannot affect any lookup, output or dictionary side effect."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 187,
+              "column": 9
+            },
+            "end": {
+              "line": 189,
+              "column": 10
+            }
+          },
+          "reason": "The following conditional tests the same CLR dictionary type, because nullable reference annotations erase at runtime, and returns the same Keys property. Removing the first branch neither changes the returned enumerable nor adds a Keys evaluation."
+        }
+      ]
+    },
+    {
+      "pattern": "Codecs/FixedPointCodec.cs",
+      "sourceSha256": "5f875ea4c63cce19b3db78c397d636b6b42aeb24da600a9cbdd86792ebb2c694",
+      "mutants": [
+        {
+          "mutatorName": "Negate expression",
+          "replacement": "!(signed)",
+          "location": {
+            "start": {
+              "line": 26,
+              "column": 18
+            },
+            "end": {
+              "line": 26,
+              "column": 24
+            }
+          },
+          "reason": "EncodeFixedPoint validates signedness and range before this branch. Width 16 takes the unchanged first branch. For the 32-bit path, unchecked int and uint casts retain the identical low 32 bits; BinaryPrimitiveIO and Codec signed/unsigned writers both emit those exact four bits-per-byte groups in the requested endian order using the same stream.Write call. Flipping signed only selects an equivalent bit writer, without changing validation, byte count or I/O behavior."
         }
       ]
     }
