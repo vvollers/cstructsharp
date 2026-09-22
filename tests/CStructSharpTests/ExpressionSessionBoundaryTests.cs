@@ -10,6 +10,25 @@ using CStructSharp.Syntax;
 [TestClass]
 public class ExpressionSessionBoundaryTests
 {
+    /// <summary>Nested unary expressions bypass the one-operator fast path without speculative dependency lookups.</summary>
+    /// <param name="source">An expression containing two unary operators around one dependency.</param>
+    /// <param name="expected">The result after both unary operations.</param>
+    [TestMethod]
+    [DataRow("-(-value)", 2)]
+    [DataRow("~(~value)", 2)]
+    public void NestedUnary_DoesNotRepeatDependencyLookups(string source, int expected)
+    {
+        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(10, 100));
+        var sessionVariables = new CountedVariables { ["value"] = new Literal(2), };
+        var directVariables = new CountedVariables { ["value"] = new Literal(2), };
+
+        Assert.AreEqual(expected, evaluator.CreateSession(sessionVariables).Evaluate(expression));
+        Assert.AreEqual(expected, evaluator.Evaluate(expression, directVariables));
+        Assert.IsTrue(sessionVariables.Lookups > 0);
+        Assert.AreEqual(sessionVariables.Lookups, directVariables.Lookups, "Rejecting the simple path must not add a dependency lookup before session evaluation.");
+    }
+
     /// <summary>The allocation-free path still counts a literal variable's dependency level and explains depth failures.</summary>
     /// <param name="source">A scalar, unary or binary expression eligible for the simple execution path.</param>
     /// <param name="depth">The exact permitted depth, including the referenced literal.</param>
@@ -130,4 +149,21 @@ public class ExpressionSessionBoundaryTests
             1 => evaluator.CreateSession(variables).Evaluate(root),
             _ => evaluator.EvaluateExact(root, variables, 64),
         };
+
+    /// <summary>Counts lookups through the evaluator's read-only view without changing the stored expressions.</summary>
+    private sealed class CountedVariables : Dictionary<string, Expr>, IReadOnlyDictionary<string, Expr>
+    {
+        /// <summary>Gets how often evaluation requested a named dependency.</summary>
+        public int Lookups { get; private set; }
+
+        /// <summary>Counts one lookup and returns the dictionary's unchanged result.</summary>
+        /// <param name="key">The requested dependency name.</param>
+        /// <param name="value">The stored expression on success.</param>
+        /// <returns>Whether the name exists.</returns>
+        bool IReadOnlyDictionary<string, Expr>.TryGetValue(string key, out Expr value)
+        {
+            this.Lookups++;
+            return this.TryGetValue(key, out value!);
+        }
+    }
 }
