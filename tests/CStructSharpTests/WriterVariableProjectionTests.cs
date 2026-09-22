@@ -1,13 +1,14 @@
 namespace CStructSharp.Tests;
 
+using System.Buffers;
+using CStructSharp.Codecs;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
 using CStructSharp.Writing;
 
 /// <summary>
-///     Exercises <see cref="WriterVariableProjection"/> directly, independent of a real write operation. Only
-///     reachable indirectly through the public API before this type was extracted from the God-Object <c>CStruct</c>
-///     partial class.
+///     Checks scalar layout-variable projection directly and through synthetic-root writes, including unexpected
+///     failures raised by caller-provided conversion methods.
 /// </summary>
 [TestClass]
 public class WriterVariableProjectionTests
@@ -84,6 +85,59 @@ public class WriterVariableProjectionTests
             () => WriterVariableProjection.UpdateVariablesFromValue(state, "field", new ThrowsUnexpectedException()));
     }
 
+    /// <summary>A synthetic custom root must preserve unexpected failures while projecting the supplied value into layout variables.</summary>
+    [TestMethod]
+    public void SyntheticCustomRoot_PreservesUnexpectedProjectionFailures()
+    {
+        var layout = new CStruct("struct unused { uint8 value; };", compilationOptions: new CStructCompilationOptions { Codecs = [new ProjectionCodec(),], });
+
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(
+            () => layout.Serialize("projection_value", new ThrowsUnexpectedException()));
+
+        Assert.AreEqual("Not an overflow, cast, or format failure.", failure.Message);
+    }
+
+    /// <summary>Writes one marker byte without converting its input, leaving scalar projection to the library.</summary>
+    private sealed class ProjectionCodec : ICustomCodec
+    {
+        public string Name => "projection_value";
+
+        public int? FixedSize => 1;
+
+        public int Alignment => 1;
+
+        /// <summary>Rejects decoding because this fixture exercises only writing and subsequent value projection.</summary>
+        /// <param name="source">Unused input.</param>
+        /// <param name="value">Always null.</param>
+        /// <param name="bytesConsumed">Always zero.</param>
+        /// <returns>InvalidData without consuming input.</returns>
+        public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
+        {
+            value = null;
+            bytesConsumed = 0;
+            return OperationStatus.InvalidData;
+        }
+
+        /// <summary>Writes a marker without inspecting the supplied object's conversion methods.</summary>
+        /// <param name="destination">Output receiving one zero byte when space is available.</param>
+        /// <param name="value">Unused caller value.</param>
+        /// <param name="bytesWritten">One on success; otherwise zero.</param>
+        /// <returns>Done on success, or DestinationTooSmall without changing output.</returns>
+        public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
+        {
+            bytesWritten = 0;
+            if (destination.IsEmpty)
+            {
+                return OperationStatus.DestinationTooSmall;
+            }
+
+            destination[0] = 0;
+            bytesWritten = 1;
+            return OperationStatus.Done;
+        }
+    }
+
+    /// <summary>Raises an unexpected Int32 conversion failure while rejecting every unrelated conversion.</summary>
     private sealed class ThrowsUnexpectedException : IConvertible
     {
         public TypeCode GetTypeCode() => throw new NotSupportedException();

@@ -364,6 +364,33 @@ public class ParserDifferentialTests
         Assert.IsFalse(accepted);
     }
 
+    /// <summary>Comments do not turn an empty alignment argument into a valid expression or an unrelated parser difference.</summary>
+    /// <param name="source">An empty alignment annotation containing ordinary line or block comment trivia.</param>
+    [TestMethod]
+    [DataRow("enum moDe : uint8 { A=1, B=2 }; struct r_oot { mode values[2] @align// \t\n(); uint8 tail; };")]
+    [DataRow("struct root { uint8 value @align /* before */ ( /* inside */ ); };")]
+    [DataRow("struct root { uint8 value @align(// inside\r\n); };")]
+    public void EmptyAlignment_WithCommentsRetainsItsExactDiagnostic(string source)
+    {
+        Assert.IsTrue(ReferenceAccepts(source));
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLayout(source));
+
+        Assert.IsTrue(RejectsEmptyAlignment(source, failure.Message));
+        Assert.IsFalse(RejectsEmptyAlignment(source, failure.Message.Replace("expected an expression.", "expected an identifier.", StringComparison.Ordinal)));
+        Assert.IsNull(Compare("commented-empty-alignment", source, out bool accepted));
+        Assert.IsFalse(accepted);
+    }
+
+    /// <summary>An empty alignment elsewhere, including inside a comment, cannot excuse a different expression failure.</summary>
+    [TestMethod]
+    public void EmptyAlignment_DoesNotHideAnEarlierExpressionFailure()
+    {
+        const string source = "struct root { uint8 broken[()]; uint8 value @align(); /* @align() */ };";
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLayout(source));
+
+        Assert.IsFalse(RejectsEmptyAlignment(source, failure.Message));
+    }
+
     /// <summary>A valueless define after a declaration still ends at its physical line, unlike the frozen parser.</summary>
     /// <param name="newline">The LF or CRLF directive terminator.</param>
     [TestMethod]
@@ -574,9 +601,7 @@ public class ParserDifferentialTests
         // The reference's Try(AlignmentOverride) backtracks and accepts @align() as an offset call.
         // Empty alignment is invalid in the public language; the current parser commits to that diagnostic.
         // Only exempt this rejected spelling, never an accepted candidate or another syntax diagnostic.
-        if (referenceDump is not null && candidateDump is null &&
-            candidateError?.EndsWith("expected an expression.", StringComparison.Ordinal) == true &&
-            Regex.IsMatch(source, @"@align\s*\(\s*\)"))
+        if (referenceDump is not null && candidateDump is null && RejectsEmptyAlignment(source, candidateError))
         {
             return null;
         }
@@ -646,6 +671,59 @@ public class ParserDifferentialTests
         {
             return false;
         }
+    }
+
+    /// <summary>Matches only an empty alignment argument rejected at its own closing parenthesis, allowing comment trivia.</summary>
+    /// <param name="source">The source compared with the frozen offset-call grammar.</param>
+    /// <param name="candidateError">The current parser's exact rejection diagnostic.</param>
+    /// <returns>Whether this rejection is precisely the documented empty-alignment restriction.</returns>
+    private static bool RejectsEmptyAlignment(string source, string? candidateError)
+    {
+        if (candidateError?.EndsWith("expected an expression.", StringComparison.Ordinal) != true)
+        {
+            return false;
+        }
+
+        // Mask comments without changing offsets or line breaks, so annotations inside comments cannot match.
+        string visible = Regex.Replace(source, @"//[^\r\n]*|/\*[\s\S]*?\*/", static match =>
+        {
+            char[] text = match.Value.ToCharArray();
+            for (int index = 0; index < text.Length; index++)
+            {
+                if (text[index] is not '\r' and not '\n')
+                {
+                    text[index] = ' ';
+                }
+            }
+
+            return new string(text);
+        });
+        foreach (Match match in Regex.Matches(visible, @"@align\s*\(\s*(?<closing>\))"))
+        {
+            int closing = match.Groups["closing"].Index;
+            int line = 1;
+            int column = 1;
+            for (int index = 0; index < closing; index++)
+            {
+                if (source[index] == '\n')
+                {
+                    line++;
+                    column = 1;
+                }
+                else
+                {
+                    column++;
+                }
+            }
+
+            string expected = LayoutParser.SyntaxErrorPrefix + $"unexpected ')' at line {line}, column {column}; expected an expression.";
+            if (candidateError == expected)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Matches only a numeric sizeof argument rejected exactly at the literal's first character.</summary>

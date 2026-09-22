@@ -47,7 +47,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   surviving status in the raw score and rejecting every unexplained survivor.
   Give the complete parser partition additional execution headroom while retaining bounded jobs and diagnostic uploads.
 - Clarify composite alignment precedence and empty preprocessor directive boundaries, with regression checks for
-  named, anonymous and typedef forms and precise frozen-parser comparison of line-scoped defines.
+  named, anonymous and typedef forms and precise frozen-parser comparison of line-scoped defines and empty
+  alignment annotations with comments.
 - Cover enum metadata, repeated flags, union conversions and record-sequence boundaries with focused regression
   tests, including short reads, original input offsets, cancellation between records, pooled-buffer returns and
   asynchronous continuation independence from the caller's synchronization context.
