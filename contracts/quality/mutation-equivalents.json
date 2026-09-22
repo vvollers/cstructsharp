@@ -394,6 +394,36 @@
       "sourceSha256": "38d92a361428222368d550ff6bde007c22c32dc7f67dbfaca78966a967b1ba5e",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 362,
+              "column": 25
+            },
+            "end": {
+              "line": 362,
+              "column": 46
+            }
+          },
+          "reason": "This Dispose call targets only an exact private new MemoryStream(length) scratch wrapper, not the baseline, destination or a pooled page. CreateStagedRange exposes its backing byte array, which remains valid after MemoryStream disposal; the wrapper itself never escapes. After this call the wrapper is either overwritten by the next scratch stream or the iterator ends, without another read/write through that wrapper. MemoryStream owns no external handle and disposal neither returns a pooled buffer nor releases its backing array. Omitting this exact call changes no emitted bytes, stream I/O, buffer ownership or managed backing-array lifetime. The real pooled-page and contiguous-rental returns remain required."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 377,
+              "column": 13
+            },
+            "end": {
+              "line": 377,
+              "column": 34
+            }
+          },
+          "reason": "This Dispose call targets only an exact private new MemoryStream(length) scratch wrapper, not the baseline, destination or a pooled page. CreateStagedRange exposes its backing byte array, which remains valid after MemoryStream disposal; the wrapper itself never escapes. After this call the wrapper is either overwritten by the next scratch stream or the iterator ends, without another read/write through that wrapper. MemoryStream owns no external handle and disposal neither returns a pooled buffer nor releases its backing array. Omitting this exact call changes no emitted bytes, stream I/O, buffer ownership or managed backing-array lifetime. The real pooled-page and contiguous-rental returns remain required."
+        },
+        {
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
