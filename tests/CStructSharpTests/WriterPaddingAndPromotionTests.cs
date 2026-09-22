@@ -43,6 +43,30 @@ public class WriterPaddingAndPromotionTests
         CollectionAssert.AreEqual(expected, layout.Serialize("root", data));
     }
 
+    /// <summary>Runtime-sized records also synthesize every numeric and character padding element without caller values.</summary>
+    /// <param name="type">Numeric or character storage type used for padding.</param>
+    /// <param name="paddingBytes">The three padding elements' complete byte extent.</param>
+    [TestMethod]
+    [DataRow("uint8", 3)]
+    [DataRow("uint16", 6)]
+    [DataRow("char", 3)]
+    [DataRow("wchar", 6)]
+    public void DynamicRecordPadding_WritesEveryZeroElement(string type, int paddingBytes)
+    {
+        var layout = new CStruct("struct root { uint8 count; uint8 values[count]; " + type + " _[3]; uint8 tail; };");
+        var data = new Dictionary<string, object?>
+        {
+            ["count"] = (byte)1,
+            ["values"] = new byte[] { 9, },
+            ["tail"] = (byte)7,
+        };
+        byte[] expected = new byte[paddingBytes + 3];
+        expected[0] = 1;
+        expected[1] = 9;
+        expected[^1] = 7;
+        CollectionAssert.AreEqual(expected, layout.Serialize("root", data));
+    }
+
     /// <summary>Nested anonymous members are selected only when one of their transitive leaves is supplied.</summary>
     /// <param name="nested">Whether to supply the wider nested view as well as the small view.</param>
     [TestMethod]

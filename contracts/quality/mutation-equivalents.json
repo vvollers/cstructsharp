@@ -913,6 +913,66 @@
       "sourceSha256": "74dc7e30a98926d4b4b495ceb7d667970682b66f12aa3a2ea8a9abb5b526fbdf",
       "mutants": [
         {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?state.CurrentBitfieldSize\n:compiledField.BitStorageSize ??\n                             throw new InvalidOperationException(\n                                 \"Compiled bitfield has no storage size: \" + compiledField.Name))",
+          "location": {
+            "start": {
+              "line": 50,
+              "column": 24
+            },
+            "end": {
+              "line": 54,
+              "column": 97
+            }
+          },
+          "reason": "WriteBitFieldValue is reached only through WriteSingleFieldValue for a positive-width scalar bitfield. WriteFieldValue first installs a positive unit size from CompositeFieldPlacementCursor, from the resolved Update target, or from the compiled declared BitStorageSize for a standalone or union member. Compilation accepts only integral bitfield storage, and placement returns a nonempty window. CurrentBitfieldSize is therefore always positive here; selecting it unconditionally preserves the original branch."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitfieldSize >= 0",
+          "location": {
+            "start": {
+              "line": 50,
+              "column": 24
+            },
+            "end": {
+              "line": 50,
+              "column": 53
+            }
+          },
+          "reason": "All calls to WriteBitFieldValue follow WriteFieldValue's placement setup: cursor placement, a seeded resolved target, or a compiled standalone/union storage unit. Each supplies a positive unit size; zero-width separators never call this method and arrays cannot be bitfields. CurrentBitfieldSize cannot be zero or negative here, so >= 0 and > 0 choose the same operand."
+        },
+        {
+          "mutatorName": "Arithmetic mutation",
+          "replacement": "state.CurrentBitOffset - compiledField.BitSize",
+          "location": {
+            "start": {
+              "line": 59,
+              "column": 13
+            },
+            "end": {
+              "line": 59,
+              "column": 59
+            }
+          },
+          "reason": "Compilation validates a positive width no larger than its integral storage capacity. Whole-struct writes use BitfieldPlacement, which opens a fitting MSVC/aligned cell or a packed window enclosing the complete field; selected updates seed that same resolved placement. Standalone and union members start at bit offset zero in the declared unit. Thus offset + width <= unitBits before this defensive check. Offset - width is no greater than that sum and is bounded within small integral bit offsets, so neither version can enter the failure branch."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 61,
+              "column": 13
+            },
+            "end": {
+              "line": 61,
+              "column": 109
+            }
+          },
+          "reason": "The defensive storage-overrun throw is unreachable for the immutable compiled descriptors. Positive bit widths are validated against their declared integral capacity; standalone and union members start at offset zero, while cursor and selected-update paths use the enclosing window supplied by BitfieldPlacement. That placement guarantees offset + width <= unitBits. Removing only this throw changes no reachable result or failure."
+        },
+        {
           "mutatorName": "Remove checked expression",
           "replacement": "byteSize * 8",
           "location": {
