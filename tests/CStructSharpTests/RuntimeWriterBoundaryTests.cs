@@ -7,6 +7,25 @@ using CStructSharp.Values;
 [TestClass]
 public class RuntimeWriterBoundaryTests
 {
+    /// <summary>A null composite is rejected before an empty shape or static plan can silently accept it.</summary>
+    /// <param name="definition">An empty, fixed-size or union root declaration.</param>
+    [TestMethod]
+    [DataRow("struct root { };")]
+    [DataRow("struct root { uint8 value; };")]
+    [DataRow("union root { uint8 value; };")]
+    public void NullComposite_ExplainsTheRejectedRoot(string definition)
+    {
+        var layout = new CStruct(definition);
+        using var destination = new MemoryStream(new byte[] { 11, 22, 33, });
+        destination.Position = 1;
+
+        // Null is valid for pointer values, but it cannot describe a whole struct or union.
+        CStructWriteException failure = Assert.Throws<CStructWriteException>(() => layout.Write(destination, "root", null!));
+        StringAssert.StartsWith(failure.Message, "Null is not valid for struct or union value: root");
+        Assert.AreEqual(1L, destination.Position);
+        CollectionAssert.AreEqual(new byte[] { 11, 22, 33, }, destination.ToArray());
+    }
+
     /// <summary>A void alias can name a pointer target, but writing the alias itself explains its missing value handler.</summary>
     [TestMethod]
     public void VoidAliasWrite_ExplainsMissingValueHandler()

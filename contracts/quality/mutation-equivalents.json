@@ -1801,6 +1801,15 @@
       "sourceSha256": "74dc7e30a98926d4b4b495ceb7d667970682b66f12aa3a2ea8a9abb5b526fbdf",
       "mutants": [
         {
+          "mutatorName": "Logical mutation",
+          "replacement": "rootData is not null || !WriteDataBinding.IsMemberSource(rootData)",
+          "location": {
+            "start": { "line": 1432, "column": 17 },
+            "end": { "line": 1432, "column": 83 }
+          },
+          "reason": "This changes only the preliminary eligibility check for selected-path root materialization. Non-null non-member sources already take the same branch. The additional cases are null and member-source dictionaries: WriteDataBinding.Materialize returns those exact inputs immediately, before allocating a StructValue or invoking a mapper. IsMemberSource uses only interface type tests, so checking null has no callback. TryGetRootComposite examines the immutable root declaration and, for a compiled Struct or inline-struct typedef, reads its already-bound descriptor from the private symbol table; other roots return false. Neither extra lookup nor the early-return materialization changes caller data, state or failure behavior. The later path lookup and field writer therefore receive the same object (including null). This does not qualify removal of the distinct whole-composite null rejection in WriteStruct."
+        },
+        {
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
