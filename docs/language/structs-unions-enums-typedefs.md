@@ -81,6 +81,10 @@ written as zeroes without a caller value, absent from every result, addressable 
 one body. It must be a fixed-size primitive or a fixed primitive array (`uint32 _; char _[3];`); a struct, pointer,
 or runtime-sized `_` is rejected.
 
+Writing into an existing buffer also replaces explicit `_` padding with zeroes. Fixed-size custom-codec padding
+uses its declared storage size without invoking the codec's value encoder. These bytes count toward write limits.
+This differs from implicit alignment gaps between fields, which a write into existing storage leaves unchanged.
+
 ### Anonymous promoted members
 
 The *member declarator* itself - not the inline struct's own type, which is already always unnamed - may also be

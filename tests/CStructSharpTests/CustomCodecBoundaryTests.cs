@@ -5,10 +5,44 @@ using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Streams;
 
-/// <summary>Checks codec byte-count contracts and bounded scratch-window growth independently of layout compilation.</summary>
+/// <summary>Checks codec byte counts, bounded scratch-window growth and caller-visible value handling.</summary>
 [TestClass]
 public class CustomCodecBoundaryTests
 {
+    /// <summary>Unnamed padding is zero storage even when a custom codec would encode a supplied zero differently.</summary>
+    /// <param name="runtime">Whether a preceding runtime array prevents a whole-record static write plan.</param>
+    /// <param name="array">Whether the padding contains three elements rather than one scalar.</param>
+    [TestMethod]
+    [DataRow(false, false)]
+    [DataRow(false, true)]
+    [DataRow(true, false)]
+    [DataRow(true, true)]
+    public void CustomPadding_WritesZeroStorageWithoutInvokingTheCodec(bool runtime, bool array)
+    {
+        var codec = new RecordingCodec(1, 1);
+        string preceding = runtime ? "uint8 count; uint8 data[count]; " : string.Empty;
+        string padding = array ? "_[3]" : "_";
+        var layout = new CStruct("struct root { " + preceding + "uint8 prefix; recorded " + padding + "; uint8 tail; };", compilationOptions: new CStructCompilationOptions { Codecs = [codec,], });
+        var data = new Dictionary<string, object?> { ["prefix"] = (byte)9, ["tail"] = (byte)7, };
+        if (runtime)
+        {
+            data["count"] = (byte)0;
+            data["data"] = Array.Empty<byte>();
+        }
+
+        byte[] expected = new byte[(runtime ? 1 : 0) + (array ? 3 : 1) + 2];
+        expected[runtime ? 1 : 0] = 9;
+        expected[^1] = 7;
+        CollectionAssert.AreEqual(expected, layout.Serialize("root", data));
+        using var destination = new MemoryStream();
+        layout.Write(destination, "root", data);
+        CollectionAssert.AreEqual(expected, destination.ToArray());
+        using var existing = new MemoryStream(Enumerable.Repeat((byte)0xcc, expected.Length).ToArray());
+        layout.Write(existing, "root", data);
+        CollectionAssert.AreEqual(expected, existing.ToArray());
+        Assert.IsEmpty(codec.WrittenValues);
+    }
+
     /// <summary>A full codec window needs no extra zero-byte read from the caller-owned stream.</summary>
     [TestMethod]
     public void FullReadWindow_DoesNotTouchTheSourceAgain()
@@ -214,6 +248,9 @@ public class CustomCodecBoundaryTests
 
         public List<int> WriteWindows { get; } = [];
 
+        /// <summary>Gets the exact values supplied to each encoding attempt.</summary>
+        public List<object?> WrittenValues { get; } = [];
+
         /// <summary>Records the window and returns a fixed marker only when all required bytes are available.</summary>
         /// <param name="source">The adapter's current input window.</param>
         /// <param name="value">The marker on success, otherwise null.</param>
@@ -228,13 +265,14 @@ public class CustomCodecBoundaryTests
             return done ? OperationStatus.Done : OperationStatus.NeedMoreData;
         }
 
-        /// <summary>Records the window and fills the requested extent, keeping deliberately invalid counts separate from writes.</summary>
+        /// <summary>Records the value and window, then fills the requested extent while keeping invalid counts separate from writes.</summary>
         /// <param name="destination">The adapter's current output window.</param>
-        /// <param name="value">Unused marker value.</param>
+        /// <param name="value">The exact value supplied by the caller or library writer.</param>
         /// <param name="bytesWritten">The configured count on success, otherwise zero.</param>
         /// <returns>Done or DestinationTooSmall according to the available window.</returns>
         public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
         {
+            this.WrittenValues.Add(value);
             this.RecordWindow(this.WriteWindows, destination.Length);
             bool done = destination.Length >= this.required;
             if (done)

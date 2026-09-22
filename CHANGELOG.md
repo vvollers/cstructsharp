@@ -8,6 +8,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- Zero explicit unnamed padding when writing existing buffers and runtime-sized records, including fixed-size
+  custom-codec padding without invoking its value encoder. Preserve implicit alignment gaps and enforce padding write limits.
 - Preserve the field name and out-of-range value in conditional-expression diagnostics, including selected
   operands of `?:`, `&&`, and `||`.
 - Keep continued text definitions intact with Windows CRLF line endings, including bodies that start with an

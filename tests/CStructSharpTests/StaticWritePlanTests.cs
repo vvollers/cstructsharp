@@ -45,6 +45,40 @@ public class StaticWritePlanTests
         0xAA, 0xBB, 5, 6, 0, 0, 0, 7, 8, 0, 0, 0, 0x99,
     ];
 
+    /// <summary>Explicit padding is zeroed in existing storage, including nested and promoted fixed layouts.</summary>
+    /// <param name="placement">Whether the padding lives directly in the root, in a named child or in a promoted child.</param>
+    [TestMethod]
+    [DataRow("root")]
+    [DataRow("nested")]
+    [DataRow("promoted")]
+    public void UnnamedPadding_UsesGeneralWritesAndRetainsStaticReads(string placement)
+    {
+        const string members = "uint8 prefix; uint8 _[3]; uint8 tail;";
+        string definition = placement switch
+        {
+            "nested" => "struct child { " + members + " }; struct root { child item; };",
+            "promoted" => "struct root { struct { " + members + " }; };",
+            _ => "struct root { " + members + " };",
+        };
+        var layout = new CStruct(definition);
+        var values = new Dictionary<string, object?> { ["prefix"] = (byte)9, ["tail"] = (byte)7, };
+        object data = placement == "nested" ? new Dictionary<string, object?> { ["item"] = values, } : values;
+        Assert.IsTrue(layout.CompiledModel.Symbols["root"].Symbol.Definition is CompiledCompositeType { StaticPlan.SupportsWrite: false });
+        byte[] expected = [9, 0, 0, 0, 7,];
+        CollectionAssert.AreEqual(expected, layout.Serialize("root", data));
+        using var destination = new MemoryStream(new byte[] { 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, });
+        layout.Write(destination, "root", data);
+        CollectionAssert.AreEqual(expected, destination.ToArray());
+        AssertSameOutcome(layout, data, new WriteOptions { MaxTotalBytesWritten = 4 }, "padding counts toward the byte budget");
+        AssertSameOutcome(layout, data, new WriteOptions { MaxArrayElements = 2 }, "padding respects the array limit");
+
+        // Padding consumes three output bytes even though the caller supplies no member for it.
+        Assert.Throws<CStructWriteLimitException>(() => layout.Serialize("root", data, options: new WriteOptions { MaxTotalBytesWritten = 4 }));
+
+        // Its fixed element count remains subject to the same limit as a named array.
+        Assert.Throws<CStructWriteLimitException>(() => layout.Serialize("root", data, options: new WriteOptions { MaxArrayElements = 2 }));
+    }
+
     /// <summary>The plan and the general writer produce identical bytes for a parsed value, a dictionary, and a mapped class, into every destination.</summary>
     [TestMethod]
     public void WritePlan_MatchesGeneralWriter_ForEveryInputAndDestination()

@@ -1065,7 +1065,13 @@ public partial class CStruct
         stream.Write(bytes, 0, bytes.Length);
     }
 
-    /// <summary>Writes one non-array field by choosing the correct primitive, enum, struct, bitfield, or pointer path.</summary>
+    /// <summary>Writes one scalar or array element, using zero storage for unnamed custom-codec padding.</summary>
+    /// <param name="compiledField">The compiled field or element view, including its fixed storage extent.</param>
+    /// <param name="value">The caller value, or a synthesized zero for unnamed padding.</param>
+    /// <param name="state">The destination, byte budget and current bitfield storage state.</param>
+    /// <returns>The exact integer for an enum value, or null for other field kinds.</returns>
+    /// <exception cref="CStructWriteException">The value cannot be encoded or an output limit is exceeded.</exception>
+    /// <exception cref="InvalidOperationException">The field has no registered storage writer.</exception>
     private BigInteger? WriteSingleFieldValue(
         CompiledField compiledField,
         object value,
@@ -1074,6 +1080,14 @@ public partial class CStruct
         // Resolve these once so each case below can choose the smallest correct writing path.
         string fieldTypeName = compiledField.TypeSpelling;
         bool isKnownFieldType = compiledField.HasCodec;
+
+        if (compiledField.IsUnnamed && compiledField.Codec.IsCustom)
+        {
+            // Padding describes storage, not a caller value. Its validated fixed extent must stay zero even
+            // when a custom codec maps numeric zero to another encoding or does not accept numeric values.
+            state.WriteZeroes(compiledField.FixedElementSize!.Value);
+            return null;
+        }
 
         if (compiledField.PointerDepth > 0)
         {

@@ -1837,7 +1837,7 @@
     },
     {
       "pattern": "CStructWriter.cs",
-      "sourceSha256": "74dc7e30a98926d4b4b495ceb7d667970682b66f12aa3a2ea8a9abb5b526fbdf",
+      "sourceSha256": "56c5df26eca8fb0833ba6edb0520c087528f20f5ab434cf10e459f173fe82a28",
       "mutants": [
         {
           "mutatorName": "SubtractAssignmentExpression to AddAssignmentExpression mutation",
@@ -1909,8 +1909,8 @@
           "mutatorName": "Logical mutation",
           "replacement": "rootData is not null || !WriteDataBinding.IsMemberSource(rootData)",
           "location": {
-            "start": { "line": 1432, "column": 17 },
-            "end": { "line": 1432, "column": 83 }
+            "start": { "line": 1446, "column": 17 },
+            "end": { "line": 1446, "column": 83 }
           },
           "reason": "This changes only the preliminary eligibility check for selected-path root materialization. Non-null non-member sources already take the same branch. The additional cases are null and member-source dictionaries: WriteDataBinding.Materialize returns those exact inputs immediately, before allocating a StructValue or invoking a mapper. IsMemberSource uses only interface type tests, so checking null has no callback. TryGetRootComposite examines the immutable root declaration and, for a compiled Struct or inline-struct typedef, reads its already-bound descriptor from the private symbol table; other roots return false. Neither extra lookup nor the early-return materialization changes caller data, state or failure behavior. The later path lookup and field writer therefore receive the same object (including null). This does not qualify removal of the distinct whole-composite null rejection in WriteStruct."
         },
@@ -1945,8 +1945,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": { "line": 1099, "column": 18 },
-            "end": { "line": 1099, "column": 57 }
+            "start": { "line": 1113, "column": 18 },
+            "end": { "line": 1113, "column": 57 }
           },
           "reason": "EnumIntegerCodecTable validates every enum backing type as a built-in signed/unsigned 8/16/32/64-bit integer, including resolved aliases; custom codecs cannot be backing types or replace built-in names. GetCompiledCodecId supplies the backing primitive's id to enum fields and root views. BuildCodecTable fills every canonical id with its required non-null writer before a CStruct instance can be used. Therefore WriterOf for this compiled enum cannot be null. This changes only the unreachable missing-delegate diagnostic, not enum input conversion, range validation or writing."
         },
@@ -1954,8 +1954,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": { "line": 1139, "column": 45 },
-            "end": { "line": 1139, "column": 77 }
+            "start": { "line": 1153, "column": 45 },
+            "end": { "line": 1153, "column": 77 }
           },
           "reason": "WritePrimitiveValue has two callers. WriteSingleFieldValue first handles pointers, bitfields, enums and composites, then rejects HasCodec=false before calling it. WriteFixedCharArray handles bounded and wide text separately; its remaining per-character caller has the compiled built-in char codec. BuildCodecTable fills every canonical id with a non-null writer and appends a non-null adapter delegate for every validated custom registration. Thus both callers supply an existing writer. A custom writer may throw, but cannot make its registered delegate null. The separate reachable no-handler error for a void alias is unaffected."
         },
@@ -1981,8 +1981,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": { "line": 1399, "column": 13 },
-            "end": { "line": 1399, "column": 62 }
+            "start": { "line": 1413, "column": 13 },
+            "end": { "line": 1413, "column": 62 }
           },
           "reason": "WriteStreamCore rejects blank paths before ParsePath. CStructPathResolver.ParseUncached starts segmentCount at one and either throws or returns an array of that positive length. Both successful TryCreateSyntheticRoot branches return exactly one segment; false branches cannot replace the parsed result. The two private caches only store these successful results, and no caller changes their length. Therefore ParsePath cannot return an empty segment list to this writer. Removing only the second, unreachable empty-list throw changes neither accepted paths nor the earlier empty-path diagnostic."
         },
@@ -1990,8 +1990,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": { "line": 1399, "column": 44 },
-            "end": { "line": 1399, "column": 60 }
+            "start": { "line": 1413, "column": 44 },
+            "end": { "line": 1413, "column": 60 }
           },
           "reason": "WriteStreamCore rejects blank paths before ParsePath. The ordinary path parser returns an array with at least one segment or throws; successful synthetic roots contain exactly one segment. Their private caches retain only these nonempty results. Thus the second empty-list guard cannot be reached, and changing only its diagnostic string has no observable effect. The earlier reachable empty-path exception remains unchanged."
         },
@@ -2513,11 +2513,11 @@
           "replacement": "(false?compiledField.QualifiedPrefix :outerPrefix + compiledField.QualifiedPrefix)",
           "location": {
             "start": {
-              "line": 1112,
+              "line": 1126,
               "column": 41
             },
             "end": {
-              "line": 1112,
+              "line": 1126,
               "column": 138
             }
           },
@@ -2528,11 +2528,11 @@
           "replacement": "childSegments.Count >= 0",
           "location": {
             "start": {
-              "line": 1438,
+              "line": 1452,
               "column": 17
             },
             "end": {
-              "line": 1438,
+              "line": 1452,
               "column": 40
             }
           },

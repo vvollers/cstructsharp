@@ -22,13 +22,17 @@ internal sealed class StaticReadPlan
     [System.ThreadStatic]
     private static bool disabledForTesting;
 
-    public StaticReadPlan(int size, StaticReadOperation[] operations)
+    /// <summary>Builds operation limits and write eligibility for a fixed composite read plan.</summary>
+    /// <param name="size">The complete composite storage size in bytes.</param>
+    /// <param name="operations">Named field reads at offsets relative to the composite start.</param>
+    /// <param name="hasUnnamedPadding">Whether omitted padding needs explicit zero writes and budget checks.</param>
+    public StaticReadPlan(int size, StaticReadOperation[] operations, bool hasUnnamedPadding)
     {
         this.Size = size;
         this.Operations = operations;
         int depth = 1;
         int arrayCount = 0;
-        bool supportsWrite = true;
+        bool supportsWrite = !hasUnnamedPadding;
         long charged = 0;
         long chargedAligned = 0;
         int lastFieldEnd = 0;
@@ -86,7 +90,7 @@ internal sealed class StaticReadPlan
         this.ChargedAlignedBytes = checked((int)(chargedAligned + (size - lastFieldEnd)));
     }
 
-    /// <summary>Whether every operation has a span writer; character buffers stay on the general writer for now.</summary>
+    /// <summary>Whether every field has a span writer; character buffers and unnamed padding use the general writer.</summary>
     public bool SupportsWrite { get; }
 
     /// <summary>The end of the last member; an aligned layout's writer zero-fills from here to <see cref="Size"/>.</summary>
@@ -117,6 +121,8 @@ internal sealed class StaticReadPlan
     public StaticReadOperation[] Operations { get; }
 
     /// <summary>Builds the plan for <paramref name="composite"/>, or returns null when any member needs the general reader.</summary>
+    /// <param name="composite">The compiled composite whose offsets are relative to its own start.</param>
+    /// <returns>A fixed-offset read plan, or null when interpretation is required.</returns>
     public static StaticReadPlan? TryBuild(CompiledCompositeType composite)
     {
         if (composite.Symbol.FixedSize is not int size || composite.HasDirectConditionalFields || composite.Symbol.Declaration is Struct { IsUnion: true })
@@ -125,10 +131,21 @@ internal sealed class StaticReadPlan
         }
 
         var operations = new List<StaticReadOperation>();
-        return TryAppend(composite, composite.Shape, 0, operations, 0) ? new StaticReadPlan(size, operations.ToArray()) : null;
+        bool hasUnnamedPadding = false;
+        return TryAppend(composite, composite.Shape, 0, operations, 0, ref hasUnnamedPadding)
+            ? new StaticReadPlan(size, operations.ToArray(), hasUnnamedPadding)
+            : null;
     }
 
-    private static bool TryAppend(CompiledCompositeType composite, StructShape shape, int baseOffset, List<StaticReadOperation> operations, int depth)
+    /// <summary>Appends fixed reads, flattening promoted members while tracking storage omitted from the value shape.</summary>
+    /// <param name="composite">The composite to inspect.</param>
+    /// <param name="shape">The destination value slots, including any promoted members.</param>
+    /// <param name="baseOffset">The composite start in bytes relative to the plan's root.</param>
+    /// <param name="operations">The operation list extended on success; discarded by callers on failure.</param>
+    /// <param name="depth">The number of enclosing composite levels.</param>
+    /// <param name="hasUnnamedPadding">Set when this flattened operation list omits explicit padding.</param>
+    /// <returns>Whether every field can be read through a fixed operation.</returns>
+    private static bool TryAppend(CompiledCompositeType composite, StructShape shape, int baseOffset, List<StaticReadOperation> operations, int depth, ref bool hasUnnamedPadding)
     {
         if (depth > 64 || composite.HasDirectConditionalFields)
         {
@@ -147,7 +164,8 @@ internal sealed class StaticReadPlan
             if (declaration.Name.Name.Length == 0 && !composite.PromotedFields.Contains(field))
             {
                 // An unnamed padding field has a fixed offset and size but no slot to fill; the plan reads by
-                // absolute offset, so it simply has no operation.
+                // absolute offset, so it needs no read operation. The writer must still zero and charge this storage.
+                hasUnnamedPadding = true;
                 continue;
             }
 
@@ -156,7 +174,7 @@ internal sealed class StaticReadPlan
             {
                 // An anonymous promoted member reads its fields into the parent's own slots.
                 if (field.Type.Symbol.Definition is not CompiledCompositeType promoted || promoted.Symbol.Declaration is Struct { IsUnion: true } ||
-                    !TryAppend(promoted, shape, absoluteOffset, operations, depth + 1))
+                    !TryAppend(promoted, shape, absoluteOffset, operations, depth + 1, ref hasUnnamedPadding))
                 {
                     return false;
                 }
@@ -180,12 +198,13 @@ internal sealed class StaticReadPlan
                     }
 
                     var nestedOperations = new List<StaticReadOperation>();
-                    if (!TryAppend(nested, nested.Shape, 0, nestedOperations, depth + 1))
+                    bool nestedHasUnnamedPadding = false;
+                    if (!TryAppend(nested, nested.Shape, 0, nestedOperations, depth + 1, ref nestedHasUnnamedPadding))
                     {
                         return false;
                     }
 
-                    var nestedPlan = new StaticReadPlan(nestedSize, nestedOperations.ToArray());
+                    var nestedPlan = new StaticReadPlan(nestedSize, nestedOperations.ToArray(), nestedHasUnnamedPadding);
                     if (field.Array.Kind == CompiledArrayKind.Scalar)
                     {
                         operations.Add(new StaticReadOperation(StaticReadKind.Nested, slot, absoluteOffset, field, nestedDeclaration, nested, nestedPlan));

@@ -2471,6 +2471,14 @@
           ]
         },
         {
+          "test": "tests/CStructSharpTests/CustomCodecBoundaryTests.cs#CustomPadding_WritesZeroStorageWithoutInvokingTheCodec",
+          "operations": ["serialize", "write"]
+        },
+        {
+          "test": "tests/CStructSharpTests/StaticWritePlanTests.cs#UnnamedPadding_UsesGeneralWritesAndRetainsStaticReads",
+          "operations": ["serialize", "write"]
+        },
+        {
           "test": "tests/CStructSharpTests/IndexedPointerUpdateTests.cs#PrimitiveArrayElement_OperationsAgree",
           "operations": [
             "parse",
