@@ -6,6 +6,33 @@ using CStructSharp.Generated;
 [TestClass]
 public class WriteCursorOwnershipTests
 {
+    /// <summary>Growing a rental preserves its prefix and clears new storage even when the pool contains used arrays.</summary>
+    [TestMethod]
+    [DoNotParallelize]
+    public void Growth_ClearsTheNewStorageTail()
+    {
+        using var rentals = new PoolReturnListener();
+        var cursor = new WriteCursor(null, "root");
+        try
+        {
+            int capacity = rentals.LastRentalLength;
+            cursor.Reserve(capacity, "prefix", "uint8").Fill(17);
+
+            // Seed the replacement-size bucket with used storage. Correctness does not depend on reuse:
+            // whichever buffer Grow receives, its new tail must contain zeros rather than prior pool bytes.
+            byte[] used = System.Buffers.ArrayPool<byte>.Shared.Rent(capacity * 2);
+            used.AsSpan().Fill(0xA5);
+            System.Buffers.ArrayPool<byte>.Shared.Return(used);
+            Span<byte> tail = cursor.Reserve(capacity, "tail", "uint8");
+            Assert.IsFalse(tail.ContainsAnyExcept((byte)0), "Growth must clear every newly exposed byte.");
+            Assert.IsFalse(cursor.Written[..capacity].ContainsAnyExcept((byte)17), "Growth must retain the written prefix.");
+        }
+        finally
+        {
+            cursor.Dispose();
+        }
+    }
+
     /// <summary>Growth returns the old rental, keeps the replacement owned until disposal, and preserves existing bytes.</summary>
     [TestMethod]
     [DoNotParallelize]

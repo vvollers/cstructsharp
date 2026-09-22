@@ -371,6 +371,12 @@
           "replacement": "this.inner.Position + length",
           "location": { "start": { "line": 190, "column": 50 }, "end": { "line": 190, "column": 87 } },
           "reason": "Removing the inner checked wrapper leaves the addition textually inside the outer checked expression around addition minus initialLength. C# checked context covers both integral operators in that expression, so overflow from Position + length still reaches the same catch and returns false. The existing extreme-position preflight regression exercises this boundary."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": { "start": { "line": 343, "column": 9 }, "end": { "line": 346, "column": 10 } },
+          "reason": "Only the catch body is removed; the exception remains caught. Stryker.NET 5.0.0 injects an ending return default(long?) for this non-void method whose last statement is a try/catch. Thus a failed Position getter still returns null, while a successful getter still returns its value. Verified against EndingReturnEngine.InjectReturn and BaseFunctionOrchestrator.InjectMutations at the package's repository commit 6e77a3451bac4793e9c839c3ff4055c1b30ca3af; this proof depends on the pinned tool instrumentation, not on treating an uncompilable source edit as detected."
         }
       ]
     },
