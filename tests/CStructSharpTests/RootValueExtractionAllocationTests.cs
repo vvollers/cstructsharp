@@ -4,7 +4,7 @@ using System.Reflection;
 using CStructSharp.Compilation;
 using CStructSharp.Values;
 
-/// <summary>Checks that extracting a known root member avoids the fallback collection enumeration.</summary>
+/// <summary>Checks that value reads avoid unnecessary result wrappers and fallback enumeration.</summary>
 [TestClass]
 [DoNotParallelize]
 public class RootValueExtractionAllocationTests
@@ -38,6 +38,44 @@ public class RootValueExtractionAllocationTests
         }
 
         Assert.IsTrue(namedBytes < enumeratedBytes, $"Named lookup allocated {namedBytes} bytes; enumeration allocated {enumeratedBytes}.");
+    }
+
+    /// <summary>A selected composite does not need more allocation through ReadValue than through Parse.</summary>
+    [TestMethod]
+    public void SelectedComposite_AvoidsAnExtraResultWrapper()
+    {
+        var layout = new CStruct("struct child { uint8 value; }; struct root { uint8 prefix; child nested; };");
+        using var valueInput = new MemoryStream(new byte[] { 0, 7, });
+        using var parseInput = new MemoryStream(new byte[] { 0, 7, });
+
+        // Rewind the same input so every sample decodes the same selected composite.
+        Func<object?> readValue = () =>
+        {
+            valueInput.Position = 0;
+            return layout.ReadValue(valueInput, "root.nested");
+        };
+
+        // Parse requests the same natural composite, providing the corresponding allocation baseline.
+        Func<object?> parse = () =>
+        {
+            parseInput.Position = 0;
+            return layout.Parse(parseInput, "root.nested");
+        };
+        for (int index = 0; index < 100; index++)
+        {
+            Assert.AreEqual((byte)7, ((StructValue)readValue()!)["value"]);
+            Assert.AreEqual((byte)7, ((StructValue)parse()!)["value"]);
+        }
+
+        long valueBytes = long.MaxValue;
+        long parseBytes = long.MaxValue;
+        for (int sample = 0; sample < 3; sample++)
+        {
+            valueBytes = Math.Min(valueBytes, Measure(readValue));
+            parseBytes = Math.Min(parseBytes, Measure(parse));
+        }
+
+        Assert.IsTrue(valueBytes <= parseBytes, $"ReadValue allocated {valueBytes} bytes; Parse allocated {parseBytes}.");
     }
 
     /// <summary>Measures managed allocations on the current thread after delegate setup and warmup.</summary>
