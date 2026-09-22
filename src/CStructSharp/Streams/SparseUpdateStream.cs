@@ -14,6 +14,7 @@ internal sealed class SparseUpdateStream : Stream
     private const int ChunkSize = 1024;
     private readonly Stream baseline;
     private readonly long baselineLength;
+    private readonly ArrayPool<byte> pool;
     private SortedDictionary<long, StagedChunk>? chunks;
     private bool disposed;
     private long position;
@@ -26,10 +27,16 @@ internal sealed class SparseUpdateStream : Stream
     private int rangeLength;
 
     /// <summary>Creates a virtual writer at an absolute target while retaining the caller stream as a read-only baseline.</summary>
-    public SparseUpdateStream(Stream baseline, long initialPosition)
+    /// <param name="baseline">Caller-owned readable, seekable destination whose existing extent bounds every write.</param>
+    /// <param name="initialPosition">Absolute starting byte position within the existing destination.</param>
+    /// <param name="pool">Internal buffer provider; null uses the shared pool. All rentals are returned to this same provider.</param>
+    /// <exception cref="ArgumentNullException">The baseline is null.</exception>
+    /// <exception cref="CStructWriteException">The starting position is negative or beyond the baseline's length.</exception>
+    public SparseUpdateStream(Stream baseline, long initialPosition, ArrayPool<byte>? pool = null)
     {
         this.baseline = baseline ?? throw new ArgumentNullException(nameof(baseline));
         this.baselineLength = baseline.Length;
+        this.pool = pool ?? ArrayPool<byte>.Shared;
         if (initialPosition > this.baselineLength)
         {
             throw new CStructWriteException("Update target starts beyond the existing destination stream.");
@@ -272,6 +279,7 @@ internal sealed class SparseUpdateStream : Stream
     }
 
     /// <summary>Leaves the caller-owned baseline open when the staging view is released.</summary>
+    /// <param name="disposing">Whether managed rentals should be returned.</param>
     protected override void Dispose(bool disposing)
     {
         if (disposing && !this.disposed)
@@ -288,7 +296,7 @@ internal sealed class SparseUpdateStream : Stream
 
             if (this.rangeBytes is not null)
             {
-                ArrayPool<byte>.Shared.Return(this.rangeBytes, clearArray: true);
+                this.pool.Return(this.rangeBytes, clearArray: true);
                 this.rangeBytes = null;
                 this.rangeLength = 0;
             }
@@ -401,15 +409,18 @@ internal sealed class SparseUpdateStream : Stream
     ///     Stages a write into the single contiguous range when it starts inside or directly after it (or the range
     ///     is empty); returns false when the write would open a gap and the chunk map is needed.
     /// </summary>
+    /// <param name="address">Absolute byte position of this nonempty, extent-validated write.</param>
+    /// <param name="source">Bytes to copy into owned staging storage.</param>
+    /// <returns>True when the contiguous range now contains this write; false when sparse pages are needed.</returns>
     private bool TryStageInRange(long address, ReadOnlySpan<byte> source)
     {
         if (this.rangeLength == 0)
         {
-            this.rangeBytes ??= ArrayPool<byte>.Shared.Rent(Math.Max(source.Length, 64));
+            this.rangeBytes ??= this.pool.Rent(Math.Max(source.Length, 64));
             if (this.rangeBytes.Length < source.Length)
             {
-                ArrayPool<byte>.Shared.Return(this.rangeBytes, clearArray: true);
-                this.rangeBytes = ArrayPool<byte>.Shared.Rent(source.Length);
+                this.pool.Return(this.rangeBytes, clearArray: true);
+                this.rangeBytes = this.pool.Rent(source.Length);
             }
 
             this.rangeStart = address;
@@ -428,9 +439,9 @@ internal sealed class SparseUpdateStream : Stream
         int requiredLength = Math.Max(this.rangeLength, offset + source.Length);
         if (requiredLength > this.rangeBytes!.Length)
         {
-            byte[] grown = ArrayPool<byte>.Shared.Rent(Math.Max(requiredLength, this.rangeBytes.Length * 2));
+            byte[] grown = this.pool.Rent(Math.Max(requiredLength, this.rangeBytes.Length * 2));
             this.rangeBytes.AsSpan(0, this.rangeLength).CopyTo(grown);
-            ArrayPool<byte>.Shared.Return(this.rangeBytes, clearArray: true);
+            this.pool.Return(this.rangeBytes, clearArray: true);
             this.rangeBytes = grown;
         }
 
@@ -446,12 +457,15 @@ internal sealed class SparseUpdateStream : Stream
         if (this.rangeLength > 0)
         {
             this.WriteToChunks(this.rangeStart, this.rangeBytes.AsSpan(0, this.rangeLength));
-            ArrayPool<byte>.Shared.Return(this.rangeBytes!, clearArray: true);
+            this.pool.Return(this.rangeBytes!, clearArray: true);
             this.rangeBytes = null;
             this.rangeLength = 0;
         }
     }
 
+    /// <summary>Copies an extent-validated write into the sparse pages that cover its absolute byte range.</summary>
+    /// <param name="start">Absolute first byte position in the baseline.</param>
+    /// <param name="buffer">Bytes copied into owned page storage; no caller memory is retained.</param>
     private void WriteToChunks(long start, ReadOnlySpan<byte> buffer)
     {
         int sourceOffset = 0;
@@ -463,7 +477,7 @@ internal sealed class SparseUpdateStream : Stream
             int length = Math.Min(buffer.Length - sourceOffset, ChunkSize - chunkOffset);
             if (!this.chunks!.TryGetValue(chunkIndex, out StagedChunk? chunk))
             {
-                chunk = new StagedChunk();
+                chunk = new StagedChunk(this.pool);
                 this.chunks.Add(chunkIndex, chunk);
             }
 
@@ -477,14 +491,24 @@ internal sealed class SparseUpdateStream : Stream
     /// <summary>Stores one fixed sparse page and a compact bitmap that identifies its final written bytes.</summary>
     private sealed class StagedChunk : IDisposable
     {
-        private readonly byte[] bytes = ArrayPool<byte>.Shared.Rent(ChunkSize);
+        private readonly ArrayPool<byte> pool;
+        private readonly byte[] bytes;
         private readonly ulong[] written = new ulong[ChunkSize / 64];
         private bool disposed;
         private int maximumWrittenExclusive;
         private int minimumWritten = ChunkSize;
 
+        /// <summary>Rents one sparse page from the staging stream's buffer provider.</summary>
+        /// <param name="pool">The provider that also receives this page on disposal.</param>
+        public StagedChunk(ArrayPool<byte> pool)
+        {
+            this.pool = pool;
+            this.bytes = pool.Rent(ChunkSize);
+        }
+
         public byte[] Bytes => this.bytes;
 
+        /// <summary>Returns this page once, requesting that the provider clear its previous contents.</summary>
         public void Dispose()
         {
             if (this.disposed)
@@ -492,7 +516,7 @@ internal sealed class SparseUpdateStream : Stream
                 return;
             }
 
-            ArrayPool<byte>.Shared.Return(this.bytes, clearArray: true);
+            this.pool.Return(this.bytes, clearArray: true);
             this.disposed = true;
         }
 

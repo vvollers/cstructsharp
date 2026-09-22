@@ -50,7 +50,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   Isolate allocation comparisons from parallel tests and verify borrowed sequence storage directly.
   Check failed sequence-copy buffer returns, negative-read budget accounting and exact declaration/literal diagnostics.
   Pin custom-codec zero-byte results, fixed windows, invalid byte counts and exact growth limits. Verify exact
-  pool-buffer returns during writer/codec growth, failure, ownership transfer and disposal.
+  pool-buffer returns during writer/codec growth, failure, ownership transfer and disposal. Use an internal
+  test buffer provider to verify sparse-update growth, clearing and one-time returns deterministically.
   Verify cancellation before buffer rental, async continuation independence and exact read-window boundaries.
   Check layout-call arity, recursive size diagnostics, root capture plans, union padding and fixed-extent overflow;
   verify that text byte limits take precedence over invalid text later in the same chunk.
