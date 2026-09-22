@@ -1561,6 +1561,33 @@
       "sourceSha256": "74dc7e30a98926d4b4b495ceb7d667970682b66f12aa3a2ea8a9abb5b526fbdf",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 329, "column": 17 },
+            "end": { "line": 329, "column": 26 }
+          },
+          "reason": "PromotedFields contains only inline Struct declarations with an empty name. LayoutCompilation preserves the declaration name in EffectiveField, and placement preserves it again. This continue executes only after such a member supplies no transitive named leaf. Removing it reaches the following name.Length > 0 check with an empty name; short-circuiting prevents any dictionary lookup, then the loop advances exactly as before. The earlier successful-selection break is unchanged. Unlike removal of the nonempty-name guard itself, this cannot select padding through an empty dictionary key."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {
+            "start": { "line": 372, "column": 20 },
+            "end": { "line": 372, "column": 25 }
+          },
+          "reason": "Both callers of SuppliesAnyPromotedMember first require membership in a compiled composite's PromotedFields set. That set contains only anonymous inline Struct declarations. CompileComposite resolves these declarations through compositeSymbols, completes and binds their CompiledCompositeType before publishing the parent model; the immutable field keeps that symbol. Thus promoted.Type.Symbol.Definition is always a CompiledCompositeType here, and the defensive non-composite return cannot execute. Changing only its boolean cannot affect recursive member selection."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 384, "column": 17 },
+            "end": { "line": 384, "column": 26 }
+          },
+          "reason": "The recursive promoted-member branch applies only to anonymous inline Struct declarations in PromotedFields. Their empty declaration names are preserved by effective-field compilation and placement. If recursion finds no supplied named leaf, removing this continue only reaches the next name.Length > 0 guard with an empty name. It short-circuits without consulting caller data and proceeds to the same next member. A successful recursion still returns true before this statement. The nonempty-name guard remains required and is not qualified by this proof."
+        },
+        {
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
