@@ -3622,6 +3622,42 @@
       "sourceSha256": "e495d8356e97358f3226ded2e12887ed56dfae2bfe5e7ad960eb9d7b22bff488",
       "mutants": [
         {
+          "mutatorName": "Logical mutation",
+          "replacement": "!rootValues.TryGetValue(segments[0].Name, out object? selected) && selected is null",
+          "location": {
+            "start": { "line": 402, "column": 17 },
+            "end": { "line": 402, "column": 100 }
+          },
+          "reason": "The root container is created and populated by this parse, not supplied by a caller. Successful root assignments are non-null StructValue, UnionValue, EnumValueResult, Pointer, list, string or scalar objects. Even a null pointer target has a non-null Pointer wrapper; a custom codec returning null is rejected by the reader's null-coalescing missing-reader check before assignment. Definitions produce no assigned root entry. Thus TryGetValue either returns false with null, or true with a non-null result. OR and AND have the same truth value for both reachable cases; the differing found-null case cannot occur."
+        },
+        {
+          "mutatorName": "Logical mutation",
+          "replacement": "!this.compiledModelQueries.TryGetCompiledDeclaration(segments[0].Name, out CStructElement? rootDeclaration) ||\n                    rootDeclaration is not Typedef { Struct: { } tagged, } ||\n                    !rootValues.TryGetValue(tagged.Name.Name, out selected) && selected is null",
+          "location": {
+            "start": { "line": 405, "column": 21 },
+            "end": { "line": 407, "column": 96 }
+          },
+          "reason": "This compatibility fallback runs only when the requested root entry is absent or null. An inline Struct typedef cannot reach it: HandleCStructElement keeps the requested aliasName and ReadCompositeMember always stores its non-null composite under that alias. The immutable declaration lookup succeeds after ParseStreamInternal's validation, and every remaining fallback case fails the preceding not-inline-Struct-typedef test. The final tagged-name lookup and its null condition therefore never execute, so changing only their OR to AND has no effect on success, failure text or decoding."
+        },
+        {
+          "mutatorName": "LogicalNotExpression to un-LogicalNotExpression mutation",
+          "replacement": "this.compiledModelQueries.TryGetCompiledDeclaration(segments[0].Name, out CStructElement? rootDeclaration)",
+          "location": {
+            "start": { "line": 405, "column": 21 },
+            "end": { "line": 405, "column": 128 }
+          },
+          "reason": "ParseStreamInternal has already resolved this root against immutable declarations or the non-removing synthetic-root cache, so the lookup succeeds. This outer fallback can execute only for a declaration that is not an inline Struct typedef: inline typedefs store a non-null result under the requested alias and never enter it. Originally the successful lookup makes the first condition false and the next declaration-kind condition true; the mutation makes the first condition true. Both execute the same path-error throw, without reaching the tagged-name lookup or changing its message."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "selected is not null",
+          "location": {
+            "start": { "line": 407, "column": 80 },
+            "end": { "line": 407, "column": 96 }
+          },
+          "reason": "The tagged-name fallback cannot reach this final operand. A successfully parsed inline Struct typedef is stored under its requested alias by ReadCompositeMember and skips the outer fallback entirely. Other declarations entering the fallback fail its earlier not-inline-Struct-typedef condition. The changed null test is therefore short-circuited for every supported root; existing root validation, returned values and the reachable path-error diagnostic are unchanged."
+        },
+        {
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
