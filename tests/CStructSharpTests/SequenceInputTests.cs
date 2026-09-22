@@ -1,7 +1,10 @@
 namespace CStructSharpTests;
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using CStructSharp;
+using CStructSharp.Codecs;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
@@ -37,7 +40,9 @@ public class SequenceInputTests
     }
 
     /// <summary>A single-segment sequence reads in place: the same result as the span, with no allocation beyond the span path's.</summary>
+    /// <remarks>Run alone so concurrent tests cannot perturb shared caches or buffer pools between the two measurements.</remarks>
     [TestMethod]
+    [DoNotParallelize]
     public void SingleSegment_ReadsInPlace()
     {
         var layout = new CStruct(Layout, pointerSize: 8);
@@ -71,6 +76,27 @@ public class SequenceInputTests
 
         long sequence = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.AreEqual(span, sequence, "a single segment takes the span path without a copy");
+    }
+
+    /// <summary>A custom codec observes the original byte address for one segment, and copied storage for multiple segments.</summary>
+    [TestMethod]
+    public void SingleSegment_PassesTheOriginalStorageToTheCodec()
+    {
+        byte[] bytes = [7, 8];
+        var codec = new StorageIdentityCodec(bytes);
+        var layout = new CStruct("struct root { storage_identity probe; uint8 tail; };", compilationOptions: new CStructCompilationOptions { Codecs = [codec], });
+        var single = new ReadOnlySequence<byte>(bytes);
+
+        Assert.IsTrue(layout.Parse(bytes.AsSpan(), "root").Get<bool>("probe"));
+        Assert.IsTrue(layout.Parse(single, "root").Get<bool>("probe"), "the codec must receive the caller's original storage");
+        Assert.IsTrue(layout.ParseWithDebug(single, "root").Value.Get<bool>("probe"));
+        Assert.AreEqual(true, layout.ReadValue(single, "root.probe"));
+        Assert.IsTrue(layout.ReadValue<bool>(single, "root.probe"));
+        Assert.IsTrue(((StructValue)layout.ReadValueWithDebug(single, "root").Value!).Get<bool>("probe"));
+        Assert.IsTrue(layout.TryReadValue(single, "root.probe", out bool borrowed));
+        Assert.IsTrue(borrowed);
+        Assert.IsTrue(layout.ParseMany(single, "root").Single().Get<bool>("probe"));
+        Assert.IsFalse(layout.Parse(Segmented(bytes, 1, 1), "root").Get<bool>("probe"), "the observer must detect the actual multi-segment copy");
     }
 
     /// <summary>Several segments read exactly as the flat bytes do: values, debug ranges, addresses, and array lengths; a segment boundary inside a primitive is invisible.</summary>
@@ -130,14 +156,59 @@ public class SequenceInputTests
         Assert.Throws<CStructReadException>(() => layout.Parse(Segmented(new byte[4], 2, 2), "root"));
     }
 
+    /// <summary>Observes input storage identity without retaining a borrowed span or relying on allocation counters.</summary>
+    /// <param name="expected">The caller-owned input whose first byte must be borrowed in the single-segment path.</param>
+    private sealed class StorageIdentityCodec(byte[] expected) : ICustomCodec
+    {
+        public string Name => "storage_identity";
+
+        public int? FixedSize => 1;
+
+        public int Alignment => 1;
+
+        /// <summary>Reports whether the supplied first byte is the original managed byte, consuming one byte.</summary>
+        /// <param name="source">The borrowed input window.</param>
+        /// <param name="value">True only when the window starts in the caller's original storage.</param>
+        /// <param name="bytesConsumed">One on success, otherwise zero.</param>
+        /// <returns>Done for a nonempty window; otherwise NeedMoreData.</returns>
+        public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
+        {
+            if (source.IsEmpty)
+            {
+                value = null;
+                bytesConsumed = 0;
+                return OperationStatus.NeedMoreData;
+            }
+
+            value = Unsafe.AreSame(ref expected[0], ref MemoryMarshal.GetReference(source));
+            bytesConsumed = 1;
+            return OperationStatus.Done;
+        }
+
+        /// <summary>Rejects writes because this test codec only observes input identity.</summary>
+        /// <param name="destination">Unused output window.</param>
+        /// <param name="value">Unused value.</param>
+        /// <param name="bytesWritten">Not assigned because the method always throws.</param>
+        /// <returns>No result; writing is unsupported.</returns>
+        /// <exception cref="NotSupportedException">Always thrown.</exception>
+        public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten) => throw new NotSupportedException();
+    }
+
+    /// <summary>Links borrowed memory regions into a logical byte sequence without copying their contents.</summary>
     private sealed class Segment : ReadOnlySequenceSegment<byte>
     {
+        /// <summary>Creates one segment at its absolute byte index within the logical sequence.</summary>
+        /// <param name="memory">The caller-owned bytes borrowed by this segment.</param>
+        /// <param name="runningIndex">The number of bytes preceding this segment.</param>
         public Segment(ReadOnlyMemory<byte> memory, long runningIndex)
         {
             this.Memory = memory;
             this.RunningIndex = runningIndex;
         }
 
+        /// <summary>Links the next borrowed region immediately after this segment.</summary>
+        /// <param name="memory">The next caller-owned byte region.</param>
+        /// <returns>The appended segment, used to continue building the chain.</returns>
         public Segment Append(ReadOnlyMemory<byte> memory)
         {
             var next = new Segment(memory, this.RunningIndex + this.Memory.Length);

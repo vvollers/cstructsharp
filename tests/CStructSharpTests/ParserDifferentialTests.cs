@@ -364,6 +364,24 @@ public class ParserDifferentialTests
         Assert.IsFalse(accepted);
     }
 
+    /// <summary>The frozen call grammar accepts numeric sizeof arguments, but the documented type-only grammar rejects them.</summary>
+    /// <param name="source">A sizeof call whose argument is a numeric literal instead of a type name.</param>
+    [TestMethod]
+    [DataRow("struct root { uint8 bytes[sizeof(1)]; };")]
+    [DataRow("struct root {\n uint8 bytes[sizeof(0x10)]; };")]
+    public void NumericSizeof_IsRejectedAtTheTypeArgumentBoundary(string source)
+    {
+        Assert.IsTrue(ReferenceAccepts(source));
+
+        // The current parser must reject the literal precisely where a type name is required.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLayout(source));
+        Assert.IsTrue(RejectsNumericSizeofArgument(source, failure.Message));
+        Assert.IsFalse(RejectsNumericSizeofArgument(source, "unrelated syntax failure"));
+        Assert.IsFalse(RejectsNumericSizeofArgument(source, failure.Message.Replace("a type or field name", "an expression", StringComparison.Ordinal)));
+        Assert.IsNull(Compare("numeric-sizeof", source, out bool accepted));
+        Assert.IsFalse(accepted);
+    }
+
     /// <summary>
     ///     Syntax errors name the exact line and column of the first unexpected character, what was found, and
     ///     what was expected.
@@ -455,6 +473,11 @@ public class ParserDifferentialTests
         Assert.AreEqual(LayoutParser.SyntaxErrorPrefix + detail, exception.Message);
     }
 
+    /// <summary>Compares parser trees or verdicts, accounting only for the documented frozen-reference differences.</summary>
+    /// <param name="id">The diagnostic identifier of this corpus input.</param>
+    /// <param name="source">The exact source supplied to both parsers.</param>
+    /// <param name="accepted">Whether the current parser accepted the declaration.</param>
+    /// <returns>A mismatch explanation, or null when the input agrees with the comparison contract.</returns>
     private static string? Compare(string id, string source, out bool accepted)
     {
         accepted = false;
@@ -530,6 +553,13 @@ public class ParserDifferentialTests
             return null;
         }
 
+        // A numeric sizeof argument is also an expression, not the type-spelling required by the current grammar.
+        // Match its exact rejection location and diagnostic; a different failure must still reach the mismatch report.
+        if (referenceDump is not null && candidateDump is null && RejectsNumericSizeofArgument(source, candidateError))
+        {
+            return null;
+        }
+
         // One-way oracle since the dissect-parity work: the frozen reference grammar defines a subset of the
         // language, so a source it rejects may legitimately be accepted by the current parser (typedef declarator
         // lists, top-level anonymous composites, preprocessor lines, inline unions, ...). What must never happen is
@@ -570,7 +600,41 @@ public class ParserDifferentialTests
         }
     }
 
-    /// <summary>True when a declaration keyword or directive is glued to the identifier that follows it (<c>structroot</c>, <c>#defineX</c>).</summary>
+    /// <summary>Matches only a numeric sizeof argument rejected exactly at the literal's first character.</summary>
+    /// <param name="source">The source being compared with the frozen expression-call grammar.</param>
+    /// <param name="candidateError">The current parser's rejection diagnostic.</param>
+    /// <returns>Whether the failure is precisely the documented type-only argument restriction.</returns>
+    private static bool RejectsNumericSizeofArgument(string source, string? candidateError)
+    {
+        foreach (Match match in Regex.Matches(source, @"\bsizeof\s*\(\s*(?<number>[0-9][0-9a-fA-FxXbBoO_uUlL]*)\s*\)"))
+        {
+            int start = match.Groups["number"].Index;
+            int line = 1;
+            int column = 1;
+            for (int index = 0; index < start; index++)
+            {
+                if (source[index] == '\n')
+                {
+                    line++;
+                    column = 1;
+                }
+                else
+                {
+                    column++;
+                }
+            }
+
+            string expected = LayoutParser.SyntaxErrorPrefix + $"unexpected '{source[start]}' at line {line}, column {column}; expected a type or field name.";
+            if (candidateError == expected)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>True when a sizeof/offsetof argument contains an expression operator rather than only a type spelling.</summary>
     private static bool HasOperatorInsideTypeArgument(string source)
     {
         return Regex.IsMatch(source, @"\b(?:sizeof|offsetof)\s*\([^()]*[|&^+\-/%<>!~=?:,][^()]*\)");
