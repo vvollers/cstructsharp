@@ -1117,6 +1117,51 @@
       "sourceSha256": "a7fe1f75bac8550fff2889139121cd70845aed88c0263ab7685ad0d5851bcece",
       "mutants": [
         {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 419,
+              "column": 107
+            },
+            "end": {
+              "line": 419,
+              "column": 110
+            }
+          },
+          "reason": "Only the trailing period of the cycle diagnostic is removed. This private resolver is reached through ResolveTargetFromLayout, which attaches the selected path before propagating CStructException. CStructException.Compose trims trailing periods before appending that context, so the caller receives the same message, path, offset and exception type with or without this period."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 885,
+              "column": 17
+            },
+            "end": {
+              "line": 886,
+              "column": 105
+            }
+          },
+          "reason": "CompileSingleArrayDimension assigns Flexible only when CharacterFieldTypes.IsCharArrayField is true: a non-pointer char or wchar spelling. CompiledField derives IsCharacterArray from those same resolved type and pointer facts. WithPlacement preserves them; array peeling changes Flexible to Scalar and pointer-target views are Scalar. Therefore MeasureFieldEnd cannot enter its Flexible branch with IsCharacterArray false. Removing this defensive throw or changing only its message changes no supported operation."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 886,
+              "column": 21
+            },
+            "end": {
+              "line": 886,
+              "column": 82
+            }
+          },
+          "reason": "CompileSingleArrayDimension assigns Flexible only when CharacterFieldTypes.IsCharArrayField is true: a non-pointer char or wchar spelling. CompiledField derives IsCharacterArray from those same resolved type and pointer facts. WithPlacement preserves them; array peeling changes Flexible to Scalar and pointer-target views are Scalar. Therefore MeasureFieldEnd cannot enter its Flexible branch with IsCharacterArray false. Removing this defensive throw or changing only its message changes no supported operation."
+        },
+        {
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?address :context.PointerStorageAddress)",
           "location": {
@@ -1323,6 +1368,36 @@
       "pattern": "CStructWriter.cs",
       "sourceSha256": "74dc7e30a98926d4b4b495ceb7d667970682b66f12aa3a2ea8a9abb5b526fbdf",
       "mutants": [
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 654,
+              "column": 38
+            },
+            "end": {
+              "line": 654,
+              "column": 97
+            }
+          },
+          "reason": "CompileArrayShape rejects dependencies in every dimension of an array with more than one dimension, evaluates each count, and stores each result in CompiledArrayDimension.FixedCount. Peeling retains those fixed counts and placement preserves the array shape. Thus every multidimensional array reaching this branch has a non-null count for each dimension and a non-null total unless checked multiplication throws first. Changing only this unreachable missing-count message does not affect counts, overflow checks, decoding, writing or diagnostics."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 803,
+              "column": 38
+            },
+            "end": {
+              "line": 803,
+              "column": 93
+            }
+          },
+          "reason": "CompileArrayShape rejects dependencies in every dimension of an array with more than one dimension, evaluates each count, and stores each result in CompiledArrayDimension.FixedCount. Peeling retains those fixed counts and placement preserves the array shape. Thus every multidimensional array reaching this branch has a non-null count for each dimension and a non-null total unless checked multiplication throws first. Changing only this unreachable missing-count message does not affect counts, overflow checks, decoding, writing or diagnostics."
+        },
         {
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?state.CurrentBitfieldSize\n:compiledField.BitStorageSize ??\n                             throw new InvalidOperationException(\n                                 \"Compiled bitfield has no storage size: \" + compiledField.Name))",
@@ -2742,6 +2817,36 @@
       "pattern": "CStructReader.cs",
       "sourceSha256": "4d6252b82866f05d85e6f8333be119b8ec90d778917fb053ba455b70d1d5e3d0",
       "mutants": [
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 323,
+              "column": 50
+            },
+            "end": {
+              "line": 323,
+              "column": 109
+            }
+          },
+          "reason": "CompileArrayShape rejects dependencies in every dimension of an array with more than one dimension, evaluates each count, and stores each result in CompiledArrayDimension.FixedCount. Peeling retains those fixed counts and placement preserves the array shape. Thus every multidimensional array reaching this branch has a non-null count for each dimension and a non-null total unless checked multiplication throws first. Changing only this unreachable missing-count message does not affect counts, overflow checks, decoding, writing or diagnostics."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 853,
+              "column": 54
+            },
+            "end": {
+              "line": 853,
+              "column": 109
+            }
+          },
+          "reason": "CompileArrayShape rejects dependencies in every dimension of an array with more than one dimension, evaluates each count, and stores each result in CompiledArrayDimension.FixedCount. Peeling retains those fixed counts and placement preserves the array shape. Thus every multidimensional array reaching this branch has a non-null count for each dimension and a non-null total unless checked multiplication throws first. Changing only this unreachable missing-count message does not affect counts, overflow checks, decoding, writing or diagnostics."
+        },
         {
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitOffset < 0",
