@@ -8,6 +8,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- Preserve the field name and out-of-range value in conditional-expression diagnostics, including selected
+  operands of `?:`, `&&`, and `||`.
 - Keep continued text definitions intact with Windows CRLF line endings, including bodies that start with an
   integer token but are not complete integer expressions.
 - Avoid overflow in optimized read preflight checks when the cursor, requested byte count or cumulative budget

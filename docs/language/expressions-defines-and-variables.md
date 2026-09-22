@@ -114,6 +114,17 @@ chosen storage unit.
 A decoded field wider than that domain (`uint32` above `2147483647`, any `uint64` or `int64` beyond the range, a
 128-bit integer) is still read normally. It only fails when an expression selects it, and then the failure names the
 field and its value: `'n' is 4294967295, which is outside the 32-bit range that layout expressions support.`
+The same diagnostic applies when `?:`, `&&`, or `||` selects that field. An unselected operand is not evaluated.
+
+For example, consider this little-endian layout:
+
+```c
+struct root { uint32 count; uint8 items[1 ? count : 0]; };
+```
+
+The bytes `00 00 00 80` place `count` at offset 0 with value `2147483648`. That is a valid `uint32`, but it exceeds
+the signed 32-bit limit for array lengths. Reading fails before `items`, with the field name and value in the
+diagnostic. Using `0 ? count : 0` instead selects zero: the same four bytes produce an empty `items` array.
 
 ## Enum expressions use the full backing range
 

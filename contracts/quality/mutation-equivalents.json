@@ -199,18 +199,18 @@
     },
     {
       "pattern": "**/CStructSharp.Core/Expressions/ExpressionEvaluator.cs",
-      "sourceSha256": "97d364232d87f56bae4c95f89fc15f09db4a40f3fc0bf599aca61f745fe05c07",
+      "sourceSha256": "4a62ae68eb9236dd5e93ebb214b4f921c3e0f6ea7bc41a18cc1d4d842353378c",
       "mutants": [
         {
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 676,
+              "line": 687,
               "column": 57
             },
             "end": {
-              "line": 676,
+              "line": 687,
               "column": 109
             }
           },
@@ -221,11 +221,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 678,
+              "line": 689,
               "column": 21
             },
             "end": {
-              "line": 678,
+              "line": 689,
               "column": 57
             }
           },
@@ -236,11 +236,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 735,
+              "line": 746,
               "column": 58
             },
             "end": {
-              "line": 735,
+              "line": 746,
               "column": 84
             }
           },
@@ -251,11 +251,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 773,
+              "line": 784,
               "column": 58
             },
             "end": {
-              "line": 773,
+              "line": 784,
               "column": 85
             }
           },
@@ -356,11 +356,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 544,
+              "line": 555,
               "column": 65
             },
             "end": {
-              "line": 544,
+              "line": 555,
               "column": 102
             }
           },
@@ -371,11 +371,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 817,
+              "line": 828,
               "column": 65
             },
             "end": {
-              "line": 817,
+              "line": 828,
               "column": 102
             }
           },
@@ -431,11 +431,11 @@
           "replacement": ";",
           "location": {
             "start": {
-              "line": 566,
+              "line": 577,
               "column": 21
             },
             "end": {
-              "line": 566,
+              "line": 577,
               "column": 115
             }
           },
@@ -446,11 +446,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 566,
+              "line": 577,
               "column": 57
             },
             "end": {
-              "line": 566,
+              "line": 577,
               "column": 113
             }
           },
@@ -461,11 +461,11 @@
           "replacement": "stackSize < 0",
           "location": {
             "start": {
-              "line": 842,
+              "line": 853,
               "column": 21
             },
             "end": {
-              "line": 842,
+              "line": 853,
               "column": 35
             }
           },
@@ -476,11 +476,11 @@
           "replacement": ";",
           "location": {
             "start": {
-              "line": 844,
+              "line": 855,
               "column": 21
             },
             "end": {
-              "line": 844,
+              "line": 855,
               "column": 113
             }
           },
@@ -491,11 +491,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 844,
+              "line": 855,
               "column": 57
             },
             "end": {
-              "line": 844,
+              "line": 855,
               "column": 111
             }
           },
@@ -506,11 +506,11 @@
           "replacement": ";",
           "location": {
             "start": {
-              "line": 852,
+              "line": 863,
               "column": 17
             },
             "end": {
-              "line": 852,
+              "line": 863,
               "column": 116
             }
           },
@@ -521,11 +521,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 852,
+              "line": 863,
               "column": 53
             },
             "end": {
-              "line": 852,
+              "line": 863,
               "column": 114
             }
           },
@@ -566,11 +566,11 @@
           "replacement": "(int)instruction.Value",
           "location": {
             "start": {
-              "line": 512,
+              "line": 520,
               "column": 48
             },
             "end": {
-              "line": 512,
+              "line": 520,
               "column": 79
             }
           },
@@ -581,11 +581,11 @@
           "replacement": "(false?throw new DivideByZeroException() :BigInteger.Remainder(left, right))",
           "location": {
             "start": {
-              "line": 771,
+              "line": 782,
               "column": 43
             },
             "end": {
-              "line": 771,
+              "line": 782,
               "column": 127
             }
           },

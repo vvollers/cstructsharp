@@ -3268,6 +3268,19 @@
           ]
         },
         {
+          "test": "tests/CStructSharpTests/ExpressionSafetyTests.cs#SelectedWideField_PreservesTheRangeDiagnostic",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/ExpressionSafetyTests.cs#UnselectedWideField_RemainsReadableAndWritable",
+          "operations": [
+            "parse",
+            "serialize"
+          ]
+        },
+        {
           "test": "tests/CStructSharpTests/ExpressionSafetyTests.cs#RuntimeCount_OperationsAgreeThroughPointersAndEndianness",
           "operations": [
             "parse",

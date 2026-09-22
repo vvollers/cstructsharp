@@ -10,6 +10,47 @@ using CStructSharp.Values;
 [TestClass]
 public class ExpressionSafetyTests
 {
+    /// <summary>Direct and selected conditional operands report the captured field name and its out-of-range value.</summary>
+    /// <param name="expression">An expression that selects the wide count field.</param>
+    [TestMethod]
+    [DataRow("count")]
+    [DataRow("1 ? count : 0")]
+    [DataRow("0 ? 0 : count")]
+    [DataRow("1 && count")]
+    [DataRow("0 || count")]
+    public void SelectedWideField_PreservesTheRangeDiagnostic(string expression)
+    {
+        var layout = new CStruct($"struct root {{ uint32 count; uint8 items[{expression}]; }};", isLittleEndian: true);
+        byte[] validBytes = [1, 0, 0, 0, 42];
+        object valid = layout.Parse(validBytes, "root");
+        CollectionAssert.AreEqual(validBytes, layout.Serialize("root", valid));
+
+        // The field decodes correctly as UInt32; selecting it for an array length exceeds the Int32 expression domain.
+        CStructReadException failure = Assert.Throws<CStructReadException>(() => layout.Parse(new byte[] { 0, 0, 0, 0x80, }, "root"));
+        Assert.IsInstanceOfType<InvalidOperationException>(failure.InnerException);
+        Assert.AreEqual("'count' is 2147483648, which is outside the 32-bit range that layout expressions support.", failure.InnerException!.Message);
+    }
+
+    /// <summary>An unselected wide field remains ordinary data and does not prevent reading or writing the selected shape.</summary>
+    /// <param name="expression">A short-circuit expression that never selects the wide count field.</param>
+    /// <param name="length">The array length produced by the selected constant branch.</param>
+    [TestMethod]
+    [DataRow("0 ? count : 0", 0)]
+    [DataRow("1 ? 0 : count", 0)]
+    [DataRow("0 && count", 0)]
+    [DataRow("1 || count", 1)]
+    public void UnselectedWideField_RemainsReadableAndWritable(string expression, int length)
+    {
+        var layout = new CStruct($"struct root {{ uint32 count; uint8 items[{expression}]; }};", isLittleEndian: true);
+        byte[] bytes = [0, 0, 0, 0x80, 42];
+        using var input = new MemoryStream(bytes);
+
+        object value = layout.Parse(input, "root");
+
+        Assert.AreEqual(4L + length, input.Position);
+        CollectionAssert.AreEqual(bytes[..(4 + length)], layout.Serialize("root", value));
+    }
+
     /// <summary>
     ///     A suffixed literal in a #define binds and evaluates identically to its unsuffixed form (LANG-03b).
     /// </summary>

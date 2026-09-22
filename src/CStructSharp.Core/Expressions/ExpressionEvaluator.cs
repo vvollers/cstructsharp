@@ -486,6 +486,14 @@ internal sealed class ExpressionEvaluator
         }
 
         /// <summary>Runs one postfix program and recursively resolves only bounded identifier dependencies.</summary>
+        /// <param name="program">The validated instructions for this expression.</param>
+        /// <param name="dependencyDepth">The number of enclosing expression levels at this dependency's root.</param>
+        /// <returns>The signed 32-bit result.</returns>
+        /// <exception cref="CStructLayoutException">The complete dependency depth or session work exceeds its limit.</exception>
+        /// <exception cref="KeyNotFoundException">A selected dependency name is not defined.</exception>
+        /// <exception cref="InvalidOperationException">A selected value or operation is outside the expression domain.</exception>
+        /// <exception cref="OverflowException">An arithmetic result does not fit the signed 32-bit domain.</exception>
+        /// <exception cref="DivideByZeroException">A selected division or remainder has a zero divisor.</exception>
         private int EvaluateProgram(CompiledExpression program, int dependencyDepth)
         {
             if (dependencyDepth + program.MaximumDepth > this.limits.MaximumDepth)
@@ -534,7 +542,10 @@ internal sealed class ExpressionEvaluator
                     case ExpressionOpcode.Join:
                         break;
                     case ExpressionOpcode.Identifier:
-                        if (instruction.Conditional && this.variables.TryGetValue(instruction.Name!, out Expr? selected))
+                        // A captured wide value is not an expression tree; EvaluateIdentifier reports its precise range failure.
+                        if (instruction.Conditional &&
+                            this.variables.TryGetValue(instruction.Name!, out Expr? selected) &&
+                            selected is not WideValueVariable)
                         {
                             this.ValidateDependencyDepth(this.evaluator.GetProgram(selected), dependencyDepth + instruction.Depth);
                         }
