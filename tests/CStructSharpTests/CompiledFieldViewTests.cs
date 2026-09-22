@@ -130,6 +130,18 @@ public class CompiledFieldViewTests
         Assert.AreEqual(3, value.BitUnitSize);
     }
 
+    /// <summary>A user composite that shadows a primitive alias must not acquire that primitive's codec during placement.</summary>
+    [TestMethod]
+    public void CompositeAliasName_RetainsItsCompositeCodecIdentity()
+    {
+        var layout = new CStruct("struct DWORD { uint8 value; }; struct root { DWORD nested; };");
+        CompiledField nested = Field(layout, "nested");
+
+        Assert.IsNotNull(nested.Composite);
+        Assert.AreEqual(PrimitiveCodecKind.None, nested.Codec.Kind);
+        Assert.AreEqual(1, nested.FixedElementSize);
+    }
+
     /// <summary>Finds a uniquely named field in the compiled fixture without reinterpreting its source declaration.</summary>
     /// <param name="layout">Compiled fixture.</param>
     /// <param name="name">Unique member name.</param>
