@@ -6,6 +6,27 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class WriterPaddingAndPromotionTests
 {
+    /// <summary>An empty input key cannot select unnamed padding as an anonymous union's active view.</summary>
+    /// <param name="nested">Whether the padding belongs to a promoted struct inside the union.</param>
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void PromotedUnion_IgnoresEmptyKeysWhenSelectingAView(bool nested)
+    {
+        string members = nested ? "struct { uint16 _; uint8 missing; };" : "uint16 _;";
+        var layout = new CStruct("struct root { union { " + members + " uint8 small; }; uint8 tail; };");
+        var data = new Dictionary<string, object?>
+        {
+            [string.Empty] = (ushort)99,
+            ["small"] = (byte)7,
+            ["tail"] = (byte)8,
+        };
+
+        // Padding has storage but no member name; only the supplied named small view is eligible.
+        byte[] expected = nested ? [7, 0, 0, 8,] : [7, 0, 8,];
+        CollectionAssert.AreEqual(expected, layout.Serialize("root", data));
+    }
+
     /// <summary>Runtime-sized nested records publish full dotted count paths through the general writer.</summary>
     /// <param name="enumCount">Whether the count is a layout enum rather than an ordinary byte.</param>
     [TestMethod]
