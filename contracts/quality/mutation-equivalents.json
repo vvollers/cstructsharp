@@ -739,7 +739,7 @@
     },
     {
       "pattern": "**/CStructSharp.Core/Parsing/LayoutParser.cs",
-      "sourceSha256": "f9bc1378422d78be213cba1d3a82f42b4ff946c55a5c765f7f643099936f5347",
+      "sourceSha256": "e9f21bf75824129bc4e8b5262eafe032f73f9ec6c16529b2d8bee34486cc75bd",
       "mutants": [
         {
           "mutatorName": "Equality mutation",
@@ -776,11 +776,11 @@
           "replacement": "(true?words[0].SourceOffset :-1)",
           "location": {
             "start": {
-              "line": 1654,
+              "line": 1664,
               "column": 68
             },
             "end": {
-              "line": 1654,
+              "line": 1664,
               "column": 112
             }
           },
@@ -791,11 +791,11 @@
           "replacement": "words.Count >= 0",
           "location": {
             "start": {
-              "line": 1654,
+              "line": 1664,
               "column": 68
             },
             "end": {
-              "line": 1654,
+              "line": 1664,
               "column": 83
             }
           },
@@ -806,11 +806,11 @@
           "replacement": "+1",
           "location": {
             "start": {
-              "line": 1654,
+              "line": 1664,
               "column": 110
             },
             "end": {
-              "line": 1654,
+              "line": 1664,
               "column": 112
             }
           },
@@ -821,11 +821,11 @@
           "replacement": "length >= 0",
           "location": {
             "start": {
-              "line": 1906,
+              "line": 1916,
               "column": 16
             },
             "end": {
-              "line": 1906,
+              "line": 1916,
               "column": 26
             }
           },
@@ -836,11 +836,11 @@
           "replacement": "this.hoisted.Count >= 0",
           "location": {
             "start": {
-              "line": 2314,
+              "line": 2324,
               "column": 13
             },
             "end": {
-              "line": 2314,
+              "line": 2324,
               "column": 35
             }
           },

@@ -5098,6 +5098,12 @@
           ]
         },
         {
+          "test": "tests/CStructSharpTests/PreprocessorTests.cs#ContinuedNumericPrefix_RemainsOneTextDefinition",
+          "operations": [
+            "parse"
+          ]
+        },
+        {
           "test": "tests/CStructSharpTests/PreprocessorTests.cs#PragmaPack_RoundTripsThroughEveryOperation",
           "operations": [
             "debug",

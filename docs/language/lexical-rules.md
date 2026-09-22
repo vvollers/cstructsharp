@@ -60,8 +60,17 @@ identifier.
 Fields, enum declarations, and typedef declarations require semicolons. A top-level struct or union may omit its
 final semicolon, but writing it consistently makes copied layouts easier to read.
 
-A backslash immediately before a line end joins the two lines, anywhere in the source, exactly as C's preprocessor
-does; a copied multi-line `#define` therefore keeps working.
+A backslash immediately before an LF or CRLF line ending joins the two lines. LF is common on Unix systems;
+CRLF is common on Windows. A copied multi-line `#define` therefore keeps working with either convention.
+A continued token body can start with a number without becoming an integer expression:
+
+```c
+#define LABEL 2 \
+words
+```
+
+This defines the text constant `LABEL` with value `2 words`. It does not define the integer `2` followed by a
+separate declaration. Text constants are available through `CStruct.Constants`, not as array-length expressions.
 
 ## Preprocessor lines
 

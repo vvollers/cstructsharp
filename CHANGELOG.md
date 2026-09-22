@@ -8,6 +8,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- Keep continued text definitions intact with Windows CRLF line endings, including bodies that start with an
+  integer token but are not complete integer expressions.
 - Avoid overflow in optimized read preflight checks when the cursor, requested byte count or cumulative budget
   is very large.
 - Publish nested enum values under their complete field path when writing runtime-sized records, so later array

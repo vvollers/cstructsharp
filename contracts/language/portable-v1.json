@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "contractRevision": 2,
   "profile": "Portable",
-  "directiveWhitespace": ".NET whitespace except carriage return and line feed; directive names must remain on the same physical line.",
+  "directiveWhitespace": ".NET whitespace except carriage return and line feed; directive names must remain on the same physical line. A backslash followed by LF or CRLF continues a definition body on the next physical line, including text bodies that start with an integer token.",
   "shippedProfiles": [
     "Portable"
   ],

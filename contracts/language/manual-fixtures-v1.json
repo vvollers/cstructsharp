@@ -1080,7 +1080,7 @@
       "featureId": "preprocessor-lines",
       "manual": "docs/language/lexical-rules.md#preprocessor-lines",
       "valid": {
-        "definition": "#define\u00a0N 2\n#pragma pack(1)\n#ifdef N\nstruct root { uint8 a; uint32 b; uint8 v[N]; };\n#else\nstruct root { uint8 a; };\n#endif",
+        "definition": "#define LABEL 2 \\\r\nwords\r\n#define\u00a0N 2\n#pragma pack(1)\n#ifdef N\nstruct root { uint8 a; uint32 b; uint8 v[N]; };\n#else\nstruct root { uint8 a; };\n#endif",
         "root": "root",
         "pointerSize": 4,
         "aligned": true,

@@ -9,7 +9,7 @@ namespace Demo
     public static partial class FixturePreprocessorLines
     {
         /// <summary>The layout text the members of this class were generated from.</summary>
-        public const string Definition = "#define N 2\n#pragma pack(1)\n#ifdef N\nstruct root { uint8 a; uint32 b; uint8 v[N]; };\n#else\nstruct root { uint8 a; };\n#endif";
+        public const string Definition = "#define LABEL 2 \\\r\nwords\r\n#define N 2\n#pragma pack(1)\n#ifdef N\nstruct root { uint8 a; uint32 b; uint8 v[N]; };\n#else\nstruct root { uint8 a; };\n#endif";
 
         /// <summary>The declaration the plain <see cref="Parse"/> and <see cref="Serialize"/> methods operate on.</summary>
         public const string RootName = "root";

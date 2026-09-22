@@ -11,6 +11,20 @@ using CStructSharp.Introspection;
 [TestClass]
 public class PreprocessorTests
 {
+    /// <summary>A continued token body stays text even when its first token is a valid integer expression.</summary>
+    /// <param name="newline">The physical LF or CRLF line ending joined by the backslash.</param>
+    [TestMethod]
+    [DataRow("\n")]
+    [DataRow("\r\n")]
+    public void ContinuedNumericPrefix_RemainsOneTextDefinition(string newline)
+    {
+        var layout = new CStruct("#define RAW 2 \\" + newline + "words" + newline + "struct root { uint8 value; };");
+
+        Assert.AreEqual(LayoutConstantKind.Text, layout.Constants["RAW"].Kind);
+        Assert.AreEqual("2 words", layout.Constants["RAW"].Value);
+        Assert.AreEqual(1, layout.GetStructSizeInBytes("root"));
+    }
+
     /// <summary>Both line-ending spellings preserve directive names, values, macro text, quoted text and following declarations.</summary>
     /// <param name="newline">The physical line ending joined by a preceding backslash.</param>
     [TestMethod]

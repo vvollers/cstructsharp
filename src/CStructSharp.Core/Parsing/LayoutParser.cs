@@ -948,11 +948,21 @@ internal sealed class LayoutParser
     }
 
     /// <summary>Whether the text between two cursor positions holds a line break (a continuation does not count).</summary>
+    /// <param name="start">The first source character to inspect, inclusive.</param>
+    /// <param name="end">The parsed cursor position, exclusive.</param>
+    /// <returns>Whether an unescaped physical line ending occurs in the inspected source range.</returns>
     private bool LineBreakBetween(int start, int end)
     {
         for (int index = start; index < end && index < this.source.Length; index++)
         {
-            if (this.source[index] is '\n' or '\r' && !(index > 0 && this.source[index - 1] == '\\'))
+            if (this.source[index] == '\\' && this.IsLineContinuation(index))
+            {
+                // Skip both characters of CRLF; its LF must not look like a second, unescaped line ending.
+                index += this.source[index + 1] == '\r' ? 2 : 1;
+                continue;
+            }
+
+            if (this.source[index] is '\n' or '\r')
             {
                 return true;
             }
