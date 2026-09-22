@@ -3,6 +3,117 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "**/CStructSharp.Core/Parsing/LayoutParser.cs",
+      "sourceSha256": "f9bc1378422d78be213cba1d3a82f42b4ff946c55a5c765f7f643099936f5347",
+      "mutants": [
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "dimensions.Count >= 0",
+          "location": {
+            "start": {
+              "line": 540,
+              "column": 13
+            },
+            "end": {
+              "line": 540,
+              "column": 33
+            }
+          },
+          "reason": "For an empty dimensions list, the newly entered foreach has no iterations and BuildArrayCount immediately returns Field.NoArray, exactly the original shape value. Nonempty lists already enter the original branch. The private List is operation-owned, so the changed count comparison preserves the produced typedef, validation failures and array-shape identity."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "end <= 0",
+          "location": {
+            "start": {
+              "line": 821,
+              "column": 17
+            },
+            "end": {
+              "line": 821,
+              "column": 24
+            }
+          },
+          "reason": "The include terminator search starts at position + 1 after consuming the #include keyword and recognizing its opening delimiter. Any found index is therefore strictly positive; IndexOf reports -1 when no terminator exists. A result of zero is impossible, so changing end < 0 to end <= 0 preserves every successful include and missing-delimiter failure."
+        },
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?words[0].SourceOffset :-1)",
+          "location": {
+            "start": {
+              "line": 1654,
+              "column": 68
+            },
+            "end": {
+              "line": 1654,
+              "column": 112
+            }
+          },
+          "reason": "BuildTypeIdentifier is private and has one call site in ParseFieldDeclaration. That caller rejects words.Count == 0 before parsing suffixes, and no subsequent operation changes the local words list before this call. The source-offset conditional therefore always selects words[0].SourceOffset; forcing its true arm is equivalent."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "words.Count >= 0",
+          "location": {
+            "start": {
+              "line": 1654,
+              "column": 68
+            },
+            "end": {
+              "line": 1654,
+              "column": 83
+            }
+          },
+          "reason": "BuildTypeIdentifier is private and has one call site in ParseFieldDeclaration. That caller rejects an empty words list, and the list is not changed between the guard and this call. Both words.Count > 0 and words.Count >= 0 are true for every reachable invocation, preserving the first word's source offset."
+        },
+        {
+          "mutatorName": "UnaryMinusExpression to UnaryPlusExpression mutation",
+          "replacement": "+1",
+          "location": {
+            "start": {
+              "line": 1654,
+              "column": 110
+            },
+            "end": {
+              "line": 1654,
+              "column": 112
+            }
+          },
+          "reason": "BuildTypeIdentifier's sole private caller rejects an empty words list before invoking it. The fallback -1 source offset is therefore unreachable; changing only that fallback to +1 cannot change a returned identifier or diagnostic."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "length >= 0",
+          "location": {
+            "start": {
+              "line": 1906,
+              "column": 16
+            },
+            "end": {
+              "line": 1906,
+              "column": 26
+            }
+          },
+          "reason": "TryRecognizeBinaryOperator's only caller is TryBinaryOperator, called from ParseBinary. ParseBinary returns through ParseUnary before reaching TryBinaryOperator at UnaryLevel. Every recognized operator has positive length; the unrecognized fallback alone has length zero and operatorLevel UnaryLevel. Thus the fallback's level comparison is false for every caller, even if length >= 0 becomes true; the recognized cases remain unchanged."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "this.hoisted.Count >= 0",
+          "location": {
+            "start": {
+              "line": 2314,
+              "column": 13
+            },
+            "end": {
+              "line": 2314,
+              "column": 35
+            }
+          },
+          "reason": "FlushHoisted receives a private parser destination list and an index saved before a struct, union or typedef appends its declarations. With no hoisted declarations, that index is still valid, InsertRange receives an empty list and Clear clears an already empty list. No destination enumerator is alive or exposed while parsing. The additional empty-list operations leave the same declaration order and failures; nonempty hoisted lists already enter the original branch."
+        }
+      ]
+    },
+    {
       "pattern": "CStructOperations.AsyncWrite.cs",
       "sourceSha256": "1179fb7eaf8fa0bed1b068fd7137a2d08428b8e216ece8d2ad3234b3ab4b5c7e",
       "mutants": [
