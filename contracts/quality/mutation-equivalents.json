@@ -187,6 +187,30 @@
       "sourceSha256": "b56fec25c43fb114b652d769e2af372bd6caf8d8be73dfb3c7902e9c87113412",
       "mutants": [
         {
+          "mutatorName": "Boolean mutation",
+          "replacement": "false",
+          "location": { "start": { "line": 1060, "column": 223 }, "end": { "line": 1060, "column": 227 } },
+          "reason": "This changes only the null fallback for BitStorageIsLittleEndian. Compiled fields receive both BitStorageSize and BitStorageIsLittleEndian from the same nullable bitfieldStorage entry, whose ByteSize and IsLittleEndian are nonnullable. This branch requires BitStorageSize.HasValue; therefore the endian value also exists and neither fallback is evaluated."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(int)unitStart",
+          "location": { "start": { "line": 1062, "column": 48 }, "end": { "line": 1062, "column": 71 } },
+          "reason": "For valid compiled fields, Place returns a nonnegative storage start no greater than RunEnd: MSVC includes its unit size, SysV starts the cell/window at or before the consumed bit position. The immediately preceding statement already checked RunEnd's conversion to Int32 and throws on overflow. Any reached unitStart conversion is therefore in range, making this second checked conversion redundant."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "secondSpace >= 0",
+          "location": { "start": { "line": 545, "column": 41 }, "end": { "line": 545, "column": 56 } },
+          "reason": "The surrounding branch requires space > 0, and secondSpace is IndexOf starting at space + 1. Its result is therefore either -1 or at least 2, never zero. The original > 0 and mutated >= 0 predicates select the same substring for every reached input."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "arrayCount.Count >= 0",
+          "location": { "start": { "line": 808, "column": 21 }, "end": { "line": 808, "column": 41 } },
+          "reason": "Only an empty array-dimension list changes the left predicate. The unchanged right operand is Any(ContainsCall), which returns false without invoking the predicate for that empty list. The combined condition remains false and no folding or compilation occurs; nonempty lists follow the identical path."
+        },
+        {
           "mutatorName": "Logical mutation",
           "replacement": "expression is null || ReferenceEquals(expression, NoneExpr.Instance) && expression is Literal",
           "location": { "start": { "line": 129, "column": 13 }, "end": { "line": 129, "column": 106 } },

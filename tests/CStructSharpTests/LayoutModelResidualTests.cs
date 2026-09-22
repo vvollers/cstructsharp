@@ -6,6 +6,34 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class LayoutModelResidualTests
 {
+    /// <summary>Unknown-type hints are absent for unknown names and identify the declarator after a known type.</summary>
+    /// <param name="definition">An invalid field declaration.</param>
+    /// <param name="diagnostic">The complete diagnostic before its source position.</param>
+    [TestMethod]
+    [DataRow("struct root { missing value; };", "Unknown type 'missing' for field 'value' in struct 'root'.")]
+    [DataRow("struct root { uint8 first second; };", "Unknown type 'uint8 first' for field 'second' in struct 'root'; a ';' may be missing after 'first'.")]
+    [DataRow("typedef uint8 number; struct root { number first second; };", "Unknown type 'number first' for field 'second' in struct 'root'; a ';' may be missing after 'first'.")]
+    public void UnknownType_PreservesExactHint(string definition, string diagnostic)
+    {
+        // Include the final period so an unexpected hint cannot pass as an otherwise-correct prefix.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => new CStruct(definition));
+        StringAssert.StartsWith(failure.Message, diagnostic + " (line ");
+    }
+
+    /// <summary>Compile-time expression failures identify the declaration and the expression's purpose.</summary>
+    /// <param name="definition">A declaration containing division by zero.</param>
+    /// <param name="context">The expected expression context.</param>
+    [TestMethod]
+    [DataRow("struct root @align(1 / 0) { uint8 value; };", "alignment override for root")]
+    [DataRow("struct root { uint8 value @align(1 / 0); };", "alignment override for value")]
+    [DataRow("struct root { uint8 values[1 / 0]; };", "array length for values")]
+    public void StaticExpressionFailure_NamesItsContext(string definition, string context)
+    {
+        // The shared evaluator must retain the owning declaration's diagnostic context.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => new CStruct(definition));
+        StringAssert.Contains(failure.Message, context);
+    }
+
     /// <summary>Supported layout functions diagnose the required number of type/name arguments before indexing them.</summary>
     /// <param name="expression">A call with an invalid argument count.</param>
     /// <param name="reason">The precise arity diagnostic.</param>
