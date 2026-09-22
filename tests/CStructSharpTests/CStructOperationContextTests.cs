@@ -104,12 +104,14 @@ public class CStructOperationContextTests
     {
         using var writeOnly = new NonReadableStream();
 
-        Assert.Throws<ArgumentException>(
+        ArgumentException failure = Assert.Throws<ArgumentException>(
             () => new CStructOperationContext(
                 writeOnly,
                 [],
                 aligned: false,
                 ReadOperationSettings.SnapshotReadOptions(null)));
+        StringAssert.Contains(failure.Message, "Parsing requires a readable, seekable stream");
+        Assert.AreEqual("stream", failure.ParamName);
     }
 
     /// <summary>A negative pointer depth has no meaningful safety interpretation.</summary>

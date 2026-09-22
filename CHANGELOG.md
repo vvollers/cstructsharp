@@ -29,7 +29,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   Report individually proven equivalent mutations with exact source/tool/operator identities while retaining their
   surviving status in the raw score and rejecting every unexplained survivor.
 - Cover enum metadata, repeated flags, union conversions and record-sequence boundaries with focused regression
-  tests, including short reads, original input offsets and cancellation between records.
+  tests, including short reads, original input offsets, cancellation between records, pooled-buffer returns and
+  asynchronous continuation independence from the caller's synchronization context.
 - Correct learning-path and dependency guidance, current inspector/JavaScript references, and benchmark fixture
   claims. Derive volatile fixture and executable-scenario counts from their owning definitions.
 - Explain cursor ownership, generated reads and inspector invalidation at the relevant source boundaries, and

@@ -18,6 +18,9 @@ function fixture(t) {
   }
   const policyPath = path.join(root, "contracts/quality/mutation-equivalents.json");
   const policy = JSON.parse(fs.readFileSync(policyPath, "utf8"));
+  // Isolate the known mapped-name proofs so later production policy additions do not broaden this unit fixture.
+  policy.files = policy.files.filter((file) => file.pattern === "MappedTypes.cs");
+  fs.writeFileSync(policyPath, JSON.stringify(policy));
   const sourcePath = path.join(root, "src/CStructSharp/MappedTypes.cs");
   const source = fs.readFileSync(sourcePath, "utf8");
   return { root, policyPath, policy, sourcePath, source, report: { source,

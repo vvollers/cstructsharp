@@ -103,6 +103,38 @@ public class RecordSequenceBoundaryTests
         Assert.AreEqual(4, stream.BytesRead);
     }
 
+    /// <summary>Records larger than the smallest pool bucket still receive enough storage on synchronous and async streams.</summary>
+    [TestMethod]
+    public async Task FixedStreams_ReadRecordsLargerThanTheMinimumPoolBucket()
+    {
+        byte[] bytes = Enumerable.Range(0, 64).Select(value => (byte)value).ToArray();
+        using var sync = new ShortReadStream(bytes);
+        CollectionAssert.AreEqual(new byte[] { 31, 63, }, RecordSequence.FromStream(sync, 32, "large", null, ReadLargeRecord).ToArray());
+        Assert.AreEqual(0, sync.ZeroLengthReadRequests, "a completed record needs no additional zero-byte I/O request");
+        using var asyncStream = new ShortReadStream(bytes);
+        var results = new List<byte>();
+        await foreach (byte value in RecordSequence.FromStreamAsync(asyncStream, 32, "large", null, ReadLargeRecord))
+        {
+            results.Add(value);
+        }
+
+        CollectionAssert.AreEqual(new byte[] { 31, 63, }, results);
+    }
+
+    /// <summary>Reads the final byte of a 32-byte record to exercise storage beyond the minimum pool bucket.</summary>
+    /// <param name="source">Record storage supplied by the iterator.</param>
+    /// <param name="offset">Record start within the storage.</param>
+    /// <param name="index">Unused record index.</param>
+    /// <param name="shift">Unused absolute origin.</param>
+    /// <param name="options">Unused per-record settings.</param>
+    /// <param name="consumed">The 32 consumed bytes.</param>
+    /// <returns>The final record byte.</returns>
+    private static byte ReadLargeRecord(ReadOnlyMemory<byte> source, int offset, int index, long shift, ReadOptions? options, out int consumed)
+    {
+        consumed = 32;
+        return source.Span[offset + 31];
+    }
+
     /// <summary>Reads a two-byte test record and exposes the index and absolute start passed by the iterator.</summary>
     /// <param name="source">Memory containing the record.</param>
     /// <param name="offset">Start within that memory, in bytes.</param>
@@ -156,6 +188,8 @@ public class RecordSequenceBoundaryTests
 
         public int BytesRead { get; private set; }
 
+        public int ZeroLengthReadRequests { get; private set; }
+
         public override bool CanSeek => this.seekable;
 
         public override long Position
@@ -171,6 +205,12 @@ public class RecordSequenceBoundaryTests
         /// <returns>The bytes copied, or zero at end of input.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
+            if (count == 0)
+            {
+                this.ZeroLengthReadRequests++;
+            }
+
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(count, buffer.Length - offset);
             int read = base.Read(buffer, offset, Math.Min(count, 1));
             this.BytesRead += read;
             return read;

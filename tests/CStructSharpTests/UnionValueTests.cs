@@ -3,6 +3,8 @@ namespace CStructSharp.Tests;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Dynamic;
+using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
@@ -36,6 +38,8 @@ public class UnionValueTests
         Assert.AreEqual("path", Assert.Throws<ArgumentNullException>(() => value.TryGet<byte>(null!, out _, out _)).ParamName);
         StringAssert.Contains(Assert.Throws<ArgumentException>(() => UnionValue.FromRaw(" ", new byte[] { 1, })).Message, "Union name must not be whitespace");
         StringAssert.Contains(Assert.Throws<InvalidOperationException>(() => value.WithoutSelection()).Message, "must keep an explicit selected member");
+        StringAssert.Contains(Assert.Throws<InvalidOperationException>(() => value.GetRawStorageArray()).Message, "This union value has no raw storage");
+        StringAssert.Contains(Assert.Throws<ArgumentException>(() => UnionValue.FromMember("choice", " ", 1)).Message, "A union member name is required");
     }
 
     /// <summary>Debug text distinguishes anonymous storage, null selected members and raw storage without inventing a selection.</summary>
@@ -46,6 +50,8 @@ public class UnionValueTests
         Assert.AreEqual("choice { selected: pointer; pointer = null }", UnionValue.FromMember("choice", "pointer", null).ToString());
         UnionValue twoViews = UnionValue.FromMember("choice", "first", (byte)1).WithSelectedMember("second", (byte)2);
         Assert.AreEqual("choice { selected: second; first = 1, second = 2 }", twoViews.ToString());
+        CollectionAssert.AreEqual(new[] { "first", "second", }, ((IDynamicMetaObjectProvider)twoViews)
+            .GetMetaObject(Expression.Parameter(typeof(object))).GetDynamicMemberNames().ToArray());
     }
 
     /// <summary>

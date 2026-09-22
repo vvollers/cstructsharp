@@ -3,6 +3,30 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "Generated/RecordSequence.cs",
+      "sourceSha256": "102bbef90178bd5fc13a00c81bd9525200036628ce91ba0c8e6d6778612f1c4a",
+      "mutants": [
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?(options ?? new ReadOptions()) with { CancellationToken = token, } :options)",
+          "location": { "start": { "line": 332, "column": 12 }, "end": { "line": 332, "column": 110 } },
+          "reason": "When the linked token can cancel, this already takes the clone branch. Otherwise neither input token can cancel: cloning the sealed ReadOptions preserves every setting and assigns the same non-cancellable token; null denotes the same default settings as new ReadOptions. The documented read settings are unchanged. The extra descriptor allocation and descriptor reference identity are not record-reading results."
+        }
+      ]
+    },
+    {
+      "pattern": "Values/UnionValue.cs",
+      "sourceSha256": "267377813e794b7d50d790376f3aa76b4c1fcc25a0c757c3c26b8e625d4eae59",
+      "mutants": [
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": { "start": { "line": 359, "column": 78 }, "end": { "line": 359, "column": 86 } },
+          "reason": "This string names an expression-tree temporary only for debugging. The block declaration, TryGetValue output and selected result all use the same ParameterExpression instance, so changing its diagnostic label cannot change variable binding, returned union members or missing-member behavior. The private temporary's label is not part of the dynamic member contract."
+        }
+      ]
+    },
+    {
       "pattern": "MappedTypes.cs",
       "sourceSha256": "3cb2a60201057fe2618db0fa17da7a47949a1ff6ab44e6b35485b4160eb398f5",
       "mutants": [

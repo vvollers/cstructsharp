@@ -221,6 +221,9 @@ public class EnumFieldValueParserTests
         Assert.AreEqual(new BigInteger(3), EnumFieldValueParser.GetEnumValue(flags, "A|A||B|"));
         Assert.AreEqual(new BigInteger(3), EnumFieldValueParser.GetEnumValue(flags, new[] { "A", string.Empty, "A", "B", }));
         Assert.AreEqual(new BigInteger(3), EnumFieldValueParser.GetEnumValue(flags, "3"));
+        var sourceFailure = new CStructWriteException("Flag source failed.");
+        Assert.AreSame(sourceFailure, Assert.Throws<CStructWriteException>(
+            () => EnumFieldValueParser.GetEnumValue(flags, FailAfterFirstFlag(sourceFailure))));
         CStructWriteException missing = Assert.Throws<CStructWriteException>(() => EnumFieldValueParser.GetEnumValue(flags, "A|Unknown"));
         StringAssert.Contains(missing.Message, "Flag 'access' has no member named 'Unknown'");
         (CompiledEnumType ordinary, _) = CompileMode();
@@ -247,5 +250,20 @@ public class EnumFieldValueParserTests
             StringAssert.Contains(failure.Message, reason);
             Assert.IsNotNull(failure.InnerException);
         }
+
+        var wrongDomain = new EnumValueResult("mode", "One", BigInteger.One, 1, "uint16", 16, false);
+        StringAssert.Contains(Assert.Throws<CStructWriteException>(() => EnumFieldValueParser.GetEnumValue(compiled, wrongDomain)).Message, "does not match the target storage domain");
+        var wrongMember = CreateParsedValue(compiled, "mode", "One", 2);
+        StringAssert.Contains(Assert.Throws<CStructWriteException>(() => EnumFieldValueParser.GetEnumValue(compiled, wrongMember)).Message, "Enum member metadata 'One' does not match value 2");
+    }
+
+    /// <summary>Models a caller-owned lazy flag source that fails after producing a valid member.</summary>
+    /// <param name="failure">The original categorized failure that must propagate unchanged.</param>
+    /// <returns>One valid flag name before the source fails.</returns>
+    /// <exception cref="CStructWriteException">The supplied source failure, after its first member.</exception>
+    private static IEnumerable<string> FailAfterFirstFlag(CStructWriteException failure)
+    {
+        yield return "A";
+        throw failure;
     }
 }
