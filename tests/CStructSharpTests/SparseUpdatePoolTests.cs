@@ -8,6 +8,36 @@ using CStructSharp.Streams;
 [TestClass]
 public class SparseUpdatePoolTests
 {
+    /// <summary>Disposal drops page metadata as well as returning the buffers those pages referenced.</summary>
+    [TestMethod]
+    public void SparseDisposal_DropsPageMetadata()
+    {
+        var pool = new TrackingPool();
+        using var baseline = new MemoryStream(new byte[2048]);
+        var staging = new SparseUpdateStream(baseline, 1, pool);
+        System.Collections.IDictionary pages;
+        try
+        {
+            staging.WriteByte(17);
+            staging.Position = 1025;
+            staging.WriteByte(29);
+
+            // Inspect retention directly; GC timing cannot reliably establish that disposed pages lose their roots.
+            pages = (System.Collections.IDictionary)typeof(SparseUpdateStream).
+                GetField("chunks", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.
+                GetValue(staging)!;
+            Assert.AreEqual(2, pages.Count);
+        }
+        finally
+        {
+            staging.Dispose();
+        }
+
+        Assert.AreEqual(0, pages.Count, "Disposed staging must not retain page metadata or its returned buffers.");
+        Assert.HasCount(3, pool.Returns);
+        GC.KeepAlive(staging);
+    }
+
     /// <summary>The independently disposable sparse page returns its rental once even when disposed repeatedly.</summary>
     [TestMethod]
     public void SparseChunk_RepeatedDisposalReturnsItsRentalOnce()
