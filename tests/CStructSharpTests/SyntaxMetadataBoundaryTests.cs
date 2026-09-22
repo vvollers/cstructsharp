@@ -9,6 +9,27 @@ using SyntaxEnum = CStructSharp.Syntax.Enum;
 [TestClass]
 public class SyntaxMetadataBoundaryTests
 {
+    /// <summary>Enum hash codes distribute declarations that differ in each identity component across hash buckets.</summary>
+    /// <param name="component">The identity component varied while the others remain fixed.</param>
+    [TestMethod]
+    [DataRow("name")]
+    [DataRow("type")]
+    [DataRow("value")]
+    public void EnumHash_UsesEachIdentityComponent(string component)
+    {
+        var hashes = new HashSet<int>();
+        for (int index = 0; index < 32; index++)
+        {
+            var name = new Identifier(component == "name" ? "choice" + index : "choice");
+            var type = new Identifier(component == "type" ? "storage" + index : "uint8");
+            var values = System.Collections.Immutable.ImmutableArray.Create(
+                new EnumValue(new Identifier("A"), new Literal(component == "value" ? index : 0)));
+            hashes.Add(new SyntaxEnum(name, values, type).GetHashCode());
+        }
+
+        Assert.IsGreaterThan(1, hashes.Count, "Varying an identity component must not collapse every declaration into one hash bucket.");
+    }
+
     /// <summary>Anonymous padding bitfields occupy bytes but never become named shape members or field lookup results.</summary>
     [TestMethod]
     public void CompiledShape_OmitsUnnamedPaddingAndDescribesMissingFields()

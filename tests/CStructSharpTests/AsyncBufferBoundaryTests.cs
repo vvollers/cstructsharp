@@ -1,12 +1,35 @@
 namespace CStructSharp.Tests;
 
 using System.Buffers;
+using CStructSharp.Diagnostics;
 using CStructSharp.Streams;
 
 /// <summary>Checks cancellation, empty-read boundaries and continuation ownership in shared input buffering.</summary>
 [TestClass]
 public class AsyncBufferBoundaryTests
 {
+    /// <summary>Async reads use the selected array slice and remaining length, not bytes outside that slice.</summary>
+    /// <param name="visible">Whether reading borrows the underlying array or acquires a separate buffer.</param>
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task ArraySlice_UsesItsOffsetAndRemainingLength(bool visible)
+    {
+        byte[] bytes = [0xEE, 0xDD, 0xCC, 0xBB, 0x34, 0x12, 0xAA, 0x99,];
+        using var source = new MemoryStream(bytes, 3, 3, writable: false, publiclyVisible: visible) { Position = 1, };
+        var layout = new CStruct("struct root { uint16 value; };");
+
+        Assert.AreEqual((ushort)0x1234, await layout.ReadValueAsync<ushort>(source, "root.value"));
+        Assert.AreEqual(3L, source.Position);
+
+        source.Position = 1;
+        var oversized = new CStruct("struct root { uint32 value; };");
+
+        // Bytes after the stream's slice must never satisfy a truncated value.
+        await Assert.ThrowsAsync<CStructReadException>(async () => await oversized.ParseAsync(source, "root"));
+        Assert.AreEqual(1L, source.Position);
+    }
+
     /// <summary>A pre-cancelled read allocates no buffer; a missing stream is still reported as an invalid argument first.</summary>
     [TestMethod]
     public async Task CancellationAndNullInput_FailBeforeRenting()
