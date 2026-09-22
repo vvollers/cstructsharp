@@ -1840,6 +1840,24 @@
       "sourceSha256": "56c5df26eca8fb0833ba6edb0520c087528f20f5ab434cf10e459f173fe82a28",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": { "start": { "line": 506, "column": 13 }, "end": { "line": 506, "column": 20 } },
+          "reason": "UnionValue is sealed and implements IReadOnlyDictionary, not either mutable IDictionary interface inspected by WriteDataBinding.EnumerateMemberNames and TryGetMemberValue. Removing this early return therefore enumerates an empty name array; nested named fields also fail TryGetMemberValue without calling into the union value. Promoted composites recurse only over their finite inline declaration tree with that same unrecognized data object, reaching the same empty lookups. No caller callbacks, value validation or stream operations occur. WriteUnion still performs the actual union-name, storage-size and selected-member checks afterwards. This qualification does not apply to removing those validations."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": { "start": { "line": 275, "column": 21 }, "end": { "line": 275, "column": 74 } },
+          "reason": "This CompleteField call belongs only to an unnamed padding field after promoted composites and zero-width separators have already been handled. Compilation rejects composite targets and runtime-sized ordinary padding; an unnamed nonzero bitfield also has only integral storage. The empty declaration name and non-composite type give it no visible names, captured slots or restored slots in CompleteConditionalScope. CompleteField therefore iterates two empty arrays, or the null scope skips the call altogether. Removing this exact call cannot change variables or layout. Promoted and ordinary named field calls are not qualified by this proof."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": { "start": { "line": 873, "column": 75 }, "end": { "line": 873, "column": 121 } },
+          "reason": "Only CompiledArrayKind.Terminated reaches this terminator branch. CompileComposite rejects every Terminated or ToEnd array without a fixed element size before creating its field, and synthetic roots pass through that same compilation. Placement views retain the immutable element size; an indexed view peels to Scalar rather than fabricating a terminated array. Flexible character views use a separate string path. Consequently FixedElementSize cannot be null here. Changing only the defensive missing-size message cannot affect the zero terminator, array limits or codec behavior."
+        },
+        {
           "mutatorName": "SubtractAssignmentExpression to AddAssignmentExpression mutation",
           "replacement": "state.CurrentBitOffset += elementBitSize",
           "location": { "start": { "line": 113, "column": 13 }, "end": { "line": 113, "column": 53 } },
