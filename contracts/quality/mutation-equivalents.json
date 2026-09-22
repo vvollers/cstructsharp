@@ -2476,6 +2476,21 @@
       "sourceSha256": "288757fdf8b3acb078792ce1e4104d30860b3ccd36fa0b6170463351109e6581",
       "mutants": [
         {
+          "mutatorName": "Arithmetic mutation",
+          "replacement": "this.cellEnd / 8",
+          "location": {
+            "start": {
+              "line": 111,
+              "column": 94
+            },
+            "end": {
+              "line": 111,
+              "column": 110
+            }
+          },
+          "reason": "PlaceSeparator ends the SysV run. Every caller (static layout, runtime cursor and generated cursor) immediately uses RunEnd, which independently clamps the rounded bit position to cellEnd. Write C = cellEnd >= 0 and A = the unchanged aligned bit position. For C < 2^60, C*8 fits: if A exceeds C*8 both variants select A; otherwise the original rounds to C and the variant rounds to at most C, then RunEnd restores C. For C >= 2^60, any unchecked Int64 result of (bitPosition + 7)/8 is strictly less than C, so both RunEnd values equal C even if intermediate multiplication wraps. CheckForOverflowUnderflow is false and these expressions are not checked. The next Place or separator initializes bitPosition from the identical current byte boundary because runActive is false; Close resets it. No caller observes the differing intermediate bitPosition."
+        },
+        {
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?this.unitStart + this.unitSize :current)",
           "location": { "start": { "line": 95, "column": 25 }, "end": { "line": 95, "column": 82 } },
