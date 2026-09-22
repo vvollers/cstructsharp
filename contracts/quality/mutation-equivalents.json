@@ -1078,6 +1078,24 @@
       "sourceSha256": "e9f21bf75824129bc4e8b5262eafe032f73f9ec6c16529b2d8bee34486cc75bd",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 690, "column": 9 },
+            "end": { "line": 690, "column": 44 }
+          },
+          "reason": "Removing the initial ParseEnumMember call does not omit the first member: the following loop parses it instead. The preceding IsIdentifierPart guard ensures the cursor is on a letter, digit or underscore, so the loop's first TryToken(',') fails without advancing or skipping trivia, and its identifier-part check succeeds. It then invokes the same ParseEnumMember and adds the same value. From that point both versions execute the same loop with the same cursor and list. Empty bodies return before this statement. No token, source offset, exception, allocation or ordering changes; only two side-effect-free token checks move ahead of the first parse."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": { "line": 729, "column": 9 },
+            "end": { "line": 731, "column": 10 }
+          },
+          "reason": "For names beginning with a letter or underscore, ExpectIdentifier and the numeric-name fallback consume the same maximal IsIdentifierPart run, construct the same Identifier string and SourceOffset, and call SkipTrivia once. TryParseIdentifier's do/while and the fallback's while both consume the guaranteed first identifier character and stop at the same delimiter. Their Substring/range expressions create the same single string value, and neither accepts stars or type markers. Removing this fast-path body therefore sends ordinary names through an equivalent parser; digit-leading and invalid names already take the unchanged fallback."
+        },
+        {
           "mutatorName": "Equality mutation",
           "replacement": "dimensions.Count >= 0",
           "location": {
