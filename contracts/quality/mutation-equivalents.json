@@ -3580,6 +3580,33 @@
       "sourceSha256": "4d6252b82866f05d85e6f8333be119b8ec90d778917fb053ba455b70d1d5e3d0",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 107, "column": 17 },
+            "end": { "line": 107, "column": 107 }
+          },
+          "reason": "This call is inside the inline-composite placement branch, whose descriptor declaration is a Struct. Struct's sole constructor supplies no offset assertion to its Field base, and OffsetAssertionExpression is get-only. ParseInlineComposite accepts a name and semicolon after an anonymous-tag body; tagged field declarators with placement suffixes become ordinary Field declarations and do not enter this branch. ValidateOffsetAssertionAtRuntime therefore returns immediately at its null-assertion guard without evaluating an expression or accessing a stream. Removing this one no-op does not alter cursor advancement, bitfield completion or composite alignment. Offset assertions on ordinary fields remain validated through the separate ordinary-field branch and are not qualified."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 999, "column": 13 },
+            "end": { "line": 999, "column": 70 }
+          },
+          "reason": "ParseStreamRoot is private and called only by ParseStreamInternal after that caller successfully resolves the same rootName through TryGetCompiledDeclaration. The compiled declaration snapshot is immutable; synthetic root entries are cached without removal. No intervening operation can invalidate the declaration. This second missing-root throw is therefore unreachable, including through typedef and synthetic roots. The earlier public-path guard and its full UnknownRoot diagnostic remain unchanged, as do root construction, parsing, failure handling and state completion."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 1034, "column": 13 },
+            "end": { "line": 1034, "column": 70 }
+          },
+          "reason": "ParseStreamRootDebug is private and called only by ParseStreamInternal after that caller successfully resolves the same rootName through TryGetCompiledDeclaration. Immutable compiled declarations and non-removing synthetic-root caching preserve that successful resolution until this repeated lookup. The missing-root throw is unreachable; removing it changes neither the reachable outer UnknownRoot diagnostic nor debug-state construction, byte ranges, decoding or completion. The ordinary and debug public paths retain their original root validation."
+        },
+        {
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
