@@ -3,6 +3,21 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "CStructOperations.AsyncWrite.cs",
+      "sourceSha256": "1179fb7eaf8fa0bed1b068fd7137a2d08428b8e216ece8d2ad3234b3ab4b5c7e",
+      "mutants": [
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?(options ?? new UpdateOptions()) with { CancellationToken = token, } :options)",
+          "location": {
+            "start": { "line": 95, "column": 40 },
+            "end": { "line": 95, "column": 140 }
+          },
+          "reason": "When the linked token can be cancelled, the original already selects this clone. Otherwise AsyncStreamBuffer.Link implies both input tokens are non-cancellable. UpdateOptions is sealed and contains only ordinary immutable properties; cloning it while assigning the same non-cancellable token preserves every option. A null input produces the same documented defaults used by the original region setup and Update snapshot. Update snapshots its options before use in both versions, so the extra clone changes allocation only, not values, cancellation, aliasing or failures. This proof does not cover the analogous unsealed WriteOptions branch, whose caller-defined derived copy constructor could be observable."
+        }
+      ]
+    },
+    {
       "pattern": "CStructConditionalFields.cs",
       "sourceSha256": "fe75dfd8b0a44a26afc65969ab75846ed64fc8da4f5e8420f1bf128797490ba0",
       "mutants": [
