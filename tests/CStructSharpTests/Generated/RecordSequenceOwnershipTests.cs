@@ -1,7 +1,6 @@
 namespace CStructSharp.Tests.Generated;
 
 using System.Buffers;
-using System.Diagnostics.Tracing;
 using System.Runtime.InteropServices;
 using CStructSharp.Generated;
 
@@ -114,53 +113,6 @@ public class RecordSequenceOwnershipTests
         Assert.IsTrue(MemoryMarshal.TryGetArray(source, out ArraySegment<byte> segment));
         consumed = 2;
         return segment.Array!.GetHashCode();
-    }
-
-    /// <summary>Observes the runtime's pool-return event instead of assuming which array a later rental will choose.</summary>
-    private sealed class PoolReturnListener : EventListener
-    {
-        private readonly int observingThread = Environment.CurrentManagedThreadId;
-        private int watched;
-        private int returned;
-        private int lastRental;
-
-        public bool Returned => Volatile.Read(ref this.returned) == 1;
-
-        public int LastRental => this.lastRental;
-
-        /// <summary>Starts observing one currently rented array, clearing the previous observation.</summary>
-        /// <param name="bufferId">Runtime array identity reported to ArrayPool's event source.</param>
-        public void Watch(int bufferId)
-        {
-            Volatile.Write(ref this.returned, 0);
-            Volatile.Write(ref this.watched, bufferId);
-        }
-
-        /// <summary>Enables only the runtime ArrayPool diagnostics when that source exists or is created.</summary>
-        /// <param name="eventSource">The source announced by the runtime.</param>
-        protected override void OnEventSourceCreated(EventSource eventSource)
-        {
-            if (eventSource.Name == "System.Buffers.ArrayPoolEventSource")
-            {
-                this.EnableEvents(eventSource, EventLevel.Verbose);
-            }
-        }
-
-        /// <summary>Records rentals on the observing thread and returns for the watched array only.</summary>
-        /// <param name="eventData">The runtime event, whose first BufferReturned payload is the array identity.</param>
-        protected override void OnEventWritten(EventWrittenEventArgs eventData)
-        {
-            if (eventData.EventName == "BufferRented" && Environment.CurrentManagedThreadId == this.observingThread && eventData.Payload?[0] is int rental)
-            {
-                this.lastRental = rental;
-            }
-
-            // Runtime source contract: dotnet/runtime System/Buffers/ArrayPoolEventSource.cs, BufferReturned.
-            if (eventData.EventName == "BufferReturned" && eventData.Payload?[0] is int id && id == Volatile.Read(ref this.watched))
-            {
-                Volatile.Write(ref this.returned, 1);
-            }
-        }
     }
 
     /// <summary>Provides a valid one-byte memory descriptor whose storage becomes unreadable when copied.</summary>

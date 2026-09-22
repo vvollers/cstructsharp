@@ -9,6 +9,75 @@ using CStructSharp.Streams;
 [TestClass]
 public class CustomCodecBoundaryTests
 {
+    /// <summary>Growing scratch windows are returned between attempts, and a successful read releases its final rental.</summary>
+    [TestMethod]
+    [DoNotParallelize]
+    public void ReadGrowth_ReturnsEveryScratchWindow()
+    {
+        using var returns = new PoolReturnListener();
+        var codec = new RecordingCodec(300, null, returns: returns);
+        using var stream = new MemoryStream(new byte[512]);
+        Assert.AreEqual((byte)17, CustomCodecAdapter.Read(codec, stream));
+        Assert.AreEqual(300L, stream.Position);
+        Assert.IsTrue(returns.Returned, "The final read window belongs to the adapter and is returned before success.");
+        CollectionAssert.AreEqual(new[] { 256, 512, }, codec.ReadWindows);
+    }
+
+    /// <summary>A growing encoder releases old windows but transfers the successful final buffer to its caller.</summary>
+    [TestMethod]
+    [DoNotParallelize]
+    public void WriteGrowth_TransfersOnlyTheSuccessfulRental()
+    {
+        using var returns = new PoolReturnListener();
+        var codec = new RecordingCodec(300, null, returns: returns);
+        byte[] buffer = CustomCodecAdapter.EncodeToRented(codec, (byte)17, 512, out int written);
+        try
+        {
+            Assert.AreEqual(300, written);
+            Assert.AreEqual(buffer.GetHashCode(), returns.LastRental);
+            Assert.IsFalse(returns.Returned, "The returned bytes must remain owned by the caller until it returns them.");
+            CollectionAssert.AreEqual(new[] { 256, 512, }, codec.WriteWindows);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+
+        Assert.IsTrue(returns.Returned);
+    }
+
+    /// <summary>Read and write limit failures return the scratch window instead of transferring or leaking it.</summary>
+    [TestMethod]
+    [DoNotParallelize]
+    public void LimitFailures_ReturnTheLastScratchWindow()
+    {
+        using var returns = new PoolReturnListener();
+        var codec = new RecordingCodec(300, null, returns: returns);
+        using var stream = new MemoryStream(new byte[512]);
+        using var budget = new ReadBudgetStream(stream, new ReadOptions { MaxStringBytes = 256, });
+
+        // The adapter owns the read rental even when the value cannot fit its byte limit.
+        Assert.Throws<CStructReadLimitException>(() => CustomCodecAdapter.Read(codec, budget));
+        Assert.IsTrue(returns.Returned);
+
+        // A failed encoder transfers no buffer to its caller, so it must return the write rental itself.
+        Assert.Throws<CStructWriteLimitException>(() => CustomCodecAdapter.EncodeToRented(codec, (byte)17, 256, out _));
+        Assert.IsTrue(returns.Returned);
+    }
+
+    /// <summary>The stream-writing adapter returns the encoded rental after copying the value into the destination.</summary>
+    [TestMethod]
+    [DoNotParallelize]
+    public void StreamWrite_ReturnsItsEncodedBuffer()
+    {
+        using var returns = new PoolReturnListener();
+        var codec = new RecordingCodec(4, 4, returns: returns);
+        using var stream = new MemoryStream();
+        CustomCodecAdapter.Write(codec, stream, (byte)17);
+        Assert.IsTrue(returns.Returned);
+        CollectionAssert.AreEqual(new byte[] { 17, 17, 17, 17, }, stream.ToArray());
+    }
+
     /// <summary>A successful codec may consume or write zero bytes without being mistaken for an invalid count.</summary>
     [TestMethod]
     public void ZeroByteSuccess_IsAcceptedForMemoryStreamsAndWrites()
@@ -85,16 +154,19 @@ public class CustomCodecBoundaryTests
     {
         private readonly int required;
         private readonly int? reported;
+        private readonly PoolReturnListener? returns;
 
         /// <summary>Creates a codec with an optional deliberately invalid successful byte count.</summary>
         /// <param name="required">Bytes needed before the operation can succeed.</param>
         /// <param name="fixedSize">Advertised initial window, or null for a growing window.</param>
         /// <param name="reported">Override for the successful byte count.</param>
-        public RecordingCodec(int required, int? fixedSize, int? reported = null)
+        /// <param name="returns">Optional exact-rental observer for ownership tests.</param>
+        public RecordingCodec(int required, int? fixedSize, int? reported = null, PoolReturnListener? returns = null)
         {
             this.required = required;
             this.FixedSize = fixedSize;
             this.reported = reported;
+            this.returns = returns;
         }
 
         public string Name => "recorded";
@@ -114,7 +186,7 @@ public class CustomCodecBoundaryTests
         /// <returns>Done or NeedMoreData according to the available window.</returns>
         public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
         {
-            this.ReadWindows.Add(source.Length);
+            this.RecordWindow(this.ReadWindows, source.Length);
             bool done = source.Length >= this.required;
             value = done ? (byte)17 : null;
             bytesConsumed = done ? this.reported ?? this.required : 0;
@@ -128,7 +200,7 @@ public class CustomCodecBoundaryTests
         /// <returns>Done or DestinationTooSmall according to the available window.</returns>
         public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
         {
-            this.WriteWindows.Add(destination.Length);
+            this.RecordWindow(this.WriteWindows, destination.Length);
             bool done = destination.Length >= this.required;
             if (done)
             {
@@ -137,6 +209,25 @@ public class CustomCodecBoundaryTests
 
             bytesWritten = done ? this.reported ?? this.required : 0;
             return done ? OperationStatus.Done : OperationStatus.DestinationTooSmall;
+        }
+
+        /// <summary>Checks that growth released the preceding rental, then watches the currently borrowed window.</summary>
+        /// <param name="windows">The read or write window history for this operation.</param>
+        /// <param name="length">The current window length in bytes.</param>
+        private void RecordWindow(List<int> windows, int length)
+        {
+            if (this.returns is not null)
+            {
+                int rental = this.returns.LastRental;
+                if (windows.Count > 0)
+                {
+                    Assert.IsTrue(this.returns.Returned, "Growing a codec window must return the preceding rental.");
+                }
+
+                this.returns.Watch(rental);
+            }
+
+            windows.Add(length);
         }
     }
 }
