@@ -1564,6 +1564,24 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
+            "start": { "line": 1099, "column": 18 },
+            "end": { "line": 1099, "column": 57 }
+          },
+          "reason": "EnumIntegerCodecTable validates every enum backing type as a built-in signed/unsigned 8/16/32/64-bit integer, including resolved aliases; custom codecs cannot be backing types or replace built-in names. GetCompiledCodecId supplies the backing primitive's id to enum fields and root views. BuildCodecTable fills every canonical id with its required non-null writer before a CStruct instance can be used. Therefore WriterOf for this compiled enum cannot be null. This changes only the unreachable missing-delegate diagnostic, not enum input conversion, range validation or writing."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 1139, "column": 45 },
+            "end": { "line": 1139, "column": 77 }
+          },
+          "reason": "WritePrimitiveValue has two callers. WriteSingleFieldValue first handles pointers, bitfields, enums and composites, then rejects HasCodec=false before calling it. WriteFixedCharArray handles bounded and wide text separately; its remaining per-character caller has the compiled built-in char codec. BuildCodecTable fills every canonical id with a non-null writer and appends a non-null adapter delegate for every validated custom registration. Thus both callers supply an existing writer. A custom writer may throw, but cannot make its registered delegate null. The separate reachable no-handler error for a void alias is unaffected."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
             "start": { "line": 668, "column": 25 },
             "end": { "line": 668, "column": 67 }
           },
@@ -3060,6 +3078,15 @@
       "pattern": "CStructReader.cs",
       "sourceSha256": "4d6252b82866f05d85e6f8333be119b8ec90d778917fb053ba455b70d1d5e3d0",
       "mutants": [
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 1120, "column": 35 },
+            "end": { "line": 1120, "column": 74 }
+          },
+          "reason": "EnumIntegerCodecTable permits only built-in signed/unsigned 8/16/32/64-bit backing codecs after alias resolution. Custom codecs cannot back enums or replace those built-in registrations. Compiled enum fields and root views carry the backing primitive's codec id, and BuildCodecTable installs every canonical reader. Each permitted backing reader returns a boxed integer or throws; it never returns null. Both the missing-delegate and null-result sides of this fallback are therefore unreachable. This proof does not cover ordinary fields or pointer targets, whose custom reader delegates can return null."
+        },
         {
           "mutatorName": "String mutation",
           "replacement": "\"\"",
