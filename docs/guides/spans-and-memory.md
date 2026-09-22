@@ -36,6 +36,7 @@ index 100 in the original array, and pointers cannot follow bytes outside those 
 
 Read availability checks compare the requested byte count with the bytes remaining in the supplied region.
 A very large position or count cannot wrap around and make unavailable bytes appear readable.
+Optimized block-read checks also compare against the remaining read budget before consuming bytes.
 
 Bytes that arrive in pieces - a `PipeReader`'s buffer, a chain of pooled segments - are a `ReadOnlySequence<byte>`,
 and every read operation accepts one. A sequence with a single segment is read in place, at the span path's cost; a

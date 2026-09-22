@@ -43,6 +43,28 @@ public class ReadBudgetStreamBoundaryTests
         Assert.AreEqual((byte)11, bytes[0], "Failed availability checks must not consume the byte budget.");
     }
 
+    /// <summary>A full cumulative budget cannot wrap and permit an optimized read to consume another byte.</summary>
+    /// <param name="memoryBacked">Whether preflight uses a borrowed memory span or a delegated stream block.</param>
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public void PreflightBudget_CannotWrapTheCumulativeCount(bool memoryBacked)
+    {
+        using var source = new MemoryStream([11, 12,], 0, 2, writable: false, publiclyVisible: memoryBacked);
+        using var reader = new ReadBudgetStream(source, 100, long.MaxValue);
+
+        // Seed a valid cumulative count; physically reading this many bytes is not practical in a regression test.
+        typeof(ReadBudgetStream).GetField("bytesRead", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(reader, long.MaxValue);
+        byte[] destination = [99];
+        bool available = memoryBacked
+                             ? reader.TryReadSpanWithinBudget(1, out _)
+                             : reader.TryReadBlockWithinBudget(destination);
+        Assert.IsFalse(available);
+        Assert.AreEqual(0L, reader.Position);
+        Assert.AreEqual(0L, source.Position);
+        CollectionAssert.AreEqual(new byte[] { 99, }, destination);
+    }
+
     /// <summary>Exposed MemoryStream slices retain their origin while peek, span reads and position flush share one cursor.</summary>
     [TestMethod]
     public void ExposedSlice_UsesItsArrayOffsetAndCurrentPosition()

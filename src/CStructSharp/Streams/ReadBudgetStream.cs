@@ -224,7 +224,7 @@ internal sealed unsafe class ReadBudgetStream : Stream
     /// <returns>Whether the bytes were available within the budget; false consumes neither bytes nor budget.</returns>
     public bool TryReadSpanWithinBudget(int count, out ReadOnlySpan<byte> bytes)
     {
-        if (this.memoryBacked && count <= this.memoryLength - this.position && this.bytesRead + (long)count <= this.maxTotalBytesRead)
+        if (this.memoryBacked && count <= this.memoryLength - this.position && count <= this.maxTotalBytesRead - this.bytesRead)
         {
             return this.TryReadSpan(count, out bytes);
         }
@@ -238,6 +238,8 @@ internal sealed unsafe class ReadBudgetStream : Stream
     ///     next <c>destination.Length</c> bytes when the seekable source provably holds them and the budget allows,
     ///     charging the budget exactly as a sequence of reads would; false (nothing consumed) otherwise.
     /// </summary>
+    /// <param name="destination">The span to fill if the remaining source and byte budget both suffice.</param>
+    /// <returns>Whether the complete block was read; a failed preflight leaves the source and destination unchanged.</returns>
     public bool TryReadBlockWithinBudget(Span<byte> destination)
     {
         if (this.memoryBacked || destination.Length == 0)
@@ -255,7 +257,7 @@ internal sealed unsafe class ReadBudgetStream : Stream
             return false;
         }
 
-        if (available < destination.Length || this.bytesRead + (long)destination.Length > this.maxTotalBytesRead)
+        if (available < destination.Length || destination.Length > this.maxTotalBytesRead - this.bytesRead)
         {
             return false;
         }
