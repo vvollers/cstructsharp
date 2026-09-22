@@ -10,6 +10,25 @@ using Definition = CStructSharp.Syntax.Defines;
 [TestClass]
 public class DefinitionResolutionBoundaryTests
 {
+    /// <summary>Once a deferred override requires all fields, capture detection does not continue enumerating caller keys.</summary>
+    [TestMethod]
+    public void CaptureDetection_StopsAfterTheFirstDeferredOverride()
+    {
+        var resolver = new LayoutVariableResolver(
+            [new Definition(new Identifier("COUNT"), new Literal(1)),],
+            ExpressionEvaluator.Default);
+        var supplied = new KeyVisitDictionary
+        {
+            ["COUNT"] = new Identifier("laterField"),
+            ["UNRELATED"] = new Literal(2),
+        };
+
+        var resolved = (LayoutVariables)resolver.Create(supplied);
+        Assert.IsTrue(resolved.CaptureAll);
+        Assert.AreEqual(2, resolved["UNRELATED"].Value);
+        Assert.AreEqual(1, supplied.KeyVisits[^1], "Capture detection has its answer after the first key and must stop scanning.");
+    }
+
     /// <summary>Without overrides, a resolved layout needs only its isolated dictionary copy, not another evaluation session.</summary>
     /// <param name="emptyOverrides">Whether the caller supplies an empty map instead of null.</param>
     [TestMethod]
@@ -155,5 +174,26 @@ public class DefinitionResolutionBoundaryTests
         }
 
         return GC.GetAllocatedBytesForCurrentThread() - before;
+    }
+
+    /// <summary>Counts keys visited in each enumeration independently of dictionary value enumeration.</summary>
+    private sealed class KeyVisitDictionary : Dictionary<string, Expr>, IReadOnlyDictionary<string, Expr>
+    {
+        public List<int> KeyVisits { get; } = [];
+
+        IEnumerable<string> IReadOnlyDictionary<string, Expr>.Keys => this.VisitKeys();
+
+        /// <summary>Yields the original keys while recording how far each caller advances this enumeration.</summary>
+        /// <returns>Keys in the underlying dictionary's enumeration order.</returns>
+        private IEnumerable<string> VisitKeys()
+        {
+            int visit = this.KeyVisits.Count;
+            this.KeyVisits.Add(0);
+            foreach (string key in this.Keys)
+            {
+                this.KeyVisits[visit]++;
+                yield return key;
+            }
+        }
     }
 }
