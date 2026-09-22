@@ -15,6 +15,10 @@ public class ExpressionBranchBudgetTests
     [TestMethod]
     [DataRow("(1 + 2) + 3")]
     [DataRow("1 + (2 + 3)")]
+    [DataRow("(1 + 2) && 3")]
+    [DataRow("0 && (2 + 3)")]
+    [DataRow("(1 + 2) || 3")]
+    [DataRow("1 || (2 + 3)")]
     [DataRow("(1 + 2) ? 3 : 4")]
     [DataRow("1 ? (2 + 3) : 4")]
     [DataRow("0 ? 1 : (2 + 3)")]
@@ -27,6 +31,24 @@ public class ExpressionBranchBudgetTests
         // Tree validation counts all syntax, independently of which runtime branch is selected.
         CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => limited.Compile(expression));
         Assert.AreEqual("Maximum expression evaluation depth exceeded.", failure.Message);
+    }
+
+    /// <summary>Returning from either conditional arm preserves the surrounding arithmetic instructions.</summary>
+    /// <param name="source">A conditional nested inside a unary or binary expression.</param>
+    /// <param name="expected">The result after executing both the selected arm and its surrounding arithmetic.</param>
+    [TestMethod]
+    [DataRow("1 + (1 ? 2 : 3)", 3)]
+    [DataRow("(1 ? 2 : 3) + 4", 6)]
+    [DataRow("-(1 ? 2 : 3)", -2)]
+    [DataRow("1 + (0 ? 2 : 3)", 4)]
+    public void NestedConditionalJoin_PreservesFollowingInstructions(string source, int expected)
+    {
+        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(10, 100));
+
+        Assert.AreEqual(expected, evaluator.Evaluate(expression));
+        Assert.AreEqual(expected, evaluator.CreateSession().Evaluate(expression));
+        Assert.AreEqual(new BigInteger(expected), evaluator.EvaluateExact(expression, null, 64));
     }
 
     /// <summary>Exact arithmetic includes a selected identifier's expression depth in every conditional position.</summary>

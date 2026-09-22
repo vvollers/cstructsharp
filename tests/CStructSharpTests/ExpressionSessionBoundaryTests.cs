@@ -10,6 +10,26 @@ using CStructSharp.Syntax;
 [TestClass]
 public class ExpressionSessionBoundaryTests
 {
+    /// <summary>The allocation-free path still counts a literal variable's dependency level and explains depth failures.</summary>
+    /// <param name="source">A scalar, unary or binary expression eligible for the simple execution path.</param>
+    /// <param name="depth">The exact permitted depth, including the referenced literal.</param>
+    /// <param name="expected">The result when the full dependency path fits.</param>
+    [TestMethod]
+    [DataRow("value", 2, 2)]
+    [DataRow("-value", 3, -2)]
+    [DataRow("value + 1", 3, 3)]
+    public void SimpleDependencyDepth_ExplainsItsLimit(string source, int depth, int expected)
+    {
+        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        var variables = new Dictionary<string, Expr> { ["value"] = new Literal(2), };
+        Assert.AreEqual(expected, new ExpressionEvaluator(new ExpressionEvaluationLimits(depth, 100)).Evaluate(expression, variables));
+        var limited = new ExpressionEvaluator(new ExpressionEvaluationLimits(depth - 1, 100));
+
+        // The root syntax fits; resolving its literal variable adds the final dependency level.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => limited.Evaluate(expression, variables));
+        Assert.AreEqual("Maximum expression evaluation depth exceeded.", failure.Message);
+    }
+
     /// <summary>A referenced expression contributes its full depth, not just the root identifier's depth.</summary>
     /// <param name="engine">Zero for the normal entry point, one for a session, two for exact arithmetic.</param>
     [TestMethod]
