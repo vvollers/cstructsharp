@@ -394,6 +394,33 @@
       "sourceSha256": "38d92a361428222368d550ff6bde007c22c32dc7f67dbfaca78966a967b1ba5e",
       "mutants": [
         {
+          "mutatorName": "Logical mutation",
+          "replacement": "disposing || !this.disposed",
+          "location": {
+            "start": { "line": 285, "column": 13 },
+            "end": { "line": 285, "column": 40 }
+          },
+          "reason": "This sealed internal stream has no finalizer. Its only production owner is UpdateStreamCore's local using declaration; the instance does not escape, so disposal always requests managed cleanup and no operation writes after disposal. The first Dispose(true) enters the same body. On completion chunks is null or empty and rangeBytes is null; a repeated Dispose(true) can only clear an already empty map and assign the same flag, with no rental returns or baseline calls. If cleanup throws, both versions still have disposed=false and retry identically. Dispose(false) cannot be invoked by a subclass or finalizer. This changes no supported lifetime or resource ownership; the individual returns and clearing remain required."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "false",
+          "location": {
+            "start": { "line": 304, "column": 29 },
+            "end": { "line": 304, "column": 33 }
+          },
+          "reason": "The private disposed flag is read only by this cleanup guard, not by reads, writes or commits. The sealed internal stream is confined to UpdateStreamCore's using lifetime and never written after disposal. The original first cleanup still returns every rental, clears chunks and nulls rangeBytes before this assignment. Leaving the flag false merely allows a repeated cleanup to visit an empty map and null range; no resource can be returned twice and no baseline operation is added. A throwing cleanup reaches neither assignment in either version. This proof does not permit removing any actual rental return or metadata clearing."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 308, "column": 9 },
+            "end": { "line": 308, "column": 33 }
+          },
+          "reason": "SparseUpdateStream directly inherits System.IO.Stream. Stream.Dispose(bool) has an empty body on both supported runtimes (dotnet/runtime tags v8.0.0 and v10.0.0, src/libraries/System.Private.CoreLib/src/System/IO/Stream.cs). This base-qualified call cannot dispatch to a caller override or dispose the baseline. Removing it leaves all actual cleanup in the preceding derived body intact, including pooled returns, clearing, range reset and the disposed flag. Stream.Close still calls the derived Dispose(true) and suppresses finalization. This proof does not qualify removal of any derived cleanup operation."
+        },
+        {
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
