@@ -14,6 +14,37 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class CompositeAlignmentOverrideTests
 {
+    /// <summary>Explicit composite alignment takes precedence over pragma packing without changing the following pragma scope.</summary>
+    /// <param name="declaration">A named, anonymous or typedef composite with an explicit two-byte alignment cap.</param>
+    /// <param name="size">The resulting composite extent in bytes.</param>
+    /// <param name="offset">The second member's offset from the composite start.</param>
+    [TestMethod]
+    [DataRow("struct root @align(2) { uint8 prefix; uint32 value; };", 6, 2)]
+    [DataRow("struct @align(2) { uint8 prefix; uint32 value; } root;", 6, 2)]
+    [DataRow("typedef struct @align(2) { uint8 prefix; uint32 value; } root;", 6, 2)]
+    [DataRow("typedef struct tag @align(2) { uint8 prefix; uint32 value; } root;", 6, 2)]
+    [DataRow("union root @align(2) { uint8 prefix; uint32 value; };", 4, 0)]
+    [DataRow("union @align(2) { uint8 prefix; uint32 value; } root;", 4, 0)]
+    [DataRow("typedef union @align(2) { uint8 prefix; uint32 value; } root;", 4, 0)]
+    [DataRow("typedef union tag @align(2) { uint8 prefix; uint32 value; } root;", 4, 0)]
+    public void CompositeAlignment_OverridesPragmaLocally(string declaration, int size, int offset)
+    {
+        foreach (bool explicitOverride in new[] { true, false, })
+        {
+            int pack = explicitOverride ? 1 : 2;
+            string selected = explicitOverride ? declaration : declaration.Replace("@align(2)", string.Empty, StringComparison.Ordinal);
+            var layout = new CStruct($"#pragma pack({pack})\n{selected}\nstruct following {{ uint8 prefix; uint32 value; }};", aligned: true);
+            Assert.AreEqual(2, layout.GetStructAlignmentInBytes("root"));
+            Assert.AreEqual(size, layout.GetStructSizeInBytes("root"));
+            using var stream = new MemoryStream(new byte[size]);
+            Assert.AreEqual((long)offset, layout.ResolveAddress(stream, "root.value"));
+
+            // An explicit override belongs only to its declaration; the next struct still inherits the pragma.
+            Assert.AreEqual(pack, layout.GetStructAlignmentInBytes("following"));
+            Assert.AreEqual(pack == 1 ? 5 : 6, layout.GetStructSizeInBytes("following"));
+        }
+    }
+
     /// <summary>An override of 1 clamps every field to alignment 1, acting exactly as "packed for one composite".</summary>
     [TestMethod]
     public void FullClamp_ActsAsPackedForOneComposite()

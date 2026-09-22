@@ -72,6 +72,10 @@ is published on `CStruct.Constants` and takes no part in expressions. `#undef` r
 for the rest of the source. `#include <path>` and `#include "path"` are recorded on `CStruct.Includes` and never
 read. `#pragma pack(push[, N])`, `pack(pop)`, `pack(N)`, and `pack()` maintain the alignment clamp applied to the
 composites that follow, exactly like a composite `@align(N)`; every other `#pragma` is ignored.
+An explicit composite `@align(N)` takes precedence over the active pragma for that declaration only. It does not
+change the pragma applied to following declarations.
+A `#define` with no value before the line ends defines an empty constant. It does not take a value from the next
+line; use the backslash line continuation described above when joining lines is intended.
 `#ifdef NAME`/`#ifndef NAME`/`#else`/`#endif` select declarations by the names defined so far in the source plus
 `CStructCompilationOptions.Defined`; the text of a false branch is skipped without being parsed, and conditionals
 nest.

@@ -364,6 +364,28 @@ public class ParserDifferentialTests
         Assert.IsFalse(accepted);
     }
 
+    /// <summary>A valueless define after a declaration still ends at its physical line, unlike the frozen parser.</summary>
+    /// <param name="newline">The LF or CRLF directive terminator.</param>
+    [TestMethod]
+    [DataRow("\n")]
+    [DataRow("\r\n")]
+    public void DefineAfterDeclaration_DoesNotConsumeTheNextLine(string newline)
+    {
+        string source = "struct item { byte value; }; #define item " + newline + "1";
+        Assert.IsTrue(ReferenceAccepts(source));
+
+        // The current grammar creates an empty constant, leaving the next line's number as invalid top-level input.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLayout(source));
+        Assert.AreEqual(LayoutParser.SyntaxErrorPrefix + "unexpected '1' at line 2, column 1; expected the end of the layout.", failure.Message);
+        Assert.IsNull(Compare("define-after-declaration-line-boundary", source, out bool accepted));
+        Assert.IsFalse(accepted);
+
+        // A completed define followed by unrelated invalid input is not this frozen-reference difference.
+        Assert.IsFalse(RejectsLineAfterDefine(
+            "struct item { byte value; }; #define item 1" + newline + "garbage",
+            LayoutParser.SyntaxErrorPrefix + "unexpected 'g' at line 2, column 1; expected the end of the layout."));
+    }
+
     /// <summary>Multiplication inside a type-only call must not join both identifiers into a different pointer type.</summary>
     /// <param name="source">A layout whose call argument contains an infix multiplication expression.</param>
     [TestMethod]
@@ -776,7 +798,20 @@ public class ParserDifferentialTests
                 continue;
             }
 
-            return Regex.IsMatch(lines[line], @"^\s*#\s*define\b");
+            if (Regex.IsMatch(lines[line], @"^\s*#\s*define\b"))
+            {
+                return true;
+            }
+
+            // A directive can follow a completed declaration on the same physical line. Qualify only an empty
+            // define there and an exact diagnostic at the next line's numeric value, not arbitrary later errors.
+            Match value = errorLine < lines.Length
+                              ? Regex.Match(lines[errorLine], @"^[^\S\r\n]*(?<number>[0-9])")
+                              : Match.Empty;
+            return Regex.IsMatch(lines[line], @";[^\S\r\n]*#\s*define[^\S\r\n]+[A-Za-z_][A-Za-z_0-9]*[^\S\r\n]*\r?$") &&
+                   value.Success &&
+                   candidateError == LayoutParser.SyntaxErrorPrefix +
+                   $"unexpected '{value.Groups["number"].Value}' at line {errorLine + 1}, column {value.Groups["number"].Index + 1}; expected the end of the layout.";
         }
 
         return false;
