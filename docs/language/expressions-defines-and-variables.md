@@ -67,6 +67,10 @@ width), or a complete fixed-size struct or union declared anywhere in the layout
 placed. No other call is accepted, and nothing ever invokes user code. A qualified `enum.Member` names one member of
 a named enum or flag as a constant.
 
+Pointer stars follow the complete type name: `sizeof(unsigned int**)` is valid, but `sizeof(h*o)` is not.
+The latter is a multiplication expression, not a type name. Use `sizeof(type)` with the intended storage type;
+arithmetic can appear outside the call, such as `2 * sizeof(uint16)`.
+
 ## A nested field's value
 
 A scalar read earlier in the same struct, or in any struct read before, is a variable under its bare name: after

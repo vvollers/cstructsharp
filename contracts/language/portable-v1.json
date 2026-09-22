@@ -1311,6 +1311,11 @@
       "category": "expression"
     },
     {
+      "id": "sizeof-of-multiplication",
+      "definition": "#define h 2\n#define o 3\ntypedef uint8 ho; struct root { uint8 raw[sizeof(h*o)]; };",
+      "category": "type-only expression argument"
+    },
+    {
       "id": "unsupported-expression-call",
       "definition": "struct root { uint8 raw[strlen(root)]; };",
       "category": "expression"

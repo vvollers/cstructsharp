@@ -364,6 +364,32 @@ public class ParserDifferentialTests
         Assert.IsFalse(accepted);
     }
 
+    /// <summary>Multiplication inside a type-only call must not join both identifiers into a different pointer type.</summary>
+    /// <param name="source">A layout whose call argument contains an infix multiplication expression.</param>
+    [TestMethod]
+    [DataRow("typedef uint8 ho; struct root { uint8 raw[sizeof(h*o)]; };")]
+    [DataRow("typedef uint8 ho; struct root { uint8 raw[sizeof(h * o)]; };")]
+    [DataRow("struct h { uint8 value; }; struct root { uint8 raw[offsetof(h*o, value)]; };")]
+    public void TypeArgument_RejectsMultiplicationInsteadOfJoiningNames(string source)
+    {
+        Assert.IsTrue(ReferenceAccepts(source), "The frozen generic-call grammar parses this as multiplication.");
+
+        // The current grammar permits type words followed by pointer stars, never another word after a star.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLayout(source));
+        StringAssert.Contains(failure.Message, "unexpected 'o'");
+        StringAssert.Contains(failure.Message, "expected ')'");
+        Assert.IsNull(Compare("multiplication-in-type-argument", source, out bool accepted));
+        Assert.IsFalse(accepted);
+    }
+
+    /// <summary>Multiword type names and trailing pointer stars remain valid type-only arguments.</summary>
+    [TestMethod]
+    public void TypeArgument_PreservesMultiwordPointerSpellings()
+    {
+        var layout = new CStruct("struct root { uint8 raw[sizeof(unsigned int ** /*end*/ )]; };", pointerSize: 4);
+        Assert.AreEqual(4, layout.GetStructSizeInBytes("root"));
+    }
+
     /// <summary>The frozen call grammar accepts numeric sizeof arguments, but the documented type-only grammar rejects them.</summary>
     /// <param name="source">A sizeof call whose argument is a numeric literal instead of a type name.</param>
     [TestMethod]
@@ -635,9 +661,13 @@ public class ParserDifferentialTests
     }
 
     /// <summary>True when a sizeof/offsetof argument contains an expression operator rather than only a type spelling.</summary>
+    /// <param name="source">The layout already accepted by the frozen expression grammar.</param>
+    /// <returns>Whether a type-only call argument contains an operator.</returns>
     private static bool HasOperatorInsideTypeArgument(string source)
     {
-        return Regex.IsMatch(source, @"\b(?:sizeof|offsetof)\s*\([^()]*[|&^+\-/%<>!~=?:,][^()]*\)");
+        // This exception is used only when the frozen expression grammar accepted and the type-only parser rejected.
+        // A trailing pointer star is not a complete multiplication expression and is not accepted by that reference.
+        return Regex.IsMatch(source, @"\b(?:sizeof|offsetof)\s*\([^()]*[|&^+\-/*%<>!~=?:,][^()]*\)");
     }
 
     private static bool HasGluedKeyword(string source)

@@ -8,6 +8,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- Reject multiplication inside `sizeof`/`offsetof` type arguments instead of joining its operands into an
+  unintended pointer type name. Multiword types and trailing pointer stars remain supported.
 - Start a new packed SysV bitfield storage run after a zero-width separator. Wider fields following an ordinary
   prefix or an earlier bitfield now resolve, read, serialize and update at the aligned position in runtime and
   generated operations without reading outside their packed storage window.

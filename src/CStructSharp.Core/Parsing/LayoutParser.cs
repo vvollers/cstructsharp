@@ -1976,34 +1976,32 @@ operand:
     }
 
     /// <summary>A <c>sizeof</c>/<c>offsetof</c> argument: a type spelling (words and pointer stars, e.g. <c>unsigned int</c>, <c>uint8*</c>) or a field name.</summary>
+    /// <returns>A type identifier whose pointer stars follow all of its name words.</returns>
+    /// <exception cref="CStructLayoutException">No type or field name starts at the current position.</exception>
     private Expr ParseTypeArgument()
     {
         var builder = new StringBuilder();
-        while (true)
+        while (this.IsIdentifierStart(this.position))
         {
-            if (this.IsIdentifierStart(this.position))
+            Identifier word = this.ExpectIdentifier();
+            if (builder.Length > 0)
             {
-                Identifier word = this.ExpectIdentifier();
-                if (builder.Length > 0 && builder[^1] != '*')
-                {
-                    builder.Append(' ');
-                }
+                builder.Append(' ');
+            }
 
-                builder.Append(word.Name);
-            }
-            else if (this.TryToken('*'))
-            {
-                builder.Append('*');
-            }
-            else
-            {
-                break;
-            }
+            builder.Append(word.Name);
         }
 
         if (builder.Length == 0)
         {
             throw this.Fail("a type or field name");
+        }
+
+        // Pointer stars are a suffix. A later word belongs to an invalid expression, not to the type name;
+        // leave it for the caller's delimiter check instead of silently joining h*o into a pointer to ho.
+        while (this.TryToken('*'))
+        {
+            builder.Append('*');
         }
 
         return new Identifier(builder.ToString());
