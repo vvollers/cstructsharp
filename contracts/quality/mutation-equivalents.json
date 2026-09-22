@@ -3,6 +3,87 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "CStructOperations.Async.cs",
+      "sourceSha256": "40a40226315af1cf2f88daf8e15fe4452ec1703bfadb35a9f52068467920c5dc",
+      "mutants": [
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?result :new ParseResult(result.Value, Shift(result.Debug, origin)))",
+          "location": {
+            "start": {
+              "line": 76,
+              "column": 40
+            },
+            "end": {
+              "line": 76,
+              "column": 121
+            }
+          },
+          "reason": "The changed branch is only the zero-origin fast return. Shift copies each private DebugData record with Start plus zero and End plus zero, preserving every other record member. The returned value is unchanged. Neither the original private result nor its list has escaped, so the extra result/list/record copies cannot change observable reference relationships with caller-owned objects or any coordinates."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?result :new ReadResult(result.Value, Shift(result.Debug, origin)))",
+          "location": {
+            "start": {
+              "line": 137,
+              "column": 40
+            },
+            "end": {
+              "line": 137,
+              "column": 120
+            }
+          },
+          "reason": "For origin zero, Shift preserves every DebugData member and the selected result value; only private result/list/record objects are copied instead of returned directly. For nonzero origin the same shift already occurs. No original debug-list identity escapes this private callback, so decoded values, diagnostic ranges and caller-visible object relationships are unchanged."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "false",
+          "location": {
+            "start": {
+              "line": 187,
+              "column": 28
+            },
+            "end": {
+              "line": 187,
+              "column": 32
+            }
+          },
+          "reason": "ResolveAddressCore always restores its input position in finally. Its buffered input starts at zero, so RunOverBuffer observes consumed equal to zero on every successful address query. The false restoreOrigin branch therefore assigns origin plus zero instead of origin; failure restoration is handled independently by ReadBufferedAsync."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "false",
+          "location": {
+            "start": {
+              "line": 208,
+              "column": 28
+            },
+            "end": {
+              "line": 208,
+              "column": 32
+            }
+          },
+          "reason": "GetDynamicArrayLengthCore always restores the buffered input position in finally, including terminated-string scans. The buffer starts at zero, so consumed is zero on every successful length query. Setting restoreOrigin false assigns origin plus zero, exactly the original origin assignment; failure restoration is unchanged."
+        },
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?(options ?? new ReadOptions()) with { CancellationToken = token, } :options)",
+          "location": {
+            "start": {
+              "line": 256,
+              "column": 38
+            },
+            "end": {
+              "line": 256,
+              "column": 136
+            }
+          },
+          "reason": "When the linked token is cancellable the selected expression is unchanged. Otherwise both source tokens are non-cancellable: copying the sealed ReadOptions record with CancellationToken.None preserves every option, and a null options argument becomes the same default settings used by SnapshotReadOptions. The options record has no custom getters or copy side effects and its identity is not exposed by these private operation delegates. Only an extra temporary options allocation can differ."
+        }
+      ]
+    },
+    {
       "pattern": "CStructAddressResolver.cs",
       "sourceSha256": "a7fe1f75bac8550fff2889139121cd70845aed88c0263ab7685ad0d5851bcece",
       "mutants": [
