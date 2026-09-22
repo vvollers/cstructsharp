@@ -7,6 +7,51 @@
       "sourceSha256": "a7fe1f75bac8550fff2889139121cd70845aed88c0263ab7685ad0d5851bcece",
       "mutants": [
         {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 191,
+              "column": 44
+            },
+            "end": {
+              "line": 191,
+              "column": 85
+            }
+          },
+          "reason": "Every positive compiled bitfield passes BitfieldCodecTable.ValidateBitField in LayoutCompilation.Model, which stores the validated ByteSize in its immutable CompiledField. A union field follows the same compilation path. BitStorageSize therefore cannot be null in this positive-width branch, so changing the defensive fallback message has no effect."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 822,
+              "column": 63
+            },
+            "end": {
+              "line": 822,
+              "column": 109
+            }
+          },
+          "reason": "Both LayoutCompilation.Model and synthetic-root construction reject ToEnd/Terminated arrays without FixedElementSize. GetBoundedArrayCount and GetBoundedTotalElementCount invoke CountDataSizedElements only for these two shapes. The null-size fallback is therefore unreachable for compiled layouts and supported root spellings; changing its message affects no operation."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "unitSize * 8",
+          "location": {
+            "start": {
+              "line": 1115,
+              "column": 28
+            },
+            "end": {
+              "line": 1115,
+              "column": 49
+            }
+          },
+          "reason": "unitSize comes from CompositeFieldPlacementCursor and BitfieldPlacement for the positive bitfield being captured. Validated declared integral widths are 1, 2, 4 or 8 bytes; packed SysV placement explicitly rejects a window larger than 8 bytes. Thus unitSize times eight is at most 64 and cannot overflow Int32. Removing checked cannot alter a value or exception."
+        },
+        {
           "mutatorName": "Equality mutation",
           "replacement": "pathIndex > segments.Count",
           "location": {

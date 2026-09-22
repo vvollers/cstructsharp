@@ -6,6 +6,49 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class AddressResolutionExtentTests
 {
+    /// <summary>Runtime extent multiplication cannot wrap when selecting an array or a field following it.</summary>
+    /// <param name="path">The array itself or the next field whose address depends on its extent.</param>
+    [TestMethod]
+    [DataRow("root.values")]
+    [DataRow("root.tail")]
+    public void RuntimeExtent_RejectsOverflowBeforeReadingOrAllocating(string path)
+    {
+        var layout = new CStruct("struct root { uint16 values[count]; uint8 tail; };");
+        using var source = new MemoryStream();
+        var variables = new Dictionary<string, int> { ["count"] = int.MaxValue, };
+        var options = new ReadOptions { MaxArrayElements = int.MaxValue, };
+
+        // Traversal knows the count without input; multiplying it by two must fail without allocating that array.
+        Assert.Throws<OverflowException>(() => layout.ResolveAddress(source, path, variables, options));
+        Assert.AreEqual(0L, source.Position);
+        Assert.AreEqual(0L, source.Length);
+    }
+
+    /// <summary>A failed runtime offset expression identifies which field's assertion could not be evaluated.</summary>
+    [TestMethod]
+    public void RuntimeOffset_MissingVariableNamesItsEvaluationContext()
+    {
+        var layout = new CStruct("struct root { uint8 values[count]; uint8 tail @(expected); };");
+
+        // The array count is supplied; only the independent offset assertion lacks its variable.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => layout.ResolveAddress(
+            new byte[] { 11, 22, }, "root.tail", new Dictionary<string, int> { ["count"] = 1, }));
+        StringAssert.StartsWith(failure.Message, "Cannot evaluate offset assertion for tail:");
+        StringAssert.Contains(failure.Message, "expected");
+    }
+
+    /// <summary>A runtime offset mismatch reports the requested and actual byte positions and selected field.</summary>
+    [TestMethod]
+    public void RuntimeOffset_MismatchExplainsBothPositions()
+    {
+        var layout = new CStruct("struct root { uint8 values[count]; uint8 tail @(9); };");
+
+        // The preceding runtime array puts tail at byte one, not at the asserted byte nine.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => layout.ResolveAddress(
+            new byte[] { 11, 22, }, "root.tail", new Dictionary<string, int> { ["count"] = 1, }));
+        StringAssert.StartsWith(failure.Message, "Field 'tail' asserts offset 9 but computed offset is 1");
+    }
+
     /// <summary>A preceding multidimensional struct array accepts its exact leaf limit and rejects one less.</summary>
     [TestMethod]
     public void PrecedingCompositeArray_EnforcesTheTotalLeafLimit()
