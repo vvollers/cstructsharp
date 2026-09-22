@@ -7,6 +7,17 @@ using CStructSharp.Values;
 [TestClass]
 public class RuntimeWriterBoundaryTests
 {
+    /// <summary>A void alias can name a pointer target, but writing the alias itself explains its missing value handler.</summary>
+    [TestMethod]
+    public void VoidAliasWrite_ExplainsMissingValueHandler()
+    {
+        var layout = new CStruct("typedef void opaque;");
+
+        // Naming an opaque type does not supply a codec for a standalone value of that type.
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => layout.Serialize("opaque", 0));
+        StringAssert.Contains(failure.Message, "No handler for field type void");
+    }
+
     /// <summary>Preserving an incomplete union or bitfield fails with a useful explanation and leaves the source unchanged.</summary>
     /// <param name="union">Whether the update preserves a union rather than a shared bitfield unit.</param>
     [TestMethod]

@@ -7,6 +7,19 @@ using CStructSharp.Values;
 [TestClass]
 public class ReaderDispatchBoundaryTests
 {
+    /// <summary>A void alias has no standalone value reader, even when the input contains bytes.</summary>
+    [TestMethod]
+    public void VoidAliasRead_ExplainsMissingValueHandler()
+    {
+        var layout = new CStruct("typedef void opaque;");
+        using var stream = new MemoryStream(new byte[] { 17, });
+
+        // Opaque type names are useful for pointers, but cannot decode a value by themselves.
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => layout.Parse(stream, "opaque"));
+        StringAssert.Contains(failure.Message, "No handler for field type void");
+        Assert.AreEqual(0L, stream.Position);
+    }
+
     /// <summary>A root primitive alias aligns from the actual stream position without rewinding into earlier bytes.</summary>
     /// <param name="type">The primitive behind the root alias.</param>
     /// <param name="alignment">Its byte alignment and encoded width.</param>
