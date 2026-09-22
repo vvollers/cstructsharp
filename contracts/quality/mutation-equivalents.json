@@ -3,6 +3,21 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "CStructValueReader.cs",
+      "sourceSha256": "52f1dccaf61ba2bd55291efbc920c6955352309cee02784d71d81b276e9c918c",
+      "mutants": [
+        {
+          "mutatorName": "Linq method mutation (Single() to SingleOrDefault())",
+          "replacement": "values.Values.SingleOrDefault",
+          "location": {
+            "start": { "line": 30, "column": 20 },
+            "end": { "line": 30, "column": 40 }
+          },
+          "reason": "This fallback is guarded by values.Count == 1. The dictionary is the concrete operation-owned StructValue allocated inside ReadResolvedValue or ReadRootValue, not a caller-provided collection; decoding has finished, no callbacks run between the count and enumeration, and the container has not escaped. Its Values enumeration therefore contains exactly one assigned member, including when that member's value is null. Single and SingleOrDefault enumerate that same single member and return it; the empty-sequence behavior on which they differ is unreachable here, and neither sees a second member. This does not qualify removal of the preceding preferred-name fast path: that change adds enumeration storage and is detected by the allocation regression."
+        }
+      ]
+    },
+    {
       "pattern": "**/CStructSharp.Core/Diagnostics/ExceptionContext.cs",
       "sourceSha256": "d208faaad5698e0f9565f9ace698436b3faac410883ae3b81967ddb51006bdc0",
       "mutants": [
