@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using System.Numerics;
+using System.Reflection;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Parsing;
@@ -10,6 +11,64 @@ using CStructSharp.Syntax;
 [TestClass]
 public class ExpressionSessionBoundaryTests
 {
+    /// <summary>Validation work cannot wrap its counter and silently admit more instructions.</summary>
+    [TestMethod]
+    public void ValidationCounterOverflow_DoesNotWrap()
+    {
+        var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(10, int.MaxValue));
+        ExpressionEvaluator.ExpressionEvaluationSession session = evaluator.CreateSession();
+        FieldInfo counter = typeof(ExpressionEvaluator.ExpressionEvaluationSession).GetField("validatedNodes", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        // Seed a valid near-limit state instead of executing billions of earlier validation steps.
+        counter.SetValue(session, int.MaxValue - 1);
+        Expr expression = CStructDefinitionParser.ParseExpression("1 + 2");
+
+        // Three more instructions overflow the checked counter; the failed assignment must leave it unchanged.
+        Assert.Throws<OverflowException>(() => session.Evaluate(expression));
+        Assert.AreEqual(int.MaxValue - 1, counter.GetValue(session));
+    }
+
+    /// <summary>A missing name reached through a selected branch retains the same diagnostic in every evaluator.</summary>
+    /// <param name="source">A conditional or logical expression that selects the missing dependency.</param>
+    [TestMethod]
+    [DataRow("1 ? missing : 0")]
+    [DataRow("0 ? 0 : missing")]
+    [DataRow("1 && missing")]
+    [DataRow("0 || missing")]
+    public void SelectedMissingDependency_IdentifiesTheName(string source)
+    {
+        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        var variables = new Dictionary<string, Expr>();
+        var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(20, 100));
+
+        for (int engine = 0; engine < 3; engine++)
+        {
+            // Selected references are resolved during execution, after unconditional dependency validation.
+            KeyNotFoundException failure = Assert.Throws<KeyNotFoundException>(() => Evaluate(evaluator, expression, variables, engine));
+            Assert.AreEqual("Undefined expression identifier: missing", failure.Message);
+        }
+    }
+
+    /// <summary>A cycle through selected branches is diagnosed as a cycle before it exhausts a general depth or work limit.</summary>
+    /// <param name="dependency">A selected branch that refers back to its own variable.</param>
+    [TestMethod]
+    [DataRow("1 ? a : 0")]
+    [DataRow("0 ? 0 : a")]
+    [DataRow("1 && a")]
+    [DataRow("0 || a")]
+    public void SelectedDependencyCycle_IdentifiesTheRepeatedName(string dependency)
+    {
+        var variables = new Dictionary<string, Expr> { ["a"] = CStructDefinitionParser.ParseExpression(dependency), };
+        var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(20, 100));
+
+        for (int engine = 0; engine < 3; engine++)
+        {
+            // Static validation skips conditional edges; the selected runtime edge must still detect re-entry.
+            CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => Evaluate(evaluator, new Identifier("a"), variables, engine));
+            Assert.AreEqual("Circular expression dependency detected at: a", failure.Message);
+        }
+    }
+
     /// <summary>Nested unary expressions bypass the one-operator fast path without speculative dependency lookups.</summary>
     /// <param name="source">An expression containing two unary operators around one dependency.</param>
     /// <param name="expected">The result after both unary operations.</param>
