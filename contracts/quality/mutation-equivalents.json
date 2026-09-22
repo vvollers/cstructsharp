@@ -3,6 +3,72 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "**/CStructSharp.Core/Expressions/ExpressionEvaluator.cs",
+      "sourceSha256": "97d364232d87f56bae4c95f89fc15f09db4a40f3fc0bf599aca61f745fe05c07",
+      "mutants": [
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(int)first",
+          "location": {
+            "start": {
+              "line": 116,
+              "column": 20
+            },
+            "end": {
+              "line": 116,
+              "column": 39
+            }
+          },
+          "reason": "The first simple-path operand is a BigInteger. On supported net8.0 and net10.0, both checked and unchecked casts invoke BigInteger's explicit Int32 conversion, which enforces the Int32 range itself; there is no separate checked Int32 conversion that can wrap differently. Removing the checked expression therefore preserves every value and overflow failure, including literals outside the signed layout domain."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(int)second",
+          "location": {
+            "start": {
+              "line": 126,
+              "column": 83
+            },
+            "end": {
+              "line": 126,
+              "column": 103
+            }
+          },
+          "reason": "The second simple-path operand is a BigInteger. On supported net8.0 and net10.0, both checked and unchecked casts invoke BigInteger's explicit Int32 conversion, which enforces the Int32 range itself; there is no separate checked Int32 conversion that can wrap differently. Removing the checked expression therefore preserves every value and overflow failure, including literals outside the signed layout domain."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(int)instruction.Value",
+          "location": {
+            "start": {
+              "line": 512,
+              "column": 48
+            },
+            "end": {
+              "line": 512,
+              "column": 79
+            }
+          },
+          "reason": "The literal instruction value is a BigInteger. On supported net8.0 and net10.0, both checked and unchecked casts invoke BigInteger's explicit Int32 conversion, which enforces the Int32 range itself; there is no separate checked Int32 conversion that can wrap differently. Removing the checked expression therefore preserves every value and overflow failure, including literals outside the signed layout domain."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?throw new DivideByZeroException() :BigInteger.Remainder(left, right))",
+          "location": {
+            "start": {
+              "line": 771,
+              "column": 43
+            },
+            "end": {
+              "line": 771,
+              "column": 127
+            }
+          },
+          "reason": "For nonzero right operands both paths call BigInteger.Remainder with identical operands. For zero, BigInteger.Remainder itself throws the same parameterless DivideByZeroException as the explicit guard. BigInteger.IsZero is a pure value check. Removing that redundant guard changes neither remainder semantics nor the exception type, message or cause; the exact-modulo regression covers a negative remainder and zero failure."
+        }
+      ]
+    },
+    {
       "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Paths.cs",
       "sourceSha256": "f9ec50046612fb4e6fdd39980c88f9f525785972a81d33cfa06463b79fd476ce",
       "mutants": [
