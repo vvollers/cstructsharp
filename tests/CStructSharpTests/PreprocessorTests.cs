@@ -11,6 +11,42 @@ using CStructSharp.Introspection;
 [TestClass]
 public class PreprocessorTests
 {
+    /// <summary>Both line-ending spellings preserve directive names, values, macro text, quoted text and following declarations.</summary>
+    /// <param name="newline">The physical line ending joined by a preceding backslash.</param>
+    [TestMethod]
+    [DataRow("\n")]
+    [DataRow("\r\n")]
+    public void Continuations_PreserveEachDirectiveContext(string newline)
+    {
+        string join = "\\" + newline;
+        var layout = new CStruct(
+            "#define " + join + "COUNT " + join + "2" + newline +
+            "#define TEXT \"a" + join + "b\"" + newline +
+            "#define MACRO(x) left " + join + "right" + newline +
+            "#pragma ignored " + join + "remainder" + newline +
+            "#include <kept.h>" + newline +
+            "struct " + join + "root { uint8 bytes[COUNT]; };");
+
+        Assert.AreEqual(2, layout.GetStructSizeInBytes("root"));
+        Assert.AreEqual("ab", layout.Constants["TEXT"].Value);
+        Assert.AreEqual("(x) left right", layout.Constants["MACRO"].Value);
+        CollectionAssert.AreEqual(new[] { "kept.h", }, layout.Includes.ToArray());
+    }
+
+    /// <summary>Directive block comments separate tokens, while a line comment leaves an empty constant at that line's end.</summary>
+    [TestMethod]
+    public void DirectiveComments_PreserveTokensAndLineBoundaries()
+    {
+        var layout = new CStruct("#define/*name*/ COUNT/*value*/2\n#define FLAG // no value\nstruct root { uint8 bytes[COUNT]; };");
+        Assert.AreEqual(2, layout.GetStructSizeInBytes("root"));
+        Assert.AreEqual(LayoutConstantKind.Empty, layout.Constants["FLAG"].Kind);
+        Assert.IsNull(layout.Constants["FLAG"].Value);
+
+        // An unfinished comment is a syntax error, not a directive value or an implicit line end.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => new CStruct("#define /* unfinished"));
+        StringAssert.Contains(failure.Message, "expected the end of the block comment");
+    }
+
     /// <summary>Directive trivia matches ordinary Unicode whitespace without consuming a significant physical line ending.</summary>
     [TestMethod]
     public void Directives_AcceptNonBreakingSpaceWithoutCrossingLines()
