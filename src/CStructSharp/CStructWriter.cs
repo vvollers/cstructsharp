@@ -588,6 +588,13 @@ public partial class CStruct
         return zeroes;
     }
 
+    /// <summary>Writes one field and publishes numeric values needed by later layout expressions.</summary>
+    /// <param name="compiledField">The prepared field, including its array and storage rules.</param>
+    /// <param name="value">The caller's scalar or collection value; only scalar pointers accept null.</param>
+    /// <param name="state">The destination, limits and variable environment updated by this write.</param>
+    /// <param name="unionPosition">The enclosing union's stream byte position, or -1 outside a union.</param>
+    /// <param name="cursor">The enclosing struct's placement cursor, or null for root, union or selected-field dispatch.</param>
+    /// <exception cref="CStructWriteException">The value or its array length cannot be encoded.</exception>
     private void WriteFieldValue(
         CompiledField compiledField,
         object value,
@@ -892,6 +899,7 @@ public partial class CStruct
         else if (writtenEnumValue is BigInteger exactEnumValue)
         {
             this.UpdateExactLayoutVariable(state.Variables, compiledField.Name, exactEnumValue);
+            state.PublishQualified(compiledField.Name);
         }
         else
         {

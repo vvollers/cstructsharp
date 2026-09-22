@@ -607,7 +607,7 @@
     },
     {
       "pattern": "CStructWriter.cs",
-      "sourceSha256": "4f8c1be706169934ce168d69177412602cb2638cf4a20e79c73955220235dabe",
+      "sourceSha256": "74dc7e30a98926d4b4b495ceb7d667970682b66f12aa3a2ea8a9abb5b526fbdf",
       "mutants": [
         {
           "mutatorName": "Remove checked expression",
@@ -622,8 +622,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(compiledField.BitStorageSize ??\n                     throw new InvalidOperationException(\n                         \"Compiled bitfield has no storage size: \" + compiledField.Name)) * 8",
           "location": {
-            "start": { "line": 715, "column": 35 },
-            "end": { "line": 718, "column": 95 }
+            "start": { "line": 722, "column": 35 },
+            "end": { "line": 725, "column": 95 }
           },
           "reason": "LayoutCompilation.Model obtains BitStorageSize from BitfieldCodecTable.ValidateBitField. The table's integral primitive and alias entries have only 1, 2, 4 or 8 bytes, including enum backing types. Multiplying the immutable compiled size by eight is bounded by 64, so checked cannot throw. The null-coalescing failure remains unchanged in this exact replacement."
         },
@@ -692,11 +692,11 @@
           "replacement": "state.CurrentBitOffset < 0",
           "location": {
             "start": {
-              "line": 700,
+              "line": 707,
               "column": 17
             },
             "end": {
-              "line": 700,
+              "line": 707,
               "column": 43
             }
           },
@@ -707,11 +707,11 @@
           "replacement": "(compiledField.BitStorageSize ??\n                     throw new InvalidOperationException(\n                         \"Compiled bitfield has no storage size: \" + compiledField.Name)) / 8",
           "location": {
             "start": {
-              "line": 716,
+              "line": 723,
               "column": 21
             },
             "end": {
-              "line": 718,
+              "line": 725,
               "column": 94
             }
           },
@@ -722,11 +722,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 718,
+              "line": 725,
               "column": 26
             },
             "end": {
-              "line": 718,
+              "line": 725,
               "column": 67
             }
           },
@@ -737,11 +737,11 @@
           "replacement": "(true?0\n:state.CurrentBitfieldSize)",
           "location": {
             "start": {
-              "line": 719,
+              "line": 726,
               "column": 38
             },
             "end": {
-              "line": 721,
+              "line": 728,
               "column": 69
             }
           },
@@ -752,11 +752,11 @@
           "replacement": "(false?0\n:state.CurrentBitfieldSize)",
           "location": {
             "start": {
-              "line": 719,
+              "line": 726,
               "column": 38
             },
             "end": {
-              "line": 721,
+              "line": 728,
               "column": 69
             }
           },
@@ -767,11 +767,11 @@
           "replacement": "state.CurrentBitfieldType is not null",
           "location": {
             "start": {
-              "line": 719,
+              "line": 726,
               "column": 38
             },
             "end": {
-              "line": 719,
+              "line": 726,
               "column": 71
             }
           },
@@ -782,11 +782,11 @@
           "replacement": "state.CurrentBitOffset < 0",
           "location": {
             "start": {
-              "line": 725,
+              "line": 732,
               "column": 45
             },
             "end": {
-              "line": 725,
+              "line": 732,
               "column": 71
             }
           },
@@ -797,11 +797,11 @@
           "replacement": "activeUnitSize != bitCapacity / 8 &&\n                                             state.CurrentBitOffset + compiledField.BitSize > bitCapacity",
           "location": {
             "start": {
-              "line": 726,
+              "line": 733,
               "column": 46
             },
             "end": {
-              "line": 727,
+              "line": 734,
               "column": 106
             }
           },
@@ -812,11 +812,11 @@
           "replacement": "activeUnitSize == bitCapacity / 8",
           "location": {
             "start": {
-              "line": 726,
+              "line": 733,
               "column": 46
             },
             "end": {
-              "line": 726,
+              "line": 733,
               "column": 79
             }
           },
@@ -827,11 +827,11 @@
           "replacement": "bitCapacity * 8",
           "location": {
             "start": {
-              "line": 726,
+              "line": 733,
               "column": 64
             },
             "end": {
-              "line": 726,
+              "line": 733,
               "column": 79
             }
           },
@@ -842,11 +842,11 @@
           "replacement": "{}",
           "location": {
             "start": {
-              "line": 729,
+              "line": 736,
               "column": 17
             },
             "end": {
-              "line": 733,
+              "line": 740,
               "column": 18
             }
           },
@@ -857,11 +857,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 740,
+              "line": 747,
               "column": 53
             },
             "end": {
-              "line": 740,
+              "line": 747,
               "column": 94
             }
           },
@@ -872,11 +872,11 @@
           "replacement": "structAlignment == state.CurrentFieldAlignment",
           "location": {
             "start": {
-              "line": 751,
+              "line": 758,
               "column": 21
             },
             "end": {
-              "line": 751,
+              "line": 758,
               "column": 67
             }
           },
@@ -887,11 +887,11 @@
           "replacement": "state.CurrentBitOffset < 0",
           "location": {
             "start": {
-              "line": 751,
+              "line": 758,
               "column": 71
             },
             "end": {
-              "line": 751,
+              "line": 758,
               "column": 97
             }
           },
@@ -902,11 +902,11 @@
           "replacement": "{}",
           "location": {
             "start": {
-              "line": 752,
+              "line": 759,
               "column": 17
             },
             "end": {
-              "line": 756,
+              "line": 763,
               "column": 18
             }
           },

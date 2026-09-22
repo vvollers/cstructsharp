@@ -109,6 +109,21 @@ complete shared storage unit and changes only the selected bits.
 
 ## Paths and dynamic lengths
 
+When writing a record, later array lengths can refer to earlier integer or enum fields through nested field names.
+For example, this layout uses the enum value `header.child.count` as an element count:
+
+```c
+enum kind : uint8 { TWO = 2 };
+struct inner { kind count; uint8 padding[count]; };
+struct outer { inner child; };
+struct root { outer header; uint8 values[header.child.count]; uint8 tail; };
+```
+
+Supply `header.child.count = 2`, `header.child.padding = [31, 32]`, `values = [41, 42]`, and `tail = 99`
+in nested input dictionaries. The resulting bytes are `[2, 31, 32, 41, 42, 99]`: the count is at byte offset 0,
+padding occupies offsets 1–2, values occupy offsets 3–4, and the tail is at offset 5. The count describes elements,
+not bytes; these arrays happen to have one-byte elements.
+
 Paths use dot-separated names and one unpadded non-negative decimal index per selected array dimension, for example
 `root.items[2].value` or `root.matrix[1][2]`. Empty segments, signs, trailing text, too many indices, and indices on
 non-arrays produce `CStructPathException`. See [multidimensional paths](paths-and-selection.md#multidimensional-arrays).
