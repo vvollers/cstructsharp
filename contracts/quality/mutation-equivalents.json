@@ -3781,6 +3781,42 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
+            "start": { "line": 114, "column": 17 },
+            "end": { "line": 114, "column": 80 }
+          },
+          "reason": "alignInlineStructStart is true only for inline Struct declarations passed by compiled struct or union traversal. Struct traversal supplies both its cursor and non-null field descriptor, so it takes the preceding AdvanceToField branch. Union traversal supplies the descriptor without a cursor and a nonnegative unionPosition: ReadCompositeMember has already reset CurrentBitOffset to zero at that position, and PrepareNestedStructStart returns immediately because unionPosition != -1. Root and selected-value callers pass false for alignInlineStructStart. Consequently this particular fallback call performs no work on any reachable path. The required cursor advancement for ordinary inline members is retained and is not qualified."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?compiledField.QualifiedPrefix :outerPrefix + compiledField.QualifiedPrefix)",
+          "location": {
+            "start": { "line": 598, "column": 61 },
+            "end": { "line": 598, "column": 158 }
+          },
+          "reason": "For a non-null outerPrefix this selects the original concatenation unchanged. For a null outerPrefix, two-string concatenation returns the other string unchanged, so it yields the same compiledField.QualifiedPrefix instance as the original branch, without allocating a new prefix string. HasQualifiedPrefix already guarantees that field prefix is present. The property setter receives the identical value in both cases; variable publication, prefix restoration and nested error paths are unchanged. This proof does not cover selecting only the inner prefix when a non-null outer prefix exists."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 271, "column": 55 },
+            "end": { "line": 271, "column": 105 }
+          },
+          "reason": "Every reachable ordinary Field dispatch supplies its compiled descriptor: composite and union traversal pass their immutable CompiledField, and selected reads pass selectedField with its EffectiveField. Exported roots are structs, typedefs, enums or definitions, not bare fields; typedef and enum branches obtain a non-null descriptor from GetCompiledRootField before continuing as a Field. Synthetic roots are registered as typedefs with the same compiled projection. A missing root projection throws in that lookup before reaching this diagnostic. The private dispatch therefore cannot execute this null-descriptor message; changing only its text changes no reachable failure or read."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 405, "column": 79 },
+            "end": { "line": 405, "column": 125 }
+          },
+          "reason": "This diagnostic is guarded by a ToEnd or Terminated compiled array shape. CompileComposite rejects either shape without a fixed element size, and CompileSyntheticRootField enforces the same invariant before registering a synthetic root. Declared typedef array roots have their dimensions normalized to literal counts, so they cannot introduce either data-sized shape. WithPlacement and SelectArrayElement preserve FixedElementSize; SelectPointerTarget can change that size but always changes the shape to Scalar. Thus every data-sized descriptor reaching this branch has a non-null fixed element size. Only unreachable message text is changed; actual invalid-layout and invalid-root diagnostics, extent checks and stream reads remain unchanged."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
             "start": { "line": 107, "column": 17 },
             "end": { "line": 107, "column": 107 }
           },
