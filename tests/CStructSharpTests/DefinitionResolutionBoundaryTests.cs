@@ -10,6 +10,38 @@ using Definition = CStructSharp.Syntax.Defines;
 [TestClass]
 public class DefinitionResolutionBoundaryTests
 {
+    /// <summary>Fresh literal overrides need no expression compilation compared with previously supplied literals.</summary>
+    [TestMethod]
+    [DoNotParallelize]
+    public void LiteralOverrides_DoNotCompileDependencyPrograms()
+    {
+        var resolver = new LayoutVariableResolver([], new ExpressionEvaluator(new ExpressionEvaluationLimits(256, 100_000)));
+        var reused = new Dictionary<string, Expr>();
+        var fresh = new Dictionary<string, Expr>();
+        for (int index = 0; index < 32; index++)
+        {
+            reused.Add("VALUE" + index, new Literal(index));
+            fresh.Add("VALUE" + index, new Literal(index));
+        }
+
+        // Input construction is outside the measurement. Both operations copy the same values and key shape.
+        for (int index = 0; index < 32; index++)
+        {
+            _ = resolver.Create(reused);
+        }
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        Dictionary<string, Expr> repeatedResult = resolver.Create(reused);
+        long repeatedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+        before = GC.GetAllocatedBytesForCurrentThread();
+        Dictionary<string, Expr> freshResult = resolver.Create(fresh);
+        long freshBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.AreEqual(32, repeatedResult.Count);
+        Assert.AreEqual(32, freshResult.Count);
+        Assert.IsFalse(((LayoutVariables)freshResult).CaptureAll);
+        Assert.IsTrue(freshBytes <= repeatedBytes + 1024, $"Fresh literals allocated {freshBytes} bytes versus {repeatedBytes}; literal capture checks must not compile expression programs.");
+    }
+
     /// <summary>Once a deferred override requires all fields, capture detection does not continue enumerating caller keys.</summary>
     [TestMethod]
     public void CaptureDetection_StopsAfterTheFirstDeferredOverride()
