@@ -3,6 +3,27 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "Codecs/PrimitiveCodecs.cs",
+      "sourceSha256": "8cc4ae2b935782cfa7823232a3505f29705c12abade990af562151fd1c2fa4ab",
+      "mutants": [
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(long)valueBytes + terminatorBytes",
+          "location": {
+            "start": {
+              "line": 153,
+              "column": 37
+            },
+            "end": {
+              "line": 153,
+              "column": 80
+            }
+          },
+          "reason": "Both Encoding.GetByteCount results are nonnegative Int32 values. The left operand is widened to Int64 before addition, so their sum is at most 2 * Int32.MaxValue, far below Int64.MaxValue. Removing checked from this sum cannot change overflow behavior, budget validation or the later allocation."
+        }
+      ]
+    },
+    {
       "pattern": "**/CStructSharp.Core/Expressions/LayoutVariableResolver.cs",
       "sourceSha256": "64729ea1c7ca1342a96e075bb1c58cb11a575d5085bd436a193fa553fc444357",
       "mutants": [

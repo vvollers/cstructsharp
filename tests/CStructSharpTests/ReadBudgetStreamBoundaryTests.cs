@@ -7,6 +7,21 @@ using CStructSharp.Streams;
 [TestClass]
 public class ReadBudgetStreamBoundaryTests
 {
+    /// <summary>A memory-backed flush failure reports the wrapper's logical cursor before it is copied to the source.</summary>
+    [TestMethod]
+    public void MemoryFlushFailure_ReportsTheLogicalPosition()
+    {
+        using var source = new FailedFlushMemoryStream();
+        using var reader = new ReadBudgetStream(source, 100, 100);
+        reader.Position = 1;
+        Assert.AreEqual(0L, source.Position);
+
+        // Memory reads own a separate cursor, so the physical stream's stale position is not diagnostic context.
+        CStructReadException failure = Assert.ThrowsExactly<CStructReadException>(() => reader.Flush());
+        Assert.AreSame(source.Failure, failure.InnerException);
+        Assert.AreEqual(1L, failure.Offset);
+    }
+
     /// <summary>A position beyond the memory window cannot wrap into a successful preflight or an invalid array slice.</summary>
     /// <param name="operation">The availability check to exercise with a large position or requested count.</param>
     [TestMethod]
@@ -213,5 +228,22 @@ public class ReadBudgetStreamBoundaryTests
         Assert.IsInstanceOfType<OverflowException>(failure.InnerException);
         Assert.AreEqual("Read operation exceeded the supported read-byte accounting range.", failure.Message);
         Assert.AreEqual(2L, source.Position);
+    }
+
+    /// <summary>Exposes its array for borrowed reads but fails the independent flush operation.</summary>
+    private sealed class FailedFlushMemoryStream : MemoryStream
+    {
+        /// <summary>Creates two readable, publicly exposed bytes at position zero.</summary>
+        public FailedFlushMemoryStream()
+            : base([11, 12,], 0, 2, writable: false, publiclyVisible: true)
+        {
+        }
+
+        /// <summary>Gets the stable underlying flush failure.</summary>
+        public IOException Failure { get; } = new("Flush failed.");
+
+        /// <summary>Rejects flushing without changing the physical cursor.</summary>
+        /// <exception cref="IOException">Always reports the configured flush failure.</exception>
+        public override void Flush() => throw this.Failure;
     }
 }
