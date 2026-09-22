@@ -769,6 +769,42 @@
           "reason": "EncodeFixedPoint validates signedness and range before this branch. Width 16 takes the unchanged first branch. For the 32-bit path, unchecked int and uint casts retain the identical low 32 bits; BinaryPrimitiveIO and Codec signed/unsigned writers both emit those exact four bits-per-byte groups in the requested endian order using the same stream.Write call. Flipping signed only selects an equivalent bit writer, without changing validation, byte count or I/O behavior."
         }
       ]
+    },
+    {
+      "pattern": "**/CStructSharp.Core/Addressing/CStructPathResolver.cs",
+      "sourceSha256": "0527886bb9c70b9e0ad6920519f3ef6475682c446d801357d56736b10abea282",
+      "mutants": [
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 22,
+              "column": 9
+            },
+            "end": {
+              "line": 24,
+              "column": 10
+            }
+          },
+          "reason": "Removing the cache-hit return reparses the identical immutable string with the same deterministic ParseUncached routine. Production consumers use only names and index values, never segment-array identity, and do not mutate the cached arrays. Cache hits can only exist for previously valid strings; null and invalid input follow the unchanged validation path. Only parsing/allocation work differs."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 29,
+              "column": 13
+            },
+            "end": {
+              "line": 29,
+              "column": 43
+            }
+          },
+          "reason": "Removing TryAdd leaves the deterministic parsed segments as the returned result and cannot change validation errors. Future calls may reparse instead of hitting the exact-string cache. Production consumers do not inspect segment-array identity or mutate cached data; this is a cache population optimization, not part of the path result contract."
+        }
+      ]
     }
   ]
 }
