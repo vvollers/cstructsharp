@@ -3,6 +3,48 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "Codecs/Leb128Decoder.cs",
+      "sourceSha256": "c7998cfe8f1a571a6acdac9eddde1f2c5a701598c735830ab76d1ed0010059ba",
+      "mutants": [
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "this.shift > this.width",
+          "location": { "start": { "line": 29, "column": 13 }, "end": { "line": 29, "column": 37 } },
+          "reason": "Both codec callers support the documented widths 32 and 64. shift starts at zero and advances by seven, so it cannot equal either width. The changed equality boundary is unreachable; unsupported widths or reusing the decoder after completion/failure are not claimed equivalent inputs."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": { "start": { "line": 31, "column": 13 }, "end": { "line": 31, "column": 70 } },
+          "reason": "For supported widths 32 and 64, the final permitted group begins at shift 28 or 63. The remaining-width guard then rejects any continuation bit before shift can advance beyond the width; otherwise Push returns true and both callers stop. Therefore this defensive throw is never reached by either codec caller, including malformed encodings, and removing it changes no supported operation."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "remaining <= 7",
+          "location": { "start": { "line": 36, "column": 13 }, "end": { "line": 36, "column": 26 } },
+          "reason": "remaining is width minus a multiple of seven. The supported widths 32 and 64 have remainders four and one modulo seven, so remaining can never equal seven. Both conditions validate exactly the same final group."
+        },
+        {
+          "mutatorName": "OrAssignmentExpression to ExclusiveOrAssignmentExpression mutation",
+          "replacement": "this.value ^= (ulong)payload << this.shift",
+          "location": { "start": { "line": 46, "column": 9 }, "end": { "line": 46, "column": 51 } },
+          "reason": "Before each Push, accumulated payload bits are strictly below shift. Each new seven-bit payload starts at shift and has no set bit in common with the accumulated value, including truncation of the final 64-bit group. OR and XOR therefore produce identical bits. Sign extension only occurs on completion, after which both callers stop using the decoder."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "this.shift + 7 <= 64",
+          "location": { "start": { "line": 49, "column": 53 }, "end": { "line": 49, "column": 72 } },
+          "reason": "shift starts at zero and only advances by seven. Thus shift + 7 is a multiple of seven and never 64 during a supported decoding operation. The changed equality boundary cannot affect whether sign extension runs."
+        },
+        {
+          "mutatorName": "OrAssignmentExpression to ExclusiveOrAssignmentExpression mutation",
+          "replacement": "this.value ^= ulong.MaxValue << (this.shift + 7)",
+          "location": { "start": { "line": 51, "column": 17 }, "end": { "line": 51, "column": 65 } },
+          "reason": "The preceding payload accumulation fills bits strictly below shift + 7, and this branch requires shift + 7 < 64. The extension mask sets only the higher bits, which are still zero. Its OR and XOR with the accumulated payload therefore yield exactly the same signed representation."
+        }
+      ]
+    },
+    {
       "pattern": "Streams/WriteBudgetStream.cs",
       "sourceSha256": "597491e867adc0b657a90e551923844eb1855931b76dba2209365109af5373b0",
       "mutants": [
