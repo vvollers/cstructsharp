@@ -3,6 +3,30 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "**/CStructSharp.Core/Compilation/ConstructionDictionary.cs",
+      "sourceSha256": "740156a7b8468a1d8cb8935e19191fa869273fb55f7c01232c203a4e54eab71d",
+      "mutants": [
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?this.storage.Count :this.storage.Count + this.baseline.Count(pair => !this.storage.ContainsKey(pair.Key)))",
+          "location": { "start": { "line": 27, "column": 25 }, "end": { "line": 27, "column": 158 } },
+          "reason": "The changed branch applies only to an empty baseline. Enumerating a dictionary with Count zero contributes zero entries, so the fallback computes storage.Count + 0, exactly the fast branch's count. Nonempty baselines already take this fallback. Enumeration overhead is not a different dictionary result; a custom dictionary whose Count disagrees with its entries violates the input contract."
+        }
+      ]
+    },
+    {
+      "pattern": "Writing/CStructElementWriterState.cs",
+      "sourceSha256": "641faa688dbf2f8e9719b5d9cf344e9be3eedf6513f0102e9bf0dee50efc1f0f",
+      "mutants": [
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": { "start": { "line": 148, "column": 9 }, "end": { "line": 150, "column": 10 } },
+          "reason": "For non-null UpdateOptions the specialized branch and the fallback both evaluate a record with-expression with no member changes on the same input. Record cloning uses the runtime type, so the fallback still returns a fresh UpdateOptions preserving its derived settings as well as every base setting. Null and ordinary WriteOptions do not take the removed branch. Snapshot identity and values are unchanged."
+        }
+      ]
+    },
+    {
       "pattern": "**/CStructSharp.Core/Codecs/EnumIntegerCodecTable.cs",
       "sourceSha256": "aa477b43b820e6b28e7773713196236ea156887f13b0968c00e6e6670c876c34",
       "mutants": [

@@ -7,6 +7,21 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class Leb128Tests
 {
+    /// <summary>LEB128 classification accepts exactly its four case-sensitive codec spellings.</summary>
+    [TestMethod]
+    public void CodecNames_RejectEmptyAndUnrelatedSpellings()
+    {
+        foreach (string name in new[] { "uleb128_32", "uleb128_64", "sleb128_32", "sleb128_64", })
+        {
+            Assert.IsTrue(CStructSharp.Codecs.Leb128Codec.IsType(name), name);
+        }
+
+        foreach (string name in new[] { string.Empty, "uint32", "leb128", "uleb128_16", "ULEB128_32", })
+        {
+            Assert.IsFalse(CStructSharp.Codecs.Leb128Codec.IsType(name), name);
+        }
+    }
+
     /// <summary>Variable-width arrays leave following fields and selected indices at their actual positions.</summary>
     [TestMethod]
     public void DynamicArrays_ResolveActualExtents()

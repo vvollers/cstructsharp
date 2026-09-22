@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests;
 
+using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 using SyntaxEnum = CStructSharp.Syntax.Enum;
@@ -8,6 +9,20 @@ using SyntaxEnum = CStructSharp.Syntax.Enum;
 [TestClass]
 public class SyntaxMetadataBoundaryTests
 {
+    /// <summary>Anonymous padding bitfields occupy bytes but never become named shape members or field lookup results.</summary>
+    [TestMethod]
+    public void CompiledShape_OmitsUnnamedPaddingAndDescribesMissingFields()
+    {
+        var layout = new CStruct("struct root { uint8 :3; uint8 a:5; uint8 :2; uint8 b:6; };");
+        var compiled = (CompiledCompositeType)layout.CompiledModel.Composites[layout.GetStruct("root")].Definition!;
+        CollectionAssert.AreEqual(new[] { "a", "b", }, compiled.Shape.Names.ToArray());
+        Assert.IsFalse(compiled.TryFindField(string.Empty, out _));
+
+        // A missing member must identify its containing declaration as well as the requested name.
+        CStructPathException failure = Assert.Throws<CStructPathException>(() => compiled.FindField("missing"));
+        StringAssert.StartsWith(failure.Message, "Unknown field 'missing' in 'root'.");
+    }
+
     /// <summary>Both field constructors combine pointer spellings unless an explicit depth overrides them, including zero.</summary>
     /// <param name="expressionWidth">Whether the constructor receives a parsed expression rather than a resolved width.</param>
     [TestMethod]

@@ -7,6 +7,20 @@ using CStructSharp.Generated;
 [TestClass]
 public class CompositeCursorBoundaryTests
 {
+    /// <summary>Aligned cursors round both an ordinary field start and the final composite extent; packed cursors do neither.</summary>
+    /// <param name="aligned">Whether natural byte alignment applies.</param>
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void OrdinaryFieldAndFinish_ApplyAlignmentOnlyWhenEnabled(bool aligned)
+    {
+        var cursor = CompositeCursor.Start(1, aligned, BitfieldPacking.SysV, BitfieldAllocation.LowBitFirst);
+        Assert.AreEqual(aligned ? 4L : 1L, cursor.AdvanceToField(4));
+        cursor.CompleteField(5);
+        Assert.AreEqual(aligned ? 8L : 5L, cursor.Finish(4));
+        Assert.AreEqual(5L, cursor.Current, "Finishing computes tail padding without changing field placement state.");
+    }
+
     /// <summary>A packed field wholly inside a declared cell retains that shared storage window, including its final bit.</summary>
     /// <param name="precedingBits">Bits already placed in the four-byte cell.</param>
     [TestMethod]
