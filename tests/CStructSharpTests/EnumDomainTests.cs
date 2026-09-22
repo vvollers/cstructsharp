@@ -211,7 +211,8 @@ public class EnumDomainTests
     /// </summary>
     /// <remarks>
     ///     Converting valid numbers to raw bits and back must recover the original number. Overflow, booleans, and
-    ///     floating-point inputs must fail instead of silently changing the enum value.
+    ///     floating-point inputs must fail instead of silently changing the enum value. Incompatible reader
+    ///     values identify the storage type in their diagnostic.
     /// </remarks>
     [TestMethod]
     public void IntegerCodec_ConvertsEveryDomainAndRejectsInvalidInputs()
@@ -254,8 +255,10 @@ public class EnumDomainTests
             Assert.Throws<OverflowException>(() => codec.EnsureInRange(minimum - BigInteger.One));
             Assert.Throws<OverflowException>(() => codec.ToRawBits(maximum + BigInteger.One));
             Assert.Throws<OverflowException>(() => codec.ToStorageValue(maximum + BigInteger.One));
-            Assert.Throws<InvalidOperationException>(() => codec.FromStorageValue(true));
-            Assert.Throws<InvalidOperationException>(() => codec.FromStorageValue(minimum - BigInteger.One));
+            InvalidOperationException invalidKind = Assert.Throws<InvalidOperationException>(() => codec.FromStorageValue(true));
+            InvalidOperationException invalidRange = Assert.Throws<InvalidOperationException>(() => codec.FromStorageValue(minimum - BigInteger.One));
+            Assert.AreEqual($"Enum storage reader for {type} returned an incompatible value.", invalidKind.Message);
+            Assert.AreEqual(invalidKind.Message, invalidRange.Message);
         }
 
         Assert.IsFalse(EnumIntegerCodec.TryCreate("char", out _));

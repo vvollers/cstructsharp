@@ -3,6 +3,27 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "**/CStructSharp.Core/Codecs/EnumIntegerCodec.cs",
+      "sourceSha256": "4b0edc2dac3f46d973303bc4e0fa2b050a67ee00d3742d13065c93b69151b17f",
+      "mutants": [
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 141,
+              "column": 17
+            },
+            "end": {
+              "line": 141,
+              "column": 54
+            }
+          },
+          "reason": "The private constructor is called only by TryCreate, whose eight accepted canonical StorageType values are exactly the eight explicit ToStorageValue switch cases. StorageType is a get-only property initialized there. The default unknown-storage exception is therefore unreachable for every constructible descriptor; changing only its message cannot affect a conversion or failure."
+        }
+      ]
+    },
+    {
       "pattern": "CStructWriter.cs",
       "sourceSha256": "4f8c1be706169934ce168d69177412602cb2638cf4a20e79c73955220235dabe",
       "mutants": [
@@ -981,6 +1002,36 @@
       "pattern": "Values/WriteDataBinding.cs",
       "sourceSha256": "30e37faa2fdb8362a720099de33a3dea2804f30e5c4db4626c1b3af8742a4829",
       "mutants": [
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 23,
+              "column": 9
+            },
+            "end": {
+              "line": 26,
+              "column": 10
+            }
+          },
+          "reason": "Removing the early null return makes NormalizeRootData call TryGetMemberValue with null. That helper returns false and assigns a null out value before reading members. The conditional therefore returns the same original null data. No mapper or member lookup is invoked on either path, and null root pointers remain supported."
+        },
+        {
+          "mutatorName": "Logical mutation",
+          "replacement": "data is IDictionary<string, object?> && data is IDictionary<string, object>",
+          "location": {
+            "start": {
+              "line": 127,
+              "column": 16
+            },
+            "end": {
+              "line": 127,
+              "column": 91
+            }
+          },
+          "reason": "Nullable reference annotations do not create different runtime generic types: IDictionary<string, object?> and IDictionary<string, object> have identical CLR identity. Their two is-tests always agree for every object, including null; replacing OR with AND therefore produces the same Boolean result."
+        },
         {
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?value :Materialize(value, nested))",
