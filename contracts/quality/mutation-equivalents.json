@@ -811,6 +811,57 @@
           "reason": "WithCustomCodecs has already installed every validated unique descriptor name and its exact CompiledTypeReference in catalog.Symbols. BuildCompiledLayout starts by copying catalog.Symbols; its only use of customSymbols is to assign those same key/reference pairs again. Removing this dictionary Add therefore skips a redundant override, not codec registration. The runtime customSymbols field has no subsequent readers; codec adapters are independently retained in BuildCodecTable and all symbol resolution still uses the complete catalog/model."
         }
       ]
+    },
+    {
+      "pattern": "CStructReader.cs",
+      "sourceSha256": "e2f1ab81f162d67e255764439393524f326085148b5f5b888865b8dab2235187",
+      "mutants": [
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(compiledField.BitStorageSize ??\n                                     throw new InvalidOperationException(\n                                         \"Compiled bitfield has no storage size: \" + compiledField.Name)) * 8",
+          "location": {
+            "start": {
+              "line": 637,
+              "column": 51
+            },
+            "end": {
+              "line": 640,
+              "column": 111
+            }
+          },
+          "reason": "Compiled bitfield storage comes from BitfieldCodecTable, whose registered integral storage widths are 1, 2, 4 and 8 bytes (aliases preserve these widths). The descriptor is validated before execution; multiplying any supported width by eight is at most 64 and cannot overflow Int32. The null-storage exception and multiplication itself remain unchanged."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "state.CurrentBitfieldSize * 8",
+          "location": {
+            "start": {
+              "line": 715,
+              "column": 54
+            },
+            "end": {
+              "line": 715,
+              "column": 92
+            }
+          },
+          "reason": "CurrentBitfieldSize is populated from validated compiled bitfield storage or a placed/resolved window. Declared storage is at most eight bytes, and BitfieldPlacement rejects packed windows larger than eight. Selected-field seeding uses that same resolved placement. Multiplication by eight is therefore at most 64 for every reached bitfield and cannot overflow Int32; removing checked changes no result or failure."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 1054,
+              "column": 56
+            },
+            "end": {
+              "line": 1054,
+              "column": 80
+            }
+          },
+          "reason": "CStruct construction rejects every pointer width except 1, 2, 4 and 8 before creating the immutable compilation. PointerSize is read-only and this private helper uses that validated value, so the switch default is unreachable for every constructed layout. Changing only the default diagnostic string cannot change pointer decoding or its separate unsigned-address overflow error."
+        }
+      ]
     }
   ]
 }
