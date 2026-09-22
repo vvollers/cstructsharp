@@ -7,6 +7,111 @@
       "sourceSha256": "97d364232d87f56bae4c95f89fc15f09db4a40f3fc0bf599aca61f745fe05c07",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 566,
+              "column": 21
+            },
+            "end": {
+              "line": 566,
+              "column": 115
+            }
+          },
+          "reason": "CompileExpression is the only producer of the private instruction array. Literals and identifiers push one value; unary instructions preserve one; binary instructions combine two operands into one. Logical short-circuit jumps keep the normalized left result or evaluate the right and combine it; conditional jumps consume the test and execute exactly one value-producing arm. By induction each compiled root finishes with one value or throws earlier. Identifier calls return one int or throw. The final valueCount failure is therefore unreachable."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 566,
+              "column": 57
+            },
+            "end": {
+              "line": 566,
+              "column": 113
+            }
+          },
+          "reason": "The message belongs to a defensive valueCount != 1 failure. Private compiler-produced programs preserve one result by structural induction over scalar, unary, binary, short-circuit and conditional expressions; each branch path leaves exactly one value, and a failing operand exits before this check. Caller data cannot supply instructions or alter stack arity, so changing only this unreachable diagnostic has no effect."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "stackSize < 0",
+          "location": {
+            "start": {
+              "line": 842,
+              "column": 21
+            },
+            "end": {
+              "line": 842,
+              "column": 35
+            }
+          },
+          "reason": "The private compiler emits postfix instructions only for known syntax nodes, rejecting calls and unsupported operators first. Scalars push one; unary operations keep their operand; a binary operation follows both complete operands and removes one slot. Logical jumps do not change the static count. A conditional counts its test and both arms, then Jump and Join remove the two surplus entries. Each complete subtree nets one and every emitted prefix retains a positive count. stackSize can therefore never be zero here, so <= 0 and < 0 are equivalent."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 844,
+              "column": 21
+            },
+            "end": {
+              "line": 844,
+              "column": 113
+            }
+          },
+          "reason": "The invalid-stack-transition throw is unreachable for CompileExpression's private instruction stream. Structural induction gives a positive count after every prefix: leaves push, unary operators preserve one, binary operators follow two complete operands and remove one, and conditional Jump/Join remove only the test/extra-arm surplus. Unsupported nodes/operators throw before this constructor. Removing only this defensive throw cannot affect accepted syntax or failure behavior."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 844,
+              "column": 57
+            },
+            "end": {
+              "line": 844,
+              "column": 111
+            }
+          },
+          "reason": "The invalid-stack-transition diagnostic is unreachable because every emitted prefix of a private compiled program retains at least one stack value. Binary operators follow both operands, unary operators preserve one, and conditional Jump/Join only remove their accounted surplus entries. No API accepts an arbitrary instruction array. Changing this message cannot affect a reachable result."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 852,
+              "column": 17
+            },
+            "end": {
+              "line": 852,
+              "column": 116
+            }
+          },
+          "reason": "CompiledExpression receives exactly one complete tree's private postfix instruction array. Every scalar subtree contributes one stack value; unary preserves it, binary combines two into one, short-circuit bookkeeping preserves the same static effect, and conditional bookkeeping subtracts the test and one extra arm. The complete array therefore has final stackSize == 1. Removing the defensive final-count throw is unobservable."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 852,
+              "column": 53
+            },
+            "end": {
+              "line": 852,
+              "column": 114
+            }
+          },
+          "reason": "The final static-stack diagnostic cannot be reached: CompileExpression emits one complete tree, each subtree has net stack effect +1, and its binary/conditional bookkeeping combines child results back to one. Callers cannot replace the private instructions. Changing only the message for stackSize != 1 has no effect on valid values or reachable failures."
+        },
+        {
           "mutatorName": "Remove checked expression",
           "replacement": "(int)first",
           "location": {
