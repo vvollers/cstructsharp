@@ -1369,6 +1369,12 @@
       "sourceSha256": "76487881430ff1d6afac6ccdffe9fca1e1ba4324c9666d6c6a9f93bc35606839",
       "mutants": [
         {
+          "mutatorName": "Remove checked expression",
+          "replacement": "elementSize * remainingCount",
+          "location": { "start": { "line": 305, "column": 43 }, "end": { "line": 305, "column": 80 } },
+          "reason": "This multiplication is reached only when peeling a multidimensional field with a known nonnegative element size. Multidimensional dimensions have dependency-free fixed counts; LayoutCompilation.Model and CompileSyntheticRootField already checked the complete count and element-size product when constructing such a field. All production SelectArrayElement callers are the read/address and write path resolvers, which first reject indices outside the current dimension. A reachable peeled dimension therefore has a positive outer count, so its remaining byte extent cannot exceed its already validated parent's extent. A zero outer count cannot be indexed; variable-sized elements skip this multiplication entirely. Repeated peeling preserves the bound, and pointer-target views are scalar. Removing only this checked wrapper cannot change a supported result; the separate checked total-count calculations remain required, including for arrays of variable-sized records."
+        },
+        {
           "mutatorName": "String mutation",
           "replacement": "\"Stryker was here!\"",
           "location": {
