@@ -10,6 +10,72 @@ using CStructSharp.Syntax;
 [TestClass]
 public class ExpressionBranchBudgetTests
 {
+    /// <summary>Exact arithmetic includes the dependency depth of either binary operand.</summary>
+    /// <param name="source">An addition with a unary dependency on its left or right.</param>
+    [TestMethod]
+    [DataRow("1 + value")]
+    [DataRow("value + 1")]
+    public void ExactBinaryDependencyDepth_CountsEitherOperand(string source)
+    {
+        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        var variables = new Dictionary<string, Expr> { ["value"] = CStructDefinitionParser.ParseExpression("-1"), };
+        var sufficient = new ExpressionEvaluator(new ExpressionEvaluationLimits(4, 100));
+        Assert.AreEqual(BigInteger.Zero, sufficient.EvaluateExact(expression, variables, 64));
+        var limited = new ExpressionEvaluator(new ExpressionEvaluationLimits(3, 100));
+
+        // addition -> identifier -> negation -> literal requires four levels whichever operand holds the name.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => limited.EvaluateExact(expression, variables, 64));
+        Assert.AreEqual("Maximum expression evaluation depth exceeded.", failure.Message);
+    }
+
+    /// <summary>Named dependencies consume validation work as well as the root's complete program.</summary>
+    /// <param name="source">The root expression selecting a named dependency.</param>
+    /// <param name="dependency">The dependency expression, including any conditional branches.</param>
+    /// <param name="work">The total root and dependency instructions that validation must count.</param>
+    /// <param name="expected">The value returned with sufficient validation work.</param>
+    [TestMethod]
+    [DataRow("1 ? value : 0", "1 + 2", 9, 3)]
+    [DataRow("0 ? 0 : value", "1 + 2", 9, 3)]
+    [DataRow("value", "1 ? 2 : 3", 7, 2)]
+    [DataRow("value", "0 ? 2 : 3", 7, 3)]
+    public void SelectedDependencyValidation_ChargesTheWholeProgram(string source, string dependency, int work, int expected)
+    {
+        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        var variables = new Dictionary<string, Expr> { ["value"] = CStructDefinitionParser.ParseExpression(dependency), };
+        var sufficient = new ExpressionEvaluator(new ExpressionEvaluationLimits(10, work));
+        Assert.AreEqual(expected, sufficient.CreateSession(variables).Evaluate(expression));
+        var limited = new ExpressionEvaluator(new ExpressionEvaluationLimits(10, work - 1));
+
+        // Validation counts every instruction in both programs, including an unselected conditional arm.
+        // The executed path is shorter, so execution accounting cannot replace validation accounting.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => limited.CreateSession(variables).Evaluate(expression));
+        Assert.AreEqual("Maximum expression evaluation work exceeded.", failure.Message);
+    }
+
+    /// <summary>A cached dependency value does not erase its depth along a later selected conditional path.</summary>
+    /// <param name="source">A conditional selecting the same nested dependency through either arm.</param>
+    [TestMethod]
+    [DataRow("1 ? a : 0")]
+    [DataRow("0 ? 0 : a")]
+    public void SelectedCachedDependency_PreservesItsFullDepth(string source)
+    {
+        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        var variables = new Dictionary<string, Expr>
+        {
+            ["a"] = CStructDefinitionParser.ParseExpression("b + 1"),
+            ["b"] = CStructDefinitionParser.ParseExpression("-1"),
+        };
+        ExpressionEvaluator.ExpressionEvaluationSession sufficient = new ExpressionEvaluator(new ExpressionEvaluationLimits(6, 100)).CreateSession(variables);
+        Assert.AreEqual(-1, sufficient.Evaluate(new Identifier("b")));
+        Assert.AreEqual(0, sufficient.Evaluate(expression));
+        ExpressionEvaluator.ExpressionEvaluationSession limited = new ExpressionEvaluator(new ExpressionEvaluationLimits(5, 100)).CreateSession(variables);
+        Assert.AreEqual(-1, limited.Evaluate(new Identifier("b")));
+
+        // conditional -> a -> addition -> b -> negation -> literal still has six levels after b is cached.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => limited.Evaluate(expression));
+        Assert.AreEqual("Maximum expression evaluation depth exceeded.", failure.Message);
+    }
+
     /// <summary>Each binary or conditional child adds one level, including branches that need not execute.</summary>
     /// <param name="source">An expression whose deepest child occupies exactly three levels.</param>
     [TestMethod]
