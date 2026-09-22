@@ -3,6 +3,102 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "CStructAddressResolver.cs",
+      "sourceSha256": "a7fe1f75bac8550fff2889139121cd70845aed88c0263ab7685ad0d5851bcece",
+      "mutants": [
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "pathIndex > segments.Count",
+          "location": {
+            "start": {
+              "line": 159,
+              "column": 13
+            },
+            "end": {
+              "line": 159,
+              "column": 40
+            }
+          },
+          "reason": "ResolveTargetInStructCore is private and only entered through ResolveTargetInStruct. The root caller handles zero/one segments before passing index 1. Promoted fields preserve a valid index. Nested-field recursion returns on the terminal segment before incrementing; pointer recursion likewise returns on the terminal value segment before incrementing. Thus every call has pathIndex < segments.Count. Both >= and > are false for every reachable invocation."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 161,
+              "column": 13
+            },
+            "end": {
+              "line": 161,
+              "column": 84
+            }
+          },
+          "reason": "ResolveTargetInStructCore is private and only entered through ResolveTargetInStruct. The root caller handles zero/one segments before passing index 1. Promoted fields preserve a valid index. Nested-field recursion returns on the terminal segment before incrementing; pointer recursion likewise returns on the terminal value segment before incrementing. Thus every call has pathIndex < segments.Count. The defensive path-ended throw cannot execute; removing it changes no supported path result or failure."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 161,
+              "column": 44
+            },
+            "end": {
+              "line": 161,
+              "column": 82
+            }
+          },
+          "reason": "ResolveTargetInStructCore is private and only entered through ResolveTargetInStruct. The root caller handles zero/one segments before passing index 1. Promoted fields preserve a valid index. Nested-field recursion returns on the terminal segment before incrementing; pointer recursion likewise returns on the terminal value segment before incrementing. Thus every call has pathIndex < segments.Count. The defensive path-ended diagnostic is unreachable, so replacing only its text has no observable effect."
+        },
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?ResolvedTargetKind.ArrayElement :ResolvedTargetKind.Field)",
+          "location": {
+            "start": {
+              "line": 555,
+              "column": 13
+            },
+            "end": {
+              "line": 555,
+              "column": 101
+            }
+          },
+          "reason": "CreateFieldTarget passes the same resolvedField reference as both EffectiveCompiledField and WritableCompiledField. ReadResolvedValue is the only consumer that distinguishes ArrayElement from Field, and it selects between those identical references. ResolveStructTarget treats both kinds together; the writer distinguishes only Root, PointerAddress and PointerValue. Array shape and SelectedArrayIndex are unchanged, so forcing ArrayElement here cannot change an operation."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?ResolvedTargetKind.ArrayElement :ResolvedTargetKind.Field)",
+          "location": {
+            "start": {
+              "line": 555,
+              "column": 13
+            },
+            "end": {
+              "line": 555,
+              "column": 101
+            }
+          },
+          "reason": "CreateFieldTarget supplies identical EffectiveCompiledField and WritableCompiledField references. The sole distinction between Field and ArrayElement in consumers is choosing one of those references in ReadResolvedValue; ResolveStructTarget groups both kinds and writing handles both through the same ordinary-field path. Forcing Field leaves array shape, selected index and all decoded or written bytes unchanged."
+        },
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?address :context.PointerStorageAddress)",
+          "location": {
+            "start": {
+              "line": 567,
+              "column": 13
+            },
+            "end": {
+              "line": 567,
+              "column": 85
+            }
+          },
+          "reason": "Only the private ResolvedTarget.PointerStorageAddress metadata changes for non-pointer fields. A repository-wide consumer audit finds no read of that property: context.PointerStorageAddress is separately propagated for traversal, and reads/writes use target.Address, kind, pointer depth and target coordinates. ResolvedTarget is internal and never returned by a public operation. This exact conditional replacement changes no consumed state."
+        }
+      ]
+    },
+    {
       "pattern": "**/CStructSharp.Core/Codecs/EnumIntegerCodec.cs",
       "sourceSha256": "4b0edc2dac3f46d973303bc4e0fa2b050a67ee00d3742d13065c93b69151b17f",
       "mutants": [
