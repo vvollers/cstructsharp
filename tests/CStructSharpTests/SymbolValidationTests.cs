@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
+using CStructSharp.Introspection;
 using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
@@ -26,6 +27,8 @@ public class SymbolValidationTests
         Assert.AreEqual(
             "#define",
             SymbolValidation.GetDeclarationKind(new Syntax.Defines(new Identifier("d"), new Literal(1))));
+        Assert.AreEqual("#define", SymbolValidation.GetDeclarationKind(new ConstantDefinition(new Identifier("text"), LayoutConstantKind.Text, "magic")));
+        Assert.AreEqual("#include", SymbolValidation.GetDeclarationKind(new IncludeDirective("types.h", false)));
     }
 
     /// <summary>A struct with two distinct field names is a valid scope and must not raise anything.</summary>
@@ -124,6 +127,19 @@ public class SymbolValidationTests
 
         Assert.Throws<CStructLayoutException>(
             () => SymbolValidation.ValidateBuiltInNameCollision(collidingStruct, catalog));
+    }
+
+    /// <summary>Reserved void and primitive names retain the exact source offset of the conflicting declaration.</summary>
+    /// <param name="name">The reserved spelling used for the declaration.</param>
+    [TestMethod]
+    [DataRow("void")]
+    [DataRow("uint8")]
+    public void ValidateBuiltInNameCollision_PreservesTheDeclarationOffset(string name)
+    {
+        var declaration = new Struct(new Identifier(name) { SourceOffset = 17, }, [], false);
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => SymbolValidation.ValidateBuiltInNameCollision(declaration, PrimitiveCatalog.For(true, 64)));
+        Assert.AreEqual(17, failure.SourceOffset);
+        StringAssert.Contains(failure.Message, $"Global struct name '{name}' conflicts with a built-in codec");
     }
 
     /// <summary>A declaration name that does not match any built-in codec name is accepted.</summary>

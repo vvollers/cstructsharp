@@ -8,6 +8,36 @@ using CStructSharp.Generated;
 [TestClass]
 public class ReadCursorTextBoundaryTests
 {
+    /// <summary>Chunk failures retain input-relative offsets and enforce the string limit before finding a later terminator.</summary>
+    [TestMethod]
+    public void TerminatedText_ReportsLimitsAtTheFailingChunk()
+    {
+        byte[] source = [99, .. Enumerable.Repeat((byte)'a', 300), 0,];
+        foreach (bool totalLimit in new[] { false, true, })
+        {
+            var options = totalLimit ? new ReadOptions { MaxTotalBytesRead = 256, } : new ReadOptions { MaxStringBytes = 10, };
+
+            // Complete attaches the cursor's original-input offset to the categorized failure.
+            CStructReadLimitException failure = Assert.Throws<CStructReadLimitException>(() =>
+            {
+                var cursor = new ReadCursor(source, options, "root") { Position = 1, };
+                try
+                {
+                    cursor.TakeTerminatedString(TerminatedTextEncoding.Ascii, '\0', "text", "string");
+                }
+                catch (CStructException exception)
+                {
+                    cursor.Complete(exception);
+                    throw;
+                }
+            });
+            Assert.AreEqual(totalLimit ? 302L : 12L, failure.Offset);
+            Assert.AreEqual("text", failure.Member);
+            Assert.AreEqual("root", failure.Path);
+            StringAssert.Contains(failure.Message, totalLimit ? "total read-byte limit" : "configured encoded-byte limit");
+        }
+    }
+
     /// <summary>Fixed Latin-1 and wide buffers preserve or trim only trailing NUL padding according to the caller's option.</summary>
     [TestMethod]
     public void FixedBuffers_RespectEncodingAndPaddingOptions()

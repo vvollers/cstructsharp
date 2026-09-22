@@ -1,5 +1,6 @@
 namespace CStructSharp.Tests.Generated;
 
+using System.Buffers;
 using CStructSharp.Diagnostics;
 using CStructSharp.Generated;
 
@@ -7,6 +8,82 @@ using CStructSharp.Generated;
 [TestClass]
 public class ReadCursorStateBoundaryTests
 {
+    /// <summary>Sequence buffering copies at most the byte budget plus the one byte needed to distinguish a limit failure.</summary>
+    [TestMethod]
+    public void CopySequence_CapsTheCopiedPrefixAtBudgetPlusOne()
+    {
+        byte[] source = [17, 29, 41,];
+        foreach (long budget in new long[] { 0, 1, 2, 3, long.MaxValue, })
+        {
+            byte[] buffer = ReadCursor.CopySequence(new ReadOnlySequence<byte>(source), new ReadOptions { MaxTotalBytesRead = budget, }, out int length);
+            try
+            {
+                int expected = budget < source.Length ? (int)budget + 1 : source.Length;
+                Assert.AreEqual(expected, length);
+                CollectionAssert.AreEqual(source[..expected], buffer[..length]);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+    }
+
+    /// <summary>Skipping to the exact end, including an empty skip there, does not spend the read budget.</summary>
+    [TestMethod]
+    public void Skip_AllowsTheExactRemainingLength()
+    {
+        var cursor = new ReadCursor(new byte[3], new ReadOptions { MaxTotalBytesRead = 0, });
+        cursor.Skip(3, "padding", "uint8");
+        cursor.Skip(0, "padding", "uint8");
+        Assert.AreEqual(3, cursor.Position);
+        Assert.AreEqual(0, cursor.Remaining);
+    }
+
+    /// <summary>A cancelled operation cannot enter another composite after the cursor was constructed.</summary>
+    [TestMethod]
+    public void EnterComposite_ObservesCancellationBeforeChangingDepth()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var cursor = new ReadCursor(new byte[1], new ReadOptions { CancellationToken = cancellation.Token, });
+        cancellation.Cancel();
+        try
+        {
+            cursor.EnterComposite("child", "record");
+            Assert.Fail("Entering a composite must observe cancellation.");
+        }
+        catch (OperationCanceledException)
+        {
+            Assert.AreEqual(0, cursor.Position);
+        }
+    }
+
+    /// <summary>A rejected negative read cannot refund bytes and allow a later read past the total-byte limit.</summary>
+    [TestMethod]
+    public void NegativeRead_DoesNotRefundTheBudget()
+    {
+        var cursor = new ReadCursor(new byte[1], new ReadOptions { MaxTotalBytesRead = 0, });
+        try
+        {
+            cursor.Take(-1, "invalid", "uint8");
+            Assert.Fail("A negative byte count must be rejected.");
+        }
+        catch (CStructReadException)
+        {
+            cursor.Position = 0;
+        }
+
+        try
+        {
+            cursor.Take(1, "value", "uint8");
+            Assert.Fail("The failed read must not increase the available byte budget.");
+        }
+        catch (CStructReadLimitException)
+        {
+            Assert.AreEqual(0, cursor.Position);
+        }
+    }
+
     /// <summary>Position zero and the end are valid; seeking outside the input reports the requested field.</summary>
     [TestMethod]
     public void Positions_AllowBothBoundariesAndRejectOutsideSeeks()
@@ -130,5 +207,6 @@ public class ReadCursorStateBoundaryTests
         Assert.AreEqual("value", failure.Member);
         Assert.AreEqual("uleb128", failure.MemberType);
         Assert.AreEqual("root", failure.Path);
+        StringAssert.StartsWith(failure.Message, "LEB128 integer exceeds its declared width");
     }
 }

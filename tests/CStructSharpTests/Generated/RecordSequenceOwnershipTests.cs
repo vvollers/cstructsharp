@@ -9,6 +9,19 @@ using CStructSharp.Generated;
 [TestClass]
 public class RecordSequenceOwnershipTests
 {
+    /// <summary>A sequence-copy failure returns its exact rented array and preserves the original source exception.</summary>
+    [TestMethod]
+    [DoNotParallelize]
+    public void CopySequence_ReturnsItsRentalWhenSourceMemoryThrows()
+    {
+        using var returns = new PoolReturnListener();
+        using var memory = new ThrowingMemory(returns);
+        var source = new ReadOnlySequence<byte>(memory.Descriptor);
+        IOException failure = Assert.Throws<IOException>(() => ReadCursor.CopySequence(source, null, out _));
+        Assert.AreSame(memory.Failure, failure);
+        Assert.IsTrue(returns.Returned, "The copy must return the exact buffer rented before reading the failing memory.");
+    }
+
     /// <summary>Disposing each pooled input form returns the exact array used by its record reader.</summary>
     /// <remarks>Pool diagnostics are process-wide, so this test must not overlap allocation-measurement tests.</remarks>
     [TestMethod]
@@ -106,10 +119,14 @@ public class RecordSequenceOwnershipTests
     /// <summary>Observes the runtime's pool-return event instead of assuming which array a later rental will choose.</summary>
     private sealed class PoolReturnListener : EventListener
     {
+        private readonly int observingThread = Environment.CurrentManagedThreadId;
         private int watched;
         private int returned;
+        private int lastRental;
 
         public bool Returned => Volatile.Read(ref this.returned) == 1;
+
+        public int LastRental => this.lastRental;
 
         /// <summary>Starts observing one currently rented array, clearing the previous observation.</summary>
         /// <param name="bufferId">Runtime array identity reported to ArrayPool's event source.</param>
@@ -129,15 +146,62 @@ public class RecordSequenceOwnershipTests
             }
         }
 
-        /// <summary>Records only returns for the watched array; unrelated global pool traffic cannot satisfy the assertion.</summary>
+        /// <summary>Records rentals on the observing thread and returns for the watched array only.</summary>
         /// <param name="eventData">The runtime event, whose first BufferReturned payload is the array identity.</param>
         protected override void OnEventWritten(EventWrittenEventArgs eventData)
         {
+            if (eventData.EventName == "BufferRented" && Environment.CurrentManagedThreadId == this.observingThread && eventData.Payload?[0] is int rental)
+            {
+                this.lastRental = rental;
+            }
+
             // Runtime source contract: dotnet/runtime System/Buffers/ArrayPoolEventSource.cs, BufferReturned.
             if (eventData.EventName == "BufferReturned" && eventData.Payload?[0] is int id && id == Volatile.Read(ref this.watched))
             {
                 Volatile.Write(ref this.returned, 1);
             }
+        }
+    }
+
+    /// <summary>Provides a valid one-byte memory descriptor whose storage becomes unreadable when copied.</summary>
+    private sealed class ThrowingMemory : MemoryManager<byte>
+    {
+        private readonly PoolReturnListener returns;
+
+        /// <summary>Creates a descriptor without accessing the intentionally failing span.</summary>
+        /// <param name="returns">Listener used to identify the rental immediately before the copy fails.</param>
+        public ThrowingMemory(PoolReturnListener returns)
+        {
+            this.returns = returns;
+        }
+
+        public Memory<byte> Descriptor => this.CreateMemory(1);
+
+        public IOException Failure { get; } = new("The source storage is unavailable.");
+
+        /// <summary>Captures the copy's most recent rental and throws the same source-storage failure each time.</summary>
+        /// <returns>No span is returned.</returns>
+        /// <exception cref="IOException">The test source deliberately cannot provide storage.</exception>
+        public override Span<byte> GetSpan()
+        {
+            this.returns.Watch(this.returns.LastRental);
+            throw this.Failure;
+        }
+
+        /// <summary>Rejects pinning, which the sequence-copy operation must not require.</summary>
+        /// <param name="elementIndex">Unused requested pin offset.</param>
+        /// <returns>No pin is returned.</returns>
+        public override MemoryHandle Pin(int elementIndex = 0) => throw new NotSupportedException();
+
+        /// <summary>Releases no pin because this fixture never creates one.</summary>
+        public override void Unpin()
+        {
+        }
+
+        /// <summary>Releases no resources because the fixture contains no actual storage.</summary>
+        /// <param name="disposing">Whether disposal is explicit.</param>
+        protected override void Dispose(bool disposing)
+        {
         }
     }
 

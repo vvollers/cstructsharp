@@ -57,6 +57,10 @@ public class ReadCursorArrayBoundaryTests
         // The available input also bounds the failure position when the crossing element is incomplete.
         CStructException partial = Failure(new byte[3], new ReadOptions { MaxTotalBytesRead = 1, }, static (ref ReadCursor cursor) => cursor.TakeElements(2, 2, "items", "uint16"), 2);
         Assert.IsInstanceOfType<CStructReadLimitException>(partial);
+
+        // The element count exceeds Int32 bytes, but the first unaffordable element must still report the limit.
+        CStructException oversized = Failure(new byte[3], new ReadOptions { MaxTotalBytesRead = 1, }, static (ref ReadCursor cursor) => cursor.TakeElements(int.MaxValue, 2, "items", "uint16"), 2);
+        Assert.IsInstanceOfType<CStructReadLimitException>(oversized);
     }
 
     /// <summary>Block reads cross 64 KiB on whole three-byte element boundaries and return exactly the requested region.</summary>

@@ -34,6 +34,7 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   Verify generated cursor array, text, identifier and pointer behavior at byte-budget, encoding and lifetime boundaries.
   Check writer padding, buffer growth, exact text limits, layout diagnostics, size arithmetic and physical-I/O failures.
   Isolate allocation comparisons from parallel tests and verify borrowed sequence storage directly.
+  Check failed sequence-copy buffer returns, negative-read budget accounting and exact declaration/literal diagnostics.
 - Correct learning-path and dependency guidance, current inspector/JavaScript references, and benchmark fixture
   claims. Derive volatile fixture and executable-scenario counts from their owning definitions.
 - Explain cursor ownership, generated reads and inspector invalidation at the relevant source boundaries, and
