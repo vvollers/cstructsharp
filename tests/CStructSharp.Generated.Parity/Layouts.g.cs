@@ -402,7 +402,7 @@ namespace CStructSharp.Generated.Parity.Layouts.Manual
     public static partial class TopLevelDeclarations { }
 
     /// <summary>Manual: <c>preprocessor-lines</c>.</summary>
-    [CStructLayout("#define N 2\n#pragma pack(1)\n#ifdef N\nstruct root { uint8 a; uint32 b; uint8 v[N]; };\n#else\nstruct root { uint8 a; };\n#endif", Root = "root", PointerSize = 4, Aligned = true, LittleEndian = true)]
+    [CStructLayout("#define LABEL 2 \\\r\nwords\r\n#define N 2\n#pragma pack(1)\n#ifdef N\nstruct root { uint8 a; uint32 b; uint8 v[N]; };\n#else\nstruct root { uint8 a; };\n#endif", Root = "root", PointerSize = 4, Aligned = true, LittleEndian = true)]
     public static partial class PreprocessorLines { }
 
     /// <summary>Manual: <c>inline-unions</c>.</summary>
