@@ -212,6 +212,7 @@ public class SparseUpdateStreamTests
         CStructWriteException failure = Assert.Throws<CStructWriteException>(() => staging.CommitTo(destination));
 
         Assert.AreSame(cause, failure.InnerException);
+        Assert.AreEqual("Cannot commit a validated update range to the destination stream (offset 4).", failure.Message);
         CollectionAssert.AreEqual(new byte[] { 0, 0xA1, 0, 0, 0, 0, }, destination.Snapshot());
         Assert.AreEqual(2, destination.WriteCalls);
     }

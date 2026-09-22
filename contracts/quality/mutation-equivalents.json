@@ -3,6 +3,162 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "Streams/SparseUpdateStream.cs",
+      "sourceSha256": "38d92a361428222368d550ff6bde007c22c32dc7f67dbfaca78966a967b1ba5e",
+      "mutants": [
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "this.position > this.baselineLength",
+          "location": {
+            "start": {
+              "line": 135,
+              "column": 31
+            },
+            "end": {
+              "line": 135,
+              "column": 67
+            }
+          },
+          "reason": "Changing >= to > differs only when position equals the captured baselineLength. At that exact boundary Read computes available = Math.Min(buffer.Length, baselineLength - position) = 0, never enters its loop, adds zero to position and returns zero. Empty buffers also return zero. No baseline query or read occurs on either path."
+        },
+        {
+          "mutatorName": "Logical mutation",
+          "replacement": "!bytes.TryGetBuffer(out ArraySegment<byte> segment) && segment.Array is null",
+          "location": {
+            "start": {
+              "line": 336,
+              "column": 13
+            },
+            "end": {
+              "line": 336,
+              "column": 89
+            }
+          },
+          "reason": "CreateStagedRange is private and receives only the exact MemoryStream instances constructed with new MemoryStream(length) in GetStagedRanges. These expandable streams expose their managed backing arrays, including the non-null empty array. TryGetBuffer therefore returns true with a non-null Array on every reachable call. Replacing OR with AND leaves the defensive branch unentered."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 338,
+              "column": 13
+            },
+            "end": {
+              "line": 338,
+              "column": 108
+            }
+          },
+          "reason": "CreateStagedRange receives only private new MemoryStream(length) instances from GetStagedRanges. Their backing arrays are publicly exposable and non-null, so the defensive hidden-buffer throw is unreachable. No caller-owned stream or subclass reaches this helper."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 338,
+              "column": 49
+            },
+            "end": {
+              "line": 338,
+              "column": 106
+            }
+          },
+          "reason": "The hidden-buffer diagnostic belongs to an unreachable branch: GetStagedRanges constructs every input with new MemoryStream(length), which exposes its non-null backing array. Changing only that defensive message cannot affect an emitted StagedRange or a caller-visible failure."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(int)bytes.Length",
+          "location": {
+            "start": {
+              "line": 341,
+              "column": 54
+            },
+            "end": {
+              "line": 341,
+              "column": 80
+            }
+          },
+          "reason": "The input is an owned, expandable MemoryStream created in GetStagedRanges, never a caller subclass. Its length is bounded by its single managed array and Int32 capacity; a write beyond that supported capacity fails before CreateStagedRange. Converting its successfully constructed Length to int cannot overflow."
+        },
+        {
+          "mutatorName": "UnaryMinusExpression to UnaryPlusExpression mutation",
+          "replacement": "+1",
+          "location": {
+            "start": {
+              "line": 347,
+              "column": 27
+            },
+            "end": {
+              "line": 347,
+              "column": 29
+            }
+          },
+          "reason": "The initial rangeStart sentinel is never emitted. On the first written run rangeBytes is null, so the branch assigns rangeStart = start before creating the first stream. Every subsequent replacement also assigns the start before creating that stream; with no runs the final emission is skipped. Initializing the sentinel to +1 instead of -1 is unobservable."
+        },
+        {
+          "mutatorName": "UnaryMinusExpression to UnaryPlusExpression mutation",
+          "replacement": "+1",
+          "location": {
+            "start": {
+              "line": 348,
+              "column": 32
+            },
+            "end": {
+              "line": 348,
+              "column": 34
+            }
+          },
+          "reason": "The initial expectedAddress is ignored because rangeBytes is null and the first operand of the branch short-circuits. The first run assigns expectedAddress = start + length before any later comparison. With no runs it is never read. Changing only its initial sentinel has no effect."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "entry.Key * ChunkSize",
+          "location": {
+            "start": {
+              "line": 353,
+              "column": 31
+            },
+            "end": {
+              "line": 353,
+              "column": 61
+            }
+          },
+          "reason": "Chunk keys are created only by WriteToChunks as nonnegative address / 1024. Write validates position + buffer.Length with checked arithmetic and rejects ends beyond baselineLength before staging; promotion copies an already validated range. Therefore key * 1024 is no greater than an actual staged address and fits Int64. Removing checked from this multiplication cannot change behavior."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "chunkStart + offset",
+          "location": {
+            "start": {
+              "line": 356,
+              "column": 30
+            },
+            "end": {
+              "line": 356,
+              "column": 58
+            }
+          },
+          "reason": "Each written run's offset identifies bytes previously copied by WriteToChunks, whose chunk key and offset come from one nonnegative extent-validated address. The sum chunkStart + offset recovers a staged address strictly below a successfully checked write end, so it cannot exceed Int64.MaxValue. Removing checked preserves values and failures."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "start + length",
+          "location": {
+            "start": {
+              "line": 370,
+              "column": 35
+            },
+            "end": {
+              "line": 370,
+              "column": 58
+            }
+          },
+          "reason": "GetWrittenRuns returns only contiguous bytes marked by successful extent-validated writes. The exclusive end start + length is at most the greatest checked end of those writes, even when adjacent writes merge. Every write end is at most baselineLength and Int64.MaxValue. Removing checked from the recovered run end cannot overflow."
+        }
+      ]
+    },
+    {
       "pattern": "**/CStructSharp.Core/Parsing/LayoutParser.cs",
       "sourceSha256": "f9bc1378422d78be213cba1d3a82f42b4ff946c55a5c765f7f643099936f5347",
       "mutants": [
