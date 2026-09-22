@@ -1801,6 +1801,15 @@
       "sourceSha256": "74dc7e30a98926d4b4b495ceb7d667970682b66f12aa3a2ea8a9abb5b526fbdf",
       "mutants": [
         {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 61, "column": 49 },
+            "end": { "line": 61, "column": 86 }
+          },
+          "reason": "WriteBitFieldValue receives only compiled scalar bitfields: BitfieldCodecTable.ValidateBitField rejects pointers, arrays and widths beyond the integral storage capacity. Struct traversal resets offset and unit size from CompositeFieldPlacementCursor before each bitfield; MSVC placement opens a new unit before overflow, and SysV placement chooses a full cell or a byte window containing every bit (rejecting windows over eight bytes). A selected Update seeds the same resolved offset/window and consumes that seed once. Selected Write and union staging use fresh state, with a zero bit offset and declared storage size. Thus every reachable call satisfies CurrentBitOffset + BitSize <= byteSize * 8 before this defensive throw. The private operation state cannot be edited by caller codecs, and bitfields have no array loop that could reuse an unplaced offset. Only the unreachable exception prefix is changed; the capacity check and value-range validation remain intact."
+        },
+        {
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
