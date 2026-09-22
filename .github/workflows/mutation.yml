@@ -29,8 +29,8 @@ jobs:
     name: Permanent mutation ${{ matrix.id }} (${{ matrix.files }} files)
     needs: plan
     runs-on: ubuntu-latest
-    # Leave setup/upload time outside the mutation step's budget so a timed-out step can still retain logs.
-    timeout-minutes: 195
+    # The parser is the longest single-file partition; retain setup/upload headroom for every partition.
+    timeout-minutes: ${{ matrix.id == 'p00' && 255 || 195 }}
     strategy:
       fail-fast: false
       max-parallel: 16
@@ -52,7 +52,7 @@ jobs:
           dotnet restore ./tests/CStructSharpTests/CStructSharpTests.csproj
 
       - name: Mutate this complete file partition
-        timeout-minutes: 180
+        timeout-minutes: ${{ matrix.id == 'p00' && 240 || 180 }}
         run: node tools/quality/mutation-partitions.mjs --mode run --partition ${{ matrix.id }} --output-directory artifacts/mutation/${{ matrix.id }}
 
       - name: Retain partition report, execution evidence and Stryker logs

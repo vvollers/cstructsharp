@@ -34,6 +34,7 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   Run Stryker in project context so its configured core test scope is honored instead of rediscovering every test project.
   Report individually proven equivalent mutations with exact source/tool/operator identities while retaining their
   surviving status in the raw score and rejecting every unexplained survivor.
+  Give the complete parser partition additional execution headroom while retaining bounded jobs and diagnostic uploads.
 - Cover enum metadata, repeated flags, union conversions and record-sequence boundaries with focused regression
   tests, including short reads, original input offsets, cancellation between records, pooled-buffer returns and
   asynchronous continuation independence from the caller's synchronization context.

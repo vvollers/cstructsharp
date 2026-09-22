@@ -17,10 +17,19 @@ test("mutation jobs reserve time to upload diagnostics after the execution limit
     // Only a two-space key begins the next job; nested steps and matrices belong to the current body.
     const next = lines.findIndex((line, index) => index > start && /^ {2}\S/.test(line));
     const body = lines.slice(start, next < 0 ? lines.length : next).join("\n");
-    const jobMinutes = Number(body.match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
-    const stepMinutes = Number(body.match(/^ {6}- name: Mutate[^\n]*\n {8}timeout-minutes: (\d+)$/m)?.[1]);
-    assert.equal(stepMinutes, 180, "Keep the complete mutation execution budget");
-    assert.ok(jobMinutes >= stepMinutes + 15, `${job} needs setup/upload headroom`);
+    const jobLimit = body.match(/^ {4}timeout-minutes: (.+)$/m)?.[1];
+    const stepLimit = body.match(/^ {6}- name: Mutate[^\n]*\n {8}timeout-minutes: (.+)$/m)?.[1];
+    if (job === "permanent") {
+      assert.equal(jobLimit, "${{ matrix.id == 'p00' && 255 || 195 }}");
+      assert.equal(stepLimit, "${{ matrix.id == 'p00' && 240 || 180 }}", "Only the parser receives the longer execution budget");
+    } else {
+      assert.equal(jobLimit, "195");
+      assert.equal(stepLimit, "180", "Keep the independent memory execution budget");
+    }
+    // Both permanent branches and the memory job retain at least fifteen minutes beyond execution.
+    for (const [jobMinutes, stepMinutes] of job === "permanent" ? [[255, 240], [195, 180]] : [[195, 180]]) {
+      assert.ok(jobMinutes >= stepMinutes + 15, `${job} needs setup/upload headroom`);
+    }
     assert.match(body, /^ {6}- name: Retain[^\n]*\n {8}if: always\(\)$/m);
   }
 });
@@ -54,6 +63,9 @@ test("the repository plan includes every permanent source exactly once", () => {
   const config = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "stryker-config.json")))["stryker-config"];
   const plan = planMutationPartitions(repositoryRoot, config);
   assert.equal(plan.length, 16);
+  // The extended workflow budget belongs only to the complete parser file, not to another future partition.
+  assert.deepEqual(plan.find((partition) => partition.id === "p00").files.map((file) => file.pattern),
+    ["**/CStructSharp.Core/Parsing/LayoutParser.cs"], "Review the extended parser time budget if partition ownership changes");
   const patterns = plan.flatMap((partition) => partition.files.map((file) => file.pattern));
   assert.equal(patterns.length, 71);
   assert.deepEqual([...patterns].sort(), [...config.mutate].sort());

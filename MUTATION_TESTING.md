@@ -123,8 +123,10 @@ review again; a similar mutation at another location cannot borrow a proof. Ordi
 resource leaks and changed externally visible behavior are not equivalence. Keep the complete scope and raw 75%
 minimum even when all remaining survivors have individual proofs.
 
-Each mutation step has a 180-minute limit within a 195-minute job budget. The remaining allowance covers normal
-setup and diagnostic uploads after a step times out; it does not turn a timeout into successful evidence.
+The parser partition (`p00`) has a 240-minute execution limit within a 255-minute job budget. Every other permanent
+partition and the independent memory job have a 180-minute execution limit within a 195-minute job budget.
+The remaining allowance covers normal setup and diagnostic uploads after a step times out; it does not turn a timeout
+into successful evidence.
 Runner loss can still prevent uploads. Partitions run concurrently where runner capacity permits. The
 `aggregation.json` artifact records each Stryker process's elapsed time and their sum. Compare those measurements
 with the Actions job start/end times: total runner time also includes setup and uploads, while workflow elapsed
