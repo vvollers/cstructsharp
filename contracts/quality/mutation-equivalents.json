@@ -1903,6 +1903,15 @@
       "sourceSha256": "56c5df26eca8fb0833ba6edb0520c087528f20f5ab434cf10e459f173fe82a28",
       "mutants": [
         {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitOffset != 0",
+          "location": {
+            "start": { "line": 742, "column": 21 },
+            "end": { "line": 742, "column": 48 }
+          },
+          "reason": "This unseeded legacy branch receives a fresh state for root/selected Write or a fresh union staging state. Ordinary struct fields use their placement cursor, and selected Update seeds its bitfield and bypasses this branch. Thus the original condition is true and the mutation skips installing the declared type/size in zero-initialized state. WriteBitFieldValue immediately falls back from size zero to the same compiled BitStorageSize, producing identical bounds, reads, merges and writes. CurrentBitfieldType is not read by that merge; the state is discarded after the one scalar legacy field. Bitfield arrays are rejected during compilation, and nested/ordinary struct traversal installs its own placement before any subsequent bitfield. No supported consumer observes the omitted metadata assignment."
+        },
+        {
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": { "start": { "line": 245, "column": 25 }, "end": { "line": 245, "column": 78 } },
