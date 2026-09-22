@@ -911,6 +911,156 @@
             }
           },
           "reason": "Cursor-less Write/root/union entry has zero bit offset. A selected Update can have a positive seeded offset, but its PositionIsResolvedTarget flag skips this entire alignment block. Ordinary struct traversal uses the placement cursor instead. The alignment-change body is never entered through these callers; removing only that body preserves behavior."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 87,
+              "column": 17
+            },
+            "end": {
+              "line": 87,
+              "column": 69
+            }
+          },
+          "reason": "WriteBitFieldValue allocates a new byte[byteSize], which is zero-initialized. Successful Stream.Read calls fill only the prefix ending at offset; at an ordinary end-of-stream the remaining suffix has never been written. Array.Clear repeats the existing zero state. In update mode the preceding throw remains, so removing this clear changes neither bytes nor failures for conforming streams."
+        },
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?new ConditionalVariableScope(composite, state.Variables) :null)",
+          "location": {
+            "start": {
+              "line": 221,
+              "column": 33
+            },
+            "end": {
+              "line": 221,
+              "column": 135
+            }
+          },
+          "reason": "When HasDirectConditionalFields is false, CompiledCompositeType.CompleteConditionalScope returns before populating ConditionalLocalNames or any field's captured/restored slots. Constructing ConditionalVariableScope then creates an empty locals array, removes no variables, and every CompleteField call traverses empty slot arrays. The extra allocation changes no values, bytes, or failures."
+        },
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount, ExpressionFailureDomain.Write) :null)",
+          "location": {
+            "start": {
+              "line": 222,
+              "column": 29
+            },
+            "end": {
+              "line": 222,
+              "column": 200
+            }
+          },
+          "reason": "A composite without direct conditional fields has zero conditional groups and its direct fields have empty ConditionalBranches. Constructing ConditionalFieldSelection in that case creates an empty selection array; IsActive visits no branches and returns true, matching the original null selection. Nested composites create their own selection state in either implementation."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 708,
+              "column": 13
+            },
+            "end": {
+              "line": 713,
+              "column": 14
+            }
+          },
+          "reason": "Cursor-less root/selected Write and union staging enter with zero bit offset. Selected Update may seed a positive offset only for a positive bitfield, so this reset condition's BitSize == 0 conjunct is false. Ordinary struct traversal uses its placement cursor instead. This legacy normal-field reset body cannot be entered through the current callers."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitOffset + compiledField.BitSize < bitCapacity",
+          "location": {
+            "start": {
+              "line": 734,
+              "column": 46
+            },
+            "end": {
+              "line": 734,
+              "column": 106
+            }
+          },
+          "reason": "Cursor-less root/selected Write and union staging start with zero bit offset. Selected Update handles seeded bitfields in the preceding branch, and ordinary struct fields use the placement cursor. Thus the outer CurrentBitOffset > 0 conjunction is false in this legacy derivation and the inner capacity comparison is never evaluated."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitOffset + compiledField.BitSize >= bitCapacity",
+          "location": {
+            "start": {
+              "line": 734,
+              "column": 46
+            },
+            "end": {
+              "line": 734,
+              "column": 106
+            }
+          },
+          "reason": "Cursor-less root/selected Write and union staging start with zero bit offset. Selected Update handles seeded bitfields in the preceding branch, and ordinary struct fields use the placement cursor. Thus the outer CurrentBitOffset > 0 conjunction is false in this legacy derivation and the inner capacity comparison is never evaluated."
+        },
+        {
+          "mutatorName": "Arithmetic mutation",
+          "replacement": "state.CurrentBitOffset - compiledField.BitSize",
+          "location": {
+            "start": {
+              "line": 734,
+              "column": 46
+            },
+            "end": {
+              "line": 734,
+              "column": 92
+            }
+          },
+          "reason": "Cursor-less root/selected Write and union staging start with zero bit offset. Selected Update handles seeded bitfields in the preceding branch, and ordinary struct fields use the placement cursor. Thus the outer CurrentBitOffset > 0 conjunction is false in this legacy derivation and the inner offset-plus-width arithmetic is never evaluated."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(int)(alignedEnd - state.Stream.Position)",
+          "location": {
+            "start": {
+              "line": 1039,
+              "column": 29
+            },
+            "end": {
+              "line": 1039,
+              "column": 79
+            }
+          },
+          "reason": "CompleteStructTailPadding assigns the cursor's current byte position to the stream before calling FinishComposite. FinishComposite uses LayoutMath.AlignUp with a positive Int32 alignment; it either throws on the checked 64-bit addition or advances by at most alignment minus one. The resulting nonnegative difference fits Int32, so this narrowing cast cannot overflow and removing its checked wrapper changes no result or failure."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?compiledField.QualifiedPrefix :outerPrefix + compiledField.QualifiedPrefix)",
+          "location": {
+            "start": {
+              "line": 1112,
+              "column": 41
+            },
+            "end": {
+              "line": 1112,
+              "column": 138
+            }
+          },
+          "reason": "When outerPrefix is non-null the original expression already concatenates it with compiledField.QualifiedPrefix. When it is null, C# string concatenation treats null as an empty string, producing exactly compiledField.QualifiedPrefix, which is non-null for fields satisfying HasQualifiedPrefix. Selecting the concatenation arm unconditionally preserves the published path."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "childSegments.Count >= 0",
+          "location": {
+            "start": {
+              "line": 1438,
+              "column": 17
+            },
+            "end": {
+              "line": 1438,
+              "column": 40
+            }
+          },
+          "reason": "WriteStreamCore rejects empty paths through ParsePath, and returns from the segments.Count == 1 branch before constructing childSegments. Reaching this condition therefore implies childSegments.Count is at least one. Changing > 0 to >= 0 preserves evaluation of the member-source lookup for every reachable call."
         }
       ]
     },
