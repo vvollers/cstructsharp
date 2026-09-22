@@ -3,6 +3,192 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "Values/TypedValueConverter.cs",
+      "sourceSha256": "d02b09dc827429f59574717773c307127ebe7a1291e25d9cb8a44da116feeca4",
+      "mutants": [
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 60,
+              "column": 9
+            },
+            "end": {
+              "line": 62,
+              "column": 10
+            }
+          },
+          "reason": "The null-value branch already returned or threw, and IsInstanceOfType already returned the non-null value for any assignable target. System.Object accepts every remaining boxed value, so its later dedicated branch is unreachable. Removing that block cannot change a conversion."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 77,
+              "column": 68
+            },
+            "end": {
+              "line": 77,
+              "column": 103
+            }
+          },
+          "reason": "ConvertCore reaches GetElementType only when the runtime target Type has IsArray true. All production targets originate from typeof(T) or a runtime array element type, not a user-defined Type wrapper. Runtime array types always have an element Type, so the fallback InvalidOperationException and its text are unreachable."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(byte)integer",
+          "location": {
+            "start": {
+              "line": 162,
+              "column": 24
+            },
+            "end": {
+              "line": 162,
+              "column": 46
+            }
+          },
+          "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(sbyte)integer",
+          "location": {
+            "start": {
+              "line": 167,
+              "column": 24
+            },
+            "end": {
+              "line": 167,
+              "column": 47
+            }
+          },
+          "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(short)integer",
+          "location": {
+            "start": {
+              "line": 172,
+              "column": 24
+            },
+            "end": {
+              "line": 172,
+              "column": 47
+            }
+          },
+          "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(ushort)integer",
+          "location": {
+            "start": {
+              "line": 177,
+              "column": 24
+            },
+            "end": {
+              "line": 177,
+              "column": 48
+            }
+          },
+          "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(int)integer",
+          "location": {
+            "start": {
+              "line": 182,
+              "column": 24
+            },
+            "end": {
+              "line": 182,
+              "column": 45
+            }
+          },
+          "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(uint)integer",
+          "location": {
+            "start": {
+              "line": 187,
+              "column": 24
+            },
+            "end": {
+              "line": 187,
+              "column": 46
+            }
+          },
+          "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(long)integer",
+          "location": {
+            "start": {
+              "line": 192,
+              "column": 24
+            },
+            "end": {
+              "line": 192,
+              "column": 46
+            }
+          },
+          "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
+        },
+        {
+          "mutatorName": "Remove checked expression",
+          "replacement": "(ulong)integer",
+          "location": {
+            "start": {
+              "line": 197,
+              "column": 24
+            },
+            "end": {
+              "line": 197,
+              "column": 47
+            }
+          },
+          "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": {
+              "line": 205,
+              "column": 9
+            },
+            "end": {
+              "line": 205,
+              "column": 69
+            }
+          },
+          "reason": "ConvertNumeric is called only after IsNumericType accepts one of the twelve supported numeric types, or with a CLR enum underlying integral type. Float, double, decimal and BigInteger return in their own branches; the eight fixed-width integral targets also each return or throw. The final failure after those branches is unreachable for supported targets."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?new CStructReadException(message)\n:new CStructReadException(message, innerException))",
+          "location": {
+            "start": {
+              "line": 325,
+              "column": 42
+            },
+            "end": {
+              "line": 327,
+              "column": 97
+            }
+          },
+          "reason": "CStructReadException(message) delegates to the protected constructor with ReadFailed, message and its default null innerException. CStructReadException(message, null) delegates to that same constructor with the identical three values. Selecting the two-argument overload when the cause is null preserves every exception member and subsequent path attachment."
+        }
+      ]
+    },
+    {
       "pattern": "**/CStructSharp.Core/Compilation/CompiledField.cs",
       "sourceSha256": "76487881430ff1d6afac6ccdffe9fca1e1ba4324c9666d6c6a9f93bc35606839",
       "mutants": [

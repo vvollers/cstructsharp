@@ -8,6 +8,44 @@ using CStructSharp.Values;
 [TestClass]
 public class SequenceBufferOwnershipTests
 {
+    /// <summary>Single-segment address and length queries do not rent an intermediate sequence-copy buffer.</summary>
+    /// <param name="addressQuery">Whether to resolve an element address rather than query its array length.</param>
+    [TestMethod]
+    [DoNotParallelize]
+    [DataRow(true)]
+    [DataRow(false)]
+    public void SingleSegmentQueries_DoNotRentACopy(bool addressQuery)
+    {
+        var layout = new CStruct("struct root { uint8 values[3]; };");
+        var source = new ReadOnlySequence<byte>(new byte[] { 11, 22, 33, });
+        using var returns = new PoolReturnListener();
+        Assert.AreEqual(0, returns.LastRental, "The observer starts with no operation rental.");
+        if (addressQuery)
+        {
+            Assert.AreEqual(2L, layout.ResolveAddress(source, "root.values[2]"));
+        }
+        else
+        {
+            Assert.AreEqual(3, layout.GetArrayLength(source, "root.values"));
+        }
+
+        Assert.AreEqual(0, returns.LastRental, "A fixed-shape query over one segment must not rent a copy buffer.");
+    }
+
+    /// <summary>Async record iteration rejects an unreadable stream before returning an iterator.</summary>
+    [TestMethod]
+    public void AsyncRecords_RejectUnreadableInputImmediately()
+    {
+        var layout = new CStruct("struct root { uint8 value; };");
+        var source = new MemoryStream();
+        source.Dispose();
+
+        // The argument contract is checked by the call itself, not delayed until MoveNextAsync.
+        ArgumentException failure = Assert.Throws<ArgumentException>(() => layout.ParseManyAsync(source, "root"));
+        Assert.AreEqual("stream", failure.ParamName);
+        StringAssert.StartsWith(failure.Message, "Reading requires a readable stream.");
+    }
+
     /// <summary>Each synchronous sequence operation owns its temporary copy only until the operation returns or throws.</summary>
     /// <param name="operation">The sequence entrypoint to exercise.</param>
     /// <param name="invalidPath">Whether the operation must fail after copying its input.</param>
