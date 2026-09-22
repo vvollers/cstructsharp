@@ -2605,6 +2605,291 @@
       "sourceSha256": "4d6252b82866f05d85e6f8333be119b8ec90d778917fb053ba455b70d1d5e3d0",
       "mutants": [
         {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitOffset < 0",
+          "location": {
+            "start": {
+              "line": 58,
+              "column": 13
+            },
+            "end": {
+              "line": 58,
+              "column": 39
+            }
+          },
+          "reason": "PrepareNestedStructStart is reached for cursorless root/composite fields or union views. Roots start with zero bit offset; union dispatch resets it before every view. Inline struct members with a parent cursor use AdvanceToField instead, and selected composites use their resolved entry point. Thus this helper never receives an unfinished bit unit. Both > 0 and < 0 are false."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {
+            "start": {
+              "line": 59,
+              "column": 9
+            },
+            "end": {
+              "line": 64,
+              "column": 10
+            }
+          },
+          "reason": "PrepareNestedStructStart is reached for cursorless root/composite fields or union views. Roots start with zero bit offset; union dispatch resets it before every view. Inline struct members with a parent cursor use AdvanceToField instead, and selected composites use their resolved entry point. Thus this helper never receives an unfinished bit unit. Removing the unreachable unfinished-unit block changes no position or state."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitOffset < 0",
+          "location": {
+            "start": {
+              "line": 375,
+              "column": 29
+            },
+            "end": {
+              "line": 375,
+              "column": 55
+            }
+          },
+          "reason": "In legacy dispatch, union members reset the bit offset to zero and roots start at zero. Only selected bitfields may seed a positive offset, and those have BitSize > 0, making the following BitSize == 0 condition false. Offsets are never negative, so changing > 0 to < 0 preserves this inactive guard."
+        },
+        {
+          "mutatorName": "Arithmetic mutation",
+          "replacement": "(compiledField.BitStorageSize ??\n                                     throw new InvalidOperationException(\n                                         \"Compiled bitfield has no storage size: \" + compiledField.Name)) / 8",
+          "location": {
+            "start": {
+              "line": 648,
+              "column": 37
+            },
+            "end": {
+              "line": 650,
+              "column": 110
+            }
+          },
+          "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. bitCapacity is used only by the short-circuited startsNewStorageUnit test, while the actual read size is assigned directly from BitStorageSize below. Division instead of multiplication changes no consumed bytes or result."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 650,
+              "column": 42
+            },
+            "end": {
+              "line": 650,
+              "column": 83
+            }
+          },
+          "reason": "This diagnostic is reached only for a positive-width bitfield with absent BitStorageSize. Layout compilation validates integral/enum backing storage and installs that size on every positive-width field; selected views preserve it, and zero-width fields exit before this branch. Missing storage cannot reach this private decoder."
+        },
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?0\n:state.CurrentBitfieldSize)",
+          "location": {
+            "start": {
+              "line": 651,
+              "column": 54
+            },
+            "end": {
+              "line": 653,
+              "column": 85
+            }
+          },
+          "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. activeUnitSize is a side-effect-free local used only after CurrentBitOffset > 0, which is false. Changing its selected value cannot affect state or I/O."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?0\n:state.CurrentBitfieldSize)",
+          "location": {
+            "start": {
+              "line": 651,
+              "column": 54
+            },
+            "end": {
+              "line": 653,
+              "column": 85
+            }
+          },
+          "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. activeUnitSize is a side-effect-free local used only after CurrentBitOffset > 0, which is false. Changing its selected value cannot affect state or I/O."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitfieldType is not null",
+          "location": {
+            "start": {
+              "line": 651,
+              "column": 54
+            },
+            "end": {
+              "line": 651,
+              "column": 87
+            }
+          },
+          "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. activeUnitSize is a side-effect-free local used only after CurrentBitOffset > 0, which is false. Changing its selected value cannot affect state or I/O."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitOffset < 0",
+          "location": {
+            "start": {
+              "line": 657,
+              "column": 61
+            },
+            "end": {
+              "line": 657,
+              "column": 87
+            }
+          },
+          "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. CurrentBitOffset is exactly zero here, so both > 0 and < 0 are false."
+        },
+        {
+          "mutatorName": "Logical mutation",
+          "replacement": "activeUnitSize != bitCapacity / 8 &&\n                                                            state.CurrentBitOffset + compiledField.BitSize > bitCapacity",
+          "location": {
+            "start": {
+              "line": 658,
+              "column": 61
+            },
+            "end": {
+              "line": 659,
+              "column": 121
+            }
+          },
+          "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. CurrentBitOffset > 0 is false, so this changed subexpression of startsNewStorageUnit is never evaluated."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "activeUnitSize == bitCapacity / 8",
+          "location": {
+            "start": {
+              "line": 658,
+              "column": 61
+            },
+            "end": {
+              "line": 658,
+              "column": 94
+            }
+          },
+          "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. CurrentBitOffset > 0 is false, so this changed subexpression of startsNewStorageUnit is never evaluated."
+        },
+        {
+          "mutatorName": "Arithmetic mutation",
+          "replacement": "bitCapacity * 8",
+          "location": {
+            "start": {
+              "line": 658,
+              "column": 79
+            },
+            "end": {
+              "line": 658,
+              "column": 94
+            }
+          },
+          "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. CurrentBitOffset > 0 is false, so this changed subexpression of startsNewStorageUnit is never evaluated."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitOffset + compiledField.BitSize < bitCapacity",
+          "location": {
+            "start": {
+              "line": 659,
+              "column": 61
+            },
+            "end": {
+              "line": 659,
+              "column": 121
+            }
+          },
+          "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. CurrentBitOffset > 0 is false, so this changed subexpression of startsNewStorageUnit is never evaluated."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitOffset + compiledField.BitSize >= bitCapacity",
+          "location": {
+            "start": {
+              "line": 659,
+              "column": 61
+            },
+            "end": {
+              "line": 659,
+              "column": 121
+            }
+          },
+          "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. CurrentBitOffset > 0 is false, so this changed subexpression of startsNewStorageUnit is never evaluated."
+        },
+        {
+          "mutatorName": "Arithmetic mutation",
+          "replacement": "state.CurrentBitOffset - compiledField.BitSize",
+          "location": {
+            "start": {
+              "line": 659,
+              "column": 61
+            },
+            "end": {
+              "line": 659,
+              "column": 107
+            }
+          },
+          "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. CurrentBitOffset > 0 is false, so this changed subexpression of startsNewStorageUnit is never evaluated."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 672,
+              "column": 69
+            },
+            "end": {
+              "line": 672,
+              "column": 110
+            }
+          },
+          "reason": "This diagnostic is reached only for a positive-width bitfield with absent BitStorageSize. Layout compilation validates integral/enum backing storage and installs that size on every positive-width field; selected views preserve it, and zero-width fields exit before this branch. Missing storage cannot reach this private decoder."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "structAlignment == state.CurrentFieldAlignment",
+          "location": {
+            "start": {
+              "line": 685,
+              "column": 37
+            },
+            "end": {
+              "line": 685,
+              "column": 83
+            }
+          },
+          "reason": "This alignment block requires legacy placement, no union address and no resolved-target position. It therefore handles a fresh root field, with zero bit offset; normal struct fields use a cursor, union views fail the outer guard and selected bitfields are resolved targets. The unfinished-unit condition remains false with this mutation."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "state.CurrentBitOffset < 0",
+          "location": {
+            "start": {
+              "line": 685,
+              "column": 87
+            },
+            "end": {
+              "line": 685,
+              "column": 113
+            }
+          },
+          "reason": "This alignment block requires legacy placement, no union address and no resolved-target position. It therefore handles a fresh root field, with zero bit offset; normal struct fields use a cursor, union views fail the outer guard and selected bitfields are resolved targets. The unfinished-unit condition remains false with this mutation."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "false",
+          "location": {
+            "start": {
+              "line": 710,
+              "column": 174
+            },
+            "end": {
+              "line": 710,
+              "column": 178
+            }
+          },
+          "reason": "windowedUnit requires a positive-width bitfield. Compilation supplies a non-null BitStorageIsLittleEndian for every validated integral/enum bitfield, including packed SysV windows and selected views. The null-coalescing fallback is unreachable; changing its default boolean does not change the actual stored byte order."
+        },
+        {
           "mutatorName": "Remove checked expression",
           "replacement": "(compiledField.BitStorageSize ??\n                                     throw new InvalidOperationException(\n                                         \"Compiled bitfield has no storage size: \" + compiledField.Name)) * 8",
           "location": {
