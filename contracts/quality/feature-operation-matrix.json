@@ -2479,6 +2479,18 @@
           "operations": ["serialize", "write"]
         },
         {
+          "test": "tests/CStructSharpTests/ReaderPaddingLimitTests.cs#PaddingArray_RespectsElementLimit",
+          "operations": ["parse"]
+        },
+        {
+          "test": "tests/CStructSharpTests/ReaderPaddingLimitTests.cs#DebugPadding_IsNotAResultMember",
+          "operations": ["debug"]
+        },
+        {
+          "test": "tests/CStructSharpTests/ReaderPaddingLimitTests.cs#UnionPadding_IsNotAMemberView",
+          "operations": ["parse", "debug"]
+        },
+        {
           "test": "tests/CStructSharpTests/StaticWritePlanTests.cs#UnnamedPadding_UsesGeneralWritesAndRetainsStaticReads",
           "operations": ["serialize", "write"]
         },

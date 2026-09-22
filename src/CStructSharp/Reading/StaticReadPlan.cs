@@ -26,12 +26,13 @@ internal sealed class StaticReadPlan
     /// <param name="size">The complete composite storage size in bytes.</param>
     /// <param name="operations">Named field reads at offsets relative to the composite start.</param>
     /// <param name="hasUnnamedPadding">Whether omitted padding needs explicit zero writes and budget checks.</param>
-    public StaticReadPlan(int size, StaticReadOperation[] operations, bool hasUnnamedPadding)
+    /// <param name="maximumPaddingArrayCount">The largest omitted padding array's total element count, or zero.</param>
+    public StaticReadPlan(int size, StaticReadOperation[] operations, bool hasUnnamedPadding, int maximumPaddingArrayCount)
     {
         this.Size = size;
         this.Operations = operations;
         int depth = 1;
-        int arrayCount = 0;
+        int arrayCount = maximumPaddingArrayCount;
         bool supportsWrite = !hasUnnamedPadding;
         long charged = 0;
         long chargedAligned = 0;
@@ -96,10 +97,10 @@ internal sealed class StaticReadPlan
     /// <summary>The end of the last member; an aligned layout's writer zero-fills from here to <see cref="Size"/>.</summary>
     public int TailStart { get; }
 
-    /// <summary>The bytes the general writer charges against <c>MaxTotalBytesWritten</c> for this composite in an unaligned layout.</summary>
+    /// <summary>For a write-enabled plan, the bytes charged against <c>MaxTotalBytesWritten</c> in an unaligned layout.</summary>
     public int ChargedFieldBytes { get; }
 
-    /// <summary>The same charge in an aligned layout, where every struct's tail padding is written as zeroes.</summary>
+    /// <summary>For a write-enabled plan, the aligned charge including each struct's zero-filled tail padding.</summary>
     public int ChargedAlignedBytes { get; }
 
     /// <summary>Structure levels the plan enters, itself included - checked against the nesting limit before any byte is consumed.</summary>
@@ -132,8 +133,9 @@ internal sealed class StaticReadPlan
 
         var operations = new List<StaticReadOperation>();
         bool hasUnnamedPadding = false;
-        return TryAppend(composite, composite.Shape, 0, operations, 0, ref hasUnnamedPadding)
-            ? new StaticReadPlan(size, operations.ToArray(), hasUnnamedPadding)
+        int maximumPaddingArrayCount = 0;
+        return TryAppend(composite, composite.Shape, 0, operations, 0, ref hasUnnamedPadding, ref maximumPaddingArrayCount)
+            ? new StaticReadPlan(size, operations.ToArray(), hasUnnamedPadding, maximumPaddingArrayCount)
             : null;
     }
 
@@ -144,8 +146,9 @@ internal sealed class StaticReadPlan
     /// <param name="operations">The operation list extended on success; discarded by callers on failure.</param>
     /// <param name="depth">The number of enclosing composite levels.</param>
     /// <param name="hasUnnamedPadding">Set when this flattened operation list omits explicit padding.</param>
+    /// <param name="maximumPaddingArrayCount">Tracks array limits for omitted storage in this flattened operation list.</param>
     /// <returns>Whether every field can be read through a fixed operation.</returns>
-    private static bool TryAppend(CompiledCompositeType composite, StructShape shape, int baseOffset, List<StaticReadOperation> operations, int depth, ref bool hasUnnamedPadding)
+    private static bool TryAppend(CompiledCompositeType composite, StructShape shape, int baseOffset, List<StaticReadOperation> operations, int depth, ref bool hasUnnamedPadding, ref int maximumPaddingArrayCount)
     {
         if (depth > 64 || composite.HasDirectConditionalFields)
         {
@@ -166,6 +169,12 @@ internal sealed class StaticReadPlan
                 // An unnamed padding field has a fixed offset and size but no slot to fill; the plan reads by
                 // absolute offset, so it needs no read operation. The writer must still zero and charge this storage.
                 hasUnnamedPadding = true;
+                if (field.Array.Kind != CompiledArrayKind.Scalar)
+                {
+                    // Skipping result construction must not bypass the general reader's array-element limit.
+                    maximumPaddingArrayCount = System.Math.Max(maximumPaddingArrayCount, field.Array.TotalFixedElementCount ?? 0);
+                }
+
                 continue;
             }
 
@@ -174,7 +183,7 @@ internal sealed class StaticReadPlan
             {
                 // An anonymous promoted member reads its fields into the parent's own slots.
                 if (field.Type.Symbol.Definition is not CompiledCompositeType promoted || promoted.Symbol.Declaration is Struct { IsUnion: true } ||
-                    !TryAppend(promoted, shape, absoluteOffset, operations, depth + 1, ref hasUnnamedPadding))
+                    !TryAppend(promoted, shape, absoluteOffset, operations, depth + 1, ref hasUnnamedPadding, ref maximumPaddingArrayCount))
                 {
                     return false;
                 }
@@ -199,12 +208,13 @@ internal sealed class StaticReadPlan
 
                     var nestedOperations = new List<StaticReadOperation>();
                     bool nestedHasUnnamedPadding = false;
-                    if (!TryAppend(nested, nested.Shape, 0, nestedOperations, depth + 1, ref nestedHasUnnamedPadding))
+                    int nestedMaximumPaddingArrayCount = 0;
+                    if (!TryAppend(nested, nested.Shape, 0, nestedOperations, depth + 1, ref nestedHasUnnamedPadding, ref nestedMaximumPaddingArrayCount))
                     {
                         return false;
                     }
 
-                    var nestedPlan = new StaticReadPlan(nestedSize, nestedOperations.ToArray(), nestedHasUnnamedPadding);
+                    var nestedPlan = new StaticReadPlan(nestedSize, nestedOperations.ToArray(), nestedHasUnnamedPadding, nestedMaximumPaddingArrayCount);
                     if (field.Array.Kind == CompiledArrayKind.Scalar)
                     {
                         operations.Add(new StaticReadOperation(StaticReadKind.Nested, slot, absoluteOffset, field, nestedDeclaration, nested, nestedPlan));

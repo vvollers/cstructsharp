@@ -86,6 +86,10 @@ pointer width and writes the null address. Struct or union targets, including po
 Writing into an existing buffer also replaces explicit `_` padding with zeroes. Fixed-size custom-codec padding
 uses its declared storage size without invoking the codec's value encoder. These bytes count toward write limits.
 This differs from implicit alignment gaps between fields, which a write into existing storage leaves unchanged.
+Read array-element limits also apply to unnamed padding arrays, even when a fixed-layout read skips constructing
+their values.
+Debug byte ranges can still describe padding, and a union retains these bytes in its raw storage without adding
+an unnamed member view.
 
 ### Anonymous promoted members
 

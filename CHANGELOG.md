@@ -11,6 +11,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - Zero explicit unnamed padding when writing existing buffers and runtime-sized records, including fixed-size
   custom-codec padding without invoking its value encoder. Preserve implicit alignment gaps and enforce padding write limits.
   Clarify the existing enum and non-composite pointer padding support with executable boundary tests.
+  Enforce padding-array read limits consistently in optimized, nested and promoted layouts.
+  Keep unnamed padding out of general-read results and union member views while retaining its raw bytes and debug ranges.
 - Preserve the field name and out-of-range value in conditional-expression diagnostics, including selected
   operands of `?:`, `&&`, and `||`.
 - Keep continued text definitions intact with Windows CRLF line endings, including bodies that start with an

@@ -65,6 +65,11 @@ public partial class CStruct
     }
 
     /// <summary>Reads one non-union struct through the shared compiled traversal and completes its storage extent.</summary>
+    /// <param name="composite">The compiled struct whose fields are read in declaration order.</param>
+    /// <param name="destination">The result, or its parent's result for an anonymous promoted struct.</param>
+    /// <param name="state">The input position, limits, variables and optional debug records.</param>
+    /// <param name="debugStack">The enclosing debug path, or null when no path is needed.</param>
+    /// <exception cref="CStructReadException">The input is truncated, invalid or exceeds a read limit.</exception>
     private void ReadCompiledStructInto(
         CompiledCompositeType composite,
         StructValue destination,
@@ -161,6 +166,9 @@ public partial class CStruct
         {
             state.ExitStructure();
         }
+
+        // General field decoding retains padding temporarily for array/text conversion and debug records only.
+        destination.Remove(string.Empty);
 
         // The cursor already tracks the position past any dangling bitfield unit's full reserved span - trust it
         // rather than state.Stream.Position, which a shared bitfield read may have rewound mid-unit for extraction.
@@ -326,6 +334,11 @@ public partial class CStruct
     /// <summary>
     ///     Reads every bounded interpretation of one union from the same address and retains its complete raw storage.
     /// </summary>
+    /// <param name="union">The compiled union whose named views share one storage window.</param>
+    /// <param name="state">The input position, read limits and debug records; parent variables are restored.</param>
+    /// <param name="debugStack">The enclosing debug path, or null for an ordinary read.</param>
+    /// <returns>The raw bytes and named member views, excluding unnamed padding.</returns>
+    /// <exception cref="CStructReadException">The union storage or a member view cannot be read within the limits.</exception>
     private UnionValue ReadUnionValue(
         CompiledCompositeType union,
         CStructOperationContext state,
@@ -379,6 +392,8 @@ public partial class CStruct
             state.CurrentBitfieldType = null;
         }
 
+        // Padding may contribute a debug record and occupies raw storage, but is never a decoded member view.
+        decodedMembers.Remove(string.Empty);
         IDictionary<string, object?> memberViews = decodedMembers;
         UnionValue result = UnionValue.FromParsed(union.Name, rawStorage, memberViews);
         if (state.Debug)
