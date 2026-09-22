@@ -1561,6 +1561,24 @@
       "sourceSha256": "74dc7e30a98926d4b4b495ceb7d667970682b66f12aa3a2ea8a9abb5b526fbdf",
       "mutants": [
         {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 668, "column": 25 },
+            "end": { "line": 668, "column": 67 }
+          },
+          "reason": "This branch handles a single fixed/runtime dimension: scalar, flexible, data-sized and multidimensional shapes have separate branches. CompileSingleArrayDimension stores the validated non-null dimension expression for both Fixed and Runtime. Peeling a multidimensional shape keeps the next CompiledArrayDimension.CountExpression; placement preserves the shape, and synthetic roots use the same compiler. All CompiledArrayShape construction sites preserve that invariant. The null fallback cannot execute, so changing only its diagnostic string has no effect on expression evaluation or user-visible failures."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "false",
+          "location": {
+            "start": { "line": 630, "column": 32 },
+            "end": { "line": 630, "column": 36 }
+          },
+          "reason": "Flexible is compiled only for non-pointer char/wchar arrays. This branch always selects cstring, string, string< or string> through SelectPointerTarget; each is recognized by IsVariableLengthType. In the original, hasFixedArrayDeclarator is false, unknownArray makes isArray true, and the immediately following terminated-codec condition sets isArray false. With this assignment changed to false, isArray starts false and stays false. Subsequent unknownArray reads occur only in the skipped isArray branch. Both versions write the same single terminated-string value through the unchanged selected codec."
+        },
+        {
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
@@ -3042,6 +3060,15 @@
       "pattern": "CStructReader.cs",
       "sourceSha256": "4d6252b82866f05d85e6f8333be119b8ec90d778917fb053ba455b70d1d5e3d0",
       "mutants": [
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 337, "column": 37 },
+            "end": { "line": 337, "column": 79 }
+          },
+          "reason": "The reader reaches this expression only for a single fixed/runtime dimension; scalar, data-sized, flexible and multidimensional shapes are handled separately. CompileSingleArrayDimension stores the validated non-null dimension expression for Fixed and Runtime. Peeled dimensions retain their CompiledArrayDimension.CountExpression, placement retains the shape, and synthetic roots use the same compiler. No production CompiledArrayShape construction creates a fixed/runtime shape without that expression. Therefore changing only the unreachable missing-expression diagnostic leaves evaluation, counts and failures unchanged."
+        },
         {
           "mutatorName": "String mutation",
           "replacement": "\"\"",
