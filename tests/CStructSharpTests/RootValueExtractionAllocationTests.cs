@@ -2,9 +2,10 @@ namespace CStructSharp.Tests;
 
 using System.Reflection;
 using CStructSharp.Compilation;
+using CStructSharp.Expressions;
 using CStructSharp.Values;
 
-/// <summary>Checks that value reads avoid unnecessary result wrappers and fallback enumeration.</summary>
+/// <summary>Checks that ordinary reads and parses avoid unnecessary wrappers, enumeration and debug records.</summary>
 [TestClass]
 [DoNotParallelize]
 public class RootValueExtractionAllocationTests
@@ -76,6 +77,48 @@ public class RootValueExtractionAllocationTests
         }
 
         Assert.IsTrue(valueBytes <= parseBytes, $"ReadValue allocated {valueBytes} bytes; Parse allocated {parseBytes}.");
+    }
+
+    /// <summary>Ordinary parsing avoids the extra records allocated only when debug byte ranges are requested.</summary>
+    /// <param name="path">A root or nested composite path.</param>
+    [TestMethod]
+    [DataRow("root")]
+    [DataRow("root.nested")]
+    public void OrdinaryParse_AvoidsDebugRecordAllocation(string path)
+    {
+        var layout = new CStruct("struct child { uint8 value; }; struct root { child nested; };");
+        using var ordinaryInput = new MemoryStream(new byte[] { 7, });
+        using var debugInput = new MemoryStream(new byte[] { 7, });
+        LayoutVariableInput variables = LayoutVariableInput.FromIntegers(null);
+
+        // Compare the two shared cores without including the public debug-result wrapper's allocation.
+        Func<object?> ordinary = () =>
+        {
+            ordinaryInput.Position = 0;
+            return layout.ParseStreamCore(ordinaryInput, path, variables, null);
+        };
+
+        // Return only the value so neither delegate boxes the debug tuple during measurement.
+        Func<object?> debug = () =>
+        {
+            debugInput.Position = 0;
+            return layout.ParseStreamWithDebugCore(debugInput, path, variables, null).Result;
+        };
+        for (int index = 0; index < 100; index++)
+        {
+            Assert.IsInstanceOfType<StructValue>(ordinary());
+            Assert.IsInstanceOfType<StructValue>(debug());
+        }
+
+        long ordinaryBytes = long.MaxValue;
+        long debugBytes = long.MaxValue;
+        for (int sample = 0; sample < 3; sample++)
+        {
+            ordinaryBytes = Math.Min(ordinaryBytes, Measure(ordinary));
+            debugBytes = Math.Min(debugBytes, Measure(debug));
+        }
+
+        Assert.IsTrue(ordinaryBytes < debugBytes, $"Ordinary parsing allocated {ordinaryBytes} bytes; debug parsing allocated {debugBytes}.");
     }
 
     /// <summary>Measures managed allocations on the current thread after delegate setup and warmup.</summary>
