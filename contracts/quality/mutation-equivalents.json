@@ -1078,6 +1078,24 @@
       "sourceSha256": "e9f21bf75824129bc4e8b5262eafe032f73f9ec6c16529b2d8bee34486cc75bd",
       "mutants": [
         {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?\"flag\" :\"enum\")",
+          "location": {
+            "start": { "line": 500, "column": 26 },
+            "end": { "line": 500, "column": 50 }
+          },
+          "reason": "The caller already recognized an enum/flag typedef. SkipKeyword does not compare the supplied spelling; it advances by keyword.Length and skips trivia. Both flag and enum are four characters, so always supplying flag moves the same cursor and encounters the same trivia/errors. The separately computed isFlag boolean is unchanged and still controls the resulting enum/flag declaration. No allocation, source offset, parsed member, type identity or runtime behavior changes."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?\"flag\" :\"enum\")",
+          "location": {
+            "start": { "line": 500, "column": 26 },
+            "end": { "line": 500, "column": 50 }
+          },
+          "reason": "SkipKeyword consumes a keyword already recognized by its caller and uses only the argument's length before SkipTrivia. Enum and flag both have length four; always supplying enum advances identically for either spelling. The local isFlag value is not mutated and is still passed to enum construction, so flag identity and values remain intact. All subsequent parsing, source offsets, failures and allocations are unchanged."
+        },
+        {
           "mutatorName": "Equality mutation",
           "replacement": "builder.Length >= 0",
           "location": {
