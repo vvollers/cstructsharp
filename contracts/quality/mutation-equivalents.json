@@ -1840,6 +1840,30 @@
       "sourceSha256": "74dc7e30a98926d4b4b495ceb7d667970682b66f12aa3a2ea8a9abb5b526fbdf",
       "mutants": [
         {
+          "mutatorName": "SubtractAssignmentExpression to AddAssignmentExpression mutation",
+          "replacement": "state.CurrentBitOffset += elementBitSize",
+          "location": { "start": { "line": 113, "column": 13 }, "end": { "line": 113, "column": 53 } },
+          "reason": "This assignment occurs after the storage bytes have been merged and written, only when a validated scalar bitfield has filled its unit. It changes the leftover offset from zero to twice the unit width, not the bytes or stream position. Ordinary struct traversal obtains the next field's offset from CompositeFieldPlacementCursor and overwrites CurrentBitOffset before decoding or encoding that field; separators explicitly reset it. A selected bitfield Write/Update or union-member staging writes one scalar field and discards that writer state. Bitfield arrays are rejected during compilation, so there is no second element using the leftover offset. Nested composites use their own placement cursor, and unions stage into fresh state. CompleteStructTailPadding uses cursor.Current rather than this leftover bit offset. No supported later operation consumes the changed value."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": { "start": { "line": 718, "column": 44 }, "end": { "line": 718, "column": 49 } },
+          "reason": "BitfieldUnitSeeded becomes true only in UpdateStreamCore when a resolved scalar bitfield's exact storage window is installed. The entered branch preserves that already resolved placement. After writing this one non-array integral field, UpdateStreamCore validates/commits its sparse output and discards the writer state; it does not dispatch another field through the seeded legacy branch. Ordinary struct cursors and fresh union staging never set the seed. Leaving it true therefore changes only discarded operation-local state, with no change to bytes, pointer traversal, cancellation or commit behavior."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "compiledField.BitSize >= 0",
+          "location": { "start": { "line": 780, "column": 17 }, "end": { "line": 780, "column": 42 } },
+          "reason": "Only non-bitfield cursor placements change branch. AdvanceToField returns bitOffset = 0 and unitSize = 0 for those fields, so CurrentBitOffset is still reset to zero; the difference is unused CurrentBitfieldType/CurrentBitfieldSize metadata. Primitive, pointer and enum non-bitfield writers do not read those members. Nested structs place every child through their own cursor, which installs each bitfield's real offset/type/unit before it is written; unions stage members in fresh state. The next ordinary parent field also uses its cursor. Selected-field and union legacy placement bypass this branch entirely. Thus no bitfield merge or layout decision can read the substituted non-bitfield metadata."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": { "start": { "line": 787, "column": 13 }, "end": { "line": 790, "column": 14 } },
+          "reason": "This block clears leftover bit offset/type only for a non-bitfield already positioned by the struct cursor. Its primitive, pointer or enum writer does not inspect those members. A nested struct uses its own cursor to install or clear placement before each child; union member writes use a newly constructed staging state. Subsequent parent fields similarly get fresh cursor placement, and separators explicitly reset the state. The only consumers that derive placement from a previous bit offset are in the legacy branch, used by a one-field selected write/update or fresh union staging, not by this multi-field cursor traversal. Tail completion uses the cursor's reserved end. Removing this clear therefore leaves only unconsumed operation-local bookkeeping; field bytes and physical stream operations are unchanged."
+        },
+        {
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": { "start": { "line": 287, "column": 21 }, "end": { "line": 287, "column": 27 } },
