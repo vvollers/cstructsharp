@@ -202,6 +202,51 @@
       "sourceSha256": "97d364232d87f56bae4c95f89fc15f09db4a40f3fc0bf599aca61f745fe05c07",
       "mutants": [
         {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 378,
+              "column": 54
+            },
+            "end": {
+              "line": 378,
+              "column": 99
+            }
+          },
+          "reason": "CreateOperatorInstruction is private and has exactly two call sites. BranchStage 2 frames are created only for a logical BinaryOp; EmitOperator frames are created only for UnaryOp or non-logical BinaryOp. Both type patterns are handled before the fallback, including their separate invalid-enum failures. Other syntax nodes never reach this helper. Changing only the no-operator fallback message is therefore unobservable."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 544,
+              "column": 65
+            },
+            "end": {
+              "line": 544,
+              "column": 102
+            }
+          },
+          "reason": "CompileExpression constructs every private Identifier instruction from Identifier.Name. Identifier's constructor dereferences its string argument before assigning the read-only Name, so a null argument cannot produce an instance. Pointer-star removal returns a non-null string, and Name cannot be overridden or reassigned. Private instruction arrays are not caller-supplied. The runtime null-name fallback cannot be reached; this exact diagnostic-only mutation does not change any lookup or failure."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 817,
+              "column": 65
+            },
+            "end": {
+              "line": 817,
+              "column": 102
+            }
+          },
+          "reason": "The CompiledExpression constructor receives only CompileExpression's private instruction array. Every Identifier instruction copies the non-null read-only Identifier.Name: the Identifier constructor dereferences its argument before assignment and its star-removal path also returns a non-null string. Caller data cannot construct or edit instructions. The null-name fallback while collecting unconditional references is unreachable, so changing only its message preserves behavior."
+        },
+        {
           "mutatorName": "Logical mutation",
           "replacement": "ExpressionOpcode.Identifier or ExpressionOpcode.Literal or\n                ExpressionOpcode.JumpIfFalse and ExpressionOpcode.JumpIfTrue",
           "location": {
