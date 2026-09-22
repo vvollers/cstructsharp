@@ -7,6 +7,29 @@ using CStructSharp.Values;
 [TestClass]
 public class RuntimeWriterBoundaryTests
 {
+    /// <summary>Selecting an unresolved integer definition identifies the definition being evaluated.</summary>
+    [TestMethod]
+    public void UnresolvedDefinitionWrite_IdentifiesTheDefinition()
+    {
+        var layout = new CStruct("#define COUNT missing\nstruct root { uint8 value; };");
+
+        // Unused definitions may remain unresolved, but selecting one must explain its evaluation context.
+        CStructWriteException failure = Assert.Throws<CStructWriteException>(() => layout.Serialize("COUNT", 0));
+        StringAssert.StartsWith(failure.Message, "Cannot evaluate definition COUNT:");
+        StringAssert.Contains(failure.Message, "missing");
+    }
+
+    /// <summary>A text definition is metadata, not writable binary storage.</summary>
+    [TestMethod]
+    public void TextDefinitionWrite_ExplainsUnsupportedStorage()
+    {
+        var layout = new CStruct("#define LABEL hello world\nstruct root { uint8 value; };");
+
+        // Text metadata has no binary codec and must not appear to serialize successfully.
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => layout.Serialize("LABEL", 0));
+        StringAssert.StartsWith(failure.Message, "Unsupported element type for writing: ConstantDefinition");
+    }
+
     /// <summary>A null composite is rejected before an empty shape or static plan can silently accept it.</summary>
     /// <param name="definition">An empty, fixed-size or union root declaration.</param>
     [TestMethod]

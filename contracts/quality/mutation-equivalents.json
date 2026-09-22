@@ -1801,6 +1801,15 @@
       "sourceSha256": "74dc7e30a98926d4b4b495ceb7d667970682b66f12aa3a2ea8a9abb5b526fbdf",
       "mutants": [
         {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": { "line": 168, "column": 21 },
+            "end": { "line": 168, "column": 76 }
+          },
+          "reason": "WriteCStructElement has only two callers, the complete-root Write and Update branches, both selecting a declaration through CompiledModelQueries. LayoutParser.TryParseTopLevel publishes structs/unions, typedefs, enums and preprocessor metadata, never an ordinary Field; a trailing object name after a top-level composite is consumed but not published. Hoisted/tagged composites remain Struct instances, handled by the earlier switch case. Synthetic spelling roots explicitly wrap their parsed field in a Typedef before registration. Nested and selected fields instead enter WriteFieldValue with their compiled descriptor. Therefore no ordinary Field reaches this root-only defensive exception, and changing its prefix cannot change a supported operation. ConstantDefinition can reach the separate default diagnostic, which is reachable and deliberately not covered by this proof."
+        },
+        {
           "mutatorName": "Logical mutation",
           "replacement": "rootData is not null || !WriteDataBinding.IsMemberSource(rootData)",
           "location": {
