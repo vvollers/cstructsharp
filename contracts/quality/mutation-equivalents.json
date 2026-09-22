@@ -1117,6 +1117,51 @@
       "sourceSha256": "a7fe1f75bac8550fff2889139121cd70845aed88c0263ab7685ad0d5851bcece",
       "mutants": [
         {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?address :context.PointerStorageAddress)",
+          "location": {
+            "start": {
+              "line": 567,
+              "column": 13
+            },
+            "end": {
+              "line": 567,
+              "column": 85
+            }
+          },
+          "reason": "This changes only the PointerStorageAddress argument of the internal ResolvedTarget created for a field. No consumer reads ResolvedTarget.PointerStorageAddress: reads and writes use Address, pointer kind/depth and target coordinates, while TargetResolutionContext carries its own separate pointer storage location during traversal. Both conditional arms are side-effect-free values. ResolvedTarget is not exposed by a public operation, so this exact change to unused metadata cannot change an operation result, stream position or failure."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "resolvedField.PointerDepth < 0",
+          "location": {
+            "start": {
+              "line": 567,
+              "column": 13
+            },
+            "end": {
+              "line": 567,
+              "column": 43
+            }
+          },
+          "reason": "This changes only the PointerStorageAddress argument of the internal ResolvedTarget created for a field. No consumer reads ResolvedTarget.PointerStorageAddress: reads and writes use Address, pointer kind/depth and target coordinates, while TargetResolutionContext carries its own separate pointer storage location during traversal. Both conditional arms are side-effect-free values. ResolvedTarget is not exposed by a public operation, so this exact change to unused metadata cannot change an operation result, stream position or failure."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "resolvedField.PointerDepth >= 0",
+          "location": {
+            "start": {
+              "line": 567,
+              "column": 13
+            },
+            "end": {
+              "line": 567,
+              "column": 43
+            }
+          },
+          "reason": "This changes only the PointerStorageAddress argument of the internal ResolvedTarget created for a field. No consumer reads ResolvedTarget.PointerStorageAddress: reads and writes use Address, pointer kind/depth and target coordinates, while TargetResolutionContext carries its own separate pointer storage location during traversal. Both conditional arms are side-effect-free values. ResolvedTarget is not exposed by a public operation, so this exact change to unused metadata cannot change an operation result, stream position or failure."
+        },
+        {
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
