@@ -16,5 +16,6 @@
   "quality/compiler-fixtures/shapes.json",
   "quality/coverage-population.json",
   "quality/feature-operation-matrix.json",
-  "quality/mutation-non-mutable.json"
+  "quality/mutation-non-mutable.json",
+  "quality/mutation-equivalents.json"
 ]

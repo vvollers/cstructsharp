@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "strykerVersion": "5.0.0",
+  "files": [
+    {
+      "pattern": "MappedTypes.cs",
+      "sourceSha256": "3cb2a60201057fe2618db0fa17da7a47949a1ff6ab44e6b35485b4160eb398f5",
+      "mutants": [
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "Array.IndexOf(names, propertyName) > 0",
+          "location": { "start": { "line": 50, "column": 13 }, "end": { "line": 50, "column": 52 } },
+          "reason": "Skipping the exact-match fast return for index zero preserves the returned name: the following case-insensitive search returns that same spelling for one match, or propertyName for multiple matches. The public contract promises the spelling, not string reference identity or a particular number of comparisons."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": { "start": { "line": 51, "column": 9 }, "end": { "line": 53, "column": 10 } },
+          "reason": "Removing the exact-match fast return preserves the returned name: no exact match already uses the later search; one case-insensitive match returns the exact spelling; multiple case-insensitive matches return propertyName, which is the exact spelling. Only comparison work and equal-string reference identity can differ, neither of which is this method's result contract."
+        }
+      ]
+    }
+  ]
+}

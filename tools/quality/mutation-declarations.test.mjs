@@ -24,7 +24,8 @@ function fixture(t) {
   for (const pattern of config.mutate) {
     const source = mutationSource(pattern);
     files[source] = { source: fs.readFileSync(path.join(repositoryRoot, source), "utf8"),
-      mutants: source === declaration ? [] : [{ id: source, status: "Killed", killedBy: ["assertion"] }] };
+      mutants: source === declaration ? [] : [{ id: source, status: "Killed", killedBy: ["assertion"],
+        mutatorName: "Test mutation", replacement: "false", location: { start: { line: 1, column: 0 }, end: { line: 1, column: 1 } } }] };
   }
   return { root, config, declaration, report: { schemaVersion: "2", thresholds: { high: 75, low: 75 }, files,
     testFiles: { "tests/CStructSharpTests/test.cs": { tests: [{ id: "assertion", name: "BehaviorAssertion" }] } } } };
@@ -46,6 +47,28 @@ test("a complete report explicitly accounts for the exact non-mutable declaratio
   assert.match(result.output, /70\/70 detected/);
   assert.match(result.output, /71 configured files; 1 reviewed non-mutable declarations/);
   assert.match(result.output, /Not applicable .*Values\/ReadAttempt.cs/);
+});
+
+// Equivalent survivors remain visible and lower the raw score instead of being relabeled as killed or ignored.
+test("the real gate reports reviewed equivalent survivors with an unchanged raw denominator", (t) => {
+  const f = fixture(t);
+  const policy = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "contracts/quality/mutation-equivalents.json"), "utf8"));
+  const reviewed = policy.files.find((file) => file.pattern === "MappedTypes.cs").mutants[0];
+  f.report.files["src/CStructSharp/MappedTypes.cs"].mutants.push({ ...reviewed, id: "equivalent", status: "Survived" });
+  const result = validate(f);
+  assert.equal(result.status, 0, result.output);
+  assert.match(result.output, /70\/71 detected \(98.59%\)/);
+  assert.match(result.output, /1 survived/);
+  assert.match(result.output, /Reviewed equivalent survivors: 1/);
+  f.report.files["src/CStructSharp/MappedTypes.cs"].mutants[1].replacement = "false";
+  assert.match(validate(f).output, /1 surviving mutants without reviewed equivalence/);
+});
+
+// An otherwise passing report cannot hide an unfinished mutation alongside completed ones.
+test("the canonical gate rejects incomplete outcomes even in a measured file", (t) => {
+  const f = fixture(t);
+  f.report.files["src/CStructSharp/CStruct.cs"].mutants.push({ id: "unfinished", status: "NotRun" });
+  assert.match(validate(f).output, /Incomplete or unknown mutation status/);
 });
 
 // Missing/duplicated sources cannot be treated as a declaration with no mutation opportunities.

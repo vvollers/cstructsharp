@@ -126,7 +126,9 @@ test("a complete but low-scoring report fails the unchanged canonical gate", (t)
   const plan = planMutationPartitions(repositoryRoot, config);
   const files = {};
   for (const partition of plan) {
-    for (const file of partition.files) files[file.source] = { source: "test fixture", mutants: [{ id: file.source, status: "Survived" }] };
+    for (const file of partition.files) files[file.source] = { source: fs.readFileSync(path.join(repositoryRoot, file.source), "utf8"),
+      mutants: [{ id: file.source, status: "Survived", mutatorName: "Test mutation", replacement: "false",
+        location: { start: { line: 1, column: 0 }, end: { line: 1, column: 1 } } }] };
   }
   const reportPath = path.join(f.root, "low-score.json");
   fs.writeFileSync(reportPath, JSON.stringify({ schemaVersion: "2", thresholds: { high: 75, low: 75 }, files,

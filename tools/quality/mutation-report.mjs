@@ -2,7 +2,7 @@
 /**
  * Validates the permanent mutation gate: the Stryker configuration (project, thresholds, the 71-file allowlist)
  * and a JSON report against it (every configured file measured or explicitly qualified as non-mutable,
- * no surviving/uncovered/runtime-error mutants,
+ * no unexplained surviving/uncovered/runtime-error mutants,
  * score at or above 75 %).
  *
  *   node tools/quality/mutation-report.mjs --report-path <mutation-report.json> [--config-path stryker-config.json]
@@ -12,7 +12,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { assertCondition, main, parseArguments, repositoryRoot } from "../lib/tooling.mjs";
 import { loadNonMutableDeclarations, qualifyNonMutableDeclaration } from "../lib/mutation-declarations.mjs";
-import { requireCoreMutationTests } from "../lib/mutation-partitions.mjs";
+import { requireCompletedMutants, requireCoreMutationTests } from "../lib/mutation-partitions.mjs";
+import { loadEquivalentMutations, qualifyEquivalentMutations } from "../lib/mutation-equivalents.mjs";
 
 const options = parseArguments(process.argv.slice(2), { "config-path": "string", "report-path": "string" }, {
   defaults: { "config-path": path.join(repositoryRoot, "stryker-config.json") },
@@ -50,6 +51,8 @@ await main(() => {
   assertCondition(configuredFiles.includes("**/CStructSharp.Core/Parsing/LayoutParser.cs"), "The layout parser must remain in the permanent mutation allowlist.");
   const nonMutableDeclarations = loadNonMutableDeclarations(repositoryRoot, configuredFiles);
   const qualifiedDeclarations = [];
+  const equivalentMutations = loadEquivalentMutations(repositoryRoot, configuredFiles);
+  const qualifiedEquivalents = [];
 
   assertCondition(String(report.schemaVersion) === "2", `Unsupported Stryker report schema '${report.schemaVersion}'.`);
   assertCondition(Number(report.thresholds.high) === 75 && Number(report.thresholds.low) === 75, "The report was not produced with the final 75% mutation thresholds.");
@@ -69,6 +72,7 @@ await main(() => {
   const reportFiles = Object.entries(report.files ?? {}).map(([name, value]) => [name.replaceAll("\\", "/"), value]);
   for (const [reportFile, value] of reportFiles) {
     const mutants = value.mutants ?? [];
+    requireCompletedMutants(mutants);
     allMutants.push(...mutants);
     if (validCountOf(mutants) === 0) continue;
     const matches = configuredFiles.filter((file) => reportFile.toLowerCase().endsWith(suffixOf(file)));
@@ -78,6 +82,7 @@ await main(() => {
     const suffix = suffixOf(configuredFile);
     const matching = reportFiles.filter(([name]) => name.toLowerCase().endsWith(suffix));
     assertCondition(matching.length === 1, `The report is missing configured file '${configuredFile}'.`);
+    qualifiedEquivalents.push(...qualifyEquivalentMutations(equivalentMutations, configuredFile, matching[0][1]));
     if (validCountOf(matching[0][1].mutants ?? []) === 0) {
       assertCondition(qualifyNonMutableDeclaration(nonMutableDeclarations, configuredFile, matching[0][1]), `Configured semantic file '${configuredFile}' produced no valid mutants.`);
       qualifiedDeclarations.push(configuredFile);
@@ -97,7 +102,7 @@ await main(() => {
   const score = (100 * detected) / valid;
   const scoreText = score.toFixed(2);
   assertCondition(score >= 75, `Permanent mutation score ${scoreText}% is below the 75% release gate.`);
-  assertCondition(survived === 0, `The final report contains ${survived} surviving mutants.`);
+  assertCondition(survived === qualifiedEquivalents.length, `The final report contains ${survived - qualifiedEquivalents.length} surviving mutants without reviewed equivalence (${qualifiedEquivalents.length} individually reviewed).`);
   assertCondition(noCoverage === 0, `The final report contains ${noCoverage} uncovered mutants.`);
   assertCondition(runtimeErrors === 0, `The final report contains ${runtimeErrors} runtime-error mutants.`);
 
@@ -106,4 +111,6 @@ await main(() => {
     `Permanent mutation gate passed: ${detected}/${valid} detected (${scoreText}%), ${killed} killed, ${timedOut} timed out, ${survived} survived, ${noCoverage} uncovered, ${runtimeErrors} runtime errors; ${compileErrors} compile errors, ${ignored} ignored; ${testCount} tests; 71 configured files; ${qualifiedDeclarations.length} reviewed non-mutable declarations; SHA-256 ${hash}.`,
   );
   for (const declaration of qualifiedDeclarations) console.log(`Not applicable (no mutation opportunities): ${declaration}: ${nonMutableDeclarations.get(declaration).reason}`);
+  console.log(`Reviewed equivalent survivors: ${qualifiedEquivalents.length}; retained in the raw score denominator, never counted as detected.`);
+  for (const mutant of qualifiedEquivalents) console.log(`Equivalent survivor: ${mutant.pattern} [${mutant.id}]: ${mutant.reason}`);
 });

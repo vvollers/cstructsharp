@@ -96,7 +96,7 @@ node tools/quality/mutation-partitions.mjs --mode aggregate --input-directory ar
 Aggregation requires every partition, the same source revision and configuration, matching report hashes and
 source text, complete mutation outcomes, and valid references to killing/covering tests. It gives test and mutant
 identifiers a partition prefix so independently numbered reports cannot collide. The original full-scope validator
-then enforces all 71 files, the 75% score floor and zero surviving/uncovered/runtime-error mutations. Missing reports
+then enforces all 71 files, the raw 75% score floor and zero unexplained surviving/uncovered/runtime-error mutations. Missing reports
 fail; compile errors remain compile errors. Raw JSON/HTML reports and Stryker trace logs are retained even when a
 partition fails. A job timeout cannot be counted as a completed report.
 
@@ -106,7 +106,22 @@ version and reason. `ReadAttempt<T>` is such a positional record. It stays in th
 exactly once with its current source and an explicitly empty mutation array. The validator reports it as
 **not applicable**, not as killed or successfully mutation-tested. A missing source/report, changed declaration,
 tool-version change, or ignored/compiler-rejected mutations cannot use this qualification. Review changed code
-before updating the policy; executable code still requires valid mutations. Score and survivor rules are unchanged.
+before updating the policy; executable code still requires valid mutations. This declaration qualification does
+not alter the raw score or classify any survivor.
+
+Some generated mutations preserve the documented result for every supported input. These **equivalent mutations**
+are different from a declaration with no mutation opportunities. Each reviewed case in
+`contracts/quality/mutation-equivalents.json` identifies an exact source hash, Stryker version, mutation operator,
+source span, replacement and explanation. For example, skipping an exact-name fast path can still return the same
+name through the following case-insensitive search. Do not invent string-reference identity requirements to test
+a method that promises only a name's spelling.
+
+The validator reports individually qualified equivalent survivors separately. Their Stryker status remains
+`Survived`: they stay in the raw score's denominator and are never counted as killed, timed out or ignored.
+Every unexplained survivor still fails, as do uncovered and runtime-error mutations. A source/tool change requires
+review again; a similar mutation at another location cannot borrow a proof. Ordinary test gaps, missing reports,
+resource leaks and changed externally visible behavior are not equivalence. Keep the complete scope and raw 75%
+minimum even when all remaining survivors have individual proofs.
 
 Each mutation step has a 180-minute limit within a 195-minute job budget. The remaining allowance covers normal
 setup and diagnostic uploads after a step times out; it does not turn a timeout into successful evidence.
