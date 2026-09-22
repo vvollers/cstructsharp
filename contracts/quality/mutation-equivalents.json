@@ -1078,6 +1078,15 @@
       "sourceSha256": "e9f21bf75824129bc4e8b5262eafe032f73f9ec6c16529b2d8bee34486cc75bd",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 791, "column": 13 },
+            "end": { "line": 791, "column": 39 }
+          },
+          "reason": "This SkipInactiveBranch call follows popping the innermost conditional at #endif. Every conditional actually pushed by ParsePreprocessorLine has active ancestors: an inactive branch is scanned by SkipInactiveBranch, which counts nested directives locally without pushing them and returns only at that branch's own #else/#endif. After the pop, the stack is therefore empty or its new innermost entry is active. SkipInactiveBranch immediately returns for both states, without touching the cursor or diagnostics. Unmatched #endif throws before the pop/call. Removing this specific no-op call cannot expose skipped content or alter malformed-input handling."
+        },
+        {
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?\"flag\" :\"enum\")",
           "location": {
