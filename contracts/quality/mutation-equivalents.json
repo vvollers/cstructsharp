@@ -788,21 +788,27 @@
             }
           },
           "reason": "Removing the cache-hit return reparses the identical immutable string with the same deterministic ParseUncached routine. Production consumers use only names and index values, never segment-array identity, and do not mutate the cached arrays. Cache hits can only exist for previously valid strings; null and invalid input follow the unchanged validation path. Only parsing/allocation work differs."
-        },
+        }
+      ]
+    },
+    {
+      "pattern": "CStruct.cs",
+      "sourceSha256": "e495d8356e97358f3226ded2e12887ed56dfae2bfe5e7ad960eb9d7b22bff488",
+      "mutants": [
         {
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
             "start": {
-              "line": 29,
+              "line": 259,
               "column": 13
             },
             "end": {
-              "line": 29,
-              "column": 43
+              "line": 259,
+              "column": 76
             }
           },
-          "reason": "Removing TryAdd leaves the deterministic parsed segments as the returned result and cannot change validation errors. Future calls may reparse instead of hitting the exact-string cache. Production consumers do not inspect segment-array identity or mutate cached data; this is a cache population optimization, not part of the path result contract."
+          "reason": "WithCustomCodecs has already installed every validated unique descriptor name and its exact CompiledTypeReference in catalog.Symbols. BuildCompiledLayout starts by copying catalog.Symbols; its only use of customSymbols is to assign those same key/reference pairs again. Removing this dictionary Add therefore skips a redundant override, not codec registration. The runtime customSymbols field has no subsequent readers; codec adapters are independently retained in BuildCodecTable and all symbol resolution still uses the complete catalog/model."
         }
       ]
     }

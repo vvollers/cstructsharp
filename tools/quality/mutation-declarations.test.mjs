@@ -100,9 +100,11 @@ test("qualification rejects stale source and any nonempty or missing mutation ar
 // Ordinary semantic files still need valid mutants, and surviving behavior fails even above the score floor.
 test("ordinary empty reports, low scores and survivors retain their original failures", (t) => {
   const f = fixture(t);
+  const unreviewed = f.report.files["src/CStructSharp/CStruct.cs"].mutants[0];
   f.report.files["src/CStructSharp/CStruct.cs"].mutants = [];
   assert.match(validate(f).output, /produced no valid mutants/);
-  f.report.files["src/CStructSharp/CStruct.cs"].mutants = [{ id: "one", status: "Survived" }];
+  // Keep a complete, deliberately unreviewed identity even when this file gains unrelated exact proofs.
+  f.report.files["src/CStructSharp/CStruct.cs"].mutants = [{ ...unreviewed, id: "one", status: "Survived", killedBy: [] }];
   assert.match(validate(f).output, /1 surviving mutants/);
   for (const file of Object.values(f.report.files)) {
     for (const mutant of file.mutants) mutant.status = "Survived";
