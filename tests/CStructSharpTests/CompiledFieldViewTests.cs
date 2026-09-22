@@ -78,21 +78,40 @@ public class CompiledFieldViewTests
         Assert.IsTrue(root.PromotedFields.Single().IsPromotedComposite);
     }
 
-    /// <summary>A compact custom codec descriptor clamps its size byte without losing the full fixed element size.</summary>
+    /// <summary>Custom values retain their full size, while pointer levels defer the custom codec until the final target.</summary>
     [TestMethod]
     public void LargeCustomCodec_KeepsFullSizeOutsideTheCompactDescriptor()
     {
         var layout = new CStruct(
-            "struct root { fixed_block value; fixed_block *pointer; };",
+            "struct root { fixed_block value; fixed_block **pointer; };",
             pointerSize: 4,
             compilationOptions: new CStructCompilationOptions { Codecs = [new MetadataCodec(),], });
         CompiledField value = Field(layout, "value");
         Assert.AreEqual(PrimitiveCodecKind.Custom, value.Codec.Kind);
         Assert.AreEqual(byte.MaxValue, value.Codec.Size);
         Assert.AreEqual(512, value.FixedElementSize);
-        CompiledField target = Field(layout, "pointer").SelectPointerTarget(0, null, 4);
+        CompiledField pointer = Field(layout, "pointer");
+        Assert.AreEqual(PrimitiveCodecKind.None, pointer.Codec.Kind);
+        CompiledField middle = pointer.SelectPointerTarget(1, null, 4);
+        Assert.AreEqual(PrimitiveCodecKind.None, middle.Codec.Kind);
+        Assert.AreEqual(4, middle.FixedElementSize);
+        CompiledField target = middle.SelectPointerTarget(0, null, 4);
         Assert.AreEqual(value.Codec, target.Codec);
         Assert.AreEqual(512, target.FixedElementSize);
+    }
+
+    /// <summary>A terminated wide-string target uses byte alignment rather than the alignment of a single wide character.</summary>
+    [TestMethod]
+    public void TerminatedWideTarget_UsesByteAlignment()
+    {
+        var layout = new CStruct("struct root { wchar *text; };", pointerSize: 4);
+        CompiledField pointer = Field(layout, "text");
+        CompiledField target = pointer.SelectPointerTarget(0, "unicode_string_zero", 4);
+
+        Assert.AreEqual(1, target.Alignment);
+        Assert.IsNull(target.FixedElementSize);
+        Assert.IsNull(target.FixedStorageSize);
+        Assert.AreEqual(pointer.TerminatedCodecId, target.CodecId);
     }
 
     /// <summary>New bit-unit placement overrides prior placement, while an omitted unit size retains the current window.</summary>
