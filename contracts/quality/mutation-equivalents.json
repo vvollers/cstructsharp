@@ -3,6 +3,36 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "**/CStructSharp.Core/Codecs/EnumIntegerCodecTable.cs",
+      "sourceSha256": "aa477b43b820e6b28e7773713196236ea156887f13b0968c00e6e6670c876c34",
+      "mutants": [
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": { "start": { "line": 90, "column": 13 }, "end": { "line": 90, "column": 46 } },
+          "reason": "Every enum starts resolution with a new local visiting set, and each scalar alias has exactly one recursive successor. This removal only skips cleanup while returning or unwinding that single chain: no sibling is visited and no caller observes or reuses the set. Cycle detection before recursion remains intact; both successful results and circular-alias failures are unchanged."
+        }
+      ]
+    },
+    {
+      "pattern": "**/CStructSharp.Core/Syntax/Enum.cs",
+      "sourceSha256": "e0d38813cc66954c3ca94d23c346f04aef1ca9843f15075455bb002d28b078ea",
+      "mutants": [
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "evaluated >= highestBitSeen",
+          "location": { "start": { "line": 195, "column": 21 }, "end": { "line": 195, "column": 47 } },
+          "reason": "The extra branch runs only when evaluated equals highestBitSeen. Its sole statement assigns evaluated to highestBitSeen, leaving the exact BigInteger value unchanged. Subsequent implicit flag values and all validation therefore remain identical."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?BigInteger.One :BigInteger.One << (int)highestBitSeen.GetBitLength())",
+          "location": { "start": { "line": 200, "column": 29 }, "end": { "line": 200, "column": 122 } },
+          "reason": "Only the zero case changes which expression is evaluated. BigInteger.Zero.GetBitLength() is zero, and shifting BigInteger.One by zero produces BigInteger.One, exactly the omitted branch's result. The nonzero case is unchanged, so every next implicit flag value is identical."
+        }
+      ]
+    },
+    {
       "pattern": "Codecs/Leb128Decoder.cs",
       "sourceSha256": "c7998cfe8f1a571a6acdac9eddde1f2c5a701598c735830ab76d1ed0010059ba",
       "mutants": [

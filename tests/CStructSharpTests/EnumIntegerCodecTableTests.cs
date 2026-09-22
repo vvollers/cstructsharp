@@ -67,8 +67,9 @@ public class EnumIntegerCodecTableTests
     {
         CstructEnum pointerBacked = MakeEnum("bad", "uint8*");
 
-        Assert.Throws<CStructLayoutException>(
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(
             () => new EnumIntegerCodecTable([pointerBacked,], new Dictionary<string, CStructElement>()));
+        StringAssert.StartsWith(failure.Message, "Enum storage type cannot be a pointer: uint8");
     }
 
     /// <summary>A storage type name that never resolves to a known integral spelling must be rejected.</summary>
@@ -100,7 +101,9 @@ public class EnumIntegerCodecTableTests
     {
         var table = new EnumIntegerCodecTable([], new Dictionary<string, CStructElement>());
 
-        Assert.Throws<CStructLayoutException>(() => table.Get("never_declared"));
+        // A failed lookup identifies both the missing descriptor and the name the caller requested.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => table.Get("never_declared"));
+        StringAssert.StartsWith(failure.Message, "Enum has no validated integer storage descriptor: never_declared");
     }
 
     private static CstructEnum MakeEnum(string name, string storageTypeName)

@@ -84,6 +84,7 @@ public class ExpressionsTests
     public void RequireInt32_FailsExactlyAsTheRuntimeEvaluatorDoes()
     {
         Assert.AreEqual(5, Expressions.RequireInt32(5L, "count"));
+        Assert.AreEqual(int.MaxValue, Expressions.RequireInt32((long)int.MaxValue, "count"));
         Assert.AreEqual(int.MaxValue, Expressions.RequireInt32((ulong)int.MaxValue, "count"));
         Assert.AreEqual(int.MinValue, Expressions.RequireInt32((long)int.MinValue, "count"), "the range is inclusive at both ends");
         InvalidOperationException wide = Assert.Throws<InvalidOperationException>(() => Expressions.RequireInt32(2147483648L, "count"));
@@ -97,5 +98,24 @@ public class ExpressionsTests
         CStructReadException runtime = Assert.Throws<CStructReadException>(() => layout.Parse(new byte[] { 0, 0, 0, 0x80, 1 }, "root"));
         Assert.IsInstanceOfType<InvalidOperationException>(runtime.InnerException);
         Assert.AreEqual(wide.Message, runtime.InnerException!.Message);
+    }
+
+    /// <summary>Generated variable lookups distinguish missing required names, supplied zero and constant fallbacks.</summary>
+    [TestMethod]
+    public void Variables_RespectRequiredNamesAndCallerOverrides()
+    {
+        var variables = new Dictionary<string, int> { ["zero"] = 0, ["count"] = 7, };
+        Assert.AreEqual(7, Expressions.Variable(variables, "count"));
+        Assert.AreEqual(0, Expressions.Variable(variables, "zero"));
+        Assert.AreEqual(7, Expressions.Variable(variables, "count", 19));
+        Assert.AreEqual(0, Expressions.Variable(variables, "zero", 19));
+        Assert.AreEqual(19, Expressions.Variable(variables, "missing", 19));
+        Assert.AreEqual(19, Expressions.Variable(null, "missing", 19));
+        foreach (IReadOnlyDictionary<string, int>? input in new IReadOnlyDictionary<string, int>?[] { null, variables, })
+        {
+            // A required name has no constant fallback; preserve the identifier in its diagnostic.
+            KeyNotFoundException failure = Assert.Throws<KeyNotFoundException>(() => Expressions.Variable(input, "missing"));
+            Assert.AreEqual("Undefined expression identifier: missing", failure.Message);
+        }
     }
 }
