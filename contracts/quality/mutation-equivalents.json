@@ -3,6 +3,36 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Model.cs",
+      "sourceSha256": "b56fec25c43fb114b652d769e2af372bd6caf8d8be73dfb3c7902e9c87113412",
+      "mutants": [
+        {
+          "mutatorName": "Logical mutation",
+          "replacement": "expression is null || ReferenceEquals(expression, NoneExpr.Instance) && expression is Literal",
+          "location": { "start": { "line": 129, "column": 13 }, "end": { "line": 129, "column": 106 } },
+          "reason": "This only sends NoneExpr and Literal leaves through the traversal instead of the fast return. Neither matches any traversal switch arm, so each is pushed and popped without adding a reference. The collected identifier set is identical; only temporary stack allocation/work can differ."
+        },
+        {
+          "mutatorName": "Logical mutation",
+          "replacement": "expression is null && ReferenceEquals(expression, NoneExpr.Instance)",
+          "location": { "start": { "line": 129, "column": 13 }, "end": { "line": 129, "column": 81 } },
+          "reason": "This sends null and NoneExpr through the traversal; Literal still returns early. Stack.Push accepts null and the switch has no null or NoneExpr arm, so traversal adds no identifiers and finishes with the same empty pending stack. No expression dependency changes."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": { "start": { "line": 131, "column": 13 }, "end": { "line": 131, "column": 20 } },
+          "reason": "Removing this leaf fast return only traverses null, NoneExpr and Literal. None matches an identifier or child-bearing expression arm; the stack accepts the item, pops it and is empty again. The referenced set and all later capture decisions remain unchanged."
+        },
+        {
+          "mutatorName": "CoalesceAssignmentExpression to SimpleAssignmentExpression mutation",
+          "replacement": "pending = new Stack<Expr>()",
+          "location": { "start": { "line": 140, "column": 9 }, "end": { "line": 140, "column": 38 } },
+          "reason": "Every completed traversal drains pending to zero; early-return paths never add to it, and it is private to this collection pass. Replacing the reusable empty stack with another empty stack therefore visits the same expressions and collects the same identifiers, at an extra allocation cost only."
+        }
+      ]
+    },
+    {
       "pattern": "Generated/WriteCursor.cs",
       "sourceSha256": "559f67c77add2f8cc74aba5c2ee31dc84706b50e80767acb36b716f1210865d1",
       "mutants": [
