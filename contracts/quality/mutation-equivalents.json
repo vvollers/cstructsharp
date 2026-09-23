@@ -831,6 +831,11 @@
       "sourceSha256": "4b8747e4871bd797c3a08123ae0082744da3b9d1f7c9339d21a85e6b5f801d28",
       "mutants": [
         {
+          "mutatorName": "Logical mutation", "replacement": "compiledField.HasQualifiedPrefix || compiledField.Array.Kind == CompiledArrayKind.Scalar",
+          "location": { "start": {"line":868,"column":17}, "end": {"line":868,"column":105} },
+          "reason": "MarkReferencedLayoutVariables sets HasQualifiedPrefix only on scalar composites. The OR adds only scalar fields without that flag, whose QualifiedPrefix is null. Assigning null when the outer prefix is null, or outerPrefix + null otherwise, preserves the same publication prefix. Replacing its internal Identifier wrapper does not change captured names or values. Array fields remain unqualified."
+        },
+        {
           "mutatorName": "Arithmetic mutation", "replacement": "compiledField.PointerDepth + 1",
           "location": { "start": {"line":459,"column":78}, "end": {"line":459,"column":108} },
           "reason": "This branch constructs a terminal .value.address target while the original depth exceeds one. Both depths remain positive, with the same pointer size and scalar shape. Reads and updates dispatch directly by PointerAddress, and struct queries reject that kind; none follows or exposes the residual depth. Array-length queries still reject the scalar pointer. The extra depth changes unused metadata only."

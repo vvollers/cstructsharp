@@ -10,6 +10,43 @@ using CStructSharp.Values;
 [DoNotParallelize]
 public class RootValueExtractionAllocationTests
 {
+    /// <summary>The first array element reuses the known field start without constructing a stride descriptor.</summary>
+    [TestMethod]
+    public void FirstArrayElement_AvoidsStrideDescriptorAllocation()
+    {
+        var layout = new CStruct("struct root { uint8 values[2]; };");
+        using var source = new MemoryStream(new byte[] { 7, 7, });
+
+        // Index zero already has the field's resolved start.
+        Func<object?> first = () =>
+        {
+            source.Position = 0;
+            return layout.ReadValue(source, "root.values[0]");
+        };
+
+        // The next element must derive its stride from the selected element shape.
+        Func<object?> second = () =>
+        {
+            source.Position = 0;
+            return layout.ReadValue(source, "root.values[1]");
+        };
+        for (int index = 0; index < 100; index++)
+        {
+            Assert.AreEqual((byte)7, first());
+            Assert.AreEqual((byte)7, second());
+        }
+
+        long firstBytes = long.MaxValue;
+        long secondBytes = long.MaxValue;
+        for (int sample = 0; sample < 3; sample++)
+        {
+            firstBytes = Math.Min(firstBytes, Measure(first));
+            secondBytes = Math.Min(secondBytes, Measure(second));
+        }
+
+        Assert.IsTrue(firstBytes < secondBytes, $"First element allocated {firstBytes} bytes; second allocated {secondBytes}.");
+    }
+
     /// <summary>A named root lookup allocates less than finding the same value by enumeration.</summary>
     [TestMethod]
     public void NamedRootValue_AvoidsEnumerationStorage()
@@ -42,10 +79,16 @@ public class RootValueExtractionAllocationTests
     }
 
     /// <summary>Selected composite readers share their traversal without extra wrappers or unused debug paths.</summary>
+    /// <param name="arrayElement">Whether the selected composite is an indexed array element.</param>
     [TestMethod]
-    public void SelectedComposite_AvoidsAnExtraResultWrapper()
+    [DataRow(false)]
+    [DataRow(true)]
+    public void SelectedComposite_AvoidsAnExtraResultWrapper(bool arrayElement)
     {
-        var layout = new CStruct("struct child { uint8 value; }; struct root { uint8 prefix; child nested; };");
+        var layout = new CStruct(arrayElement
+            ? "struct child { uint8 value; }; struct root { uint8 prefix; child nested[1]; };"
+            : "struct child { uint8 value; }; struct root { uint8 prefix; child nested; };");
+        string path = arrayElement ? "root.nested[0]" : "root.nested";
         using var valueInput = new MemoryStream(new byte[] { 0, 7, });
         using var parseInput = new MemoryStream(new byte[] { 0, 7, });
 
@@ -53,14 +96,14 @@ public class RootValueExtractionAllocationTests
         Func<object?> readValue = () =>
         {
             valueInput.Position = 0;
-            return layout.ReadValue(valueInput, "root.nested");
+            return layout.ReadValue(valueInput, path);
         };
 
         // Parse requests the same natural composite, providing the corresponding allocation baseline.
         Func<object?> parse = () =>
         {
             parseInput.Position = 0;
-            return layout.Parse(parseInput, "root.nested");
+            return layout.Parse(parseInput, path);
         };
         for (int index = 0; index < 100; index++)
         {
