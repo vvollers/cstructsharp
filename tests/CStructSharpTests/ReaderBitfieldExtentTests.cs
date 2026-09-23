@@ -1,6 +1,6 @@
 namespace CStructSharp.Tests;
 
-/// <summary>Checks selected-bitfield extent arithmetic before any physical input is touched.</summary>
+/// <summary>Checks selected-value and address extent arithmetic before any physical input is touched.</summary>
 [TestClass]
 public class ReaderBitfieldExtentTests
 {
@@ -13,6 +13,24 @@ public class ReaderBitfieldExtentTests
 
         // The layout extent, not an allocated buffer, crosses Int64.MaxValue.
         Assert.Throws<OverflowException>(() => layout.ReadValue(source, "root.bits"));
+        Assert.AreEqual(0, source.ReadCalls);
+        Assert.AreEqual(long.MaxValue - 1, source.Position);
+    }
+
+    /// <summary>Selected array positions and preceding field extents must fit in a signed stream coordinate.</summary>
+    /// <param name="definition">The layout with a selected array or a field preceding the selection.</param>
+    /// <param name="path">The selected address whose calculation crosses the coordinate limit.</param>
+    [TestMethod]
+    [DataRow("struct root { uint8 data[3]; };", "root.data[2]")]
+    [DataRow("struct root { uint8 prefix[3]; uint8 tail; };", "root.tail")]
+    [DataRow("union choice { uint16 value; }; struct root { choice prefix; uint8 tail; };", "root.tail")]
+    public void AddressResolution_RejectsAnUnrepresentableExtentBeforeReading(string definition, string path)
+    {
+        var layout = new CStruct(definition);
+        using var source = new NearLimitSource();
+
+        // Address-only traversal must reject arithmetic overflow without attempting to read the synthetic input.
+        Assert.Throws<OverflowException>(() => layout.ResolveAddress(source, path));
         Assert.AreEqual(0, source.ReadCalls);
         Assert.AreEqual(long.MaxValue - 1, source.Position);
     }
