@@ -17,6 +17,20 @@ public class StaticPlanCaptureBoundaryTests
         Assert.AreEqual((byte)99, (byte)parsed.tail);
     }
 
+    /// <summary>A fixed nested character array publishes its identifier for a later length expression.</summary>
+    [TestMethod]
+    public void NestedCharacterArray_PublishesItsIdentifier()
+    {
+        var layout = new CStruct("#define AB 2\nstruct inner { char count[2]; }; struct outer { inner child; }; struct root { outer header; uint8 values[header.child.count]; uint8 tail; };");
+        byte[] bytes = [65, 66, 41, 42, 99,];
+
+        dynamic parsed = layout.Parse(bytes.AsSpan(), "root");
+
+        Assert.AreEqual("AB", (string)parsed.header.child.count);
+        CollectionAssert.AreEqual(new object?[] { (byte)41, (byte)42, }, ((IEnumerable<object?>)parsed.values).ToArray());
+        Assert.AreEqual((byte)99, (byte)parsed.tail);
+    }
+
     /// <summary>Exactly the allowed element count is accepted for fixed character and numeric arrays.</summary>
     /// <param name="type">The element type whose static operation checks the limit.</param>
     [TestMethod]
