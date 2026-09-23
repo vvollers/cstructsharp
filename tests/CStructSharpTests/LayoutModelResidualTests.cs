@@ -12,6 +12,7 @@ public class LayoutModelResidualTests
     [TestMethod]
     [DataRow("struct root { missing value; };", "Unknown type 'missing' for field 'value' in struct 'root'.")]
     [DataRow("struct root { uint8 first second; };", "Unknown type 'uint8 first' for field 'second' in struct 'root'; a ';' may be missing after 'first'.")]
+    [DataRow("struct root { void first second; };", "Unknown type 'void first' for field 'second' in struct 'root'; a ';' may be missing after 'first'.")]
     [DataRow("typedef uint8 number; struct root { number first second; };", "Unknown type 'number first' for field 'second' in struct 'root'; a ';' may be missing after 'first'.")]
     public void UnknownType_PreservesExactHint(string definition, string diagnostic)
     {

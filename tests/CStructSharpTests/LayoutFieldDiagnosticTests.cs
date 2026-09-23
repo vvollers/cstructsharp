@@ -6,6 +6,19 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class LayoutFieldDiagnosticTests
 {
+    /// <summary>An unsupported call in a condition identifies the failure as an invalid layout expression.</summary>
+    [TestMethod]
+    public void UnsupportedConditionCall_ExplainsTheDeclarationFailure()
+    {
+        const string definition = "struct root { if (unsupported(1)) { uint8 value; } };";
+
+        // Conditions accept expressions, not arbitrary function execution.
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => new CStruct(definition));
+
+        StringAssert.Contains(failure.Message, "Layout declaration contains an invalid expression:");
+        Assert.IsInstanceOfType<NotSupportedException>(failure.InnerException);
+    }
+
     /// <summary>The diagnostic distinguishes a negative count, overflowing width, negative width and named zero width.</summary>
     /// <param name="field">The invalid member declaration.</param>
     /// <param name="reason">The field-specific explanation.</param>
