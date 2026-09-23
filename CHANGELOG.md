@@ -6,6 +6,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+## 0.8.1 — 2026-09-23
+
 ### Fixed
 
 - Reject pointer-to-array typedefs through intermediate aliases, including declarations not used by a field.
