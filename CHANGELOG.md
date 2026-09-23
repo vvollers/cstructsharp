@@ -8,6 +8,7 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- Reject pointer-to-array typedefs through intermediate aliases, including declarations not used by a field.
 - Validate literal array-typedef counts even when no field uses the alias; reject negative counts during construction.
 - Resolve, read and update selected terminated-string array elements using their encoded extents, and locate
   following fields after every string's terminator.

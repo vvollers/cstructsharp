@@ -405,10 +405,21 @@ internal sealed partial class LayoutCompilation
     }
 
     /// <summary>Normalizes one parsed declaration into expressions compiled by this reusable layout instance.</summary>
+    /// <param name="declaration">The parsed declaration, including aliases not used by a field.</param>
+    /// <returns>The declaration with validated expressions and supported alias shapes.</returns>
+    /// <exception cref="CStructLayoutException">An expression or pointer-to-array alias is unsupported.</exception>
     private CStructElement NormalizeDeclarationExpressions(CStructElement declaration)
     {
         try
         {
+            if (declaration is Typedef { Struct: null, Type.PointerDepth: > 0, } pointerAlias)
+            {
+                // Validate the pointer where it is declared: following aliases only from a later member
+                // can stop at this pointer and silently lose the target array's dimensions.
+                var pointerField = new Field(pointerAlias.Type, pointerAlias.Name, Field.NoArray, 0, pointerAlias.Type.PointerDepth);
+                _ = this.ResolveTypedefArrayShape(pointerField);
+            }
+
             return declaration switch
             {
                 Struct strct => this.NormalizeStructExpressions(strct),

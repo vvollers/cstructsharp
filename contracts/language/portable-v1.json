@@ -1253,6 +1253,11 @@
       "category": "pointer-to-array storage"
     },
     {
+      "id": "pointer-alias-to-typedef-array",
+      "definition": "typedef uint8 pair[2]; typedef pair *middle; typedef middle link; struct root { uint8 value; };",
+      "category": "pointer-to-array storage"
+    },
+    {
       "id": "unsized-typedef-array",
       "definition": "typedef uint16 open[]; struct root { open value; };",
       "category": "incomplete array type"

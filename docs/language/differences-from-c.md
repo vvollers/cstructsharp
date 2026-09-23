@@ -42,6 +42,7 @@ equivalence with every native compiler.
 | `tag-alias-kind-mismatch` | `typedef union tag alias;` where `tag` is a `struct` | The same kind check applies to a tag alias | Use the matching keyword |
 | `duplicate-typedef-tag` | `typedef struct shared {...} a; typedef struct shared {...} b;` | A typedef's tag is a global type, as in C, and cannot be declared twice | Give each body its own tag, or use the anonymous form |
 | `pointer-to-typedef-array` | `typedef uint16 pair[2]; pair *value;` | The language has no pointer-to-array storage | Point at a struct that wraps the array |
+| `pointer-alias-to-typedef-array` | `typedef uint8 pair[2]; typedef pair *middle; typedef middle link;` | An intermediate or unused alias cannot hide pointer-to-array storage | Point at a struct that wraps the array |
 | `unsized-typedef-array` | `typedef uint16 open[];` | An array typedef needs a count in every dimension | Give the alias a count, or declare the unsized array on a `char`/`wchar` field |
 | `negative-unused-typedef-array` | `typedef uint8 invalid[-1];` | Array counts must be nonnegative, even when an alias is unused | Use zero for an empty array or a positive count for stored elements |
 | `dynamic-union-member` | `union choice { uint8 count; uint8 values[count]; };` | Every union member must have fixed storage, so the union's extent is known before any member is read | Read the count outside the union, or wrap the runtime-sized member in a struct that is parsed on its own |

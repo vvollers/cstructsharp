@@ -1383,7 +1383,8 @@
           "tests/CStructSharpTests/TypedefFormTests.cs#ArrayTypedef_RoundTripsThroughEveryOperation",
           "tests/CStructSharpTests/TypedefFormTests.cs#DeclaratorList_DeclaresEveryAlias",
           "tests/CStructSharpTests/LiteralTypedefCountBoundaryTests.cs#ArrayAlias_RejectsInvalidLiteralCount",
-          "tests/CStructSharpTests/LiteralTypedefCountBoundaryTests.cs#ArrayAlias_AcceptsNonnegativeLiteralCount"
+          "tests/CStructSharpTests/LiteralTypedefCountBoundaryTests.cs#ArrayAlias_AcceptsNonnegativeLiteralCount",
+          "tests/CStructSharpTests/PointerArrayAliasBoundaryTests.cs#PointerAlias_CannotHideAnArrayTarget"
         ]
       },
       "bytes": {
@@ -4993,7 +4994,7 @@
         }
       ],
       "limitations": [
-        "A pointer to an array typedef and an unsized array typedef are rejected.",
+        "A pointer to an array typedef and an unsized array typedef are rejected, including intermediate or unused pointer aliases.",
         "An array typedef used as a field contributes inner dimensions; a runtime-sized outer dimension on such a field is subject to the multidimensional-array rule."
       ]
     },
