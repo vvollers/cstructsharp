@@ -8,6 +8,7 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- Validate literal array-typedef counts even when no field uses the alias; reject negative counts during construction.
 - Resolve, read and update selected terminated-string array elements using their encoded extents, and locate
   following fields after every string's terminator.
 - Preserve struct queries and fixed array dimensions through long typedef chains in runtime and generated layouts.

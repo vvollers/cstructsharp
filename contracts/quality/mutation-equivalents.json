@@ -4,7 +4,7 @@
   "files": [
     {
       "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.cs",
-      "sourceSha256": "86c20ee5611c743865750687ac82f868f7bee7ec4dbf4066d83e3e26b9b0b71d",
+      "sourceSha256": "1a3eb9ecbd9aa428dec75039ddb1f70de4bb5ee6cfc3a1895166bbc93f27580c",
       "mutants": [
         {
           "mutatorName": "Equality mutation",
@@ -55,8 +55,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": { "line": 476, "column": 13 },
-            "end": { "line": 476, "column": 57 }
+            "start": { "line": 474, "column": 13 },
+            "end": { "line": 474, "column": 57 }
           },
           "reason": "The very next operation evaluates the same dimension with LayoutExpressionEvaluator. ExpressionEvaluator.Evaluate obtains the same cached GetProgram before executing it; removing this eager Compile only defers that identical compilation to the immediate evaluation. Compilation failures are CStructLayoutException and pass through LayoutExpressionEvaluator unchanged. Values, negative-count checks, evaluation diagnostics and work/depth limits remain enforced at construction."
         },
@@ -64,8 +64,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?null :(new Identifier(name), shape))",
           "location": {
-            "start": { "line": 529, "column": 16 },
-            "end": { "line": 529, "column": 68 }
+            "start": { "line": 527, "column": 16 },
+            "end": { "line": 527, "column": 68 }
           },
           "reason": "For a non-null shape both versions return the same tuple values. For a null shape the mutant allocates an Identifier and returns a tuple whose second item is null. The sole caller uses the typed tuple pattern 'is (Identifier elementType, IReadOnlyList<Expr> typedefShape)', which rejects that null second item just as it rejects the original nullable null result. It consequently leaves the original field type and dimensions unchanged. No tuple escapes this private call."
         },
@@ -73,8 +73,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": { "line": 694, "column": 17 },
-            "end": { "line": 694, "column": 61 }
+            "start": { "line": 692, "column": 17 },
+            "end": { "line": 692, "column": 61 }
           },
           "reason": "RejectNonIntegerConstants is the immediate next call, and its first operation is expressionEvaluator.GetDependencies(dimension). That method obtains the same GetProgram used by Compile, so compilation and all syntax-tree limits still run before constant validation or evaluation, with no intervening state change. The same cached program, dependencies and exceptions result. This removes only a redundant cache warm-up, not dimension validation."
         },
@@ -82,8 +82,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?Array.Empty<ConditionalBranch>() :field.BranchConditions.Select(item =>\n                        new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray())",
           "location": {
-            "start": { "line": 755, "column": 40 },
-            "end": { "line": 756, "column": 145 }
+            "start": { "line": 753, "column": 40 },
+            "end": { "line": 754, "column": 145 }
           },
           "reason": "Only the empty branch list changes arms. Selecting and materializing an empty list produces another empty branch array without invoking the projection, so NormalizeConditionalGroup is not called and a null normalizedGroups value is never accessed. All consumers inspect branch contents/counts, not array reference identity. Nonempty lists execute the identical projection in both versions. No condition, selector, arm or field visibility changes."
         },
@@ -91,8 +91,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?Array.Empty<ConditionalBranch>() :strct.BranchConditions.Select(item =>\n                new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray())",
           "location": {
-            "start": { "line": 763, "column": 32 },
-            "end": { "line": 764, "column": 137 }
+            "start": { "line": 761, "column": 32 },
+            "end": { "line": 762, "column": 137 }
           },
           "reason": "For a composite with no enclosing branches, the alternate Select/ToArray enumerates zero entries and never invokes NormalizeConditionalGroup. It supplies the same empty branch metadata as Array.Empty, including when normalizedGroups is null. Branch consumers depend on entries/counts, not the array instance. A composite with enclosing branches takes the original nonempty projection unchanged, preserving every group and arm."
         }

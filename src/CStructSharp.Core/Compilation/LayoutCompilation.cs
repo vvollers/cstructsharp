@@ -461,18 +461,16 @@ internal sealed partial class LayoutCompilation
         return new Typedef(typedef.Name, typedef.Type) { ArrayShape = this.EvaluateTypedefShape(typedef), TypeKeywordHint = typedef.TypeKeywordHint, };
     }
 
+    /// <summary>Validates every alias dimension as a nonnegative Int32 count, including literal and unused aliases.</summary>
+    /// <param name="typedef">The alias whose fixed dimensions are evaluated against static layout variables.</param>
+    /// <returns>One validated literal count per dimension, in declaration order.</returns>
+    /// <exception cref="CStructLayoutException">A dimension is negative, outside Int32, or not a valid static expression.</exception>
     private Expr[] EvaluateTypedefShape(Typedef typedef)
     {
         var dimensions = new Expr[typedef.ArrayShape.Count];
         for (int index = 0; index < dimensions.Length; index++)
         {
             Expr dimension = typedef.ArrayShape[index];
-            if (dimension is Literal)
-            {
-                dimensions[index] = dimension;
-                continue;
-            }
-
             this.expressionEvaluator.Compile(dimension);
             int count = this.layoutExpressionEvaluator.Evaluate(
                 dimension,

@@ -269,7 +269,9 @@ Following aliases does not change width, byte order, alignment, or pointer addre
 final type without losing array dimensions, regardless of the number of alias declarations. Alias cycles are rejected.
 A field declared with an array typedef (`pair p;`) has the typedef's dimensions as its innermost ones (`pair rows[3]`
 is `uint16 rows[3][2]`), and the typedef itself can be a root (`Parse(bytes, "pair")` reads two values). A pointer
-to an array typedef and an unsized array typedef are rejected.
+to an array typedef and an unsized array typedef are rejected. Every array-typedef dimension must be a nonnegative
+32-bit integer count. Construction checks literals as well as expressions, even if no field uses the alias.
+Zero is a valid count and produces an empty array.
 
 The typedef-struct form declares a struct and one or more aliases. The named-tag form declares the tag as a global
 type as well, exactly as C does, so `_X`, `X`, and `PX` below all resolve, and a second `typedef struct _X` is a

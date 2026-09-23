@@ -1376,11 +1376,14 @@
       "value": {
         "status": "verified",
         "conditions": [
-          "A typedef alias, tag alias, pointer alias, or array typedef reads and writes exactly as the resolved declaration does."
+          "A typedef alias, tag alias, pointer alias, or array typedef reads and writes exactly as the resolved declaration does.",
+          "Every array-typedef count is checked as a nonnegative Int32 during construction, including unused aliases; zero remains valid."
         ],
         "evidence": [
           "tests/CStructSharpTests/TypedefFormTests.cs#ArrayTypedef_RoundTripsThroughEveryOperation",
-          "tests/CStructSharpTests/TypedefFormTests.cs#DeclaratorList_DeclaresEveryAlias"
+          "tests/CStructSharpTests/TypedefFormTests.cs#DeclaratorList_DeclaresEveryAlias",
+          "tests/CStructSharpTests/LiteralTypedefCountBoundaryTests.cs#ArrayAlias_RejectsInvalidLiteralCount",
+          "tests/CStructSharpTests/LiteralTypedefCountBoundaryTests.cs#ArrayAlias_AcceptsNonnegativeLiteralCount"
         ]
       },
       "bytes": {
