@@ -27,7 +27,7 @@ const documentationRoot = path.join(repositoryRoot, "docs");
 const docfxConfig = path.join(documentationRoot, "docfx.json");
 const apiDirectory = path.join(documentationRoot, "api");
 const siteDirectory = path.join(documentationRoot, "_site");
-const SITE_BUDGET_BYTES = 32 * 1024 * 1024;
+const SITE_BUDGET_BYTES = 50 * 1024 * 1024;
 process.env.DOTNET_CLI_TELEMETRY_OPTOUT = "1";
 process.env.DOTNET_NOLOGO = "1";
 
@@ -78,6 +78,7 @@ function assertCurrentCoreOutput() {
   if (newer) throw new Error(`The core assembly is older than source input '${newer}'. Run without --no-build.`);
 }
 
+// Build or preview the documentation and reject output that exceeds the reviewed time or size limits.
 await main(() => {
   if (options["explorer-url"]) {
     let url;
@@ -147,7 +148,7 @@ await main(() => {
   const siteFiles = listFiles(siteDirectory);
   const siteBytes = siteFiles.reduce((sum, file) => sum + fs.statSync(file).size, 0);
   assertCondition(docfxSeconds <= docfxBudgetSeconds, `DocFX exceeded the ${docfxBudgetSeconds} second budget: ${docfxSeconds.toFixed(3)} seconds.`);
-  assertCondition(siteBytes <= SITE_BUDGET_BYTES, `Documentation artifact exceeds the 32 MiB budget: ${siteBytes} bytes.`);
+  assertCondition(siteBytes <= SITE_BUDGET_BYTES, `Documentation artifact exceeds the 50 MiB budget: ${siteBytes} bytes.`);
   console.log(`Documentation artifact: ${siteFiles.length} files, ${siteBytes.toLocaleString("en-US")} bytes; DocFX ${docfxSeconds.toFixed(3)}/${docfxBudgetSeconds} s budget.`);
   if (options.serve) {
     dotnet(["tool", "run", "docfx", "serve", siteDirectory, "--hostname", "localhost", "--port", String(options.port)], "DocFX local server");

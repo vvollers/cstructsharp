@@ -6,6 +6,11 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+### Changed
+
+- Update DocFX to 2.80.1 and increase the documentation budgets to 50 MiB uncompressed and 16 MiB compressed
+  for its bundled theme assets.
+
 ## 0.8.1 — 2026-09-23
 
 ### Fixed

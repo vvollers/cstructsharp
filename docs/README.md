@@ -83,13 +83,14 @@ the focused check if one is named, and finish with the full command again.
 
 ## Watch the existing artifact margin
 
-The documentation artifact keeps its existing 32 MiB (33,554,432-byte) limit in
-[`contracts/documentation/pages-v1.json`](../contracts/documentation/pages-v1.json). A validated source snapshot
-on 21 September 2026 contained 547 site files totaling 33,246,875 bytes: 307,557 bytes (about 0.92%) remained.
-This is a dated measurement, not a promise that the next build has the same size. Read the total printed by
-`validate-documentation.mjs` for your current build; the combined app/WASM deployment has separate existing gates.
+The documentation artifact has a 50 MiB (52,428,800-byte) uncompressed limit in
+[`contracts/documentation/pages-v1.json`](../contracts/documentation/pages-v1.json). Its compressed archive has
+a separate 16 MiB limit. These limits measure the complete generated documentation, including theme assets and
+debugging source maps, not the bytes downloaded for one page. Read the total printed by
+`validate-documentation.mjs` for your current build and subtract it from the limit to find the remaining margin.
+The combined app/WASM deployment has separate existing gates.
 
-The documentation output is already within 1% of its limit. Revisit payload growth when the next change adds
+Revisit payload growth when a change adds
 large assets, many API pages or duplicated examples, and whenever the existing gate fails. Inspect the existing
 artifact report to locate the growth before deciding on a focused follow-up. Do not silently raise the limit or
 remove validation to fit. No extra size-reporting tool or automatic optimization is required by this guidance.

@@ -36,7 +36,7 @@ const toolManifestPath = path.join(repositoryRoot, ".config/dotnet-tools.json");
 const coreProjectPath = path.join(repositoryRoot, "src/CStructSharp/CStructSharp.csproj");
 const testProjectPath = path.join(repositoryRoot, "tests/CStructSharpTests/CStructSharpTests.csproj");
 const exampleProjectPath = path.join(documentationRoot, "examples/CStructSharp.Docs.Examples.csproj");
-const SITE_BUDGET_BYTES = 32 * 1024 * 1024;
+const SITE_BUDGET_BYTES = 50 * 1024 * 1024;
 const TEXT_EXTENSIONS = new Set([".cs", ".csproj", ".js", ".json", ".md", ".mjs", ".props", ".ps1", ".targets", ".ts", ".txt", ".xml", ".yaml", ".yml"]);
 // The directory names are assembled so this file does not itself match the guard it implements.
 const IGNORED_DIRECTORIES = ["agent" + "docs", ".local-" + "docs"];
@@ -88,6 +88,7 @@ function brokenRepositoryMarkdownLinks() {
   return broken;
 }
 
+// Run the complete documentation gate and verify the published output against the reviewed configuration.
 await main(() => {
   if (options["self-test"]) {
     const testName = `ignored-dependency-self-test-${crypto.randomUUID().replaceAll("-", "")}.txt`;
@@ -159,7 +160,7 @@ await main(() => {
   const toolManifest = JSON.parse(fs.readFileSync(toolManifestPath, "utf8"));
   const coreProject = parseXml(fs.readFileSync(coreProjectPath, "utf8"));
   const exampleProject = parseXml(fs.readFileSync(exampleProjectPath, "utf8"));
-  assertCondition(toolManifest.tools.docfx.version === "2.78.5", "DocFX must remain pinned to reviewed version 2.78.5.");
+  assertCondition(toolManifest.tools.docfx.version === "2.80.1", "DocFX must remain pinned to reviewed version 2.80.1.");
   assertCondition(!toolManifest.tools.docfx.rollForward, "DocFX tool roll-forward must remain disabled.");
   // The generator is packed from the core project without being referenced as an assembly (ReferenceOutputAssembly=false),
   // so it adds nothing to the API metadata; any other project reference would.
@@ -256,6 +257,6 @@ await main(() => {
   assertCondition(rootAbsolute.length === 0, "Generated HTML contains root-absolute asset or content URLs.");
   const siteFiles = listFiles(siteDirectory);
   const siteBytes = siteFiles.reduce((sum, file) => sum + fs.statSync(file).size, 0);
-  assertCondition(siteBytes <= SITE_BUDGET_BYTES, `Documentation artifact exceeds the initial 32 MiB budget: ${siteBytes} bytes.`);
+  assertCondition(siteBytes <= SITE_BUDGET_BYTES, `Documentation artifact exceeds the 50 MiB budget: ${siteBytes} bytes.`);
   console.log(`Documentation validation passed: ${pages.length} source pages, ${tocs.length} source TOCs, ${apiPages.length} API pages, ${siteFiles.length} site files, ${siteBytes.toLocaleString("en-US")} bytes.`);
 });

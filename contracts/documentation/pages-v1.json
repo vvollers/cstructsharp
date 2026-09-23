@@ -6,8 +6,8 @@
   "deploymentMode": "complete-site-workflow",
   "nodeVersion": "26.5.0",
   "budgets": {
-    "uncompressedBytes": 33554432,
-    "compressedBytes": 8388608
+    "uncompressedBytes": 52428800,
+    "compressedBytes": 16777216
   },
   "requiredPaths": [
     ".nojekyll",

@@ -25,7 +25,7 @@ its required files, links, repository-subpath behavior, source links, and size. 
 artifacts/documentation/cstructsharp-pages.tar.gz
 ```
 
-This archive is ignored local output. It must stay below 32 MiB uncompressed and 8 MiB compressed.
+This archive is ignored local output. It must stay below 50 MiB uncompressed and 16 MiB compressed.
 
 ## Configure the repository once
 
