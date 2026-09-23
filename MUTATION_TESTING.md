@@ -123,7 +123,7 @@ review again; a similar mutation at another location cannot borrow a proof. Ordi
 resource leaks and changed externally visible behavior are not equivalence. Keep the complete scope and raw 75%
 minimum even when all remaining survivors have individual proofs.
 
-The parser partition (`p00`) has a 240-minute execution limit within a 255-minute job budget. Every other permanent
+The parser partition (`p00`) has a 315-minute execution limit within a 330-minute job budget. Every other permanent
 partition and the independent memory job have a 180-minute execution limit within a 195-minute job budget.
 The remaining allowance covers normal setup and diagnostic uploads after a step times out; it does not turn a timeout
 into successful evidence.

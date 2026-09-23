@@ -20,14 +20,14 @@ test("mutation jobs reserve time to upload diagnostics after the execution limit
     const jobLimit = body.match(/^ {4}timeout-minutes: (.+)$/m)?.[1];
     const stepLimit = body.match(/^ {6}- name: Mutate[^\n]*\n {8}timeout-minutes: (.+)$/m)?.[1];
     if (job === "permanent") {
-      assert.equal(jobLimit, "${{ matrix.id == 'p00' && 255 || 195 }}");
-      assert.equal(stepLimit, "${{ matrix.id == 'p00' && 240 || 180 }}", "Only the parser receives the longer execution budget");
+      assert.equal(jobLimit, "${{ matrix.id == 'p00' && 330 || 195 }}");
+      assert.equal(stepLimit, "${{ matrix.id == 'p00' && 315 || 180 }}", "Only the parser receives the longer execution budget");
     } else {
       assert.equal(jobLimit, "195");
       assert.equal(stepLimit, "180", "Keep the independent memory execution budget");
     }
     // Both permanent branches and the memory job retain at least fifteen minutes beyond execution.
-    for (const [jobMinutes, stepMinutes] of job === "permanent" ? [[255, 240], [195, 180]] : [[195, 180]]) {
+    for (const [jobMinutes, stepMinutes] of job === "permanent" ? [[330, 315], [195, 180]] : [[195, 180]]) {
       assert.ok(jobMinutes >= stepMinutes + 15, `${job} needs setup/upload headroom`);
     }
     assert.match(body, /^ {6}- name: Retain[^\n]*\n {8}if: always\(\)$/m);

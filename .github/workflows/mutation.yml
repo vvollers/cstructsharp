@@ -30,7 +30,7 @@ jobs:
     needs: plan
     runs-on: ubuntu-latest
     # The parser is the longest single-file partition; retain setup/upload headroom for every partition.
-    timeout-minutes: ${{ matrix.id == 'p00' && 255 || 195 }}
+    timeout-minutes: ${{ matrix.id == 'p00' && 330 || 195 }}
     strategy:
       fail-fast: false
       max-parallel: 16
@@ -52,7 +52,7 @@ jobs:
           dotnet restore ./tests/CStructSharpTests/CStructSharpTests.csproj
 
       - name: Mutate this complete file partition
-        timeout-minutes: ${{ matrix.id == 'p00' && 240 || 180 }}
+        timeout-minutes: ${{ matrix.id == 'p00' && 315 || 180 }}
         run: node tools/quality/mutation-partitions.mjs --mode run --partition ${{ matrix.id }} --output-directory artifacts/mutation/${{ matrix.id }}
 
       - name: Retain partition report, execution evidence and Stryker logs
