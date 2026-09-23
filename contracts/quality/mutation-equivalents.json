@@ -3,6 +3,39 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "CStructSelectedReader.cs",
+      "sourceSha256": "df14e22e1b07aebc72f2ecb379f73e2be28a22a44d4a77106d7324ea6c6eafea",
+      "mutants": [
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 159, "column": 21 },
+            "end": { "line": 159, "column": 27 }
+          },
+          "reason": "This throw is inside the exception filter guarded by CStructException.NoteMember. That nonvirtual method records the innermost field context and always returns false, so this catch body is never entered. Removing only its unreachable rethrow preserves the filter evaluation, diagnostic context and propagation of the original exception. The field reader and subsequent conditional-scope completion are unchanged."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 380, "column": 21 },
+            "end": { "line": 380, "column": 27 }
+          },
+          "reason": "The union-member catch filter calls CStructException.NoteMember, which attaches member context and unconditionally returns false. Its catch body cannot execute. Removing this unreachable throw does not suppress the original failure or skip the filter; the surrounding finally still restores variables, pointer suppression, structure depth and the union end position. No executed cleanup statement is qualified by this proof."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?field.QualifiedPrefix :outerPrefix + field.QualifiedPrefix)",
+          "location": {
+            "start": { "line": 270, "column": 53 },
+            "end": { "line": 270, "column": 134 }
+          },
+          "reason": "For a non-null outerPrefix the selected concatenation is already the original arm. For a null outerPrefix, two-string concatenation returns the other string unchanged, giving the same field.QualifiedPrefix instance as the original direct arm without allocating another string. HasQualifiedPrefix guarantees a present field prefix. Nested static-plan variable publication and subsequent prefix restoration therefore receive identical values; this does not qualify discarding a non-null outer prefix."
+        }
+      ]
+    },
+    {
       "pattern": "CStructValueReader.cs",
       "sourceSha256": "98e628afee16f53c84f3cc405b87f7f86091bcf83d681c58f6119ace3c214068",
       "mutants": [
