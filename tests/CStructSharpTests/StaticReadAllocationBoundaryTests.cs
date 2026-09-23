@@ -1,11 +1,39 @@
 namespace CStructSharp.Tests;
 
+using System.Text;
 using CStructSharp.Reading;
 
 /// <summary>Checks that fixed record plans avoid the general reader's repeated per-record allocation.</summary>
 [TestClass]
 public class StaticReadAllocationBoundaryTests
 {
+    /// <summary>Small character scratch buffers stay on the stack; larger ones move to the heap to bound stack growth.</summary>
+    [TestMethod]
+    public void CharacterScratch_ChangesStorageAbove256CodeUnits()
+    {
+        int[] lengths = [255, 256, 257,];
+        var allocations = new long[lengths.Length];
+        for (int index = 0; index < lengths.Length; index++)
+        {
+            int length = lengths[index];
+            var layout = new CStruct("struct root { char payload[" + length + "]; };");
+            var bytes = new byte[length];
+            for (int offset = 0; offset < bytes.Length; offset++)
+            {
+                bytes[offset] = (byte)offset;
+            }
+
+            Assert.AreEqual(Encoding.Latin1.GetString(bytes), layout.Parse(bytes.AsSpan(), "root").Get<string>("payload"));
+            allocations[index] = Measure(layout, bytes, false);
+        }
+
+        // Eight parses may grow their result strings slightly at 256, but must not add a heap scratch array yet.
+        Assert.IsTrue(allocations[1] <= allocations[0] + (8 * 32), $"Small scratch allocations: {allocations[0]}, {allocations[1]}.");
+
+        // Above the boundary, each parse adds at least 257 UTF-16 code units of heap scratch storage.
+        Assert.IsTrue(allocations[2] >= allocations[1] + (8 * 514), $"Large scratch allocations: {allocations[1]}, {allocations[2]}.");
+    }
+
     /// <summary>Both a fixed root and a runtime-count array retain the allocation benefit of fixed record decoding.</summary>
     /// <param name="runtimeCount">Whether the array count comes from an input field rather than the declaration.</param>
     [TestMethod]
