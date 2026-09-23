@@ -1756,6 +1756,33 @@
       "sourceSha256": "a7fe1f75bac8550fff2889139121cd70845aed88c0263ab7685ad0d5851bcece",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 146, "column": 13 },
+            "end": { "line": 146, "column": 35 }
+          },
+          "reason": "ResolveTargetInStruct's recursive callers return its target directly; none resumes sibling traversal after this finally. The target already records ContainingStructureDepth before unwinding. Selected composite and value readers seed their depth from that target before decoding; address and length queries perform no later structure traversal, and Update uses a separate writer state and fresh contexts for layout capture. Failures abandon this operation state, whose Complete method only flushes the cursor. Omitting this final depth decrement therefore changes no subsequent limit check or result. This does not qualify ExitStructure in MeasureStructEnd, which can be followed by another sibling measurement."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 504, "column": 13 },
+            "end": { "line": 504, "column": 45 }
+          },
+          "reason": "Every recursive ResolvePointerTarget call is returned directly, so pointer traversal is finished when these finally blocks unwind. The returned immutable context already records PointerAccessorsConsumed independently of this counter. ParseCompiledStructAt and every selected field, array-element or pointer-value decoder reseed PointerDereferenceDepth from that target; address/length queries do not dereference afterward, and Update creates independent writer/capture states. Failure handlers only restore/complete the stream. Retaining the old counter during unwinding is thus unobservable under the selected-depth reseeding contract. The active-target-set removal is unchanged and remains necessary for subsequent decoding."
+        },
+        {
+          "mutatorName": "PostDecrementExpression to PostIncrementExpression mutation",
+          "replacement": "state.PointerDereferenceDepth++",
+          "location": {
+            "start": { "line": 504, "column": 13 },
+            "end": { "line": 504, "column": 44 }
+          },
+          "reason": "This counter is no longer read while resolution unwinds: callers return the target directly, and subsequent selected decoding resets the depth from PointerAccessorsConsumed. Address/length queries and stream cleanup do not consult it; Update uses separate states. Incrementing instead of decrementing cannot affect the already captured target or its limits. The fresh resolver starts at zero and each level requires a '.value' path segment, so even twice the level count fits Int32 for an Int32-length input string. Actual active-pointer cleanup remains intact. This relies on reseeding all selected field/array/pointer decode paths, covered by the selected-pointer-depth regressions."
+        },
+        {
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?unitSize :0)",
           "location": { "start": { "line": 224, "column": 46 }, "end": { "line": 224, "column": 86 } },
