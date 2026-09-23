@@ -2066,6 +2066,56 @@
    "sourceSha256": "f2d90bba1a25bbb45ae0548758df968f3dcd715d933514b98f17c643027b2bcb",
    "mutants": [
     {
+     "mutatorName": "Equality mutation", "replacement": "firstElement != 0",
+     "location": {"start":{"line":490,"column":36},"end":{"line":490,"column":53}},
+     "reason": "For a composite array firstElement is zero: only the preceding primitive bulk decoder changes it, and that path excludes composites. This mutation disables array-wide batching. Each element still uses ReadCompiledStructInto and its identical fixed plan, with the same result, captures and limits. It changes dispatch cost, not decoded storage; documented cancellation checks remain at composite boundaries."
+    },
+    {
+     "mutatorName": "Equality mutation", "replacement": "numFieldValues < 0",
+     "location": {"start":{"line":490,"column":57},"end":{"line":490,"column":75}},
+     "reason": "Negative counts are rejected before this block, so the mutation disables array-wide batching. The general element loop still invokes the same fixed child plan, consumes its complete storage and appends the same StructValue. All unchanged count, depth and byte-budget checks remain enforced. Only batching and dispatch cost change; cancellation remains checked at composite boundaries."
+    },
+    {
+     "mutatorName": "Equality mutation", "replacement": "compiledField.PointerDepth != 0",
+     "location": {"start":{"line":491,"column":25},"end":{"line":491,"column":56}},
+     "reason": "CompiledField.Composite is null whenever PointerDepth is nonzero. Requiring nonzero depth while retaining the non-null composite guard therefore disables this block. The ordinary array loop still decodes every non-pointer record through its fixed child plan; pointer arrays were never eligible. Results, captures and configured limits are unchanged, with cancellation still checked at each composite boundary."
+    },
+    {
+     "mutatorName": "Equality mutation", "replacement": "plan.Size < 0",
+     "location": {"start":{"line":493,"column":76},"end":{"line":493,"column":89}},
+     "reason": "A compiled fixed composite size is nonnegative, so no plan can pass the changed predicate. This removes only array-wide batching: the ordinary record loop still invokes the same child static plan and preserves its values, captures and read limits. No negative-size layout becomes accepted. Cancellation remains checked before decoding each composite."
+    },
+    {
+     "mutatorName": "Equality mutation", "replacement": "compiledField.FixedElementSize != plan.Size",
+     "location": {"start":{"line":493,"column":93},"end":{"line":493,"column":136}},
+     "reason": "For an eligible non-pointer composite array, FixedElementSize and the child plan Size both come from the same compiled composite's fixed size. The inequality therefore disables batching rather than selecting a different extent. The ordinary loop uses that same plan per record and retains all counts, captures and limit checks; cancellation remains checked at composite boundaries."
+    },
+    {
+     "mutatorName": "Equality mutation", "replacement": "(long)numFieldValues * plan.Size < int.MaxValue",
+     "location": {"start":{"line":496,"column":29},"end":{"line":496,"column":77}},
+     "reason": "Only a total span of exactly Int32.MaxValue bytes loses batching eligibility. It falls through to the ordinary record loop, which decodes the same fixed child plans and retains count, depth, byte-budget and cancellation checks. Every smaller extent takes the original branch and every larger extent still falls back. The strict comparison changes batching cost, not the accepted values or limits."
+    },
+    {
+     "mutatorName": "Logical mutation", "replacement": "isArray && firstElement == 0 || numFieldValues > 0",
+     "location": {"start":{"line":490,"column":25},"end":{"line":490,"column":75}},
+     "reason": "The unchanged later guards require a non-pointer composite and exactly one array dimension, so isArray is already true. firstElement can become nonzero only in the preceding numeric bulk path, which requires nestedComposite null and cannot reach this composite optimization. Thus firstElement is zero here; changing the inner AND to OR admits no additional composite shape or partially consumed array."
+    },
+    {
+     "mutatorName": "Logical mutation", "replacement": "isArray || firstElement == 0",
+     "location": {"start":{"line":490,"column":25},"end":{"line":490,"column":53}},
+     "reason": "Exactly one compiled array dimension is still required later in the same condition, excluding scalar fields. For composite arrays firstElement remains zero: only the preceding primitive numeric bulk decoder changes it, and that decoder requires nestedComposite null. Both operands of this changed subexpression are therefore true whenever the remaining composite guards can succeed."
+    },
+    {
+     "mutatorName": "Equality mutation", "replacement": "numFieldValues >= 0",
+     "location": {"start":{"line":490,"column":57},"end":{"line":490,"column":75}},
+     "reason": "The added case is a zero-element composite array. Its result list is already created, its cursor placement has already cleared bitfield state, and a successful zero-byte span read consumes nothing. The element loop has no iterations; the final assignments preserve the same input position and completed field boundary. A failed zero-byte span request falls through to the same empty general loop. No element values, captures or structure entries are added."
+    },
+    {
+     "mutatorName": "Equality mutation", "replacement": "plan.Size >= 0",
+     "location": {"start":{"line":493,"column":76},"end":{"line":493,"column":89}},
+     "reason": "The added case is a zero-byte fixed composite. The unchanged count, depth, inner-array and alignment checks still apply. Each result is constructed by executing the same zero-byte static plan that the general per-element path uses; zero-length member arrays and empty nested records retain their normal result shapes. The block consumes zero bytes, and the unchanged stream position is completed exactly as in the general loop."
+    },
+    {
      "mutatorName": "Null coalescing mutation (remove left)", "replacement": "this.compiledSizeQueries.GetCompiledComposite(s)",
      "location": { "start": {"line":219,"column":21}, "end": {"line":219,"column":99} },
      "reason": "This switch arm handles an exact Struct declaration. A supplied inline-member descriptor refers to that declaration's composite symbol; GetCompiledComposite resolves the same declaration through the immutable composite-symbol table and returns that symbol's identical Definition. Roots and typedef dispatch without a descriptor already use the lookup. Repeating the dictionary lookup neither constructs a composite nor changes its fields, shape or layout."
