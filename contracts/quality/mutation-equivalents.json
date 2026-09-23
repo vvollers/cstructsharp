@@ -955,6 +955,111 @@
       "sourceSha256": "4e4c2d3cddd1c4b0f45dd0a8caee02336d34b457ab9bbc965d6e2d14bddfb0d3",
       "mutants": [
         {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?new ConditionalVariableScope(composite, state.Variables) :null)",
+          "location": {
+            "start": {
+              "line": 204,
+              "column": 29
+            },
+            "end": {
+              "line": 204,
+              "column": 131
+            }
+          },
+          "reason": "When HasDirectConditionalFields is false, CompleteConditionalScope leaves ConditionalLocalNames and every field's captured/restored slot arrays empty. Creating ConditionalVariableScope then allocates empty state but removes, captures and restores no variable. Conditional composites still use the identical scope. This adds unused allocation only; traversal, expression values, field selection and failures are unchanged."
+        },
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) :null)",
+          "location": {
+            "start": {
+              "line": 205,
+              "column": 25
+            },
+            "end": {
+              "line": 205,
+              "column": 165
+            }
+          },
+          "reason": "Without direct conditional fields, CompiledCompositeType leaves ConditionalGroupCount zero and every field's ConditionalBranches empty. An extra ConditionalFieldSelection therefore evaluates no selector and IsActive returns true for every field. Conditional composites take the same original path. Only unused empty selection state is allocated; no field or expression behavior changes."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 593,
+              "column": 13
+            },
+            "end": {
+              "line": 593,
+              "column": 22
+            }
+          },
+          "reason": "The changed pointer label is stored solely in the internal ResolvedTarget.CodecName property, which has no production reader. Pointer-address reads and updates dispatch by Kind, PointerSize and the compiled field, while diagnostics use DebugPrefix and SelectedIndexes. Emptying this unused label leaves addresses, decoded values, writes and diagnostics unchanged."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?compiledField.QualifiedPrefix :outerPrefix + compiledField.QualifiedPrefix)",
+          "location": {
+            "start": {
+              "line": 871,
+              "column": 41
+            },
+            "end": {
+              "line": 871,
+              "column": 138
+            }
+          },
+          "reason": "The true arm is selected only when outerPrefix is null. String concatenation treats that null operand as empty, so outerPrefix + compiledField.QualifiedPrefix produces the same non-null qualified prefix as the original true arm. The non-null path is unchanged; no variable publication name, traversal or failure changes."
+        },
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?new ConditionalVariableScope(composite, state.Variables) :null)",
+          "location": {
+            "start": {
+              "line": 964,
+              "column": 29
+            },
+            "end": {
+              "line": 964,
+              "column": 131
+            }
+          },
+          "reason": "When HasDirectConditionalFields is false, CompleteConditionalScope leaves ConditionalLocalNames and every field's captured/restored slot arrays empty. Creating ConditionalVariableScope then allocates empty state but removes, captures and restores no variable. Conditional composites still use the identical scope. This adds unused allocation only; traversal, expression values, field selection and failures are unchanged."
+        },
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) :null)",
+          "location": {
+            "start": {
+              "line": 965,
+              "column": 25
+            },
+            "end": {
+              "line": 965,
+              "column": 165
+            }
+          },
+          "reason": "Without direct conditional fields, CompiledCompositeType leaves ConditionalGroupCount zero and every field's ConditionalBranches empty. An extra ConditionalFieldSelection therefore evaluates no selector and IsActive returns true for every field. Conditional composites take the same original path. Only unused empty selection state is allocated; no field or expression behavior changes."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "false",
+          "location": {
+            "start": {
+              "line": 1114,
+              "column": 122
+            },
+            "end": {
+              "line": 1114,
+              "column": 126
+            }
+          },
+          "reason": "Positive-width bitfield compilation validates storage through BitfieldCodecTable and stores its non-null IsLittleEndian on CompiledField. Placed and selected descriptors preserve this value. This branch requires a positive bitfield width, so the null-coalescing fallback is unreachable for a compiled layout; changing only its fallback does not change the actual storage byte order."
+        },
+        {
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": { "start": { "line": 146, "column": 13 }, "end": { "line": 146, "column": 35 } },
