@@ -7,6 +7,24 @@
       "sourceSha256": "df14e22e1b07aebc72f2ecb379f73e2be28a22a44d4a77106d7324ea6c6eafea",
       "mutants": [
         {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?new ConditionalVariableScope(composite, state.Variables) :null)",
+          "location": {
+            "start": { "line": 125, "column": 29 },
+            "end": { "line": 125, "column": 131 }
+          },
+          "reason": "Conditional composites already take this arm. For an unconditional composite, CompleteConditionalScope returns before populating ConditionalLocalNames or its fields' CapturedLocalSlots/RestoredLocalSlots; all retain their immutable empty defaults. The added scope therefore removes no variables in its constructor and performs no capture or restoration in CompleteField. Fields are owned by their containing compiled composite, not shared with conditional parents. This adds only unused empty-state allocations, with no variable, value, cursor, diagnostic or resource-ownership change; it does not qualify removing a scope from a conditional composite."
+        },
+        {
+          "mutatorName": "Conditional (true) mutation",
+          "replacement": "(true?new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) :null)",
+          "location": {
+            "start": { "line": 126, "column": 25 },
+            "end": { "line": 126, "column": 165 }
+          },
+          "reason": "Only unconditional composites change arms. Their CompiledCompositeType constructor leaves ConditionalGroupCount zero and each owned field's ConditionalBranches empty, because branch metadata is populated only when HasDirectConditionalFields is true. The added selection allocates empty state; IsActive iterates no branches and returns true without evaluating expressions, exactly matching the original null-selection fallback. Conditional composites retain the original selection and cached arm decisions. No field visibility, diagnostic, input operation or variable changes; this proof covers the unused allocation, not removal of a real selector."
+        },
+        {
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
