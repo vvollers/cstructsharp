@@ -927,7 +927,7 @@ public partial class CStruct
         if (compiledField.Array.Kind == CompiledArrayKind.Terminated)
         {
             // The terminator element is part of the field's extent.
-            scalarCount = checked(scalarCount + 1);
+            scalarCount = CountStoredTerminatedElements(scalarCount);
         }
 
         int storageSize = checked(elementSize * scalarCount);
@@ -1135,4 +1135,10 @@ public partial class CStruct
 
         state.PublishQualified(compiledField.Name);
     }
+
+    /// <summary>Includes the all-zero terminator in a data-sized array's stored element count.</summary>
+    /// <param name="valueCount">The nonnegative count of values before the terminator.</param>
+    /// <returns>The number of stored elements, including the terminator.</returns>
+    /// <exception cref="OverflowException">The stored count exceeds the Int32 element-count domain.</exception>
+    internal static int CountStoredTerminatedElements(int valueCount) => checked(valueCount + 1);
 }
