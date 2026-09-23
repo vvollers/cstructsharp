@@ -3,6 +3,102 @@
   "strykerVersion": "5.0.0",
   "files": [
     {
+      "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.cs",
+      "sourceSha256": "86c20ee5611c743865750687ac82f868f7bee7ec4dbf4066d83e3e26b9b0b71d",
+      "mutants": [
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "remainingDeclarations-- >= 0",
+          "location": {
+            "start": { "line": 306, "column": 42 },
+            "end": { "line": 306, "column": 69 }
+          },
+          "reason": "GetStruct runs only after BuildCompiledLayout has resolved every typedef and rejected cycles. A valid alias chain visits distinct declarations and either reaches a non-typedef, returns an inline composite, or stops at a pointer/array alias. It therefore ends before exhausting the declaration count. Admitting one extra iteration at zero cannot affect any constructed layout, lookup result or path error. The count remains bounded and no cyclic layout becomes constructible."
+        },
+        {
+          "mutatorName": "PostDecrementExpression to PostIncrementExpression mutation",
+          "replacement": "remainingDeclarations++",
+          "location": {
+            "start": { "line": 306, "column": 42 },
+            "end": { "line": 306, "column": 65 }
+          },
+          "reason": "All aliases have already passed ResolveCompiledTypeReference's cycle detection before this query is available. With the unchanged body, GetStruct follows a finite chain of distinct declarations, returns an inline composite, or breaks on a pointer/array/failed lookup. The counter is a redundant defensive bound, not the terminating condition for a supported layout. Incrementing it does not change the declarations visited, returned composite or final path diagnostic; this proof does not apply to the earlier normalization loop that can still see cycles."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 316, "column": 17 },
+            "end": { "line": 316, "column": 23 }
+          },
+          "reason": "On the pointer/array arms of this condition, short-circuiting leaves value equal to the same Typedef. Without break the unchanged declaration counter repeats that same check until zero, then reaches the same 'Declaration is not a struct' exception with the original name. A failed lookup assigns null, so the next while condition stops immediately and produces that same diagnostic. Successful ordinary aliases do not enter this branch. Only redundant bounded lookup work changes; a pointer or array alias never becomes a composite query."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 383, "column": 17 },
+            "end": { "line": 383, "column": 26 }
+          },
+          "reason": "The complete branch has already stored rewritten[current], and its child expressions were completed before that frame. Falling through only pushes current and those children again. Each extra frame immediately hits the unchanged rewritten.ContainsKey guard and skips; no mapping, constant substitution or expression is rewritten a second time. This proof depends on retaining that earlier guard and does not qualify removing it."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": ">= 0",
+          "location": {
+            "start": { "line": 417, "column": 45 },
+            "end": { "line": 417, "column": 48 }
+          },
+          "reason": "The preceding switch arm still handles every inline-composite typedef. The newly matched case is an ordinary alias with zero array dimensions. NormalizeTypedefArray preserves its Name, Type and TypeKeywordHint, and EvaluateTypedefShape performs zero iterations and returns an empty shape. All alias-shape consumers use Count/enumeration, not empty-list reference identity; no field array sentinel is replaced. The internal parsed alias has no caller-held identity through CStruct's string construction. Only an equivalent alias object and empty array are allocated."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 476, "column": 13 },
+            "end": { "line": 476, "column": 57 }
+          },
+          "reason": "The very next operation evaluates the same dimension with LayoutExpressionEvaluator. ExpressionEvaluator.Evaluate obtains the same cached GetProgram before executing it; removing this eager Compile only defers that identical compilation to the immediate evaluation. Compilation failures are CStructLayoutException and pass through LayoutExpressionEvaluator unchanged. Values, negative-count checks, evaluation diagnostics and work/depth limits remain enforced at construction."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?null :(new Identifier(name), shape))",
+          "location": {
+            "start": { "line": 529, "column": 16 },
+            "end": { "line": 529, "column": 68 }
+          },
+          "reason": "For a non-null shape both versions return the same tuple values. For a null shape the mutant allocates an Identifier and returns a tuple whose second item is null. The sole caller uses the typed tuple pattern 'is (Identifier elementType, IReadOnlyList<Expr> typedefShape)', which rejects that null second item just as it rejects the original nullable null result. It consequently leaves the original field type and dimensions unchanged. No tuple escapes this private call."
+        },
+        {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 694, "column": 17 },
+            "end": { "line": 694, "column": 61 }
+          },
+          "reason": "RejectNonIntegerConstants is the immediate next call, and its first operation is expressionEvaluator.GetDependencies(dimension). That method obtains the same GetProgram used by Compile, so compilation and all syntax-tree limits still run before constant validation or evaluation, with no intervening state change. The same cached program, dependencies and exceptions result. This removes only a redundant cache warm-up, not dimension validation."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?Array.Empty<ConditionalBranch>() :field.BranchConditions.Select(item =>\n                        new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray())",
+          "location": {
+            "start": { "line": 755, "column": 40 },
+            "end": { "line": 756, "column": 145 }
+          },
+          "reason": "Only the empty branch list changes arms. Selecting and materializing an empty list produces another empty branch array without invoking the projection, so NormalizeConditionalGroup is not called and a null normalizedGroups value is never accessed. All consumers inspect branch contents/counts, not array reference identity. Nonempty lists execute the identical projection in both versions. No condition, selector, arm or field visibility changes."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?Array.Empty<ConditionalBranch>() :strct.BranchConditions.Select(item =>\n                new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray())",
+          "location": {
+            "start": { "line": 763, "column": 32 },
+            "end": { "line": 764, "column": 137 }
+          },
+          "reason": "For a composite with no enclosing branches, the alternate Select/ToArray enumerates zero entries and never invokes NormalizeConditionalGroup. It supplies the same empty branch metadata as Array.Empty, including when normalizedGroups is null. Branch consumers depend on entries/counts, not the array instance. A composite with enclosing branches takes the original nonempty projection unchanged, preserving every group and arm."
+        }
+      ]
+    },
+    {
       "pattern": "CStructSelectedReader.cs",
       "sourceSha256": "df14e22e1b07aebc72f2ecb379f73e2be28a22a44d4a77106d7324ea6c6eafea",
       "mutants": [
@@ -139,14 +235,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 40,
-              "column": 9
-            },
-            "end": {
-              "line": 43,
-              "column": 10
-            }
+            "start": { "line": 40, "column": 9 },
+            "end": { "line": 43, "column": 10 }
           },
           "reason": "TryGetDiagnosticPosition returns nullable Int64. Removing its catch body still swallows the same failed Position query; Stryker 5.0.0 appends its default-return fallback after the try/catch. That fallback returns default(long?), which is null, exactly like the original catch. Successful queries still return the same position. Both forms preserve the primary exception and attach an unavailable offset after a diagnostic failure. Tool implementation: EndingReturnEngine.InjectReturn, https://github.com/stryker-mutator/stryker-net/blob/6e77a3451bac4793e9c839c3ff4055c1b30ca3af/src/Stryker.Core/Stryker.Core/Instrumentation/EndingReturnEngine.cs."
         }
@@ -160,14 +250,8 @@
           "mutatorName": "Logical mutation",
           "replacement": "this.memoryBacked || count <= this.memoryLength - this.position",
           "location": {
-            "start": {
-              "line": 227,
-              "column": 13
-            },
-            "end": {
-              "line": 227,
-              "column": 76
-            }
+            "start": { "line": 227, "column": 13 },
+            "end": { "line": 227, "column": 76 }
           },
           "reason": "This changes only the availability subexpression of the outer preflight; its byte-budget condition remains required. A newly admitted case still calls TryReadSpan, which repeats the original memoryBacked and remaining-length checks before touching bytes or accounting. It returns false with a default span on every unavailable/non-memory case. Cases admitted by the original outer check remain admitted, with identical reads and budget charges."
         },
@@ -175,14 +259,8 @@
           "mutatorName": "Arithmetic mutation",
           "replacement": "this.memoryLength + this.position",
           "location": {
-            "start": {
-              "line": 227,
-              "column": 43
-            },
-            "end": {
-              "line": 227,
-              "column": 76
-            }
+            "start": { "line": 227, "column": 43 },
+            "end": { "line": 227, "column": 76 }
           },
           "reason": "TryReadSpan repeats the original subtraction-based availability check. If a nonnegative requested count is available, position is within the Int32-sized MemoryStream array or FixedBufferStream capacity, so length + position cannot overflow Int64 and is at least length - position. Thus every originally successful preflight still reaches the same read. Extra candidates, including positions beyond the region, are rejected by the unchanged inner check without consuming or charging bytes."
         },
@@ -190,14 +268,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 472,
-              "column": 9
-            },
-            "end": {
-              "line": 475,
-              "column": 10
-            }
+            "start": { "line": 472, "column": 9 },
+            "end": { "line": 475, "column": 10 }
           },
           "reason": "TryGetPosition returns nullable Int64. If querying the source position throws, the original catch returns null. Stryker 5.0.0 makes this block-removal mutant compilable with its default-return fallback; default(long?) is also null. Both paths preserve the original physical-stream exception with no available offset and perform the same single failed position query. Tool implementation: EndingReturnEngine.InjectReturn, https://github.com/stryker-mutator/stryker-net/blob/6e77a3451bac4793e9c839c3ff4055c1b30ca3af/src/Stryker.Core/Stryker.Core/Instrumentation/EndingReturnEngine.cs."
         }
@@ -211,14 +283,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(long)valueBytes + terminatorBytes",
           "location": {
-            "start": {
-              "line": 153,
-              "column": 37
-            },
-            "end": {
-              "line": 153,
-              "column": 80
-            }
+            "start": { "line": 153, "column": 37 },
+            "end": { "line": 153, "column": 80 }
           },
           "reason": "Both Encoding.GetByteCount results are nonnegative Int32 values. The left operand is widened to Int64 before addition, so their sum is at most 2 * Int32.MaxValue, far below Int64.MaxValue. Removing checked from this sum cannot change overflow behavior, budget validation or the later allocation."
         }
@@ -232,14 +298,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 259,
-              "column": 21
-            },
-            "end": {
-              "line": 259,
-              "column": 30
-            }
+            "start": { "line": 259, "column": 21 },
+            "end": { "line": 259, "column": 30 }
           },
           "reason": "BuildReverseDependents inserts dependent names only from definitionDependencies.Keys, which are exactly definitions.Keys. GetTopologicallySortedDefinitions initializes dependencyCounts with all of those same keys and changes only values, never removes keys. Every dependent reached in this loop is therefore present; the missing-key continue is unreachable."
         },
@@ -247,14 +307,8 @@
           "mutatorName": "Linq method mutation (First() to FirstOrDefault())",
           "replacement": "dependencyCounts.FirstOrDefault",
           "location": {
-            "start": {
-              "line": 273,
-              "column": 32
-            },
-            "end": {
-              "line": 273,
-              "column": 54
-            }
+            "start": { "line": 273, "column": 32 },
+            "end": { "line": 273, "column": 54 }
           },
           "reason": "The graph has one entry per definition and unique dependency edges. A node is queued initially at zero or exactly when its remaining count becomes zero; each node is processed once and counts never become negative. If fewer nodes were ordered than definitions, at least one unresolved cycle node has a positive count. The positive-count predicate therefore always matches here, so First and FirstOrDefault return the same first pair."
         }
@@ -268,14 +322,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 71,
-              "column": 13
-            },
-            "end": {
-              "line": 71,
-              "column": 132
-            }
+            "start": { "line": 71, "column": 13 },
+            "end": { "line": 71, "column": 132 }
           },
           "reason": "BuildCodecTable is private and has two callers. GetSharedCodecTable passes a catalog from PrimitiveCatalog.For (no custom descriptors) and an empty instance array. RegisterCustomCodecs constructs one descriptor and one instance in the same loop; WithCustomCodecs validates and retains every descriptor or throws before BuildCodecTable. Both immutable arrays therefore have identical lengths at this guard. Removing its unreachable throw cannot change supported behavior."
         },
@@ -283,14 +331,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 71,
-              "column": 49
-            },
-            "end": {
-              "line": 71,
-              "column": 130
-            }
+            "start": { "line": 71, "column": 49 },
+            "end": { "line": 71, "column": 130 }
           },
           "reason": "This diagnostic is guarded by different custom descriptor and instance counts. Both private callers construct matching counts: zero for the shared primitive catalog, or one descriptor and instance per registered codec. WithCustomCodecs retains all validated descriptors or throws first. No caller can reach this message with unequal immutable arrays."
         },
@@ -298,14 +340,8 @@
           "mutatorName": "Boolean mutation",
           "replacement": "true",
           "location": {
-            "start": {
-              "line": 101,
-              "column": 83
-            },
-            "end": {
-              "line": 101,
-              "column": 88
-            }
+            "start": { "line": 101, "column": 83 },
+            "end": { "line": 101, "column": 88 }
           },
           "reason": "This canonical ufixed8_8 big-endian reader always passes width 16 to FixedPointCodec.Read. That method selects ReadUInt16 solely from width == 16, and never inspects signed on this branch. Flipping only signed leaves the raw value, byte order, consumed bytes and DecodeFixedPoint call unchanged for every input."
         },
@@ -313,14 +349,8 @@
           "mutatorName": "Boolean mutation",
           "replacement": "true",
           "location": {
-            "start": {
-              "line": 102,
-              "column": 82
-            },
-            "end": {
-              "line": 102,
-              "column": 87
-            }
+            "start": { "line": 102, "column": 82 },
+            "end": { "line": 102, "column": 87 }
           },
           "reason": "This canonical ufixed8_8 little-endian reader always passes width 16. FixedPointCodec.Read unconditionally uses ReadUInt16 for that width; signed is consulted only for the 32-bit branch. Changing this unused argument preserves reads, failures, byte consumption and decoded values."
         }
@@ -343,14 +373,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?Array.Empty<string>() :[.. dependencies,])",
           "location": {
-            "start": {
-              "line": 347,
-              "column": 13
-            },
-            "end": {
-              "line": 347,
-              "column": 81
-            }
+            "start": { "line": 347, "column": 13 },
+            "end": { "line": 347, "column": 81 }
           },
           "reason": "The SDK emits Enumerable.ToArray<string> for this single HashSet spread, verified in both target assemblies. On supported .NET 8 and .NET 10, ToArray recognizes ICollection<string> and returns Array.Empty<string>() when Count is zero, before CopyTo or enumeration. The dependencies HashSet is private, operation-owned and not mutated after compilation. Thus the empty alternative returns the same shared instance without an allocation or callback; nonempty sets already use the same spread. The shared-empty-storage regression passes on both targets with this exact mutation and guards observable identity."
         },
@@ -358,14 +382,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 687,
-              "column": 57
-            },
-            "end": {
-              "line": 687,
-              "column": 109
-            }
+            "start": { "line": 687, "column": 57 },
+            "end": { "line": 687, "column": 109 }
           },
           "reason": "ExactEvaluationContext is private. EvaluateExact compiles the entire root with GetProgram before entering it, and its EvaluateIdentifier compiles each selected dependency before recursive evaluation. CompileExpression rejects Call nodes in every subtree, even unselected branches. Syntax child references are read-only and cannot change between validation and execution. The exact interpreter's duplicate Call rejection is therefore unreachable; only its message is changed."
         },
@@ -373,14 +391,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 689,
-              "column": 21
-            },
-            "end": {
-              "line": 689,
-              "column": 57
-            }
+            "start": { "line": 689, "column": 21 },
+            "end": { "line": 689, "column": 57 }
           },
           "reason": "The private exact interpreter receives a root only after EvaluateExact calls GetProgram, and receives a dependency only after its own EvaluateIdentifier calls GetProgram. CompileExpression rejects every unsupported node type while traversing the complete immutable tree. Supported expression child references are read-only; their runtime types cannot change after compilation. Thus the exact interpreter's unsupported-node fallback is unreachable, and changing only its prefix cannot alter an observable diagnostic."
         },
@@ -388,14 +400,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 746,
-              "column": 58
-            },
-            "end": {
-              "line": 746,
-              "column": 84
-            }
+            "start": { "line": 746, "column": 58 },
+            "end": { "line": 746, "column": 84 }
           },
           "reason": "Every tree reaching ExactEvaluationContext was first compiled through GetProgram at the root or named-dependency boundary. Compilation's CreateOperatorInstruction rejects all unknown UnaryOperatorType values before exact evaluation starts. UnaryOp.Type and its child reference are read-only, so the checked operator cannot become invalid afterward. The exact unary fallback message is unreachable; the earlier compiler diagnostic is unchanged."
         },
@@ -403,14 +409,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 784,
-              "column": 58
-            },
-            "end": {
-              "line": 784,
-              "column": 85
-            }
+            "start": { "line": 784, "column": 58 },
+            "end": { "line": 784, "column": 85 }
           },
           "reason": "The exact interpreter validates roots and named dependencies through GetProgram before evaluating them. CreateOperatorInstruction rejects an unknown BinaryOperatorType during compilation, including in unselected syntax branches. BinaryOp.Type and its child references are read-only, so successful compilation cannot be followed by a newly invalid operator. This changes only the unreachable duplicate exact-interpreter fallback message; compiler failures remain intact."
         },
@@ -418,14 +418,8 @@
           "mutatorName": "Boolean mutation",
           "replacement": "true",
           "location": {
-            "start": {
-              "line": 317,
-              "column": 72
-            },
-            "end": {
-              "line": 317,
-              "column": 77
-            }
+            "start": { "line": 317, "column": 72 },
+            "end": { "line": 317, "column": 77 }
           },
           "reason": "This exact Boolean is CompilationFrame.EmitOperator, not its Conditional flag. The same immutable frame is created with BranchStage 2, which emits the logical combining operator and patches its target. CompileExpression handles that stage and unconditionally continues before reading EmitOperator. Changing only this otherwise-unused flag cannot alter emitted instructions, patch targets, dependency flags, depth, work or failures."
         },
@@ -433,14 +427,8 @@
           "mutatorName": "Boolean mutation",
           "replacement": "true",
           "location": {
-            "start": {
-              "line": 319,
-              "column": 72
-            },
-            "end": {
-              "line": 319,
-              "column": 77
-            }
+            "start": { "line": 319, "column": 72 },
+            "end": { "line": 319, "column": 77 }
           },
           "reason": "This exact Boolean is CompilationFrame.EmitOperator, not its Conditional flag. The same immutable frame is created with BranchStage 1, which emits the logical short-circuit jump. CompileExpression handles that stage and unconditionally continues before reading EmitOperator. Changing only this otherwise-unused flag cannot alter emitted instructions, patch targets, dependency flags, depth, work or failures."
         },
@@ -448,14 +436,8 @@
           "mutatorName": "Boolean mutation",
           "replacement": "true",
           "location": {
-            "start": {
-              "line": 330,
-              "column": 77
-            },
-            "end": {
-              "line": 330,
-              "column": 82
-            }
+            "start": { "line": 330, "column": 77 },
+            "end": { "line": 330, "column": 82 }
           },
           "reason": "This exact Boolean is CompilationFrame.EmitOperator, not its Conditional flag. The same immutable frame is created with BranchStage 5, which emits the conditional join and patches its target. CompileExpression handles that stage and unconditionally continues before reading EmitOperator. Changing only this otherwise-unused flag cannot alter emitted instructions, patch targets, dependency flags, depth, work or failures."
         },
@@ -463,14 +445,8 @@
           "mutatorName": "Boolean mutation",
           "replacement": "true",
           "location": {
-            "start": {
-              "line": 332,
-              "column": 77
-            },
-            "end": {
-              "line": 332,
-              "column": 82
-            }
+            "start": { "line": 332, "column": 77 },
+            "end": { "line": 332, "column": 82 }
           },
           "reason": "This exact Boolean is CompilationFrame.EmitOperator, not its Conditional flag. The same immutable frame is created with BranchStage 4, which emits the conditional end jump and patches the else target. CompileExpression handles that stage and unconditionally continues before reading EmitOperator. Changing only this otherwise-unused flag cannot alter emitted instructions, patch targets, dependency flags, depth, work or failures."
         },
@@ -478,14 +454,8 @@
           "mutatorName": "Boolean mutation",
           "replacement": "true",
           "location": {
-            "start": {
-              "line": 334,
-              "column": 77
-            },
-            "end": {
-              "line": 334,
-              "column": 82
-            }
+            "start": { "line": 334, "column": 77 },
+            "end": { "line": 334, "column": 82 }
           },
           "reason": "This exact Boolean is CompilationFrame.EmitOperator, not its Conditional flag. The same immutable frame is created with BranchStage 3, which emits the conditional false-branch jump. CompileExpression handles that stage and unconditionally continues before reading EmitOperator. Changing only this otherwise-unused flag cannot alter emitted instructions, patch targets, dependency flags, depth, work or failures."
         },
@@ -493,14 +463,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 378,
-              "column": 54
-            },
-            "end": {
-              "line": 378,
-              "column": 99
-            }
+            "start": { "line": 378, "column": 54 },
+            "end": { "line": 378, "column": 99 }
           },
           "reason": "CreateOperatorInstruction is private and has exactly two call sites. BranchStage 2 frames are created only for a logical BinaryOp; EmitOperator frames are created only for UnaryOp or non-logical BinaryOp. Both type patterns are handled before the fallback, including their separate invalid-enum failures. Other syntax nodes never reach this helper. Changing only the no-operator fallback message is therefore unobservable."
         },
@@ -508,14 +472,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 555,
-              "column": 65
-            },
-            "end": {
-              "line": 555,
-              "column": 102
-            }
+            "start": { "line": 555, "column": 65 },
+            "end": { "line": 555, "column": 102 }
           },
           "reason": "CompileExpression constructs every private Identifier instruction from Identifier.Name. Identifier's constructor dereferences its string argument before assigning the read-only Name, so a null argument cannot produce an instance. Pointer-star removal returns a non-null string, and Name cannot be overridden or reassigned. Private instruction arrays are not caller-supplied. The runtime null-name fallback cannot be reached; this exact diagnostic-only mutation does not change any lookup or failure."
         },
@@ -523,14 +481,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 828,
-              "column": 65
-            },
-            "end": {
-              "line": 828,
-              "column": 102
-            }
+            "start": { "line": 828, "column": 65 },
+            "end": { "line": 828, "column": 102 }
           },
           "reason": "The CompiledExpression constructor receives only CompileExpression's private instruction array. Every Identifier instruction copies the non-null read-only Identifier.Name: the Identifier constructor dereferences its argument before assignment and its star-removal path also returns a non-null string. Caller data cannot construct or edit instructions. The null-name fallback while collecting unconditional references is unreachable, so changing only its message preserves behavior."
         },
@@ -538,14 +490,8 @@
           "mutatorName": "Logical mutation",
           "replacement": "ExpressionOpcode.Identifier or ExpressionOpcode.Literal or\n                ExpressionOpcode.JumpIfFalse and ExpressionOpcode.JumpIfTrue",
           "location": {
-            "start": {
-              "line": 62,
-              "column": 52
-            },
-            "end": {
-              "line": 63,
-              "column": 76
-            }
+            "start": { "line": 62, "column": 52 },
+            "end": { "line": 63, "column": 76 }
           },
           "reason": "This exact pattern change removes only JumpIfFalse/JumpIfTrue from the three-instruction fast-path exclusion. CompileExpression is the sole producer of the private immutable program: logical operators emit their left program, a jump, the right program and a combining operator, so they require at least four instructions. A three-instruction program cannot end in either jump; the unary exclusions and operand validation remain unchanged. The affected match therefore has the same result before any variable lookup or budget accounting."
         },
@@ -553,14 +499,8 @@
           "mutatorName": "Logical mutation",
           "replacement": "ExpressionOpcode.Identifier or ExpressionOpcode.Literal and\n                ExpressionOpcode.JumpIfFalse",
           "location": {
-            "start": {
-              "line": 62,
-              "column": 52
-            },
-            "end": {
-              "line": 63,
-              "column": 45
-            }
+            "start": { "line": 62, "column": 52 },
+            "end": { "line": 63, "column": 45 }
           },
           "reason": "This exact pattern change removes only Literal and JumpIfFalse from the three-instruction fast-path exclusion because their enum values cannot match simultaneously. CompileExpression emits a leaf as one instruction, never as the final instruction of a three-instruction root. Logical expressions contain at least four instructions and no complete root ends at their intermediate jump. Other exclusions, including all unary operators, remain unchanged; the guard result and every subsequent operation are identical."
         },
@@ -568,14 +508,8 @@
           "mutatorName": "Logical mutation",
           "replacement": "ExpressionOpcode.Identifier and ExpressionOpcode.Literal",
           "location": {
-            "start": {
-              "line": 62,
-              "column": 52
-            },
-            "end": {
-              "line": 62,
-              "column": 107
-            }
+            "start": { "line": 62, "column": 52 },
+            "end": { "line": 62, "column": 107 }
           },
           "reason": "This exact pattern change replaces the Identifier-or-Literal subpattern with an impossible intersection. A scalar leaf compiles to exactly one instruction. Every larger compiler-produced program ends in its root operator or conditional Join, never a leaf. The private instruction array cannot be caller-supplied. Thus the removed leaf alternatives are impossible when code.Length is three; all other exclusions and lookup/budget behavior remain unchanged."
         },
@@ -583,14 +517,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 577,
-              "column": 21
-            },
-            "end": {
-              "line": 577,
-              "column": 115
-            }
+            "start": { "line": 577, "column": 21 },
+            "end": { "line": 577, "column": 115 }
           },
           "reason": "CompileExpression is the only producer of the private instruction array. Literals and identifiers push one value; unary instructions preserve one; binary instructions combine two operands into one. Logical short-circuit jumps keep the normalized left result or evaluate the right and combine it; conditional jumps consume the test and execute exactly one value-producing arm. By induction each compiled root finishes with one value or throws earlier. Identifier calls return one int or throw. The final valueCount failure is therefore unreachable."
         },
@@ -598,14 +526,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 577,
-              "column": 57
-            },
-            "end": {
-              "line": 577,
-              "column": 113
-            }
+            "start": { "line": 577, "column": 57 },
+            "end": { "line": 577, "column": 113 }
           },
           "reason": "The message belongs to a defensive valueCount != 1 failure. Private compiler-produced programs preserve one result by structural induction over scalar, unary, binary, short-circuit and conditional expressions; each branch path leaves exactly one value, and a failing operand exits before this check. Caller data cannot supply instructions or alter stack arity, so changing only this unreachable diagnostic has no effect."
         },
@@ -613,14 +535,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "stackSize < 0",
           "location": {
-            "start": {
-              "line": 853,
-              "column": 21
-            },
-            "end": {
-              "line": 853,
-              "column": 35
-            }
+            "start": { "line": 853, "column": 21 },
+            "end": { "line": 853, "column": 35 }
           },
           "reason": "The private compiler emits postfix instructions only for known syntax nodes, rejecting calls and unsupported operators first. Scalars push one; unary operations keep their operand; a binary operation follows both complete operands and removes one slot. Logical jumps do not change the static count. A conditional counts its test and both arms, then Jump and Join remove the two surplus entries. Each complete subtree nets one and every emitted prefix retains a positive count. stackSize can therefore never be zero here, so <= 0 and < 0 are equivalent."
         },
@@ -628,14 +544,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 855,
-              "column": 21
-            },
-            "end": {
-              "line": 855,
-              "column": 113
-            }
+            "start": { "line": 855, "column": 21 },
+            "end": { "line": 855, "column": 113 }
           },
           "reason": "The invalid-stack-transition throw is unreachable for CompileExpression's private instruction stream. Structural induction gives a positive count after every prefix: leaves push, unary operators preserve one, binary operators follow two complete operands and remove one, and conditional Jump/Join remove only the test/extra-arm surplus. Unsupported nodes/operators throw before this constructor. Removing only this defensive throw cannot affect accepted syntax or failure behavior."
         },
@@ -643,14 +553,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 855,
-              "column": 57
-            },
-            "end": {
-              "line": 855,
-              "column": 111
-            }
+            "start": { "line": 855, "column": 57 },
+            "end": { "line": 855, "column": 111 }
           },
           "reason": "The invalid-stack-transition diagnostic is unreachable because every emitted prefix of a private compiled program retains at least one stack value. Binary operators follow both operands, unary operators preserve one, and conditional Jump/Join only remove their accounted surplus entries. No API accepts an arbitrary instruction array. Changing this message cannot affect a reachable result."
         },
@@ -658,14 +562,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 863,
-              "column": 17
-            },
-            "end": {
-              "line": 863,
-              "column": 116
-            }
+            "start": { "line": 863, "column": 17 },
+            "end": { "line": 863, "column": 116 }
           },
           "reason": "CompiledExpression receives exactly one complete tree's private postfix instruction array. Every scalar subtree contributes one stack value; unary preserves it, binary combines two into one, short-circuit bookkeeping preserves the same static effect, and conditional bookkeeping subtracts the test and one extra arm. The complete array therefore has final stackSize == 1. Removing the defensive final-count throw is unobservable."
         },
@@ -673,14 +571,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 863,
-              "column": 53
-            },
-            "end": {
-              "line": 863,
-              "column": 114
-            }
+            "start": { "line": 863, "column": 53 },
+            "end": { "line": 863, "column": 114 }
           },
           "reason": "The final static-stack diagnostic cannot be reached: CompileExpression emits one complete tree, each subtree has net stack effect +1, and its binary/conditional bookkeeping combines child results back to one. Callers cannot replace the private instructions. Changing only the message for stackSize != 1 has no effect on valid values or reachable failures."
         },
@@ -688,14 +580,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(int)first",
           "location": {
-            "start": {
-              "line": 116,
-              "column": 20
-            },
-            "end": {
-              "line": 116,
-              "column": 39
-            }
+            "start": { "line": 116, "column": 20 },
+            "end": { "line": 116, "column": 39 }
           },
           "reason": "The first simple-path operand is a BigInteger. On supported net8.0 and net10.0, both checked and unchecked casts invoke BigInteger's explicit Int32 conversion, which enforces the Int32 range itself; there is no separate checked Int32 conversion that can wrap differently. Removing the checked expression therefore preserves every value and overflow failure, including literals outside the signed layout domain."
         },
@@ -703,14 +589,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(int)second",
           "location": {
-            "start": {
-              "line": 126,
-              "column": 83
-            },
-            "end": {
-              "line": 126,
-              "column": 103
-            }
+            "start": { "line": 126, "column": 83 },
+            "end": { "line": 126, "column": 103 }
           },
           "reason": "The second simple-path operand is a BigInteger. On supported net8.0 and net10.0, both checked and unchecked casts invoke BigInteger's explicit Int32 conversion, which enforces the Int32 range itself; there is no separate checked Int32 conversion that can wrap differently. Removing the checked expression therefore preserves every value and overflow failure, including literals outside the signed layout domain."
         },
@@ -718,14 +598,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(int)instruction.Value",
           "location": {
-            "start": {
-              "line": 520,
-              "column": 48
-            },
-            "end": {
-              "line": 520,
-              "column": 79
-            }
+            "start": { "line": 520, "column": 48 },
+            "end": { "line": 520, "column": 79 }
           },
           "reason": "The literal instruction value is a BigInteger. On supported net8.0 and net10.0, both checked and unchecked casts invoke BigInteger's explicit Int32 conversion, which enforces the Int32 range itself; there is no separate checked Int32 conversion that can wrap differently. Removing the checked expression therefore preserves every value and overflow failure, including literals outside the signed layout domain."
         },
@@ -733,14 +607,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?throw new DivideByZeroException() :BigInteger.Remainder(left, right))",
           "location": {
-            "start": {
-              "line": 782,
-              "column": 43
-            },
-            "end": {
-              "line": 782,
-              "column": 127
-            }
+            "start": { "line": 782, "column": 43 },
+            "end": { "line": 782, "column": 127 }
           },
           "reason": "For nonzero right operands both paths call BigInteger.Remainder with identical operands. For zero, BigInteger.Remainder itself throws the same parameterless DivideByZeroException as the explicit guard. BigInteger.IsZero is a pure value check. Removing that redundant guard changes neither remainder semantics nor the exception type, message or cause; the exact-modulo regression covers a negative remainder and zero failure."
         }
@@ -772,14 +640,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "segmentIndex <= segments.Count",
           "location": {
-            "start": {
-              "line": 31,
-              "column": 36
-            },
-            "end": {
-              "line": 31,
-              "column": 65
-            }
+            "start": { "line": 31, "column": 36 },
+            "end": { "line": 31, "column": 65 }
           },
           "reason": "The sole production caller is CStruct.WriteStreamCore after paths with one segment have returned; childSegments therefore contains at least one element. Within ResolveElementPath every iteration either throws or, at segmentIndex == segments.Count - 1, returns writableField before incrementing. The loop condition is never evaluated at segmentIndex == segments.Count on a reachable invocation, so changing < to <= cannot add an iteration."
         }
@@ -820,14 +682,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 362,
-              "column": 25
-            },
-            "end": {
-              "line": 362,
-              "column": 46
-            }
+            "start": { "line": 362, "column": 25 },
+            "end": { "line": 362, "column": 46 }
           },
           "reason": "This Dispose call targets only an exact private new MemoryStream(length) scratch wrapper, not the baseline, destination or a pooled page. CreateStagedRange exposes its backing byte array, which remains valid after MemoryStream disposal; the wrapper itself never escapes. After this call the wrapper is either overwritten by the next scratch stream or the iterator ends, without another read/write through that wrapper. MemoryStream owns no external handle and disposal neither returns a pooled buffer nor releases its backing array. Omitting this exact call changes no emitted bytes, stream I/O, buffer ownership or managed backing-array lifetime. The real pooled-page and contiguous-rental returns remain required."
         },
@@ -835,14 +691,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 377,
-              "column": 13
-            },
-            "end": {
-              "line": 377,
-              "column": 34
-            }
+            "start": { "line": 377, "column": 13 },
+            "end": { "line": 377, "column": 34 }
           },
           "reason": "This Dispose call targets only an exact private new MemoryStream(length) scratch wrapper, not the baseline, destination or a pooled page. CreateStagedRange exposes its backing byte array, which remains valid after MemoryStream disposal; the wrapper itself never escapes. After this call the wrapper is either overwritten by the next scratch stream or the iterator ends, without another read/write through that wrapper. MemoryStream owns no external handle and disposal neither returns a pooled buffer nor releases its backing array. Omitting this exact call changes no emitted bytes, stream I/O, buffer ownership or managed backing-array lifetime. The real pooled-page and contiguous-rental returns remain required."
         },
@@ -850,14 +700,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 329,
-              "column": 9
-            },
-            "end": {
-              "line": 331,
-              "column": 10
-            }
+            "start": { "line": 329, "column": 9 },
+            "end": { "line": 331, "column": 10 }
           },
           "reason": "TryGetPosition returns nullable Int64. If Position throws, the original catch returns null. Removing its body still catches that exception, and Stryker 5.0.0's EndingReturnEngine appends default(long?), also null. The caller therefore retains the same attempted-offset fallback and original commit failure. Tool implementation: https://github.com/stryker-mutator/stryker-net/blob/6e77a3451bac4793e9c839c3ff4055c1b30ca3af/src/Stryker.Core/Stryker.Core/Instrumentation/EndingReturnEngine.cs."
         },
@@ -865,14 +709,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "this.rangeLength >= 0",
           "location": {
-            "start": {
-              "line": 385,
-              "column": 17
-            },
-            "end": {
-              "line": 385,
-              "column": 37
-            }
+            "start": { "line": 385, "column": 17 },
+            "end": { "line": 385, "column": 37 }
           },
           "reason": "Only the empty-range case is newly admitted by rangeLength >= 0. The unchanged following bounds require address >= rangeStart and address < rangeStart + 0 simultaneously, which is impossible. The body never indexes the null buffer; the same false result and zero out value follow. Nonempty ranges behave identically."
         },
@@ -880,14 +718,8 @@
           "mutatorName": "CoalesceAssignmentExpression to SimpleAssignmentExpression mutation",
           "replacement": "this.rangeBytes = this.pool.Rent(Math.Max(source.Length, 64))",
           "location": {
-            "start": {
-              "line": 419,
-              "column": 13
-            },
-            "end": {
-              "line": 419,
-              "column": 76
-            }
+            "start": { "line": 419, "column": 13 },
+            "end": { "line": 419, "column": 76 }
           },
           "reason": "TryStageInRange is called only while chunks is null. Before its first successful write rangeLength is zero and rangeBytes is null, so assignment and null-coalescing assignment rent the same buffer. Subsequent contiguous writes have positive rangeLength; promotion sets chunks non-null and this helper is never called again. Public updates own this internal staging stream in one using scope and never write after disposal. No supported operation reaches this line with an existing range buffer."
         },
@@ -895,14 +727,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 422,
-              "column": 17
-            },
-            "end": {
-              "line": 422,
-              "column": 69
-            }
+            "start": { "line": 422, "column": 17 },
+            "end": { "line": 422, "column": 69 }
           },
           "reason": "On every supported entry to this initial-range branch, rangeBytes is null and the preceding Rent requests at least source.Length. The ArrayPool contract guarantees at least that capacity. Its Length < source.Length branch therefore cannot execute; removing this unreachable return does not lose a rental. This does not qualify any return on the reachable contiguous-growth or promotion paths."
         },
@@ -910,14 +736,8 @@
           "mutatorName": "Boolean mutation",
           "replacement": "false",
           "location": {
-            "start": {
-              "line": 422,
-              "column": 63
-            },
-            "end": {
-              "line": 422,
-              "column": 67
-            }
+            "start": { "line": 422, "column": 63 },
+            "end": { "line": 422, "column": 67 }
           },
           "reason": "The initial-range branch rents at least source.Length when rangeBytes is null. This is the only supported pre-write state with zero rangeLength and no chunks: later writes are positive-length or use the chunk map. ArrayPool guarantees at least the requested capacity, so the smaller-buffer branch cannot execute and changing its unreachable clearArray argument has no effect."
         },
@@ -925,14 +745,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "this.rangeLength >= 0",
           "location": {
-            "start": {
-              "line": 457,
-              "column": 13
-            },
-            "end": {
-              "line": 457,
-              "column": 33
-            }
+            "start": { "line": 457, "column": 13 },
+            "end": { "line": 457, "column": 33 }
           },
           "reason": "PromoteRangeToChunks is called only after TryStageInRange returns false. That helper always handles rangeLength == 0 and returns true; only a gap outside an existing positive-length range returns false. Thus promotion always sees rangeLength > 0. Replacing > with >= leaves its copy, return and reset operations unchanged."
         },
@@ -940,14 +754,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "offset <= this.maximumWrittenExclusive",
           "location": {
-            "start": {
-              "line": 526,
-              "column": 20
-            },
-            "end": {
-              "line": 526,
-              "column": 57
-            }
+            "start": { "line": 526, "column": 20 },
+            "end": { "line": 526, "column": 57 }
           },
           "reason": "The bitmap's maximumWrittenExclusive is one past its last written byte. After the last emitted run offset equals that bound. Changing the outer loop to <= enters one extra iteration, but the unchanged inner loop short-circuits and the following equality immediately yields break. It emits no extra range and performs no bitmap lookup or I/O."
         },
@@ -955,14 +763,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "offset <= this.maximumWrittenExclusive",
           "location": {
-            "start": {
-              "line": 528,
-              "column": 24
-            },
-            "end": {
-              "line": 528,
-              "column": 61
-            }
+            "start": { "line": 528, "column": 24 },
+            "end": { "line": 528, "column": 61 }
           },
           "reason": "The unchanged outer loop starts this gap scan strictly below maximumWrittenExclusive. Every chunk is populated by a nonempty Write, which sets the bit at maximumWrittenExclusive - 1. The gap scan therefore encounters a written byte before reaching the exclusive bound. Changing only its < comparison to <= never evaluates IsWritten at the bound and yields identical runs."
         },
@@ -970,14 +772,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 535,
-              "column": 21
-            },
-            "end": {
-              "line": 535,
-              "column": 33
-            }
+            "start": { "line": 535, "column": 21 },
+            "end": { "line": 535, "column": 33 }
           },
           "reason": "Within the unchanged outer loop offset starts below maximumWrittenExclusive. The gap scan cannot pass the last written byte at maximumWrittenExclusive - 1, because Write sets that bit whenever it extends the maximum. Thus offset == maximumWrittenExclusive is false at this point on every reachable iteration; removing this defensive yield break changes no run or I/O."
         },
@@ -985,14 +781,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "this.position > this.baselineLength",
           "location": {
-            "start": {
-              "line": 135,
-              "column": 31
-            },
-            "end": {
-              "line": 135,
-              "column": 67
-            }
+            "start": { "line": 135, "column": 31 },
+            "end": { "line": 135, "column": 67 }
           },
           "reason": "Changing >= to > differs only when position equals the captured baselineLength. At that exact boundary Read computes available = Math.Min(buffer.Length, baselineLength - position) = 0, never enters its loop, adds zero to position and returns zero. Empty buffers also return zero. No baseline query or read occurs on either path."
         },
@@ -1000,14 +790,8 @@
           "mutatorName": "Logical mutation",
           "replacement": "!bytes.TryGetBuffer(out ArraySegment<byte> segment) && segment.Array is null",
           "location": {
-            "start": {
-              "line": 336,
-              "column": 13
-            },
-            "end": {
-              "line": 336,
-              "column": 89
-            }
+            "start": { "line": 336, "column": 13 },
+            "end": { "line": 336, "column": 89 }
           },
           "reason": "CreateStagedRange is private and receives only the exact MemoryStream instances constructed with new MemoryStream(length) in GetStagedRanges. These expandable streams expose their managed backing arrays, including the non-null empty array. TryGetBuffer therefore returns true with a non-null Array on every reachable call. Replacing OR with AND leaves the defensive branch unentered."
         },
@@ -1015,14 +799,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 338,
-              "column": 13
-            },
-            "end": {
-              "line": 338,
-              "column": 108
-            }
+            "start": { "line": 338, "column": 13 },
+            "end": { "line": 338, "column": 108 }
           },
           "reason": "CreateStagedRange receives only private new MemoryStream(length) instances from GetStagedRanges. Their backing arrays are publicly exposable and non-null, so the defensive hidden-buffer throw is unreachable. No caller-owned stream or subclass reaches this helper."
         },
@@ -1030,14 +808,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 338,
-              "column": 49
-            },
-            "end": {
-              "line": 338,
-              "column": 106
-            }
+            "start": { "line": 338, "column": 49 },
+            "end": { "line": 338, "column": 106 }
           },
           "reason": "The hidden-buffer diagnostic belongs to an unreachable branch: GetStagedRanges constructs every input with new MemoryStream(length), which exposes its non-null backing array. Changing only that defensive message cannot affect an emitted StagedRange or a caller-visible failure."
         },
@@ -1045,14 +817,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(int)bytes.Length",
           "location": {
-            "start": {
-              "line": 341,
-              "column": 54
-            },
-            "end": {
-              "line": 341,
-              "column": 80
-            }
+            "start": { "line": 341, "column": 54 },
+            "end": { "line": 341, "column": 80 }
           },
           "reason": "The input is an owned, expandable MemoryStream created in GetStagedRanges, never a caller subclass. Its length is bounded by its single managed array and Int32 capacity; a write beyond that supported capacity fails before CreateStagedRange. Converting its successfully constructed Length to int cannot overflow."
         },
@@ -1060,14 +826,8 @@
           "mutatorName": "UnaryMinusExpression to UnaryPlusExpression mutation",
           "replacement": "+1",
           "location": {
-            "start": {
-              "line": 347,
-              "column": 27
-            },
-            "end": {
-              "line": 347,
-              "column": 29
-            }
+            "start": { "line": 347, "column": 27 },
+            "end": { "line": 347, "column": 29 }
           },
           "reason": "The initial rangeStart sentinel is never emitted. On the first written run rangeBytes is null, so the branch assigns rangeStart = start before creating the first stream. Every subsequent replacement also assigns the start before creating that stream; with no runs the final emission is skipped. Initializing the sentinel to +1 instead of -1 is unobservable."
         },
@@ -1075,14 +835,8 @@
           "mutatorName": "UnaryMinusExpression to UnaryPlusExpression mutation",
           "replacement": "+1",
           "location": {
-            "start": {
-              "line": 348,
-              "column": 32
-            },
-            "end": {
-              "line": 348,
-              "column": 34
-            }
+            "start": { "line": 348, "column": 32 },
+            "end": { "line": 348, "column": 34 }
           },
           "reason": "The initial expectedAddress is ignored because rangeBytes is null and the first operand of the branch short-circuits. The first run assigns expectedAddress = start + length before any later comparison. With no runs it is never read. Changing only its initial sentinel has no effect."
         },
@@ -1090,14 +844,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "entry.Key * ChunkSize",
           "location": {
-            "start": {
-              "line": 353,
-              "column": 31
-            },
-            "end": {
-              "line": 353,
-              "column": 61
-            }
+            "start": { "line": 353, "column": 31 },
+            "end": { "line": 353, "column": 61 }
           },
           "reason": "Chunk keys are created only by WriteToChunks as nonnegative address / 1024. Write validates position + buffer.Length with checked arithmetic and rejects ends beyond baselineLength before staging; promotion copies an already validated range. Therefore key * 1024 is no greater than an actual staged address and fits Int64. Removing checked from this multiplication cannot change behavior."
         },
@@ -1105,14 +853,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "chunkStart + offset",
           "location": {
-            "start": {
-              "line": 356,
-              "column": 30
-            },
-            "end": {
-              "line": 356,
-              "column": 58
-            }
+            "start": { "line": 356, "column": 30 },
+            "end": { "line": 356, "column": 58 }
           },
           "reason": "Each written run's offset identifies bytes previously copied by WriteToChunks, whose chunk key and offset come from one nonnegative extent-validated address. The sum chunkStart + offset recovers a staged address strictly below a successfully checked write end, so it cannot exceed Int64.MaxValue. Removing checked preserves values and failures."
         },
@@ -1120,14 +862,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "start + length",
           "location": {
-            "start": {
-              "line": 370,
-              "column": 35
-            },
-            "end": {
-              "line": 370,
-              "column": 58
-            }
+            "start": { "line": 370, "column": 35 },
+            "end": { "line": 370, "column": 58 }
           },
           "reason": "GetWrittenRuns returns only contiguous bytes marked by successful extent-validated writes. The exclusive end start + length is at most the greatest checked end of those writes, even when adjacent writes merge. Every write end is at most baselineLength and Int64.MaxValue. Removing checked from the recovered run end cannot overflow."
         }
@@ -1246,14 +982,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "dimensions.Count >= 0",
           "location": {
-            "start": {
-              "line": 540,
-              "column": 13
-            },
-            "end": {
-              "line": 540,
-              "column": 33
-            }
+            "start": { "line": 540, "column": 13 },
+            "end": { "line": 540, "column": 33 }
           },
           "reason": "For an empty dimensions list, the newly entered foreach has no iterations and BuildArrayCount immediately returns Field.NoArray, exactly the original shape value. Nonempty lists already enter the original branch. The private List is operation-owned, so the changed count comparison preserves the produced typedef, validation failures and array-shape identity."
         },
@@ -1261,14 +991,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "end <= 0",
           "location": {
-            "start": {
-              "line": 821,
-              "column": 17
-            },
-            "end": {
-              "line": 821,
-              "column": 24
-            }
+            "start": { "line": 821, "column": 17 },
+            "end": { "line": 821, "column": 24 }
           },
           "reason": "The include terminator search starts at position + 1 after consuming the #include keyword and recognizing its opening delimiter. Any found index is therefore strictly positive; IndexOf reports -1 when no terminator exists. A result of zero is impossible, so changing end < 0 to end <= 0 preserves every successful include and missing-delimiter failure."
         },
@@ -1276,14 +1000,8 @@
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?words[0].SourceOffset :-1)",
           "location": {
-            "start": {
-              "line": 1664,
-              "column": 68
-            },
-            "end": {
-              "line": 1664,
-              "column": 112
-            }
+            "start": { "line": 1664, "column": 68 },
+            "end": { "line": 1664, "column": 112 }
           },
           "reason": "BuildTypeIdentifier is private and has one call site in ParseFieldDeclaration. That caller rejects words.Count == 0 before parsing suffixes, and no subsequent operation changes the local words list before this call. The source-offset conditional therefore always selects words[0].SourceOffset; forcing its true arm is equivalent."
         },
@@ -1291,14 +1009,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "words.Count >= 0",
           "location": {
-            "start": {
-              "line": 1664,
-              "column": 68
-            },
-            "end": {
-              "line": 1664,
-              "column": 83
-            }
+            "start": { "line": 1664, "column": 68 },
+            "end": { "line": 1664, "column": 83 }
           },
           "reason": "BuildTypeIdentifier is private and has one call site in ParseFieldDeclaration. That caller rejects an empty words list, and the list is not changed between the guard and this call. Both words.Count > 0 and words.Count >= 0 are true for every reachable invocation, preserving the first word's source offset."
         },
@@ -1306,14 +1018,8 @@
           "mutatorName": "UnaryMinusExpression to UnaryPlusExpression mutation",
           "replacement": "+1",
           "location": {
-            "start": {
-              "line": 1664,
-              "column": 110
-            },
-            "end": {
-              "line": 1664,
-              "column": 112
-            }
+            "start": { "line": 1664, "column": 110 },
+            "end": { "line": 1664, "column": 112 }
           },
           "reason": "BuildTypeIdentifier's sole private caller rejects an empty words list before invoking it. The fallback -1 source offset is therefore unreachable; changing only that fallback to +1 cannot change a returned identifier or diagnostic."
         },
@@ -1321,14 +1027,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "length >= 0",
           "location": {
-            "start": {
-              "line": 1916,
-              "column": 16
-            },
-            "end": {
-              "line": 1916,
-              "column": 26
-            }
+            "start": { "line": 1916, "column": 16 },
+            "end": { "line": 1916, "column": 26 }
           },
           "reason": "TryRecognizeBinaryOperator's only caller is TryBinaryOperator, called from ParseBinary. ParseBinary returns through ParseUnary before reaching TryBinaryOperator at UnaryLevel. Every recognized operator has positive length; the unrecognized fallback alone has length zero and operatorLevel UnaryLevel. Thus the fallback's level comparison is false for every caller, even if length >= 0 becomes true; the recognized cases remain unchanged."
         },
@@ -1336,14 +1036,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "this.hoisted.Count >= 0",
           "location": {
-            "start": {
-              "line": 2324,
-              "column": 13
-            },
-            "end": {
-              "line": 2324,
-              "column": 35
-            }
+            "start": { "line": 2324, "column": 13 },
+            "end": { "line": 2324, "column": 35 }
           },
           "reason": "FlushHoisted receives a private parser destination list and an index saved before a struct, union or typedef appends its declarations. With no hoisted declarations, that index is still valid, InsertRange receives an empty list and Clear clears an already empty list. No destination enumerator is alive or exposed while parsing. The additional empty-list operations leave the same declaration order and failures; nonempty hoisted lists already enter the original branch."
         }
@@ -1372,14 +1066,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 59,
-              "column": 13
-            },
-            "end": {
-              "line": 59,
-              "column": 30
-            }
+            "start": { "line": 59, "column": 13 },
+            "end": { "line": 59, "column": 30 }
           },
           "reason": "CaptureUpdateLayout is private and its three call sites pass either readState.Stream (a ReadBudgetStream) or stagingStream (a SparseUpdateStream). Its new operation context wraps that object in another ReadBudgetStream. Memory backing is selected only for a FixedBufferStream or an exposed MemoryStream; neither permitted input is one. Complete therefore calls FlushPosition on a non-memory-backed wrapper, which is a no-op. Stream-mode reads already delegate their position changes, and the update owner restores its original position separately."
         }
@@ -1393,14 +1081,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "left % right",
           "location": {
-            "start": {
-              "line": 22,
-              "column": 54
-            },
-            "end": {
-              "line": 22,
-              "column": 75
-            }
+            "start": { "line": 22, "column": 54 },
+            "end": { "line": 22, "column": 75 }
           },
           "reason": "The built-in signed Int32 remainder emits the same remainder operation in checked and unchecked contexts; there is no alternate wrapping remainder instruction. Removing checked leaves ordinary signed remainders, DivideByZeroException for a zero divisor and the CLR minimum-integer/minus-one overflow behavior unchanged. ModuloBoundaryTests exercises ordinary signs, integer endpoints and both exceptional divisors on .NET 8 and .NET 10."
         }
@@ -1414,14 +1096,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 60,
-              "column": 9
-            },
-            "end": {
-              "line": 62,
-              "column": 10
-            }
+            "start": { "line": 60, "column": 9 },
+            "end": { "line": 62, "column": 10 }
           },
           "reason": "The null-value branch already returned or threw, and IsInstanceOfType already returned the non-null value for any assignable target. System.Object accepts every remaining boxed value, so its later dedicated branch is unreachable. Removing that block cannot change a conversion."
         },
@@ -1429,14 +1105,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 77,
-              "column": 68
-            },
-            "end": {
-              "line": 77,
-              "column": 103
-            }
+            "start": { "line": 77, "column": 68 },
+            "end": { "line": 77, "column": 103 }
           },
           "reason": "ConvertCore reaches GetElementType only when the runtime target Type has IsArray true. All production targets originate from typeof(T) or a runtime array element type, not a user-defined Type wrapper. Runtime array types always have an element Type, so the fallback InvalidOperationException and its text are unreachable."
         },
@@ -1444,14 +1114,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(byte)integer",
           "location": {
-            "start": {
-              "line": 162,
-              "column": 24
-            },
-            "end": {
-              "line": 162,
-              "column": 46
-            }
+            "start": { "line": 162, "column": 24 },
+            "end": { "line": 162, "column": 46 }
           },
           "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
         },
@@ -1459,14 +1123,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(sbyte)integer",
           "location": {
-            "start": {
-              "line": 167,
-              "column": 24
-            },
-            "end": {
-              "line": 167,
-              "column": 47
-            }
+            "start": { "line": 167, "column": 24 },
+            "end": { "line": 167, "column": 47 }
           },
           "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
         },
@@ -1474,14 +1132,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(short)integer",
           "location": {
-            "start": {
-              "line": 172,
-              "column": 24
-            },
-            "end": {
-              "line": 172,
-              "column": 47
-            }
+            "start": { "line": 172, "column": 24 },
+            "end": { "line": 172, "column": 47 }
           },
           "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
         },
@@ -1489,14 +1141,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(ushort)integer",
           "location": {
-            "start": {
-              "line": 177,
-              "column": 24
-            },
-            "end": {
-              "line": 177,
-              "column": 48
-            }
+            "start": { "line": 177, "column": 24 },
+            "end": { "line": 177, "column": 48 }
           },
           "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
         },
@@ -1504,14 +1150,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(int)integer",
           "location": {
-            "start": {
-              "line": 182,
-              "column": 24
-            },
-            "end": {
-              "line": 182,
-              "column": 45
-            }
+            "start": { "line": 182, "column": 24 },
+            "end": { "line": 182, "column": 45 }
           },
           "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
         },
@@ -1519,14 +1159,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(uint)integer",
           "location": {
-            "start": {
-              "line": 187,
-              "column": 24
-            },
-            "end": {
-              "line": 187,
-              "column": 46
-            }
+            "start": { "line": 187, "column": 24 },
+            "end": { "line": 187, "column": 46 }
           },
           "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
         },
@@ -1534,14 +1168,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(long)integer",
           "location": {
-            "start": {
-              "line": 192,
-              "column": 24
-            },
-            "end": {
-              "line": 192,
-              "column": 46
-            }
+            "start": { "line": 192, "column": 24 },
+            "end": { "line": 192, "column": 46 }
           },
           "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
         },
@@ -1549,14 +1177,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(ulong)integer",
           "location": {
-            "start": {
-              "line": 197,
-              "column": 24
-            },
-            "end": {
-              "line": 197,
-              "column": 47
-            }
+            "start": { "line": 197, "column": 24 },
+            "end": { "line": 197, "column": 47 }
           },
           "reason": "The operand is System.Numerics.BigInteger, not a built-in integer. Its explicit conversion operator to this fixed-width integral type always checks the target range and throws OverflowException outside it, even without a checked expression. The .NET 8 and .NET 10 reference contracts specify those bounds for op_Explicit; removing the surrounding checked syntax neither enables wrapping nor changes valid results. IntegralTargets_EnforceBothRangeBoundaries checks both endpoints and adjacent overflows for all eight targets."
         },
@@ -1564,14 +1186,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 205,
-              "column": 9
-            },
-            "end": {
-              "line": 205,
-              "column": 69
-            }
+            "start": { "line": 205, "column": 9 },
+            "end": { "line": 205, "column": 69 }
           },
           "reason": "ConvertNumeric is called only after IsNumericType accepts one of the twelve supported numeric types, or with a CLR enum underlying integral type. Float, double, decimal and BigInteger return in their own branches; the eight fixed-width integral targets also each return or throw. The final failure after those branches is unreachable for supported targets."
         },
@@ -1579,14 +1195,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?new CStructReadException(message)\n:new CStructReadException(message, innerException))",
           "location": {
-            "start": {
-              "line": 325,
-              "column": 42
-            },
-            "end": {
-              "line": 327,
-              "column": 97
-            }
+            "start": { "line": 325, "column": 42 },
+            "end": { "line": 327, "column": 97 }
           },
           "reason": "CStructReadException(message) delegates to the protected constructor with ReadFailed, message and its default null innerException. CStructReadException(message, null) delegates to that same constructor with the identical three values. Selecting the two-argument overload when the cause is null preserves every exception member and subsequent path attachment."
         }
@@ -1606,14 +1216,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"Stryker was here!\"",
           "location": {
-            "start": {
-              "line": 154,
-              "column": 48
-            },
-            "end": {
-              "line": 154,
-              "column": 60
-            }
+            "start": { "line": 154, "column": 48 },
+            "end": { "line": 154, "column": 60 }
           },
           "reason": "Both CompiledField constructors unconditionally assign Name and TypeSpelling from effectiveField before calling SetCharacterFacts, resolving a codec or exposing the constructed instance. Neither constructor publishes this before those assignments. Changing this property initializer therefore changes only an overwritten value that no supported caller can observe; constructor failures expose no instance."
         },
@@ -1621,14 +1225,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"Stryker was here!\"",
           "location": {
-            "start": {
-              "line": 160,
-              "column": 56
-            },
-            "end": {
-              "line": 160,
-              "column": 68
-            }
+            "start": { "line": 160, "column": 56 },
+            "end": { "line": 160, "column": 68 }
           },
           "reason": "Both CompiledField constructors unconditionally assign Name and TypeSpelling from effectiveField before calling SetCharacterFacts, resolving a codec or exposing the constructed instance. Neither constructor publishes this before those assignments. Changing this property initializer therefore changes only an overwritten value that no supported caller can observe; constructor failures expose no instance."
         }
@@ -1642,14 +1240,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 27,
-              "column": 21
-            },
-            "end": {
-              "line": 27,
-              "column": 30
-            }
+            "start": { "line": 27, "column": 21 },
+            "end": { "line": 27, "column": 30 }
           },
           "reason": "A field with no BranchConditions starts with ConditionalBranches equal to ImmutableArray.Empty. Without the continue, its zero-capacity builder executes no branch iteration and MoveToImmutable assigns the same empty sequence. No group slot is created, so conditional selection and group counts are unchanged."
         },
@@ -1657,14 +1249,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 162,
-              "column": 13
-            },
-            "end": {
-              "line": 162,
-              "column": 20
-            }
+            "start": { "line": 162, "column": 13 },
+            "end": { "line": 162, "column": 20 }
           },
           "reason": "CollectShapeNames follows only promoted anonymous by-value composites. LayoutCompilation.Model rejects recursive by-value declarations before exposing the compiled model; pointer edges are not promoted composites. The active visiting set therefore never contains a valid child being entered. Its defensive cycle return is unreachable for compiled layouts."
         },
@@ -1672,14 +1258,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 174,
-              "column": 17
-            },
-            "end": {
-              "line": 174,
-              "column": 26
-            }
+            "start": { "line": 174, "column": 17 },
+            "end": { "line": 174, "column": 26 }
           },
           "reason": "PromotedFields contains only declarations matching Struct with an empty name. Without this continue, the subsequent ordinary-name branch still rejects name.Length equal to zero. Recursive collection already occurred and no empty name is added, so the final shape is identical."
         },
@@ -1687,14 +1267,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 184,
-              "column": 9
-            },
-            "end": {
-              "line": 184,
-              "column": 31
-            }
+            "start": { "line": 184, "column": 9 },
+            "end": { "line": 184, "column": 31 }
           },
           "reason": "CollectShapeNames visits a finite acyclic graph of promoted by-value composites and deduplicates output names in the separate seen set. Leaving a completed composite in visiting can only skip a later traversal of that identical composite; its entire reachable name sequence was already visited and every name is already in seen. Thus neither final names nor their first-occurrence order changes. The visiting set is private to one BuildShape call."
         }
@@ -1708,14 +1282,8 @@
           "mutatorName": "Boolean mutation",
           "replacement": "true",
           "location": {
-            "start": {
-              "line": 52,
-              "column": 117
-            },
-            "end": {
-              "line": 52,
-              "column": 122
-            }
+            "start": { "line": 52, "column": 117 },
+            "end": { "line": 52, "column": 122 }
           },
           "reason": "ParseAsync returns only the StructValue in ParseStreamCoreImpl.Result. Enabling debug also collects member ranges into an operation-private DebugMapping list and uses the general reader instead of the equivalent static-plan optimization, but the ParseAsync callback discards that list. No debug result or state escapes this operation; value, final consumed position and reported read failures retain the same read contract. This mutation adds tracing work and allocations, not an observable debug result."
         },
@@ -1723,14 +1291,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?origin :origin + consumed)",
           "location": {
-            "start": {
-              "line": 336,
-              "column": 35
-            },
-            "end": {
-              "line": 336,
-              "column": 77
-            }
+            "start": { "line": 336, "column": 35 },
+            "end": { "line": 336, "column": 77 }
           },
           "reason": "restoreOrigin is true only for ResolveAddressAsync and GetArrayLengthAsync. Their synchronous core operations restore their borrowed FixedBufferStream to its initial position zero in finally, so consumed is zero on every successful query. origin + consumed is therefore origin when this branch changes. All consuming operations pass false and already take the unchanged origin + consumed branch; failures follow the separate restoration catch."
         },
@@ -1738,14 +1300,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?result :new ParseResult(result.Value, Shift(result.Debug, origin)))",
           "location": {
-            "start": {
-              "line": 76,
-              "column": 40
-            },
-            "end": {
-              "line": 76,
-              "column": 121
-            }
+            "start": { "line": 76, "column": 40 },
+            "end": { "line": 76, "column": 121 }
           },
           "reason": "The changed branch is only the zero-origin fast return. Shift copies each private DebugData record with Start plus zero and End plus zero, preserving every other record member. The returned value is unchanged. Neither the original private result nor its list has escaped, so the extra result/list/record copies cannot change observable reference relationships with caller-owned objects or any coordinates."
         },
@@ -1753,14 +1309,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?result :new ReadResult(result.Value, Shift(result.Debug, origin)))",
           "location": {
-            "start": {
-              "line": 137,
-              "column": 40
-            },
-            "end": {
-              "line": 137,
-              "column": 120
-            }
+            "start": { "line": 137, "column": 40 },
+            "end": { "line": 137, "column": 120 }
           },
           "reason": "For origin zero, Shift preserves every DebugData member and the selected result value; only private result/list/record objects are copied instead of returned directly. For nonzero origin the same shift already occurs. No original debug-list identity escapes this private callback, so decoded values, diagnostic ranges and caller-visible object relationships are unchanged."
         },
@@ -1768,14 +1318,8 @@
           "mutatorName": "Boolean mutation",
           "replacement": "false",
           "location": {
-            "start": {
-              "line": 187,
-              "column": 28
-            },
-            "end": {
-              "line": 187,
-              "column": 32
-            }
+            "start": { "line": 187, "column": 28 },
+            "end": { "line": 187, "column": 32 }
           },
           "reason": "ResolveAddressCore always restores its input position in finally. Its buffered input starts at zero, so RunOverBuffer observes consumed equal to zero on every successful address query. The false restoreOrigin branch therefore assigns origin plus zero instead of origin; failure restoration is handled independently by ReadBufferedAsync."
         },
@@ -1783,14 +1327,8 @@
           "mutatorName": "Boolean mutation",
           "replacement": "false",
           "location": {
-            "start": {
-              "line": 208,
-              "column": 28
-            },
-            "end": {
-              "line": 208,
-              "column": 32
-            }
+            "start": { "line": 208, "column": 28 },
+            "end": { "line": 208, "column": 32 }
           },
           "reason": "GetDynamicArrayLengthCore always restores the buffered input position in finally, including terminated-string scans. The buffer starts at zero, so consumed is zero on every successful length query. Setting restoreOrigin false assigns origin plus zero, exactly the original origin assignment; failure restoration is unchanged."
         },
@@ -1798,14 +1336,8 @@
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?(options ?? new ReadOptions()) with { CancellationToken = token, } :options)",
           "location": {
-            "start": {
-              "line": 256,
-              "column": 38
-            },
-            "end": {
-              "line": 256,
-              "column": 136
-            }
+            "start": { "line": 256, "column": 38 },
+            "end": { "line": 256, "column": 136 }
           },
           "reason": "When the linked token is cancellable the selected expression is unchanged. Otherwise both source tokens are non-cancellable: copying the sealed ReadOptions record with CancellationToken.None preserves every option, and a null options argument becomes the same default settings used by SnapshotReadOptions. The options record has no custom getters or copy side effects and its identity is not exposed by these private operation delegates. Only an extra temporary options allocation can differ."
         }
@@ -1882,14 +1414,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 419,
-              "column": 107
-            },
-            "end": {
-              "line": 419,
-              "column": 110
-            }
+            "start": { "line": 419, "column": 107 },
+            "end": { "line": 419, "column": 110 }
           },
           "reason": "Only the trailing period of the cycle diagnostic is removed. This private resolver is reached through ResolveTargetFromLayout, which attaches the selected path before propagating CStructException. CStructException.Compose trims trailing periods before appending that context, so the caller receives the same message, path, offset and exception type with or without this period."
         },
@@ -1897,14 +1423,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 898,
-              "column": 17
-            },
-            "end": {
-              "line": 899,
-              "column": 105
-            }
+            "start": { "line": 898, "column": 17 },
+            "end": { "line": 899, "column": 105 }
           },
           "reason": "CompileSingleArrayDimension assigns Flexible only when CharacterFieldTypes.IsCharArrayField is true: a non-pointer char or wchar spelling. CompiledField derives IsCharacterArray from those same resolved type and pointer facts. WithPlacement preserves them; array peeling changes Flexible to Scalar and pointer-target views are Scalar. Therefore MeasureFieldEnd cannot enter its Flexible branch with IsCharacterArray false. Removing this defensive throw or changing only its message changes no supported operation."
         },
@@ -1912,14 +1432,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 899,
-              "column": 21
-            },
-            "end": {
-              "line": 899,
-              "column": 82
-            }
+            "start": { "line": 899, "column": 21 },
+            "end": { "line": 899, "column": 82 }
           },
           "reason": "CompileSingleArrayDimension assigns Flexible only when CharacterFieldTypes.IsCharArrayField is true: a non-pointer char or wchar spelling. CompiledField derives IsCharacterArray from those same resolved type and pointer facts. WithPlacement preserves them; array peeling changes Flexible to Scalar and pointer-target views are Scalar. Therefore MeasureFieldEnd cannot enter its Flexible branch with IsCharacterArray false. Removing this defensive throw or changing only its message changes no supported operation."
         },
@@ -1927,14 +1441,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?address :context.PointerStorageAddress)",
           "location": {
-            "start": {
-              "line": 567,
-              "column": 13
-            },
-            "end": {
-              "line": 567,
-              "column": 85
-            }
+            "start": { "line": 567, "column": 13 },
+            "end": { "line": 567, "column": 85 }
           },
           "reason": "This changes only the PointerStorageAddress argument of the internal ResolvedTarget created for a field. No consumer reads ResolvedTarget.PointerStorageAddress: reads and writes use Address, pointer kind/depth and target coordinates, while TargetResolutionContext carries its own separate pointer storage location during traversal. Both conditional arms are side-effect-free values. ResolvedTarget is not exposed by a public operation, so this exact change to unused metadata cannot change an operation result, stream position or failure."
         },
@@ -1942,14 +1450,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "resolvedField.PointerDepth < 0",
           "location": {
-            "start": {
-              "line": 567,
-              "column": 13
-            },
-            "end": {
-              "line": 567,
-              "column": 43
-            }
+            "start": { "line": 567, "column": 13 },
+            "end": { "line": 567, "column": 43 }
           },
           "reason": "This changes only the PointerStorageAddress argument of the internal ResolvedTarget created for a field. No consumer reads ResolvedTarget.PointerStorageAddress: reads and writes use Address, pointer kind/depth and target coordinates, while TargetResolutionContext carries its own separate pointer storage location during traversal. Both conditional arms are side-effect-free values. ResolvedTarget is not exposed by a public operation, so this exact change to unused metadata cannot change an operation result, stream position or failure."
         },
@@ -1957,14 +1459,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "resolvedField.PointerDepth >= 0",
           "location": {
-            "start": {
-              "line": 567,
-              "column": 13
-            },
-            "end": {
-              "line": 567,
-              "column": 43
-            }
+            "start": { "line": 567, "column": 13 },
+            "end": { "line": 567, "column": 43 }
           },
           "reason": "This changes only the PointerStorageAddress argument of the internal ResolvedTarget created for a field. No consumer reads ResolvedTarget.PointerStorageAddress: reads and writes use Address, pointer kind/depth and target coordinates, while TargetResolutionContext carries its own separate pointer storage location during traversal. Both conditional arms are side-effect-free values. ResolvedTarget is not exposed by a public operation, so this exact change to unused metadata cannot change an operation result, stream position or failure."
         },
@@ -1972,14 +1468,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 191,
-              "column": 44
-            },
-            "end": {
-              "line": 191,
-              "column": 85
-            }
+            "start": { "line": 191, "column": 44 },
+            "end": { "line": 191, "column": 85 }
           },
           "reason": "Every positive compiled bitfield passes BitfieldCodecTable.ValidateBitField in LayoutCompilation.Model, which stores the validated ByteSize in its immutable CompiledField. A union field follows the same compilation path. BitStorageSize therefore cannot be null in this positive-width branch, so changing the defensive fallback message has no effect."
         },
@@ -1987,14 +1477,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 829,
-              "column": 63
-            },
-            "end": {
-              "line": 829,
-              "column": 109
-            }
+            "start": { "line": 829, "column": 63 },
+            "end": { "line": 829, "column": 109 }
           },
           "reason": "Both LayoutCompilation.Model and synthetic-root construction reject ToEnd/Terminated arrays without FixedElementSize. GetBoundedArrayCount and GetBoundedTotalElementCount invoke CountDataSizedElements only for these two shapes. The null-size fallback is therefore unreachable for compiled layouts and supported root spellings; changing its message affects no operation."
         },
@@ -2002,14 +1486,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "unitSize * 8",
           "location": {
-            "start": {
-              "line": 1128,
-              "column": 28
-            },
-            "end": {
-              "line": 1128,
-              "column": 49
-            }
+            "start": { "line": 1128, "column": 28 },
+            "end": { "line": 1128, "column": 49 }
           },
           "reason": "unitSize comes from CompositeFieldPlacementCursor and BitfieldPlacement for the positive bitfield being captured. Validated declared integral widths are 1, 2, 4 or 8 bytes; packed SysV placement explicitly rejects a window larger than 8 bytes. Thus unitSize times eight is at most 64 and cannot overflow Int32. Removing checked cannot alter a value or exception."
         },
@@ -2017,14 +1495,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "pathIndex > segments.Count",
           "location": {
-            "start": {
-              "line": 159,
-              "column": 13
-            },
-            "end": {
-              "line": 159,
-              "column": 40
-            }
+            "start": { "line": 159, "column": 13 },
+            "end": { "line": 159, "column": 40 }
           },
           "reason": "ResolveTargetInStructCore is private and only entered through ResolveTargetInStruct. The root caller handles zero/one segments before passing index 1. Promoted fields preserve a valid index. Nested-field recursion returns on the terminal segment before incrementing; pointer recursion likewise returns on the terminal value segment before incrementing. Thus every call has pathIndex < segments.Count. Both >= and > are false for every reachable invocation."
         },
@@ -2032,14 +1504,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 161,
-              "column": 13
-            },
-            "end": {
-              "line": 161,
-              "column": 84
-            }
+            "start": { "line": 161, "column": 13 },
+            "end": { "line": 161, "column": 84 }
           },
           "reason": "ResolveTargetInStructCore is private and only entered through ResolveTargetInStruct. The root caller handles zero/one segments before passing index 1. Promoted fields preserve a valid index. Nested-field recursion returns on the terminal segment before incrementing; pointer recursion likewise returns on the terminal value segment before incrementing. Thus every call has pathIndex < segments.Count. The defensive path-ended throw cannot execute; removing it changes no supported path result or failure."
         },
@@ -2047,14 +1513,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 161,
-              "column": 44
-            },
-            "end": {
-              "line": 161,
-              "column": 82
-            }
+            "start": { "line": 161, "column": 44 },
+            "end": { "line": 161, "column": 82 }
           },
           "reason": "ResolveTargetInStructCore is private and only entered through ResolveTargetInStruct. The root caller handles zero/one segments before passing index 1. Promoted fields preserve a valid index. Nested-field recursion returns on the terminal segment before incrementing; pointer recursion likewise returns on the terminal value segment before incrementing. Thus every call has pathIndex < segments.Count. The defensive path-ended diagnostic is unreachable, so replacing only its text has no observable effect."
         },
@@ -2062,14 +1522,8 @@
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?ResolvedTargetKind.ArrayElement :ResolvedTargetKind.Field)",
           "location": {
-            "start": {
-              "line": 555,
-              "column": 13
-            },
-            "end": {
-              "line": 555,
-              "column": 101
-            }
+            "start": { "line": 555, "column": 13 },
+            "end": { "line": 555, "column": 101 }
           },
           "reason": "CreateFieldTarget passes the same resolvedField reference as both EffectiveCompiledField and WritableCompiledField. ReadResolvedValue is the only consumer that distinguishes ArrayElement from Field, and it selects between those identical references. ResolveStructTarget treats both kinds together; the writer distinguishes only Root, PointerAddress and PointerValue. Array shape and SelectedArrayIndex are unchanged, so forcing ArrayElement here cannot change an operation."
         },
@@ -2077,14 +1531,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?ResolvedTargetKind.ArrayElement :ResolvedTargetKind.Field)",
           "location": {
-            "start": {
-              "line": 555,
-              "column": 13
-            },
-            "end": {
-              "line": 555,
-              "column": 101
-            }
+            "start": { "line": 555, "column": 13 },
+            "end": { "line": 555, "column": 101 }
           },
           "reason": "CreateFieldTarget supplies identical EffectiveCompiledField and WritableCompiledField references. The sole distinction between Field and ArrayElement in consumers is choosing one of those references in ReadResolvedValue; ResolveStructTarget groups both kinds and writing handles both through the same ordinary-field path. Forcing Field leaves array shape, selected index and all decoded or written bytes unchanged."
         },
@@ -2092,14 +1540,8 @@
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?address :context.PointerStorageAddress)",
           "location": {
-            "start": {
-              "line": 567,
-              "column": 13
-            },
-            "end": {
-              "line": 567,
-              "column": 85
-            }
+            "start": { "line": 567, "column": 13 },
+            "end": { "line": 567, "column": 85 }
           },
           "reason": "Only the private ResolvedTarget.PointerStorageAddress metadata changes for non-pointer fields. A repository-wide consumer audit finds no read of that property: context.PointerStorageAddress is separately propagated for traversal, and reads/writes use target.Address, kind, pointer depth and target coordinates. ResolvedTarget is internal and never returned by a public operation. This exact conditional replacement changes no consumed state."
         }
@@ -2113,14 +1555,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 141,
-              "column": 17
-            },
-            "end": {
-              "line": 141,
-              "column": 54
-            }
+            "start": { "line": 141, "column": 17 },
+            "end": { "line": 141, "column": 54 }
           },
           "reason": "The private constructor is called only by TryCreate, whose eight accepted canonical StorageType values are exactly the eight explicit ToStorageValue switch cases. StorageType is a get-only property initialized there. The default unknown-storage exception is therefore unreachable for every constructible descriptor; changing only its message cannot affect a conversion or failure."
         }
@@ -2149,14 +1585,8 @@
           "mutatorName": "Arithmetic mutation",
           "replacement": "curPos - byteSize",
           "location": {
-            "start": {
-              "line": 120,
-              "column": 34
-            },
-            "end": {
-              "line": 120,
-              "column": 51
-            }
+            "start": { "line": 120, "column": 34 },
+            "end": { "line": 120, "column": 51 }
           },
           "reason": "This assignment follows the completed physical bitfield write and changes only NextPosition for a partially filled unit. Struct traversal places the following field through CompositeFieldPlacementCursor, which uses its own reserved end and never consumes NextPosition. Nested composites likewise use their own cursor; bitfield arrays are rejected. The only NextPosition reads are inside legacy placement branches requiring a carried positive bit offset, but cursor-less selected/root writes and union staging start fresh, while seeded Update bitfields skip those derivations and discard the state after one field. Tail completion uses cursor.Current. The altered address cannot reach a supported later seek, byte write or return value."
         },
@@ -2164,14 +1594,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 698,
-              "column": 9
-            },
-            "end": {
-              "line": 703,
-              "column": 10
-            }
+            "start": { "line": 698, "column": 9 },
+            "end": { "line": 703, "column": 10 }
           },
           "reason": "The only callers supplying unionPosition other than -1 are WriteUnion and WritePromotedUnion. Both create a new MemoryStream over their private staging array and a new writer state, then call WriteFieldValue once with unionPosition zero. No prior field or stream operation has advanced that staging stream; bit offset and bitfield type are already zero/null. Array-expression evaluation before this block only reads operation-owned layout expressions and variables. Removing these assignments therefore leaves exactly the same initial staging position and bit state. Public destination streams are not the stream in this branch."
         },
@@ -2179,14 +1603,8 @@
           "mutatorName": "Logical mutation",
           "replacement": "compiledField.BitSize > 0 || state.BitfieldUnitSeeded",
           "location": {
-            "start": {
-              "line": 715,
-              "column": 17
-            },
-            "end": {
-              "line": 715,
-              "column": 70
-            }
+            "start": { "line": 715, "column": 17 },
+            "end": { "line": 715, "column": 70 }
           },
           "reason": "Changing AND to OR additionally selects this branch for an unseeded positive bitfield. Such cursor-less writes are a single selected/root field or one union member in fresh staging state: offset and storage size start at zero, with null bitfield type. Skipping legacy initialization leaves that zero size, but WriteBitFieldValue selects the same validated compiled BitStorageSize through its existing fallback. The merge offset remains zero and the alignment path is unchanged. The omitted type metadata is not read by this one-field operation. Seeded Update targets already take the original branch, and their descriptors are positive bitfields; ordinary multi-field structs use their placement cursor instead."
         },
@@ -2194,14 +1612,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "compiledField.BitSize >= 0",
           "location": {
-            "start": {
-              "line": 715,
-              "column": 17
-            },
-            "end": {
-              "line": 715,
-              "column": 42
-            }
+            "start": { "line": 715, "column": 17 },
+            "end": { "line": 715, "column": 42 }
           },
           "reason": "BitfieldUnitSeeded is set only after UpdateStreamCore resolves a selected target with BitStorageSize greater than zero and installs its resolved bit offset/unit. Only positive-width bitfields expose such selectable storage; unnamed zero-width separators cannot be selected. Thus whenever the right conjunct is true, BitSize is strictly positive and both comparisons agree. With an unseeded state, the unchanged right conjunct keeps either comparison false. No placement, state consumption or output changes."
         },
@@ -2209,14 +1621,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "compiledField.BitSize < 0",
           "location": {
-            "start": {
-              "line": 720,
-              "column": 22
-            },
-            "end": {
-              "line": 720,
-              "column": 47
-            }
+            "start": { "line": 720, "column": 22 },
+            "end": { "line": 720, "column": 47 }
           },
           "reason": "This legacy branch is reached for positive unseeded bitfields only in a fresh selected/root write or fresh union staging state. Seeded Update targets take the preceding branch; ordinary structs use a placement cursor. Reversing the positive-width test skips installing the compiled type and size, but the bit offset remains zero and WriteBitFieldValue falls back from CurrentBitfieldSize zero to that same non-null compiled storage size. Its value-range checks, alignment, merge and bytes are unchanged. No subsequent legacy field consumes the omitted type/size metadata: bitfield arrays are rejected and this operation writes one field before discarding its state."
         },
@@ -2224,14 +1630,8 @@
           "mutatorName": "Linq method mutation (Max() to Min())",
           "replacement": "Math.Min",
           "location": {
-            "start": {
-              "line": 885,
-              "column": 30
-            },
-            "end": {
-              "line": 885,
-              "column": 38
-            }
+            "start": { "line": 885, "column": 30 },
+            "end": { "line": 885, "column": 38 }
           },
           "reason": "This assignment modifies only NextPosition after a field has already written its bytes. Every actual NextPosition read is in a legacy-placement branch needing a carried positive bit offset. Those branches are unreachable through current callers: selected/root writes and union staging start with fresh state, selected bitfield Update consumes a resolved seed and ends after its one field, and ordinary composite traversal uses CompositeFieldPlacementCursor rather than legacy derivation. Arrays cannot contain bitfield declarators; nested composite elements use their own cursors. Struct tail completion uses cursor.Current and, when needed, replaces NextPosition outright. Selecting the smaller value therefore changes no consumed position, byte, failure or caller result."
         },
@@ -2413,14 +1813,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 654,
-              "column": 38
-            },
-            "end": {
-              "line": 654,
-              "column": 97
-            }
+            "start": { "line": 654, "column": 38 },
+            "end": { "line": 654, "column": 97 }
           },
           "reason": "CompileArrayShape rejects dependencies in every dimension of an array with more than one dimension, evaluates each count, and stores each result in CompiledArrayDimension.FixedCount. Peeling retains those fixed counts and placement preserves the array shape. Thus every multidimensional array reaching this branch has a non-null count for each dimension and a non-null total unless checked multiplication throws first. Changing only this unreachable missing-count message does not affect counts, overflow checks, decoding, writing or diagnostics."
         },
@@ -2428,14 +1822,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 803,
-              "column": 38
-            },
-            "end": {
-              "line": 803,
-              "column": 93
-            }
+            "start": { "line": 803, "column": 38 },
+            "end": { "line": 803, "column": 93 }
           },
           "reason": "CompileArrayShape rejects dependencies in every dimension of an array with more than one dimension, evaluates each count, and stores each result in CompiledArrayDimension.FixedCount. Peeling retains those fixed counts and placement preserves the array shape. Thus every multidimensional array reaching this branch has a non-null count for each dimension and a non-null total unless checked multiplication throws first. Changing only this unreachable missing-count message does not affect counts, overflow checks, decoding, writing or diagnostics."
         },
@@ -2443,14 +1831,8 @@
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?state.CurrentBitfieldSize\n:compiledField.BitStorageSize ??\n                             throw new InvalidOperationException(\n                                 \"Compiled bitfield has no storage size: \" + compiledField.Name))",
           "location": {
-            "start": {
-              "line": 50,
-              "column": 24
-            },
-            "end": {
-              "line": 54,
-              "column": 97
-            }
+            "start": { "line": 50, "column": 24 },
+            "end": { "line": 54, "column": 97 }
           },
           "reason": "WriteBitFieldValue is reached only through WriteSingleFieldValue for a positive-width scalar bitfield. WriteFieldValue first installs a positive unit size from CompositeFieldPlacementCursor, from the resolved Update target, or from the compiled declared BitStorageSize for a standalone or union member. Compilation accepts only integral bitfield storage, and placement returns a nonempty window. CurrentBitfieldSize is therefore always positive here; selecting it unconditionally preserves the original branch."
         },
@@ -2458,14 +1840,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitfieldSize >= 0",
           "location": {
-            "start": {
-              "line": 50,
-              "column": 24
-            },
-            "end": {
-              "line": 50,
-              "column": 53
-            }
+            "start": { "line": 50, "column": 24 },
+            "end": { "line": 50, "column": 53 }
           },
           "reason": "All calls to WriteBitFieldValue follow WriteFieldValue's placement setup: cursor placement, a seeded resolved target, or a compiled standalone/union storage unit. Each supplies a positive unit size; zero-width separators never call this method and arrays cannot be bitfields. CurrentBitfieldSize cannot be zero or negative here, so >= 0 and > 0 choose the same operand."
         },
@@ -2473,14 +1849,8 @@
           "mutatorName": "Arithmetic mutation",
           "replacement": "state.CurrentBitOffset - compiledField.BitSize",
           "location": {
-            "start": {
-              "line": 59,
-              "column": 13
-            },
-            "end": {
-              "line": 59,
-              "column": 59
-            }
+            "start": { "line": 59, "column": 13 },
+            "end": { "line": 59, "column": 59 }
           },
           "reason": "Compilation validates a positive width no larger than its integral storage capacity. Whole-struct writes use BitfieldPlacement, which opens a fitting MSVC/aligned cell or a packed window enclosing the complete field; selected updates seed that same resolved placement. Standalone and union members start at bit offset zero in the declared unit. Thus offset + width <= unitBits before this defensive check. Offset - width is no greater than that sum and is bounded within small integral bit offsets, so neither version can enter the failure branch."
         },
@@ -2488,14 +1858,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 61,
-              "column": 13
-            },
-            "end": {
-              "line": 61,
-              "column": 109
-            }
+            "start": { "line": 61, "column": 13 },
+            "end": { "line": 61, "column": 109 }
           },
           "reason": "The defensive storage-overrun throw is unreachable for the immutable compiled descriptors. Positive bit widths are validated against their declared integral capacity; standalone and union members start at offset zero, while cursor and selected-update paths use the enclosing window supplied by BitfieldPlacement. That placement guarantees offset + width <= unitBits. Removing only this throw changes no reachable result or failure."
         },
@@ -2521,14 +1885,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 39,
-              "column": 13
-            },
-            "end": {
-              "line": 39,
-              "column": 81
-            }
+            "start": { "line": 39, "column": 13 },
+            "end": { "line": 39, "column": 81 }
           },
           "reason": "LayoutCompilation.Model validates every positive bitfield with BitfieldCodecTable.ValidateBitField before constructing its immutable CompiledField. Only direct integral storage (including an enum's integral backing type) is accepted, and both ByteSize and IsLittleEndian are stored. A composite cannot pass that validation, so this defensive composite-bitfield throw is unreachable."
         },
@@ -2536,14 +1894,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 39,
-              "column": 49
-            },
-            "end": {
-              "line": 39,
-              "column": 79
-            }
+            "start": { "line": 39, "column": 49 },
+            "end": { "line": 39, "column": 79 }
           },
           "reason": "LayoutCompilation.Model validates every positive bitfield with BitfieldCodecTable.ValidateBitField before constructing its immutable CompiledField. Only direct integral storage (including an enum's integral backing type) is accepted, and both ByteSize and IsLittleEndian are stored. The defensive composite-bitfield failure cannot occur; changing only its message has no observable effect."
         },
@@ -2551,14 +1903,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 54,
-              "column": 34
-            },
-            "end": {
-              "line": 54,
-              "column": 75
-            }
+            "start": { "line": 54, "column": 34 },
+            "end": { "line": 54, "column": 75 }
           },
           "reason": "LayoutCompilation.Model validates every positive bitfield with BitfieldCodecTable.ValidateBitField before constructing its immutable CompiledField. Only direct integral storage (including an enum's integral backing type) is accepted, and both ByteSize and IsLittleEndian are stored. BitStorageSize cannot be null when WriteBitFieldValue is called for a positive bitfield, so its fallback diagnostic cannot be observed."
         },
@@ -2566,14 +1912,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 57,
-              "column": 42
-            },
-            "end": {
-              "line": 57,
-              "column": 81
-            }
+            "start": { "line": 57, "column": 42 },
+            "end": { "line": 57, "column": 81 }
           },
           "reason": "LayoutCompilation.Model validates every positive bitfield with BitfieldCodecTable.ValidateBitField before constructing its immutable CompiledField. Only direct integral storage (including an enum's integral backing type) is accepted, and both ByteSize and IsLittleEndian are stored. BitStorageIsLittleEndian cannot be null when WriteBitFieldValue is called, so its fallback diagnostic cannot be observed."
         },
@@ -2581,14 +1921,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitOffset < 0",
           "location": {
-            "start": {
-              "line": 707,
-              "column": 17
-            },
-            "end": {
-              "line": 707,
-              "column": 43
-            }
+            "start": { "line": 707, "column": 17 },
+            "end": { "line": 707, "column": 43 }
           },
           "reason": "Every cursor-less root/selected Write or union staging state starts with zero bit offset. The only positive legacy-entry offset is a selected Update bitfield, whose BitSize is positive, making the other conjunct false. Thus both > 0 and < 0 give a false normal-field reset condition; ordinary struct traversal uses its placement cursor."
         },
@@ -2596,14 +1930,8 @@
           "mutatorName": "Arithmetic mutation",
           "replacement": "(compiledField.BitStorageSize ??\n                     throw new InvalidOperationException(\n                         \"Compiled bitfield has no storage size: \" + compiledField.Name)) / 8",
           "location": {
-            "start": {
-              "line": 723,
-              "column": 21
-            },
-            "end": {
-              "line": 725,
-              "column": 94
-            }
+            "start": { "line": 723, "column": 21 },
+            "end": { "line": 725, "column": 94 }
           },
           "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. Consequently CurrentBitOffset is zero here and the startsNewStorageUnit right operand is never evaluated. bitCapacity has no other consumer, so replacing its multiplication with division changes only an unused local value."
         },
@@ -2611,14 +1939,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 725,
-              "column": 26
-            },
-            "end": {
-              "line": 725,
-              "column": 67
-            }
+            "start": { "line": 725, "column": 26 },
+            "end": { "line": 725, "column": 67 }
           },
           "reason": "LayoutCompilation.Model validates every positive bitfield with BitfieldCodecTable.ValidateBitField before constructing its immutable CompiledField. Only direct integral storage (including an enum's integral backing type) is accepted, and both ByteSize and IsLittleEndian are stored. This legacy positive-bitfield branch cannot observe a null BitStorageSize; changing only the fallback message is equivalent."
         },
@@ -2626,14 +1948,8 @@
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?0\n:state.CurrentBitfieldSize)",
           "location": {
-            "start": {
-              "line": 726,
-              "column": 38
-            },
-            "end": {
-              "line": 728,
-              "column": 69
-            }
+            "start": { "line": 726, "column": 38 },
+            "end": { "line": 728, "column": 69 }
           },
           "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. The legacy state has null CurrentBitfieldType and zero CurrentBitfieldSize, so selecting constant zero unconditionally preserves activeUnitSize."
         },
@@ -2641,14 +1957,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?0\n:state.CurrentBitfieldSize)",
           "location": {
-            "start": {
-              "line": 726,
-              "column": 38
-            },
-            "end": {
-              "line": 728,
-              "column": 69
-            }
+            "start": { "line": 726, "column": 38 },
+            "end": { "line": 728, "column": 69 }
           },
           "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. The legacy state has null CurrentBitfieldType and zero CurrentBitfieldSize, so selecting CurrentBitfieldSize unconditionally still gives zero."
         },
@@ -2656,14 +1966,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitfieldType is not null",
           "location": {
-            "start": {
-              "line": 726,
-              "column": 38
-            },
-            "end": {
-              "line": 726,
-              "column": 71
-            }
+            "start": { "line": 726, "column": 38 },
+            "end": { "line": 726, "column": 71 }
           },
           "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. Both alternatives of this conditional are zero at this point, so reversing the null test cannot change activeUnitSize."
         },
@@ -2671,14 +1975,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitOffset < 0",
           "location": {
-            "start": {
-              "line": 732,
-              "column": 45
-            },
-            "end": {
-              "line": 732,
-              "column": 71
-            }
+            "start": { "line": 732, "column": 45 },
+            "end": { "line": 732, "column": 71 }
           },
           "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. CurrentBitOffset is zero in this branch, so both > 0 and < 0 short-circuit startsNewStorageUnit to false."
         },
@@ -2686,14 +1984,8 @@
           "mutatorName": "Logical mutation",
           "replacement": "activeUnitSize != bitCapacity / 8 &&\n                                             state.CurrentBitOffset + compiledField.BitSize > bitCapacity",
           "location": {
-            "start": {
-              "line": 733,
-              "column": 46
-            },
-            "end": {
-              "line": 734,
-              "column": 106
-            }
+            "start": { "line": 733, "column": 46 },
+            "end": { "line": 734, "column": 106 }
           },
           "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. CurrentBitOffset is zero, so the outer && short-circuits before this inner ||; replacing the inner operator cannot affect state, output or failures."
         },
@@ -2701,14 +1993,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "activeUnitSize == bitCapacity / 8",
           "location": {
-            "start": {
-              "line": 733,
-              "column": 46
-            },
-            "end": {
-              "line": 733,
-              "column": 79
-            }
+            "start": { "line": 733, "column": 46 },
+            "end": { "line": 733, "column": 79 }
           },
           "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. CurrentBitOffset is zero, so the outer && never evaluates this size comparison; reversing only that comparison has no effect."
         },
@@ -2716,14 +2002,8 @@
           "mutatorName": "Arithmetic mutation",
           "replacement": "bitCapacity * 8",
           "location": {
-            "start": {
-              "line": 733,
-              "column": 64
-            },
-            "end": {
-              "line": 733,
-              "column": 79
-            }
+            "start": { "line": 733, "column": 64 },
+            "end": { "line": 733, "column": 79 }
           },
           "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. CurrentBitOffset is zero, so the outer && never evaluates this division; changing only that unexecuted arithmetic has no effect."
         },
@@ -2731,14 +2011,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 736,
-              "column": 17
-            },
-            "end": {
-              "line": 740,
-              "column": 18
-            }
+            "start": { "line": 736, "column": 17 },
+            "end": { "line": 740, "column": 18 }
           },
           "reason": "WriteFieldValue's cursor-less callers use a fresh state for root/selected Write and fresh staging states for explicit/promoted unions; union entry also resets the bit offset. Ordinary struct fields use the placement cursor. Selected Update seeds its bitfield and takes the preceding BitfieldUnitSeeded branch, skipping this legacy derivation. CurrentBitOffset is zero and startsNewStorageUnit is therefore false; removing only its unentered body has no effect."
         },
@@ -2746,14 +2020,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 747,
-              "column": 53
-            },
-            "end": {
-              "line": 747,
-              "column": 94
-            }
+            "start": { "line": 747, "column": 53 },
+            "end": { "line": 747, "column": 94 }
           },
           "reason": "LayoutCompilation.Model validates every positive bitfield with BitfieldCodecTable.ValidateBitField before constructing its immutable CompiledField. Only direct integral storage (including an enum's integral backing type) is accepted, and both ByteSize and IsLittleEndian are stored. A positive legacy bitfield always has its compiled storage width; changing only this fallback diagnostic is unobservable."
         },
@@ -2761,14 +2029,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "structAlignment == state.CurrentFieldAlignment",
           "location": {
-            "start": {
-              "line": 758,
-              "column": 21
-            },
-            "end": {
-              "line": 758,
-              "column": 67
-            }
+            "start": { "line": 758, "column": 21 },
+            "end": { "line": 758, "column": 67 }
           },
           "reason": "Cursor-less Write/root/union entry has zero bit offset. A selected Update can have a positive seeded offset, but its PositionIsResolvedTarget flag skips this entire alignment block. Ordinary struct traversal uses the placement cursor instead. The alignment-change condition always has a false bit-offset conjunct; reversing only its alignment comparison cannot enter the body."
         },
@@ -2776,14 +2038,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitOffset < 0",
           "location": {
-            "start": {
-              "line": 758,
-              "column": 71
-            },
-            "end": {
-              "line": 758,
-              "column": 97
-            }
+            "start": { "line": 758, "column": 71 },
+            "end": { "line": 758, "column": 97 }
           },
           "reason": "Cursor-less Write/root/union entry has zero bit offset. A selected Update can have a positive seeded offset, but its PositionIsResolvedTarget flag skips this entire alignment block. Ordinary struct traversal uses the placement cursor instead. The bit offset is zero whenever this alignment block runs, so both > 0 and < 0 keep its conjunction false."
         },
@@ -2791,14 +2047,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 759,
-              "column": 17
-            },
-            "end": {
-              "line": 763,
-              "column": 18
-            }
+            "start": { "line": 759, "column": 17 },
+            "end": { "line": 763, "column": 18 }
           },
           "reason": "Cursor-less Write/root/union entry has zero bit offset. A selected Update can have a positive seeded offset, but its PositionIsResolvedTarget flag skips this entire alignment block. Ordinary struct traversal uses the placement cursor instead. The alignment-change body is never entered through these callers; removing only that body preserves behavior."
         },
@@ -2806,14 +2056,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 87,
-              "column": 17
-            },
-            "end": {
-              "line": 87,
-              "column": 69
-            }
+            "start": { "line": 87, "column": 17 },
+            "end": { "line": 87, "column": 69 }
           },
           "reason": "WriteBitFieldValue allocates a new byte[byteSize], which is zero-initialized. Successful Stream.Read calls fill only the prefix ending at offset; at an ordinary end-of-stream the remaining suffix has never been written. Array.Clear repeats the existing zero state. In update mode the preceding throw remains, so removing this clear changes neither bytes nor failures for conforming streams."
         },
@@ -2821,14 +2065,8 @@
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?new ConditionalVariableScope(composite, state.Variables) :null)",
           "location": {
-            "start": {
-              "line": 221,
-              "column": 33
-            },
-            "end": {
-              "line": 221,
-              "column": 135
-            }
+            "start": { "line": 221, "column": 33 },
+            "end": { "line": 221, "column": 135 }
           },
           "reason": "When HasDirectConditionalFields is false, CompiledCompositeType.CompleteConditionalScope returns before populating ConditionalLocalNames or any field's captured/restored slots. Constructing ConditionalVariableScope then creates an empty locals array, removes no variables, and every CompleteField call traverses empty slot arrays. The extra allocation changes no values, bytes, or failures."
         },
@@ -2836,14 +2074,8 @@
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount, ExpressionFailureDomain.Write) :null)",
           "location": {
-            "start": {
-              "line": 222,
-              "column": 29
-            },
-            "end": {
-              "line": 222,
-              "column": 200
-            }
+            "start": { "line": 222, "column": 29 },
+            "end": { "line": 222, "column": 200 }
           },
           "reason": "A composite without direct conditional fields has zero conditional groups and its direct fields have empty ConditionalBranches. Constructing ConditionalFieldSelection in that case creates an empty selection array; IsActive visits no branches and returns true, matching the original null selection. Nested composites create their own selection state in either implementation."
         },
@@ -2851,14 +2083,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 708,
-              "column": 13
-            },
-            "end": {
-              "line": 713,
-              "column": 14
-            }
+            "start": { "line": 708, "column": 13 },
+            "end": { "line": 713, "column": 14 }
           },
           "reason": "Cursor-less root/selected Write and union staging enter with zero bit offset. Selected Update may seed a positive offset only for a positive bitfield, so this reset condition's BitSize == 0 conjunct is false. Ordinary struct traversal uses its placement cursor instead. This legacy normal-field reset body cannot be entered through the current callers."
         },
@@ -2866,14 +2092,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitOffset + compiledField.BitSize < bitCapacity",
           "location": {
-            "start": {
-              "line": 734,
-              "column": 46
-            },
-            "end": {
-              "line": 734,
-              "column": 106
-            }
+            "start": { "line": 734, "column": 46 },
+            "end": { "line": 734, "column": 106 }
           },
           "reason": "Cursor-less root/selected Write and union staging start with zero bit offset. Selected Update handles seeded bitfields in the preceding branch, and ordinary struct fields use the placement cursor. Thus the outer CurrentBitOffset > 0 conjunction is false in this legacy derivation and the inner capacity comparison is never evaluated."
         },
@@ -2881,14 +2101,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitOffset + compiledField.BitSize >= bitCapacity",
           "location": {
-            "start": {
-              "line": 734,
-              "column": 46
-            },
-            "end": {
-              "line": 734,
-              "column": 106
-            }
+            "start": { "line": 734, "column": 46 },
+            "end": { "line": 734, "column": 106 }
           },
           "reason": "Cursor-less root/selected Write and union staging start with zero bit offset. Selected Update handles seeded bitfields in the preceding branch, and ordinary struct fields use the placement cursor. Thus the outer CurrentBitOffset > 0 conjunction is false in this legacy derivation and the inner capacity comparison is never evaluated."
         },
@@ -2896,14 +2110,8 @@
           "mutatorName": "Arithmetic mutation",
           "replacement": "state.CurrentBitOffset - compiledField.BitSize",
           "location": {
-            "start": {
-              "line": 734,
-              "column": 46
-            },
-            "end": {
-              "line": 734,
-              "column": 92
-            }
+            "start": { "line": 734, "column": 46 },
+            "end": { "line": 734, "column": 92 }
           },
           "reason": "Cursor-less root/selected Write and union staging start with zero bit offset. Selected Update handles seeded bitfields in the preceding branch, and ordinary struct fields use the placement cursor. Thus the outer CurrentBitOffset > 0 conjunction is false in this legacy derivation and the inner offset-plus-width arithmetic is never evaluated."
         },
@@ -2911,14 +2119,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(int)(alignedEnd - state.Stream.Position)",
           "location": {
-            "start": {
-              "line": 1039,
-              "column": 29
-            },
-            "end": {
-              "line": 1039,
-              "column": 79
-            }
+            "start": { "line": 1039, "column": 29 },
+            "end": { "line": 1039, "column": 79 }
           },
           "reason": "CompleteStructTailPadding assigns the cursor's current byte position to the stream before calling FinishComposite. FinishComposite uses LayoutMath.AlignUp with a positive Int32 alignment; it either throws on the checked 64-bit addition or advances by at most alignment minus one. The resulting nonnegative difference fits Int32, so this narrowing cast cannot overflow and removing its checked wrapper changes no result or failure."
         },
@@ -2926,14 +2128,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?compiledField.QualifiedPrefix :outerPrefix + compiledField.QualifiedPrefix)",
           "location": {
-            "start": {
-              "line": 1126,
-              "column": 41
-            },
-            "end": {
-              "line": 1126,
-              "column": 138
-            }
+            "start": { "line": 1126, "column": 41 },
+            "end": { "line": 1126, "column": 138 }
           },
           "reason": "When outerPrefix is non-null the original expression already concatenates it with compiledField.QualifiedPrefix. When it is null, C# string concatenation treats null as an empty string, producing exactly compiledField.QualifiedPrefix, which is non-null for fields satisfying HasQualifiedPrefix. Selecting the concatenation arm unconditionally preserves the published path."
         },
@@ -2941,14 +2137,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "childSegments.Count >= 0",
           "location": {
-            "start": {
-              "line": 1452,
-              "column": 17
-            },
-            "end": {
-              "line": 1452,
-              "column": 40
-            }
+            "start": { "line": 1452, "column": 17 },
+            "end": { "line": 1452, "column": 40 }
           },
           "reason": "WriteStreamCore rejects empty paths through ParsePath, and returns from the segments.Count == 1 branch before constructing childSegments. Reaching this condition therefore implies childSegments.Count is at least one. Changing > 0 to >= 0 preserves evaluation of the member-source lookup for every reachable call."
         }
@@ -2962,14 +2152,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 830,
-              "column": 9
-            },
-            "end": {
-              "line": 832,
-              "column": 10
-            }
+            "start": { "line": 830, "column": 9 },
+            "end": { "line": 832, "column": 10 }
           },
           "reason": "For supported one-byte encoding units (ASCII/UTF-8 NUL or newline terminators), the encoded terminator has one byte and the first encoding boundary is offset zero. Both production callers calculate alignmentOffset modulo unitSize, which is zero when unitSize is one. Removing this vectorized IndexOf fast path therefore falls through to a loop comparing that same byte at every index from zero, returning the same first match or minus one. Two-byte encodings already use the loop and are unchanged. This is an optimization-only change for supported terminator inputs, not a claim about malformed helper arguments."
         },
@@ -2977,14 +2161,8 @@
           "mutatorName": "OrAssignmentExpression to ExclusiveOrAssignmentExpression mutation",
           "replacement": "value ^= (ulong)source[index] << shift",
           "location": {
-            "start": {
-              "line": 89,
-              "column": 13
-            },
-            "end": {
-              "line": 89,
-              "column": 51
-            }
+            "start": { "line": 89, "column": 13 },
+            "end": { "line": 89, "column": 51 }
           },
           "reason": "ReadUInt48 starts with zero and places each of six bytes at a distinct multiple-of-eight shift, in either byte order. The new byte's bit positions never overlap accumulated bits, so OR and XOR produce identical 48-bit values."
         },
@@ -2992,14 +2170,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "< 8",
           "location": {
-            "start": {
-              "line": 170,
-              "column": 22
-            },
-            "end": {
-              "line": 170,
-              "column": 26
-            }
+            "start": { "line": 170, "column": 22 },
+            "end": { "line": 170, "column": 26 }
           },
           "reason": "The preceding exact case 8 already returns ReadUInt64 for every eight-byte input. This fallback only receives widths 3, 5, 6 and 7; changing its upper bound from <= 8 to < 8 cannot change any selected case or result."
         },
@@ -3007,14 +2179,8 @@
           "mutatorName": "OrAssignmentExpression to ExclusiveOrAssignmentExpression mutation",
           "replacement": "value ^= (ulong)source[index] << shift",
           "location": {
-            "start": {
-              "line": 177,
-              "column": 21
-            },
-            "end": {
-              "line": 177,
-              "column": 59
-            }
+            "start": { "line": 177, "column": 21 },
+            "end": { "line": 177, "column": 59 }
           },
           "reason": "The generic ReadUnsigned loop starts with zero and assigns each source byte a distinct eight-bit position within at most 64 bits. The new byte cannot overlap previously accumulated bits, so OR and XOR yield the same value for both byte orders."
         },
@@ -3022,14 +2188,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "< 8",
           "location": {
-            "start": {
-              "line": 454,
-              "column": 22
-            },
-            "end": {
-              "line": 454,
-              "column": 26
-            }
+            "start": { "line": 454, "column": 22 },
+            "end": { "line": 454, "column": 26 }
           },
           "reason": "The preceding exact case 8 already writes all eight-byte destinations and breaks. The generic fallback only receives widths 3, 5, 6 and 7, so changing its upper bound to < 8 does not change dispatch or output."
         },
@@ -3037,14 +2197,8 @@
           "mutatorName": "Bitwise mutation",
           "replacement": "value >>> shift",
           "location": {
-            "start": {
-              "line": 458,
-              "column": 45
-            },
-            "end": {
-              "line": 458,
-              "column": 59
-            }
+            "start": { "line": 458, "column": 45 },
+            "end": { "line": 458, "column": 59 }
           },
           "reason": "WriteUnsigned's value is ulong. Both >> and >>> shift this unsigned operand with zero fill and the same masked shift count, producing identical destination bytes."
         },
@@ -3052,14 +2206,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "index <= MaximumLeb128Bytes",
           "location": {
-            "start": {
-              "line": 483,
-              "column": 54
-            },
-            "end": {
-              "line": 483,
-              "column": 80
-            }
+            "start": { "line": 483, "column": 54 },
+            "end": { "line": 483, "column": 80 }
           },
           "reason": "For the documented widths 32 and 64, Leb128Decoder.Push either finishes or rejects continuation at the fifth or tenth byte respectively. The loop can never reach index ten without already returning or throwing, so permitting index == MaximumLeb128Bytes changes no supported decoding path, including malformed inputs."
         },
@@ -3067,14 +2215,8 @@
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?Leb128Decoder.ShortRead :Leb128Decoder.Unterminated)",
           "location": {
-            "start": {
-              "line": 492,
-              "column": 40
-            },
-            "end": {
-              "line": 492,
-              "column": 129
-            }
+            "start": { "line": 492, "column": 40 },
+            "end": { "line": 492, "column": 129 }
           },
           "reason": "For documented 32/64-bit inputs, a source of ten or more bytes cannot reach this final throw: Push returns on termination or rejects continuation by the fifth/tenth byte. Every reachable final throw therefore has source.Length < MaximumLeb128Bytes and already selects ShortRead. Unsupported widths are not claimed equivalent."
         },
@@ -3082,14 +2224,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "source.Length <= MaximumLeb128Bytes",
           "location": {
-            "start": {
-              "line": 492,
-              "column": 40
-            },
-            "end": {
-              "line": 492,
-              "column": 74
-            }
+            "start": { "line": 492, "column": 40 },
+            "end": { "line": 492, "column": 74 }
           },
           "reason": "Only source.Length == ten changes this choice. For supported widths 32 and 64 the decoder returns or throws no later than the fifth/tenth Push, so a ten-byte source cannot reach this conditional. All reachable short-span diagnostics are unchanged."
         },
@@ -3097,14 +2233,8 @@
           "mutatorName": "RightShiftAssignmentExpression to UnsignedRightShiftAssignmentExpression mutation",
           "replacement": "value >>>= 7",
           "location": {
-            "start": {
-              "line": 505,
-              "column": 13
-            },
-            "end": {
-              "line": 505,
-              "column": 24
-            }
+            "start": { "line": 505, "column": 13 },
+            "end": { "line": 505, "column": 24 }
           },
           "reason": "WriteULeb128's value is ulong. Compound >>= and >>>= both use zero-fill shifts for this unsigned operand, so every subsequent value, continuation bit and output byte is identical."
         },
@@ -3112,14 +2242,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "exact * (decimal)scale",
           "location": {
-            "start": {
-              "line": 559,
-              "column": 30
-            },
-            "end": {
-              "line": 559,
-              "column": 61
-            }
+            "start": { "line": 559, "column": 30 },
+            "end": { "line": 559, "column": 61 }
           },
           "reason": "Decimal multiplication and conversion from double to decimal throw OverflowException on an unrepresentable result regardless of checked context. Removing this checked expression does not turn either decimal operation into wrapping arithmetic, and exact-grid validation still receives the same scaled decimal or the same exception."
         },
@@ -3127,14 +2251,8 @@
           "mutatorName": "Bitwise mutation",
           "replacement": "unit >>> shift",
           "location": {
-            "start": {
-              "line": 637,
-              "column": 13
-            },
-            "end": {
-              "line": 637,
-              "column": 26
-            }
+            "start": { "line": 637, "column": 13 },
+            "end": { "line": 637, "column": 26 }
           },
           "reason": "ExtractBits receives unit as ulong. Both right-shift operators zero-fill the same unsigned bits with the same shift-count masking before the unchanged bit mask is applied."
         },
@@ -3142,14 +2260,8 @@
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?PrimitiveCodecs.StrictUtf16LittleEndianEncoding :PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
           "location": {
-            "start": {
-              "line": 874,
-              "column": 18
-            },
-            "end": {
-              "line": 874,
-              "column": 127
-            }
+            "start": { "line": 874, "column": 18 },
+            "end": { "line": 874, "column": 127 }
           },
           "reason": "ReadChar has already decoded source bytes using the requested endianness. The selected strict UTF-16 encoder is used only for GetByteCount validation on the resulting string: both byte orders reject the same invalid surrogate sequences and count the same bytes for valid text. No encoded bytes or byte-order-specific output is returned here."
         },
@@ -3157,14 +2269,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?PrimitiveCodecs.StrictUtf16LittleEndianEncoding :PrimitiveCodecs.StrictUtf16BigEndianEncoding)",
           "location": {
-            "start": {
-              "line": 874,
-              "column": 18
-            },
-            "end": {
-              "line": 874,
-              "column": 127
-            }
+            "start": { "line": 874, "column": 18 },
+            "end": { "line": 874, "column": 127 }
           },
           "reason": "ReadChar has already decoded source bytes using the requested endianness. Selecting the strict big-endian UTF-16 encoder solely for GetByteCount validates the same surrogate sequences as the little-endian encoder. Their counts are identical, the count is discarded, and the decoded string and trimming behavior are unchanged."
         },
@@ -3172,14 +2278,8 @@
           "mutatorName": "Bitwise mutation",
           "replacement": "value >>> 8",
           "location": {
-            "start": {
-              "line": 893,
-              "column": 33
-            },
-            "end": {
-              "line": 893,
-              "column": 43
-            }
+            "start": { "line": 893, "column": 33 },
+            "end": { "line": 893, "column": 43 }
           },
           "reason": "WriteUInt24Unchecked's value is uint, so >> and >>> both zero-fill before conversion to the middle output byte. The same eight low bits are written."
         },
@@ -3187,14 +2287,8 @@
           "mutatorName": "Bitwise mutation",
           "replacement": "value >>> 16",
           "location": {
-            "start": {
-              "line": 895,
-              "column": 52
-            },
-            "end": {
-              "line": 895,
-              "column": 63
-            }
+            "start": { "line": 895, "column": 52 },
+            "end": { "line": 895, "column": 63 }
           },
           "reason": "WriteUInt24Unchecked's value is uint, so >> and >>> both zero-fill before conversion to the high output byte. The byte-order-dependent destination index and written byte are unchanged."
         },
@@ -3202,14 +2296,8 @@
           "mutatorName": "Bitwise mutation",
           "replacement": "value >>> shift",
           "location": {
-            "start": {
-              "line": 903,
-              "column": 41
-            },
-            "end": {
-              "line": 903,
-              "column": 55
-            }
+            "start": { "line": 903, "column": 41 },
+            "end": { "line": 903, "column": 55 }
           },
           "reason": "WriteUInt48Unchecked's value is ulong. Both shift operators zero-fill this unsigned operand, preserving all six extracted bytes for either byte order."
         }
@@ -3355,14 +2443,8 @@
           "mutatorName": "Arithmetic mutation",
           "replacement": "this.cellEnd / 8",
           "location": {
-            "start": {
-              "line": 111,
-              "column": 94
-            },
-            "end": {
-              "line": 111,
-              "column": 110
-            }
+            "start": { "line": 111, "column": 94 },
+            "end": { "line": 111, "column": 110 }
           },
           "reason": "PlaceSeparator ends the SysV run. Every caller (static layout, runtime cursor and generated cursor) immediately uses RunEnd, which independently clamps the rounded bit position to cellEnd. Write C = cellEnd >= 0 and A = the unchanged aligned bit position. For C < 2^60, C*8 fits: if A exceeds C*8 both variants select A; otherwise the original rounds to C and the variant rounds to at most C, then RunEnd restores C. For C >= 2^60, any unchecked Int64 result of (bitPosition + 7)/8 is strictly less than C, so both RunEnd values equal C even if intermediate multiplication wraps. CheckForOverflowUnderflow is false and these expressions are not checked. The next Place or separator initializes bitPosition from the identical current byte boundary because runActive is false; Close resets it. No caller observes the differing intermediate bitPosition."
         },
@@ -3520,14 +2602,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 53,
-              "column": 9
-            },
-            "end": {
-              "line": 55,
-              "column": 10
-            }
+            "start": { "line": 53, "column": 9 },
+            "end": { "line": 55, "column": 10 }
           },
           "reason": "An empty compiled composite has no conditional fields and no storage. The ordinary struct cursor starts at zero and its empty traversal finishes at zero; an empty union also has largest extent zero. Validated positive alignment leaves zero unchanged. Removing the early empty-fields return therefore still returns zero without evaluating any field expression."
         },
@@ -3535,14 +2611,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 146,
-              "column": 31
-            },
-            "end": {
-              "line": 146,
-              "column": 82
-            }
+            "start": { "line": 146, "column": 31 },
+            "end": { "line": 146, "column": 82 }
           },
           "reason": "After the scalar return and Flexible/ToEnd/Terminated rejection, only Fixed and Runtime shapes remain. Every production shape constructor in LayoutCompilation.Model assigns their parsed dimension expression, and PeelOuterDimension copies the next validated fixed dimension. Their CountExpression cannot be null; changing this defensive message affects no compiled layout."
         },
@@ -3550,14 +2620,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 178,
-              "column": 35
-            },
-            "end": {
-              "line": 178,
-              "column": 87
-            }
+            "start": { "line": 178, "column": 35 },
+            "end": { "line": 178, "column": 87 }
           },
           "reason": "All Fixed and Runtime dimensions are created from parsed non-null expressions by LayoutCompilation.Model. Scalar shapes return before this loop and data-sized shapes throw before it. Peeling preserves those expressions. Thus the per-dimension null-expression fallback cannot be reached by a compiled layout; changing only its text has no effect."
         },
@@ -3745,14 +2809,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 23,
-              "column": 9
-            },
-            "end": {
-              "line": 26,
-              "column": 10
-            }
+            "start": { "line": 23, "column": 9 },
+            "end": { "line": 26, "column": 10 }
           },
           "reason": "Removing the early null return makes NormalizeRootData call TryGetMemberValue with null. That helper returns false and assigns a null out value before reading members. The conditional therefore returns the same original null data. No mapper or member lookup is invoked on either path, and null root pointers remain supported."
         },
@@ -3760,14 +2818,8 @@
           "mutatorName": "Logical mutation",
           "replacement": "data is IDictionary<string, object?> && data is IDictionary<string, object>",
           "location": {
-            "start": {
-              "line": 127,
-              "column": 16
-            },
-            "end": {
-              "line": 127,
-              "column": 91
-            }
+            "start": { "line": 127, "column": 16 },
+            "end": { "line": 127, "column": 91 }
           },
           "reason": "Nullable reference annotations do not create different runtime generic types: IDictionary<string, object?> and IDictionary<string, object> have identical CLR identity. Their two is-tests always agree for every object, including null; replacing OR with AND therefore produces the same Boolean result."
         },
@@ -3775,14 +2827,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?value :Materialize(value, nested))",
           "location": {
-            "start": {
-              "line": 89,
-              "column": 16
-            },
-            "end": {
-              "line": 89,
-              "column": 97
-            }
+            "start": { "line": 89, "column": 16 },
+            "end": { "line": 89, "column": 97 }
           },
           "reason": "MaterializeElement receives non-null values only. For member sources, Materialize returns the same object immediately. For sealed UnionValue, which cannot implement the constrained mapping interface, TryWrite cannot find a registered mapper and Materialize returns the same object. All other values already use Materialize. Only an unused temporary StructValue allocation can differ; returned identity, nested mapping and caller data are unchanged."
         },
@@ -3790,14 +2836,8 @@
           "mutatorName": "Logical mutation",
           "replacement": "IsMemberSource(value) && value is UnionValue",
           "location": {
-            "start": {
-              "line": 89,
-              "column": 16
-            },
-            "end": {
-              "line": 89,
-              "column": 60
-            }
+            "start": { "line": 89, "column": 16 },
+            "end": { "line": 89, "column": 60 }
           },
           "reason": "IsMemberSource and UnionValue are disjoint: sealed UnionValue implements IReadOnlyDictionary, not IDictionary. Replacing OR with AND sends these two cases through Materialize, which returns member sources immediately and returns the unregistered sealed UnionValue unchanged. Other values already take that path. The extra temporary allocation for UnionValue does not change returned identity or mapping behavior."
         },
@@ -3805,14 +2845,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 163,
-              "column": 9
-            },
-            "end": {
-              "line": 169,
-              "column": 10
-            }
+            "start": { "line": 163, "column": 9 },
+            "end": { "line": 169, "column": 10 }
           },
           "reason": "Nullable reference annotations do not produce distinct CLR types. IDictionary<string, object?> and IDictionary<string, object> match exactly the same objects. Removing the first branch falls through to the second identical TryGetValue assignment and return; found, value and dictionary side effects are unchanged."
         },
@@ -3820,14 +2854,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 172,
-              "column": 9
-            },
-            "end": {
-              "line": 177,
-              "column": 10
-            }
+            "start": { "line": 172, "column": 9 },
+            "end": { "line": 177, "column": 10 }
           },
           "reason": "The earlier IDictionary<string, object?> branch matches exactly the same CLR type as IDictionary<string, object> and always returns. This second branch is unreachable; removing it cannot affect any lookup, output or dictionary side effect."
         },
@@ -3835,14 +2863,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 187,
-              "column": 9
-            },
-            "end": {
-              "line": 189,
-              "column": 10
-            }
+            "start": { "line": 187, "column": 9 },
+            "end": { "line": 189, "column": 10 }
           },
           "reason": "The following conditional tests the same CLR dictionary type, because nullable reference annotations erase at runtime, and returns the same Keys property. Removing the first branch neither changes the returned enumerable nor adds a Keys evaluation."
         }
@@ -3856,14 +2878,8 @@
           "mutatorName": "Negate expression",
           "replacement": "!(signed)",
           "location": {
-            "start": {
-              "line": 26,
-              "column": 18
-            },
-            "end": {
-              "line": 26,
-              "column": 24
-            }
+            "start": { "line": 26, "column": 18 },
+            "end": { "line": 26, "column": 24 }
           },
           "reason": "EncodeFixedPoint validates signedness and range before this branch. Width 16 takes the unchanged first branch. For the 32-bit path, unchecked int and uint casts retain the identical low 32 bits; BinaryPrimitiveIO and Codec signed/unsigned writers both emit those exact four bits-per-byte groups in the requested endian order using the same stream.Write call. Flipping signed only selects an equivalent bit writer, without changing validation, byte count or I/O behavior."
         }
@@ -3877,14 +2893,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 22,
-              "column": 9
-            },
-            "end": {
-              "line": 24,
-              "column": 10
-            }
+            "start": { "line": 22, "column": 9 },
+            "end": { "line": 24, "column": 10 }
           },
           "reason": "Removing the cache-hit return reparses the identical immutable string with the same deterministic ParseUncached routine. Production consumers use only names and index values, never segment-array identity, and do not mutate the cached arrays. Cache hits can only exist for previously valid strings; null and invalid input follow the unchanged validation path. Only parsing/allocation work differs."
         }
@@ -3961,14 +2971,8 @@
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
-            "start": {
-              "line": 259,
-              "column": 13
-            },
-            "end": {
-              "line": 259,
-              "column": 76
-            }
+            "start": { "line": 259, "column": 13 },
+            "end": { "line": 259, "column": 76 }
           },
           "reason": "WithCustomCodecs has already installed every validated unique descriptor name and its exact CompiledTypeReference in catalog.Symbols. BuildCompiledLayout starts by copying catalog.Symbols; its only use of customSymbols is to assign those same key/reference pairs again. Removing this dictionary Add therefore skips a redundant override, not codec registration. The runtime customSymbols field has no subsequent readers; codec adapters are independently retained in BuildCodecTable and all symbol resolution still uses the complete catalog/model."
         }
@@ -4099,14 +3103,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 318,
-              "column": 50
-            },
-            "end": {
-              "line": 318,
-              "column": 109
-            }
+            "start": { "line": 318, "column": 50 },
+            "end": { "line": 318, "column": 109 }
           },
           "reason": "CompileArrayShape rejects dependencies in every dimension of an array with more than one dimension, evaluates each count, and stores each result in CompiledArrayDimension.FixedCount. Peeling retains those fixed counts and placement preserves the array shape. Thus every multidimensional array reaching this branch has a non-null count for each dimension and a non-null total unless checked multiplication throws first. Changing only this unreachable missing-count message does not affect counts, overflow checks, decoding, writing or diagnostics."
         },
@@ -4114,14 +3112,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 848,
-              "column": 54
-            },
-            "end": {
-              "line": 848,
-              "column": 109
-            }
+            "start": { "line": 848, "column": 54 },
+            "end": { "line": 848, "column": 109 }
           },
           "reason": "CompileArrayShape rejects dependencies in every dimension of an array with more than one dimension, evaluates each count, and stores each result in CompiledArrayDimension.FixedCount. Peeling retains those fixed counts and placement preserves the array shape. Thus every multidimensional array reaching this branch has a non-null count for each dimension and a non-null total unless checked multiplication throws first. Changing only this unreachable missing-count message does not affect counts, overflow checks, decoding, writing or diagnostics."
         },
@@ -4129,14 +3121,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitOffset < 0",
           "location": {
-            "start": {
-              "line": 58,
-              "column": 13
-            },
-            "end": {
-              "line": 58,
-              "column": 39
-            }
+            "start": { "line": 58, "column": 13 },
+            "end": { "line": 58, "column": 39 }
           },
           "reason": "PrepareNestedStructStart is reached for cursorless root/composite fields or union views. Roots start with zero bit offset; union dispatch resets it before every view. Inline struct members with a parent cursor use AdvanceToField instead, and selected composites use their resolved entry point. Thus this helper never receives an unfinished bit unit. Both > 0 and < 0 are false."
         },
@@ -4144,14 +3130,8 @@
           "mutatorName": "Block removal mutation",
           "replacement": "{}",
           "location": {
-            "start": {
-              "line": 59,
-              "column": 9
-            },
-            "end": {
-              "line": 64,
-              "column": 10
-            }
+            "start": { "line": 59, "column": 9 },
+            "end": { "line": 64, "column": 10 }
           },
           "reason": "PrepareNestedStructStart is reached for cursorless root/composite fields or union views. Roots start with zero bit offset; union dispatch resets it before every view. Inline struct members with a parent cursor use AdvanceToField instead, and selected composites use their resolved entry point. Thus this helper never receives an unfinished bit unit. Removing the unreachable unfinished-unit block changes no position or state."
         },
@@ -4159,14 +3139,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitOffset < 0",
           "location": {
-            "start": {
-              "line": 370,
-              "column": 29
-            },
-            "end": {
-              "line": 370,
-              "column": 55
-            }
+            "start": { "line": 370, "column": 29 },
+            "end": { "line": 370, "column": 55 }
           },
           "reason": "In legacy dispatch, union members reset the bit offset to zero and roots start at zero. Only selected bitfields may seed a positive offset, and those have BitSize > 0, making the following BitSize == 0 condition false. Offsets are never negative, so changing > 0 to < 0 preserves this inactive guard."
         },
@@ -4174,14 +3148,8 @@
           "mutatorName": "Arithmetic mutation",
           "replacement": "(compiledField.BitStorageSize ??\n                                     throw new InvalidOperationException(\n                                         \"Compiled bitfield has no storage size: \" + compiledField.Name)) / 8",
           "location": {
-            "start": {
-              "line": 643,
-              "column": 37
-            },
-            "end": {
-              "line": 645,
-              "column": 110
-            }
+            "start": { "line": 643, "column": 37 },
+            "end": { "line": 645, "column": 110 }
           },
           "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. bitCapacity is used only by the short-circuited startsNewStorageUnit test, while the actual read size is assigned directly from BitStorageSize below. Division instead of multiplication changes no consumed bytes or result."
         },
@@ -4189,14 +3157,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 645,
-              "column": 42
-            },
-            "end": {
-              "line": 645,
-              "column": 83
-            }
+            "start": { "line": 645, "column": 42 },
+            "end": { "line": 645, "column": 83 }
           },
           "reason": "This diagnostic is reached only for a positive-width bitfield with absent BitStorageSize. Layout compilation validates integral/enum backing storage and installs that size on every positive-width field; selected views preserve it, and zero-width fields exit before this branch. Missing storage cannot reach this private decoder."
         },
@@ -4204,14 +3166,8 @@
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?0\n:state.CurrentBitfieldSize)",
           "location": {
-            "start": {
-              "line": 646,
-              "column": 54
-            },
-            "end": {
-              "line": 648,
-              "column": 85
-            }
+            "start": { "line": 646, "column": 54 },
+            "end": { "line": 648, "column": 85 }
           },
           "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. activeUnitSize is a side-effect-free local used only after CurrentBitOffset > 0, which is false. Changing its selected value cannot affect state or I/O."
         },
@@ -4219,14 +3175,8 @@
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?0\n:state.CurrentBitfieldSize)",
           "location": {
-            "start": {
-              "line": 646,
-              "column": 54
-            },
-            "end": {
-              "line": 648,
-              "column": 85
-            }
+            "start": { "line": 646, "column": 54 },
+            "end": { "line": 648, "column": 85 }
           },
           "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. activeUnitSize is a side-effect-free local used only after CurrentBitOffset > 0, which is false. Changing its selected value cannot affect state or I/O."
         },
@@ -4234,14 +3184,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitfieldType is not null",
           "location": {
-            "start": {
-              "line": 646,
-              "column": 54
-            },
-            "end": {
-              "line": 646,
-              "column": 87
-            }
+            "start": { "line": 646, "column": 54 },
+            "end": { "line": 646, "column": 87 }
           },
           "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. activeUnitSize is a side-effect-free local used only after CurrentBitOffset > 0, which is false. Changing its selected value cannot affect state or I/O."
         },
@@ -4249,14 +3193,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitOffset < 0",
           "location": {
-            "start": {
-              "line": 652,
-              "column": 61
-            },
-            "end": {
-              "line": 652,
-              "column": 87
-            }
+            "start": { "line": 652, "column": 61 },
+            "end": { "line": 652, "column": 87 }
           },
           "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. CurrentBitOffset is exactly zero here, so both > 0 and < 0 are false."
         },
@@ -4264,14 +3202,8 @@
           "mutatorName": "Logical mutation",
           "replacement": "activeUnitSize != bitCapacity / 8 &&\n                                                            state.CurrentBitOffset + compiledField.BitSize > bitCapacity",
           "location": {
-            "start": {
-              "line": 653,
-              "column": 61
-            },
-            "end": {
-              "line": 654,
-              "column": 121
-            }
+            "start": { "line": 653, "column": 61 },
+            "end": { "line": 654, "column": 121 }
           },
           "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. CurrentBitOffset > 0 is false, so this changed subexpression of startsNewStorageUnit is never evaluated."
         },
@@ -4279,14 +3211,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "activeUnitSize == bitCapacity / 8",
           "location": {
-            "start": {
-              "line": 653,
-              "column": 61
-            },
-            "end": {
-              "line": 653,
-              "column": 94
-            }
+            "start": { "line": 653, "column": 61 },
+            "end": { "line": 653, "column": 94 }
           },
           "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. CurrentBitOffset > 0 is false, so this changed subexpression of startsNewStorageUnit is never evaluated."
         },
@@ -4294,14 +3220,8 @@
           "mutatorName": "Arithmetic mutation",
           "replacement": "bitCapacity * 8",
           "location": {
-            "start": {
-              "line": 653,
-              "column": 79
-            },
-            "end": {
-              "line": 653,
-              "column": 94
-            }
+            "start": { "line": 653, "column": 79 },
+            "end": { "line": 653, "column": 94 }
           },
           "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. CurrentBitOffset > 0 is false, so this changed subexpression of startsNewStorageUnit is never evaluated."
         },
@@ -4309,14 +3229,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitOffset + compiledField.BitSize < bitCapacity",
           "location": {
-            "start": {
-              "line": 654,
-              "column": 61
-            },
-            "end": {
-              "line": 654,
-              "column": 121
-            }
+            "start": { "line": 654, "column": 61 },
+            "end": { "line": 654, "column": 121 }
           },
           "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. CurrentBitOffset > 0 is false, so this changed subexpression of startsNewStorageUnit is never evaluated."
         },
@@ -4324,14 +3238,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitOffset + compiledField.BitSize >= bitCapacity",
           "location": {
-            "start": {
-              "line": 654,
-              "column": 61
-            },
-            "end": {
-              "line": 654,
-              "column": 121
-            }
+            "start": { "line": 654, "column": 61 },
+            "end": { "line": 654, "column": 121 }
           },
           "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. CurrentBitOffset > 0 is false, so this changed subexpression of startsNewStorageUnit is never evaluated."
         },
@@ -4339,14 +3247,8 @@
           "mutatorName": "Arithmetic mutation",
           "replacement": "state.CurrentBitOffset - compiledField.BitSize",
           "location": {
-            "start": {
-              "line": 654,
-              "column": 61
-            },
-            "end": {
-              "line": 654,
-              "column": 107
-            }
+            "start": { "line": 654, "column": 61 },
+            "end": { "line": 654, "column": 107 }
           },
           "reason": "The unseeded legacy bitfield branch handles union views or roots, whose bit offset is zero. Selected bitfields carry BitfieldUnitSeeded and take the preceding branch; ordinary struct members use the placement cursor. CurrentBitOffset > 0 is false, so this changed subexpression of startsNewStorageUnit is never evaluated."
         },
@@ -4354,14 +3256,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 667,
-              "column": 69
-            },
-            "end": {
-              "line": 667,
-              "column": 110
-            }
+            "start": { "line": 667, "column": 69 },
+            "end": { "line": 667, "column": 110 }
           },
           "reason": "This diagnostic is reached only for a positive-width bitfield with absent BitStorageSize. Layout compilation validates integral/enum backing storage and installs that size on every positive-width field; selected views preserve it, and zero-width fields exit before this branch. Missing storage cannot reach this private decoder."
         },
@@ -4369,14 +3265,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "structAlignment == state.CurrentFieldAlignment",
           "location": {
-            "start": {
-              "line": 680,
-              "column": 37
-            },
-            "end": {
-              "line": 680,
-              "column": 83
-            }
+            "start": { "line": 680, "column": 37 },
+            "end": { "line": 680, "column": 83 }
           },
           "reason": "This alignment block requires legacy placement, no union address and no resolved-target position. It therefore handles a fresh root field, with zero bit offset; normal struct fields use a cursor, union views fail the outer guard and selected bitfields are resolved targets. The unfinished-unit condition remains false with this mutation."
         },
@@ -4384,14 +3274,8 @@
           "mutatorName": "Equality mutation",
           "replacement": "state.CurrentBitOffset < 0",
           "location": {
-            "start": {
-              "line": 680,
-              "column": 87
-            },
-            "end": {
-              "line": 680,
-              "column": 113
-            }
+            "start": { "line": 680, "column": 87 },
+            "end": { "line": 680, "column": 113 }
           },
           "reason": "This alignment block requires legacy placement, no union address and no resolved-target position. It therefore handles a fresh root field, with zero bit offset; normal struct fields use a cursor, union views fail the outer guard and selected bitfields are resolved targets. The unfinished-unit condition remains false with this mutation."
         },
@@ -4399,14 +3283,8 @@
           "mutatorName": "Boolean mutation",
           "replacement": "false",
           "location": {
-            "start": {
-              "line": 705,
-              "column": 174
-            },
-            "end": {
-              "line": 705,
-              "column": 178
-            }
+            "start": { "line": 705, "column": 174 },
+            "end": { "line": 705, "column": 178 }
           },
           "reason": "windowedUnit requires a positive-width bitfield. Compilation supplies a non-null BitStorageIsLittleEndian for every validated integral/enum bitfield, including packed SysV windows and selected views. The null-coalescing fallback is unreachable; changing its default boolean does not change the actual stored byte order."
         },
@@ -4414,14 +3292,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "(compiledField.BitStorageSize ??\n                                     throw new InvalidOperationException(\n                                         \"Compiled bitfield has no storage size: \" + compiledField.Name)) * 8",
           "location": {
-            "start": {
-              "line": 642,
-              "column": 51
-            },
-            "end": {
-              "line": 645,
-              "column": 111
-            }
+            "start": { "line": 642, "column": 51 },
+            "end": { "line": 645, "column": 111 }
           },
           "reason": "Compiled bitfield storage comes from BitfieldCodecTable, whose registered integral storage widths are 1, 2, 4 and 8 bytes (aliases preserve these widths). The descriptor is validated before execution; multiplying any supported width by eight is at most 64 and cannot overflow Int32. The null-storage exception and multiplication itself remain unchanged."
         },
@@ -4429,14 +3301,8 @@
           "mutatorName": "Remove checked expression",
           "replacement": "state.CurrentBitfieldSize * 8",
           "location": {
-            "start": {
-              "line": 720,
-              "column": 54
-            },
-            "end": {
-              "line": 720,
-              "column": 92
-            }
+            "start": { "line": 720, "column": 54 },
+            "end": { "line": 720, "column": 92 }
           },
           "reason": "CurrentBitfieldSize is populated from validated compiled bitfield storage or a placed/resolved window. Declared storage is at most eight bytes, and BitfieldPlacement rejects packed windows larger than eight. Selected-field seeding uses that same resolved placement. Multiplication by eight is therefore at most 64 for every reached bitfield and cannot overflow Int32; removing checked changes no result or failure."
         },
@@ -4444,14 +3310,8 @@
           "mutatorName": "String mutation",
           "replacement": "\"\"",
           "location": {
-            "start": {
-              "line": 1059,
-              "column": 56
-            },
-            "end": {
-              "line": 1059,
-              "column": 80
-            }
+            "start": { "line": 1059, "column": 56 },
+            "end": { "line": 1059, "column": 80 }
           },
           "reason": "CStruct construction rejects every pointer width except 1, 2, 4 and 8 before creating the immutable compilation. PointerSize is read-only and this private helper uses that validated value, so the switch default is unreachable for every constructed layout. Changing only the default diagnostic string cannot change pointer decoding or its separate unsigned-address overflow error."
         }
