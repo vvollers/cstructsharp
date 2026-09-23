@@ -3892,6 +3892,42 @@
       "sourceSha256": "f2d90bba1a25bbb45ae0548758df968f3dcd715d933514b98f17c643027b2bcb",
       "mutants": [
         {
+          "mutatorName": "Logical mutation",
+          "replacement": "cursor is not null || unionPosition == -1",
+          "location": {
+            "start": { "line": 276, "column": 29 },
+            "end": { "line": 276, "column": 70 }
+          },
+          "reason": "This guard executes only for an unnamed zero-width separator. Such a field is not addressable and cannot be a synthetic root: named zero-width fields are rejected during normalization. Compiled struct traversal supplies a placement cursor and unionPosition -1, so both operands are true. Union-member traversal supplies no cursor and its nonnegative storage position, so both are false. Inline structs obtain their own compiled traversal cursor. The root and selected-value entry points cannot supply an isolated zero-width separator. OR and AND therefore select the same placement operation for every reachable separator, without adding any I/O or work."
+        },
+        {
+          "mutatorName": "Logical mutation",
+          "replacement": "useLegacyPlacement || compiledField.BitSize > 0",
+          "location": {
+            "start": { "line": 635, "column": 33 },
+            "end": { "line": 635, "column": 80 }
+          },
+          "reason": "The unchanged final operand requires state.BitfieldUnitSeeded. The only reader assignment setting that flag true is ReadResolvedValue, immediately before it decodes the selected positive-width scalar bitfield with no placement cursor. That call has useLegacyPlacement true and BitSize > 0, making both operands true already. All root, ordinary struct and union traversal starts with the flag false and never sets it. Changing this inner AND to OR thus preserves the complete condition, including its seeded-unit branch and later legacy fallback."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "compiledField.BitSize >= 0",
+          "location": {
+            "start": { "line": 635, "column": 55 },
+            "end": { "line": 635, "column": 80 }
+          },
+          "reason": "The following BitfieldUnitSeeded check remains required. Only ReadResolvedValue seeds that reader flag, for the placed storage window of an addressable positive-width scalar bitfield. Ordinary fields and array elements have no bitfield window, and unnamed zero-width separators cannot be selected. Consequently a zero-width ordinary field never enters this branch even when >= admits its width; every actually seeded field already satisfies > 0. The placement and decoding branches remain identical."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {
+            "start": { "line": 638, "column": 60 },
+            "end": { "line": 638, "column": 65 }
+          },
+          "reason": "This assignment executes only for ReadResolvedValue's selected positive-width bitfield. BitfieldCodecTable.ValidateBitField rejects arrays, pointers and non-integral storage, so decoding handles exactly one scalar value and cannot recurse into another field. ReadResolvedValue then returns ExtractOnlyValue; its caller completes the operation without another read through this state. Retaining the seeded flag therefore has no later consumer. This does not qualify the assignments that seed the bit offset, storage size, unit type or end position, all of which affect this scalar read."
+        },
+        {
           "mutatorName": "Statement mutation",
           "replacement": ";",
           "location": {
