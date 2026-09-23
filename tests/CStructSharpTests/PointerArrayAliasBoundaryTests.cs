@@ -1,11 +1,27 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Diagnostics;
+using CStructSharp.Values;
 
-/// <summary>Checks pointer-bearing array aliases fail with a shape-specific diagnostic.</summary>
+/// <summary>Distinguishes supported arrays of pointer aliases from unsupported pointer-to-array aliases.</summary>
 [TestClass]
 public class PointerArrayAliasBoundaryTests
 {
+    /// <summary>An array of an existing scalar pointer alias retains the pointer storage at every element.</summary>
+    [TestMethod]
+    public void ArrayOfPointerAliases_PreservesAddressesAndTargets()
+    {
+        var layout = new CStruct("typedef uint8 *address; typedef address pair[2]; struct root { pair values; };", pointerSize: 1);
+        using var source = new MemoryStream(new byte[] { 2, 3, 0xA5, 0xB6, });
+        Pointer[] values = layout.ReadValue<Pointer[]>(source, "root.values");
+        Assert.HasCount(2, values);
+        Assert.AreEqual(2L, values[0].Address);
+        Assert.AreEqual(3L, values[1].Address);
+        Assert.AreEqual((byte)0xA5, values[0].Value);
+        Assert.AreEqual((byte)0xB6, values[1].Value);
+        Assert.AreEqual(2L, source.Position);
+    }
+
     /// <summary>An intervening pointer alias cannot erase an unsupported array target, even if unused.</summary>
     /// <param name="chained">Whether another ordinary alias separates the pointer from the field.</param>
     /// <param name="used">Whether a field instantiates the pointer alias.</param>
