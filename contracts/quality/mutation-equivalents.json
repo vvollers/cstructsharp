@@ -1144,6 +1144,12 @@
    "sourceSha256": "a80ddb4d303e325573392b7f1a27f39e849a73eb0aed0a6ef89e691295a736ae",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
+     "location": {"start":{"line":104,"column":9},"end":{"line":104,"column":77}},
+     "reason": "NormalizeStructExpressions evaluates bit widths against staticLayoutVariables and rebuilds every ordinary Field through its integer-width constructor before capture marking. BitSizeExpression is consequently a Literal or NoneExpr, both immediate no-ops in AddReferences. Inline Struct declarations also carry no bit-width expression. Removing this call cannot omit a runtime dependency or change bit-width validation, placement or capture." },
+    { "mutatorName": "Statement mutation", "replacement": ";",
+     "location": {"start":{"line":117,"column":21},"end":{"line":117,"column":71}},
+     "reason": "NormalizeConditionalGroup validates and freezes switch case labels into CaseArms before capture marking. Its rebuilt ConditionalGroup retains the selector but not the original CaseLabels list. Every branch reached by CollectFieldReferences therefore has null CaseLabels, and this inner AddReferences call is unreachable. Selectors are still collected by the separate unchanged call; case validation and frozen dispatch are unchanged." },
+    { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":65,"column":13},"end":{"line":65,"column":100}},
      "reason": "Composite alignment expressions have already been evaluated against staticLayoutVariables and stored as numeric symbol/field alignments before MarkReferencedLayoutVariables runs. Traversal never reevaluates this expression against input fields. Removing its names from the capture set therefore cannot change placement or an expression result; any name also used by a runtime count/condition/offset/define is still collected through that use. This removes only potentially unnecessary captures, not alignment validation or the computed alignment." },
     { "mutatorName": "Statement mutation", "replacement": ";",
