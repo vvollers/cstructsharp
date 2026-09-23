@@ -282,7 +282,11 @@ internal sealed partial class LayoutCompilation
 
     public string Source { get; }
 
-    /// <summary>Finds a named struct declaration in this compiled layout.</summary>
+    /// <summary>Finds a named struct or union declaration through its finite chain of aliases.</summary>
+    /// <param name="name">The declaration or alias name to resolve.</param>
+    /// <returns>The underlying composite declaration, without changing its storage shape.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
+    /// <exception cref="CStructPathException">The name is unknown or denotes something other than a composite object.</exception>
     internal Struct GetStruct(string name)
     {
         if (name is null)
@@ -297,8 +301,9 @@ internal sealed partial class LayoutCompilation
         }
 
         // A typedef of a struct or union (`typedef struct _X { } X;`, `typedef X Y;`) names the same storage.
-        int guard = 0;
-        while (value is Typedef alias && ++guard < 256)
+        // A finite chain cannot visit more aliases than this layout has declarations.
+        int remainingDeclarations = this.cStructElements.Count;
+        while (value is Typedef alias && remainingDeclarations-- > 0)
         {
             if (alias.Struct is not null)
             {
@@ -485,16 +490,22 @@ internal sealed partial class LayoutCompilation
     }
 
     /// <summary>
-    ///     Follows a field's typedef chain to the first <c>typedef T name[N];</c> alias and returns the element type
-    ///     and dimensions it contributes; a field declared with a pointer to such an alias is rejected because the
-    ///     language has no pointer-to-array storage.
+    ///     Follows a field's typedef chain and combines its fixed array dimensions with the final element type.
+    ///     A field declared with a pointer to an array alias is rejected because the language has no pointer-to-array storage.
     /// </summary>
+    /// <param name="field">The field whose declared type may refer to fixed array aliases.</param>
+    /// <returns>The final element type and combined dimensions, or null when no array alias is followed.</returns>
+    /// <exception cref="CStructLayoutException">An array count is invalid or a pointer targets an array alias.</exception>
     private (Identifier Type, IReadOnlyList<Expr> Shape)? ResolveTypedefArrayShape(Field field)
     {
         string name = field.Type.Name;
         List<Expr>? shape = null;
-        int guard = 0;
-        while (this.cStructElements.TryGetValue(name, out CStructElement? element) && element is Typedef { Struct: null, } alias)
+
+        // A valid chain visits each declaration at most once. The later compiled-type pass diagnoses cycles;
+        // this declaration-count bound prevents cycling here without cutting off a longer valid chain.
+        int remainingDeclarations = this.cStructElements.Count;
+        while (remainingDeclarations-- > 0 &&
+               this.cStructElements.TryGetValue(name, out CStructElement? element) && element is Typedef { Struct: null, } alias)
         {
             if (alias.ArrayShape.Count > 0)
             {
@@ -508,11 +519,6 @@ internal sealed partial class LayoutCompilation
                 (shape ??= []).AddRange(this.EvaluateTypedefShape(alias));
             }
             else if (alias.Type.PointerDepth > 0)
-            {
-                break;
-            }
-
-            if (++guard > 256)
             {
                 break;
             }

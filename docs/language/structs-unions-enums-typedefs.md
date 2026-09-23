@@ -265,7 +265,8 @@ typedef struct packet {
 }; packet_alias;
 ```
 
-Following aliases does not change width, byte order, alignment, or pointer addressing. Alias cycles are rejected.
+Following aliases does not change width, byte order, alignment, or pointer addressing. A finite chain reaches its
+final type without losing array dimensions, regardless of the number of alias declarations. Alias cycles are rejected.
 A field declared with an array typedef (`pair p;`) has the typedef's dimensions as its innermost ones (`pair rows[3]`
 is `uint16 rows[3][2]`), and the typedef itself can be a root (`Parse(bytes, "pair")` reads two values). A pointer
 to an array typedef and an unsized array typedef are rejected.

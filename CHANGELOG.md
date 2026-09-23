@@ -8,6 +8,7 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- Preserve struct queries and fixed array dimensions through long typedef chains in runtime and generated layouts.
 - Count pointer levels already followed by a selected path when reading a pointer field or pointer-array element,
   so `MaxPointerDepth` applies to the complete branch.
 - Keep typedef-root debug paths consistent across inline, separate and chained declarations, without duplicating
