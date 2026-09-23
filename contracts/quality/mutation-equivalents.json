@@ -955,6 +955,96 @@
       "sourceSha256": "4e4c2d3cddd1c4b0f45dd0a8caee02336d34b457ab9bbc965d6e2d14bddfb0d3",
       "mutants": [
         {
+          "mutatorName": "Logical mutation",
+          "replacement": "compiledField.Codec.IsCustom || !compiledField.FixedElementSize.HasValue",
+          "location": {
+            "start": {
+              "line": 767,
+              "column": 86
+            },
+            "end": {
+              "line": 767,
+              "column": 158
+            }
+          },
+          "reason": "GetArrayElementStart first returns for a peeled field with FixedStorageSize, which covers every fixed-size primitive/custom/pointer element and fixed inner array shape. It then separately handles composites. Reaching this predicate therefore leaves only variable-size codecs: LEB128 and terminated text already select the preceding true operands, and variable custom codecs satisfy both IsCustom and !FixedElementSize.HasValue. OR instead of AND cannot select a different supported path here. This proof does not apply to the similar MeasureFieldEnd predicate, which lacks the preceding fixed-stride return."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 890,
+              "column": 21
+            },
+            "end": {
+              "line": 890,
+              "column": 60
+            }
+          },
+          "reason": "IsTerminatedText identifies the built-in terminated-string codecs. Their compiled ids select non-null delegates installed by BuildCodecTable; those delegates return strings or throw a read error, never null. Custom registration cannot replace a primitive name and cannot mark its descriptor as built-in terminated text. Only the unreachable missing-reader diagnostic prefix changes, not a real decoding error."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 905,
+              "column": 21
+            },
+            "end": {
+              "line": 905,
+              "column": 71
+            }
+          },
+          "reason": "This branch has already required IsCharacterArray for a flexible array. Compilation assigns its TerminatedCodecId from the built-in character-to-string mapping, and BuildCodecTable installs a non-null string reader for each mapped id. Aliases preserve the resolved character facts, and custom registrations cannot replace primitive names. These readers return strings or throw; neither the missing delegate nor null result needed to reach this diagnostic can occur."
+        },
+        {
+          "mutatorName": "Null coalescing mutation (remove left)",
+          "replacement": "this.compiledSizeQueries.GetCompiledFieldElementSize(compiledField, state.Variables, false)",
+          "location": {
+            "start": {
+              "line": 925,
+              "column": 27
+            },
+            "end": {
+              "line": 926,
+              "column": 118
+            }
+          },
+          "reason": "GetCompiledFieldElementSize first returns field.FixedElementSize.Value whenever it exists. Removing the left side of this coalescing expression therefore calls a pure getter that returns that same cached value. When the cached value is absent, both versions already call the exact same helper with the same variables and requireFixedSize=false. No count evaluation, I/O, failure domain or size changes."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {
+            "start": {
+              "line": 926,
+              "column": 112
+            },
+            "end": {
+              "line": 926,
+              "column": 117
+            }
+          },
+          "reason": "The fallback call is reached only without FixedElementSize. MeasureFieldEnd has already returned for composites, flexible character arrays, terminated text, LEB128 and variable-size custom codecs. Every other supported field has a fixed primitive, enum, custom or pointer storage size, so this fallback's requireFixedSize argument is never used. The multiplication and overflow checks after the coalescing expression remain intact."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": {
+            "start": {
+              "line": 1097,
+              "column": 25
+            },
+            "end": {
+              "line": 1097,
+              "column": 64
+            }
+          },
+          "reason": "A compiled enum's storage is validated as an integral primitive and GetCompiledCodecId supplies that backing codec's id. BuildCodecTable installs its non-null numeric reader; aliases preserve the backing descriptor. Numeric readers return boxed values or throw on invalid input, not null. Thus only the unreachable missing-storage-reader message changes; enum decoding and input errors retain their actual behavior."
+        },
+        {
           "mutatorName": "Conditional (true) mutation",
           "replacement": "(true?new ConditionalVariableScope(composite, state.Variables) :null)",
           "location": {

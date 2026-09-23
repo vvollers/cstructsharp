@@ -9,6 +9,18 @@ using CStructSharp.Streams;
 [TestClass]
 public class CustomCodecBoundaryTests
 {
+    /// <summary>A fixed-size custom array is skipped arithmetically when selecting a later field.</summary>
+    [TestMethod]
+    public void FixedCustomArray_DoesNotDecodeUnselectedElements()
+    {
+        var codec = new RecordingCodec(1, 1);
+        var layout = new CStruct("struct root { recorded values[2]; uint8 tail; };", compilationOptions: new CStructCompilationOptions { Codecs = [codec,], });
+        using var source = new MemoryStream(new byte[] { 11, 12, 99, });
+        Assert.AreEqual(2L, layout.ResolveAddress(source, "root.tail"));
+        Assert.AreEqual((byte)99, layout.ReadValue<byte>(source, "root.tail", options: new ReadOptions { MaxTotalBytesRead = 1, }));
+        Assert.IsEmpty(codec.ReadWindows);
+    }
+
     /// <summary>Unnamed padding is zero storage even when a custom codec would encode a supplied zero differently.</summary>
     /// <param name="runtime">Whether a preceding runtime array prevents a whole-record static write plan.</param>
     /// <param name="array">Whether the padding contains three elements rather than one scalar.</param>
