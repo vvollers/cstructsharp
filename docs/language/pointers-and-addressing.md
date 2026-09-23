@@ -82,7 +82,9 @@ A path consumes one level with each `.value`:
 - `root.ptr.value.address` selects the second pointer storage; and
 - `root.ptr.value.value` selects the final `T`.
 
-`MaxPointerDepth` limits followed levels. Cycle detection combines effective target position with remaining pointer
+`MaxPointerDepth` limits followed levels. A selected read counts both the `.value` levels in its path and any
+additional pointers it follows while decoding the selected value. Selecting a pointer field or array element does
+not restart that depth count. Cycle detection combines effective target position with remaining pointer
 shape. `MaxPointerTargetBytes` limits one fixed target. If a target is a variable-size terminated string, setting a
 fixed-target limit rejects following it because its size is unknown before the scan.
 

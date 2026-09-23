@@ -99,6 +99,7 @@ public sealed partial class CStruct
     /// <param name="target">The resolved field, array item, pointer level or root.</param>
     /// <param name="rootName">The exported declaration name used for a root selection.</param>
     /// <returns>The natural decoded value, or null for a null pointer target.</returns>
+    /// <remarks>Pointer levels followed while selecting the target remain part of the read's depth budget.</remarks>
     private object? ReadResolvedValue(
         CStructOperationContext state,
         ResolvedTarget target,
@@ -163,6 +164,9 @@ public sealed partial class CStruct
             throw new InvalidOperationException("Resolved field has no compiled decoder.");
         state.Stream.Position = target.Address;
         state.StructureDepth = target.ContainingStructureDepth;
+
+        // Resolving the path has already followed these levels before decoding this field or array element.
+        state.PointerDereferenceDepth = target.PointerAccessorsConsumed;
         if (target.BitStorageSize > 0)
         {
             state.CurrentBitOffset = target.BitOffset;

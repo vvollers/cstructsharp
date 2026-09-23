@@ -141,6 +141,9 @@ After a pointer field:
 For `uint8 **target`, `root.target.value` reaches the second pointer and
 `root.target.value.value` reaches the final byte. Each level consumes traversal budget.
 
+When a path follows a pointer to a struct, reading one of that struct's pointer fields consumes another level.
+Selecting the field does not restart `MaxPointerDepth`.
+
 Serialization writes pointer coordinates. It does not move target objects, allocate storage for them, or fix up
 addresses automatically. The application must already know the correct coordinate.
 
