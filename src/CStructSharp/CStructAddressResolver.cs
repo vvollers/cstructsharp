@@ -708,12 +708,19 @@ public partial class CStruct
     }
 
     /// <summary>
-    ///     Returns one selected array element's start at the current dimension, measuring prior dynamic struct
+    ///     Returns one selected array element's start at the current dimension, measuring prior variable-size
     ///     elements when necessary. A caller addressing an N-dimensional array calls this once per
     ///     supplied index, against the shape remaining after each prior call's own <see cref="CompiledField.SelectArrayElement"/>
     ///     peel - the same "repeat the existing single-dimension operation once per dimension" mechanism every
     ///     other N-D consumer uses.
     /// </summary>
+    /// <param name="compiledField">The array shape remaining at the current dimension.</param>
+    /// <param name="fieldStart">The absolute byte address of this array or sub-array.</param>
+    /// <param name="index">The zero-based element index, already checked against the dimension's count.</param>
+    /// <param name="state">The input cursor, read limits and captured layout variables used while measuring.</param>
+    /// <returns>The selected element's absolute byte address.</returns>
+    /// <exception cref="CStructReadException">A preceding element cannot be read within the input or read limits.</exception>
+    /// <exception cref="OverflowException">The selected extent cannot fit in a signed stream coordinate.</exception>
     private long GetArrayElementStart(
         CompiledField compiledField,
         long fieldStart,
@@ -757,7 +764,7 @@ public partial class CStruct
             return current;
         }
 
-        if (compiledField.Codec.IsLeb128 || (compiledField.Codec.IsCustom && !compiledField.FixedElementSize.HasValue))
+        if (compiledField.Codec.IsLeb128 || compiledField.Codec.IsTerminatedText || (compiledField.Codec.IsCustom && !compiledField.FixedElementSize.HasValue))
         {
             state.Stream.Position = fieldStart;
             int leaves = checked(index * (elementField.Array.TotalFixedElementCount ?? 1));
@@ -834,6 +841,12 @@ public partial class CStruct
     }
 
     /// <summary>Measures one complete field without decoding unrelated pointer targets.</summary>
+    /// <param name="compiledField">The field whose scalar or complete array extent is needed.</param>
+    /// <param name="fieldStart">The absolute byte address at which the field begins.</param>
+    /// <param name="state">The input cursor, read limits and captured variables; variable-size values are read.</param>
+    /// <returns>The absolute byte address immediately after the field, including its terminators.</returns>
+    /// <exception cref="CStructReadException">A value cannot be read within the input or read limits.</exception>
+    /// <exception cref="OverflowException">The complete field extent cannot fit in a signed stream coordinate.</exception>
     private long MeasureFieldEnd(CompiledField compiledField, long fieldStart, CStructOperationContext state)
     {
         // A pointer to a struct occupies the pointer width, never the pointee's extent: measuring the pointee here
@@ -893,9 +906,9 @@ public partial class CStruct
             return state.Stream.Position;
         }
 
-        if (compiledField.Codec.IsLeb128 || (compiledField.Codec.IsCustom && !compiledField.FixedElementSize.HasValue))
+        if (compiledField.Codec.IsLeb128 || compiledField.Codec.IsTerminatedText || (compiledField.Codec.IsCustom && !compiledField.FixedElementSize.HasValue))
         {
-            // Variable-length codecs are measured by reading them; a custom codec's own reader defines its extent.
+            // Variable-length integers, terminated strings and custom codecs are measured by their readers.
             int count = compiledField.Array.Kind == CompiledArrayKind.Scalar ? 1 : this.GetBoundedTotalElementCount(compiledField, state, fieldStart);
             state.Stream.Position = fieldStart;
             for (int i = 0; i < count; i++)

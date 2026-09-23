@@ -11,8 +11,9 @@ has two distinct storage shapes:
 - fixed character buffers own an exact number of code units; and
 - terminated strings continue until a NUL or line-feed marker.
 
-Array counts are element counts, not byte counts. The byte extent is count multiplied by the complete element stride.
-In aligned mode, that stride includes any tail padding in a nested struct.
+Array counts are element counts, not byte counts. For fixed-size elements, the byte extent is count multiplied by
+the complete element stride. In aligned mode, that stride includes any tail padding in a nested struct.
+Variable-size elements, such as terminated strings, are measured sequentially instead.
 
 ## Fixed arrays
 
@@ -207,6 +208,16 @@ The `terminated-strings` fixture checks this exact example. Decoding rejects non
 malformed UTF-8, odd-byte UTF-16, and unpaired surrogates. There is no replacement-character or byte-order-mark
 detection mode.
 
+Named terminated strings can also be array elements:
+
+```c
+struct root { cstring names[2]; uint8 tail; };
+```
+
+For bytes `41 00 42 43 00 63`, `names[0]` is `"A"` at offset 0, `names[1]` is `"BC"` at offset 2,
+and `tail` is `99` at offset 5. Selecting a later string or field measures preceding strings, including their
+terminators. A fixed element count does not imply a fixed byte extent.
+
 `MaxStringBytes` includes the complete encoded terminator. A limit of 2 rejects `41 42 00` with
 `ReadLimitExceeded`. `GetArrayLength` returns the decoded character/code-unit count without the terminator.
 
@@ -217,10 +228,10 @@ fields. A value containing its own terminator is invalid.
 
 | Shape | Fixed size | Length result | Indexed path | Main limit |
 | --- | --- | --- | --- | --- |
-| Fixed `T[N]` | Yes when `N` is fixed | Element count | Yes | Array elements |
+| Fixed `T[N]` | Only when count and element size are fixed | Element count | Yes | Array elements |
 | Runtime `T[N]` | No | Evaluated element count | Yes | Array elements and expression |
 | Fixed `char[N]` / `wchar[N]` | Yes | Code-unit count | Yes | Array elements |
-| Multidimensional `T[a][b]...` | Yes (every dimension fixed) | Current dimension's own count | Yes, up to one index per dimension | Total leaf elements |
+| Multidimensional `T[a][b]...` | Only with fixed-size elements (every dimension is fixed) | Current dimension's own count | Yes, up to one index per dimension | Total leaf elements |
 | Terminated string | No | Decoded count | No element indexing | Encoded string bytes |
 
 Do not confuse zero-filled fixed text with a terminated scan, infer an array count from remaining stream bytes, omit

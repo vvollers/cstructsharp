@@ -2185,6 +2185,21 @@
           ]
         },
         {
+          "test": "tests/CStructSharpTests/TerminatedStringArrayTraversalTests.cs#SelectedElements_MatchTheWholeArray",
+          "operations": [
+            "parse",
+            "address",
+            "length",
+            "read-value"
+          ]
+        },
+        {
+          "test": "tests/CStructSharpTests/TerminatedStringArrayTraversalTests.cs#SelectedUpdate_PreservesTheOtherStringAndTail",
+          "operations": [
+            "update"
+          ]
+        },
+        {
           "test": "tests/CStructSharpTests/TraversalLimitTests.cs#WideStringLimit_AgreesAcrossReadAddressLengthAndUpdate",
           "operations": [
             "parse",

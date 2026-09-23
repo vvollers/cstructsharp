@@ -1753,7 +1753,7 @@
     },
     {
       "pattern": "CStructAddressResolver.cs",
-      "sourceSha256": "a7fe1f75bac8550fff2889139121cd70845aed88c0263ab7685ad0d5851bcece",
+      "sourceSha256": "4e4c2d3cddd1c4b0f45dd0a8caee02336d34b457ab9bbc965d6e2d14bddfb0d3",
       "mutants": [
         {
           "mutatorName": "Statement mutation",
@@ -1797,25 +1797,25 @@
         {
           "mutatorName": "Boolean mutation",
           "replacement": "true",
-          "location": { "start": { "line": 772, "column": 112 }, "end": { "line": 772, "column": 117 } },
+          "location": { "start": { "line": 779, "column": 112 }, "end": { "line": 779, "column": 117 } },
           "reason": "A non-null FixedElementSize already returned through the peeled fixed-stride branch: one-dimensional selection becomes scalar, and supported inner dimensions are fixed. Composite descriptors return through the preceding nested-composite branch. The remaining descriptor therefore has no fixed element size and no struct declaration, so GetCompiledFieldElementSize throws its variable-length-type error independently of requireFixedSize. Changing this argument preserves that failure and cannot select a different size calculation."
         },
         {
           "mutatorName": "Remove checked expression",
           "replacement": "fieldStart + ((long)elementSize * index)",
-          "location": { "start": { "line": 773, "column": 16 }, "end": { "line": 773, "column": 65 } },
+          "location": { "start": { "line": 780, "column": 16 }, "end": { "line": 780, "column": 65 } },
           "reason": "This fallback sum is never reached. Fixed-size elements return through the peeled fixed-stride branch, since a remaining supported sub-array has fixed dimensions. Composite elements return through their measurement branch. Every remaining descriptor has null FixedElementSize and no struct declaration, so the immediately preceding GetCompiledFieldElementSize call throws before elementSize is assigned. Removing checked here changes no overflow handling; the reachable fixed-stride sum retains its own checked operation."
         },
         {
           "mutatorName": "Arithmetic mutation",
           "replacement": "fieldStart - ((long)elementSize * index)",
-          "location": { "start": { "line": 773, "column": 24 }, "end": { "line": 773, "column": 64 } },
+          "location": { "start": { "line": 780, "column": 24 }, "end": { "line": 780, "column": 64 } },
           "reason": "Fixed-size scalar or fixed-inner-dimension array elements return earlier using their peeled stride, and composite elements return through MeasureStructEnd. Reaching this fallback thus means the descriptor has neither FixedElementSize nor a struct declaration. GetCompiledFieldElementSize throws for that combination before the mutated addition/subtraction is evaluated. The reachable address arithmetic, variable-sized codec scan and diagnostic are unchanged."
         },
         {
           "mutatorName": "Arithmetic mutation",
           "replacement": "(long)elementSize / index",
-          "location": { "start": { "line": 773, "column": 38 }, "end": { "line": 773, "column": 63 } },
+          "location": { "start": { "line": 780, "column": 38 }, "end": { "line": 780, "column": 63 } },
           "reason": "The product is downstream of GetCompiledFieldElementSize on a descriptor whose fixed-size and composite cases already returned. Supported array peeling preserves a known element size and fixed inner dimensions, so a descriptor reaching this point has null FixedElementSize and no struct declaration. The size query throws before this product or replacement division can execute. No successful index calculation, codec read or error changes."
         },
         {
@@ -1838,11 +1838,11 @@
           "replacement": ";",
           "location": {
             "start": {
-              "line": 885,
+              "line": 898,
               "column": 17
             },
             "end": {
-              "line": 886,
+              "line": 899,
               "column": 105
             }
           },
@@ -1853,11 +1853,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 886,
+              "line": 899,
               "column": 21
             },
             "end": {
-              "line": 886,
+              "line": 899,
               "column": 82
             }
           },
@@ -1928,11 +1928,11 @@
           "replacement": "\"\"",
           "location": {
             "start": {
-              "line": 822,
+              "line": 829,
               "column": 63
             },
             "end": {
-              "line": 822,
+              "line": 829,
               "column": 109
             }
           },
@@ -1943,11 +1943,11 @@
           "replacement": "unitSize * 8",
           "location": {
             "start": {
-              "line": 1115,
+              "line": 1128,
               "column": 28
             },
             "end": {
-              "line": 1115,
+              "line": 1128,
               "column": 49
             }
           },

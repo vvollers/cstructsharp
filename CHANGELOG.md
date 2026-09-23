@@ -8,6 +8,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- Resolve, read and update selected terminated-string array elements using their encoded extents, and locate
+  following fields after every string's terminator.
 - Preserve struct queries and fixed array dimensions through long typedef chains in runtime and generated layouts.
 - Count pointer levels already followed by a selected path when reading a pointer field or pointer-array element,
   so `MaxPointerDepth` applies to the complete branch.

@@ -39,7 +39,8 @@ The selected field must actually be an array, and each index must be below its o
 Runtime arrays need the same variable values as parsing/writing.
 
 Fixed `char[N]` and `wchar[N]` elements can be selected as raw code units. Terminated strings are selected as whole
-fields and do not expose character indices.
+fields and do not expose character indices. For an array such as `cstring names[2]`, `root.names[1]` selects the
+second whole string, not its second character. Its address follows the preceding string's complete encoded terminator.
 
 The exact syntax appears in [Public path EBNF](grammar.md#public-path-ebnf).
 
