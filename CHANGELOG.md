@@ -77,6 +77,7 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   pool-buffer returns during writer/codec growth, failure, ownership transfer and disposal. Use an internal
   test buffer provider to verify sparse-update growth, clearing and one-time returns deterministically.
   Verify cancellation before buffer rental, async continuation independence and exact read-window boundaries.
+  Check ordinary async/synchronous parse consistency when nested member alignment is lowered.
   Check layout-call arity, recursive size diagnostics, root capture plans, union padding and fixed-extent overflow;
   verify that text byte limits take precedence over invalid text later in the same chunk.
   Pin selected-path array/pointer diagnostics, total leaf-count limits and runtime offset assertions.
