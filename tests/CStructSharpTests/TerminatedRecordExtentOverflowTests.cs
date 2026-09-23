@@ -4,6 +4,17 @@ namespace CStructSharp.Tests;
 [TestClass]
 public class TerminatedRecordExtentOverflowTests
 {
+    /// <summary>Reading the array rejects a terminator whose aligned end exceeds the stream-coordinate domain.</summary>
+    [TestMethod]
+    public void ReadAlignedTerminator_RejectsAnUnrepresentableEnd()
+    {
+        var layout = new CStruct("struct item { uint8 value @align(8); }; struct root { item items[] @align(1); uint8 tail; };", aligned: true);
+        byte[] bytes = new byte[16];
+        bytes[0] = 1;
+        using var source = new HighOriginSource(bytes);
+        Assert.Throws<OverflowException>(() => layout.Parse(source, "root"));
+    }
+
     /// <summary>Absolute member alignment can leave insufficient coordinate space for the final terminator.</summary>
     [TestMethod]
     public void AlignedTerminator_RejectsAnUnrepresentableEnd()
@@ -32,10 +43,15 @@ public class TerminatedRecordExtentOverflowTests
         public override long Length => checked(Origin + base.Length);
 
         /// <summary>Translates absolute caller positions to the small backing buffer's offset.</summary>
+        /// <exception cref="ArgumentOutOfRangeException">The requested position precedes the mapped buffer.</exception>
         public override long Position
         {
             get => checked(Origin + base.Position);
-            set => base.Position = checked(value - Origin);
+            set
+            {
+                ArgumentOutOfRangeException.ThrowIfLessThan(value, Origin);
+                base.Position = value - Origin;
+            }
         }
     }
 }
