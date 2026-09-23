@@ -24,6 +24,17 @@ public class ParserResidualBoundaryTests
         Assert.AreEqual(5, layout.GetStructSizeInBytes("root"));
     }
 
+    /// <summary>A plain pack directive replaces an existing clamp without pushing a new stack entry.</summary>
+    [TestMethod]
+    public void PlainPack_ReplacesTheCurrentClamp()
+    {
+        var layout = new CStruct("#pragma pack(push, 1)\n#pragma pack(2)\nstruct root { uint8 prefix; uint32 value; };\n#pragma pack(pop)\nstruct natural { uint8 prefix; uint32 value; };", aligned: true);
+        Assert.AreEqual(2, layout.GetStructAlignmentInBytes("root"));
+        Assert.AreEqual(6, layout.GetStructSizeInBytes("root"));
+        Assert.AreEqual(4, layout.GetStructAlignmentInBytes("natural"));
+        Assert.AreEqual(8, layout.GetStructSizeInBytes("natural"));
+    }
+
     /// <summary>A continuation joins literal text without interpreting the next ordinary character as an escape.</summary>
     /// <param name="suffix">A character that would have a special meaning after a backslash.</param>
     [TestMethod]
