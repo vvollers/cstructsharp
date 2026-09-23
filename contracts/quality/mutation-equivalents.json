@@ -1120,6 +1120,48 @@
       "sourceSha256": "e9f21bf75824129bc4e8b5262eafe032f73f9ec6c16529b2d8bee34486cc75bd",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {"start":{"line":931,"column":13},"end":{"line":931,"column":37}},
+          "reason": "ParseDefine already called SkipInlineTrivia before inspecting the value kind. The empty, macro and quoted branches return; the integer-expression branch reaches this second call without changing the cursor. The earlier call stopped on the same non-trivia character, so repeating it consumes nothing and cannot introduce a new failure. Removing only the second call leaves expression parsing and text fallback unchanged."
+        },
+        {
+          "mutatorName": "Block removal mutation",
+          "replacement": "{}",
+          "location": {"start":{"line":935,"column":9},"end":{"line":937,"column":10}},
+          "reason": "The local value is initialized to null immediately before this try. Its only assignment evaluates ParseExpr fully before storing the result. If ParseExpr throws, that assignment does not occur and value is still null; SkipInlineTrivia cannot assign it either. The catch still catches the same CStructLayoutException when its body is empty. Both versions then reset to valueStart and read the identical text fallback."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "index <= end",
+          "location": {"start":{"line":956,"column":33},"end":{"line":956,"column":44}},
+          "reason": "This helper is called only after ParseExpr returned successfully. Every successful expression leaf or closing delimiter consumes trailing trivia, and unary/binary/conditional wrappers preserve that final cursor. Thus end is EOF or points to a non-trivia character, never a physical line ending or a valid continuation. Allowing index equal to end examines at most that extra non-line-ending character; the separate source-length guard prevents an EOF read. It cannot change the detected line-break result or parser state."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {"start":{"line":1319,"column":19},"end":{"line":1319,"column":24}},
+          "reason": "This assignment resets the isUnion out parameter immediately before TryStartInlineComposite returns false. Its only callers, ParseStructMembers and ParseUnionMembers, read that parameter only inside the branch taken when the method returned true. On this failed recognition path they instead parse an ordinary declaration or end the member list. The restored cursor, null alignment and null tag are unchanged; the unused false-result out value cannot affect the layout."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {"start":{"line":1591,"column":20},"end":{"line":1591,"column":25}},
+          "reason": "When the star is missing, TryStartFunctionPointer restores the cursor to its opening parenthesis and returns false. The sole caller then finds no array, bit-width, placement or comma suffix at that parenthesis and fails ExpectToken for a semicolon there; temporary field construction performs no validation. Returning true instead takes the caller directly to the same ExpectToken at the identical cursor. Both paths throw the same syntax error before returning any field or changing parser-visible state."
+        },
+        {
+          "mutatorName": "Boolean mutation",
+          "replacement": "true",
+          "location": {"start":{"line":1599,"column":20},"end":{"line":1599,"column":25}},
+          "reason": "Failed function-signature recognition restores the cursor to the original opening parenthesis and clears name. The sole caller accepts a true result only by first requiring a semicolon at that cursor, which fails. The original false path cannot consume the parenthesis as an array, bit-width, placement or comma suffix and reaches the same semicolon check after non-validating temporary field construction. Thus the same error and location are produced; no opaque pointer field escapes either path."
+        },
+        {
+          "mutatorName": "Conditional (false) mutation",
+          "replacement": "(false?3 :2)",
+          "location": {"start":{"line":2305,"column":38},"end":{"line":2305,"column":84}},
+          "reason": "IsLineContinuation recognizes only backslash-LF and backslash-CRLF. Advancing two characters already matches LF. For CRLF it leaves the cursor on LF; the next SkipWhitespace iteration recognizes that character as whitespace and advances once, reaching the same position as the original three-character step. There is no callback or published intermediate position inside this loop, and neither path can read beyond the source. This proof does not apply to SkipRestOfLine, where a remaining LF ends the scan."
+        },
+        {
           "mutatorName": "Equality mutation",
           "replacement": "index <= this.source.Length",
           "location": {
