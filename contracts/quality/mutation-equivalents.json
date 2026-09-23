@@ -3415,6 +3415,18 @@
       "sourceSha256": "a80ddb4d303e325573392b7f1a27f39e849a73eb0aed0a6ef89e691295a736ae",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": { "start": { "line": 188, "column": 17 }, "end": { "line": 188, "column": 26 } },
+          "reason": "The skipped-field branch has already incremented index. Without continue, start is set to that next index. If it is another skipped field or the end, the following guarded while and for both execute zero iterations and the outer loop resumes at the same index as the original. If it is a positive-width unconditional bitfield, the while processes exactly the run that the next outer iteration would process, assigning the same accumulated BitRunBits to the same members. All indexing remains guarded by index < fields.Length. Only empty loop work or the iteration in which a run is processed changes."
+        },
+        {
+          "mutatorName": "Linq method mutation (Any() to All())",
+          "replacement": "call.Arguments.All",
+          "location": { "start": { "line": 657, "column": 68 }, "end": { "line": 657, "column": 86 } },
+          "reason": "The preceding guard admits only sizeof and offsetof calls. ParsePostfix parses every argument of these built-ins through ParseTypeArgument, which returns an Identifier or rejects the syntax; arithmetic arguments cannot reach FoldCalls. The unchanged arity check short-circuits for zero or otherwise incorrect argument counts. For the remaining one or two Identifier arguments, the non-Identifier predicate is false for every element, so both Any and All are false. Folding therefore accepts the same parsed calls and retains the same arity/type diagnostics."
+        },
+        {
           "mutatorName": "Logical mutation",
           "replacement": "exception.SourceOffset < 0 || exception.Message.StartsWith(\"Unknown field type: \", StringComparison.Ordinal)",
           "location": { "start": { "line": 533, "column": 56 }, "end": { "line": 533, "column": 164 } },
