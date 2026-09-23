@@ -11,6 +11,13 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - Update DocFX to 2.80.1 and increase the documentation budgets to 50 MiB uncompressed and 16 MiB compressed
   for its bundled theme assets.
 
+### Fixed
+
+- Place a BTF bitfield at its storage word's own byte offset instead of the bit offset truncated to whole bytes.
+  A struct with several bitfields packed into one storage word (for example Linux's `struct uclamp_bucket`, an
+  eight-byte struct with an 11-bit and a 53-bit field sharing one `unsigned long`) previously failed to import:
+  the second field's truncated offset, combined with its full storage size, appeared to overflow the struct.
+
 ## 0.8.1 — 2026-09-23
 
 ### Fixed

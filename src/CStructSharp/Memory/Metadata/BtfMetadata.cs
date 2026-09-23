@@ -313,6 +313,13 @@ public sealed class BtfMetadata
     /// word is a bit offset. Older BTF instead encoded a bitfield inside the INT record's own payload word (offset
     /// in bits 16-23, width in bits 0-7); such legacy slices are normalized into member slices here.
     /// </para>
+    /// <para>
+    /// A bitfield's absolute bit offset is converted to a schema (byte offset, bit-in-storage-unit) pair by
+    /// aligning down to the referenced type's own declared size, not by truncating the bit offset to whole bytes.
+    /// Several bitfields packed into one storage word (say, two fields sharing one <c>unsigned long</c>) all
+    /// reference that same word's type, so this keeps them placed at the same byte offset, distinguished only by
+    /// where each one starts within the shared word - matching how the compiler actually packed them.
+    /// </para>
     /// </remarks>
     /// <param name="id">Type ID to import.</param>
     /// <param name="pointerSize">Target pointer width in bytes.</param>
@@ -421,20 +428,26 @@ public sealed class BtfMetadata
                             throw new ArgumentException("BTF bitfield requires integer or enum storage of at most 64 bits.");
                         }
 
-                        // Choose the smallest power-of-two storage unit that holds the slice from its in-byte offset.
-                        int storage = 1;
-                        while (storage * 8 < (bit % 8) + width && storage < 8)
-                        {
-                            storage *= 2;
-                        }
+                        // The referenced type is the compiler's own storage unit for the slice (a bitfield's BTF
+                        // member always names its full declared type, e.g. "unsigned long" for a three-bit flag,
+                        // never a type shrunk to fit the slice), so its declared byte size - not a size guessed
+                        // from this one member's width - is what several bitfields sharing that unit actually
+                        // share. Aligning the byte offset down to that unit's own size, instead of truncating the
+                        // absolute bit offset to whole bytes, keeps every sibling slice inside the same storage
+                        // word rather than implying a fresh word starts wherever this particular member happens
+                        // to begin.
+                        int storage = (int)member.Size;
+                        int storageBits = storage * 8;
+                        int unitBitOffset = (bit / storageBits) * storageBits;
+                        int bitInUnit = bit - unitBitOffset;
 
                         // BTF counts bits from the record's first byte; the schema counts from the storage unit's low bit,
                         // which for big-endian storage is at the far end of the unit.
-                        int lowBit = this.IsLittleEndian ? bit % 8 : (storage * 8) - (bit % 8) - width;
+                        int lowBit = this.IsLittleEndian ? bitInUnit : storageBits - bitInUnit - width;
                         bool signed = member.Kind == 1 ? (member.Payload[0] & 0x01000000) != 0 : member.Flag;
                         memberKey = key + ":bits:" + i;
-                        output.Add(memberKey, new(memberKey, name, MemoryTypeKind.Scalar, storage, scalarType: "uint" + (storage * 8), provenance: provenance));
-                        fields.Add(new(name, memberKey, bit / 8, lowBit, width, signed));
+                        output.Add(memberKey, new(memberKey, name, MemoryTypeKind.Scalar, storage, scalarType: "uint" + storageBits, provenance: provenance));
+                        fields.Add(new(name, memberKey, unitBitOffset / 8, lowBit, width, signed));
                     }
                     else
                     {

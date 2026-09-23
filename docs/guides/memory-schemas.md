@@ -170,6 +170,13 @@ remain address-only. Older BTF encoded bitfields inside the integer type itself;
 legacy slices when they are used as members, but does not offer them as standalone scalars. Any other reachable
 value kind fails explicitly instead of producing a guessed layout.
 
+BTF gives each bitfield an absolute bit offset counted from the start of the containing struct, not from the
+storage word it happens to live in. When two bitfields share one storage word (a compact C idiom - for example
+`unsigned long value : 11; unsigned long tasks : 53;` packed into a single eight-byte `unsigned long`), the
+importer places both at the same byte `Offset` - the start of that shared word - and tells them apart by
+`BitOffset`, the position within the word. A member whose bit offset merely happens to fall in the word's second
+byte does not get its own byte-1 storage slot; it is still part of the same word its neighbor started.
+
 ## Semantic metadata versus compiled storage views
 
 `Schema.Types`, `GetType`, and `GetField` present the imported model: real names, IDs, offsets, bit slices, and

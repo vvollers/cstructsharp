@@ -6,7 +6,7 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Memory;
 using CStructSharp.Memory.Metadata;
 
-/// <summary>Hand-encoded BTF fixtures cover split identity, integer slices, enum widths, and bounded mutation input.</summary>
+/// <summary>Hand-encoded BTF fixtures cover split identity, integer slices, enum widths, packed multi-field bitfield storage, and bounded mutation input.</summary>
 [TestClass]
 public class MemoryBtfCoverageTests
 {
@@ -67,6 +67,47 @@ public class MemoryBtfCoverageTests
             region.Source.Read(0, bytes, new MemoryAccessContext());
             Assert.AreEqual(0xf8, bytes[0]);
         }
+    }
+
+    /// <summary>
+    /// Two bitfields packed into one shared storage word keep the same byte offset and their own position within
+    /// that word, instead of the second one being placed as though it needed a fresh word of its own starting
+    /// wherever its bit offset happened to fall. This is the shape of Linux's <c>struct uclamp_bucket</c> (an
+    /// 8-byte struct with an 11-bit <c>value</c> field at bit 0 and a 53-bit <c>tasks</c> field at bit 11, both
+    /// stored in one <c>unsigned long</c>), which is what first exposed the bug this test guards against: the
+    /// second field's byte-truncated bit offset (11 / 8 = byte 1) plus its full 8-byte storage type's size
+    /// overflowed the struct's own 8-byte extent, even though the two fields correctly share the struct's only
+    /// storage word.
+    /// </summary>
+    [TestMethod]
+    public void Bitfields_ShareOneStorageWordAcrossMultipleMembers()
+    {
+        byte[] bytes = Blob(
+            [
+            1, 1U << 24, 8, 64,
+            3, 0x84000002, 8,
+            5, 1, 0x0B000000,
+            11, 1, 0x3500000B,
+            ],
+            "\0u\0r\0value\0tasks\0");
+        MetadataImportResult imported = new BtfMetadata(bytes).Import(2);
+
+        MemoryField value = imported.Schema.GetField(imported.RootTypeId, "value");
+        Assert.AreEqual(0, value.Offset);
+        Assert.AreEqual(0, value.BitOffset);
+        Assert.AreEqual(11, value.BitWidth);
+
+        MemoryField tasks = imported.Schema.GetField(imported.RootTypeId, "tasks");
+        Assert.AreEqual(0, tasks.Offset);
+        Assert.AreEqual(11, tasks.BitOffset);
+        Assert.AreEqual(53, tasks.BitWidth);
+
+        var session = new MemorySession(imported.Schema);
+        var region = new MemoryRegion(new ByteArrayMemorySource("image", new byte[8]), 0, 8);
+        session.PlanUpdate(region, imported.RootTypeId, "value", 5UL).Commit();
+        session.PlanUpdate(region, imported.RootTypeId, "tasks", 12UL).Commit();
+        Assert.AreEqual(5UL, Convert.ToUInt64(session.Read(region, imported.RootTypeId, "value")));
+        Assert.AreEqual(12UL, Convert.ToUInt64(session.Read(region, imported.RootTypeId, "tasks")));
     }
 
     /// <summary>Full unsigned ENUM64 storage round-trips without signed address conversion.</summary>
