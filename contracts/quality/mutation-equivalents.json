@@ -3415,6 +3415,30 @@
       "sourceSha256": "a80ddb4d303e325573392b7f1a27f39e849a73eb0aed0a6ef89e691295a736ae",
       "mutants": [
         {
+          "mutatorName": "Logical mutation",
+          "replacement": "exception.SourceOffset < 0 || exception.Message.StartsWith(\"Unknown field type: \", StringComparison.Ordinal)",
+          "location": { "start": { "line": 533, "column": 56 }, "end": { "line": 533, "column": 164 } },
+          "reason": "ResolveFieldTypeReference is called only by CompileComposite, after BuildCompiledLayout has resolved every typedef into namedTypes. ResolveCompiledTypeReference therefore returns a cached type, resolves a pointer-sized primitive spelling, or throws its Unknown field type exception with the default negative SourceOffset. Alias-cycle and alias-kind failures occur in the earlier typedef pass and cannot reach this catch filter. Both filter operands are true for its only reachable exception, so OR catches exactly the same failure as AND and preserves the field-specific diagnostic."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "exception.SourceOffset <= 0",
+          "location": { "start": { "line": 533, "column": 56 }, "end": { "line": 533, "column": 82 } },
+          "reason": "All typedefs have been resolved before the sole CompileComposite caller reaches this helper. The called type resolver can then fail only with its Unknown field type exception, constructed without a source offset; it has the negative default, never zero. The original prefix test is unchanged. Replacing < 0 with <= 0 therefore catches the same exceptions; the handler still attaches the actual field-type source offset afterwards."
+        },
+        {
+          "mutatorName": "String mutation",
+          "replacement": "\"\"",
+          "location": { "start": { "line": 533, "column": 115 }, "end": { "line": 533, "column": 137 } },
+          "reason": "The empty prefix makes StartsWith true, but the only exception that can reach this filter already starts with Unknown field type. BuildCompiledLayout resolves every typedef before compiling composite fields, so circular or mismatched typedef failures happen before the sole caller. Cached known types and pointer-sized primitive spellings return without throwing. No additional exception is intercepted; the same unknown-type handler retains the field name, owner, hint and source position."
+        },
+        {
+          "mutatorName": "Equality mutation",
+          "replacement": "space >= 0",
+          "location": { "start": { "line": 539, "column": 17 }, "end": { "line": 539, "column": 26 } },
+          "reason": "spelling is the parsed field type name. The parser constructs it from a nonempty first identifier and inserts spaces only between subsequent type-name words; typedef normalization substitutes another parsed identifier spelling. It never starts with a space. IndexOf therefore returns -1 or a positive index, not zero, so >= 0 and > 0 take the same branch and produce the same missing-semicolon hint. Custom codec names are also validated as identifiers and cannot introduce a leading space."
+        },
+        {
           "mutatorName": "Boolean mutation",
           "replacement": "false",
           "location": { "start": { "line": 1060, "column": 223 }, "end": { "line": 1060, "column": 227 } },
