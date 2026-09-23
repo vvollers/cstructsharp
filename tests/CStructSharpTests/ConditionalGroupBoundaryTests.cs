@@ -6,6 +6,16 @@ using CStructSharp.Diagnostics;
 [TestClass]
 public class ConditionalGroupBoundaryTests
 {
+    /// <summary>Recompiling a definition cannot let an input member replace a construction-time case label.</summary>
+    [TestMethod]
+    public void DefinitionRoundTrip_PreservesFrozenCaseLabels()
+    {
+        var layout = new CStruct("#define label 2\nstruct root { uint8 label; uint8 tag; switch (tag) { case label: { uint8 value; } default: { uint8 other; } } };");
+        var roundTrip = new CStruct(layout.ToDefinition());
+        dynamic parsed = roundTrip.Parse(new byte[] { 1, 2, 42, }.AsSpan(), "root");
+        Assert.AreEqual((byte)42, (byte)parsed.value);
+    }
+
     /// <summary>An inline child cannot make later members reevaluate the enclosing branch after changing a variable.</summary>
     [TestMethod]
     public void InlineChild_PreservesTheOuterGroupDecision()

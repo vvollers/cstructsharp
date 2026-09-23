@@ -8,6 +8,21 @@
       "mutants": [
         {
           "mutatorName": "Equality mutation", "replacement": "remainingDeclarations-- >= 0",
+          "location": { "start": {"line":516,"column":16}, "end": {"line":516,"column":43} },
+          "reason": "A valid typedef chain has distinct declarations and reaches a non-alias or the unchanged pointer stop within the declaration count. An extra zero-counter iteration cannot extend such a chain. Cyclic aliases still fail the compiled type resolver before any layout is returned; the extra iteration neither repairs a cycle nor changes its declarations. Pointer-alias validation uses the same bounded walk."
+        },
+        {
+          "mutatorName": "Equality mutation", "replacement": "strct.BranchConditions.Count >= 0",
+          "location": { "start": {"line":647,"column":42}, "end": {"line":647,"column":74} },
+          "reason": "The unchanged normalizedGroups-is-null guard prevents replacing an existing group map. Allocating an empty map earlier for a composite without enclosing or direct branches adds no normalized groups. A nested conditional inserts and reuses its exact group identities just as it does when allocating the map on entry. Only the timing of an empty allocation changes; selector/arm sharing is preserved."
+        },
+        {
+          "mutatorName": "Equality mutation", "replacement": "field.BranchConditions.Count >= 0",
+          "location": { "start": {"line":647,"column":104}, "end": {"line":647,"column":136} },
+          "reason": "The unchanged normalizedGroups-is-null guard prevents replacing an existing map. A nonempty composite with no branches may now allocate the empty map early, but no field inserts a group until a real conditional is visited. Nested conditionals retain their exact group identities and shared normalized entries. Empty composites and existing maps are unchanged; only unused allocation timing differs."
+        },
+        {
+          "mutatorName": "Equality mutation", "replacement": "remainingDeclarations-- >= 0",
           "location": { "start": { "line": 306, "column": 42 }, "end": { "line": 306, "column": 69 } },
           "reason": "GetStruct runs only after BuildCompiledLayout has resolved every typedef and rejected cycles. A valid alias chain visits distinct declarations and either reaches a non-typedef, returns an inline composite, or stops at a pointer/array alias. It therefore ends before exhausting the declaration count. Admitting one extra iteration at zero cannot affect any constructed layout, lookup result or path error. The count remains bounded and no cyclic layout becomes constructible."
         },
@@ -815,6 +830,16 @@
       "pattern": "CStructAddressResolver.cs",
       "sourceSha256": "4e4c2d3cddd1c4b0f45dd0a8caee02336d34b457ab9bbc965d6e2d14bddfb0d3",
       "mutants": [
+        {
+          "mutatorName": "Arithmetic mutation", "replacement": "compiledField.PointerDepth + 1",
+          "location": { "start": {"line":459,"column":78}, "end": {"line":459,"column":108} },
+          "reason": "This branch constructs a terminal .value.address target while the original depth exceeds one. Both depths remain positive, with the same pointer size and scalar shape. Reads and updates dispatch directly by PointerAddress, and struct queries reject that kind; none follows or exposes the residual depth. Array-length queries still reject the scalar pointer. The extra depth changes unused metadata only."
+        },
+        {
+          "mutatorName": "Equality mutation", "replacement": "remainingPointerDepth != 0",
+          "location": { "start": {"line":630,"column":13}, "end": {"line":630,"column":39} },
+          "reason": "Only ResolvedTarget.UnionStorageAddress and UnionStorageSize change. These internal properties have no production consumers: read/update code uses the target address and compiled field, and union decoding computes its own extent. Neither metadata value affects bytes, values, paths, limits or errors."
+        },
         {
           "mutatorName": "Logical mutation", "replacement": "compiledField.Codec.IsCustom || !compiledField.FixedElementSize.HasValue",
           "location": { "start": { "line": 767, "column": 86 }, "end": { "line": 767, "column": 158 } },
