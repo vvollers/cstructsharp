@@ -4,6 +4,19 @@ namespace CStructSharp.Tests;
 [TestClass]
 public class ReaderBitfieldExtentTests
 {
+    /// <summary>A root union validates its complete storage window before reading its overlapping views.</summary>
+    [TestMethod]
+    public void RootUnion_RejectsAnUnrepresentableEndBeforeReading()
+    {
+        var layout = new CStruct("union root { uint16 value; };");
+        using var source = new NearLimitSource();
+
+        // A bounded union window cannot extend beyond the signed stream-coordinate range.
+        Assert.Throws<OverflowException>(() => layout.Parse(source, "root"));
+        Assert.AreEqual(0, source.ReadCalls);
+        Assert.AreEqual(long.MaxValue - 1, source.Position);
+    }
+
     /// <summary>A two-byte union view cannot start one byte below the largest stream position.</summary>
     [TestMethod]
     public void SelectedBitfield_RejectsAnUnrepresentableEndBeforeReading()
