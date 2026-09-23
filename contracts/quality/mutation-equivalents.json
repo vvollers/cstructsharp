@@ -313,6 +313,15 @@
       "sourceSha256": "4a62ae68eb9236dd5e93ebb214b4f921c3e0f6ea7bc41a18cc1d4d842353378c",
       "mutants": [
         {
+          "mutatorName": "Statement mutation",
+          "replacement": ";",
+          "location": {
+            "start": { "line": 734, "column": 17 },
+            "end": { "line": 734, "column": 53 }
+          },
+          "reason": "ExactEvaluationContext is private, created once for each EvaluateExact call and never reused or exposed. A successful identifier evaluation enters identifierValues before this finally; every later use of that name returns its cached value before consulting activeIdentifiers. During unfinished recursive evaluation the name remains active in both versions, so real cycles are still rejected. If evaluation throws, no exact-interpreter branch catches and resumes it: the whole context is abandoned. Keeping a completed name in the private active set therefore cannot change a value, cycle diagnostic, dependency lookup or depth/work limit. This only retains bookkeeping names until that one evaluation ends; it does not qualify removal from the separately reusable ordinary session."
+        },
+        {
           "mutatorName": "Conditional (false) mutation",
           "replacement": "(false?Array.Empty<string>() :[.. dependencies,])",
           "location": {
