@@ -110,6 +110,99 @@ public class MemoryBtfCoverageTests
         Assert.AreEqual(12UL, Convert.ToUInt64(session.Read(region, imported.RootTypeId, "tasks")));
     }
 
+    /// <summary>Describes a struct's own members - the same shared-bitfield-storage shape as the test above - without importing anything.</summary>
+    [TestMethod]
+    public void Describe_ReportsStructMembersIncludingSharedBitfieldStorage()
+    {
+        byte[] bytes = Blob(
+            [
+            1, 1U << 24, 8, 64,
+            3, 0x84000002, 8,
+            5, 1, 0x0B000000,
+            11, 1, 0x3500000B,
+            ],
+            "\0u\0r\0value\0tasks\0");
+        var metadata = new BtfMetadata(bytes);
+
+        BtfTypeDescription description = metadata.Describe(2);
+
+        Assert.AreEqual(2U, description.Id);
+        Assert.AreEqual("r", description.Name);
+        Assert.AreEqual(BtfKind.Struct, description.Kind);
+        Assert.AreEqual(8, description.Size);
+        Assert.AreEqual(2, description.Members.Count);
+        Assert.AreEqual(new BtfMemberDescription("value", 1, 0, 0, 11), description.Members[0]);
+        Assert.AreEqual(new BtfMemberDescription("tasks", 1, 0, 11, 53), description.Members[1]);
+    }
+
+    /// <summary>Describes an array by its element type and count, computing the same total size <see cref="BtfMetadata.Import"/> would.</summary>
+    [TestMethod]
+    public void Describe_ReportsArrayElementAndCount()
+    {
+        byte[] bytes = Blob([1, 1U << 24, 4, 32, 0, 3U << 24, 0, 1, 1, 3,], "\0u\0");
+        var metadata = new BtfMetadata(bytes);
+
+        BtfTypeDescription description = metadata.Describe(2);
+
+        Assert.AreEqual(BtfKind.Array, description.Kind);
+        Assert.AreEqual(1U, description.ElementTypeId);
+        Assert.AreEqual(3, description.ElementCount);
+        Assert.AreEqual(12, description.Size);
+        Assert.AreEqual(0, description.Members.Count);
+    }
+
+    /// <summary>Describes a pointer by its target and the supplied pointer width, since BTF itself does not encode pointer size.</summary>
+    [TestMethod]
+    public void Describe_ReportsPointerTargetAndSuppliedSize()
+    {
+        byte[] bytes = Blob([1, 1U << 24, 4, 32, 0, 2U << 24, 1,], "\0u\0");
+        var metadata = new BtfMetadata(bytes);
+
+        BtfTypeDescription description = metadata.Describe(2, pointerSize: 8);
+
+        Assert.AreEqual(BtfKind.Ptr, description.Kind);
+        Assert.AreEqual(1U, description.TargetTypeId);
+        Assert.AreEqual(8, description.Size);
+    }
+
+    /// <summary>Describing a typedef follows it to its storage kind, the same way <see cref="BtfMetadata.Import"/> would, while keeping the typedef's own name for display.</summary>
+    [TestMethod]
+    public void Describe_FollowsModifiersButKeepsTheDeclaredName()
+    {
+        byte[] bytes = Blob([1, 1U << 24, 4, 32, 3, 8U << 24, 1,], "\0u\0myint\0");
+        var metadata = new BtfMetadata(bytes);
+
+        BtfTypeDescription description = metadata.Describe(2);
+
+        Assert.AreEqual("myint", description.Name);
+        Assert.AreEqual(BtfKind.Int, description.Kind);
+        Assert.AreEqual(4, description.Size);
+    }
+
+    /// <summary>
+    /// Describing a struct never needs its members' own members to be valid - only <see cref="BtfMetadata.Import"/>,
+    /// which does recurse, actually needs that. This is the property that makes <see cref="BtfMetadata.Describe"/>
+    /// usable for finding out what a type looks like while diagnosing why importing something built from it failed.
+    /// </summary>
+    [TestMethod]
+    public void Describe_DoesNotRecurseIntoAMembersOwnMembers()
+    {
+        byte[] bytes = Blob(
+            [
+            1, 0x04000001, 8, 7, 999, 0,
+            11, 0x04000001, 8, 17, 1, 0,
+            ],
+            "\0Inner\0bad\0Outer\0inner\0");
+        var metadata = new BtfMetadata(bytes);
+
+        BtfTypeDescription description = metadata.Describe(2);
+        Assert.AreEqual("Outer", description.Name);
+        Assert.AreEqual(1, description.Members.Count);
+        Assert.AreEqual(new BtfMemberDescription("inner", 1, 0, null, null), description.Members[0]);
+
+        Assert.Throws<ArgumentException>(() => metadata.Import(2));
+    }
+
     /// <summary>Full unsigned ENUM64 storage round-trips without signed address conversion.</summary>
     [TestMethod]
     public void Enum64_RoundTripsMaximum()

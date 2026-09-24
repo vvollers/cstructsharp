@@ -14,6 +14,7 @@ internal static class MemoryTutorialExamples
         ExplicitLayout();
         ImportIsf();
         ImportBtf();
+        DescribeBtf();
         RelativePointer();
         SentinelList();
         OfflinePatch();
@@ -128,6 +129,31 @@ internal static class MemoryTutorialExamples
         var image = new ByteArrayMemorySource("BTF record", new byte[] { 0xaa, 0xbb, 0xcc, 0xdd, 9, 0, 0, 0 });
         Require((uint)session.Read(new MemoryRegion(image, 0, 8), imported.RootTypeId, "value")! == 9, "BTF member placement");
         Require(imported.Schema.GetField(imported.RootTypeId, "value").Offset == 4, "BTF bit-to-byte offset");
+        #endregion
+    }
+
+    /// <summary>Describes the same BTF struct's own members without importing anything it refers to.</summary>
+    private static void DescribeBtf()
+    {
+        #region memory-btf-describe
+        // The same blob ImportBtf uses: one integer type and one struct with a single member.
+        byte[] blob = Convert.FromHexString(
+            "9FEB01001800000000000000280000002800000012000000" +
+            "01000000000000010400000020000000" +
+            "050000000100000408000000" +
+            "0C0000000100000020000000" +
+            "00753332007265636F72640076616C756500");
+        var metadata = new BtfMetadata(blob);
+        uint rootId = metadata.FindType("record");
+
+        // Unlike Import, Describe never follows a member into its own type - it reports the declared ID as-is,
+        // so this succeeds even if "value"'s own type would fail to import.
+        BtfTypeDescription description = metadata.Describe(rootId);
+        Require(description.Kind == BtfKind.Struct, "Describe reports the struct kind");
+        Require(description.Members.Count == 1, "Describe reports one member");
+        BtfMemberDescription value = description.Members[0];
+        Require(value.Name == "value" && value.Offset == 4, "Describe reports the same placement Import would");
+        Require(value.BitOffset is null && value.BitWidth is null, "Describe reports a whole-value (non-bitfield) member");
         #endregion
     }
 

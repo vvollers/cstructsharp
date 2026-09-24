@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 42,
+  "baselineRevision": 43,
   "status": "frozen",
   "workItem": "QA-07",
-  "packageVersion": "0.7.0",
+  "packageVersion": "0.8.3",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 82,
+  "exportedTypes": 85,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 1011,
-    "normalizedSha256": "97EDBA717BF797E33106A86205C1A4F0FC354721BE82991BC99A1792408846E3"
+    "lines": 1056,
+    "normalizedSha256": "661187930D38E1A41A8FE755BECF71DD737E3ED8D0A36B09D0A48697E4927DFB"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "595E814CC570417711884ABE0F88C570B88827BC56C865FB9D5F277E45ACAFB1",
+      "normalizedSha256": "A90CF87414809B8242FD327FE25C954B5AA5E0E44B65ACF142805A9827A8EC9B",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "60DDDED2148A7C3ABA815824809E49A1C6AD91D05A766B7FF7AA8E31AB1BCED3",
+      "normalizedSha256": "224CE51F7358FE58F62653891C883D25055BE3B918CD8D270BAE5C3856E6C72B",
       "aotCompatible": true
     }
   ],
@@ -411,6 +411,15 @@
       "combinedSha256": "66A4B4DA7DEDA37CCD01EFA2B6F9736DA97B7D5C3C58222734AFB8B7B515C798",
       "rationale": "Convenience plan 5.2: RecordSequence and RecordReader<T> in CStructSharp.Generated, the shared record-sequence enumerators the generated Records forms and ParseMany run on (D6)",
       "releaseImpact": "New public support types in CStructSharp.Generated; the runtime's ParseMany signatures are unchanged"
+    },
+    {
+      "revision": 43,
+      "kind": "additive",
+      "date": "2026-09-24",
+      "packageVersion": "0.8.3",
+      "combinedSha256": "1C46F118E6F59ED1137D5B94D08C919343C828AF276A1A50CCB249331AAEEE0B",
+      "rationale": "Add BtfMetadata.Describe(id) for shallow, non-recursive type introspection",
+      "releaseImpact": "New public types (BtfKind, BtfMemberDescription, BtfTypeDescription) and one new method (BtfMetadata.Describe); no existing member changed"
     }
   ]
 }

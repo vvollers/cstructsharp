@@ -207,6 +207,56 @@ public sealed class BtfMetadata
         return new MetadataImportResult(new MemorySchema(definitions.Values, this.IsLittleEndian, pointerSize: pointerSize, cancellationToken: cancellationToken), Id(rootTypeId), diagnostics.AsReadOnly());
     }
 
+    /// <summary>Describes one type record's own shape - kind, size, and (for a struct or union) direct members - without importing or validating any type it refers to.</summary>
+    /// <remarks>
+    /// Unlike <see cref="Import"/>, this never recurses into a member's or an element's own type: each is reported
+    /// by its declared ID only, so describing one type never requires its dependents to import cleanly. This is
+    /// the tool for finding out what a specific ID actually is - for example while diagnosing why <see cref="Import"/>
+    /// rejected some type deep in a large graph - not a replacement for <see cref="Import"/> when a caller actually
+    /// wants to read values.
+    /// <para>
+    /// A modifier chain (<c>typedef</c>, <c>const</c>, <c>volatile</c>, <c>restrict</c>, a type tag) is followed
+    /// transparently to the underlying storage kind, the same way <see cref="Import"/> treats it; the reported name
+    /// still prefers the originally requested declaration's own name when it has one. An invalid or cyclic type
+    /// reference fails the same way it would during <see cref="Import"/>, since even a shallow description needs to
+    /// know what kind the ID resolves to.
+    /// </para>
+    /// </remarks>
+    /// <param name="id">Type ID to describe; zero is <c>void</c>.</param>
+    /// <param name="pointerSize">Target pointer width in bytes, used only to size a pointer or an array of pointers.</param>
+    /// <returns>A shallow description of the type record at <paramref name="id"/>.</returns>
+    public BtfTypeDescription Describe(uint id, int pointerSize = 8)
+    {
+        BtfType type = this.Resolve(id);
+        string displayName = this.types.TryGetValue(id, out BtfType? declared) && declared.Name.Length > 0 ? declared.Name : type.Name;
+        var kind = (BtfKind)type.Kind;
+        int size = this.Size(id, pointerSize);
+
+        uint? targetTypeId = kind == BtfKind.Ptr && type.Size != 0 ? type.Size : null;
+        uint? elementTypeId = null;
+        int elementCount = 0;
+        IReadOnlyList<BtfMemberDescription> members = Array.Empty<BtfMemberDescription>();
+
+        if (kind == BtfKind.Array)
+        {
+            elementTypeId = type.Payload[0];
+            elementCount = checked((int)type.Payload[2]);
+        }
+        else if (kind is BtfKind.Struct or BtfKind.Union)
+        {
+            var described = new BtfMemberDescription[type.Payload.Length / 3];
+            for (int i = 0; i < type.Payload.Length; i += 3)
+            {
+                MemberPlacement placement = this.ResolveMemberPlacement(type, i);
+                described[i / 3] = new BtfMemberDescription(placement.Name, placement.MemberId, placement.Offset, placement.BitOffset, placement.BitWidth);
+            }
+
+            members = described;
+        }
+
+        return new BtfTypeDescription(id, displayName, kind, size, targetTypeId, elementTypeId, elementCount, members);
+    }
+
     /// <summary>Formats a numeric BTF ID as a schema ID, which stays unique even when display names repeat.</summary>
     /// <param name="id">Numeric BTF type ID.</param>
     private static string Id(uint id) => "btf:" + id.ToString(CultureInfo.InvariantCulture);
@@ -391,73 +441,21 @@ public sealed class BtfMetadata
                 var fields = new List<MemoryField>();
                 for (int i = 0; i < type.Payload.Length; i += 3)
                 {
-                    string name = type.Owner.String(type.Payload[i]);
-                    uint memberId = type.Payload[i + 1];
-                    uint encoded = type.Payload[i + 2];
-                    int bit = checked((int)(type.Flag ? encoded & 0xffffff : encoded));
-                    int width = type.Flag ? (int)(encoded >> 24) : 0;
-                    BtfType member = this.Resolve(memberId);
-                    if (!type.Flag && member.Kind == 1)
+                    MemberPlacement placement = this.ResolveMemberPlacement(type, i);
+                    string memberKey = Id(placement.MemberId);
+                    if (placement.BitWidth is int width)
                     {
-                        // Legacy encoding: the INT record itself says which bits of its storage the member uses.
-                        int legacyOffset = (int)((member.Payload[0] >> 16) & 255);
-                        int legacyWidth = (int)(member.Payload[0] & 255);
-                        if (legacyOffset + legacyWidth > member.Size * 8)
-                        {
-                            throw new ArgumentException("Legacy BTF integer slice exceeds its storage type.");
-                        }
-
-                        if (legacyOffset != 0 || legacyWidth != member.Size * 8)
-                        {
-                            bit = checked(bit + legacyOffset);
-                            width = legacyWidth;
-                            if (width == 0)
-                            {
-                                throw new ArgumentException("A legacy BTF bitfield must have nonzero width.");
-                            }
-                        }
-                    }
-
-                    bool promoted = name.Length == 0;
-                    name = promoted ? "__anonymous_" + (i / 3) : name;
-                    string memberKey = Id(memberId);
-                    if (width != 0)
-                    {
-                        if (member.Kind is not (1 or 6 or 19) || width > 64)
-                        {
-                            throw new ArgumentException("BTF bitfield requires integer or enum storage of at most 64 bits.");
-                        }
-
-                        // The referenced type is the compiler's own storage unit for the slice (a bitfield's BTF
-                        // member always names its full declared type, e.g. "unsigned long" for a three-bit flag,
-                        // never a type shrunk to fit the slice), so its declared byte size - not a size guessed
-                        // from this one member's width - is what several bitfields sharing that unit actually
-                        // share. Aligning the byte offset down to that unit's own size, instead of truncating the
-                        // absolute bit offset to whole bytes, keeps every sibling slice inside the same storage
-                        // word rather than implying a fresh word starts wherever this particular member happens
-                        // to begin.
-                        int storage = (int)member.Size;
-                        int storageBits = storage * 8;
-                        int unitBitOffset = (bit / storageBits) * storageBits;
-                        int bitInUnit = bit - unitBitOffset;
-
-                        // BTF counts bits from the record's first byte; the schema counts from the storage unit's low bit,
-                        // which for big-endian storage is at the far end of the unit.
-                        int lowBit = this.IsLittleEndian ? bitInUnit : storageBits - bitInUnit - width;
+                        BtfType member = this.Resolve(placement.MemberId);
                         bool signed = member.Kind == 1 ? (member.Payload[0] & 0x01000000) != 0 : member.Flag;
+                        int storage = checked((int)member.Size);
                         memberKey = key + ":bits:" + i;
-                        output.Add(memberKey, new(memberKey, name, MemoryTypeKind.Scalar, storage, scalarType: "uint" + storageBits, provenance: provenance));
-                        fields.Add(new(name, memberKey, unitBitOffset / 8, lowBit, width, signed));
+                        output.Add(memberKey, new(memberKey, placement.Name, MemoryTypeKind.Scalar, storage, scalarType: "uint" + (storage * 8), provenance: provenance));
+                        fields.Add(new(placement.Name, memberKey, placement.Offset, placement.BitOffset, width, signed));
                     }
                     else
                     {
-                        if (bit % 8 != 0)
-                        {
-                            throw new ArgumentException("Non-bitfield BTF member is not byte aligned.");
-                        }
-
-                        this.ImportType(memberId, pointerSize, output, diagnostics, building, depth + 1, cancellationToken);
-                        fields.Add(new(name, memberKey, bit / 8, promoted: promoted));
+                        this.ImportType(placement.MemberId, pointerSize, output, diagnostics, building, depth + 1, cancellationToken);
+                        fields.Add(new(placement.Name, memberKey, placement.Offset, promoted: placement.Promoted));
                     }
                 }
 
@@ -504,6 +502,88 @@ public sealed class BtfMetadata
 
         building.Remove(id);
     }
+
+    /// <summary>Computes one struct or union member's placement - name, declared (unresolved) type ID, byte offset, and bit slice if it is a bitfield - shared by <see cref="Import"/> and <see cref="Describe"/> so the two can never disagree about where a member actually sits.</summary>
+    /// <remarks>
+    /// Struct members are three payload words each: name, type, and an offset word. When the containing type's flag
+    /// bit is set the offset word packs a bitfield width in its top 8 bits and the bit offset in the low 24;
+    /// otherwise the whole word is a bit offset. Older BTF instead encoded a bitfield inside the member's own INT
+    /// record (offset in bits 16-23, width in bits 0-7 of that record's payload word); such legacy slices are
+    /// normalized here too.
+    /// </remarks>
+    /// <param name="containingType">The resolved struct or union record the member belongs to.</param>
+    /// <param name="payloadIndex">Index of the member's first payload word, a multiple of 3.</param>
+    private MemberPlacement ResolveMemberPlacement(BtfType containingType, int payloadIndex)
+    {
+        string name = containingType.Owner.String(containingType.Payload[payloadIndex]);
+        uint memberId = containingType.Payload[payloadIndex + 1];
+        uint encoded = containingType.Payload[payloadIndex + 2];
+        int bit = checked((int)(containingType.Flag ? encoded & 0xffffff : encoded));
+        int width = containingType.Flag ? (int)(encoded >> 24) : 0;
+        BtfType member = this.Resolve(memberId);
+        if (!containingType.Flag && member.Kind == 1)
+        {
+            // Legacy encoding: the INT record itself says which bits of its storage the member uses.
+            int legacyOffset = (int)((member.Payload[0] >> 16) & 255);
+            int legacyWidth = (int)(member.Payload[0] & 255);
+            if (legacyOffset + legacyWidth > member.Size * 8)
+            {
+                throw new ArgumentException("Legacy BTF integer slice exceeds its storage type.");
+            }
+
+            if (legacyOffset != 0 || legacyWidth != member.Size * 8)
+            {
+                bit = checked(bit + legacyOffset);
+                width = legacyWidth;
+                if (width == 0)
+                {
+                    throw new ArgumentException("A legacy BTF bitfield must have nonzero width.");
+                }
+            }
+        }
+
+        bool promoted = name.Length == 0;
+        name = promoted ? "__anonymous_" + (payloadIndex / 3) : name;
+
+        if (width == 0)
+        {
+            if (bit % 8 != 0)
+            {
+                throw new ArgumentException("Non-bitfield BTF member is not byte aligned.");
+            }
+
+            return new MemberPlacement(name, memberId, bit / 8, null, null, promoted);
+        }
+
+        if (member.Kind is not (1 or 6 or 19) || width > 64)
+        {
+            throw new ArgumentException("BTF bitfield requires integer or enum storage of at most 64 bits.");
+        }
+
+        // The referenced type is the compiler's own storage unit for the slice (a bitfield's BTF member always
+        // names its full declared type, e.g. "unsigned long" for a three-bit flag, never a type shrunk to fit the
+        // slice), so its declared byte size - not a size guessed from this one member's width - is what several
+        // bitfields sharing that unit actually share. Aligning the byte offset down to that unit's own size,
+        // instead of truncating the absolute bit offset to whole bytes, keeps every sibling slice inside the same
+        // storage word rather than implying a fresh word starts wherever this particular member happens to begin.
+        int storageBits = checked((int)member.Size * 8);
+        int unitBitOffset = (bit / storageBits) * storageBits;
+        int bitInUnit = bit - unitBitOffset;
+
+        // BTF counts bits from the record's first byte; the schema counts from the storage unit's low bit, which
+        // for big-endian storage is at the far end of the unit.
+        int lowBit = this.IsLittleEndian ? bitInUnit : storageBits - bitInUnit - width;
+        return new MemberPlacement(name, memberId, unitBitOffset / 8, lowBit, width, promoted);
+    }
+
+    /// <summary>One struct or union member's resolved placement, shared by <see cref="Import"/> and <see cref="Describe"/>.</summary>
+    /// <param name="Name">Member name, with an anonymous member already given its generated name.</param>
+    /// <param name="MemberId">The member's declared (unresolved) BTF type ID.</param>
+    /// <param name="Offset">Byte offset from the start of the containing type.</param>
+    /// <param name="BitOffset">Bit position within the storage unit at <paramref name="Offset"/>, or null for a whole-value member.</param>
+    /// <param name="BitWidth">Bitfield width in bits, or null for a whole-value member.</param>
+    /// <param name="Promoted">Whether the member was anonymous in BTF and so is promoted, making its own members visible in the parent.</param>
+    private readonly record struct MemberPlacement(string Name, uint MemberId, int Offset, int? BitOffset, int? BitWidth, bool Promoted);
 
     /// <summary>One parsed type record: its ID, name, kind, size-or-reference word, flag bit, payload words, and the table that owns its strings.</summary>
     /// <param name="Id">Numeric type ID, unique across the base chain.</param>

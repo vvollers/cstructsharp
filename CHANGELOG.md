@@ -6,6 +6,15 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+### Added
+
+- `BtfMetadata.Describe(id)` reports one BTF type record's own kind, size, and (for a struct or union) direct
+  members, without importing or validating any type it refers to. `Import` compiles a type's entire
+  transitively-reachable graph before returning anything, so one bad type anywhere in a large graph (thousands of
+  types, for a real kernel) blocks the whole import; `Describe` lets a caller inspect what a specific ID actually
+  is - including a struct whose *own* shape is perfectly fine - without needing every type reachable from it to
+  also validate. Adds the `BtfKind` enum and the `BtfTypeDescription`/`BtfMemberDescription` records.
+
 ### Fixed
 
 - Allow an array element type with size zero when the array's own declared size is also zero, instead of

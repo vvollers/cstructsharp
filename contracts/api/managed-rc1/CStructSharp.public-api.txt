@@ -866,13 +866,58 @@ namespace CStructSharp.Memory
 }
 namespace CStructSharp.Memory.Metadata
 {
+    public enum BtfKind
+    {
+        Void = 0,
+        Int = 1,
+        Ptr = 2,
+        Array = 3,
+        Struct = 4,
+        Union = 5,
+        Enum = 6,
+        Fwd = 7,
+        Typedef = 8,
+        Volatile = 9,
+        Const = 10,
+        Restrict = 11,
+        Func = 12,
+        FuncProto = 13,
+        Var = 14,
+        Datasec = 15,
+        Float = 16,
+        DeclTag = 17,
+        TypeTag = 18,
+        Enum64 = 19,
+    }
+    public sealed class BtfMemberDescription : System.IEquatable<CStructSharp.Memory.Metadata.BtfMemberDescription>
+    {
+        public BtfMemberDescription(string Name, uint TypeId, int Offset, int? BitOffset, int? BitWidth) { }
+        public int? BitOffset { get; init; }
+        public int? BitWidth { get; init; }
+        public string Name { get; init; }
+        public int Offset { get; init; }
+        public uint TypeId { get; init; }
+    }
     public sealed class BtfMetadata
     {
         public BtfMetadata(System.ReadOnlyMemory<byte> data, CStructSharp.Memory.Metadata.BtfMetadata? baseMetadata = null, int maxBytes = 16777216, int maxTypes = 100000, System.Threading.CancellationToken cancellationToken = default) { }
         public bool IsLittleEndian { get; }
         public int TypeCount { get; }
+        public CStructSharp.Memory.Metadata.BtfTypeDescription Describe(uint id, int pointerSize = 8) { }
         public uint FindType(string name) { }
         public CStructSharp.Memory.Metadata.MetadataImportResult Import(uint rootTypeId, int pointerSize = 8, System.Threading.CancellationToken cancellationToken = default) { }
+    }
+    public sealed class BtfTypeDescription : System.IEquatable<CStructSharp.Memory.Metadata.BtfTypeDescription>
+    {
+        public BtfTypeDescription(uint Id, string Name, CStructSharp.Memory.Metadata.BtfKind Kind, int Size, uint? TargetTypeId, uint? ElementTypeId, int ElementCount, System.Collections.Generic.IReadOnlyList<CStructSharp.Memory.Metadata.BtfMemberDescription> Members) { }
+        public int ElementCount { get; init; }
+        public uint? ElementTypeId { get; init; }
+        public uint Id { get; init; }
+        public CStructSharp.Memory.Metadata.BtfKind Kind { get; init; }
+        public System.Collections.Generic.IReadOnlyList<CStructSharp.Memory.Metadata.BtfMemberDescription> Members { get; init; }
+        public string Name { get; init; }
+        public int Size { get; init; }
+        public uint? TargetTypeId { get; init; }
     }
     public static class IsfMetadata
     {

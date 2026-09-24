@@ -183,6 +183,23 @@ importer places both at the same byte `Offset` - the start of that shared word -
 `BitOffset`, the position within the word. A member whose bit offset merely happens to fall in the word's second
 byte does not get its own byte-1 storage slot; it is still part of the same word its neighbor started.
 
+### Describe one type without importing its graph
+
+`Import` compiles a type and *everything it references*, recursively - so a single incompatible type anywhere in a
+large graph fails the whole call, even if the type you actually asked for is perfectly fine. A real kernel's BTF
+easily reaches thousands of types from one root, so this matters in practice, not just in theory.
+
+`Describe(id)` answers a narrower question: what does this *one* type record look like? It reports the kind BTF
+resolves to (following `typedef`/`const`/`volatile`/`restrict`/type-tag chains transparently, the same way `Import`
+does), its size, and - for a struct or union - its direct members' names, declared type IDs, and placement. It
+never imports or validates anything a member merely *points to*; that member's own type ID is reported as-is.
+
+This makes `Describe` the right tool for finding out what a specific ID actually is - typically while diagnosing
+why `Import` rejected something deep in a large graph, by walking one level at a time from the root down toward
+whichever type is causing trouble - rather than a replacement for `Import` when you actually want to read values.
+
+[!code-csharp[Describe a struct's members without importing it](../examples/memory-analysis/MemoryTutorialExamples.cs#memory-btf-describe)]
+
 ## Semantic metadata versus compiled storage views
 
 `Schema.Types`, `GetType`, and `GetField` present the imported model: real names, IDs, offsets, bit slices, and
