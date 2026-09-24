@@ -531,6 +531,13 @@ public sealed class MemorySession
             return values;
         }
 
+        if (type.Kind == MemoryTypeKind.Opaque)
+        {
+            // No field layout survived validation for this type, so its bytes are handed back verbatim rather
+            // than decoded; the caller still gets exactly the declared size, just not decomposed into members.
+            return ReadBytes(selected.Region, context);
+        }
+
         throw new ArgumentException("Cannot read an incomplete type by value.");
     }
 
@@ -619,6 +626,18 @@ public sealed class MemorySession
                 object? memberValue = field.Promoted && !members.ContainsKey(field.Name) ? value : members[field.Name];
                 this.EncodeField(type, field, memberValue, destination, context, depth);
             }
+        }
+        else if (type.Kind == MemoryTypeKind.Opaque)
+        {
+            // The mirror of the opaque read path: no field layout survived validation, so the caller must supply
+            // exactly the declared number of raw bytes rather than a decomposed member value.
+            if (value is not byte[] raw || raw.Length != type.Size)
+            {
+                throw new ArgumentException("Opaque writes require raw bytes of the declared size.", nameof(value));
+            }
+
+            context.Charge("serialize", 0, raw.Length);
+            raw.CopyTo(destination);
         }
         else
         {

@@ -747,8 +747,9 @@ namespace CStructSharp.Memory
     }
     public sealed class MemorySchema
     {
-        public MemorySchema(System.Collections.Generic.IEnumerable<CStructSharp.Memory.MemoryTypeDefinition> types, bool isLittleEndian = true, CStructSharp.CStructCompilationOptions? options = null, int maxTypes = 100000, int maxFields = 1000000, int pointerSize = 8, System.Threading.CancellationToken cancellationToken = default) { }
+        public MemorySchema(System.Collections.Generic.IEnumerable<CStructSharp.Memory.MemoryTypeDefinition> types, bool isLittleEndian = true, CStructSharp.CStructCompilationOptions? options = null, int maxTypes = 100000, int maxFields = 1000000, int pointerSize = 8, System.Threading.CancellationToken cancellationToken = default, bool bestEffort = false) { }
         public CStructSharp.CStruct CompiledLayout { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Diagnostics { get; }
         public bool IsLittleEndian { get; }
         public int PointerSize { get; }
         public System.Collections.Generic.IReadOnlyDictionary<string, CStructSharp.Memory.MemoryTypeDefinition> Types { get; }
@@ -798,6 +799,7 @@ namespace CStructSharp.Memory
         Union = 3,
         Array = 4,
         Incomplete = 5,
+        Opaque = 6,
     }
     public sealed class MemoryUnionSelection : System.IEquatable<CStructSharp.Memory.MemoryUnionSelection>
     {
@@ -905,7 +907,7 @@ namespace CStructSharp.Memory.Metadata
         public int TypeCount { get; }
         public CStructSharp.Memory.Metadata.BtfTypeDescription Describe(uint id, int pointerSize = 8) { }
         public uint FindType(string name) { }
-        public CStructSharp.Memory.Metadata.MetadataImportResult Import(uint rootTypeId, int pointerSize = 8, System.Threading.CancellationToken cancellationToken = default) { }
+        public CStructSharp.Memory.Metadata.MetadataImportResult Import(uint rootTypeId, int pointerSize = 8, System.Threading.CancellationToken cancellationToken = default, bool bestEffort = false) { }
     }
     public sealed class BtfTypeDescription : System.IEquatable<CStructSharp.Memory.Metadata.BtfTypeDescription>
     {

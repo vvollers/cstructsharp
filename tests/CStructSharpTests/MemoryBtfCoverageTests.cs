@@ -235,6 +235,67 @@ public class MemoryBtfCoverageTests
         Assert.AreEqual(MemoryTypeKind.Incomplete, pointer.Schema.GetType("btf:3").Kind);
     }
 
+    /// <summary>A pointer cycle (a linked-list node pointing at its own type) imports once and terminates rather than recursing forever.</summary>
+    [TestMethod]
+    public void Import_TerminatesOnASelfReferentialPointer()
+    {
+        var metadata = new BtfMetadata(Blob(
+            [
+            0, (4U << 24) | 1, 8, 1, 2, 0,
+            0, 2U << 24, 1,
+            ],
+            "\0next\0"));
+        MetadataImportResult imported = metadata.Import(1);
+        Assert.AreEqual(MemoryTypeKind.Pointer, imported.Schema.GetType(imported.Schema.GetField(imported.RootTypeId, "next").TypeId).Kind);
+        Assert.AreEqual(imported.RootTypeId, imported.Schema.GetType(imported.Schema.GetField(imported.RootTypeId, "next").TypeId).ElementTypeId);
+    }
+
+    /// <summary>A real kernel's type graph nests far deeper than the walk's old 128-deep recursion cap, purely from
+    /// how densely its structs reference each other - not from any defect in the metadata - so the walk must not
+    /// reject a long but perfectly legitimate, acyclic chain of by-value struct nesting.</summary>
+    [TestMethod]
+    public void Import_HandlesByValueChainsDeeperThanTheOldRecursionCap()
+    {
+        const int Depth = 300;
+        var words = new List<uint> { 1, 1U << 24, 4, 32, };
+        uint previousId = 1;
+        for (int level = 0; level < Depth; level++)
+        {
+            words.AddRange([0, (4U << 24) | 1, 4, 1, previousId, 0,]);
+            previousId++;
+        }
+
+        var metadata = new BtfMetadata(Blob(words.ToArray(), "\0next\0"));
+        Assert.AreEqual(Depth + 1, metadata.TypeCount);
+        MetadataImportResult imported = metadata.Import(previousId);
+        Assert.AreEqual(Depth + 1, imported.Schema.Types.Count);
+        Assert.AreEqual(MemoryTypeKind.Struct, imported.Schema.GetType(imported.RootTypeId).Kind);
+    }
+
+    /// <summary><see cref="BtfMetadata.Import"/>'s <c>bestEffort</c> flag threads through to
+    /// <see cref="MemorySchema"/>: a self-inconsistent inner struct no longer aborts an import that embeds it by
+    /// value, the placeholder is reported as a diagnostic, and strict import (the default) is unaffected.</summary>
+    [TestMethod]
+    public void Import_BestEffortToleratesASelfInconsistentByValueMember()
+    {
+        // "Inner" is intrinsically broken: its one member sits past Inner's own declared 4-byte extent.
+        // "Outer" is fine on its own terms - it just happens to embed the broken "Inner" by value.
+        var metadata = new BtfMetadata(Blob(
+            [
+            1, 0x01000000, 4, 32,
+            7, 0x04000001, 4, 5, 1, 800,
+            19, 0x04000001, 4, 13, 2, 0,
+            ],
+            "\0u32\0x\0Inner\0inner\0Outer\0"));
+        uint outerId = metadata.FindType("Outer");
+
+        Assert.Throws<ArgumentException>(() => metadata.Import(outerId));
+
+        MetadataImportResult result = metadata.Import(outerId, bestEffort: true);
+        Assert.AreEqual(MemoryTypeKind.Opaque, result.Schema.GetType("btf:2").Kind);
+        StringAssert.Contains(string.Join('\n', result.Diagnostics), "btf:2");
+    }
+
     /// <summary>Repeatable mutations must either form a valid bounded schema or fail with a documented input error.</summary>
     [TestMethod]
     public void Btf_SeededMutationsRemainBounded()

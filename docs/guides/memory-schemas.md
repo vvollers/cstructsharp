@@ -200,6 +200,26 @@ whichever type is causing trouble - rather than a replacement for `Import` when 
 
 [!code-csharp[Describe a struct's members without importing it](../examples/memory-analysis/MemoryTutorialExamples.cs#memory-btf-describe)]
 
+### Import best-effort, tolerating one locally broken type
+
+By default, `Import` (whether from BTF, ISF, or a hand-built `MemorySchema`) is all-or-nothing: if any type
+reachable from the root fails validation - a member placed past its container's extent, a bitfield that does not
+fit its storage, and similar defects in the *source metadata*, not in this library - the whole import fails, even
+when the type you actually asked for is perfectly consistent on its own terms. For a real kernel, where one root
+like `task_struct` can reach several thousand types, that means one bad type anywhere in a huge graph blocks
+everything.
+
+Passing `bestEffort: true` to `MemorySchema`'s constructor, or to `BtfMetadata.Import`, changes this: a type that
+fails validation is demoted in place to a same-sized `MemoryTypeKind.Opaque` placeholder instead, and the
+substitution is recorded as a diagnostic rather than thrown. A placeholder keeps the type's real, checked size, so
+every other definition that embeds it - by pointer or directly by value - still places its own members correctly;
+only that one type's own contents become unreadable, as raw bytes rather than a decoded value. This is squarely
+aimed at forensic memory captures, which are often torn or partial - one subsystem's metadata can be locally
+corrupt while the rest of a large graph remains perfectly readable - rather than at a healthy, complete kernel,
+which should not need it.
+
+[!code-csharp[Best-effort import demotes a broken member to opaque](../examples/memory-analysis/MemoryTutorialExamples.cs#memory-best-effort)]
+
 ## Semantic metadata versus compiled storage views
 
 `Schema.Types`, `GetType`, and `GetField` present the imported model: real names, IDs, offsets, bit slices, and

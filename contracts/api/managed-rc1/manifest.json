@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 43,
+  "baselineRevision": 44,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.8.3",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 1056,
-    "normalizedSha256": "661187930D38E1A41A8FE755BECF71DD737E3ED8D0A36B09D0A48697E4927DFB"
+    "lines": 1058,
+    "normalizedSha256": "28D28484013E720EE67926E95C731AF1E2A7D6CE338E9E2AE8A0B2A1985BC3A8"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "A90CF87414809B8242FD327FE25C954B5AA5E0E44B65ACF142805A9827A8EC9B",
+      "normalizedSha256": "1358792A798CF2A86AC0579F099FE7391231BD564E86FE9B9AC42E840CD32DCA",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "224CE51F7358FE58F62653891C883D25055BE3B918CD8D270BAE5C3856E6C72B",
+      "normalizedSha256": "7AE5CFB8BD728EA03C2EB6F5A7562A7B44BDD05E1320C2971CA6F6DA608B3347",
       "aotCompatible": true
     }
   ],
@@ -420,6 +420,15 @@
       "combinedSha256": "1C46F118E6F59ED1137D5B94D08C919343C828AF276A1A50CCB249331AAEEE0B",
       "rationale": "Add BtfMetadata.Describe(id) for shallow, non-recursive type introspection",
       "releaseImpact": "New public types (BtfKind, BtfMemberDescription, BtfTypeDescription) and one new method (BtfMetadata.Describe); no existing member changed"
+    },
+    {
+      "revision": 44,
+      "kind": "additive",
+      "date": "2026-09-24",
+      "packageVersion": "0.8.3",
+      "combinedSha256": "AC6EB3861ADCC81F443FD12F962D9A4B8800A8ABE3E2C022AB78B5EF1BD3C403",
+      "rationale": "Best-effort Import: a same-sized Opaque placeholder for a definition whose recorded placement does not hold up, instead of failing the whole schema",
+      "releaseImpact": "Adds MemoryTypeKind.Opaque, MemorySchema.Diagnostics, and an opt-in bestEffort parameter on MemorySchema's constructor and BtfMetadata.Import; every existing call site is unaffected since bestEffort defaults to false"
     }
   ]
 }

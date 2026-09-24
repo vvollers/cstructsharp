@@ -196,15 +196,23 @@ public sealed class BtfMetadata
     /// <param name="rootTypeId">Numeric ID of the root type, which may be inherited from a base table.</param>
     /// <param name="pointerSize">Target pointer width in bytes.</param>
     /// <param name="cancellationToken">Checked at each type visited and while compiling the schema.</param>
+    /// <param name="bestEffort">When true, a type whose recorded placement does not hold up (for example a member
+    /// that does not fit its container, or an inconsistent bitfield) is demoted to a same-sized
+    /// <see cref="MemoryTypeKind.Opaque"/> placeholder and noted in the result's diagnostics, rather than failing
+    /// the whole import. Real, complete kernels rarely need this; a torn or partial forensic capture is the case
+    /// it exists for. When false (the default), any such inconsistency anywhere in the reachable graph still fails
+    /// the whole import, exactly as before this parameter existed.</param>
     /// <returns>The compiled reachable schema, the root's ID, and diagnostics.</returns>
-    public MetadataImportResult Import(uint rootTypeId, int pointerSize = 8, CancellationToken cancellationToken = default)
+    public MetadataImportResult Import(uint rootTypeId, int pointerSize = 8, CancellationToken cancellationToken = default, bool bestEffort = false)
     {
         _ = new StoredPointer(0, pointerSize);
         var definitions = new Dictionary<string, MemoryTypeDefinition>(StringComparer.Ordinal);
         var diagnostics = new List<string>();
         var building = new HashSet<uint>();
-        this.ImportType(rootTypeId, pointerSize, definitions, diagnostics, building, 0, cancellationToken);
-        return new MetadataImportResult(new MemorySchema(definitions.Values, this.IsLittleEndian, pointerSize: pointerSize, cancellationToken: cancellationToken), Id(rootTypeId), diagnostics.AsReadOnly());
+        this.ImportType(rootTypeId, pointerSize, definitions, diagnostics, building, cancellationToken);
+        var schema = new MemorySchema(definitions.Values, this.IsLittleEndian, pointerSize: pointerSize, cancellationToken: cancellationToken, bestEffort: bestEffort);
+        diagnostics.AddRange(schema.Diagnostics);
+        return new MetadataImportResult(schema, Id(rootTypeId), diagnostics.AsReadOnly());
     }
 
     /// <summary>Describes one type record's own shape - kind, size, and (for a struct or union) direct members - without importing or validating any type it refers to.</summary>
@@ -348,7 +356,7 @@ public sealed class BtfMetadata
         };
     }
 
-    /// <summary>Converts one type and, recursively, everything it references into descriptors, preserving recorded offsets and rejecting unsupported kinds.</summary>
+    /// <summary>Converts one type and everything it references into descriptors, preserving recorded offsets and rejecting unsupported kinds.</summary>
     /// <remarks>
     /// <para>
     /// The <paramref name="building"/> set holds types whose import has started but not finished, so a struct
@@ -370,137 +378,184 @@ public sealed class BtfMetadata
     /// reference that same word's type, so this keeps them placed at the same byte offset, distinguished only by
     /// where each one starts within the shared word - matching how the compiler actually packed them.
     /// </para>
+    /// <para>
+    /// The walk is iterative, not recursive: a real kernel's type graph routinely nests many thousands of pointer
+    /// and struct-member hops deep (every subsystem a struct like <c>task_struct</c> or <c>net_device</c> touches
+    /// pulls in more of the same densely cross-referenced graph), which is unrelated to whether the metadata is
+    /// well-formed. Growing the .NET call stack by one frame per hop would either need an arbitrary, too-small
+    /// limit that rejects legitimate kernels, or one large enough to risk an unrecoverable
+    /// <see cref="StackOverflowException"/> on adversarial input. An explicit work stack has neither problem: each
+    /// ID is still visited at most once (by the same <paramref name="output"/>/<paramref name="building"/> checks
+    /// as before), so the total work is already bounded by the type budget the metadata was parsed with.
+    /// </para>
     /// </remarks>
-    /// <param name="id">Type ID to import.</param>
+    /// <param name="rootId">Type ID to import.</param>
     /// <param name="pointerSize">Target pointer width in bytes.</param>
     /// <param name="output">Receives the descriptors, keyed by schema ID.</param>
     /// <param name="diagnostics">Receives notes about address-only types.</param>
     /// <param name="building">IDs whose import is in progress, for cycle termination.</param>
-    /// <param name="depth">Import depth, bounded to protect the call stack.</param>
     /// <param name="cancellationToken">Checked at each type visited.</param>
-    private void ImportType(uint id, int pointerSize, Dictionary<string, MemoryTypeDefinition> output, List<string> diagnostics, HashSet<uint> building, int depth, CancellationToken cancellationToken)
+    private void ImportType(uint rootId, int pointerSize, Dictionary<string, MemoryTypeDefinition> output, List<string> diagnostics, HashSet<uint> building, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (output.ContainsKey(Id(id)) || building.Contains(id))
+        var work = new Stack<object>();
+        work.Push(rootId);
+
+        while (work.TryPop(out object? item))
         {
+            if (item is StructImportFrame frame)
+            {
+                this.ResumeStruct(frame, output, building, work);
+                continue;
+            }
+
+            if (item is FinishPointerOrArray finished)
+            {
+                building.Remove(finished.Id);
+                continue;
+            }
+
+            var id = (uint)item!;
+            cancellationToken.ThrowIfCancellationRequested();
+            if (output.ContainsKey(Id(id)) || building.Contains(id))
+            {
+                continue;
+            }
+
+            BtfType type = this.Resolve(id);
+            building.Add(id);
+            string key = Id(id);
+
+            // Prefer the name of the declared record (a typedef, say) over the resolved storage record's name.
+            string displayName = this.types.TryGetValue(id, out BtfType? declared) && declared.Name.Length > 0 ? declared.Name : type.Name;
+            int size = this.Size(id, pointerSize);
+            string provenance = $"BTF v1 type {id}, terminal {type.Id}, kind {type.Kind}";
+            switch (type.Kind)
+            {
+            case 1:
+            case 16:
+                {
+                    // INT payload word: encoding flags in bits 24-27 (bit 24 = signed), legacy offset in 16-23, bit width in 0-7.
+                    bool signed = type.Kind == 1 && (type.Payload[0] & 0x01000000) != 0;
+                    string scalar = (type.Kind == 16 ? "float" : signed ? "int" : "uint") + (size * 8);
+                    if (type.Kind == 1 && (((type.Payload[0] >> 16) & 255) != 0 || (type.Payload[0] & 255) != size * 8))
+                    {
+                        throw new ArgumentException("Legacy BTF integer bit slices must be normalized as members before import.");
+                    }
+
+                    output.Add(key, new(key, displayName, MemoryTypeKind.Scalar, size, scalarType: scalar, provenance: provenance));
+                    building.Remove(id);
+                    break;
+                }
+
+            case 2:
+                // PTR: the size word is the target type ID; zero means void, which imports as an opaque pointer.
+                output.Add(key, new(key, displayName, MemoryTypeKind.Pointer, size, elementTypeId: type.Size == 0 ? null : Id(type.Size), provenance: provenance));
+                if (type.Size != 0)
+                {
+                    work.Push(new FinishPointerOrArray(id));
+                    work.Push(type.Size);
+                }
+                else
+                {
+                    building.Remove(id);
+                }
+
+                break;
+            case 3:
+                // ARRAY payload: element type, index type, element count.
+                if (this.Resolve(type.Payload[1]).Kind != 1)
+                {
+                    throw new ArgumentException("BTF array index type must be an integer.");
+                }
+
+                output.Add(key, new(key, displayName, MemoryTypeKind.Array, size, elementTypeId: Id(type.Payload[0]), count: checked((int)type.Payload[2]), provenance: provenance));
+                work.Push(new FinishPointerOrArray(id));
+                work.Push(type.Payload[0]);
+                break;
+            case 4:
+            case 5:
+                work.Push(new StructImportFrame(id, type, key, displayName, size, provenance));
+                break;
+
+            case 6:
+            case 19:
+                {
+                    // ENUM entries are name and 32-bit value; ENUM64 entries add a high word. The flag bit means signed.
+                    string enumName = "__btf_enum_" + id;
+                    var declaration = new StringBuilder($"enum {enumName} : {(type.Flag ? "int" : "uint")}{size * 8} {{");
+                    int stride = type.Kind == 19 ? 3 : 2;
+                    for (int i = 0; i < type.Payload.Length; i += stride)
+                    {
+                        string name = type.Owner.String(type.Payload[i]);
+                        if (name.Length == 0 || name.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '_'))
+                        {
+                            throw new ArgumentException("BTF enum member cannot be represented as a Portable identifier.");
+                        }
+
+                        ulong bits = type.Payload[i + 1] | (stride == 3 ? (ulong)type.Payload[i + 2] << 32 : 0);
+                        string value = type.Flag ? (stride == 3 ? unchecked((long)bits) : unchecked((int)bits)).ToString(CultureInfo.InvariantCulture) : bits.ToString(CultureInfo.InvariantCulture);
+                        declaration.Append(name).Append('=').Append(value).Append(',');
+                    }
+
+                    declaration.Append("};");
+                    output.Add(key, new(key, displayName, MemoryTypeKind.Scalar, size, scalarType: enumName, declaration: declaration.ToString(), provenance: provenance));
+                    building.Remove(id);
+                    break;
+                }
+
+            case 0:
+            case 7:
+            case 12:
+            case 13:
+                // void, forward declarations, functions, and prototypes can be pointed at but never read by value.
+                output.Add(key, new(key, displayName, MemoryTypeKind.Incomplete, 0, provenance: provenance));
+                diagnostics.Add($"{key}: {type.Name} is incomplete or callable; address-only use is supported.");
+                building.Remove(id);
+                break;
+            default:
+                throw new ArgumentException($"BTF kind {type.Kind} is not supported as a value type.");
+            }
+        }
+    }
+
+    /// <summary>Advances one struct or union's member loop by exactly one member, or finishes it once every member has been placed.</summary>
+    /// <remarks>A member's own type is scheduled through <paramref name="work"/> rather than imported inline, so a
+    /// member that is itself a large, still-unvisited subgraph is expanded by the same work loop instead of by a
+    /// nested call - the reason this whole walk needs no call-stack depth proportional to graph depth. Re-pushing
+    /// <paramref name="frame"/> before the member keeps this frame beneath its member on the stack, so control
+    /// returns here, at the next member index, only once that member (and everything it reaches) is fully done.</remarks>
+    /// <param name="frame">The struct or union import in progress.</param>
+    /// <param name="output">Receives the descriptors, keyed by schema ID.</param>
+    /// <param name="building">IDs whose import is in progress, for cycle termination.</param>
+    /// <param name="work">The shared work stack driving <see cref="ImportType"/>.</param>
+    private void ResumeStruct(StructImportFrame frame, Dictionary<string, MemoryTypeDefinition> output, HashSet<uint> building, Stack<object> work)
+    {
+        if (frame.PayloadIndex >= frame.Type.Payload.Length)
+        {
+            output.Add(frame.Key, new(frame.Key, frame.DisplayName, frame.Type.Kind == 4 ? MemoryTypeKind.Struct : MemoryTypeKind.Union, frame.Size, frame.Fields, provenance: frame.Provenance));
+            building.Remove(frame.Id);
             return;
         }
 
-        if (depth > 128)
+        int i = frame.PayloadIndex;
+        frame.PayloadIndex = i + 3;
+        MemberPlacement placement = this.ResolveMemberPlacement(frame.Type, i);
+        if (placement.BitWidth is int width)
         {
-            throw new ArgumentException("BTF dependency graph exceeds its nesting limit.");
+            BtfType member = this.Resolve(placement.MemberId);
+            bool signed = member.Kind == 1 ? (member.Payload[0] & 0x01000000) != 0 : member.Flag;
+            int storage = checked((int)member.Size);
+            string memberKey = frame.Key + ":bits:" + i;
+            output.Add(memberKey, new(memberKey, placement.Name, MemoryTypeKind.Scalar, storage, scalarType: "uint" + (storage * 8), provenance: frame.Provenance));
+            frame.Fields.Add(new(placement.Name, memberKey, placement.Offset, placement.BitOffset, width, signed));
+            work.Push(frame);
         }
-
-        BtfType type = this.Resolve(id);
-        building.Add(id);
-        string key = Id(id);
-
-        // Prefer the name of the declared record (a typedef, say) over the resolved storage record's name.
-        string displayName = this.types.TryGetValue(id, out BtfType? declared) && declared.Name.Length > 0 ? declared.Name : type.Name;
-        int size = this.Size(id, pointerSize);
-        string provenance = $"BTF v1 type {id}, terminal {type.Id}, kind {type.Kind}";
-        switch (type.Kind)
+        else
         {
-        case 1:
-        case 16:
-            {
-                // INT payload word: encoding flags in bits 24-27 (bit 24 = signed), legacy offset in 16-23, bit width in 0-7.
-                bool signed = type.Kind == 1 && (type.Payload[0] & 0x01000000) != 0;
-                string scalar = (type.Kind == 16 ? "float" : signed ? "int" : "uint") + (size * 8);
-                if (type.Kind == 1 && (((type.Payload[0] >> 16) & 255) != 0 || (type.Payload[0] & 255) != size * 8))
-                {
-                    throw new ArgumentException("Legacy BTF integer bit slices must be normalized as members before import.");
-                }
-
-                output.Add(key, new(key, displayName, MemoryTypeKind.Scalar, size, scalarType: scalar, provenance: provenance));
-                break;
-            }
-
-        case 2:
-            // PTR: the size word is the target type ID; zero means void, which imports as an opaque pointer.
-            output.Add(key, new(key, displayName, MemoryTypeKind.Pointer, size, elementTypeId: type.Size == 0 ? null : Id(type.Size), provenance: provenance));
-            if (type.Size != 0)
-            {
-                this.ImportType(type.Size, pointerSize, output, diagnostics, building, depth + 1, cancellationToken);
-            }
-
-            break;
-        case 3:
-            // ARRAY payload: element type, index type, element count.
-            if (this.Resolve(type.Payload[1]).Kind != 1)
-            {
-                throw new ArgumentException("BTF array index type must be an integer.");
-            }
-
-            output.Add(key, new(key, displayName, MemoryTypeKind.Array, size, elementTypeId: Id(type.Payload[0]), count: checked((int)type.Payload[2]), provenance: provenance));
-            this.ImportType(type.Payload[0], pointerSize, output, diagnostics, building, depth + 1, cancellationToken);
-            break;
-        case 4:
-        case 5:
-            {
-                var fields = new List<MemoryField>();
-                for (int i = 0; i < type.Payload.Length; i += 3)
-                {
-                    MemberPlacement placement = this.ResolveMemberPlacement(type, i);
-                    string memberKey = Id(placement.MemberId);
-                    if (placement.BitWidth is int width)
-                    {
-                        BtfType member = this.Resolve(placement.MemberId);
-                        bool signed = member.Kind == 1 ? (member.Payload[0] & 0x01000000) != 0 : member.Flag;
-                        int storage = checked((int)member.Size);
-                        memberKey = key + ":bits:" + i;
-                        output.Add(memberKey, new(memberKey, placement.Name, MemoryTypeKind.Scalar, storage, scalarType: "uint" + (storage * 8), provenance: provenance));
-                        fields.Add(new(placement.Name, memberKey, placement.Offset, placement.BitOffset, width, signed));
-                    }
-                    else
-                    {
-                        this.ImportType(placement.MemberId, pointerSize, output, diagnostics, building, depth + 1, cancellationToken);
-                        fields.Add(new(placement.Name, memberKey, placement.Offset, promoted: placement.Promoted));
-                    }
-                }
-
-                output.Add(key, new(key, displayName, type.Kind == 4 ? MemoryTypeKind.Struct : MemoryTypeKind.Union, size, fields, provenance: provenance));
-                break;
-            }
-
-        case 6:
-        case 19:
-            {
-                // ENUM entries are name and 32-bit value; ENUM64 entries add a high word. The flag bit means signed.
-                string enumName = "__btf_enum_" + id;
-                var declaration = new StringBuilder($"enum {enumName} : {(type.Flag ? "int" : "uint")}{size * 8} {{");
-                int stride = type.Kind == 19 ? 3 : 2;
-                for (int i = 0; i < type.Payload.Length; i += stride)
-                {
-                    string name = type.Owner.String(type.Payload[i]);
-                    if (name.Length == 0 || name.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '_'))
-                    {
-                        throw new ArgumentException("BTF enum member cannot be represented as a Portable identifier.");
-                    }
-
-                    ulong bits = type.Payload[i + 1] | (stride == 3 ? (ulong)type.Payload[i + 2] << 32 : 0);
-                    string value = type.Flag ? (stride == 3 ? unchecked((long)bits) : unchecked((int)bits)).ToString(CultureInfo.InvariantCulture) : bits.ToString(CultureInfo.InvariantCulture);
-                    declaration.Append(name).Append('=').Append(value).Append(',');
-                }
-
-                declaration.Append("};");
-                output.Add(key, new(key, displayName, MemoryTypeKind.Scalar, size, scalarType: enumName, declaration: declaration.ToString(), provenance: provenance));
-                break;
-            }
-
-        case 0:
-        case 7:
-        case 12:
-        case 13:
-            // void, forward declarations, functions, and prototypes can be pointed at but never read by value.
-            output.Add(key, new(key, displayName, MemoryTypeKind.Incomplete, 0, provenance: provenance));
-            diagnostics.Add($"{key}: {type.Name} is incomplete or callable; address-only use is supported.");
-            break;
-        default:
-            throw new ArgumentException($"BTF kind {type.Kind} is not supported as a value type.");
+            frame.Fields.Add(new(placement.Name, Id(placement.MemberId), placement.Offset, promoted: placement.Promoted));
+            work.Push(frame);
+            work.Push(placement.MemberId);
         }
-
-        building.Remove(id);
     }
 
     /// <summary>Computes one struct or union member's placement - name, declared (unresolved) type ID, byte offset, and bit slice if it is a bitfield - shared by <see cref="Import"/> and <see cref="Describe"/> so the two can never disagree about where a member actually sits.</summary>
@@ -594,4 +649,42 @@ public sealed class BtfMetadata
     /// <param name="Payload">Kind-specific payload words following the fixed part.</param>
     /// <param name="Owner">The table whose string section the record's member names refer to.</param>
     private sealed record BtfType(uint Id, string Name, int Kind, uint Size, bool Flag, uint[] Payload, BtfMetadata Owner);
+
+    /// <summary>Marks that a pointer's or array's own descriptor was already added to the output, and only its target or element still needs importing.</summary>
+    /// <remarks>Pushed onto <see cref="ImportType"/>'s work stack immediately beneath the target or element, so it
+    /// is popped only once that whole subgraph is done, at which point <paramref name="Id"/> can finally leave the
+    /// <c>building</c> set - the same moment its recursive equivalent would have reached its own final statement.</remarks>
+    /// <param name="Id">The pointer's or array's own type ID.</param>
+    private sealed record FinishPointerOrArray(uint Id);
+
+    /// <summary>A struct or union import in progress: the fields placed so far, and where the member loop should resume.</summary>
+    /// <remarks>Standing in for one paused stack frame of the equivalent recursive walk, this lets
+    /// <see cref="ImportType"/> place one member at a time - including recursing into that member's own subgraph
+    /// through the same work stack - without the .NET call stack ever growing with the type graph's depth.</remarks>
+    private sealed class StructImportFrame(uint id, BtfType type, string key, string displayName, int size, string provenance)
+    {
+        /// <summary>Gets the struct's or union's own type ID.</summary>
+        public uint Id { get; } = id;
+
+        /// <summary>Gets the resolved struct or union record being imported.</summary>
+        public BtfType Type { get; } = type;
+
+        /// <summary>Gets the schema ID under which the finished definition is recorded.</summary>
+        public string Key { get; } = key;
+
+        /// <summary>Gets the display name preferred from the originally declared record.</summary>
+        public string DisplayName { get; } = displayName;
+
+        /// <summary>Gets the struct's or union's declared byte size.</summary>
+        public int Size { get; } = size;
+
+        /// <summary>Gets the provenance note recorded on the finished definition and on any bitfield storage slice it declares.</summary>
+        public string Provenance { get; } = provenance;
+
+        /// <summary>Gets the fields placed for members already processed, in declaration order.</summary>
+        public List<MemoryField> Fields { get; } = [];
+
+        /// <summary>Gets or sets the payload index (a multiple of 3) of the next member to place.</summary>
+        public int PayloadIndex { get; set; }
+    }
 }

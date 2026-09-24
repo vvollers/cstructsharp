@@ -30,7 +30,7 @@ internal static class Program
     private static void Main()
     {
         CStructSharp.Docs.Examples.MemoryTutorialExamples.Run();
-        Console.WriteLine("Nine memory guide examples passed.");
+        Console.WriteLine("Ten memory guide examples passed.");
 
         // Step 1: metadata describes the task layout; a 40 KiB byte array plays the role of the capture file.
         MetadataImportResult imported = IsfMetadata.Import(Encoding.UTF8.GetBytes(Metadata), "task");

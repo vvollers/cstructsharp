@@ -38,7 +38,8 @@ public sealed class MemorySchema
     /// <param name="maxFields">Maximum total number of fields across all definitions.</param>
     /// <param name="pointerSize">Target pointer width in bytes; it describes the analyzed image, not the analyzing process.</param>
     /// <param name="cancellationToken">Checked between definitions during validation and compilation.</param>
-    public MemorySchema(IEnumerable<MemoryTypeDefinition> types, bool isLittleEndian = true, CStructCompilationOptions? options = null, int maxTypes = 100_000, int maxFields = 1_000_000, int pointerSize = 8, CancellationToken cancellationToken = default)
+    /// <param name="bestEffort">When true, a definition that fails its own validation is demoted to a same-sized <see cref="MemoryTypeKind.Opaque"/> placeholder and noted in <see cref="Diagnostics"/>, instead of the whole schema failing; when false (the default), any validation failure throws, exactly as before this parameter existed.</param>
+    public MemorySchema(IEnumerable<MemoryTypeDefinition> types, bool isLittleEndian = true, CStructCompilationOptions? options = null, int maxTypes = 100_000, int maxFields = 1_000_000, int pointerSize = 8, CancellationToken cancellationToken = default, bool bestEffort = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(types);
@@ -67,12 +68,28 @@ public sealed class MemorySchema
 
         this.Types = new ReadOnlyDictionary<string, MemoryTypeDefinition>(definitions);
 
-        // Pass 2: validate each definition on its own and compile its scalar and bit-slice codecs.
-        foreach (MemoryTypeDefinition type in definitions.Values)
+        // Pass 2: validate each definition on its own and compile its scalar and bit-slice codecs. In best-effort
+        // mode, a definition that fails is demoted in place to a same-sized Opaque placeholder rather than
+        // aborting the whole schema: real-world metadata, especially a torn or partial forensic capture, can be
+        // locally corrupt while the rest of the graph remains perfectly readable, and because the placeholder
+        // keeps the original size exactly, no other definition's own validation is affected by the substitution
+        // (nothing but this pass ever inspects a referenced type's fields, only its size and kind).
+        var diagnostics = new List<string>();
+        foreach (MemoryTypeDefinition type in new List<MemoryTypeDefinition>(definitions.Values))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            this.Validate(type);
+            try
+            {
+                this.Validate(type);
+            }
+            catch (ArgumentException error) when (bestEffort)
+            {
+                definitions[type.Id] = new MemoryTypeDefinition(type.Id, type.Name, MemoryTypeKind.Opaque, type.Size, provenance: type.Provenance);
+                diagnostics.Add($"{type.Id}: demoted to a {type.Size}-byte opaque placeholder - {error.Message}");
+            }
         }
+
+        this.Diagnostics = diagnostics.AsReadOnly();
 
         // Pass 3: reject by-value recursion across the whole graph.
         var visiting = new HashSet<string>(StringComparer.Ordinal);
@@ -98,6 +115,9 @@ public sealed class MemorySchema
 
     /// <summary>Gets the generated Portable storage views. Their names are placement labels; semantic names live in <see cref="Types"/>.</summary>
     public CStruct CompiledLayout { get; }
+
+    /// <summary>Gets one note per definition that best-effort validation demoted to <see cref="MemoryTypeKind.Opaque"/>; empty unless the schema was constructed with <c>bestEffort: true</c>.</summary>
+    public IReadOnlyList<string> Diagnostics { get; }
 
     /// <summary>Gets the core compilation options shared by every codec the schema compiles.</summary>
     internal CStructCompilationOptions Options { get; }
@@ -201,6 +221,10 @@ public sealed class MemorySchema
         {
             throw new ArgumentException("Incomplete types have no storage.");
         }
+        else if (type.Kind == MemoryTypeKind.Opaque && type.Fields.Count != 0)
+        {
+            throw new ArgumentException("Opaque types have no members.");
+        }
 
         var names = new HashSet<string>(StringComparer.Ordinal);
         var intervals = new List<(long Start, long End)>();
@@ -263,7 +287,7 @@ public sealed class MemorySchema
                 intervals.Add((start, checked(start + length)));
             }
 
-            if (field.Promoted && member.Kind is not (MemoryTypeKind.Struct or MemoryTypeKind.Union))
+            if (field.Promoted && member.Kind is not (MemoryTypeKind.Struct or MemoryTypeKind.Union or MemoryTypeKind.Opaque))
             {
                 throw new ArgumentException("Only composite members can be promoted.");
             }

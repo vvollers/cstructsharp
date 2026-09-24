@@ -14,6 +14,15 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   types, for a real kernel) blocks the whole import; `Describe` lets a caller inspect what a specific ID actually
   is - including a struct whose *own* shape is perfectly fine - without needing every type reachable from it to
   also validate. Adds the `BtfKind` enum and the `BtfTypeDescription`/`BtfMemberDescription` records.
+- `MemorySchema` and `BtfMetadata.Import` accept a new `bestEffort` flag. With it set, a definition whose recorded
+  placement does not hold up (a member that does not fit its container, an inconsistent bitfield, and similar
+  defects) is demoted in place to a same-sized `MemoryTypeKind.Opaque` placeholder and noted as a diagnostic,
+  instead of failing the whole import. A placeholder keeps its real, validated size, so every other definition
+  that embeds it - by pointer or directly by value - still places its own members correctly; only the
+  placeholder's own contents become unreadable, as raw bytes rather than a decoded value. This targets a torn or
+  partial forensic capture, where one subsystem's metadata can be locally corrupt while the rest of a large graph
+  (a real kernel's `task_struct` alone reaches several thousand types) remains perfectly readable. The default is
+  unchanged: without `bestEffort`, any such inconsistency anywhere in the graph still fails the whole import.
 
 ### Fixed
 
@@ -21,6 +30,11 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   rejecting every zero-size element outright. Kernel BTF genuinely declares empty marker structs (for example
   Linux's `lock_class_key`, used only for its address, never its contents) and arrays of them; the size-consistency
   check between an array and its element still rejects any real mismatch.
+- `BtfMetadata.Import` no longer rejects a legitimate type graph that nests more than 128 pointer or struct-member
+  hops deep. A real kernel's type graph routinely nests this deep, purely from how densely subsystems like
+  `cred`, `file`, `net_device`, and `module` reference each other and the rest of the kernel - not from anything
+  wrong with the metadata - so the walk is now iterative, with an explicit work stack instead of recursive calls,
+  and no longer ties the .NET call stack's depth to the type graph's depth.
 
 ## 0.8.2 — 2026-09-23
 

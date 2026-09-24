@@ -15,6 +15,7 @@ internal static class MemoryTutorialExamples
         ImportIsf();
         ImportBtf();
         DescribeBtf();
+        BestEffortImport();
         RelativePointer();
         SentinelList();
         OfflinePatch();
@@ -154,6 +155,53 @@ internal static class MemoryTutorialExamples
         BtfMemberDescription value = description.Members[0];
         Require(value.Name == "value" && value.Offset == 4, "Describe reports the same placement Import would");
         Require(value.BitOffset is null && value.BitWidth is null, "Describe reports a whole-value (non-bitfield) member");
+        #endregion
+    }
+
+    /// <summary>Demotes a self-inconsistent by-value member to an opaque placeholder instead of failing the whole schema.</summary>
+    private static void BestEffortImport()
+    {
+        #region memory-best-effort
+        var scalar = new MemoryTypeDefinition("byte", "byte", MemoryTypeKind.Scalar, 1, scalarType: "uint8");
+
+        // "inner" is intrinsically broken: its one member sits past inner's own declared one-byte extent. This is
+        // the shape a torn or partial forensic capture produces - not something a real, complete kernel emits.
+        var inner = new MemoryTypeDefinition("inner", "inner", MemoryTypeKind.Struct, 1, new[]
+        {
+            new MemoryField("x", "byte", 4),
+        });
+
+        // "outer" is fine on its own terms; it just happens to embed the broken "inner" by value.
+        var outer = new MemoryTypeDefinition("outer", "Outer", MemoryTypeKind.Struct, 1, new[]
+        {
+            new MemoryField("field", "inner", 0),
+        });
+
+        MemoryTypeDefinition[] types = { scalar, inner, outer };
+
+        // Strict validation (the default) fails the whole schema for "inner"'s sake, even though "outer" is fine.
+        bool strictFailed = false;
+        try
+        {
+            _ = new MemorySchema(types);
+        }
+        catch (ArgumentException)
+        {
+            strictFailed = true;
+        }
+
+        Require(strictFailed, "Strict import fails outright");
+
+        // With bestEffort, "inner" is demoted to a same-sized opaque placeholder instead, so "outer" still imports.
+        var schema = new MemorySchema(types, bestEffort: true);
+        Require(schema.GetType("inner").Kind == MemoryTypeKind.Opaque, "The broken member becomes opaque");
+        Require(schema.Diagnostics.Count == 1, "The demotion is reported as a diagnostic");
+
+        // An opaque value reads and writes as raw bytes - the size is trustworthy, its layout is not.
+        var session = new MemorySession(schema);
+        var image = new ByteArrayMemorySource("capture", new byte[] { 42 });
+        var read = (global::CStructSharp.Values.StructValue)session.Read(new MemoryRegion(image, 0, 1), "outer")!;
+        Require(((byte[])read["field"]!)[0] == 42, "Opaque member reads as its raw byte");
         #endregion
     }
 

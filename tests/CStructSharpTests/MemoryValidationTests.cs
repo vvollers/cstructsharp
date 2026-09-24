@@ -1,6 +1,7 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Memory;
+using CStructSharp.Values;
 
 /// <summary>Boundary tables for explicit metadata, source extents, work budgets, and ownership.</summary>
 [TestClass]
@@ -90,6 +91,7 @@ public class MemoryValidationTests
             new("bad", "bad", MemoryTypeKind.Array, 2, elementTypeId: "u", count: 3),
             new("bad", "bad", MemoryTypeKind.Incomplete, 1),
             new("bad", "bad", MemoryTypeKind.Incomplete, 0, [new("x", "u", 0),]),
+            new("bad", "bad", MemoryTypeKind.Opaque, 4, [new("x", "u", 0),]),
             new("bad", "bad", MemoryTypeKind.Struct, 1, [new("x", "u", 1),]),
             new("bad", "bad", MemoryTypeKind.Struct, 1, [new("x", "u", 2),]),
             new("bad", "bad", MemoryTypeKind.Struct, 1, [new(string.Empty, "u", 0),]),
@@ -135,6 +137,39 @@ public class MemoryValidationTests
 
         var mismatched = new MemoryTypeDefinition("bad", "bad", MemoryTypeKind.Array, 3, elementTypeId: "empty", count: 3);
         StringAssert.Contains(Assert.Throws<ArgumentException>(() => new MemorySchema([empty, mismatched,])).Message, "extent");
+    }
+
+    /// <summary>
+    /// Best-effort validation demotes a self-inconsistent by-value member to a same-sized
+    /// <see cref="MemoryTypeKind.Opaque"/> placeholder, noted in <see cref="MemorySchema.Diagnostics"/>, instead
+    /// of failing the whole schema - "outer" is perfectly consistent on its own terms, it just happens to embed
+    /// "inner", whose one member is placed past inner's own declared extent. Strict validation (the default)
+    /// still rejects the identical metadata outright, and a session reads and writes the placeholder as raw bytes
+    /// rather than a decoded member.
+    /// </summary>
+    [TestMethod]
+    public void BestEffort_DemotesASelfInconsistentByValueMemberToOpaque()
+    {
+        var scalar = new MemoryTypeDefinition("u", "byte", MemoryTypeKind.Scalar, 1, scalarType: "uint8");
+        var inner = new MemoryTypeDefinition("inner", "inner", MemoryTypeKind.Struct, 1, [new("x", "u", 4),]);
+        var outer = new MemoryTypeDefinition("outer", "outer", MemoryTypeKind.Struct, 1, [new("field", "inner", 0),]);
+
+        Assert.Throws<ArgumentException>(() => new MemorySchema([scalar, inner, outer,]));
+
+        var schema = new MemorySchema([scalar, inner, outer,], bestEffort: true);
+        Assert.AreEqual(MemoryTypeKind.Opaque, schema.GetType("inner").Kind);
+        Assert.AreEqual(1, schema.GetType("inner").Size);
+        Assert.AreEqual(0, schema.GetType("inner").Fields.Count);
+        Assert.AreEqual(1, schema.Diagnostics.Count);
+        StringAssert.Contains(schema.Diagnostics[0], "inner");
+
+        var session = new MemorySession(schema);
+        var region = new MemoryRegion(new ByteArrayMemorySource("image", new byte[] { 42, }), 0, 1);
+        var read = (StructValue)session.Read(region, "outer")!;
+        CollectionAssert.AreEqual(new byte[] { 42, }, (byte[])read["field"]!);
+
+        byte[] written = session.Serialize("outer", new StructValue { ["field"] = new byte[] { 7, }, });
+        CollectionAssert.AreEqual(new byte[] { 7, }, written);
     }
 
     /// <summary>Bit descriptions require paired, positive bounds and source metadata remains immutable.</summary>
