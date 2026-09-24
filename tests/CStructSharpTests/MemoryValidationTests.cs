@@ -117,6 +117,26 @@ public class MemoryValidationTests
         Assert.Throws<ArgumentException>(() => new MemorySchema([scalar, new("s", "s", MemoryTypeKind.Struct, 2, [new("x", "u", 0), new("y", "u", 1),]),], maxFields: 1));
     }
 
+    /// <summary>
+    /// An array of a zero-size element validates when the array is also zero bytes wide - the shape of a
+    /// real kernel marker struct with no members (for example Linux's <c>lock_class_key</c>, used only for
+    /// its address, never its contents) and an array of them, such as a lockdep annotation declares. A
+    /// zero-size element paired with a mismatched, nonzero array size is still rejected, the same as any
+    /// other size disagreement: this behavior narrows what used to be an outright ban on zero-size
+    /// elements, it does not remove the size-consistency check itself.
+    /// </summary>
+    [TestMethod]
+    public void Arrays_AllowZeroSizeElementsOnlyWhenTheWholeArrayIsAlsoZeroSized()
+    {
+        var empty = new MemoryTypeDefinition("empty", "empty", MemoryTypeKind.Struct, 0);
+        var marker = new MemoryTypeDefinition("marker", "marker", MemoryTypeKind.Array, 0, elementTypeId: "empty", count: 3);
+        var schema = new MemorySchema([empty, marker,]);
+        Assert.AreEqual(0, schema.GetType("marker").Size);
+
+        var mismatched = new MemoryTypeDefinition("bad", "bad", MemoryTypeKind.Array, 3, elementTypeId: "empty", count: 3);
+        StringAssert.Contains(Assert.Throws<ArgumentException>(() => new MemorySchema([empty, mismatched,])).Message, "extent");
+    }
+
     /// <summary>Bit descriptions require paired, positive bounds and source metadata remains immutable.</summary>
     [TestMethod]
     public void Descriptors_ValidateAndSnapshot()

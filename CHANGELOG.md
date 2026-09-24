@@ -6,6 +6,15 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+### Fixed
+
+- Allow an array element type with size zero when the array's own declared size is also zero, instead of
+  rejecting every zero-size element outright. Kernel BTF genuinely declares empty marker structs (for example
+  Linux's `lock_class_key`, used only for its address, never its contents) and arrays of them; the size-consistency
+  check between an array and its element still rejects any real mismatch.
+
+## 0.8.2 — 2026-09-23
+
 ### Changed
 
 - Update DocFX to 2.80.1 and increase the documentation budgets to 50 MiB uncompressed and 16 MiB compressed

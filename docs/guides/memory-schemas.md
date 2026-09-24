@@ -77,6 +77,12 @@ The `MemorySchema` constructor validates the whole graph before it returns:
 - a type may not contain itself by value, directly or through other types, because that would need infinite
   storage. A pointer back to the same type is fine: the pointer has a finite size.
 
+An array's element may have size zero only when that makes the whole array zero bytes wide - count times zero can
+only ever equal a declared array size of zero. This is a real case, not just an allowed edge: native metadata
+sometimes describes an empty marker struct with no members (Linux's `lock_class_key`, for example, exists only so
+the lock validator has a stable address to key on, never to hold data) and arrays of that struct. Any other size
+disagreement, zero-size element or not, is still rejected.
+
 ## Describe a padded record with a signed bit slice
 
 Suppose metadata says a record is eight bytes long. A three-bit signed state occupies bits 1 through 3 of byte

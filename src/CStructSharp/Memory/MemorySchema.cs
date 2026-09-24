@@ -186,8 +186,13 @@ public sealed class MemorySchema
         }
         else if (type.Kind == MemoryTypeKind.Array)
         {
+            // A zero-size element is allowed exactly when it makes the whole array zero bytes wide - the
+            // multiplication below already forces that, since count times zero can only ever equal a
+            // recorded size of zero. This is not a hypothetical: kernel BTF genuinely declares empty marker
+            // structs (for example Linux's lock_class_key, used only for its address, never its contents)
+            // and arrays of them, so rejecting every zero-size element would reject correct metadata.
             MemoryTypeDefinition element = this.GetType(type.ElementTypeId!);
-            if (element.Kind == MemoryTypeKind.Incomplete || element.Size == 0 || checked(element.Size * type.Count) != type.Size)
+            if (element.Kind == MemoryTypeKind.Incomplete || checked(element.Size * type.Count) != type.Size)
             {
                 throw new ArgumentException($"Invalid array extent for '{type.Id}'.");
             }
