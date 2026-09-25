@@ -88,6 +88,9 @@ jobs:
           node tools/quality/generate-parity-layouts.mjs --check
           dotnet test ./tests/CStructSharp.Generated.Parity/CStructSharp.Generated.Parity.csproj -c Release -f net8.0 --no-build --logger trx --results-directory ./artifacts/test-results/parity
 
+      - name: Test newer compiler compatibility
+        run: dotnet test tests/CStructSharp.Generators.Modern.Tests/CStructSharp.Generators.Modern.Tests.csproj -c Release --no-build --logger trx --results-directory artifacts/test-results/compiler-compatibility
+
       - name: Generate README quality badges
         run: >-
           node tools/quality/readme-badges.mjs

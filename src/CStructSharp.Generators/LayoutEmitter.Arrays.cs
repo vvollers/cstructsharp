@@ -156,13 +156,19 @@ internal sealed partial class LayoutEmitter
         return element;
     }
 
+    /// <summary>Builds a bulk array decoder using a writable destination on both older and newer compiler hosts.</summary>
+    /// <param name="codec">The element codec, including its byte order.</param>
+    /// <param name="elementType">The generated C# element type.</param>
+    /// <returns>A statement that decodes bytes into the existing elements array.</returns>
     private static string BulkDecode(PrimitiveCodec codec, string elementType)
     {
         string le = Bool(codec.LittleEndian);
         return codec.Kind switch
         {
             PrimitiveCodecKind.UInt8 => "bytes.CopyTo(elements);",
-            PrimitiveCodecKind.Int8 => "bytes.CopyTo(global::System.Runtime.InteropServices.MemoryMarshal.AsBytes<sbyte>(elements));",
+
+            // An explicit writable span avoids C# 14 preferring the ReadOnlySpan overload for an array.
+            PrimitiveCodecKind.Int8 => "bytes.CopyTo(global::System.Runtime.InteropServices.MemoryMarshal.AsBytes<sbyte>(new global::System.Span<sbyte>(elements)));",
             PrimitiveCodecKind.Bool => CodecClass + ".DecodeBooleans(bytes, elements);",
             PrimitiveCodecKind.Int24 => CodecClass + ".DecodeInt24(bytes, elements, " + le + ");",
             PrimitiveCodecKind.UInt24 => CodecClass + ".DecodeUInt24(bytes, elements, " + le + ");",

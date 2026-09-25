@@ -32,11 +32,12 @@ compatibility tests on both frameworks.
 
 ## Generator snapshots and parity
 
-The source generator has two test projects of its own:
+The source generator has three test projects of its own:
 
 ```sh
 dotnet test tests/CStructSharp.Generators.Tests/CStructSharp.Generators.Tests.csproj -c Release
 dotnet test tests/CStructSharp.Generated.Parity/CStructSharp.Generated.Parity.csproj -c Release
+dotnet test tests/CStructSharp.Generators.Modern.Tests/CStructSharp.Generators.Modern.Tests.csproj -c Release
 ```
 
 The first runs the generator in memory over small sources: the generated file for each fixture is compared byte
@@ -50,6 +51,13 @@ UPDATE_SNAPSHOTS=1 dotnet test tests/CStructSharp.Generators.Tests/CStructSharp.
 ```
 
 A snapshot is never rewritten to make a failing test pass; the diff is the review.
+
+The first project hosts the generator under Roslyn 4.8 with C# 12 consumers. The third runs shared compiler
+compatibility tests under Roslyn 5.9 with both C# 12 and C# 14 consumers. These tests compile generated readers
+and writers, check signed-byte values, and verify exact round trips for fixed and counted arrays, including an
+empty counted array. The generator itself still references Roslyn 4.8: a newer test host does not raise its
+minimum compiler requirement. Both host checks run in CI and release verification. Compiler-host coverage is
+separate from testing the runtime library on .NET 8 and .NET 10.
 
 The second project generates every layout fixture the runtime is tested with into one assembly. Its
 `Layouts.g.cs` and `layouts.json` come from the fixture sources; regenerate and check them with:

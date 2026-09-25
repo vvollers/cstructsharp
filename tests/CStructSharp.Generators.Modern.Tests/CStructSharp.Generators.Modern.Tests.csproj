@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>CStructSharp.Generators.Tests</RootNamespace>
+    <DefineConstants>$(DefineConstants);MODERN_ROSLYN</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="MSTest" Version="4.4.1" />
+    <!-- Only the test host uses newer Roslyn; the shipped generator retains its 4.8 API floor. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+    <ProjectReference Include="../../src/CStructSharp.Generators/CStructSharp.Generators.csproj" Aliases="Generators" />
+    <ProjectReference Include="../../src/CStructSharp/CStructSharp.csproj" />
+    <Compile Include="../CStructSharp.Generators.Tests/GeneratorRunner.cs" Link="GeneratorRunner.cs" />
+    <Compile Include="../CStructSharp.Generators.Tests/GeneratorResult.cs" Link="GeneratorResult.cs" />
+    <Compile Include="../CStructSharp.Generators.Tests/CompilerCompatibilityTests.cs" Link="CompilerCompatibilityTests.cs" />
+  </ItemGroup>
+</Project>

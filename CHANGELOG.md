@@ -26,6 +26,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- Generated signed-byte array readers compile under C# 14 by explicitly selecting a writable span, while
+  retaining Roslyn 4.8 compatibility. Shared regression tests cover Roslyn 4.8/C# 12 and Roslyn 5.9/C# 12 and 14
+  in CI and release verification.
 - Allow an array element type with size zero when the array's own declared size is also zero, instead of
   rejecting every zero-size element outright. Kernel BTF genuinely declares empty marker structs (for example
   Linux's `lock_class_key`, used only for its address, never its contents) and arrays of them; the size-consistency

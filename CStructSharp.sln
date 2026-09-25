@@ -24,6 +24,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharp.Generators.Tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharp.Generated.Parity", "tests\CStructSharp.Generated.Parity\CStructSharp.Generated.Parity.csproj", "{1D145FEA-0561-413F-A315-69EAD06EC855}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CStructSharp.Generators.Modern.Tests", "tests\CStructSharp.Generators.Modern.Tests\CStructSharp.Generators.Modern.Tests.csproj", "{C398CF15-81BC-4FDD-82B2-E340CC503708}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,6 +36,18 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C398CF15-81BC-4FDD-82B2-E340CC503708}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C398CF15-81BC-4FDD-82B2-E340CC503708}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C398CF15-81BC-4FDD-82B2-E340CC503708}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C398CF15-81BC-4FDD-82B2-E340CC503708}.Debug|x64.Build.0 = Debug|Any CPU
+		{C398CF15-81BC-4FDD-82B2-E340CC503708}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C398CF15-81BC-4FDD-82B2-E340CC503708}.Debug|x86.Build.0 = Debug|Any CPU
+		{C398CF15-81BC-4FDD-82B2-E340CC503708}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C398CF15-81BC-4FDD-82B2-E340CC503708}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C398CF15-81BC-4FDD-82B2-E340CC503708}.Release|x64.ActiveCfg = Release|Any CPU
+		{C398CF15-81BC-4FDD-82B2-E340CC503708}.Release|x64.Build.0 = Release|Any CPU
+		{C398CF15-81BC-4FDD-82B2-E340CC503708}.Release|x86.ActiveCfg = Release|Any CPU
+		{C398CF15-81BC-4FDD-82B2-E340CC503708}.Release|x86.Build.0 = Release|Any CPU
 		{EF1FDDFF-5608-4063-BA6D-830ADEB16FD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EF1FDDFF-5608-4063-BA6D-830ADEB16FD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF1FDDFF-5608-4063-BA6D-830ADEB16FD1}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -159,6 +173,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{C398CF15-81BC-4FDD-82B2-E340CC503708} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{F7AC2394-1939-4DC0-9A82-581C07069ACC} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{248C237D-69DA-47B7-A4FD-0F1573571CA5} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{1D145FEA-0561-413F-A315-69EAD06EC855} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
