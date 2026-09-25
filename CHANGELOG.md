@@ -6,6 +6,16 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+## 0.9.1 — 2026-09-25
+
+### Fixed
+
+- Generated signed-byte array readers compile under C# 14 by explicitly selecting a writable span, while
+  retaining Roslyn 4.8 compatibility. Shared regression tests cover Roslyn 4.8/C# 12 and Roslyn 5.9/C# 12 and 14
+  in CI and release verification.
+
+## 0.9.0 — 2026-09-24
+
 ### Added
 
 - `BtfMetadata.Describe(id)` reports one BTF type record's own kind, size, and (for a struct or union) direct
@@ -26,18 +36,20 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
-- Generated signed-byte array readers compile under C# 14 by explicitly selecting a writable span, while
-  retaining Roslyn 4.8 compatibility. Shared regression tests cover Roslyn 4.8/C# 12 and Roslyn 5.9/C# 12 and 14
-  in CI and release verification.
-- Allow an array element type with size zero when the array's own declared size is also zero, instead of
-  rejecting every zero-size element outright. Kernel BTF genuinely declares empty marker structs (for example
-  Linux's `lock_class_key`, used only for its address, never its contents) and arrays of them; the size-consistency
-  check between an array and its element still rejects any real mismatch.
 - `BtfMetadata.Import` no longer rejects a legitimate type graph that nests more than 128 pointer or struct-member
   hops deep. A real kernel's type graph routinely nests this deep, purely from how densely subsystems like
   `cred`, `file`, `net_device`, and `module` reference each other and the rest of the kernel - not from anything
   wrong with the metadata - so the walk is now iterative, with an explicit work stack instead of recursive calls,
   and no longer ties the .NET call stack's depth to the type graph's depth.
+
+## 0.8.3 — 2026-09-24
+
+### Fixed
+
+- Allow an array element type with size zero when the array's own declared size is also zero, instead of
+  rejecting every zero-size element outright. Kernel BTF genuinely declares empty marker structs (for example
+  Linux's `lock_class_key`, used only for its address, never its contents) and arrays of them; the size-consistency
+  check between an array and its element still rejects any real mismatch.
 
 ## 0.8.2 — 2026-09-23
 
