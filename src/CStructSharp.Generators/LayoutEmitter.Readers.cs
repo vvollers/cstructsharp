@@ -66,6 +66,7 @@ internal sealed partial class LayoutEmitter
             this.EmitCompositeReader(writer, composite);
         }
 
+        this.EmitFixedReaders(writer);
         this.EmitPointerReaders(writer);
         writer.Line();
         writer.Line("/// <summary>Groups a flat element array into rows of <paramref name=\"inner\"/> elements (one nesting level of a multidimensional array).</summary>");
@@ -283,6 +284,7 @@ internal sealed partial class LayoutEmitter
         string name = composite.Name;
         writer.Line("/// <summary>Reads one <c>" + composite.LayoutName + "</c> at the cursor's position.</summary>");
         writer.Open("private static " + name + " Read" + name + "(ref " + Cursor + " cursor, " + VariablesType + " variables, string? member, string? memberType)");
+        this.EmitFixedReaderShortcut(writer, composite);
         writer.Line("cursor.EnterComposite(member ?? " + SourceWriter.Literal(composite.LayoutName) + ", memberType);");
         writer.Line("var value = new " + name + "();");
         var scope = new ReaderScope(this, composite);

@@ -55,6 +55,9 @@ namespace Demo
 
         /// <summary>Registers the mapper before any code of the assembly runs, so <c>Get&lt;Record&gt;</c>, <c>ReadValue&lt;Record&gt;</c>, and the writers find it (also under Native AOT, where a static constructor might never run).</summary>
         [global::System.Runtime.CompilerServices.ModuleInitializer]
-        internal static void RegisterCStructMapping() => global::CStructSharp.MappedTypes.Register<Record>();
+        internal static void RegisterCStructMapping()
+        {
+            global::CStructSharp.MappedTypes.Register<Record>();
+        }
     }
 }

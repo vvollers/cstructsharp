@@ -1002,6 +1002,10 @@ namespace Demo
         /// <summary>Reads one <c>inner</c> at the cursor's position.</summary>
         private static Inner ReadInner(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
+            if (cursor.TryTakeFixed(1, 1, 1, 1, 0, out global::System.ReadOnlySpan<byte> fixedBytes))
+            {
+                return ReadInnerFixed(fixedBytes, cursor.TrimFixedText);
+            }
             cursor.EnterComposite(member ?? "inner", memberType);
             var value = new Inner();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -1458,6 +1462,18 @@ namespace Demo
             return value;
         }
 
+        /// <summary>Reads one <c>inner</c> from exactly its 1 bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <returns>The value.</returns>
+        private static Inner ReadInnerFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
+        {
+            var value = new Inner();
+            // uint8 z
+            value.Z = source.Slice(0, 1)[0];
+            return value;
+        }
+
         /// <summary>Reads a <c>uint8 *ptr</c> pointer: the address, then the target when pointers are followed.</summary>
         private static global::CStructSharp.Generated.Pointer<byte> ReadPointer_uint8_1(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
@@ -1785,6 +1801,11 @@ namespace Demo
             if (value is null)
             {
                 throw cursor.Fail("Null is not valid for struct or union value: inner", member, memberType);
+            }
+            if (IsInnerFixedWritable(value) && cursor.TryReserveFixed(1, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+            {
+                WriteInnerFixed(fixedBytes, value);
+                return;
             }
             cursor.EnterComposite(member ?? "inner", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -2388,6 +2409,23 @@ namespace Demo
             cursor.Seek(placement.Current, member, memberType);
             cursor.Pad((int)(placement.Finish(16) - placement.Current), member, memberType);
             cursor.ExitComposite();
+        }
+
+        /// <summary>Whether <paramref name="value"/> can be written by <see cref="WriteInnerFixed"/>: no nested value is null and every array has its declared length.</summary>
+        /// <param name="value">The value about to be written.</param>
+        /// <returns><see langword="true"/> when the fixed writer encodes it exactly as the member-by-member writer would.</returns>
+        private static bool IsInnerFixedWritable(Inner value)
+        {
+            return true;
+        }
+
+        /// <summary>Writes one <c>inner</c> into exactly its cleared bytes, each member at its constant offset (reached only through <c>WriteCursor.TryReserveFixed</c>).</summary>
+        /// <param name="target">The struct's bytes, already zero so that padding is written as zeros.</param>
+        /// <param name="value">A value that passed <see cref="IsInnerFixedWritable"/>.</param>
+        private static void WriteInnerFixed(global::System.Span<byte> target, Inner value)
+        {
+            // uint8 z
+            target.Slice(0, 1)[0] = value.Z;
         }
 
         /// <summary>The root declaration as <see cref="global::CStructSharp.ICStructGenerated{Inner}"/>.</summary>

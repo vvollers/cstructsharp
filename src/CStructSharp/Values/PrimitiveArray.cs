@@ -13,7 +13,7 @@ using System.Globalization;
 ///     size: elements can be replaced through the indexer, never added or removed.
 /// </summary>
 /// <typeparam name="T">The element type: <see cref="byte"/>, <see cref="sbyte"/>, <see cref="bool"/>, the 16/32/64-bit integers, <see cref="float"/> or <see cref="double"/>.</typeparam>
-public sealed class PrimitiveArray<T> : IList<object?>, IReadOnlyList<object?>, IList, IPrimitiveArray
+public sealed class PrimitiveArray<T> : IList<object?>, IReadOnlyList<object?>, IList, IPrimitiveArray, ITypedElements<T>
     where T : unmanaged
 {
     private readonly T[] values;
@@ -64,6 +64,19 @@ public sealed class PrimitiveArray<T> : IList<object?>, IReadOnlyList<object?>, 
     Array IPrimitiveArray.ToArray()
     {
         return this.ToArray();
+    }
+
+    /// <inheritdoc/>
+    bool ITypedElements<T>.TryGetElement(int index, out T value)
+    {
+        if ((uint)index < (uint)this.values.Length)
+        {
+            value = this.values[index];
+            return true;
+        }
+
+        value = default;
+        return false;
     }
 
     /// <summary>Copies the elements into a new typed array.</summary>

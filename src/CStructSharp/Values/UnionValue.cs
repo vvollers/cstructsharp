@@ -206,13 +206,7 @@ public sealed class UnionValue : IDynamicMetaObjectProvider, IReadOnlyDictionary
     /// <exception cref="CStructReadException">The value cannot be converted to <typeparamref name="T"/> without loss.</exception>
     public T Get<T>(string path)
     {
-        ArgumentNullException.ThrowIfNull(path);
-        if (!ValuePath.TryResolve(this, path, out object? value, out string? failure))
-        {
-            throw new CStructPathException(failure);
-        }
-
-        return (T)TypedValueConverter.Convert(value, typeof(T), path)!;
+        return ValuePath.Get<T>(this, path);
     }
 
     /// <summary>
@@ -225,23 +219,7 @@ public sealed class UnionValue : IDynamicMetaObjectProvider, IReadOnlyDictionary
     /// <returns><see langword="true"/> when the path resolved and the value converted.</returns>
     public bool TryGet<T>(string path, [MaybeNullWhen(false)] out T value)
     {
-        ArgumentNullException.ThrowIfNull(path);
-        if (!ValuePath.TryResolve(this, path, out object? natural, out _))
-        {
-            value = default;
-            return false;
-        }
-
-        try
-        {
-            value = (T)TypedValueConverter.Convert(natural, typeof(T), path)!;
-            return true;
-        }
-        catch (CStructReadException)
-        {
-            value = default;
-            return false;
-        }
+        return ValuePath.TryGet(this, path, describeFailure: false, out value, out _);
     }
 
     /// <summary>
@@ -256,26 +234,7 @@ public sealed class UnionValue : IDynamicMetaObjectProvider, IReadOnlyDictionary
     /// <returns>Whether <paramref name="value"/> holds the member.</returns>
     public bool TryGet<T>(string path, [MaybeNullWhen(false)] out T value, out CStructException? failure)
     {
-        ArgumentNullException.ThrowIfNull(path);
-        if (!ValuePath.TryResolve(this, path, out object? natural, out string? missing))
-        {
-            value = default;
-            failure = new CStructPathException(missing);
-            return false;
-        }
-
-        try
-        {
-            value = (T)TypedValueConverter.Convert(natural, typeof(T), path)!;
-            failure = null;
-            return true;
-        }
-        catch (CStructReadException exception)
-        {
-            value = default;
-            failure = exception;
-            return false;
-        }
+        return ValuePath.TryGet(this, path, describeFailure: true, out value, out failure);
     }
 
     /// <summary>

@@ -6,6 +6,13 @@ using CStructSharp.Generated;
 /// <summary>The runtime half of a primitive descriptor: reading and writing one numeric value through a span, via <see cref="Codec"/>.</summary>
 internal readonly partial record struct PrimitiveCodec
 {
+    // Every one-byte value boxed once: a box cannot be modified, so readers can share them and a parsed byte, sbyte
+    // or bool costs no allocation. An sbyte box is indexed by its raw byte.
+    private static readonly object[] BoxedBytes = CreateBoxes(static raw => (byte)raw);
+    private static readonly object[] BoxedSBytes = CreateBoxes(static raw => unchecked((sbyte)raw));
+    private static readonly object BoxedTrue = true;
+    private static readonly object BoxedFalse = false;
+
     /// <summary>
     ///     Encodes one caller-supplied value into exactly this codec's bytes, applying the same <see cref="Convert"/>
     ///     conversion (and the same range failures) as the stream write handler for the same primitive name, so a
@@ -66,9 +73,9 @@ internal readonly partial record struct PrimitiveCodec
         bool le = this.LittleEndian;
         return this.Kind switch
         {
-            PrimitiveCodecKind.UInt8 => bytes[0],
-            PrimitiveCodecKind.Int8 => unchecked((sbyte)bytes[0]),
-            PrimitiveCodecKind.Bool => bytes[0] != 0,
+            PrimitiveCodecKind.UInt8 => BoxedBytes[bytes[0]],
+            PrimitiveCodecKind.Int8 => BoxedSBytes[bytes[0]],
+            PrimitiveCodecKind.Bool => bytes[0] != 0 ? BoxedTrue : BoxedFalse,
             PrimitiveCodecKind.Int16 => Codec.ReadInt16(bytes, le),
             PrimitiveCodecKind.UInt16 => Codec.ReadUInt16(bytes, le),
             PrimitiveCodecKind.Int24 => Codec.ReadInt24(bytes, le),
@@ -81,5 +88,17 @@ internal readonly partial record struct PrimitiveCodec
             PrimitiveCodecKind.Float64 => Codec.ReadDouble(bytes, le),
             _ => throw new InvalidOperationException("Codec is not a fixed-width numeric: " + this.Kind),
         };
+    }
+
+    /// <summary>Boxes the value of each of the 256 raw bytes.</summary>
+    private static object[] CreateBoxes(Func<int, object> box)
+    {
+        var boxes = new object[256];
+        for (int raw = 0; raw < boxes.Length; raw++)
+        {
+            boxes[raw] = box(raw);
+        }
+
+        return boxes;
     }
 }

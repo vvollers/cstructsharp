@@ -111,6 +111,39 @@ The path is case-sensitive. Indexing starts at zero, so `[1]` is the second elem
 parts of the layout required to locate and decode that target. A malformed field that occurs later and is unrelated
 to the path does not block an earlier selected read.
 
+## Read the same members many times
+
+A path string such as `"reading.pos.x"` is text: every `Get<T>` or `ReadValue<T>` call splits it into segments and
+looks each one up again. When a program reads the same members over and over - from every record of a file, say -
+do that work once:
+
+- An *accessor* (`layout.GetAccessor<T>(path)`) is a path resolved once against the layout. `accessor.Get(parsed)`
+  reads the member from a parsed `StructValue`, and `accessor.Read(bytes)` reads it straight from bytes that start
+  with the root struct.
+- A *view* (`layout.CreateView(bytes, "reading")`) wraps the bytes of one struct and reads a member only when asked,
+  through `view.Get(accessor)` or `view.Get<T>("pos.x")`. It never builds a `StructValue`.
+
+[!code-csharp[Accessors and a view](../examples/Program.cs#api-guide-prepared-reads)]
+
+The 18 input bytes hold `id` (bytes 0-3), `pos.x` and `pos.y` (bytes 4-7 and 8-11, two little-endian floats), and
+three 16-bit `samples` (bytes 12-17):
+
+```text
+reading.id         = 7
+reading.pos.x      = 1.5
+reading.pos.y      = -10
+reading.samples[2] = 3      (bytes 16-17: 03 00)
+```
+
+An accessor or view gives the same value, and the same failure, as the path string it replaces: `accessor.Get(value)`
+behaves like `value.Get<T>("pos.x")`, and `accessor.Read(bytes)` and `view.Get(accessor)` behave like
+`layout.ReadValue<T>(bytes, "reading.pos.x")`. What changes is the cost. In a struct whose members all have fixed
+offsets (no runtime-sized arrays, conditions, pointers, bitfields or unions), a number read as its own type (a
+`float32` as `float`) is decoded directly at its offset, with nothing allocated. Anything else - an enum, text, a
+whole array, a converted type such as a `uint16` read as `long`, or a struct with runtime-sized members - is read
+exactly as the path string would read it. An accessor is immutable and can be shared by threads. A view is a
+`ref struct`: it lives only in the method that created it, like the span it reads.
+
 ## Understand untyped results
 
 The non-generic `ReadValue` method returns the direct representation for the selected layout type:

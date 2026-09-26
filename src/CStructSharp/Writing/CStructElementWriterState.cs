@@ -57,6 +57,9 @@ internal sealed class CStructElementWriterState
         }
     }
 
+    /// <summary>Gets the options a write without caller options uses; shared because <see cref="WriteOptions"/> is immutable.</summary>
+    public static WriteOptions DefaultWriteOptions { get; } = new();
+
     public PointerAddressingMode AddressingMode { get; }
 
     public bool Aligned { get; }
@@ -149,7 +152,9 @@ internal sealed class CStructElementWriterState
             return SnapshotUpdateOptions(updateOptions);
         }
 
-        return (options ?? new WriteOptions()) with { };
+        // WriteOptions is an immutable record, so the shared default needs no copy; a caller's instance is copied because
+        // a derived record could add mutable state.
+        return options is null ? DefaultWriteOptions : options with { };
     }
 
     /// <summary>Validates finite write budgets once at the public operation boundary.</summary>

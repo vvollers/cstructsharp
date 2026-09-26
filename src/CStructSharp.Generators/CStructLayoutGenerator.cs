@@ -81,11 +81,11 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
     internal static LayoutRequest? CreateRequestForMapping(GeneratorAttributeSyntaxContext context, CancellationToken cancellation) => CreateRequest(context, cancellation);
 
     /// <summary>
-    ///     The member names of the composite <paramref name="layoutName"/> in the first inline layout of the
+    ///     The composite <paramref name="layoutName"/>, compiled, from the first inline layout of the
     ///     compilation that declares it (a layout read from a file is not searched), or <see langword="null"/> when
     ///     no layout declares it or the layout does not compile (its own class reports that).
     /// </summary>
-    internal static IReadOnlyList<string>? ResolveMembers(ImmutableArray<LayoutRequest> layouts, string layoutName)
+    internal static CompiledCompositeType? ResolveComposite(ImmutableArray<LayoutRequest> layouts, string layoutName)
     {
         foreach (LayoutRequest request in layouts)
         {
@@ -110,7 +110,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                 {
                     if (entry.Value.Definition is CompiledCompositeType composite && composite.Name == layoutName)
                     {
-                        return composite.Shape.Names;
+                        return composite;
                     }
                 }
             }

@@ -1,6 +1,7 @@
 namespace CStructSharp;
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -796,13 +797,7 @@ public partial class CStruct
             // N >= 2), so the caller-supplied value is always an N-deep nested collection to flatten, mirroring
             // the reader's flat-then-reshape approach in reverse: flatten first, then write the same flat
             // sequence a 1-D array of the same total count would already write.
-            int[] dimensionSizes = compiledField.Array.Dimensions
-                .Select(
-                    dimension => dimension.FixedCount ??
-                                 throw new InvalidOperationException(
-                                     "Multidimensional array dimension has no fixed count: " +
-                                     compiledField.Name))
-                .ToArray();
+            int[] dimensionSizes = FixedDimensionSizes(compiledField);
 
             if (valueField.IsCharacterArray)
             {
@@ -835,6 +830,11 @@ public partial class CStruct
                 string str = value as string ??
                              WriteValueMaterialization.ConvertToBoundedCharString(value!, numFieldValues, compiledField.Name);
                 this.WriteFixedCharArray(compiledField, str, numFieldValues, state);
+            }
+            else if (!unknownArray && !useLegacyPlacement && numFieldValues <= state.Options.MaxArrayElements &&
+                     this.TryWriteTypedArrayBlock(compiledField, value, numFieldValues, state))
+            {
+                // Written as one block: the same bytes and budget charge as the element loop below.
             }
             else
             {
@@ -1008,10 +1008,130 @@ public partial class CStruct
             return;
         }
 
+        if (TryWriteNarrowTextBlock(padded, state))
+        {
+            return;
+        }
+
         foreach (char c in padded)
         {
             this.WritePrimitiveValue(compiledField, state.Stream, c, compiledField.Name);
         }
+    }
+
+    /// <summary>
+    ///     Writes the characters of a narrow <c>char[n]</c> buffer as one block, when the per-character writes could not
+    ///     fail part-way: every character fits one byte (Latin-1) and the destination and budget hold the whole block.
+    ///     Returns <see langword="false"/>, having written nothing, otherwise, and the per-character writer reports the
+    ///     failure at the character where it always has.
+    /// </summary>
+    /// <param name="text">The padded text, one byte per character.</param>
+    /// <param name="state">The write state.</param>
+    /// <returns>Whether the text was written.</returns>
+    private static bool TryWriteNarrowTextBlock(string text, CStructElementWriterState state)
+    {
+        if (!CanWriteBlock(state, text.Length))
+        {
+            return false;
+        }
+
+        foreach (char character in text)
+        {
+            if (character > byte.MaxValue)
+            {
+                return false;
+            }
+        }
+
+        byte[]? rented = null;
+        Span<byte> block = text.Length <= StackStagingLimit ? stackalloc byte[text.Length] : (rented = ArrayPool<byte>.Shared.Rent(text.Length)).AsSpan(0, text.Length);
+        try
+        {
+            for (int index = 0; index < text.Length; index++)
+            {
+                block[index] = (byte)text[index];
+            }
+
+            state.BudgetStream.WriteBlock(block, block.Length);
+        }
+        finally
+        {
+            if (rented is not null)
+            {
+                ArrayPool<byte>.Shared.Return(rented);
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    ///     Writes a numeric array whose storage is the field's own CLR type (a parsed <see cref="PrimitiveArray{T}"/> or a
+    ///     plain <c>T[]</c> of exactly <paramref name="count"/> elements) as one block, with the vectorized byte-order
+    ///     conversion of the static write plan. Only for a plain numeric field whose destination and budget hold the
+    ///     whole block; anything else returns <see langword="false"/> and takes the element loop.
+    /// </summary>
+    /// <param name="field">The array field.</param>
+    /// <param name="value">The caller's array value.</param>
+    /// <param name="count">The declared element count.</param>
+    /// <param name="state">The write state.</param>
+    /// <returns>Whether the array was written.</returns>
+    private bool TryWriteTypedArrayBlock(CompiledField field, object? value, int count, CStructElementWriterState state)
+    {
+        if (value is null || count <= 0 || field.BitSize != 0 || field.PointerDepth > 0 || field.Enum is not null || field.Composite is not null ||
+            field.IsUnnamed || !field.Codec.IsFixedWidthNumeric || field.Array.Kind is not (CompiledArrayKind.Fixed or CompiledArrayKind.Runtime) ||
+            field.Array.Dimensions.Length > 1)
+        {
+            return false;
+        }
+
+        long length = (long)count * field.Codec.Size;
+        if (length > StaticReadPlan.MaximumBlockSize || !CanWriteBlock(state, (int)length))
+        {
+            return false;
+        }
+
+        byte[]? rented = null;
+        Span<byte> block = length <= StackStagingLimit ? stackalloc byte[(int)length] : (rented = ArrayPool<byte>.Shared.Rent((int)length)).AsSpan(0, (int)length);
+        try
+        {
+            if (!TryWriteTypedArray(field, block, value, count))
+            {
+                return false;
+            }
+
+            state.BudgetStream.WriteBlock(block, block.Length);
+        }
+        finally
+        {
+            if (rented is not null)
+            {
+                ArrayPool<byte>.Shared.Return(rented);
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    ///     Whether <paramref name="length"/> bytes can be written as one block with the outcome of writing them one by
+    ///     one: the budget allows them all, and the destination is caller memory with room for them or the writer's own
+    ///     growable buffer (an update, or any other stream, keeps the byte-by-byte path).
+    /// </summary>
+    private static bool CanWriteBlock(CStructElementWriterState state, int length)
+    {
+        WriteBudgetStream stream = state.BudgetStream;
+        if (state.Options is UpdateOptions || stream.IsSparseUpdate || StaticReadPlan.DisabledForTesting || !stream.CanAffordBlock(length, length))
+        {
+            return false;
+        }
+
+        return stream.Inner switch
+        {
+            FixedBufferStream fixedBuffer => stream.Position + length <= fixedBuffer.Capacity,
+            OwnedMemoryStream => true,
+            _ => false,
+        };
     }
 
     /// <summary>
@@ -1193,7 +1313,7 @@ public partial class CStruct
         WriteOptions? options = null)
     {
         // Serialize is the convenience entry point: write to a temporary stream, then hand its complete contents to the caller.
-        using var stream = new MemoryStream();
+        using var stream = new OwnedMemoryStream();
         this.WriteStreamCore(stream, elementNameOrPath, data, variables, options);
         return stream.ToArray();
     }

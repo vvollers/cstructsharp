@@ -23,12 +23,18 @@ public sealed partial class CStruct
         ReadOptions? options,
         bool debug)
     {
+        string path = elementNameOrPath ?? this.compiledModelQueries.GetFirstCompiledStructName();
+        if (!debug && this.TryReadFixedRoot(source, path, variables, options, out StructValue? direct, out _))
+        {
+            return (direct, NoDebugData);
+        }
+
         fixed (byte* buffer = source)
         {
             using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
             (List<DebugData> records, object value) = this.ParseStreamCoreImpl(
                 stream,
-                elementNameOrPath ?? this.compiledModelQueries.GetFirstCompiledStructName(),
+                path,
                 LayoutVariableInput.FromIntegers(variables),
                 options,
                 debug);
@@ -43,12 +49,18 @@ public sealed partial class CStruct
         IReadOnlyDictionary<string, int>? variables,
         ReadOptions? options)
     {
+        string path = elementNameOrPath ?? this.compiledModelQueries.GetFirstCompiledStructName();
+        if (this.TryReadFixedRoot(source, path, variables, options, out StructValue? direct, out _))
+        {
+            return direct;
+        }
+
         fixed (byte* buffer = source)
         {
             using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
             return this.ReadValueCore(
                 stream,
-                elementNameOrPath ?? this.compiledModelQueries.GetFirstCompiledStructName(),
+                path,
                 LayoutVariableInput.FromIntegers(variables),
                 options);
         }
@@ -61,12 +73,18 @@ public sealed partial class CStruct
         IReadOnlyDictionary<string, int>? variables,
         ReadOptions? options)
     {
+        string path = elementNameOrPath ?? this.compiledModelQueries.GetFirstCompiledStructName();
+        if (this.TryReadFixedRoot(source, path, variables, options, out T direct))
+        {
+            return direct;
+        }
+
         fixed (byte* buffer = source)
         {
             using var stream = new FixedBufferStream(buffer, source.Length, writable: false);
             return this.ReadTypedValueCore<T>(
                 stream,
-                elementNameOrPath ?? this.compiledModelQueries.GetFirstCompiledStructName(),
+                path,
                 variables,
                 options);
         }
@@ -80,6 +98,11 @@ public sealed partial class CStruct
         IReadOnlyDictionary<string, int>? variables,
         WriteOptions? options)
     {
+        if (this.TryWriteFixedRoot(destination, elementNameOrPath, data, variables, options, out int written))
+        {
+            return written;
+        }
+
         fixed (byte* buffer = destination)
         {
             using var stream = new FixedBufferStream(buffer, destination.Length, writable: true);

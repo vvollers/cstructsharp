@@ -465,6 +465,10 @@ namespace Demo
         /// <summary>Reads one <c>header</c> at the cursor's position.</summary>
         private static Header ReadHeader(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
+            if (cursor.TryTakeFixed(8, 4, 6, 1, 0, out global::System.ReadOnlySpan<byte> fixedBytes))
+            {
+                return ReadHeaderFixed(fixedBytes, cursor.TrimFixedText);
+            }
             cursor.EnterComposite(member ?? "header", memberType);
             var value = new Header();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -482,6 +486,20 @@ namespace Demo
             }
             cursor.Seek(placement.Finish(4), member, memberType);
             cursor.ExitComposite();
+            return value;
+        }
+
+        /// <summary>Reads one <c>header</c> from exactly its 8 bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <returns>The value.</returns>
+        private static Header ReadHeaderFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
+        {
+            var value = new Header();
+            // uint16 kind
+            value.Kind = global::CStructSharp.Generated.Codec.ReadUInt16(source.Slice(0, 2), false);
+            // uint32 length
+            value.Length = global::CStructSharp.Generated.Codec.ReadUInt32(source.Slice(4, 4), false);
             return value;
         }
 
@@ -609,6 +627,11 @@ namespace Demo
             {
                 throw cursor.Fail("Null is not valid for struct or union value: header", member, memberType);
             }
+            if (IsHeaderFixedWritable(value) && cursor.TryReserveFixed(8, 4, 1, 0, out global::System.Span<byte> fixedBytes))
+            {
+                WriteHeaderFixed(fixedBytes, value);
+                return;
+            }
             cursor.EnterComposite(member ?? "header", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint16 kind
@@ -626,6 +649,25 @@ namespace Demo
             cursor.Seek(placement.Current, member, memberType);
             cursor.Pad((int)(placement.Finish(4) - placement.Current), member, memberType);
             cursor.ExitComposite();
+        }
+
+        /// <summary>Whether <paramref name="value"/> can be written by <see cref="WriteHeaderFixed"/>: no nested value is null and every array has its declared length.</summary>
+        /// <param name="value">The value about to be written.</param>
+        /// <returns><see langword="true"/> when the fixed writer encodes it exactly as the member-by-member writer would.</returns>
+        private static bool IsHeaderFixedWritable(Header value)
+        {
+            return true;
+        }
+
+        /// <summary>Writes one <c>header</c> into exactly its cleared bytes, each member at its constant offset (reached only through <c>WriteCursor.TryReserveFixed</c>).</summary>
+        /// <param name="target">The struct's bytes, already zero so that padding is written as zeros.</param>
+        /// <param name="value">A value that passed <see cref="IsHeaderFixedWritable"/>.</param>
+        private static void WriteHeaderFixed(global::System.Span<byte> target, Header value)
+        {
+            // uint16 kind
+            global::CStructSharp.Generated.Codec.WriteUInt16(target.Slice(0, 2), value.Kind, false);
+            // uint32 length
+            global::CStructSharp.Generated.Codec.WriteUInt32(target.Slice(4, 4), value.Length, false);
         }
 
         /// <summary>The root declaration as <see cref="global::CStructSharp.ICStructGenerated{Header}"/>.</summary>

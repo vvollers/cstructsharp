@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Comparison benchmarks: one sensor record serialized and deserialized by CStructSharp and by other .NET serializers.
+    Kept out of both solutions so third-party packages never enter the library build, its tests, or the release gate;
+    tools/quality/comparison-benchmarks.mjs builds and runs it.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="FlatSharp.Compiler" Version="7.9.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="FlatSharp.Runtime" Version="7.9.0" />
+    <PackageReference Include="KaitaiStruct.Runtime.CSharp" Version="0.11.0" />
+    <PackageReference Include="MemoryPack" Version="1.21.4" />
+    <PackageReference Include="MessagePack" Version="3.1.10" />
+    <PackageReference Include="protobuf-net" Version="3.4.30" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CStructSharp\CStructSharp.csproj" />
+    <ProjectReference Include="..\..\src\CStructSharp.Generators\CStructSharp.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FlatSharpSchema Include="FlatBuffers\reading.fbs" />
+  </ItemGroup>
+
+</Project>

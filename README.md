@@ -21,12 +21,134 @@ data. Use it from C#, Node.js, or JavaScript in a browser.
 **Zero runtime package dependencies.** The core .NET library uses only the .NET runtime, keeping integration
 simple and your application's dependency tree small.
 
+**Built for performance.** Serialization and deserialization speeds are competitive with hand-written implementations and other libraries. ([See the speed comparison](#speed-compared-with-other-net-serializers))
+
 ## Choose your starting point
 
-- [Open the binary inspector](https://vvollers.github.io/cstructsharp/inspector/): apply a layout to one of your own files in the browser, no installation.
-- [Try the browser lesson](https://vvollers.github.io/cstructsharp/explorer/#lesson=header): no installation.
+- [Demo app: binary inspector](https://vvollers.github.io/cstructsharp/inspector/): use a cstruct layout to parse one of your own files in the browser.
+- [Browser lessons](https://vvollers.github.io/cstructsharp/explorer/#lesson=header): follow hands on lessons explaining the features or explore the tests for this library.
 - [Use C#](https://vvollers.github.io/cstructsharp/docs/guides/install-and-first-parse.html): create a console app.
 - [Use JavaScript and WASM](https://vvollers.github.io/cstructsharp/docs/guides/browser/index.html): install the npm package for Node.js or browsers.
+
+## C-Struct serialization language features
+
+A binary format defines the byte layout of a file, packet, or record. CStructSharp uses C-style `struct` declarations to describe and serialize these layouts. Field order follows declaration order; native C structs may also include padding and alignment.
+
+Layouts can depend on their contents: a length field determines the size of a following string, a tag selects a record variant, byte order controls numeric encoding, and bit fields pack flags into a byte. The annotated data-logger example below demonstrates each feature.
+
+```c
+/* A data-logger file: a header, a calibration table, and records of two kinds. */
+#define MAGIC_SIZE 4                                        /* constants, as in C */
+
+enum record_kind : uint8  { MEASUREMENT = 1, EVENT = 2 };   /* enums with an explicit storage type */
+enum sensor_type : uint16 { TEMPERATURE = 0x10, PRESSURE = 0x20 };
+
+typedef struct { uint8 major; uint8 minor; } version;       /* typedef aliases */
+
+struct options {                                            /* bitfields: several values in one byte */
+    uint8 compressed : 1;
+    uint8 encrypted  : 1;
+    uint8            : 2;                                   /* unnamed, reserved bits */
+    uint8 priority   : 4;
+};
+
+struct header {
+    char     magic[MAGIC_SIZE];                             /* fixed-size text: "LOG1" */
+    version  ver @4;                                        /* offset assertion: must start at byte 4 */
+    uint32>  created;                                       /* big-endian, unlike the rest of the file */
+    options  options;
+    uint8    name_length;
+    utf8     device_name[name_length];                      /* length taken from an earlier field */
+    uint8    padding[(4 - (name_length + 12) % 4) % 4];     /* arithmetic: pad to a multiple of 4 bytes */
+};
+
+union value32 { uint32 raw; float32 as_float; uint8 bytes[4]; };   /* one storage, three views */
+
+struct record {
+    record_kind kind;
+    switch (kind) {                                         /* the tag decides which members follow */
+        case record_kind.MEASUREMENT: {
+            struct { sensor_type sensor; uint8 sample_count; float32 samples[sample_count]; } measurement;
+        }
+        case record_kind.EVENT: {
+            struct { uint16 code; cstring message; } event;  /* cstring: text ending in a zero byte */
+        }
+    }
+};
+
+struct logfile {
+    header   hdr;
+    int16    calibration[2][3];                             /* two-dimensional array */
+    value32  checksum;
+    record  *latest;                                        /* pointer: a stored file offset, followed on read */
+    uint16   record_count;
+    record   records[record_count];                         /* array of records that differ in size */
+    if (hdr.options.priority > 7) { uint32 alarm_code; }    /* optional member, chosen by a nested field */
+    uint8    trailer[EOF];                                  /* every byte that remains */
+};
+```
+
+An 81-byte file written with this layout contains, among others:
+
+| Field             | Byte offsets | Bytes               | Value                                                          |
+| ----------------- | ------------ | ------------------- | -------------------------------------------------------------- |
+| `hdr.magic`       | 0–3          | `4C 4F 47 31`       | `"LOG1"`                                                       |
+| `hdr.created`     | 6–9          | `6A B1 3B 80`       | 1,790,000,000 (big-endian)                                     |
+| `hdr.options`     | 10           | `91`                | `compressed` = 1, `encrypted` = 0, `priority` = 9              |
+| `hdr.device_name` | 12–17        | `70 72 6F 62 65 37` | `"probe7"` (length 6 from `name_length`)                       |
+| `checksum`        | 32–35        | `EF BE AD DE`       | `raw` = 0xDEADBEEF, the same bytes also readable as `as_float` |
+| `latest`          | 36–43        | `3E 00 … 00`        | offset 62, which is where `records[1]` starts                  |
+| `records[0]`      | 46–61        | `01 10 00 03 …`     | a measurement with 3 samples: 21.5, 21.75, 22                  |
+| `records[1]`      | 62–74        | `02 F7 01 64 6F …`  | an event: code 503, message `"door open"`                      |
+| `alarm_code`      | 75–78        | `07 00 00 00`       | 7 (present because `priority` > 7)                             |
+| `trailer`         | 79–80        | `AA BB`             | the remaining two bytes                                        |
+
+Read, navigate, and change it from C#. The same layout text works unchanged in JavaScript and in the browser:
+
+```csharp
+var layout = new CStruct(File.ReadAllText("logger.h"));
+byte[] file = File.ReadAllBytes("probe7.log");
+
+StructValue log = layout.Parse(file, "logfile");
+log.Get<string>("hdr.device_name");                  // "probe7"
+log.Get<float>("records[0].measurement.samples[2]"); // 22
+log.Get<string>("latest.value.event.message");       // "door open", reached through the pointer
+layout.ResolveAddress(file, "logfile.alarm_code");   // 75: where a field lives, without reading it
+
+// Change four bytes in place. An update that would move later fields (such as lowering priority, which removes
+// alarm_code) is refused with an error instead of corrupting the file.
+layout.Update(file, "logfile.records[0].measurement.samples[1]", 23.5f);
+```
+
+If the file is cut short or a length field is corrupt, the read stops with an exception that names the field, its
+type, and the byte offset. Limits cap array sizes, string lengths, nesting, pointer chains, and the total bytes
+read (by default, for example, one million array elements and 64 MiB per read; every limit is configurable), so a
+hostile file cannot make the reader allocate or loop without bound.
+
+### Why not a `[StructLayout]` struct?
+
+.NET can already map bytes onto a struct: declare it with `[StructLayout(LayoutKind.Sequential, Pack = 1)]`
+and copy the bytes in with `MemoryMarshal.Read` or `Marshal.PtrToStructure`. That copies memory as it is. It
+works when every record has the same size, and every number uses the byte order and width of the computer that
+runs the program. The layout above breaks those assumptions on almost every line:
+
+| The format needs                                                                                      | A `[StructLayout]` struct                                                                                           | A CStructSharp layout                                                        |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Lengths that come from the data (`device_name[name_length]`, `records[record_count]`, `trailer[EOF]`) | Has one fixed size; every variable part is hand-written reading code                                                | Declares the length where the field is                                       |
+| Mixed byte order (`uint32> created`)                                                                  | Uses the machine's byte order; each big-endian field is swapped by hand                                             | A `>` or `<` suffix per field                                                |
+| Bitfields (`priority : 4`)                                                                            | C# has no bitfields; shift and mask by hand                                                                         | Declared as in C, with C's packing rules                                     |
+| A tag that selects the members (`switch`, `if`)                                                       | `[FieldOffset]` can overlap fixed-size members, but nothing checks which one is valid                               | Only the selected members are read, written, and reported                    |
+| Text (`char[4]`, `utf8[n]`, `cstring`)                                                                | Needs marshalling attributes or `unsafe` fixed buffers; text that ends in a zero byte cannot live inside the struct | Decoded to `string`; UTF-8 and UTF-16 text is checked strictly               |
+| Pointers (`record *latest`)                                                                           | A C# pointer is an address in this process's memory, 4 or 8 bytes depending on the process                          | A stored offset of a configured width, followed with bounds and cycle checks |
+| Untrusted input                                                                                       | Copies whatever bytes are there; a corrupt length is found later, or never                                          | Checks bounds and limits, and reports the failing field and offset           |
+| A format known only at run time (user-supplied, from a plugin)                                        | The struct must be compiled into the program                                                                        | Load the layout text at run time, or generate C# at build time               |
+| Inspecting and editing files                                                                          | No offsets, no way to change one field in place                                                                     | `ResolveAddress`, `ParseWithDebug` byte ranges for hex viewers, and `Update` |
+| Other languages                                                                                       | C# only                                                                                                             | The same layout in Node.js and the browser                                   |
+
+When a record really is fixed-size, stored in the machine's byte order, and free of text, `MemoryMarshal` is the
+fastest possible reader, and [the comparison below](#speed-compared-with-other-net-serializers) shows it.
+CStructSharp's generated code comes close to it on that record while keeping the checks, and it handles everything
+in this example as well.
 
 ## Read your first value in C#
 
@@ -63,10 +185,10 @@ The layout names the fields. The byte array supplies the data. The result is a `
 with `header.Get<ushort>("kind")`; `dynamic` field syntax (`header.kind`) also works on the JIT, at the cost of
 compile-time checking. The values:
 
-| Field | Byte offsets | Input bytes | Value |
-| --- | --- | --- | --- |
-| `kind` | 0–1 | `02 00` | 2 |
-| `length` | 2–5 | `06 00 00 00` | 6 |
+| Field    | Byte offsets | Input bytes   | Value |
+| -------- | ------------ | ------------- | ----- |
+| `kind`   | 0–1          | `02 00`       | 2     |
+| `length` | 2–5          | `06 00 00 00` | 6     |
 
 By default, fields are packed together, numbers use little-endian byte order, and pointers occupy eight bytes.
 The [binary layout basics](https://vvollers.github.io/cstructsharp/docs/guides/binary-layout-basics.html) explain these choices.
@@ -144,13 +266,143 @@ an existing header.
 
 ## Why CStructSharp instead of …
 
-| If you would otherwise use | CStructSharp instead |
-| --- | --- |
-| Manual offsets with `BinaryReader` / `BinaryPrimitives` | The layout text names every field, offset, width, and byte order once; reads, writes, updates, address lookups, and the debug byte map all come from that one description, and a change to the format is a change to the text. |
-| `[StructLayout]` structs with `MemoryMarshal` | Portable widths never depend on the host process; layouts load at run time, so a tool can accept formats it did not compile against, and variable-length arrays, conditional fields, pointers, and strings are part of the description rather than hand code. |
-| A source generator or a serializer | The same layout text drives C#, Node.js, and the browser; on .NET you choose per layout between the run-time `CStruct` (no build step, layouts loaded at run time) and the `[CStructLayout]` generator (typed classes, views, and setters emitted at build time), and the two agree on every byte and every error. |
-| Kaitai Struct or another schema language | The schema is C: an existing header or a `dissect.cstruct` definition is the input, with `#define`, `#ifdef`, and `#pragma pack` honored, so format knowledge that already exists as C stays C. |
-| dissect.cstruct (Python) | The same definition language and habits on .NET and in JavaScript, with a compiled layout cache, bounded read budgets, trim-safe Native AOT support, and a [migration guide](https://vvollers.github.io/cstructsharp/docs/guides/migrating-from-dissect.html) for the few places the two libraries read bytes differently. |
+| If you would otherwise use                              | CStructSharp instead                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Manual offsets with `BinaryReader` / `BinaryPrimitives` | The layout text names every field, offset, width, and byte order once; reads, writes, updates, address lookups, and the debug byte map all come from that one description, and a change to the format is a change to the text.                                                                                             |
+| `[StructLayout]` structs with `MemoryMarshal`           | Portable widths never depend on the host process; layouts load at run time, so a tool can accept formats it did not compile against, and variable-length arrays, conditional fields, pointers, and strings are part of the description rather than hand code.                                                              |
+| A source generator or a serializer                      | The same layout text drives C#, Node.js, and the browser; on .NET you choose per layout between the run-time `CStruct` (no build step, layouts loaded at run time) and the `[CStructLayout]` generator (typed classes, views, and setters emitted at build time), and the two agree on every byte and every error.         |
+| Kaitai Struct or another schema language                | The schema is C: an existing header or a `dissect.cstruct` definition is the input, with `#define`, `#ifdef`, and `#pragma pack` honored, so format knowledge that already exists as C stays C.                                                                                                                            |
+| dissect.cstruct (Python)                                | The same definition language and habits on .NET and in JavaScript, with a compiled layout cache, bounded read budgets, trim-safe Native AOT support, and a [migration guide](https://vvollers.github.io/cstructsharp/docs/guides/migrating-from-dissect.html) for the few places the two libraries read bytes differently. |
+
+## Speed compared with other .NET serializers
+
+To _serialize_ is to turn an object in memory into bytes; to _deserialize_ is to turn the bytes back into values.
+The tables below time both operations on one 79-byte sensor record. Its members are packed (no padding bytes
+between them) and stored little-endian (least significant byte first):
+
+```c
+struct vec3 { float32 x; float32 y; float32 z; };
+struct reading {
+    uint32  id;          /* bytes 0-3   */
+    int64   timestamp;   /* bytes 4-11  */
+    vec3    position;    /* bytes 12-23 */
+    vec3    velocity;    /* bytes 24-35 */
+    uint16  flags;       /* bytes 36-37 */
+    uint8   kind;        /* byte  38    */
+    float64 value;       /* bytes 39-46 */
+    int32   samples[8];  /* bytes 47-78 */
+};
+```
+
+The first table compares ways to read and write exactly these bytes. That is CStructSharp's job: a file format,
+a device, or a C program has already fixed the layout. The second table shows general-purpose serializers. Each
+one defines its own byte format and cannot read the C layout, so the table lists the size of each format and
+shows how fast each library handles its own.
+
+The third table uses a record whose shape depends on its own data: the length of `samples` comes from `count`, the
+length of `name` from `name_length`, `kind` selects one of two members, and `note` ends at a zero byte. No member
+after `samples` has an offset that is known before the bytes are read:
+
+```c
+struct packet {
+    uint32 id;
+    uint16 count;
+    int32  samples[count];
+    uint8  name_length;
+    char   name[name_length];
+    uint8  kind;
+    if (kind == 1) { float64 value; } else { uint32 code; }
+    cstring note;
+};
+```
+
+- **Deserialize** decodes one record and reads every member once. Reading every member makes lazy readers, such as
+  the generated view and FlatSharp, do the same work as readers that build an object.
+- **Serialize** writes one record from an object that already exists into a buffer the benchmark reuses.
+- **Allocated** is the managed heap memory used per call, which the garbage collector must reclaim later.
+
+CStructSharp appears in several rows because it offers several ways to use the same layout:
+
+- **Generated** code comes from the source generator at build time (`[CStructLayout]`): a typed class with `Parse`
+  and `Serialize`, and a _view_ that decodes each member from the bytes only when it is read.
+- **Runtime** rows compile the layout text while the program runs (`new CStruct(text)`), once, before timing.
+  `Parse` returns a `StructValue`, a dictionary-like object; members are read either with path strings such as
+  `"samples[3]"` or with _accessors_, which resolve a path once and reuse it. `CreateView` reads members from the
+  bytes without building a `StructValue`.
+- **Mapped class** rows read into and write from an ordinary C# class marked `[CStructMapped]`. When the class is
+  bound to a fixed-size layout (the first table), the generator emits a direct reader and writer that the runtime
+  uses whenever the layout text matches, which is why it runs as fast as generated code.
+
+[BenchmarkDotNet](https://benchmarkdotnet.org/) repeats each operation until the timing is stable (millions of
+calls) and reports the median time for one record. Multiply by 100,000 to estimate the time for 100,000 records.
+Each table is sorted with the fastest deserializer first. Before measuring, every case is checked. Deserializers
+must return the same values, same-bytes serializers must write the same bytes, and own-format serializers must
+write bytes their own library reads back.
+
+<!-- comparison-benchmarks:start -->
+
+Measured on AMD Ryzen 9 9950X, Windows 11, .NET 10.0.12, with BenchmarkDotNet 0.15.8 (`default` job) on 2026-09-26. Times are medians for one record; each table lists the fastest deserializer first.
+
+**Same bytes: the 79-byte C layout**
+
+| Approach                                                                      | Deserialize | Allocated | Serialize | Allocated |
+| ----------------------------------------------------------------------------- | ----------: | --------: | --------: | --------: |
+| .NET `MemoryMarshal.Read` / `Write`                                           |      7.6 ns |       0 B |    0.3 ns |       0 B |
+| CStructSharp generated view                                                   |      8.6 ns |       0 B |         — |         — |
+| Hand-written `BinaryPrimitives`                                               |     19.3 ns |     248 B |    8.2 ns |       0 B |
+| CStructSharp generated `Parse` / `Serialize`                                  |     24.9 ns |     248 B |   19.1 ns |       0 B |
+| CStructSharp runtime view (`CreateView` + accessors)                          |     28.5 ns |       0 B |         — |         — |
+| CStructSharp runtime `ReadValue<T>` / `Serialize` (layout-bound mapped class) |     31.0 ns |     248 B |   22.1 ns |       0 B |
+| .NET `BinaryReader` / `BinaryWriter`                                          |     35.1 ns |     248 B |   41.6 ns |       0 B |
+| .NET `Marshal.PtrToStructure` / `StructureToPtr`                              |     49.5 ns |     128 B |   31.6 ns |      72 B |
+| Kaitai Struct 0.11.0                                                          |      118 ns |   1,040 B |         — |         — |
+| CStructSharp runtime `Parse` + accessors                                      |      136 ns |     672 B |         — |         — |
+| CStructSharp runtime `Parse` / `Serialize` (`StructValue`, path strings)      |      372 ns |     672 B |   79.0 ns |       0 B |
+
+**Same record, each library's own format**
+
+| Library                                      | Format           |  Size | Deserialize | Allocated | Serialize | Allocated |
+| -------------------------------------------- | ---------------- | ----: | ----------: | --------: | --------: | --------: |
+| CStructSharp generated `Parse` / `Serialize` | C layout         |  79 B |     24.9 ns |     248 B |   19.1 ns |       0 B |
+| FlatSharp 7.9.0 (lazy)                       | FlatBuffers      | 116 B |     29.1 ns |     240 B |   45.4 ns |       0 B |
+| MemoryPack 1.21.4                            | MemoryPack       |  86 B |     31.3 ns |     248 B |   18.7 ns |       0 B |
+| MessagePack-CSharp 3.1.10                    | MessagePack      |  74 B |      105 ns |     248 B |   55.7 ns |       0 B |
+| protobuf-net 3.4.30                          | Protocol Buffers |  91 B |      223 ns |     184 B |    204 ns |       0 B |
+| System.Text.Json (source-generated)          | JSON             | 207 B |      644 ns |     848 B |    338 ns |       0 B |
+
+**A record whose shape depends on its data (the `packet` layout above)**
+
+| Approach                                                               | Deserialize | Allocated | Serialize | Allocated |
+| ---------------------------------------------------------------------- | ----------: | --------: | --------: | --------: |
+| Hand-written `BinaryPrimitives`                                        |     26.3 ns |     208 B |    9.2 ns |       0 B |
+| CStructSharp generated `Parse` / `Serialize`                           |     67.0 ns |     800 B |   34.2 ns |       0 B |
+| CStructSharp runtime `Parse` + accessors / `Serialize` (`StructValue`) |      861 ns |   1,536 B |    513 ns |     856 B |
+| CStructSharp runtime `Parse` from a `MemoryStream` + accessors         |      940 ns |   1,528 B |         — |         — |
+| CStructSharp runtime `ReadValue<T>` / `Serialize` (mapped class)       |    1,024 ns |   1,872 B |    656 ns |   1,128 B |
+
+<!-- comparison-benchmarks:end -->
+
+Keep these limits in mind when reading the tables:
+
+- `MemoryMarshal` copies raw memory. It matches this layout only because the C# struct is declared with
+  `Pack = 1` and the test machine is little-endian. It cannot handle big-endian fields, variable-length arrays,
+  strings, or pointers. `MemoryMarshal.Write` is a single 79-byte memory copy; its time is below what the
+  benchmark can resolve.
+- The generated view reads members straight from the bytes and never builds an object, so it has no serialize
+  column. Write with the generated `Serialize` method or the typed `Update` setters instead.
+- The Kaitai Struct C# runtime can read but not write.
+- On the fixed record, the runtime reads most members through prepared plans. On the `packet` record it walks the
+  layout field by field and evaluates each length and condition while reading, which costs more than ten times as
+  much as generated code. Choose generated code when a hot loop reads a data-dependent layout; choose the runtime when
+  layouts arrive while the program runs.
+- The hand-written readers do only the bounds checks that `Span<T>` does. CStructSharp also enforces its configured
+  limits and reports the failing field, so the rows are not doing identical work.
+- The timings leave out one-time costs: compiling a layout with `new CStruct(text)`, the first call of each method
+  (just-in-time compilation), and reading from disk or network.
+- All numbers come from one machine. Compare rows with each other rather than treating the times as absolute. To
+  measure on your own machine, run `node tools/quality/comparison-benchmarks.mjs`.
+  [benchmarks/README.md](benchmarks/README.md#compare-with-other-serializers) explains in detail what the
+  benchmark measures and what it does not.
 
 ## Use JavaScript in Node.js or a browser
 

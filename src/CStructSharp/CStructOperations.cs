@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
+using CStructSharp.Reading;
 using CStructSharp.Streams;
 using CStructSharp.Values;
 
@@ -590,6 +591,16 @@ public sealed partial class CStruct
         IReadOnlyDictionary<string, int>? variables = null,
         WriteOptions? options = null)
     {
+        // A whole fixed root has a known size, so it is encoded straight into the exactly sized result.
+        if (variables is null && this.TryGetFixedRootPlan(path, out _, out StaticReadPlan? plan) && plan.SupportsWrite)
+        {
+            byte[] output = new byte[plan.Size];
+            if (this.TryWriteFixedRoot(output, path, value, null, options, out _))
+            {
+                return output;
+            }
+        }
+
         return this.SerializeCore(path, value, LayoutVariableInput.FromIntegers(variables), options);
     }
 

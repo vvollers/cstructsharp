@@ -827,6 +827,10 @@ namespace Demo
         /// <summary>Reads one <c>timeval</c> at the cursor's position.</summary>
         private static Timeval ReadTimeval(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
+            if (cursor.TryTakeFixed(4, 1, 4, 1, 0, out global::System.ReadOnlySpan<byte> fixedBytes))
+            {
+                return ReadTimevalFixed(fixedBytes, cursor.TrimFixedText);
+            }
             cursor.EnterComposite(member ?? "timeval", memberType);
             var value = new Timeval();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -850,6 +854,10 @@ namespace Demo
         /// <summary>Reads one <c>root</c> at the cursor's position.</summary>
         private static Root ReadRoot(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
+            if (cursor.TryTakeFixed(5, 1, 5, 2, 0, out global::System.ReadOnlySpan<byte> fixedBytes))
+            {
+                return ReadRootFixed(fixedBytes, cursor.TrimFixedText);
+            }
             cursor.EnterComposite(member ?? "root", memberType);
             var value = new Root();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -867,6 +875,34 @@ namespace Demo
             }
             cursor.Seek(placement.Finish(2), member, memberType);
             cursor.ExitComposite();
+            return value;
+        }
+
+        /// <summary>Reads one <c>timeval</c> from exactly its 4 bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <returns>The value.</returns>
+        private static Timeval ReadTimevalFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
+        {
+            var value = new Timeval();
+            // uint16 sec
+            value.Sec = global::CStructSharp.Generated.Codec.ReadUInt16(source.Slice(0, 2), true);
+            // uint16 usec
+            value.Usec = global::CStructSharp.Generated.Codec.ReadUInt16(source.Slice(2, 2), true);
+            return value;
+        }
+
+        /// <summary>Reads one <c>root</c> from exactly its 5 bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <returns>The value.</returns>
+        private static Root ReadRootFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
+        {
+            var value = new Root();
+            // timeval stamp
+            value.Stamp = ReadTimevalFixed(source.Slice(0, 4), trimFixedText);
+            // uint8 tail
+            value.Tail = source.Slice(4, 1)[0];
             return value;
         }
 
@@ -1077,6 +1113,11 @@ namespace Demo
             {
                 throw cursor.Fail("Null is not valid for struct or union value: timeval", member, memberType);
             }
+            if (IsTimevalFixedWritable(value) && cursor.TryReserveFixed(4, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+            {
+                WriteTimevalFixed(fixedBytes, value);
+                return;
+            }
             cursor.EnterComposite(member ?? "timeval", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint16 sec
@@ -1103,6 +1144,11 @@ namespace Demo
             {
                 throw cursor.Fail("Null is not valid for struct or union value: root", member, memberType);
             }
+            if (IsRootFixedWritable(value) && cursor.TryReserveFixed(5, 1, 2, 0, out global::System.Span<byte> fixedBytes))
+            {
+                WriteRootFixed(fixedBytes, value);
+                return;
+            }
             cursor.EnterComposite(member ?? "root", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // timeval stamp
@@ -1124,6 +1170,48 @@ namespace Demo
             cursor.Seek(placement.Current, member, memberType);
             cursor.Pad((int)(placement.Finish(2) - placement.Current), member, memberType);
             cursor.ExitComposite();
+        }
+
+        /// <summary>Whether <paramref name="value"/> can be written by <see cref="WriteTimevalFixed"/>: no nested value is null and every array has its declared length.</summary>
+        /// <param name="value">The value about to be written.</param>
+        /// <returns><see langword="true"/> when the fixed writer encodes it exactly as the member-by-member writer would.</returns>
+        private static bool IsTimevalFixedWritable(Timeval value)
+        {
+            return true;
+        }
+
+        /// <summary>Writes one <c>timeval</c> into exactly its cleared bytes, each member at its constant offset (reached only through <c>WriteCursor.TryReserveFixed</c>).</summary>
+        /// <param name="target">The struct's bytes, already zero so that padding is written as zeros.</param>
+        /// <param name="value">A value that passed <see cref="IsTimevalFixedWritable"/>.</param>
+        private static void WriteTimevalFixed(global::System.Span<byte> target, Timeval value)
+        {
+            // uint16 sec
+            global::CStructSharp.Generated.Codec.WriteUInt16(target.Slice(0, 2), value.Sec, true);
+            // uint16 usec
+            global::CStructSharp.Generated.Codec.WriteUInt16(target.Slice(2, 2), value.Usec, true);
+        }
+
+        /// <summary>Whether <paramref name="value"/> can be written by <see cref="WriteRootFixed"/>: no nested value is null and every array has its declared length.</summary>
+        /// <param name="value">The value about to be written.</param>
+        /// <returns><see langword="true"/> when the fixed writer encodes it exactly as the member-by-member writer would.</returns>
+        private static bool IsRootFixedWritable(Root value)
+        {
+            if (value.Stamp is null || !IsTimevalFixedWritable(value.Stamp))
+            {
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>Writes one <c>root</c> into exactly its cleared bytes, each member at its constant offset (reached only through <c>WriteCursor.TryReserveFixed</c>).</summary>
+        /// <param name="target">The struct's bytes, already zero so that padding is written as zeros.</param>
+        /// <param name="value">A value that passed <see cref="IsRootFixedWritable"/>.</param>
+        private static void WriteRootFixed(global::System.Span<byte> target, Root value)
+        {
+            // timeval stamp
+            WriteTimevalFixed(target.Slice(0, 4), value.Stamp);
+            // uint8 tail
+            target.Slice(4, 1)[0] = value.Tail;
         }
 
         /// <summary>The root declaration as <see cref="global::CStructSharp.ICStructGenerated{Root}"/>.</summary>

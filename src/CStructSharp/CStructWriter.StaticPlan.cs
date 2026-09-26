@@ -8,6 +8,7 @@ using System.Numerics;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
+using CStructSharp.Generated;
 using CStructSharp.Reading;
 using CStructSharp.Streams;
 using CStructSharp.Values;
@@ -99,7 +100,17 @@ public partial class CStruct
         return true;
     }
 
-    private void ExecuteStaticWritePlan(StaticReadPlan plan, CompiledCompositeType composite, Span<byte> bytes, object data, CStructElementWriterState state)
+    /// <summary>
+    ///     Encodes <paramref name="data"/> into <paramref name="bytes"/> through the static plan. With a writer
+    ///     <paramref name="state"/>, fields publish the layout variables later fields of the operation may read; a
+    ///     direct root write (<see langword="null"/> state) writes nothing afterwards, so it skips them.
+    /// </summary>
+    /// <param name="plan">The composite's plan.</param>
+    /// <param name="composite">The composite being written.</param>
+    /// <param name="bytes">Exactly the composite's bytes, with padding already cleared or preserved.</param>
+    /// <param name="data">The composite's value.</param>
+    /// <param name="state">The operation state, or <see langword="null"/> for a direct root write.</param>
+    private void ExecuteStaticWritePlan(StaticReadPlan plan, CompiledCompositeType composite, Span<byte> bytes, object data, CStructElementWriterState? state)
     {
         if (this.Aligned)
         {
@@ -122,15 +133,15 @@ public partial class CStruct
                     throw new CStructWriteException("Null is valid only for a scalar pointer field: " + name);
                 }
 
-                bool capture = field.CapturesLayoutVariable || state.CaptureAllLayoutVariables;
+                CStructElementWriterState? captureState = state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables) ? state : null;
                 switch (operation.Kind)
                 {
                 case StaticReadKind.Numeric:
                     WriteNumericValue(field, bytes.Slice(operation.Offset, field.Codec.Size), value, name);
-                    if (capture)
+                    if (captureState is not null)
                     {
-                        WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
-                        state.PublishQualified(name);
+                        WriterVariableProjection.UpdateVariablesFromValue(captureState, name, value);
+                        captureState.PublishQualified(name);
                     }
 
                     break;
@@ -140,10 +151,10 @@ public partial class CStruct
                         CompiledEnumType compiledEnum = field.Enum!;
                         BigInteger enumValue = EnumFieldValueParser.GetEnumValue(compiledEnum, value);
                         field.Codec.WriteNumeric(bytes.Slice(operation.Offset, field.Codec.Size), compiledEnum.Integer.ToStorageValue(enumValue));
-                        if (capture)
+                        if (captureState is not null)
                         {
-                            this.UpdateExactLayoutVariable(state.Variables, name, enumValue);
-                            state.PublishQualified(name);
+                            this.UpdateExactLayoutVariable(captureState.Variables, name, enumValue);
+                            captureState.PublishQualified(name);
                         }
 
                         break;
@@ -168,16 +179,21 @@ public partial class CStruct
                             }
                         }
 
-                        if (capture)
+                        if (captureState is not null)
                         {
-                            WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
-                            state.PublishQualified(name);
+                            WriterVariableProjection.UpdateVariablesFromValue(captureState, name, value);
+                            captureState.PublishQualified(name);
                         }
 
                         break;
                     }
 
                 case StaticReadKind.Nested:
+                    if (state is null)
+                    {
+                        this.ExecuteStaticWritePlan(operation.NestedPlan!, operation.NestedComposite!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), value, null);
+                    }
+                    else
                     {
                         string? outerPrefix = state.QualifiedPrefix;
                         if (field.HasQualifiedPrefix)
@@ -189,10 +205,10 @@ public partial class CStruct
                         state.QualifiedPrefix = outerPrefix;
                     }
 
-                    if (capture)
+                    if (captureState is not null)
                     {
-                        WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
-                        state.PublishQualified(name);
+                        WriterVariableProjection.UpdateVariablesFromValue(captureState, name, value);
+                        captureState.PublishQualified(name);
                     }
 
                     break;
@@ -215,10 +231,10 @@ public partial class CStruct
                             this.ExecuteStaticWritePlan(nestedPlan, operation.NestedComposite!, bytes.Slice(operation.Offset + (element * nestedPlan.Size), nestedPlan.Size), item, state);
                         }
 
-                        if (capture)
+                        if (captureState is not null)
                         {
-                            WriterVariableProjection.UpdateVariablesFromValue(state, name, value);
-                            state.PublishQualified(name);
+                            WriterVariableProjection.UpdateVariablesFromValue(captureState, name, value);
+                            captureState.PublishQualified(name);
                         }
 
                         break;
@@ -264,67 +280,55 @@ public partial class CStruct
     }
 
     /// <summary>
-    ///     Bulk path for a <see cref="PrimitiveArray{T}"/> whose element type is the codec's own CLR type (the value
-    ///     a parse produced) and whose length matches: the elements are encoded straight from the typed storage.
-    ///     Anything else - including a length mismatch, so its message stays the general writer's - takes the
-    ///     element loop.
+    ///     Bulk path for a typed numeric array whose element type is the codec's own CLR type - the
+    ///     <see cref="PrimitiveArray{T}"/> a parse produced, or a plain <c>T[]</c> such as a mapped class's
+    ///     <c>int[]</c> - and whose length matches: the elements are encoded straight from the typed storage, with
+    ///     one vectorized byte swap when the layout's byte order differs from the machine's. Anything else -
+    ///     including a length mismatch, so its message stays the general writer's - takes the element loop.
     /// </summary>
     private static bool TryWriteTypedArray(CompiledField field, Span<byte> target, object value, int count)
     {
         PrimitiveCodec codec = field.Codec;
+        return codec.Kind switch
+        {
+            PrimitiveCodecKind.UInt8 => TryEncode<byte>(value, target, count, codec.LittleEndian),
+            PrimitiveCodecKind.Int8 => TryEncode<sbyte>(value, target, count, codec.LittleEndian),
+            PrimitiveCodecKind.Int16 => TryEncode<short>(value, target, count, codec.LittleEndian),
+            PrimitiveCodecKind.UInt16 => TryEncode<ushort>(value, target, count, codec.LittleEndian),
+            PrimitiveCodecKind.Int32 => TryEncode<int>(value, target, count, codec.LittleEndian),
+            PrimitiveCodecKind.UInt32 => TryEncode<uint>(value, target, count, codec.LittleEndian),
+            PrimitiveCodecKind.Int64 => TryEncode<long>(value, target, count, codec.LittleEndian),
+            PrimitiveCodecKind.UInt64 => TryEncode<ulong>(value, target, count, codec.LittleEndian),
+            PrimitiveCodecKind.Float32 => TryEncode<float>(value, target, count, codec.LittleEndian),
+            PrimitiveCodecKind.Float64 => TryEncode<double>(value, target, count, codec.LittleEndian),
+            _ => false,
+        };
+    }
+
+    /// <summary>Encodes <paramref name="value"/> when it is a <typeparamref name="T"/> array of exactly <paramref name="count"/> elements.</summary>
+    private static bool TryEncode<T>(object value, Span<byte> target, int count, bool littleEndian)
+        where T : unmanaged
+    {
+        ReadOnlySpan<T> elements;
         switch (value)
         {
-        case PrimitiveArray<byte> bytes when codec.Kind == PrimitiveCodecKind.UInt8 && bytes.Count == count:
-            bytes.Span.CopyTo(target);
-            return true;
-        case PrimitiveArray<sbyte> sbytes when codec.Kind == PrimitiveCodecKind.Int8 && sbytes.Count == count:
-            System.Runtime.InteropServices.MemoryMarshal.AsBytes(sbytes.Span).CopyTo(target);
-            return true;
-        case PrimitiveArray<short> shorts when codec.Kind == PrimitiveCodecKind.Int16 && shorts.Count == count:
-            CopyEndian(shorts.Span, target, codec.LittleEndian);
-            return true;
-        case PrimitiveArray<ushort> ushorts when codec.Kind == PrimitiveCodecKind.UInt16 && ushorts.Count == count:
-            CopyEndian(ushorts.Span, target, codec.LittleEndian);
-            return true;
-        case PrimitiveArray<int> ints when codec.Kind == PrimitiveCodecKind.Int32 && ints.Count == count:
-            CopyEndian(ints.Span, target, codec.LittleEndian);
-            return true;
-        case PrimitiveArray<uint> uints when codec.Kind == PrimitiveCodecKind.UInt32 && uints.Count == count:
-            CopyEndian(uints.Span, target, codec.LittleEndian);
-            return true;
-        case PrimitiveArray<long> longs when codec.Kind == PrimitiveCodecKind.Int64 && longs.Count == count:
-            CopyEndian(longs.Span, target, codec.LittleEndian);
-            return true;
-        case PrimitiveArray<ulong> ulongs when codec.Kind == PrimitiveCodecKind.UInt64 && ulongs.Count == count:
-            CopyEndian(ulongs.Span, target, codec.LittleEndian);
-            return true;
-        case PrimitiveArray<float> floats when codec.Kind == PrimitiveCodecKind.Float32 && floats.Count == count:
-            CopyEndian(floats.Span, target, codec.LittleEndian);
-            return true;
-        case PrimitiveArray<double> doubles when codec.Kind == PrimitiveCodecKind.Float64 && doubles.Count == count:
-            CopyEndian(doubles.Span, target, codec.LittleEndian);
-            return true;
+        case PrimitiveArray<T> parsed:
+            elements = parsed.Span;
+            break;
+        case T[] array when array.GetType() == typeof(T[]):
+            // The runtime lets a uint[] pass as an int[]; only the exact type encodes without the per-element range checks.
+            elements = array;
+            break;
         default:
             return false;
         }
-    }
 
-    /// <summary>Copies fixed-width integers into the layout's byte order; a same-endian copy is one memcpy.</summary>
-    private static void CopyEndian<T>(ReadOnlySpan<T> source, Span<byte> target, bool littleEndian)
-        where T : unmanaged
-    {
-        ReadOnlySpan<byte> raw = System.Runtime.InteropServices.MemoryMarshal.AsBytes(source);
-        if (littleEndian == BitConverter.IsLittleEndian)
+        if (elements.Length != count)
         {
-            raw.CopyTo(target);
-            return;
+            return false;
         }
 
-        raw.CopyTo(target);
-        int size = System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
-        for (int offset = 0; offset < target.Length; offset += size)
-        {
-            target.Slice(offset, size).Reverse();
-        }
+        Codec.EncodeIntegers(elements, target, littleEndian);
+        return true;
     }
 }

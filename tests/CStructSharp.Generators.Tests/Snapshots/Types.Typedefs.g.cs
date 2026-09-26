@@ -1195,6 +1195,10 @@ namespace Demo
         /// <summary>Reads one <c>X</c> at the cursor's position.</summary>
         private static X ReadX(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
+            if (cursor.TryTakeFixed(1, 1, 1, 1, 0, out global::System.ReadOnlySpan<byte> fixedBytes))
+            {
+                return ReadXFixed(fixedBytes, cursor.TrimFixedText);
+            }
             cursor.EnterComposite(member ?? "X", memberType);
             var value = new X();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -1212,6 +1216,10 @@ namespace Demo
         /// <summary>Reads one <c>Anon</c> at the cursor's position.</summary>
         private static Anon ReadAnon(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
+            if (cursor.TryTakeFixed(2, 1, 2, 1, 0, out global::System.ReadOnlySpan<byte> fixedBytes))
+            {
+                return ReadAnonFixed(fixedBytes, cursor.TrimFixedText);
+            }
             cursor.EnterComposite(member ?? "Anon", memberType);
             var value = new Anon();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -1279,6 +1287,30 @@ namespace Demo
             }
             cursor.Seek(placement.Finish(8), member, memberType);
             cursor.ExitComposite();
+            return value;
+        }
+
+        /// <summary>Reads one <c>X</c> from exactly its 1 bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <returns>The value.</returns>
+        private static X ReadXFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
+        {
+            var value = new X();
+            // uint8 a
+            value.A = source.Slice(0, 1)[0];
+            return value;
+        }
+
+        /// <summary>Reads one <c>Anon</c> from exactly its 2 bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <returns>The value.</returns>
+        private static Anon ReadAnonFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
+        {
+            var value = new Anon();
+            // uint16 v
+            value.V = global::CStructSharp.Generated.Codec.ReadUInt16(source.Slice(0, 2), true);
             return value;
         }
 
@@ -1591,6 +1623,11 @@ namespace Demo
             {
                 throw cursor.Fail("Null is not valid for struct or union value: X", member, memberType);
             }
+            if (IsXFixedWritable(value) && cursor.TryReserveFixed(1, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+            {
+                WriteXFixed(fixedBytes, value);
+                return;
+            }
             cursor.EnterComposite(member ?? "X", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 a
@@ -1610,6 +1647,11 @@ namespace Demo
             if (value is null)
             {
                 throw cursor.Fail("Null is not valid for struct or union value: Anon", member, memberType);
+            }
+            if (IsAnonFixedWritable(value) && cursor.TryReserveFixed(2, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+            {
+                WriteAnonFixed(fixedBytes, value);
+                return;
             }
             cursor.EnterComposite(member ?? "Anon", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -1703,6 +1745,40 @@ namespace Demo
             cursor.Seek(placement.Current, member, memberType);
             cursor.Pad((int)(placement.Finish(8) - placement.Current), member, memberType);
             cursor.ExitComposite();
+        }
+
+        /// <summary>Whether <paramref name="value"/> can be written by <see cref="WriteXFixed"/>: no nested value is null and every array has its declared length.</summary>
+        /// <param name="value">The value about to be written.</param>
+        /// <returns><see langword="true"/> when the fixed writer encodes it exactly as the member-by-member writer would.</returns>
+        private static bool IsXFixedWritable(X value)
+        {
+            return true;
+        }
+
+        /// <summary>Writes one <c>X</c> into exactly its cleared bytes, each member at its constant offset (reached only through <c>WriteCursor.TryReserveFixed</c>).</summary>
+        /// <param name="target">The struct's bytes, already zero so that padding is written as zeros.</param>
+        /// <param name="value">A value that passed <see cref="IsXFixedWritable"/>.</param>
+        private static void WriteXFixed(global::System.Span<byte> target, X value)
+        {
+            // uint8 a
+            target.Slice(0, 1)[0] = value.A;
+        }
+
+        /// <summary>Whether <paramref name="value"/> can be written by <see cref="WriteAnonFixed"/>: no nested value is null and every array has its declared length.</summary>
+        /// <param name="value">The value about to be written.</param>
+        /// <returns><see langword="true"/> when the fixed writer encodes it exactly as the member-by-member writer would.</returns>
+        private static bool IsAnonFixedWritable(Anon value)
+        {
+            return true;
+        }
+
+        /// <summary>Writes one <c>Anon</c> into exactly its cleared bytes, each member at its constant offset (reached only through <c>WriteCursor.TryReserveFixed</c>).</summary>
+        /// <param name="target">The struct's bytes, already zero so that padding is written as zeros.</param>
+        /// <param name="value">A value that passed <see cref="IsAnonFixedWritable"/>.</param>
+        private static void WriteAnonFixed(global::System.Span<byte> target, Anon value)
+        {
+            // uint16 v
+            global::CStructSharp.Generated.Codec.WriteUInt16(target.Slice(0, 2), value.V, true);
         }
 
         /// <summary>The root declaration as <see cref="global::CStructSharp.ICStructGenerated{Root}"/>.</summary>

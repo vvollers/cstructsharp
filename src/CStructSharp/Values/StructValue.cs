@@ -100,6 +100,40 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
     }
 
     /// <summary>
+    ///     <see cref="TryGetValue(string, out object?)"/> for a member named by a section of <paramref name="text"/>,
+    ///     so a path walk looks up each segment without allocating it.
+    /// </summary>
+    /// <param name="text">The string holding the name, usually a whole path.</param>
+    /// <param name="start">The name's first character.</param>
+    /// <param name="length">The name's length in characters.</param>
+    /// <param name="value">The member value when present; otherwise <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> when the member is present.</returns>
+    internal bool TryGetValue(string text, int start, int length, out object? value)
+    {
+        if (this.shape.TryGetIndex(text, start, length, out int index))
+        {
+            object? slot = this.slots[index];
+            if (!ReferenceEquals(slot, Unset))
+            {
+                value = slot;
+                return true;
+            }
+
+            value = null;
+            return false;
+        }
+
+        if (this.extra is not null)
+        {
+            // Members outside the shape exist only on values assembled by a caller; the substring is rare here.
+            return this.extra.TryGetValue(text.Substring(start, length), out value);
+        }
+
+        value = null;
+        return false;
+    }
+
+    /// <summary>
     ///     Reads a member, or a nested value below it, as <typeparamref name="T"/> with the same checked conversion
     ///     <c>ReadValue&lt;T&gt;</c> applies: <c>header.Get&lt;ushort&gt;("kind")</c>,
     ///     <c>packet.Get&lt;byte&gt;("items[2].tag")</c>, <c>record.Get&lt;Point&gt;("origin")</c> for a nested struct
@@ -112,13 +146,7 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
     /// <exception cref="CStructReadException">The value cannot be converted to <typeparamref name="T"/> without loss.</exception>
     public T Get<T>(string path)
     {
-        ArgumentNullException.ThrowIfNull(path);
-        if (!ValuePath.TryResolve(this, path, out object? value, out string? failure))
-        {
-            throw new CStructPathException(failure);
-        }
-
-        return (T)TypedValueConverter.Convert(value, typeof(T), path)!;
+        return ValuePath.Get<T>(this, path);
     }
 
     /// <summary>Maps this struct to <typeparamref name="T"/> through its <c>ReadFrom</c>: <c>parsed.ToMapped&lt;Header&gt;()</c>.</summary>
@@ -138,23 +166,7 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
     /// <returns><see langword="true"/> when the path resolved and the value converted.</returns>
     public bool TryGet<T>(string path, [MaybeNullWhen(false)] out T value)
     {
-        ArgumentNullException.ThrowIfNull(path);
-        if (!ValuePath.TryResolve(this, path, out object? natural, out _))
-        {
-            value = default;
-            return false;
-        }
-
-        try
-        {
-            value = (T)TypedValueConverter.Convert(natural, typeof(T), path)!;
-            return true;
-        }
-        catch (CStructReadException)
-        {
-            value = default;
-            return false;
-        }
+        return ValuePath.TryGet(this, path, describeFailure: false, out value, out _);
     }
 
     /// <summary>
@@ -169,26 +181,7 @@ public sealed class StructValue : IDynamicMetaObjectProvider, IDictionary<string
     /// <returns>Whether <paramref name="value"/> holds the member.</returns>
     public bool TryGet<T>(string path, [MaybeNullWhen(false)] out T value, out CStructException? failure)
     {
-        ArgumentNullException.ThrowIfNull(path);
-        if (!ValuePath.TryResolve(this, path, out object? natural, out string? missing))
-        {
-            value = default;
-            failure = new CStructPathException(missing);
-            return false;
-        }
-
-        try
-        {
-            value = (T)TypedValueConverter.Convert(natural, typeof(T), path)!;
-            failure = null;
-            return true;
-        }
-        catch (CStructReadException exception)
-        {
-            value = default;
-            failure = exception;
-            return false;
-        }
+        return ValuePath.TryGet(this, path, describeFailure: true, out value, out failure);
     }
 
     /// <summary>

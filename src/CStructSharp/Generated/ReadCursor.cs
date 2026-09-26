@@ -206,6 +206,37 @@ public ref struct ReadCursor
     }
 
     /// <summary>
+    ///     Consumes a whole fixed-layout struct in one step for the generated fixed reader, but only when the
+    ///     member-by-member reader would read exactly these bytes without a failure: the token is not cancelled, the
+    ///     struct's bytes are present, the budget covers the bytes that reader charges, the nesting and array limits
+    ///     hold, and the start meets the struct's alignment. Otherwise nothing changes and the caller reads member by
+    ///     member, which reports any failure at the member where it always has.
+    /// </summary>
+    /// <param name="size">The struct's storage size in bytes, tail padding included.</param>
+    /// <param name="alignment">The alignment the start must meet (1 in a packed layout).</param>
+    /// <param name="chargedBytes">The bytes the member-by-member reader charges to the read budget (members, not padding).</param>
+    /// <param name="nestingLevels">The struct levels the member-by-member reader would enter, the struct itself included.</param>
+    /// <param name="maximumArrayCount">The largest fixed array count inside the struct.</param>
+    /// <param name="bytes">The struct's bytes when the method returns <see langword="true"/>.</param>
+    /// <returns><see langword="true"/> when the bytes were consumed and charged.</returns>
+    public bool TryTakeFixed(int size, int alignment, long chargedBytes, int nestingLevels, int maximumArrayCount, out ReadOnlySpan<byte> bytes)
+    {
+        if (this.settings.CancellationToken.IsCancellationRequested || size < 0 || size > this.Remaining ||
+            chargedBytes > this.settings.MaxTotalBytesRead - this.bytesRead ||
+            this.nestingDepth + nestingLevels > this.settings.MaxNestingDepth || maximumArrayCount > this.settings.MaxArrayElements ||
+            (alignment > 1 && this.position % alignment != 0))
+        {
+            bytes = default;
+            return false;
+        }
+
+        bytes = this.source.Slice(this.position, size);
+        this.position += size;
+        this.bytesRead += chargedBytes;
+        return true;
+    }
+
+    /// <summary>
     ///     Consumes a whole numeric array as the runtime's bulk array reader does: the extent is checked before any
     ///     byte is read, and a short read names the element count and size.
     /// </summary>

@@ -46,6 +46,7 @@ refer to bytes before that slice.
 | A known C# type | `ReadValue<T>` | Application code benefits from typed properties and checked conversion; `T` is a scalar, an array, or a class implementing `ICStructMapped<T>` |
 | A known C# type with an expected failure path | `TryReadValue<T>` (`TryReadValueAsync<T>` returns a `ReadAttempt<T>`) | Truncated or malformed input is an ordinary outcome |
 | One member of a value you already parsed, with an expected failure path | `TryGet<T>` / `GetOrDefault<T>` on `StructValue` | An absent conditional member or an unconvertible value is an ordinary outcome |
+| The same members, read many times | `GetAccessor<T>` once, then `accessor.Get(parsed)` or `accessor.Read(bytes)`; `CreateView` to read members without parsing | A loop over many records; see [read the same members many times](reading-values.md#read-the-same-members-many-times) |
 | A generated class or an allocation-free view | `Wire.Parse` / `Wire.TryParse` / `new Wire.HeaderView(bytes)` on a `[CStructLayout]` class | The layout is in your source; see [runtime or generated?](generated/choosing-runtime-or-generated.md) |
 | A sequence of records, typed or untyped | `Wire.Records` / `Wire.HeaderView.Enumerate` / `ParseMany` | A file of entries, a message body of frames ([sequences and TryParse](generated/sequences-and-try-parse.md)) |
 | Values plus byte ranges | `ParseWithDebug` (struct) / `ReadValueWithDebug` (anything) | A hex viewer or diagnostic tool must show where values came from |

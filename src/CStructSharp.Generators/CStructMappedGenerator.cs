@@ -113,6 +113,7 @@ public sealed class CStructMappedGenerator : IIncrementalGenerator
             SourceSpan.From((attribute.ApplicationSyntaxReference?.GetSyntax(cancellation) as AttributeSyntax)?.GetLocation() ?? declaration.Identifier.GetLocation()));
     }
 
+    /// <summary>Describes one public settable property: its layout name override, type, mapping kind, and direct-member classification.</summary>
     private static MappedMember Describe(IPropertySymbol property, string? layoutName, INamedTypeSymbol? mappedInterface, INamedTypeSymbol? mappedAttribute, SourceSpan span)
     {
         ITypeSymbol type = property.Type;
@@ -143,7 +144,72 @@ public sealed class CStructMappedGenerator : IIncrementalGenerator
         }
 
         string? unsupported = Unsupported(effective, mappedInterface, mappedAttribute);
-        return new MappedMember(property.Name, layoutName, display, unsupported is null ? MappedMemberKind.Converted : MappedMemberKind.Unsupported, string.Empty, nullableValue, initOnly, unsupported ?? string.Empty, span);
+        return new MappedMember(property.Name, layoutName, display, unsupported is null ? MappedMemberKind.Converted : MappedMemberKind.Unsupported, string.Empty, nullableValue, initOnly, unsupported ?? string.Empty, span, FixedType(effective, mappedInterface, mappedAttribute));
+    }
+
+    /// <summary>Classifies a property type for the direct members of a layout-bound class; see <see cref="MappedMember.FixedType"/>.</summary>
+    /// <param name="type">The property type, with a nullable value type unwrapped.</param>
+    /// <param name="mappedInterface">The <c>ICStructMapped&lt;T&gt;</c> interface symbol.</param>
+    /// <param name="mappedAttribute">The <c>[CStructMapped]</c> attribute symbol.</param>
+    /// <returns>The classification, or an empty string for a type the direct members do not read.</returns>
+    private static string FixedType(ITypeSymbol type, INamedTypeSymbol? mappedInterface, INamedTypeSymbol? mappedAttribute)
+    {
+        if (Keyword(type) is { } keyword)
+        {
+            return "p:" + keyword;
+        }
+
+        if (type is INamedTypeSymbol { TypeKind: TypeKind.Enum, EnumUnderlyingType: { } underlying } && Keyword(underlying) is { } underlyingKeyword)
+        {
+            return "e:" + underlyingKeyword;
+        }
+
+        if (type.SpecialType == SpecialType.System_String)
+        {
+            return "s";
+        }
+
+        if (type is IArrayTypeSymbol { Rank: 1 } array)
+        {
+            if (Keyword(array.ElementType) is { } elementKeyword)
+            {
+                return "ap:" + elementKeyword;
+            }
+
+            return IsMapped(array.ElementType, mappedInterface, mappedAttribute)
+                       ? (array.ElementType.IsValueType ? "acs:" : "ac:") + array.ElementType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                       : string.Empty;
+        }
+
+        return IsMapped(type, mappedInterface, mappedAttribute) ? (type.IsValueType ? "cs" : "c") : string.Empty;
+    }
+
+    /// <summary>The C# keyword of a primitive type the layout's fixed-width numbers decode to, or <see langword="null"/>.</summary>
+    private static string? Keyword(ITypeSymbol type)
+    {
+        return type.SpecialType switch
+        {
+            SpecialType.System_Byte => "byte",
+            SpecialType.System_SByte => "sbyte",
+            SpecialType.System_Boolean => "bool",
+            SpecialType.System_Int16 => "short",
+            SpecialType.System_UInt16 => "ushort",
+            SpecialType.System_Int32 => "int",
+            SpecialType.System_UInt32 => "uint",
+            SpecialType.System_Int64 => "long",
+            SpecialType.System_UInt64 => "ulong",
+            SpecialType.System_Single => "float",
+            SpecialType.System_Double => "double",
+            _ => null,
+        };
+    }
+
+    /// <summary>Whether a class or struct is a mapped type: it implements <c>ICStructMapped&lt;T&gt;</c> or carries <c>[CStructMapped]</c>.</summary>
+    private static bool IsMapped(ITypeSymbol type, INamedTypeSymbol? mappedInterface, INamedTypeSymbol? mappedAttribute)
+    {
+        return type.TypeKind is TypeKind.Class or TypeKind.Struct &&
+               ((mappedInterface is not null && type.AllInterfaces.Any(candidate => SymbolEqualityComparer.Default.Equals(candidate.OriginalDefinition, mappedInterface)))
+                || (mappedAttribute is not null && type.GetAttributes().Any(candidate => SymbolEqualityComparer.Default.Equals(candidate.AttributeClass, mappedAttribute))));
     }
 
     /// <summary>The name of a class type the mapper cannot convert (neither a reader value nor a mapped class), or <see langword="null"/> when the type converts.</summary>
@@ -186,6 +252,7 @@ public sealed class CStructMappedGenerator : IIncrementalGenerator
         };
     }
 
+    /// <summary>Reports the class's diagnostics, resolves its layout struct when <c>Layout</c> names one, and adds the generated mapper.</summary>
     private static void Generate(SourceProductionContext context, MappedRequest request, ImmutableArray<LayoutRequest> layouts)
     {
         if (!request.IsPartial || !request.ContainersArePartial)
@@ -215,11 +282,14 @@ public sealed class CStructMappedGenerator : IIncrementalGenerator
             return;
         }
 
-        // The layout's member names, when the attribute names a composite of a [CStructLayout] in this compilation.
+        // The layout's member names, when the attribute names a composite of a [CStructLayout] in this compilation, and
+        // the composite itself, for the direct members of a class bound to a fixed-layout struct.
         IReadOnlyList<string>? layoutMembers = null;
+        CStructSharp.Compilation.CompiledCompositeType? composite = null;
         if (request.Layout is not null)
         {
-            layoutMembers = CStructLayoutGenerator.ResolveMembers(layouts, request.Layout);
+            composite = CStructLayoutGenerator.ResolveComposite(layouts, request.Layout);
+            layoutMembers = composite?.Shape.Names;
             if (layoutMembers is not null)
             {
                 foreach (MappedMember member in request.Members)
@@ -232,7 +302,7 @@ public sealed class CStructMappedGenerator : IIncrementalGenerator
             }
         }
 
-        context.AddSource(request.HintName, SourceText.From(MappedEmitter.Emit(request, layoutMembers), System.Text.Encoding.UTF8));
+        context.AddSource(request.HintName, SourceText.From(MappedEmitter.Emit(request, layoutMembers, composite), System.Text.Encoding.UTF8));
     }
 
     /// <summary>The layout member a property maps to, by the mapper's rule, or <see langword="null"/> when the layout has none.</summary>

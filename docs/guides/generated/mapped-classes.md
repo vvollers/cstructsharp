@@ -34,6 +34,32 @@ With `Layout = "header"` on the attribute, the generator resolves the names at b
 `[CStructLayout]` classes in the same project and reports `CSG102` for a property that matches nothing. Without
 it the names are resolved at run time, when the value's shape is known.
 
+## Direct reads and writes for a layout-bound class
+
+`Layout = "header"` also lets the generator read the class straight from bytes when every member of that struct has
+a fixed offset (no runtime-sized arrays, conditions, pointers, bitfields or unions). The class then implements
+`ICStructFixedMapped<T>`: `TryReadFixed` decodes each property at its member's offset, `TryWriteFixed` stores it
+there, and `FixedLayoutFingerprint` is a 64-bit summary of the struct they were generated for - every offset, size,
+type and byte order.
+
+`layout.ReadValue<Header>(bytes, "header")` and `layout.Serialize(...)` of a whole struct in memory use these
+members instead of building a `StructValue` and mapping it property by property. The runtime compares the
+fingerprint with that of the layout the call uses. A layout compiled with other options (another byte order or
+alignment, say) has another fingerprint and takes the property-by-property route. On the repository benchmark
+machine, reading a 79-byte record into a mapped class took 25 ns instead of 280 ns, and writing one took 25 ns
+instead of 240 ns.
+
+The direct members give exactly the results of the property-by-property route, so they are generated only where
+that is certain:
+
+- Reading: every property must map to a member, as that member's own type - a `uint32` as `uint`, an enum whose
+  underlying type is the member's storage type, a `char[N]` as `string`, an array of the same element type, or a
+  nested struct as another layout-bound mapped class. A property that needs a conversion (a `uint16` read as `long`)
+  leaves the class without direct members; it is still mapped as before.
+- Writing: additionally, every member of the struct must have exactly one property, and none may be text, an enum
+  or a 24-bit integer, whose values the writer validates. A value the direct writer cannot store - a null nested
+  object, an array of the wrong length - is written property by property, and fails there with the usual message.
+
 ## Conversions
 
 Each property receives its member through the same rules `Get<T>` applies:

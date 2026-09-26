@@ -844,6 +844,10 @@ namespace Demo
         /// <summary>Reads one <c>hdr</c> at the cursor's position.</summary>
         private static Hdr ReadHdr(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
+            if (cursor.TryTakeFixed(4, 1, 4, 1, 0, out global::System.ReadOnlySpan<byte> fixedBytes))
+            {
+                return ReadHdrFixed(fixedBytes, cursor.TrimFixedText);
+            }
             cursor.EnterComposite(member ?? "hdr", memberType);
             var value = new Hdr();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -922,6 +926,22 @@ namespace Demo
             }
             cursor.Seek(placement.Finish(2), member, memberType);
             cursor.ExitComposite();
+            return value;
+        }
+
+        /// <summary>Reads one <c>hdr</c> from exactly its 4 bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <returns>The value.</returns>
+        private static Hdr ReadHdrFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
+        {
+            var value = new Hdr();
+            // uint16 length
+            value.Length = global::CStructSharp.Generated.Codec.ReadUInt16(source.Slice(0, 2), false);
+            // uint8 tag
+            value.Tag = source.Slice(2, 1)[0];
+            // uint8 flags
+            value.Flags = source.Slice(3, 1)[0];
             return value;
         }
 
@@ -1151,6 +1171,11 @@ namespace Demo
             {
                 throw cursor.Fail("Null is not valid for struct or union value: hdr", member, memberType);
             }
+            if (IsHdrFixedWritable(value) && cursor.TryReserveFixed(4, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+            {
+                WriteHdrFixed(fixedBytes, value);
+                return;
+            }
             cursor.EnterComposite(member ?? "hdr", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint16 length
@@ -1242,6 +1267,27 @@ namespace Demo
             cursor.Seek(placement.Current, member, memberType);
             cursor.Pad((int)(placement.Finish(2) - placement.Current), member, memberType);
             cursor.ExitComposite();
+        }
+
+        /// <summary>Whether <paramref name="value"/> can be written by <see cref="WriteHdrFixed"/>: no nested value is null and every array has its declared length.</summary>
+        /// <param name="value">The value about to be written.</param>
+        /// <returns><see langword="true"/> when the fixed writer encodes it exactly as the member-by-member writer would.</returns>
+        private static bool IsHdrFixedWritable(Hdr value)
+        {
+            return true;
+        }
+
+        /// <summary>Writes one <c>hdr</c> into exactly its cleared bytes, each member at its constant offset (reached only through <c>WriteCursor.TryReserveFixed</c>).</summary>
+        /// <param name="target">The struct's bytes, already zero so that padding is written as zeros.</param>
+        /// <param name="value">A value that passed <see cref="IsHdrFixedWritable"/>.</param>
+        private static void WriteHdrFixed(global::System.Span<byte> target, Hdr value)
+        {
+            // uint16 length
+            global::CStructSharp.Generated.Codec.WriteUInt16(target.Slice(0, 2), value.Length, false);
+            // uint8 tag
+            target.Slice(2, 1)[0] = value.Tag;
+            // uint8 flags
+            target.Slice(3, 1)[0] = value.Flags;
         }
 
         /// <summary>The root declaration as <see cref="global::CStructSharp.ICStructGenerated{Root}"/>.</summary>

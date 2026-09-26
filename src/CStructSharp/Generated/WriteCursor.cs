@@ -489,6 +489,44 @@ public ref struct WriteCursor
         }
     }
 
+    /// <summary>
+    ///     Reserves a whole fixed-layout struct in one step for the generated fixed writer, but only when the
+    ///     member-by-member writer would write exactly these bytes without a failure: the token is not cancelled, the
+    ///     struct is appended at the end of what was written (so its padding is new and written as zeros, never
+    ///     preserved existing bytes), it fits the destination and the total byte limit, the nesting and array limits
+    ///     hold, and the start meets the struct's alignment. The reserved bytes are cleared, so padding reads as zeros.
+    ///     Otherwise nothing changes and the caller writes member by member, which reports any failure as before.
+    /// </summary>
+    /// <param name="size">The struct's storage size in bytes, tail padding included.</param>
+    /// <param name="alignment">The alignment the start must meet (1 in a packed layout).</param>
+    /// <param name="nestingLevels">The struct levels the member-by-member writer would enter, the struct itself included.</param>
+    /// <param name="maximumArrayCount">The largest fixed array count inside the struct.</param>
+    /// <param name="bytes">The struct's cleared bytes when the method returns <see langword="true"/>.</param>
+    /// <returns><see langword="true"/> when the bytes were reserved.</returns>
+    public bool TryReserveFixed(int size, int alignment, int nestingLevels, int maximumArrayCount, out Span<byte> bytes)
+    {
+        long end = (long)this.position + size;
+        if (this.options.CancellationToken.IsCancellationRequested || size < 0 || this.position != this.length ||
+            end > this.options.MaxTotalBytesWritten || (this.owned is null && end > this.destination.Length) ||
+            this.nestingDepth + nestingLevels > this.options.MaxNestingDepth || maximumArrayCount > this.options.MaxArrayElements ||
+            (alignment > 1 && this.position % alignment != 0))
+        {
+            bytes = default;
+            return false;
+        }
+
+        if (end > this.destination.Length)
+        {
+            this.Grow((int)end);
+        }
+
+        bytes = this.destination.Slice(this.position, size);
+        bytes.Clear();
+        this.position = (int)end;
+        this.length = this.position;
+        return true;
+    }
+
     /// <summary>Replaces an owned buffer with a larger rental, preserving written bytes and clearing its unused tail.</summary>
     /// <param name="required">The minimum destination capacity in bytes.</param>
     /// <remarks>The old rental is returned immediately; previously borrowed spans must no longer be used.</remarks>

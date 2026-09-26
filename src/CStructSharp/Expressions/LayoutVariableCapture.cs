@@ -13,6 +13,11 @@ using CStructSharp.Syntax;
 /// </summary>
 internal static class LayoutVariableCapture
 {
+    // Literals for the small integers counts, lengths and kinds usually hold, created on first use and shared: a
+    // Literal is immutable, so every capture of the same value can use one instance instead of allocating another.
+    private const int SmallestCached = -128;
+    private static readonly Literal?[] SmallLiterals = new Literal?[1152];
+
     /// <summary>Stores <paramref name="value"/> under <paramref name="name"/> in <paramref name="variables"/> using the capture rule.</summary>
     public static void Capture(Dictionary<string, Expr> variables, string name, object? value)
     {
@@ -36,11 +41,25 @@ internal static class LayoutVariableCapture
     {
         if (Int32Capture.TryConvert(value, out int captured))
         {
-            return new Literal(captured);
+            return SmallLiteral(captured) ?? new Literal(captured);
         }
 
         return value is uint or long or ulong or Int128 or UInt128 or BigInteger
                    ? new WideValueVariable(value)
                    : null;
+    }
+
+    /// <summary>The shared literal of a value in the cached range (-128 to 1023), or <see langword="null"/> outside it.</summary>
+    /// <param name="value">The captured value.</param>
+    /// <returns>The literal, created on first use (a benign race may create two equal ones), or <see langword="null"/>.</returns>
+    private static Literal? SmallLiteral(int value)
+    {
+        int index = value - SmallestCached;
+        if ((uint)index >= (uint)SmallLiterals.Length)
+        {
+            return null;
+        }
+
+        return SmallLiterals[index] ??= new Literal(value);
     }
 }

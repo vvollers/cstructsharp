@@ -2,9 +2,11 @@ namespace CStructSharp.Compilation;
 
 using CStructSharp.Reading;
 
-/// <summary>The runtime half of a compiled composite: the cached span read plan.</summary>
+/// <summary>The runtime half of a compiled composite: the cached span read plan and layout fingerprint.</summary>
 internal sealed partial class CompiledCompositeType
 {
+    // Boxed so that publishing it is one reference write: a 16-byte ulong? could be read half-written by another thread.
+    private System.Runtime.CompilerServices.StrongBox<ulong>? fingerprint;
     private StaticReadPlan? staticPlan;
     private bool staticPlanBuilt;
 
@@ -23,4 +25,10 @@ internal sealed partial class CompiledCompositeType
             return this.staticPlan;
         }
     }
+
+    /// <summary>
+    ///     The layout fingerprint of this composite (see <see cref="Compilation.LayoutFingerprint"/>), which a mapped
+    ///     class generated against the same layout carries. Computed on first use; a benign race computes it twice.
+    /// </summary>
+    public ulong Fingerprint => (this.fingerprint ??= new System.Runtime.CompilerServices.StrongBox<ulong>(Compilation.LayoutFingerprint.Compute(this))).Value;
 }

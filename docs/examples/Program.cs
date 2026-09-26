@@ -23,6 +23,7 @@ internal static partial class Program
         ("cancellation", Cancellation),
         ("parse-async", () => ParseAsyncExample().GetAwaiter().GetResult()),
         ("parse-many", () => ParseManyExample().GetAwaiter().GetResult()),
+        ("prepared-reads", PreparedReads),
         ("write-async", () => WriteAsyncExample().GetAwaiter().GetResult()),
         ("update-async", () => UpdateAsyncExample().GetAwaiter().GetResult()),
         ("try-get", TryGetAndGetOrDefault),
@@ -322,7 +323,36 @@ internal static partial class Program
     }
     #endregion
 
+    #region api-guide-prepared-reads
+    /// <summary>Reads members of one record through accessors, from bytes and from a parsed value, and through a view.</summary>
+    private static void PreparedReads()
+    {
+        var layout = new CStruct("struct vec { float32 x; float32 y; }; struct reading { uint32 id; vec pos; int16 samples[3]; };");
+        byte[] bytes = [7, 0, 0, 0, 0, 0, 0xC0, 0x3F, 0, 0, 0x20, 0xC1, 1, 0, 2, 0, 3, 0];
+
+        // Resolve each path once: the accessor remembers where the member lives.
+        FieldAccessor<float> x = layout.GetAccessor<float>("reading.pos.x");
+        FieldAccessor<short> third = layout.GetAccessor<short>("reading.samples[2]");
+
+        // From bytes: decoded at the member's constant offset (bytes 4-7 and 16-17).
+        Equal(1.5f, x.Read(bytes));
+        Equal((short)3, third.Read(bytes));
+
+        // From a parsed struct: the same members, without parsing the path strings again.
+        StructValue parsed = layout.Parse(bytes, "reading");
+        Equal(1.5f, x.Get(parsed));
+        Equal((short)3, third.Get(parsed));
+
+        // A view reads members from the bytes when asked and builds no StructValue.
+        StructView view = layout.CreateView(bytes, "reading");
+        Equal(7u, view.Get<uint>("id"));
+        Equal(-10f, view.Get<float>("pos.y"));
+        Equal((short)3, view.Get(third));
+    }
+    #endregion
+
     #region api-guide-try-get
+    /// <summary>Tells an absent member from an unconvertible one with TryGet, and falls back with GetOrDefault.</summary>
     private static void TryGetAndGetOrDefault()
     {
         var layout = new CStruct("struct message { uint8 kind; if (kind == 1) { uint32 code; } uint8 tail; };");

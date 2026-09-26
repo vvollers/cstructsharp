@@ -11,6 +11,64 @@ using CStructSharp.Diagnostics;
 /// <summary>Maps natural reader results to caller-selected CLR types without reflection: scalars, enums, arrays, values, and registered mapped classes.</summary>
 internal static class TypedValueConverter
 {
+    /// <summary>
+    ///     <see cref="Convert(object?, Type, string?)"/> for a type known at compile time, with the common cases taken
+    ///     without the type tests: a value that already has the type, a registered mapped class read through its typed
+    ///     reader, and a parsed primitive array copied into the matching array. Each is the rule the general conversion
+    ///     applies to that input, with the same failure decoration; every other input takes the general conversion.
+    /// </summary>
+    /// <typeparam name="T">The requested type.</typeparam>
+    /// <param name="value">The natural value.</param>
+    /// <param name="path">The value's path, for failure messages.</param>
+    /// <returns>The converted value.</returns>
+    public static T Convert<T>(object? value, string path)
+    {
+        if (value is T typed)
+        {
+            return typed;
+        }
+
+        if (value is StructValue composite && MappedTypes.Reader<T>.Read is { } read)
+        {
+            return ReadMapped(read, composite, path);
+        }
+
+        if (value is IPrimitiveArray primitive && ArrayElement<T>.Type is { } elementType && primitive.ElementType == elementType)
+        {
+            return (T)(object)primitive.ToArray();
+        }
+
+        return (T)Convert(value, typeof(T), path)!;
+    }
+
+    /// <summary>Runs a mapped class's reader with the failure decoration the general conversion gives it.</summary>
+    private static T ReadMapped<T>(Func<StructValue, T> read, StructValue composite, string path)
+    {
+        try
+        {
+            try
+            {
+                return read(composite);
+            }
+            catch (CStructException exception)
+            {
+                // A mapper reads members relative to its struct; report where that struct sits in the caller's read.
+                exception.PrefixPath(path);
+                throw;
+            }
+        }
+        catch (CStructReadException exception)
+        {
+            exception.AttachContext(path);
+            throw;
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidCastException or
+                                          InvalidOperationException or OverflowException)
+        {
+            throw ConversionFailure(composite, typeof(T), path, exception);
+        }
+    }
+
     /// <summary>Converts one natural value or reports a stable read-domain failure.</summary>
     public static object? Convert(
         object? value,
@@ -352,5 +410,13 @@ internal static class TypedValueConverter
 
         public override string ToString()
             => this.index < 0 ? this.basePath : this.basePath + "[" + this.index.ToString(CultureInfo.InvariantCulture) + "]";
+    }
+
+    /// <summary>The element type of a one-dimensional array type, computed once per <typeparamref name="T"/>; null for any other type.</summary>
+    /// <typeparam name="T">The requested type.</typeparam>
+    private static class ArrayElement<T>
+    {
+        /// <summary>Gets the element type, or <see langword="null"/> when <typeparamref name="T"/> is not a one-dimensional array.</summary>
+        public static Type? Type { get; } = typeof(T).IsSZArray ? typeof(T).GetElementType() : null;
     }
 }

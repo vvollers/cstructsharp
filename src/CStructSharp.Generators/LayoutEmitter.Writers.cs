@@ -19,6 +19,8 @@ internal sealed partial class LayoutEmitter
 {
     private const string WriteCursorType = "global::CStructSharp.Generated.WriteCursor";
 
+    /// <summary>Emits the serialize overloads, one member-by-member writer per composite, and the fixed writers.</summary>
+    /// <param name="writer">The generated source destination.</param>
     private void EmitWriters(SourceWriter writer)
     {
         foreach (GeneratedComposite composite in this.model.Composites)
@@ -31,6 +33,8 @@ internal sealed partial class LayoutEmitter
             writer.Line();
             this.EmitCompositeWriter(writer, composite);
         }
+
+        this.EmitFixedWriters(writer);
     }
 
     private void EmitSerializeOverloads(SourceWriter writer, GeneratedComposite composite, bool isRoot)
@@ -145,6 +149,7 @@ internal sealed partial class LayoutEmitter
         writer.Open("if (value is null)");
         writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Null is not valid for struct or union value: " + composite.LayoutName) + ", member, memberType);");
         writer.Close();
+        this.EmitFixedWriterShortcut(writer, composite);
         writer.Line("cursor.EnterComposite(member ?? " + SourceWriter.Literal(composite.LayoutName) + ", memberType);");
         var scope = new ReaderScope(this, composite);
         this.decidedGroups.Clear();
@@ -745,31 +750,34 @@ internal sealed partial class LayoutEmitter
 
     /// <summary>The statement that stores one fixed-width numeric value (whose C# type already fits the codec) at the cursor.</summary>
     private string NumericWrite(PrimitiveCodec codec, string access, string member, string memberType)
+        => NumericStore(codec, "cursor.Reserve(" + Int(codec.Size) + ", " + member + ", " + memberType + ")", access);
+
+    /// <summary>The statement that stores one fixed-width numeric value into <paramref name="span"/>, an expression for exactly its bytes.</summary>
+    private static string NumericStore(PrimitiveCodec codec, string span, string access)
     {
         string le = Bool(codec.LittleEndian);
-        string reserve = "cursor.Reserve(" + Int(codec.Size) + ", " + member + ", " + memberType + ")";
         return codec.Kind switch
         {
-            PrimitiveCodecKind.UInt8 or PrimitiveCodecKind.Latin1 or PrimitiveCodecKind.Cp437 or PrimitiveCodecKind.Utf8Unit or PrimitiveCodecKind.Utf16LeUnit or PrimitiveCodecKind.Utf16BeUnit => reserve + "[0] = " + access + ";",
-            PrimitiveCodecKind.Int8 => reserve + "[0] = unchecked((byte)" + access + ");",
-            PrimitiveCodecKind.Bool => reserve + "[0] = (byte)(" + access + " ? 1 : 0);",
-            PrimitiveCodecKind.Char => reserve + "[0] = " + CodecClass + ".ToNarrowCharacter(" + access + ");",
-            PrimitiveCodecKind.WChar => CodecClass + ".WriteChar(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Int16 => CodecClass + ".WriteInt16(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt16 => CodecClass + ".WriteUInt16(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Int24 => CodecClass + ".WriteInt24(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt24 => CodecClass + ".WriteUInt24(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Int32 => CodecClass + ".WriteInt32(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt32 => CodecClass + ".WriteUInt32(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Int48 => CodecClass + ".WriteInt48(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt48 => CodecClass + ".WriteUInt48(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Int64 => CodecClass + ".WriteInt64(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt64 => CodecClass + ".WriteUInt64(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Int128 => CodecClass + ".WriteInt128(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.UInt128 => CodecClass + ".WriteUInt128(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Float16 => CodecClass + ".WriteHalf(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Float32 => CodecClass + ".WriteSingle(" + reserve + ", " + access + ", " + le + ");",
-            PrimitiveCodecKind.Float64 => CodecClass + ".WriteDouble(" + reserve + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.UInt8 or PrimitiveCodecKind.Latin1 or PrimitiveCodecKind.Cp437 or PrimitiveCodecKind.Utf8Unit or PrimitiveCodecKind.Utf16LeUnit or PrimitiveCodecKind.Utf16BeUnit => span + "[0] = " + access + ";",
+            PrimitiveCodecKind.Int8 => span + "[0] = unchecked((byte)" + access + ");",
+            PrimitiveCodecKind.Bool => span + "[0] = (byte)(" + access + " ? 1 : 0);",
+            PrimitiveCodecKind.Char => span + "[0] = " + CodecClass + ".ToNarrowCharacter(" + access + ");",
+            PrimitiveCodecKind.WChar => CodecClass + ".WriteChar(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.Int16 => CodecClass + ".WriteInt16(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.UInt16 => CodecClass + ".WriteUInt16(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.Int24 => CodecClass + ".WriteInt24(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.UInt24 => CodecClass + ".WriteUInt24(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.Int32 => CodecClass + ".WriteInt32(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.UInt32 => CodecClass + ".WriteUInt32(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.Int48 => CodecClass + ".WriteInt48(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.UInt48 => CodecClass + ".WriteUInt48(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.Int64 => CodecClass + ".WriteInt64(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.UInt64 => CodecClass + ".WriteUInt64(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.Int128 => CodecClass + ".WriteInt128(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.UInt128 => CodecClass + ".WriteUInt128(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.Float16 => CodecClass + ".WriteHalf(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.Float32 => CodecClass + ".WriteSingle(" + span + ", " + access + ", " + le + ");",
+            PrimitiveCodecKind.Float64 => CodecClass + ".WriteDouble(" + span + ", " + access + ", " + le + ");",
             _ => throw new InvalidOperationException("Codec is not a fixed-width numeric: " + codec.Kind),
         };
     }

@@ -830,6 +830,10 @@ namespace Demo
         /// <summary>Reads one <c>X</c> at the cursor's position.</summary>
         private static X ReadX(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
+            if (cursor.TryTakeFixed(3, 1, 3, 1, 0, out global::System.ReadOnlySpan<byte> fixedBytes))
+            {
+                return ReadXFixed(fixedBytes, cursor.TrimFixedText);
+            }
             cursor.EnterComposite(member ?? "X", memberType);
             var value = new X();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -853,6 +857,10 @@ namespace Demo
         /// <summary>Reads one <c>root</c> at the cursor's position.</summary>
         private static Root ReadRoot(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
+            if (cursor.TryTakeFixed(8, 1, 8, 2, 2, out global::System.ReadOnlySpan<byte> fixedBytes))
+            {
+                return ReadRootFixed(fixedBytes, cursor.TrimFixedText);
+            }
             cursor.EnterComposite(member ?? "root", memberType);
             var value = new Root();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -885,6 +893,41 @@ namespace Demo
             }
             cursor.Seek(placement.Finish(2), member, memberType);
             cursor.ExitComposite();
+            return value;
+        }
+
+        /// <summary>Reads one <c>X</c> from exactly its 3 bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <returns>The value.</returns>
+        private static X ReadXFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
+        {
+            var value = new X();
+            // uint8 a
+            value.A = source.Slice(0, 1)[0];
+            // uint16 b
+            value.B = global::CStructSharp.Generated.Codec.ReadUInt16(source.Slice(1, 2), true);
+            return value;
+        }
+
+        /// <summary>Reads one <c>root</c> from exactly its 8 bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <returns>The value.</returns>
+        private static Root ReadRootFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
+        {
+            var value = new Root();
+            // X x
+            value.X = ReadXFixed(source.Slice(0, 3), trimFixedText);
+            // _X y
+            value.Y = ReadXFixed(source.Slice(3, 3), trimFixedText);
+            // uint8 p[2]
+            {
+                var elements = new byte[2];
+                global::System.ReadOnlySpan<byte> bytes = source.Slice(6, 2);
+                bytes.CopyTo(elements);
+                value.P = elements;
+            }
             return value;
         }
 
@@ -1095,6 +1138,11 @@ namespace Demo
             {
                 throw cursor.Fail("Null is not valid for struct or union value: X", member, memberType);
             }
+            if (IsXFixedWritable(value) && cursor.TryReserveFixed(3, 1, 1, 0, out global::System.Span<byte> fixedBytes))
+            {
+                WriteXFixed(fixedBytes, value);
+                return;
+            }
             cursor.EnterComposite(member ?? "X", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
             // uint8 a
@@ -1120,6 +1168,11 @@ namespace Demo
             if (value is null)
             {
                 throw cursor.Fail("Null is not valid for struct or union value: root", member, memberType);
+            }
+            if (IsRootFixedWritable(value) && cursor.TryReserveFixed(8, 1, 2, 2, out global::System.Span<byte> fixedBytes))
+            {
+                WriteRootFixed(fixedBytes, value);
+                return;
             }
             cursor.EnterComposite(member ?? "root", memberType);
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -1171,6 +1224,61 @@ namespace Demo
             cursor.Seek(placement.Current, member, memberType);
             cursor.Pad((int)(placement.Finish(2) - placement.Current), member, memberType);
             cursor.ExitComposite();
+        }
+
+        /// <summary>Whether <paramref name="value"/> can be written by <see cref="WriteXFixed"/>: no nested value is null and every array has its declared length.</summary>
+        /// <param name="value">The value about to be written.</param>
+        /// <returns><see langword="true"/> when the fixed writer encodes it exactly as the member-by-member writer would.</returns>
+        private static bool IsXFixedWritable(X value)
+        {
+            return true;
+        }
+
+        /// <summary>Writes one <c>X</c> into exactly its cleared bytes, each member at its constant offset (reached only through <c>WriteCursor.TryReserveFixed</c>).</summary>
+        /// <param name="target">The struct's bytes, already zero so that padding is written as zeros.</param>
+        /// <param name="value">A value that passed <see cref="IsXFixedWritable"/>.</param>
+        private static void WriteXFixed(global::System.Span<byte> target, X value)
+        {
+            // uint8 a
+            target.Slice(0, 1)[0] = value.A;
+            // uint16 b
+            global::CStructSharp.Generated.Codec.WriteUInt16(target.Slice(1, 2), value.B, true);
+        }
+
+        /// <summary>Whether <paramref name="value"/> can be written by <see cref="WriteRootFixed"/>: no nested value is null and every array has its declared length.</summary>
+        /// <param name="value">The value about to be written.</param>
+        /// <returns><see langword="true"/> when the fixed writer encodes it exactly as the member-by-member writer would.</returns>
+        private static bool IsRootFixedWritable(Root value)
+        {
+            if (value.X is null || !IsXFixedWritable(value.X))
+            {
+                return false;
+            }
+            if (value.Y is null || !IsXFixedWritable(value.Y))
+            {
+                return false;
+            }
+            if (value.P is null || value.P.Length != 2)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>Writes one <c>root</c> into exactly its cleared bytes, each member at its constant offset (reached only through <c>WriteCursor.TryReserveFixed</c>).</summary>
+        /// <param name="target">The struct's bytes, already zero so that padding is written as zeros.</param>
+        /// <param name="value">A value that passed <see cref="IsRootFixedWritable"/>.</param>
+        private static void WriteRootFixed(global::System.Span<byte> target, Root value)
+        {
+            // X x
+            WriteXFixed(target.Slice(0, 3), value.X);
+            // _X y
+            WriteXFixed(target.Slice(3, 3), value.Y);
+            // uint8 p[2]
+            {
+                global::System.Span<byte> bytes = target.Slice(6, 2);
+                new global::System.ReadOnlySpan<byte>(value.P).CopyTo(bytes);
+            }
         }
 
         /// <summary>The root declaration as <see cref="global::CStructSharp.ICStructGenerated{Root}"/>.</summary>

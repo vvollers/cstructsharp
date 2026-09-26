@@ -465,6 +465,10 @@ namespace Demo
         /// <summary>Reads one <c>root</c> at the cursor's position.</summary>
         private static Root ReadRoot(ref global::CStructSharp.Generated.ReadCursor cursor, global::System.Collections.Generic.IReadOnlyDictionary<string, int>? variables, string? member, string? memberType)
         {
+            if (cursor.TryTakeFixed(3, 1, 3, 1, 2, out global::System.ReadOnlySpan<byte> fixedBytes))
+            {
+                return ReadRootFixed(fixedBytes, cursor.TrimFixedText);
+            }
             cursor.EnterComposite(member ?? "root", memberType);
             var value = new Root();
             var placement = global::CStructSharp.Generated.CompositeCursor.Start(cursor.Position, Aligned, Packing, Allocation);
@@ -486,6 +490,20 @@ namespace Demo
             }
             cursor.Seek(placement.Finish(1), member, memberType);
             cursor.ExitComposite();
+            return value;
+        }
+
+        /// <summary>Reads one <c>root</c> from exactly its 3 bytes, each member at its constant offset (reached only through <c>ReadCursor.TryTakeFixed</c>).</summary>
+        /// <param name="source">The struct's bytes.</param>
+        /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+        /// <returns>The value.</returns>
+        private static Root ReadRootFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
+        {
+            var value = new Root();
+            // char value[2]
+            value.Value = global::CStructSharp.Generated.Codec.DecodeFixedText(source.Slice(0, 2), trimFixedText);
+            // byte tail
+            value.Tail = source.Slice(2, 1)[0];
             return value;
         }
 

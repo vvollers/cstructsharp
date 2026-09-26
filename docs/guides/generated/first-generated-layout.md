@@ -81,6 +81,28 @@ the read options, and the budgets; `CompositeCursor` applies the same alignment 
 Every `Take` names the field it reads, so a short input fails with the same message the runtime would give:
 `Not enough bytes: needed 4, available 3 (field 'length' (uint32), in 'header', offset 2)`.
 
+Every member of `header` sits at an offset the generator knows at build time, so the file also has a *fixed reader*:
+
+```csharp
+    private static Header ReadHeaderFixed(global::System.ReadOnlySpan<byte> source, bool trimFixedText)
+    {
+        var value = new Header();
+        // uint16 kind
+        value.Kind = global::CStructSharp.Generated.Codec.ReadUInt16(source.Slice(0, 2), true);
+        // uint32 length
+        value.Length = global::CStructSharp.Generated.Codec.ReadUInt32(source.Slice(2, 4), true);
+        return value;
+    }
+```
+
+`ReadHeader` starts with `if (cursor.TryTakeFixed(6, 1, 6, 1, 0, out var fixedBytes)) return ReadHeaderFixed(...)`.
+`TryTakeFixed` hands over the struct's six bytes only when the member-by-member code would read exactly those bytes
+without a failure. That means the bytes are present, the read budget covers them, and the nesting and array limits
+hold. A short input therefore still reaches the member-by-member code and fails there with the message above. The
+writer has the same pair: `WriteHeaderFixed` stores each member at its constant offset, and `EncodeHeader` uses it
+when `WriteCursor.TryReserveFixed` confirms that nothing can fail. A struct with a runtime-sized array, a condition, a
+pointer, a bitfield, or a union member gets no fixed reader and is always read member by member.
+
 The rest of the file holds the writer (`EncodeHeader`), the `Serialize`/`Write` overloads, the view, the constants,
 and the setters. Each later lesson looks at one of those parts.
 

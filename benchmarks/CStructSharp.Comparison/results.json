@@ -1,0 +1,168 @@
+{
+  "environment": {
+    "processor": "AMD Ryzen 9 9950X",
+    "os": "Windows 11",
+    "runtime": ".NET 10.0.12",
+    "benchmarkDotNet": "0.15.8",
+    "job": "default",
+    "date": "2026-09-26"
+  },
+  "sizes": {
+    "FlatBuffers": 116,
+    "Json": 207,
+    "Layout": 79,
+    "MemoryPack": 86,
+    "MessagePack": 74,
+    "Protobuf": 91
+  },
+  "cases": {
+    "DeserializeBenchmarks.CStructSharp_GeneratedParse": {
+      "medianNanoseconds": 24.913,
+      "allocatedBytes": 248
+    },
+    "DeserializeBenchmarks.CStructSharp_GeneratedView": {
+      "medianNanoseconds": 8.603,
+      "allocatedBytes": 0
+    },
+    "DeserializeBenchmarks.CStructSharp_RuntimeParse": {
+      "medianNanoseconds": 371.587,
+      "allocatedBytes": 672
+    },
+    "DeserializeBenchmarks.CStructSharp_RuntimeParseAccessors": {
+      "medianNanoseconds": 135.736,
+      "allocatedBytes": 672
+    },
+    "DeserializeBenchmarks.CStructSharp_RuntimeReadValue": {
+      "medianNanoseconds": 31.037,
+      "allocatedBytes": 248
+    },
+    "DeserializeBenchmarks.CStructSharp_RuntimeView": {
+      "medianNanoseconds": 28.5,
+      "allocatedBytes": 0
+    },
+    "DeserializeBenchmarks.HandWritten_BinaryPrimitives": {
+      "medianNanoseconds": 19.346,
+      "allocatedBytes": 248
+    },
+    "DeserializeBenchmarks.Kaitai_Struct": {
+      "medianNanoseconds": 117.964,
+      "allocatedBytes": 1040
+    },
+    "DeserializeBenchmarks.Own_FlatSharp": {
+      "medianNanoseconds": 29.101,
+      "allocatedBytes": 240
+    },
+    "DeserializeBenchmarks.Own_MemoryPack": {
+      "medianNanoseconds": 31.3,
+      "allocatedBytes": 248
+    },
+    "DeserializeBenchmarks.Own_MessagePack": {
+      "medianNanoseconds": 105.177,
+      "allocatedBytes": 248
+    },
+    "DeserializeBenchmarks.Own_ProtobufNet": {
+      "medianNanoseconds": 223.454,
+      "allocatedBytes": 184
+    },
+    "DeserializeBenchmarks.Own_SystemTextJson": {
+      "medianNanoseconds": 644.202,
+      "allocatedBytes": 848
+    },
+    "DeserializeBenchmarks.Stock_BinaryReader": {
+      "medianNanoseconds": 35.068,
+      "allocatedBytes": 248
+    },
+    "DeserializeBenchmarks.Stock_MarshalPtrToStructure": {
+      "medianNanoseconds": 49.542,
+      "allocatedBytes": 128
+    },
+    "DeserializeBenchmarks.Stock_MemoryMarshal": {
+      "medianNanoseconds": 7.573,
+      "allocatedBytes": 0
+    },
+    "SerializeBenchmarks.CStructSharp_GeneratedSerialize": {
+      "medianNanoseconds": 19.134,
+      "allocatedBytes": 0
+    },
+    "SerializeBenchmarks.CStructSharp_RuntimeSerializeMapped": {
+      "medianNanoseconds": 22.072,
+      "allocatedBytes": 0
+    },
+    "SerializeBenchmarks.CStructSharp_RuntimeSerializeStructValue": {
+      "medianNanoseconds": 79.033,
+      "allocatedBytes": 0
+    },
+    "SerializeBenchmarks.HandWritten_BinaryPrimitives": {
+      "medianNanoseconds": 8.186,
+      "allocatedBytes": 0
+    },
+    "SerializeBenchmarks.Own_FlatSharp": {
+      "medianNanoseconds": 45.381,
+      "allocatedBytes": 0
+    },
+    "SerializeBenchmarks.Own_MemoryPack": {
+      "medianNanoseconds": 18.68,
+      "allocatedBytes": 0
+    },
+    "SerializeBenchmarks.Own_MessagePack": {
+      "medianNanoseconds": 55.674,
+      "allocatedBytes": 0
+    },
+    "SerializeBenchmarks.Own_ProtobufNet": {
+      "medianNanoseconds": 203.656,
+      "allocatedBytes": 0
+    },
+    "SerializeBenchmarks.Own_SystemTextJson": {
+      "medianNanoseconds": 338.36,
+      "allocatedBytes": 0
+    },
+    "SerializeBenchmarks.Stock_BinaryWriter": {
+      "medianNanoseconds": 41.626,
+      "allocatedBytes": 0
+    },
+    "SerializeBenchmarks.Stock_MarshalStructureToPtr": {
+      "medianNanoseconds": 31.617,
+      "allocatedBytes": 72
+    },
+    "SerializeBenchmarks.Stock_MemoryMarshal": {
+      "medianNanoseconds": 0.254,
+      "allocatedBytes": 0
+    },
+    "VariableBenchmarks.Generated_Parse": {
+      "medianNanoseconds": 66.993,
+      "allocatedBytes": 800
+    },
+    "VariableBenchmarks.Generated_Serialize": {
+      "medianNanoseconds": 34.215,
+      "allocatedBytes": 0
+    },
+    "VariableBenchmarks.HandWritten_Read": {
+      "medianNanoseconds": 26.347,
+      "allocatedBytes": 208
+    },
+    "VariableBenchmarks.HandWritten_Write": {
+      "medianNanoseconds": 9.186,
+      "allocatedBytes": 0
+    },
+    "VariableBenchmarks.Runtime_Parse": {
+      "medianNanoseconds": 861.318,
+      "allocatedBytes": 1536
+    },
+    "VariableBenchmarks.Runtime_ParseStream": {
+      "medianNanoseconds": 939.578,
+      "allocatedBytes": 1528
+    },
+    "VariableBenchmarks.Runtime_ReadValueMapped": {
+      "medianNanoseconds": 1023.995,
+      "allocatedBytes": 1872
+    },
+    "VariableBenchmarks.Runtime_SerializeMapped": {
+      "medianNanoseconds": 656.378,
+      "allocatedBytes": 1128
+    },
+    "VariableBenchmarks.Runtime_SerializeStructValue": {
+      "medianNanoseconds": 513.143,
+      "allocatedBytes": 856
+    }
+  }
+}

@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using CStructSharp.Addressing;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
@@ -181,7 +182,40 @@ public partial class CStruct
     /// <summary>Runs a static read plan over the composite's bytes, reproducing the general reader's side effects.</summary>
     private void ExecuteStaticPlan(StaticReadPlan plan, ReadOnlySpan<byte> bytes, StructValue destination, CStructOperationContext state)
     {
-        state.EnterStructure();
+        this.ExecuteStaticPlan(plan, bytes, destination, state, state.MaxArrayElements, state.TrimFixedText, state.CancellationToken);
+    }
+
+    /// <summary>
+    ///     Runs a static read plan. With an operation <paramref name="state"/>, fields publish the layout variables a
+    ///     later read in the same operation may need and nested structs claim nesting levels; without one (a direct read
+    ///     of a whole fixed root, where nothing is read afterwards and the caller checked the nesting limit) the plan
+    ///     only fills <paramref name="destination"/>.
+    /// </summary>
+    /// <param name="plan">The plan of the composite being read.</param>
+    /// <param name="bytes">Exactly the composite's bytes.</param>
+    /// <param name="destination">The value receiving the members.</param>
+    /// <param name="state">The operation state, or <see langword="null"/> for a direct root read.</param>
+    /// <param name="maxArrayElements">The array element limit of the read.</param>
+    /// <param name="trimFixedText">Whether fixed-capacity text drops its trailing NUL padding.</param>
+    /// <param name="cancellationToken">The token observed on entering each composite.</param>
+    private void ExecuteStaticPlan(
+        StaticReadPlan plan,
+        ReadOnlySpan<byte> bytes,
+        StructValue destination,
+        CStructOperationContext? state,
+        int maxArrayElements,
+        bool trimFixedText,
+        CancellationToken cancellationToken)
+    {
+        if (state is null)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+        else
+        {
+            state.EnterStructure();
+        }
+
         try
         {
             StaticReadOperation[] operations = plan.Operations;
@@ -195,7 +229,7 @@ public partial class CStruct
                     {
                         object value = field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
                         destination.SetFreshSlot(operation.Slot, value);
-                        if (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+                        if (state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
                         {
                             CaptureScalar(state, field.Declaration.Name.Name, value);
                             state.PublishQualified(field.Declaration.Name.Name);
@@ -209,7 +243,7 @@ public partial class CStruct
                         object storage = field.Codec.ReadNumeric(bytes.Slice(operation.Offset, field.Codec.Size));
                         EnumValueResult value = CreateEnumValue(field.Enum!, storage);
                         destination.SetFreshSlot(operation.Slot, value);
-                        if (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+                        if (state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
                         {
                             this.UpdateExactLayoutVariable(state.Variables, field.Declaration.Name.Name, value.Value);
                             state.PublishQualified(field.Declaration.Name.Name);
@@ -220,14 +254,15 @@ public partial class CStruct
 
                 case StaticReadKind.CharArray:
                     {
-                        if (operation.Count > state.MaxArrayElements)
+                        if (operation.Count > maxArrayElements)
                         {
-                            throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(operation.Count, state.MaxArrayElements));
+                            throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(operation.Count, maxArrayElements));
                         }
 
-                        string text = state.FixedText(ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count)));
+                        string latin1 = ReadLatin1Characters(bytes.Slice(operation.Offset, operation.Count));
+                        string text = trimFixedText ? latin1.TrimEnd('\0') : latin1;
                         destination.SetFreshSlot(operation.Slot, text);
-                        if (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+                        if (state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
                         {
                             state.Variables[field.Declaration.Name.Name] = new Identifier(text);
                             state.PublishQualified(field.Declaration.Name.Name);
@@ -238,9 +273,9 @@ public partial class CStruct
 
                 case StaticReadKind.NumericArray:
                     {
-                        if (operation.Count > state.MaxArrayElements)
+                        if (operation.Count > maxArrayElements)
                         {
-                            throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(operation.Count, state.MaxArrayElements));
+                            throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(operation.Count, maxArrayElements));
                         }
 
                         if (operation.Count == 0)
@@ -251,7 +286,7 @@ public partial class CStruct
 
                         IList<object?> values = PrimitiveArrayReader.Decode(bytes.Slice(operation.Offset, operation.Count * field.Codec.Size), field.Codec, operation.Count);
                         destination.SetFreshSlot(operation.Slot, values);
-                        if (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+                        if (state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
                         {
                             CaptureScalar(state, field.Declaration.Name.Name, values[operation.Count - 1]);
                             state.PublishQualified(field.Declaration.Name.Name);
@@ -264,22 +299,28 @@ public partial class CStruct
                     {
                         var nested = new StructValue(operation.NestedComposite!.Shape);
                         destination.SetFreshSlot(operation.Slot, nested);
+                        if (state is null)
+                        {
+                            this.ExecuteStaticPlan(operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nested, null, maxArrayElements, trimFixedText, cancellationToken);
+                            break;
+                        }
+
                         string? outerPrefix = state.QualifiedPrefix;
                         if (field.HasQualifiedPrefix)
                         {
                             state.QualifiedPrefix = outerPrefix is null ? field.QualifiedPrefix : outerPrefix + field.QualifiedPrefix;
                         }
 
-                        this.ExecuteStaticPlan(operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nested, state);
+                        this.ExecuteStaticPlan(operation.NestedPlan!, bytes.Slice(operation.Offset, operation.NestedPlan!.Size), nested, state, maxArrayElements, trimFixedText, cancellationToken);
                         state.QualifiedPrefix = outerPrefix;
                         break;
                     }
 
                 case StaticReadKind.NestedArray:
                     {
-                        if (operation.Count > state.MaxArrayElements)
+                        if (operation.Count > maxArrayElements)
                         {
-                            throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(operation.Count, state.MaxArrayElements));
+                            throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(operation.Count, maxArrayElements));
                         }
 
                         var elements = new List<object?>(operation.Count);
@@ -291,7 +332,7 @@ public partial class CStruct
                         {
                             var nested = new StructValue(nestedShape);
                             elements.Add(nested);
-                            this.ExecuteStaticPlan(nestedPlan, bytes.Slice(elementOffset, nestedPlan.Size), nested, state);
+                            this.ExecuteStaticPlan(nestedPlan, bytes.Slice(elementOffset, nestedPlan.Size), nested, state, maxArrayElements, trimFixedText, cancellationToken);
                         }
 
                         break;
@@ -301,7 +342,7 @@ public partial class CStruct
         }
         finally
         {
-            state.ExitStructure();
+            state?.ExitStructure();
         }
     }
 

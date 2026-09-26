@@ -27,6 +27,8 @@ namespace CStructSharp
         public bool IsLittleEndian { get; }
         public CStructSharp.Introspection.LayoutInfo Layout { get; }
         public byte PointerSize { get; }
+        public CStructSharp.StructView CreateView(System.ReadOnlySpan<byte> source, string? path = null, CStructSharp.ReadOptions? options = null) { }
+        public CStructSharp.FieldAccessor<T> GetAccessor<T>(string path) { }
         public int GetArrayLength(System.Buffers.ReadOnlySequence<byte> source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public int GetArrayLength(System.IO.Stream stream, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
         public int GetArrayLength(System.ReadOnlyMemory<byte> source, string path, System.Collections.Generic.IReadOnlyDictionary<string, int>? variables = null, CStructSharp.ReadOptions? options = null) { }
@@ -143,6 +145,20 @@ namespace CStructSharp
         public CStructMemberAttribute(string name) { }
         public string Name { get; }
     }
+    public sealed class FieldAccessor<T>
+    {
+        public string Path { get; }
+        public string Root { get; }
+        public T Get(CStructSharp.Values.StructValue value) { }
+        public T Read(System.ReadOnlySpan<byte> source, CStructSharp.ReadOptions? options = null) { }
+    }
+    public interface ICStructFixedMapped<TSelf>
+        where TSelf : CStructSharp.ICStructFixedMapped<TSelf>
+    {
+        ulong FixedLayoutFingerprint { get; }
+        bool TryReadFixed(System.ReadOnlySpan<byte> source, bool trimFixedText, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TSelf value);
+        bool TryWriteFixed(TSelf value, System.Span<byte> target);
+    }
     public interface ICStructGenerated<TSelf>
         where TSelf : CStructSharp.ICStructGenerated<TSelf>
     {
@@ -165,6 +181,10 @@ namespace CStructSharp
         public static string MemberName(CStructSharp.Values.StructValue source, string propertyName) { }
         public static void Register<T>()
             where T : CStructSharp.ICStructMapped<T> { }
+        public static void RegisterFixed<T>()
+            where T : CStructSharp.ICStructMapped<T>, CStructSharp.ICStructFixedMapped<T> { }
+        public static bool TryReadFixed<T>(System.ReadOnlySpan<byte> source, ulong fingerprint, bool trimFixedText, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T value) { }
+        public static bool TryWriteFixed<T>(T value, System.Span<byte> target, ulong fingerprint) { }
     }
     public enum PointerAddressingMode
     {
@@ -189,6 +209,14 @@ namespace CStructSharp
     public static class StaticHelpers
     {
         public static byte[] ParseHexDataContent(this string hexData) { }
+    }
+    public readonly ref struct StructView
+    {
+        public System.ReadOnlySpan<byte> Bytes { get; }
+        public string Root { get; }
+        public T Get<T>(CStructSharp.FieldAccessor<T> accessor) { }
+        public T Get<T>(string path) { }
+        public CStructSharp.Values.StructValue ToStructValue() { }
     }
     public enum UnknownMemberPolicy
     {
@@ -485,6 +513,7 @@ namespace CStructSharp.Generated
         public long TakePointerAddress(int pointerSize, bool littleEndian, string member, string? memberType) { }
         public string TakeTerminatedString(CStructSharp.Generated.TerminatedTextEncoding encoding, char terminator, string member, string? memberType) { }
         public string TakeWideText(int count, bool littleEndian, string member, string? memberType) { }
+        public bool TryTakeFixed(int size, int alignment, long chargedBytes, int nestingLevels, int maximumArrayCount, out System.ReadOnlySpan<byte> bytes) { }
         public static byte[] BufferStream(System.IO.Stream stream, CStructSharp.ReadOptions? options, out int length) { }
         [return: System.Runtime.CompilerServices.TupleElementNames(new string[] {
                 "Buffer",
@@ -540,6 +569,7 @@ namespace CStructSharp.Generated
         public System.Span<byte> Reserve(int count, string? member, string? memberType) { }
         public void Seek(long position, string? member, string? memberType) { }
         public byte[] ToArray() { }
+        public bool TryReserveFixed(int size, int alignment, int nestingLevels, int maximumArrayCount, out System.Span<byte> bytes) { }
         public System.Span<byte> Unit(long unitStart, int unitSize, string member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructException WithMember(CStructSharp.Diagnostics.CStructException exception, string member, string? memberType) { }
         public void WriteBits(CStructSharp.Generated.BitfieldSlot slot, int bitSize, object? value, bool littleEndian, bool highBitFirst, string member, string? memberType) { }

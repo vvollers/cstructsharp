@@ -55,6 +55,16 @@ the generated readers work through a small `ref struct` in `CStructSharp.Generat
 Everything the runtime reader checks (short reads, array limits, string budgets, pointer depth, total bytes) is
 checked by the cursor with the same texts, and the parity tests hold it to that.
 
+A struct whose every member sits at a build-time offset also gets a *fixed reader* (`Read<Type>Fixed`) that decodes
+each member at its constant offset. It is the build-time counterpart of the runtime's static read plan, and a fixed
+writer (`Write<Type>Fixed`) is its counterpart for writing. The member-by-member reader calls
+`ReadCursor.TryTakeFixed` first. That method hands over the struct's bytes only when the member-by-member code would
+read exactly those bytes without a failure: the bytes are present, the budget covers what the members would be
+charged, the nesting and array limits hold, and the start meets the struct's alignment. `WriteCursor.TryReserveFixed`
+does the same for writing, and the generated `Is<Type>FixedWritable` check first confirms that no nested value is null
+and every array has its declared length. Any other input goes member by member, so every failure keeps its text and
+position.
+
 ## How parity is tested
 
 - **Snapshots** (`tests/CStructSharp.Generators.Tests/Snapshots/*.g.cs`): the generated file for a fixture,

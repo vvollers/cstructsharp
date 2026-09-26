@@ -11,7 +11,7 @@ using CStructSharp.Values;
 ///     conventions. Generated mappers register themselves in a module initializer; a hand-written mapper does the
 ///     same, or calls <see cref="Register{T}"/> once at startup (registering twice is harmless).
 /// </summary>
-public static class MappedTypes
+public static partial class MappedTypes
 {
     private static readonly ConcurrentDictionary<Type, Entry> Entries = new();
 
@@ -23,6 +23,7 @@ public static class MappedTypes
         Entries[typeof(T)] = new Entry(
             source => T.ReadFrom(source)!,
             (instance, target) => T.WriteTo((T)instance, target));
+        Reader<T>.Read = static source => T.ReadFrom(source);
     }
 
     /// <summary>Whether <paramref name="type"/> was registered as a mapped class.</summary>
@@ -46,10 +47,26 @@ public static class MappedTypes
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(propertyName);
-        string[] names = source.Shape.Names;
-        if (Array.IndexOf(names, propertyName) >= 0)
+
+        // The answer depends only on the shape's names, so it is computed once per shape and property.
+        if (source.Shape.FindMappedName(propertyName) is { } cached)
         {
-            return propertyName;
+            return cached;
+        }
+
+        string resolved = ResolveMemberName(source.Shape.Names, propertyName);
+        source.Shape.AddMappedName(propertyName, resolved);
+        return resolved;
+    }
+
+    /// <summary>Applies the matching rules of <see cref="MemberName"/> to one shape's member names.</summary>
+    private static string ResolveMemberName(string[] names, string propertyName)
+    {
+        // Return the shape's own instance, which the member lookup that follows finds by reference.
+        int exact = Array.IndexOf(names, propertyName);
+        if (exact >= 0)
+        {
+            return names[exact];
         }
 
         string? found = null;
@@ -120,5 +137,19 @@ public static class MappedTypes
         return false;
     }
 
+    /// <summary>A registered class's mapping members, captured as delegates for lookup by <see cref="Type"/>.</summary>
+    /// <param name="Read">Builds an instance from a parsed struct.</param>
+    /// <param name="Write">Stores an instance into a struct value.</param>
     private sealed record Entry(Func<StructValue, object> Read, Action<object, StructValue> Write);
+
+    /// <summary>
+    ///     The typed reader of a registered mapped class, reached through its type parameter rather than a lookup by
+    ///     <see cref="Type"/>: <c>Get&lt;Point&gt;("origin")</c> knows its target at compile time.
+    /// </summary>
+    /// <typeparam name="T">The mapped class; unconstrained so that any caller type parameter can ask.</typeparam>
+    internal static class Reader<T>
+    {
+        /// <summary>Gets the reader <see cref="Register{T}"/> stored, or <see langword="null"/> when <typeparamref name="T"/> is not registered.</summary>
+        public static Func<StructValue, T>? Read { get; internal set; }
+    }
 }

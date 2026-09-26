@@ -1,0 +1,22 @@
+// The comparison record as a FlatBuffers schema, compiled by FlatSharp.Compiler at build time.
+// A FlatBuffers table stores offsets to its fields, so its bytes differ from the 79-byte C layout.
+attribute "fs_serializer";
+
+namespace CStructSharp.Comparison.FlatBuffers;
+
+struct FlatVec3 {
+  X:float;
+  Y:float;
+  Z:float;
+}
+
+table FlatReading (fs_serializer:"Lazy") {
+  Id:uint;
+  Timestamp:long;
+  Position:FlatVec3;
+  Velocity:FlatVec3;
+  Flags:ushort;
+  Kind:ubyte;
+  Value:double;
+  Samples:[int];
+}

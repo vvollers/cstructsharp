@@ -421,7 +421,16 @@ public partial class CStruct
                     // A one-dimensional numeric array becomes a typed PrimitiveArray<T> (stage 2); every other array
                     // accumulates boxed elements first (fixed character arrays are converted to a string after the loop).
                     bool typedArray = bulkNumeric && compiledField.Array.Dimensions.Length == 1;
-                    if (isArray && !typedArray)
+
+                    // A one-dimensional char[n] is read as one block and decoded to its string at once, where the
+                    // per-character loop below would have no other observable effect: no debug records, cursor
+                    // placement outside a union, and no layout variable to capture from each character. The block is
+                    // taken only when the whole extent is present and within the budget; otherwise the loop runs.
+                    bool bulkCharacters = isArray && !state.Debug && !useLegacyPlacement && unionPosition == -1 && numFieldValues > 0 &&
+                                          compiledField.IsCharElement && !compiledField.IsWideCharElement && !compiledField.IsPointer &&
+                                          compiledField.BitSize == 0 && compiledField.Array.Dimensions.Length == 1 && compiledField.Name.Length > 0 &&
+                                          !compiledField.CapturesLayoutVariable && !state.CaptureAllLayoutVariables && !StaticReadPlan.DisabledForTesting;
+                    if (isArray && !typedArray && !bulkCharacters)
                     {
                         containerDict[compiledField.Name] = new List<object?>(numFieldValues);
                     }
@@ -509,6 +518,22 @@ public partial class CStruct
                             state.CurrentBitfieldType = null;
                             state.NextPosition = state.Stream.Position;
                             firstElement = numFieldValues;
+                        }
+                    }
+
+                    bool charactersRead = false;
+                    if (bulkCharacters)
+                    {
+                        charactersRead = this.TryReadCharacterBlock(state, numFieldValues, out string? characters);
+                        if (charactersRead)
+                        {
+                            containerDict[compiledField.Name] = characters;
+                            state.NextPosition = state.Stream.Position;
+                            firstElement = numFieldValues;
+                        }
+                        else
+                        {
+                            containerDict[compiledField.Name] = new List<object?>(numFieldValues);
                         }
                     }
 
@@ -841,13 +866,7 @@ public partial class CStruct
 
                         if (compiledField.Array.Dimensions.Length > 1)
                         {
-                            int[] dimensionSizes = compiledField.Array.Dimensions
-                                .Select(
-                                    dimension => dimension.FixedCount ??
-                                                 throw new InvalidOperationException(
-                                                     "Multidimensional array dimension has no fixed count: " +
-                                                     compiledField.Name))
-                                .ToArray();
+                            int[] dimensionSizes = FixedDimensionSizes(compiledField);
                             var flatValues = (List<object?>)containerDict[compiledField.Name]!;
 
                             if (isCharacterElement)
@@ -883,7 +902,7 @@ public partial class CStruct
                                 containerDict[compiledField.Name] = ReshapeFlatArrayValues(flatValues, dimensionSizes);
                             }
                         }
-                        else if (isCharacterElement)
+                        else if (isCharacterElement && !charactersRead)
                         {
                             // Expose fixed character arrays as the string callers expect, after every character has been read.
                             var list = (List<object?>)containerDict[compiledField.Name]!;
@@ -910,6 +929,63 @@ public partial class CStruct
 
             break;
         }
+    }
+
+    /// <summary>
+    ///     Reads a whole <c>char[count]</c> as one block and decodes it as the per-character reader would: one Latin-1
+    ///     character per byte, then <c>TrimFixedText</c>. A memory source is read in place; another stream through a
+    ///     pooled block. Returns <see langword="false"/>, having read nothing, when the extent is not all there or not
+    ///     within the read budget, so the per-character reader reports the failure where it always has.
+    /// </summary>
+    /// <param name="state">The read state.</param>
+    /// <param name="count">The number of characters.</param>
+    /// <param name="text">The text when the method returns <see langword="true"/>.</param>
+    /// <returns>Whether the characters were read.</returns>
+    private bool TryReadCharacterBlock(CStructOperationContext state, int count, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? text)
+    {
+        if (state.Stream.TryReadSpanWithinBudget(count, out ReadOnlySpan<byte> bytes))
+        {
+            text = state.FixedText(ReadLatin1Characters(bytes));
+            return true;
+        }
+
+        if (count <= StaticReadPlan.MaximumBlockSize)
+        {
+            byte[] block = System.Buffers.ArrayPool<byte>.Shared.Rent(count);
+            try
+            {
+                if (state.Stream.TryReadBlockWithinBudget(block.AsSpan(0, count)))
+                {
+                    text = state.FixedText(ReadLatin1Characters(block.AsSpan(0, count)));
+                    return true;
+                }
+            }
+            finally
+            {
+                System.Buffers.ArrayPool<byte>.Shared.Return(block);
+            }
+        }
+
+        text = null;
+        return false;
+    }
+
+    /// <summary>
+    ///     The fixed size of every dimension of a multidimensional array. A separate method because a lambda over the
+    ///     field inside <see cref="HandleCStructElement"/> made the compiler allocate its closure for every field read.
+    /// </summary>
+    /// <param name="field">A multidimensional array field.</param>
+    /// <returns>The dimension sizes, outermost first.</returns>
+    private static int[] FixedDimensionSizes(CompiledField field)
+    {
+        var sizes = new int[field.Array.Dimensions.Length];
+        for (int dimension = 0; dimension < sizes.Length; dimension++)
+        {
+            sizes[dimension] = field.Array.Dimensions[dimension].FixedCount ??
+                               throw new InvalidOperationException("Multidimensional array dimension has no fixed count: " + field.Name);
+        }
+
+        return sizes;
     }
 
     /// <summary>Checks the requested path, prepares variables, and chooses ordinary or debug parsing.</summary>
