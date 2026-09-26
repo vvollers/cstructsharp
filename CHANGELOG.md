@@ -6,6 +6,8 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ## Unreleased
 
+## 0.10.0 — 2026-09-26
+
 ### Performance
 
 - A whole fixed-layout struct read from or written to memory (`Parse`, `ReadValue`, `ReadValue<T>`, and both
