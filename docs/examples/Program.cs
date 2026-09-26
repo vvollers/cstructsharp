@@ -323,8 +323,8 @@ internal static partial class Program
     }
     #endregion
 
-    #region api-guide-prepared-reads
     /// <summary>Reads members of one record through accessors, from bytes and from a parsed value, and through a view.</summary>
+    #region api-guide-prepared-reads
     private static void PreparedReads()
     {
         var layout = new CStruct("struct vec { float32 x; float32 y; }; struct reading { uint32 id; vec pos; int16 samples[3]; };");
@@ -351,8 +351,8 @@ internal static partial class Program
     }
     #endregion
 
-    #region api-guide-try-get
     /// <summary>Tells an absent member from an unconvertible one with TryGet, and falls back with GetOrDefault.</summary>
+    #region api-guide-try-get
     private static void TryGetAndGetOrDefault()
     {
         var layout = new CStruct("struct message { uint8 kind; if (kind == 1) { uint32 code; } uint8 tail; };");

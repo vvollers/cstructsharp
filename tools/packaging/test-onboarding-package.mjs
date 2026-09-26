@@ -37,7 +37,12 @@ await main(() => {
   const recipes = fs.readdirSync(recipesDirectory).filter((name) => name.endsWith(".cs")).sort();
   if (recipes.length !== 40) throw new Error("Expected all 40 recipes.");
   const starter = path.join(repositoryRoot, "docs/examples/starter");
-  const documentedCode = (/```csharp\r?\n([\s\S]*?)\r?\n```/.exec(readme)?.[1] ?? "").trim();
+  // The starter is the first C# block of the "Read your first value in C#" section; earlier sections may show
+  // other C# snippets (such as the complete language example), which are not the starter program.
+  const starterHeading = readme.indexOf("## Read your first value in C#");
+  if (starterHeading < 0) throw new Error("The packaged README has no 'Read your first value in C#' section.");
+  const starterSection = readme.slice(starterHeading);
+  const documentedCode = (/```csharp\r?\n([\s\S]*?)\r?\n```/.exec(starterSection)?.[1] ?? "").trim();
   if (documentedCode !== fs.readFileSync(path.join(starter, "Program.cs"), "utf8").trim()) throw new Error("The packaged README code does not match the tested starter.");
 
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "cstructsharp-onboarding-"));
