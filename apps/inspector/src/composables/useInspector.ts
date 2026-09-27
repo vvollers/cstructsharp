@@ -7,13 +7,8 @@ import {
   type InspectorExample,
 } from "../schema-catalog";
 import { formatLayout } from "../format-layout";
-import {
-  getVersion,
-  hexToBytes,
-  initWasm,
-  isLoaded,
-  type ParseWithDebugOptions,
-} from "../wasm/cstruct-wasm";
+import { getVersion, hexToBytes, initWasm, isLoaded } from "../wasm/cstruct-wasm";
+import type { ParseWithDebugOptions } from "../wasm/cstruct-contract";
 import { useParseSession } from "./useParseSession";
 
 /**

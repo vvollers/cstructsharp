@@ -4,12 +4,12 @@ import {
   findDebugEntryIndexByOffset,
   findDebugEntryIndicesByPath,
 } from "../debug-path";
-import { INTEROP_CONTRACT_VERSION } from "../wasm/cstruct-contract";
 import {
-  parseSourceWithDebug,
+  INTEROP_CONTRACT_VERSION,
   type InteropResult,
   type ParseWithDebugOptions,
-} from "../wasm/cstruct-wasm";
+} from "../wasm/cstruct-contract";
+import { parseSourceWithDebug } from "../wasm/cstruct-wasm";
 
 /**
  * Runs the parser and keeps its result together with the selected fields.

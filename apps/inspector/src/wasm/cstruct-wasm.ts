@@ -8,41 +8,11 @@
 
 import {
   INTEROP_CONTRACT_VERSION,
-  type ErrorDetails,
   type InteropOperation,
   type InteropResult,
   type ParseWithDebugOptions,
   type RawWasmAdapter,
-  type SerializeCallOptions,
-  type UpdateCallOptions,
 } from "./cstruct-contract";
-
-export {
-  INTEROP_CONTRACT_VERSION,
-  isEnumValue,
-  isPointerValue,
-  isUnionValue,
-} from "./cstruct-contract";
-export type {
-  DebugItem,
-  ErrorDetails,
-  InteropOperation,
-  InteropResult,
-  ParseWithDebugOptions,
-  ParsedStruct,
-  ParsedValue,
-  RawWasmAdapter,
-  SerializeCallOptions,
-  UpdateCallOptions,
-} from "./cstruct-contract";
-export type {
-  SerializeCallOptions as SerializeOptions,
-  UpdateCallOptions as UpdateOptions,
-} from "./cstruct-contract";
-
-// Retain the original exported name for source compatibility with applications
-// that only consume parse responses.
-export type ParseResult = InteropResult;
 
 type CStructSharpWasmReady = RawWasmAdapter;
 
@@ -153,109 +123,20 @@ export function getVersion(): string {
   return requireReadyWasm().getVersion();
 }
 
-export function parseWithDebug(
-  cstructDefinition: string,
-  binaryData: Uint8Array,
-  options?: ParseWithDebugOptions,
-): ParseResult {
-  const resultJson = requireReadyWasm().parseWithDebug(
-    cstructDefinition,
-    binaryData,
-    options ?? null,
-  );
-  return parseInteropResult(resultJson, "parse");
-}
-
+/**
+ * Parses any binary source through the worker and records every value's byte range.
+ * @param definition Portable layout source.
+ * @param source The input: a Blob (staged, never copied whole) or bytes.
+ * @param options Compile and parse options.
+ * @returns The validated parse envelope.
+ */
 export async function parseSourceWithDebug(
   definition: string,
   source: Blob | Uint8Array,
   options?: ParseWithDebugOptions,
-): Promise<ParseResult> {
-  return requireReadyWasm().parseSource(definition, source, options ?? null, true);
-}
-
-export function serialize(
-  cstructDefinition: string,
-  data: unknown,
-  options?: SerializeCallOptions,
-): InteropResult {
-  return runBinaryOperation("serialize", options, () =>
-    requireReadyWasm().serialize(
-      cstructDefinition,
-      stringifyInteropValue(data ?? {}),
-      options ?? null,
-    ),
-  );
-}
-
-export function updateStream(
-  cstructDefinition: string,
-  binaryData: Uint8Array,
-  elementNameOrPath: string,
-  value: unknown,
-  options?: UpdateCallOptions,
-): InteropResult {
-  return runBinaryOperation("update", options, () =>
-    requireReadyWasm().updateStream(
-      cstructDefinition,
-      binaryData,
-      elementNameOrPath,
-      stringifyInteropValue(value),
-      options ?? null,
-    ),
-  );
-}
-
-/**
- * Runs a byte-returning export: success returns the bytes directly (a native Uint8Array, never Base64 text);
- * failure is reported by the managed export throwing rather than through the JSON envelope "parse" uses, since
- * there's no envelope object left to carry an Error field alongside a native byte-array success payload. The
- * thrown error's message is the same JSON-serialized ErrorDetails shape the "parse" envelope's Error field
- * already uses, so this reconstructs an identical InteropResult either way.
- */
-function runBinaryOperation(
-  operation: "serialize" | "update",
-  options: { root?: string | null } | undefined,
-  invoke: () => Uint8Array,
-): InteropResult {
-  const root = typeof options?.root === "string" ? options.root : null;
-  try {
-    return {
-      contractVersion: INTEROP_CONTRACT_VERSION,
-      operation,
-      success: true,
-      root,
-      data: invoke(),
-      debug: [],
-      error: null,
-    };
-  } catch (cause) {
-    return {
-      contractVersion: INTEROP_CONTRACT_VERSION,
-      operation,
-      success: false,
-      root,
-      data: null,
-      debug: [],
-      error: parseBridgeError(cause, operation),
-    };
-  }
-}
-
-function parseBridgeError(cause: unknown, operation: InteropOperation): ErrorDetails {
-  const message = cause instanceof Error ? cause.message : String(cause);
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(message);
-  } catch {
-    throw new TypeError(`WASM returned an invalid ${operation} error.`);
-  }
-
-  if (parsed === null || !isErrorDetails(parsed)) {
-    throw new TypeError(`WASM returned an invalid ${operation} error.`);
-  }
-
-  return parsed as ErrorDetails;
+): Promise<InteropResult> {
+  const result = await requireReadyWasm().parseSource(definition, source, options ?? null, true);
+  return validateInteropResult(result, "parse");
 }
 
 /**
@@ -290,14 +171,19 @@ function requireReadyWasm(): CStructSharpWasmReady {
   return wasm;
 }
 
-function parseInteropResult(json: string, expectedOperation: InteropOperation): InteropResult {
-  let value: Partial<InteropResult>;
-  try {
-    value = JSON.parse(json) as Partial<InteropResult>;
-  } catch {
-    throw new TypeError(`WASM returned an invalid ${expectedOperation} response envelope.`);
-  }
-
+/**
+ * Checks that an envelope from the bridge matches the contract before the app reads it.
+ * @param result The envelope object the adapter returned.
+ * @param expectedOperation The operation the call performed.
+ * @returns The same envelope, typed.
+ */
+function validateInteropResult(
+  result: unknown,
+  expectedOperation: InteropOperation,
+): InteropResult {
+  const value = (
+    typeof result === "object" && result !== null ? result : {}
+  ) as Partial<InteropResult>;
   if (
     value.contractVersion !== INTEROP_CONTRACT_VERSION ||
     value.operation !== expectedOperation ||
@@ -349,11 +235,5 @@ function isErrorDetails(value: unknown): boolean {
     (error.path === null || typeof error.path === "string") &&
     (error.member === null || typeof error.member === "string") &&
     (error.line === null || Number.isSafeInteger(error.line))
-  );
-}
-
-function stringifyInteropValue(value: unknown): string {
-  return JSON.stringify(value, (_key, current: unknown) =>
-    typeof current === "bigint" ? current.toString(10) : current,
   );
 }

@@ -17,33 +17,6 @@ import {
   type UpdateCallOptions,
 } from "./cstruct-contract";
 
-export {
-  INTEROP_CONTRACT_VERSION,
-  isEnumValue,
-  isPointerValue,
-  isUnionValue,
-} from "./cstruct-contract";
-export type {
-  DebugItem,
-  ErrorDetails,
-  InteropOperation,
-  InteropResult,
-  ParseWithDebugOptions,
-  ParsedStruct,
-  ParsedValue,
-  RawWasmAdapter,
-  SerializeCallOptions,
-  UpdateCallOptions,
-} from "./cstruct-contract";
-export type {
-  SerializeCallOptions as SerializeOptions,
-  UpdateCallOptions as UpdateOptions,
-} from "./cstruct-contract";
-
-// Retain the original exported name for source compatibility with applications
-// that only consume parse responses.
-export type ParseResult = InteropResult;
-
 type CStructSharpWasmReady = RawWasmAdapter;
 
 interface CStructSharpWasmFailed {
@@ -153,11 +126,18 @@ export function getVersion(): string {
   return requireReadyWasm().getVersion();
 }
 
+/**
+ * Parses bytes on the calling thread and records every value's byte range.
+ * @param cstructDefinition Portable layout source.
+ * @param binaryData The input bytes.
+ * @param options Compile and parse options.
+ * @returns The validated parse envelope.
+ */
 export function parseWithDebug(
   cstructDefinition: string,
   binaryData: Uint8Array,
   options?: ParseWithDebugOptions,
-): ParseResult {
+): InteropResult {
   const resultJson = requireReadyWasm().parseWithDebug(
     cstructDefinition,
     binaryData,

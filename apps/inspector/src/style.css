@@ -111,32 +111,6 @@ pre {
   cursor: not-allowed;
 }
 
-/* Card styles */
-.card {
-  min-width: 0;
-  background: var(--color-bg-secondary);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-}
-
-/* Code block styles */
-.code-block {
-  background: var(--color-bg-tertiary);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  overflow-x: auto;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.code-block pre {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
 /* Animations */
 @keyframes pulse {
   0%,
@@ -148,33 +122,9 @@ pre {
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
 /* Loading state */
 .loading {
   animation: pulse 1.5s infinite;
-}
-
-/* Status indicators */
-.status-success {
-  color: var(--color-success);
-}
-
-.status-error {
-  color: var(--color-error);
 }
 
 /* Scrollbar styling */

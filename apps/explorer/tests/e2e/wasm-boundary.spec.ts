@@ -496,7 +496,7 @@ test("64-bit values remain exact and invalid options return stable errors", asyn
   });
 });
 
-test("v4 options control endian behavior and enforce caller-selected safety budgets", async ({
+test("options control endian behavior and enforce caller-selected safety budgets", async ({
   page,
 }) => {
   const results = await page.evaluate(() => {

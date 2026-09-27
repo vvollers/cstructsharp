@@ -16,8 +16,6 @@ export default [
       "test-results/**",
       "vite.config.d.ts",
       "vite.config.js",
-      "wasm/bin/**",
-      "wasm/obj/**",
     ],
   },
   js.configs.recommended,

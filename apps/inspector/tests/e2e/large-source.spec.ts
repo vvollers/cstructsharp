@@ -192,7 +192,9 @@ test("worker parses can be cancelled without blocking the page", async ({ page }
   expect(result).toEqual({ ticked: true, error: "AbortError" });
 });
 
-test("read budgets can exceed former browser caps while defaults still apply", async ({ page }) => {
+test("raised read budgets admit a larger source while the defaults still reject it", async ({
+  page,
+}) => {
   const result = await page.evaluate(async () => {
     const wasm = (window as unknown as { CStructSharpWasm: RawWasmAdapter }).CStructSharpWasm;
     const count = 1_000_001;

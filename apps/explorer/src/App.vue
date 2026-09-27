@@ -13,13 +13,12 @@ import {
   getVersion,
   hexToBytes,
   initWasm,
-  INTEROP_CONTRACT_VERSION,
   isLoaded,
   parseWithDebug,
   serialize,
   updateStream,
-  type InteropResult,
 } from "./wasm/cstruct-wasm";
+import { INTEROP_CONTRACT_VERSION, type InteropResult } from "./wasm/cstruct-contract";
 
 const testManifest = rawTestDemos as TestManifest;
 const mode = ref<"learn" | "tests">("learn");

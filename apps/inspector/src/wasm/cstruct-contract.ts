@@ -33,54 +33,6 @@ export type ParseWithDebugOptions = CompileOptions & ParseOptions;
 export type SerializeCallOptions = CompileOptions & SerializeOptions;
 export type UpdateCallOptions = CompileOptions & UpdateOptions;
 
-export function isUnionValue(
-  value: unknown,
-): value is import("../../wasm/cstructsharp-wasm.js").UnionValue {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const candidate = value as Record<string, unknown>;
-  return (
-    candidate.kind === "union" &&
-    typeof candidate.union === "string" &&
-    (typeof candidate.rawStorage === "string" || candidate.rawStorage === null) &&
-    typeof candidate.members === "object" &&
-    candidate.members !== null &&
-    (typeof candidate.selectedMember === "string" || candidate.selectedMember === null)
-  );
-}
-
-export function isEnumValue(
-  value: unknown,
-): value is import("../../wasm/cstructsharp-wasm.js").EnumValue {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const candidate = value as Record<string, unknown>;
-  return (
-    candidate.kind === "enum" &&
-    typeof candidate.enum === "string" &&
-    (typeof candidate.name === "string" || candidate.name === null)
-  );
-}
-
-export function isPointerValue(
-  value: unknown,
-): value is import("../../wasm/cstructsharp-wasm.js").PointerValue {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const candidate = value as Record<string, unknown>;
-  return (
-    candidate.kind === "pointer" &&
-    (typeof candidate.address === "number" || typeof candidate.address === "string") &&
-    typeof candidate.dereferenced === "boolean"
-  );
-}
-
 export type InteropOperation = "parse" | "serialize" | "update" | "resolveAddress" | "compile";
 
 /**
