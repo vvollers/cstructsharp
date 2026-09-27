@@ -98,7 +98,7 @@ public class CStructOperationContextTests
     [TestMethod]
     public void Constructor_NonReadableStream_Throws()
     {
-        using var writeOnly = new NonReadableStream();
+        using var writeOnly = new UnreadableStream();
 
         ArgumentException failure = Assert.Throws<ArgumentException>(
             () => new CStructOperationContext(
@@ -206,11 +206,5 @@ public class CStructOperationContextTests
 
         Assert.AreEqual(0L, context.DebugMapping[0].Length);
         Assert.IsTrue(context.DebugMapping[0].Bytes.IsEmpty);
-    }
-
-    /// <summary>A minimal stream that reports itself as write-only, for exercising the readable-stream guard.</summary>
-    private sealed class NonReadableStream : MemoryStream
-    {
-        public override bool CanRead => false;
     }
 }

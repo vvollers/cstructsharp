@@ -145,7 +145,7 @@ public class RecordSequenceTests
         Assert.Throws<ArgumentNullException>(() => layout.ParseManyAsync(null!, "fixed"));
         StringAssert.Contains(Assert.Throws<ArgumentException>(() => layout.ParseMany(new AsyncStreamBufferTests.NonSeekableStream(Fixed), "fixed")).Message, "seekable");
         StringAssert.Contains(Assert.Throws<ArgumentException>(() => layout.ParseManyAsync(new AsyncStreamBufferTests.NonSeekableStream(Sized), "sized")).Message, "seekable");
-        Assert.Throws<ArgumentException>(() => layout.ParseMany(new WriteOnly(), "fixed"));
+        Assert.Throws<ArgumentException>(() => layout.ParseMany(new UnreadableStream(), "fixed"));
     }
 
     /// <summary>The synchronous stream form leaves the stream after each record, or where a failed read stopped; the awaitable form leaves a seekable stream at the record's end.</summary>
@@ -252,11 +252,5 @@ public class RecordSequenceTests
         }
 
         return list;
-    }
-
-    /// <summary>A memory stream that reports it cannot be read.</summary>
-    private sealed class WriteOnly : MemoryStream
-    {
-        public override bool CanRead => false;
     }
 }

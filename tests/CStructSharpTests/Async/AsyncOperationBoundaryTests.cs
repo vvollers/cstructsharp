@@ -15,7 +15,7 @@ public class AsyncOperationBoundaryTests
     {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        using var source = new PositionObservedStream();
+        using var source = new PositionCountingStream();
         var layout = new CStruct("struct root { uint8 value; };");
 
         // Once argument/capability checks pass, cancellation must precede input acquisition and origin lookup.
@@ -187,29 +187,6 @@ public class AsyncOperationBoundaryTests
         {
             bytesWritten = 0;
             return OperationStatus.InvalidData;
-        }
-    }
-
-    /// <summary>Reports that reading is unavailable even though the underlying memory stream exists.</summary>
-    private sealed class UnreadableStream : MemoryStream
-    {
-        public override bool CanRead => false;
-    }
-
-    /// <summary>Counts position probes without changing ordinary memory-stream behavior.</summary>
-    private sealed class PositionObservedStream : MemoryStream
-    {
-        public int PositionReads { get; private set; }
-
-        public override long Position
-        {
-            get
-            {
-                this.PositionReads++;
-                return base.Position;
-            }
-
-            set => base.Position = value;
         }
     }
 }

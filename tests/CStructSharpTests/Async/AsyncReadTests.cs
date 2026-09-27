@@ -135,7 +135,7 @@ public class AsyncReadTests
         CStructPathException path = await Assert.ThrowsAsync<CStructPathException>(async () => await layout.ParseAsync(new MemoryStream(Bytes), "missing"));
         Assert.AreEqual(Assert.Throws<CStructPathException>(() => layout.Parse(new MemoryStream(Bytes), "missing")).Message, path.Message);
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await layout.ParseAsync(null!, "root"));
-        await Assert.ThrowsAsync<ArgumentException>(async () => await layout.ParseAsync(new WriteOnlyStream(), "root"));
+        await Assert.ThrowsAsync<ArgumentException>(async () => await layout.ParseAsync(new UnreadableStream(), "root"));
 
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
@@ -190,11 +190,5 @@ public class AsyncReadTests
         string path = Path.Combine(Path.GetTempPath(), $"cstructsharp-async-read-{Guid.NewGuid():N}.bin");
         File.WriteAllBytes(path, bytes);
         return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous | FileOptions.DeleteOnClose) { Position = Origin, };
-    }
-
-    /// <summary>A memory stream that reports it cannot be read.</summary>
-    private sealed class WriteOnlyStream : MemoryStream
-    {
-        public override bool CanRead => false;
     }
 }

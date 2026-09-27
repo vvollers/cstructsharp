@@ -18,7 +18,7 @@ public class SparseUpdateStreamTests
     [TestMethod]
     public void Contract_ValidatesCapabilitiesPositionsLengthsAndBuffers()
     {
-        using var baseline = new TrackingStream(new byte[] { 1, 2, });
+        using var baseline = new RecordingStream(new byte[] { 1, 2, });
         using var staging = new SparseUpdateStream(baseline, 0);
 
         Assert.IsTrue(staging.CanRead);
@@ -73,7 +73,7 @@ public class SparseUpdateStreamTests
     [TestMethod]
     public void OverlayAndCommit_UseLastWriteWinsCoalescedRanges()
     {
-        using var baseline = new TrackingStream(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, });
+        using var baseline = new RecordingStream(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, });
         using var staging = new SparseUpdateStream(baseline, 1);
         staging.Write(new byte[] { 10, 11, 12, });
         staging.Position = 2;
@@ -87,7 +87,7 @@ public class SparseUpdateStreamTests
         CollectionAssert.AreEqual(new byte[] { 0, 10, 20, 21, 4, 5, 99, 7, }, overlay);
         Assert.AreEqual(0, baseline.WriteCalls);
 
-        using var destination = new TrackingStream(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, });
+        using var destination = new RecordingStream(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, });
         staging.CommitTo(destination);
 
         CollectionAssert.AreEqual(overlay, destination.Snapshot());
@@ -106,7 +106,7 @@ public class SparseUpdateStreamTests
     [TestMethod]
     public void Write_RejectsExtensionAndPreservesBaseline()
     {
-        using var baseline = new TrackingStream(new byte[] { 1, 2, });
+        using var baseline = new RecordingStream(new byte[] { 1, 2, });
         using var staging = new SparseUpdateStream(baseline, 2);
 
         Assert.Throws<CStructWriteException>(() => staging.WriteByte(3));
@@ -126,7 +126,7 @@ public class SparseUpdateStreamTests
     [TestMethod]
     public void Read_UsesStagedBytesAndOnlyReadsBaselineGaps()
     {
-        using var baseline = new TrackingStream(new byte[] { 1, 2, 3, });
+        using var baseline = new RecordingStream(new byte[] { 1, 2, 3, });
         var staging = new SparseUpdateStream(baseline, 1);
         staging.WriteByte(9);
         staging.Position = 0;
@@ -179,7 +179,7 @@ public class SparseUpdateStreamTests
         staging.Write(new byte[] { 1, 2, 3, });
         staging.Position = 2049;
         staging.WriteByte(9);
-        using var destination = new TrackingStream(new byte[2052]);
+        using var destination = new RecordingStream(new byte[2052]);
 
         staging.CommitTo(destination);
 
@@ -207,7 +207,7 @@ public class SparseUpdateStreamTests
         staging.Position = 4;
         staging.WriteByte(0xA4);
         var cause = new IOException("injected second commit failure");
-        using var destination = new TrackingStream(new byte[6]) { Failure = cause, FailWriteCall = 2, };
+        using var destination = new RecordingStream(new byte[6]) { Failure = cause, FailWriteCall = 2, };
 
         CStructWriteException failure = Assert.Throws<CStructWriteException>(() => staging.CommitTo(destination));
 
@@ -231,7 +231,7 @@ public class SparseUpdateStreamTests
         using var staging = new SparseUpdateStream(baseline, 2);
         staging.WriteByte(0xA2);
         var cause = new IOException("injected commit seek failure");
-        using var destination = new TrackingStream(new byte[4])
+        using var destination = new RecordingStream(new byte[4])
         {
             PositionFailure = cause,
             PositionReadFailure = new IOException("injected diagnostic position failure"),
@@ -243,138 +243,5 @@ public class SparseUpdateStreamTests
         Assert.AreEqual(2L, failure.Offset);
         Assert.AreEqual(0, destination.WriteCalls);
         CollectionAssert.AreEqual(new byte[4], destination.Snapshot());
-    }
-
-    /// <summary>A seekable memory stream that records its reads, writes and flushes and can fail a chosen write or position access.</summary>
-    private sealed class TrackingStream : Stream
-    {
-        private readonly MemoryStream inner = new();
-
-        /// <summary>Creates the stream over a copy of the bytes, positioned at the start.</summary>
-        /// <param name="bytes">The initial content.</param>
-        public TrackingStream(byte[] bytes)
-        {
-            this.inner.Write(bytes, 0, bytes.Length);
-            this.inner.Position = 0;
-        }
-
-        public Exception? Failure { get; init; }
-
-        public int FailWriteCall { get; init; } = -1;
-
-        public Exception? PositionFailure { get; init; }
-
-        public Exception? PositionReadFailure { get; init; }
-
-        public int FlushCalls { get; private set; }
-
-        public List<int> WriteLengths { get; } = [];
-
-        public List<long> WriteStarts { get; } = [];
-
-        public List<long> ReadStarts { get; } = [];
-
-        public int WriteCalls { get; private set; }
-
-        public override bool CanRead => true;
-
-        public override bool CanSeek => true;
-
-        public override bool CanWrite => true;
-
-        /// <inheritdoc/>
-        public override long Length => this.inner.Length;
-
-        public override long Position
-        {
-            get => this.PositionReadFailure is null ? this.inner.Position : throw this.PositionReadFailure;
-            set
-            {
-                if (this.PositionFailure is not null)
-                {
-                    throw this.PositionFailure;
-                }
-
-                this.inner.Position = value;
-            }
-        }
-
-        /// <summary>Counts the flush.</summary>
-        public override void Flush()
-        {
-            this.FlushCalls++;
-        }
-
-        /// <summary>Records where the read starts, then reads.</summary>
-        /// <param name="buffer">The destination.</param>
-        /// <param name="offset">The first index to fill.</param>
-        /// <param name="count">The most bytes to read.</param>
-        /// <returns>The bytes read.</returns>
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            this.ReadStarts.Add(this.inner.Position);
-            return this.inner.Read(buffer, offset, count);
-        }
-
-        /// <summary>Records where the read starts, then reads.</summary>
-        /// <param name="buffer">The destination.</param>
-        /// <returns>The bytes read.</returns>
-        public override int Read(Span<byte> buffer)
-        {
-            this.ReadStarts.Add(this.inner.Position);
-            return this.inner.Read(buffer);
-        }
-
-        /// <summary>Records where the read starts, then reads one byte.</summary>
-        /// <returns>The byte, or -1 at the end.</returns>
-        public override int ReadByte()
-        {
-            this.ReadStarts.Add(this.inner.Position);
-            return this.inner.ReadByte();
-        }
-
-        /// <inheritdoc/>
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            return this.inner.Seek(offset, origin);
-        }
-
-        /// <inheritdoc/>
-        public override void SetLength(long value)
-        {
-            this.inner.SetLength(value);
-        }
-
-        /// <summary>Records the write's start and length, fails if it is the chosen call, and otherwise writes.</summary>
-        /// <param name="buffer">The source.</param>
-        /// <param name="offset">The first index to write.</param>
-        /// <param name="count">The byte count.</param>
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            this.WriteStarts.Add(this.inner.Position);
-            this.WriteLengths.Add(count);
-            this.WriteCalls++;
-            if (this.WriteCalls == this.FailWriteCall)
-            {
-                throw this.Failure ?? new IOException("injected commit failure");
-            }
-
-            this.inner.Write(buffer, offset, count);
-        }
-
-        /// <summary>Writes through the array overload, so every write is recorded once.</summary>
-        /// <param name="buffer">The source.</param>
-        public override void Write(ReadOnlySpan<byte> buffer)
-        {
-            byte[] copy = buffer.ToArray();
-            this.Write(copy, 0, copy.Length);
-        }
-
-        /// <summary>Copies the stream's bytes.</summary>
-        /// <returns>The bytes.</returns>
-        public byte[] Snapshot()
-        {
-            return this.inner.ToArray();
-        }
     }
 }

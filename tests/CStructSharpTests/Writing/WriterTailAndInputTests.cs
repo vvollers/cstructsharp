@@ -83,23 +83,4 @@ public class WriterTailAndInputTests
         Assert.AreEqual(expectedReads, destination.PositionReads);
         Assert.AreEqual(0L, destination.Length);
     }
-
-    /// <summary>Counts physical position reads without changing normal seekable-memory-stream behavior.</summary>
-    private sealed class PositionCountingStream : MemoryStream
-    {
-        /// <summary>Gets the number of queries made to the destination position.</summary>
-        public int PositionReads { get; private set; }
-
-        /// <summary>Gets the current byte position while counting the query, or sets it without counting.</summary>
-        public override long Position
-        {
-            get
-            {
-                this.PositionReads++;
-                return base.Position;
-            }
-
-            set => base.Position = value;
-        }
-    }
 }

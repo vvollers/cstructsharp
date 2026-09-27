@@ -693,14 +693,14 @@ public class IndexedPointerUpdateTests
         const string layout = "struct root { uint16 **selected; uint8 *unrelated; uint8 tail; };";
         byte[] bytes = new byte[] { 0x04, 0x7F, 0x7E, 0xA5, 0x08, 0xA5, 0xA5, 0xA5, 0x34, 0x12, };
         var cstruct = new CStruct(layout, pointerSize: 1);
-        using var stream = new TrackingStream(bytes);
+        using var stream = new RecordingStream(bytes);
 
         cstruct.Update(stream, "root.selected.value.value", (ushort)0xBEEF);
 
         CollectionAssert.AreEqual(new long[] { 0, 4, }, stream.ReadStarts.ToArray());
         CollectionAssert.AreEqual(
             new byte[] { 0x04, 0x7F, 0x7E, 0xA5, 0x08, 0xA5, 0xA5, 0xA5, 0xEF, 0xBE, },
-            stream.ToArray());
+            stream.Snapshot());
         Assert.AreEqual(0, stream.Position);
     }
 
@@ -720,93 +720,6 @@ public class IndexedPointerUpdateTests
         {
             int destination = isLittleEndian ? offset + index : offset + size - index - 1;
             target[destination] = (byte)(value >> (index * 8));
-        }
-    }
-
-    /// <summary>Records read start positions while retaining ordinary seekable in-memory stream behavior.</summary>
-    private sealed class TrackingStream : Stream
-    {
-        private readonly MemoryStream inner;
-
-        /// <summary>Initializes a new instance of the <see cref="TrackingStream"/> class.</summary>
-        public TrackingStream(byte[] bytes)
-        {
-            this.inner = new MemoryStream(bytes, writable: true);
-        }
-
-        public override bool CanRead => true;
-
-        public override bool CanSeek => true;
-
-        public override bool CanWrite => true;
-
-        /// <inheritdoc/>
-        public override long Length => this.inner.Length;
-
-        /// <inheritdoc/>
-        public override long Position
-        {
-            get => this.inner.Position;
-            set => this.inner.Position = value;
-        }
-
-        public List<long> ReadStarts { get; } = [];
-
-        /// <inheritdoc/>
-        public override void Flush()
-        {
-            this.inner.Flush();
-        }
-
-        /// <summary>Records where the read starts, then reads from the inner stream.</summary>
-        /// <param name="buffer">The destination.</param>
-        /// <param name="offset">The first index to fill.</param>
-        /// <param name="count">The most bytes to read.</param>
-        /// <returns>The bytes read.</returns>
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            this.ReadStarts.Add(this.inner.Position);
-            return this.inner.Read(buffer, offset, count);
-        }
-
-        /// <summary>Records where the read starts, then reads from the inner stream.</summary>
-        /// <param name="buffer">The destination.</param>
-        /// <returns>The bytes read.</returns>
-        public override int Read(Span<byte> buffer)
-        {
-            this.ReadStarts.Add(this.inner.Position);
-            return this.inner.Read(buffer);
-        }
-
-        /// <inheritdoc/>
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            return this.inner.Seek(offset, origin);
-        }
-
-        /// <inheritdoc/>
-        public override void SetLength(long value)
-        {
-            this.inner.SetLength(value);
-        }
-
-        /// <inheritdoc/>
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            this.inner.Write(buffer, offset, count);
-        }
-
-        /// <inheritdoc/>
-        public override void Write(ReadOnlySpan<byte> buffer)
-        {
-            this.inner.Write(buffer);
-        }
-
-        /// <summary>Copies the stream's bytes.</summary>
-        /// <returns>The bytes.</returns>
-        public byte[] ToArray()
-        {
-            return this.inner.ToArray();
         }
     }
 }

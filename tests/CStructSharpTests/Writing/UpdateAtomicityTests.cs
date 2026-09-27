@@ -210,7 +210,7 @@ public class UpdateAtomicityTests
     public void PreservationReads_ShareTheTraversalBudget()
     {
         var cstruct = new CStruct("struct root { uint8 low:4; uint8 high:4; };", pointerSize: 1);
-        using var stream = new TrackingStream(new byte[] { 0xA5, });
+        using var stream = new RecordingStream(new byte[] { 0xA5, });
 
         Assert.Throws<CStructReadLimitException>(
             () => cstruct.Update(
@@ -229,7 +229,7 @@ public class UpdateAtomicityTests
         var conditional = new CStruct("struct root { uint8 tag; if (tag) { uint8 payload; } };", aligned: false);
         foreach (long budget in new long[] { 0, 1, 2 })
         {
-            using var conditionalStream = new TrackingStream(new byte[] { 0xEE, 1, 42 }) { Position = 1 };
+            using var conditionalStream = new RecordingStream(new byte[] { 0xEE, 1, 42 }) { Position = 1 };
             Assert.Throws<CStructReadLimitException>(() => conditional.Update(
                 conditionalStream, "root.tag", 1, options: new UpdateOptions { MaxTraversalBytesRead = budget }));
             CollectionAssert.AreEqual(new byte[] { 0xEE, 1, 42 }, conditionalStream.Snapshot());
@@ -237,7 +237,7 @@ public class UpdateAtomicityTests
             Assert.AreEqual(1L, conditionalStream.Position);
         }
 
-        using var permitted = new TrackingStream(new byte[] { 0xEE, 1, 42 }) { Position = 1 };
+        using var permitted = new RecordingStream(new byte[] { 0xEE, 1, 42 }) { Position = 1 };
         conditional.Update(permitted, "root.tag", 1, options: new UpdateOptions { MaxTraversalBytesRead = 3 });
         CollectionAssert.AreEqual(new byte[] { 0xEE, 1, 42 }, permitted.Snapshot());
         Assert.IsTrue(permitted.WriteCalls > 0);
@@ -307,7 +307,7 @@ public class UpdateAtomicityTests
         byte storedAddress)
     {
         var cstruct = new CStruct("struct root { uint8 *target; };", pointerSize: 1);
-        using var stream = new TrackingStream(new byte[] { storedAddress, 0, 0, 0, });
+        using var stream = new RecordingStream(new byte[] { storedAddress, 0, 0, 0, });
 
         CStructReadException failure = Assert.Throws<CStructReadException>(
             () => cstruct.Update(
@@ -364,7 +364,7 @@ public class UpdateAtomicityTests
     {
         var cstruct = new CStruct("struct root { uint8 values[3]; };", pointerSize: 1);
         var values = new SinglePassEnumerable((byte)1, (byte)2, (byte)3);
-        using var stream = new TrackingStream(new byte[3]);
+        using var stream = new RecordingStream(new byte[3]);
 
         cstruct.Update(stream, "root.values", values);
 
@@ -394,7 +394,7 @@ public class UpdateAtomicityTests
             pointerSize: 1,
             aligned: true,
             isLittleEndian: isLittleEndian);
-        using var stream = new TrackingStream(new byte[8]);
+        using var stream = new RecordingStream(new byte[8]);
 
         cstruct.Update(
             stream,
@@ -490,7 +490,7 @@ public class UpdateAtomicityTests
         long position,
         Action<Stream> update)
     {
-        using var stream = new TrackingStream(bytes) { Position = position, };
+        using var stream = new RecordingStream(bytes) { Position = position, };
         byte[] expected = stream.Snapshot();
         long expectedLength = stream.Length;
 
@@ -680,107 +680,6 @@ public class UpdateAtomicityTests
             result.Write(bytes, 0, bytes.Length);
             result.Position = 0;
             return result;
-        }
-    }
-
-    /// <summary>Records every destination write while retaining ordinary expandable-memory behavior.</summary>
-    private sealed class TrackingStream : Stream
-    {
-        private readonly MemoryStream inner = new();
-
-        /// <summary>Creates the stream over a copy of the bytes, positioned at the start.</summary>
-        /// <param name="bytes">The initial content.</param>
-        public TrackingStream(byte[] bytes)
-        {
-            this.inner.Write(bytes, 0, bytes.Length);
-            this.inner.Position = 0;
-        }
-
-        public int WriteCalls { get; private set; }
-
-        public override bool CanRead => true;
-
-        public override bool CanSeek => true;
-
-        public override bool CanWrite => true;
-
-        /// <inheritdoc/>
-        public override long Length => this.inner.Length;
-
-        /// <inheritdoc/>
-        public override long Position
-        {
-            get => this.inner.Position;
-            set => this.inner.Position = value;
-        }
-
-        /// <inheritdoc/>
-        public override void Flush()
-        {
-            this.inner.Flush();
-        }
-
-        /// <inheritdoc/>
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            return this.inner.Read(buffer, offset, count);
-        }
-
-        /// <inheritdoc/>
-        public override int Read(Span<byte> buffer)
-        {
-            return this.inner.Read(buffer);
-        }
-
-        /// <inheritdoc/>
-        public override int ReadByte()
-        {
-            return this.inner.ReadByte();
-        }
-
-        /// <inheritdoc/>
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            return this.inner.Seek(offset, origin);
-        }
-
-        /// <inheritdoc/>
-        public override void SetLength(long value)
-        {
-            this.inner.SetLength(value);
-        }
-
-        /// <summary>Counts the write, then writes.</summary>
-        /// <param name="buffer">The source.</param>
-        /// <param name="offset">The first index to write.</param>
-        /// <param name="count">The byte count.</param>
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            this.WriteCalls++;
-            this.inner.Write(buffer, offset, count);
-        }
-
-        /// <summary>Counts the write, then writes.</summary>
-        /// <param name="buffer">The source.</param>
-        public override void Write(ReadOnlySpan<byte> buffer)
-        {
-            this.WriteCalls++;
-            this.inner.Write(buffer);
-        }
-
-        /// <summary>Counts the write, then writes the byte.</summary>
-        /// <param name="value">The byte.</param>
-        public override void WriteByte(byte value)
-        {
-            this.WriteCalls++;
-            this.inner.WriteByte(value);
-        }
-
-        /// <summary>Copies the stream's bytes.</summary>
-        /// <returns>The bytes.</returns>
-        public byte[] Snapshot()
-        {
-            return this.inner.ToArray();
         }
     }
 }

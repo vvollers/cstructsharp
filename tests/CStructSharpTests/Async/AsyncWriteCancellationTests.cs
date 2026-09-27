@@ -79,7 +79,7 @@ public class AsyncWriteCancellationTests
     public async Task PreCancelledUpdate_DoesNotReadTheOrigin()
     {
         var layout = new CStruct("struct root { uint8 value; };");
-        using var destination = new PositionObservedStream();
+        using var destination = new PositionCountingStream();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -154,23 +154,6 @@ public class AsyncWriteCancellationTests
             this.WriteCalls++;
             this.Write(buffer.Span);
             return ValueTask.CompletedTask;
-        }
-    }
-
-    /// <summary>Counts origin reads while retaining ordinary writable, readable and seekable capabilities.</summary>
-    private sealed class PositionObservedStream : MemoryStream
-    {
-        public int PositionReads { get; private set; }
-
-        public override long Position
-        {
-            get
-            {
-                this.PositionReads++;
-                return base.Position;
-            }
-
-            set => base.Position = value;
         }
     }
 }
