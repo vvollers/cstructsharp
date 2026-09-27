@@ -33,17 +33,6 @@ public partial class CStructExports
     }
 
     /// <summary>
-    ///     Parses binary data with bounded layout and read options and returns values plus byte mappings.
-    ///     <paramref name="binaryData"/> crosses the interop boundary as a native byte array - the caller's
-    ///     Uint8Array is copied directly into it, not encoded as Base64 text.
-    /// </summary>
-    [JSExport]
-    public static string ParseWithDebug(string cstructDefinition, byte[] binaryData, string optionsJson)
-    {
-        return ParseBytes(cstructDefinition, binaryData, optionsJson, true);
-    }
-
-    /// <summary>
     ///     Parses a complete managed copy of the caller's bytes on the calling thread. The JavaScript adapter uses it
     ///     for small inputs: one byte[] marshal is far cheaper than staging the input and round-tripping the
     ///     worker that <see cref="ParseSource"/> is designed for.
@@ -113,38 +102,6 @@ public partial class CStructExports
         catch (Exception exception)
         {
             return SerializeInteropResult(CreateFailure("parse", exception, options));
-        }
-    }
-
-    /// <summary>Serializes with the layout retained by this worker runtime; see <see cref="Serialize"/>.</summary>
-    [JSExport]
-    public static byte[] SerializeCompiled(string dataJson, string optionsJson)
-    {
-        InteropOptionsDto? options = null;
-        try
-        {
-            options = ParseOptions(optionsJson);
-            return SerializeCore(RequireWorkerLayout(), dataJson, options);
-        }
-        catch (Exception exception)
-        {
-            throw CreateBridgeException(exception, options);
-        }
-    }
-
-    /// <summary>Updates with the layout retained by this worker runtime; see <see cref="UpdateStream"/>.</summary>
-    [JSExport]
-    public static byte[] UpdateCompiled(byte[] binaryData, string elementNameOrPath, string valueJson, string optionsJson)
-    {
-        InteropOptionsDto? options = null;
-        try
-        {
-            options = ParseOptions(optionsJson);
-            return UpdateCore(RequireWorkerLayout(), binaryData, elementNameOrPath, valueJson, options);
-        }
-        catch (Exception exception)
-        {
-            throw CreateBridgeException(exception, options);
         }
     }
 

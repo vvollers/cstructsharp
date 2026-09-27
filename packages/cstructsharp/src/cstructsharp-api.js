@@ -9,6 +9,11 @@ const SYNCHRONOUS_PARSE_LIMIT = 64 * 1024;
 /** Byte inputs beyond this size are staged and read by the worker rather than copied into WASM memory. */
 const MANAGED_COPY_LIMIT = 4 * 1024 * 1024;
 
+/**
+ * Builds the public promise-based API over a loader of the synchronous adapter.
+ * @param {() => Promise<object>} loadCStructSharpWasm Loads (once) and returns the adapter.
+ * @returns {object} `compile`, `parse`, `parseWithDebug`, `serialize`, `update`, `resolveAddress`, `getVersion` and the loader.
+ */
 export function createPublicApi(loadCStructSharpWasm) {
   /** Parse bytes and record every value's byte range. `data` is the selected value; `debug` lists the ranges.
    * @param {string} definition Portable layout source.
@@ -31,7 +36,7 @@ export function createPublicApi(loadCStructSharpWasm) {
    */
   async function parse(definition, source, options = null) {
     const api = await loadCStructSharpWasm();
-    if (isSmallByteInput(source, options) && typeof api.parseBytes === "function") {
+    if (isSmallByteInput(source, options)) {
       const bytes = toUint8Array(source);
       // a fully fixed layout is read by the static plan in JavaScript; everything else crosses into WASM.
       const native = tryParseNative(api, definition, bytes, options);
@@ -209,8 +214,16 @@ const NATIVE_PLAN_OPTION_KEYS = new Set([
 const NATIVE_PLAN_CACHE_LIMIT = 64;
 const nativePlanCache = new Map();
 
+/**
+ * Parses a small byte input with the root's static plan in JavaScript when the layout is fully fixed.
+ * @param {object} api The adapter.
+ * @param {string} definition Portable layout source.
+ * @param {Uint8Array} bytes The input.
+ * @param {object | null} options Parse options.
+ * @returns {object | null} The parse envelope, or null when the plan cannot serve this call.
+ */
 function tryParseNative(api, definition, bytes, options) {
-  if (typeof api.getStaticPlan !== "function" || !nativePlanOptionsEligible(options)) {
+  if (!nativePlanOptionsEligible(options)) {
     return null;
   }
   const plan = getNativePlan(api, definition, options);

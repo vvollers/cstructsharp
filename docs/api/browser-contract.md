@@ -14,26 +14,26 @@ API because JSON passed between browser code and WebAssembly has different compa
 call.
 
 The reviewed `browser-rc1` description targets package candidate `0.2.0-preview` and uses browser interface version
-8. It records seven managed entry points:
+8. It records six managed entry points:
 
 - `GetVersion`
-- `ParseWithDebug` and `ParseBytes` (parses byte inputs on the calling thread; the latter without debug ranges)
+- `ParseBytes` (parses byte inputs on the calling thread, with debug ranges when its `debug` argument is true)
 - `Serialize`
 - `UpdateStream`
 - `ResolveAddress`
 - `GetStaticPlan` (describes a fully fixed root's member offsets and codecs as JSON so the adapters can read such
-  layouts in JavaScript; an adapter treats its absence as "feature not available")
+  layouts in JavaScript; an empty string means the root is not fully fixed)
 
-The retained-layout exports (`InitializeCompiledLayout`, `ParseCompiledSource`, `SerializeCompiled`,
-`UpdateCompiled`, `ResolveAddressCompiled`) and `ParseSource` back the worker-side `compile` operation and large
-sources; they exchange the same envelope.
+The retained-layout exports (`InitializeCompiledLayout`, `ParseCompiledSource`, `ResolveAddressCompiled`) and
+`ParseSource` back the worker-side `compile` operation and large sources; they exchange the same envelope. A
+compiled layout's `serialize` and `update` run on the calling thread through `Serialize` and `UpdateStream`.
 
 Binary data crosses the boundary as a native `byte[]`/`Uint8Array`, never Base64 text. Every JSON-returning export
 returns the same outer object, called an *envelope*: `contractVersion` (8), `operation` (`parse`, `serialize`,
 `update`, `resolveAddress`, or `compile`), `success`, `root` (the root or path the operation selected), `data`,
 `debug`, and `error`. On success `data` is the selected value itself - the root struct's members by name, or the
 union, array, or scalar a path selects - with no wrapper object; `debug` lists `{ start, end, path, type, value }`
-byte ranges after `ParseWithDebug` and is empty otherwise. `Serialize`/`UpdateStream` return the encoded bytes
+byte ranges after a parse with debug ranges and is empty otherwise. `Serialize`/`UpdateStream` return the encoded bytes
 directly on success; there is no envelope object left to carry an error alongside a native byte-array payload, so
 they report failure by throwing instead. The thrown JS `Error`'s message is the same JSON-serialized error shape
 the envelope's `error` field uses - `{ code, message, path, offset, member, memberType, line, column }` - so the

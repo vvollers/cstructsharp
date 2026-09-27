@@ -3,12 +3,14 @@ import test from "node:test";
 
 import { createCStructSharpWasm } from "./bootstrap.js";
 
+/**
+ * Builds fake managed exports that record every call.
+ * @param {Array<[string, unknown[]]>} calls Receives each export name with its arguments.
+ * @returns {object} The nested export shape the runtime produces.
+ */
 function createExports(calls) {
   const managed = {
-    ParseWithDebug(...args) {
-      calls.push(["ParseWithDebug", args]);
-      return "parse-default";
-    },
+    /** Records a byte parse and returns a marker. */
     ParseBytes(...args) {
       calls.push(["ParseBytes", args]);
       return "parse-bytes";
@@ -29,6 +31,11 @@ function createExports(calls) {
       calls.push(["GetVersion", []]);
       return "version";
     },
+    /** Records a plan request; the empty string means the root is not fully fixed. */
+    GetStaticPlan(...args) {
+      calls.push(["GetStaticPlan", args]);
+      return "";
+    },
   };
 
   return {
@@ -45,14 +52,14 @@ test("adapter binds every managed export and normalizes boundary values", () => 
   const adapter = createCStructSharpWasm(createExports(calls));
   const bytes = new Uint8Array([0, 0]);
 
-  assert.equal(adapter.parseWithDebug("layout", bytes), "parse-default");
+  assert.equal(adapter.parseWithDebug("layout", bytes), "parse-bytes");
   assert.equal(
     adapter.parseWithDebug("layout", bytes, {
       root: "root",
       aligned: true,
       pointerSize: 4,
     }),
-    "parse-default",
+    "parse-bytes",
   );
   assert.deepEqual(
     adapter.serialize("layout", "{}", {
@@ -73,14 +80,14 @@ test("adapter binds every managed export and normalizes boundary values", () => 
     new Uint8Array([0x2a]),
   );
   assert.equal(adapter.parseBytes("layout", bytes, { root: "root" }, false), "parse-bytes");
-  assert.equal(adapter.resolveAddress("layout", bytes, "root.value", { root: "root" }), "resolve-address");
+  assert.equal(adapter.getStaticPlan("layout", { root: "root" }), "");
   assert.equal(adapter.getVersion(), "version");
   assert.equal(adapter.ready, true);
   assert.equal(adapter.error, null);
 
   assert.deepEqual(calls, [
-    ["ParseWithDebug", ["layout", bytes, "{}"]],
-    ["ParseWithDebug", ["layout", bytes, '{"root":"root","aligned":true,"pointerSize":4}']],
+    ["ParseBytes", ["layout", bytes, "{}", true]],
+    ["ParseBytes", ["layout", bytes, '{"root":"root","aligned":true,"pointerSize":4}', true]],
     ["Serialize", ["layout", "{}", '{"root":null,"aligned":false,"pointerSize":8}']],
     [
       "UpdateStream",
@@ -93,7 +100,7 @@ test("adapter binds every managed export and normalizes boundary values", () => 
       ],
     ],
     ["ParseBytes", ["layout", bytes, '{"root":"root"}', false]],
-    ["ResolveAddress", ["layout", bytes, "root.value", '{"root":"root"}']],
+    ["GetStaticPlan", ["layout", '{"root":"root"}']],
     ["GetVersion", []],
   ]);
 });

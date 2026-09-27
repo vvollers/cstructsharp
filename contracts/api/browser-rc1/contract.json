@@ -6,7 +6,6 @@
   "managedExports": [
     "GetVersion",
     "ParseBytes",
-    "ParseWithDebug",
     "Serialize",
     "UpdateStream",
     "ResolveAddress",
@@ -131,6 +130,11 @@
       "contractVersion": 7,
       "date": "2026-09-16",
       "change": "dissect.cstruct parity (additive, no envelope, export, option, or error-code change): a value read from a `flag` declaration carries `Names` (the set members) and `Remainder` (bits no member covers) next to the unchanged `Enum`/`Name`/`Value` keys; a promoted (anonymous) struct or union member's fields sit directly on the parent object; `_` padding fields never appear; int48/int128/float16 values render like the existing wide integers and floats. Every pre-existing definition produces byte-identical envelopes."
+    },
+    {
+      "contractVersion": 8,
+      "date": "2026-09-27",
+      "change": "Managed export ParseWithDebug removed: the adapter parses with debug ranges through ParseBytes(definition, bytes, options, true), which returns the identical envelope. The unused SerializeCompiled and UpdateCompiled worker exports are removed. The JavaScript API, envelope, options and error codes are unchanged."
     }
   ]
 }

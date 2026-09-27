@@ -4,6 +4,11 @@
  */
 import { collectBytes, compileLargeSource, parseLargeSource, resolveAddressLargeSource } from "./large-source.js";
 
+/**
+ * Binds the managed exports to the synchronous adapter the public API and the apps call.
+ * @param {object} assemblyExports The runtime's assembly exports, nested (`CStructSharpWeb.Wasm.CStructExports`) or flat.
+ * @returns {object} The adapter; it throws at creation when a required managed export is missing.
+ */
 export function createCStructSharpWasm(assemblyExports) {
   const managed =
     assemblyExports?.CStructSharpWeb?.Wasm?.CStructExports ??
@@ -13,12 +18,12 @@ export function createCStructSharpWasm(assemblyExports) {
   }
 
   const required = [
-    "ParseWithDebug",
     "ParseBytes",
     "Serialize",
     "UpdateStream",
     "ResolveAddress",
     "GetVersion",
+    "GetStaticPlan",
   ];
   const missing = required.filter(
     (name) => typeof managed[name] !== "function",
@@ -44,12 +49,9 @@ export function createCStructSharpWasm(assemblyExports) {
       }),
     resolveAddressSource: resolveAddressLargeSource,
     collectBytes,
+    /** Parses a byte array on the calling thread and records every value's byte range; the JSON envelope text. */
     parseWithDebug(definition, bytes, options = null) {
-      return managed.ParseWithDebug(
-        definition,
-        bytes,
-        stringifyOptions(options),
-      );
+      return managed.ParseBytes(definition, bytes, stringifyOptions(options), true);
     },
     parseBytes(definition, bytes, options = null, debug = false) {
       return managed.ParseBytes(
@@ -71,26 +73,24 @@ export function createCStructSharpWasm(assemblyExports) {
         stringifyOptions(options),
       );
     },
-    resolveAddress(definition, bytes, path, options = null) {
-      return managed.ResolveAddress(definition, bytes, path, stringifyOptions(options));
-    },
+    /** The managed library version of the loaded bundle. */
     getVersion() {
       return managed.GetVersion();
     },
-    /** The static read plan of a root as JSON text, or "" when the layout is not fully fixed (older bundles: undefined). */
-    getStaticPlan: bindOptional(managed, "GetStaticPlan", (definition, options = null) =>
-      managed.GetStaticPlan(definition, stringifyOptions(options)),
-    ),
+    /** The static read plan of a root as JSON text, or "" when the layout is not fully fixed. */
+    getStaticPlan(definition, options = null) {
+      return managed.GetStaticPlan(definition, stringifyOptions(options));
+    },
     ready: true,
     error: null,
   };
 }
 
-/** Exports added after the reviewed baseline are optional: an older bundle simply lacks the feature. */
-function bindOptional(managed, name, binding) {
-  return typeof managed[name] === "function" ? binding : undefined;
-}
-
+/**
+ * Encodes options as the JSON text the managed exports read; BigInt values become exact decimal strings.
+ * @param {object | null | undefined} options The caller's options.
+ * @returns {string} The JSON text, `{}` when there are none.
+ */
 function stringifyOptions(options) {
   return JSON.stringify(options ?? {}, (_key, value) =>
     typeof value === "bigint" ? value.toString(10) : value,

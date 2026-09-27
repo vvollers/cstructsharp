@@ -38,7 +38,7 @@ internal sealed class GeneratedModel
     public IReadOnlyList<string> Collisions => this.collisions;
 
     /// <summary>Builds the model; <paramref name="takenNames"/> holds the names the class frame already uses (updated with every type name); <paramref name="views"/> reserves the view members.</summary>
-    public static GeneratedModel Build(LayoutCompilation compilation, bool keepNames, Dictionary<string, string> takenNames, bool views = true)
+    public static GeneratedModel Build(LayoutCompilation compilation, bool keepNames, Dictionary<string, string> takenNames, bool views)
     {
         var model = new GeneratedModel(keepNames, views, takenNames);
         CompiledLayoutModel compiled = compilation.CompiledModel;

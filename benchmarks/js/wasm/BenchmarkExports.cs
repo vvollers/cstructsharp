@@ -17,11 +17,12 @@ using CStructSharp;
 [SupportedOSPlatform("browser")]
 public partial class CStructExports
 {
+    private static readonly byte[] BenchScratch = new byte[64 * 1024];
     private static CStruct? benchLayout;
     private static object? benchRetainedResult;
     private static byte[] benchBytesOut = [];
     private static string benchStringOut = string.Empty;
-    private static readonly byte[] BenchScratch = new byte[64 * 1024];
+    private static byte[]? aotProfile;
 
     [JSExport]
     public static int BenchNoop() => 0;
@@ -152,8 +153,16 @@ public partial class CStructExports
     [DynamicDependency(nameof(BenchReceiveAotProfile), typeof(CStructExports))]
     public static byte[] BenchTakeAotProfile() => aotProfile ?? [];
 
-    private static byte[]? aotProfile;
-
+    /// <summary>Forces a full garbage collection between benchmark cases.</summary>
     [JSExport]
     public static void BenchCollect() => GC.Collect();
+
+    /// <summary>Serializes a parsed struct or union alone (benchmark projection cases).</summary>
+    private static string SerializeParsedValue(object value)
+    {
+        ParsedJsonWriter writer = projectionWriter ??= new ParsedJsonWriter(16 * 1024);
+        writer.Reset();
+        writer.WriteValue(value);
+        return FinishProjection(writer);
+    }
 }

@@ -365,7 +365,7 @@ public partial class CStructExports
     }
 
     /// <summary>Creates a successful result whose Data is an already-parsed JSON value (the compiled-layout handshake).</summary>
-    private static InteropResultDto CreateSuccess(string operation, JsonElement data, string? root = null)
+    private static InteropResultDto CreateSuccess(string operation, JsonElement data, string? root)
     {
         return new InteropResultDto
         {
@@ -401,19 +401,6 @@ public partial class CStructExports
             Debug = [],
             Error = DescribeError(exception, options),
         };
-    }
-
-    /// <summary>The options of a call, or none when the options text itself could not be read.</summary>
-    private static InteropOptionsDto? TryParseOptions(string optionsJson)
-    {
-        try
-        {
-            return ParseOptions(optionsJson);
-        }
-        catch (Exception exception) when (exception is JsonException or BrowserInputException or ArgumentException)
-        {
-            return null;
-        }
     }
 
     /// <summary>Maps failures to stable categories, exposing only controlled diagnostics, never raw exception text.</summary>

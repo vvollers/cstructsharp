@@ -88,6 +88,8 @@ test("parse takes the synchronous path for small byte inputs and the worker path
     JSON.stringify({ contractVersion: 8, operation: "parse", success: true, root: "root", data, debug: [], error: null });
   globalThis.CStructSharpWasm = {
     ready: true,
+    /** A layout that is not fully fixed has no static plan, so small inputs cross into WASM. */
+    getStaticPlan: () => "",
     parseBytes: (definition, bytes, options, debug) => {
       calls.push(["parseBytes", bytes.byteLength, options, debug]);
       return envelope({ value: 1 });

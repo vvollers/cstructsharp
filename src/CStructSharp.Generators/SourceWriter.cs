@@ -11,8 +11,6 @@ internal sealed class SourceWriter
     private int indentation;
     private bool atLineStart = true;
 
-    public int Length => this.text.Length;
-
     /// <summary>A C# string literal for <paramref name="value"/>, escaped for a regular (non-verbatim) literal.</summary>
     public static string Literal(string value)
     {

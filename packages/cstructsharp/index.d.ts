@@ -228,13 +228,6 @@ export interface RawWasmAdapter {
     options?: (CompileOptions & ParseOptions) | null,
     debug?: boolean,
   ): string;
-  /** Synchronous byte-array address resolution; the JSON text of a Result<number | string, "resolveAddress"> envelope. */
-  resolveAddress(
-    definition: string,
-    bytes: Uint8Array,
-    path: string,
-    options?: (CompileOptions & ParseOptions) | null,
-  ): string;
   serialize(definition: string, json: string, options?: (CompileOptions & SerializeOptions) | null): Uint8Array;
   updateStream(
     definition: string,

@@ -70,6 +70,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   matrix against every `MemoryTypeKind` member.
 - `tools/quality/remap-mutation-equivalents.mjs --write --drop-blocked` deletes reviewed equivalent mutants whose code
   changed or was removed, so the next mutation run reports them again for review.
+- Browser bridge: the managed `ParseWithDebug` export (the adapter now uses `ParseBytes` with debug ranges) and the
+  unused `SerializeCompiled` and `UpdateCompiled` exports are removed; the JavaScript API and the envelope are
+  unchanged. The analyzer release file lists the CSG rules as shipped in 0.7.0.
 
 ## 0.10.0 — 2026-09-26
 

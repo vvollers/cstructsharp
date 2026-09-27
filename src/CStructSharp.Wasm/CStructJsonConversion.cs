@@ -206,15 +206,7 @@ public partial class CStructExports
         return FinishProjection(writer);
     }
 
-    /// <summary>Serializes a parsed struct or union alone (benchmark projection cases).</summary>
-    private static string SerializeParsedValue(object value)
-    {
-        ParsedJsonWriter writer = projectionWriter ??= new ParsedJsonWriter(16 * 1024);
-        writer.Reset();
-        writer.WriteValue(value);
-        return FinishProjection(writer);
-    }
-
+    /// <summary>Returns the projected JSON text and releases an unusually large per-thread buffer.</summary>
     private static string FinishProjection(ParsedJsonWriter writer)
     {
         string json = Encoding.UTF8.GetString(writer.WrittenSpan);
