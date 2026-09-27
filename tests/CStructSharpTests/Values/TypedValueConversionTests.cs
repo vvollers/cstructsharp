@@ -159,6 +159,11 @@ public class TypedValueConversionTests
         Assert.IsTrue(MappedTypes.IsMapped(typeof(ExactModel)));
     }
 
+    /// <summary>Asserts a typed read fails with a read exception at the given path and message.</summary>
+    /// <typeparam name="T">The requested type.</typeparam>
+    /// <param name="cstruct">The layout.</param>
+    /// <param name="expectedMessage">Text the message must contain.</param>
+    /// <param name="expectedPath">The failure's path.</param>
     private static void AssertMappingFailure<T>(
         CStruct cstruct,
         string expectedMessage,
@@ -171,6 +176,12 @@ public class TypedValueConversionTests
         StringAssert.Contains(error.Message, expectedMessage);
     }
 
+    /// <summary>Reads a typed value from bytes through a new layout.</summary>
+    /// <typeparam name="T">The requested type.</typeparam>
+    /// <param name="layout">The layout text.</param>
+    /// <param name="bytes">The input.</param>
+    /// <param name="path">The value's path.</param>
+    /// <returns>The value.</returns>
     private static T Read<T>(string layout, byte[] bytes, string path = "root.value")
     {
         var cstruct = new CStruct(layout);
@@ -178,35 +189,47 @@ public class TypedValueConversionTests
         return cstruct.ReadValue<T>(stream, path);
     }
 
+    /// <summary>Eight bytes with every bit set.</summary>
+    /// <returns>The bytes.</returns>
     private static byte[] EightOnes()
     {
         return [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,];
     }
 
+    /// <summary>A struct, which a typed read cannot materialize as a mapped class.</summary>
     private struct ValueModel
     {
         public byte Value { get; set; }
     }
 
+    /// <summary>An abstract class, which a typed read cannot create.</summary>
     private abstract class AbstractModel
     {
         public byte Value { get; set; }
     }
 
+    /// <summary>A mapped class for the tests' <c>ExactModel</c> record, read and written through the runtime.</summary>
     internal sealed class ExactModel : ICStructMapped<ExactModel>
     {
         public byte Value { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static ExactModel ReadFrom(StructValue source)
         {
             return new ExactModel { Value = source.Get<byte>("Value"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(ExactModel value, StructValue target)
         {
             target["Value"] = value.Value;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -214,25 +237,34 @@ public class TypedValueConversionTests
         }
     }
 
+    /// <summary>A class with no registered mapping.</summary>
     private sealed class NotRegistered
     {
         public byte Value { get; set; }
     }
 
+    /// <summary>A mapped class for the tests' <c>ThrowingMapper</c> record, read and written through the runtime.</summary>
     internal sealed class ThrowingMapper : ICStructMapped<ThrowingMapper>
     {
         public byte Value { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static ThrowingMapper ReadFrom(StructValue source)
         {
             throw new InvalidOperationException("mapper failure");
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(ThrowingMapper value, StructValue target)
         {
             target["Value"] = value.Value;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -245,16 +277,23 @@ public class TypedValueConversionTests
     {
         public DateTime Value { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static WrongMemberMapper ReadFrom(StructValue source)
         {
             return new WrongMemberMapper { Value = source.Get<DateTime>("Value"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(WrongMemberMapper value, StructValue target)
         {
             target["Value"] = value.Value;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {

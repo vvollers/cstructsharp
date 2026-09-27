@@ -29,6 +29,8 @@ public class TypedGetTests
         0x2A, // pointee
     ];
 
+    /// <summary>Parses the fixture bytes as the fixture root.</summary>
+    /// <returns>The root.</returns>
     private static StructValue ParseRoot()
     {
         return new CStruct(Layout, pointerSize: 1, aligned: false).Parse(Bytes, "root");
@@ -140,23 +142,31 @@ public class TypedGetTests
         Assert.AreEqual(2, value.Get<int>("nested.b"));
     }
 
+    /// <summary>A mapped class for the tests' <c>Inner</c> record, read and written through the runtime.</summary>
     internal sealed class Inner : ICStructMapped<Inner>
     {
         public byte A { get; set; }
 
         public ushort B { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static Inner ReadFrom(StructValue source)
         {
             return new Inner { A = source.Get<byte>("a"), B = source.Get<ushort>("b"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(Inner value, StructValue target)
         {
             target["a"] = value.A;
             target["b"] = value.B;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {

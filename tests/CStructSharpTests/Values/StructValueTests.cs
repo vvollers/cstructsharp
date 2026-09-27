@@ -4,16 +4,28 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
+using CStructSharp;
 using CStructSharp.Values;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-/// <summary>Pins the parsed-struct value contract that replaced <see cref="ExpandoObject"/>.</summary>
+/// <summary>
+///     Pins the parsed-struct value contract: members in declaration order, mutation that writes back, insertion order
+///     beyond the shape, conditional and promoted members, dynamic access, typed lookups that tell an absent member
+///     from an unconvertible one, and one slot array per parsed struct.
+/// </summary>
 [TestClass]
 public class StructValueTests
 {
     private const string Layout = """
         struct inner { uint8 a; uint8 b; };
         struct root { uint16 kind; inner nested; uint8 tail[2]; };
+        """;
+
+    private const string NestedLayout = """
+        struct leaf { uint8 kind; uint32 value; };
+        struct mid { leaf first; leaf second; };
+        struct pair { mid left; mid right; uint16 tag; };
+        struct root { pair items[256]; };
         """;
 
     /// <summary>A parse result is a <see cref="StructValue"/> readable dynamically, by key, and by enumeration in declaration order.</summary>
@@ -109,12 +121,14 @@ public class StructValueTests
         dynamic b = second.Parse([0xFF, 0x05, 0x00], "root");
         dynamic c = second.Parse([0xFF, 0x06, 0x00], "root");
 
+        /// <summary>Reads <c>kind</c> through one shared dynamic call site.</summary>
         static ushort ReadKind(dynamic value) => (ushort)value.kind;
         Assert.AreEqual((ushort)3, ReadKind(a));
         Assert.AreEqual((ushort)5, ReadKind(b));
         Assert.AreEqual((ushort)6, ReadKind(c));
         Assert.AreEqual((ushort)3, ReadKind(a));
 
+        /// <summary>Writes <c>kind</c> through one shared dynamic call site.</summary>
         static void WriteKind(dynamic value, ushort kind) => value.kind = kind;
         WriteKind(a, 30);
         WriteKind(b, 50);
@@ -181,5 +195,33 @@ public class StructValueTests
         Assert.IsInstanceOfType<Diagnostics.CStructPathException>(unionAbsent);
         Assert.AreEqual((byte)1, union.GetOrDefault("small", (byte)0));
         Assert.AreEqual(42u, union.GetOrDefault("other", 42u));
+    }
+
+    /// <summary>
+    ///     1,280 nested struct values (256 pairs × 5 composites) plus 1,536 boxed scalars: the shape is shared, so
+    ///     each struct costs one slot array and one object header, not a growing dictionary and DLR class chain.
+    /// </summary>
+    [TestMethod]
+    public void NestedParse_AllocatesOneSlotArrayPerStruct()
+    {
+        var cstruct = new CStruct(NestedLayout);
+        byte[] bytes = new byte[256 * ((2 * 10) + 2)];
+        new Random(7).NextBytes(bytes);
+        for (int repeat = 0; repeat < 4; repeat++)
+        {
+            GC.KeepAlive(cstruct.Parse(bytes, "root"));
+        }
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        object parsed = cstruct.Parse(bytes, "root");
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        GC.KeepAlive(parsed);
+
+        // The ExpandoObject model cost ≈ 770 KB for this input; the slot model measured ≈ 511 KB, and skipping the
+        // layout-variable capture of unreferenced scalars ≈ 425 KB on both TFMs. The remainder is the
+        // per-struct placement cursor and the boxed scalars. The budget leaves room for runtime differences while
+        // rejecting a return to either earlier state.
+        long budget = 480_000;
+        Assert.IsTrue(allocated <= budget, $"Parse allocated {allocated} bytes; budget is {budget}.");
     }
 }

@@ -3863,7 +3863,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PublicResultModelTests.cs#PointerResult_ExposesThreeUnambiguousStates",
+          "test": "tests/CStructSharpTests/Values/PublicResultModelTests.cs#PointerResult_ExposesThreeUnambiguousStates",
           "operations": [
             "parse"
           ]
