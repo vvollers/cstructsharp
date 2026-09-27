@@ -1,12 +1,16 @@
 namespace CStructSharp.Tests;
 
+using System.Text;
 using CStructSharp;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Parsing;
 using CStructSharp.Syntax;
 
-/// <summary>Protects optimized decision reuse, scoped variables and the checked scalar expression path.</summary>
+/// <summary>
+///     Protects optimized decision reuse, scoped variables, the checked scalar expression path, and the bounded
+///     allocation of each composite's conditional scope.
+/// </summary>
 [TestClass]
 public class ConditionalExecutionOptimizationTests
 {
@@ -140,6 +144,43 @@ public class ConditionalExecutionOptimizationTests
         });
     }
 
+    /// <summary>Both a wide conditional arm and a mostly-unconditional record need bounded compiler allocation.</summary>
+    [TestMethod]
+    [DataRow(128, true)]
+    [DataRow(1024, false)]
+    public void PrimitiveScopeMetadata_HasBoundedAllocation(int count, bool grouped)
+    {
+        var source = new StringBuilder("struct root { uint8 tag; ");
+        if (grouped)
+        {
+            source.Append("if (tag == 1) { ");
+        }
+
+        for (int index = 0; index < count; index++)
+        {
+            source.Append("uint32 f").Append(index).Append(";");
+        }
+
+        source.Append(grouped ? "} };" : "if (tag == 1) { uint8 present; } };");
+        string definition = source.ToString();
+        for (int repeat = 0; repeat < 8; repeat++)
+        {
+            GC.KeepAlive(new CStruct(definition));
+        }
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        var layout = new CStruct(definition);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        GC.KeepAlive(layout);
+
+        // Allow runtime/tiered-JIT differences while rejecting the previous per-primitive collection growth.
+        long budget = grouped ? 400_000 : 2_400_000;
+        Assert.IsTrue(allocated <= budget, $"Compiler allocated {allocated} bytes; budget is {budget}.");
+    }
+
+    /// <summary>Runs an operation and records either its value or the type of its failure.</summary>
+    /// <param name="operation">The operation.</param>
+    /// <returns>The failure's type and 0, or no type and the value.</returns>
     private static (Type? Error, int Value) Capture(Func<int> operation)
     {
         try

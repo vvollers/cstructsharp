@@ -2,7 +2,10 @@ namespace CStructSharp.Tests;
 
 using CStructSharp.Diagnostics;
 
-/// <summary>Checks selector validation and one shared decision across each conditional group's members.</summary>
+/// <summary>
+///     Checks conditional groups: each selector validated against the expression limits on its own, one shared decision
+///     across each group's members, and runtime selectors kept whole when switch labels become constants.
+/// </summary>
 [TestClass]
 public class ConditionalGroupBoundaryTests
 {
@@ -82,6 +85,38 @@ public class ConditionalGroupBoundaryTests
             byte[] bytes = Convert.FromHexString(input);
             Assert.AreEqual(Describe(layout, bytes), Describe(roundTrip, bytes), $"{definition} with input {input}:\n{layout.ToDefinition()}");
         }
+    }
+
+    /// <summary>
+    ///     Selection evaluates each group's own selector, never a combination of nested conditions, so the limits
+    ///     apply to each selector: nested short selectors are accepted and one long selector is rejected.
+    /// </summary>
+    [TestMethod]
+    public void EachSelector_IsCheckedAgainstTheLimitsOnItsOwn()
+    {
+        var options = new CStructCompilationOptions { MaxExpressionTokens = 2, };
+
+        var nested = new CStruct("struct root { if (1) { if (1) { uint8 value; } } };", compilationOptions: options);
+        Assert.AreEqual((byte)7, nested.ReadValue<byte>(new byte[] { 7, }, "root.value"));
+
+        CStructLayoutException error = Assert.Throws<CStructLayoutException>(() =>
+            new CStruct("struct root { if (1 + 1 + 1) { uint8 value; } };", compilationOptions: options));
+        StringAssert.Contains(error.Message, "Maximum expression evaluation work exceeded");
+    }
+
+    /// <summary>Each part of a conditional expression retains its children during case-constant normalization.</summary>
+    /// <param name="condition">The expression with a nested condition, true arm or false arm.</param>
+    [TestMethod]
+    [DataRow("(tag+0)?1:1")]
+    [DataRow("tag?(tag+1):1")]
+    [DataRow("tag?1:(tag+2)")]
+    public void RuntimeConditional_PreservesNestedExpressions(string condition)
+    {
+        var layout = new CStruct("struct root { uint8 tag; switch (tag) { case 1: {} } if (" + condition + ") { uint8 value; } };");
+
+        dynamic parsed = layout.Parse(new byte[] { 1, 42, }.AsSpan(), "root");
+
+        Assert.AreEqual((byte)42, (byte)parsed.value);
     }
 
     /// <summary>Lists the path and byte range of every value a parse of <paramref name="bytes"/> records.</summary>
