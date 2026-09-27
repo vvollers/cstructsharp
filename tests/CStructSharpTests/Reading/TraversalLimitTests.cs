@@ -508,13 +508,10 @@ public class TraversalLimitTests
     }
 
     /// <summary>
-    ///     Regression coverage for the architecture improvement plan's fix that added a dedicated <see cref="UpdateOptions.MaxTraversalArrayElements"/> instead of update-path
-    ///     traversal silently reusing <see cref="WriteOptions.MaxArrayElements"/> (which is meant to bound the
-    ///     array being written, not the arrays traversal passes through to find it). A generous
-    ///     <see cref="WriteOptions.MaxArrayElements"/> paired with a tight
-    ///     <see cref="UpdateOptions.MaxTraversalArrayElements"/> must still reject; the reverse pairing must
-    ///     succeed, proving the two budgets are independently enforced rather than one silently standing in for
-    ///     the other.
+    ///     Update-path traversal has its own budget, <see cref="UpdateOptions.MaxTraversalArrayElements"/>, separate
+    ///     from <see cref="WriteOptions.MaxArrayElements"/>, which bounds the array being written rather than the
+    ///     arrays traversal passes through. A generous write budget with a tight traversal budget must still reject,
+    ///     and the reverse pairing must succeed: the two budgets are enforced independently.
     /// </summary>
     [TestMethod]
     public void UpdateTraversalArrayLimit_IsIndependentFromTheWriteArrayLimit()

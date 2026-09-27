@@ -43,6 +43,10 @@ public class TypeEmissionTests
         Assert.IsEmpty(failures, string.Join("\n\n", failures));
     }
 
+    /// <summary>
+    ///     Every primitive, text, array, enum, flag, composite, and pointer member gets the property type the mapping
+    ///     table lists.
+    /// </summary>
     [TestMethod]
     public void PropertyTypes_FollowTheMappingTable()
     {
@@ -148,6 +152,10 @@ public class TypeEmissionTests
         Assert.AreEqual(0, ((Array)root.GetProperty("Bytes")!.GetValue(instance)!).Length);
     }
 
+    /// <summary>
+    ///     Anonymous members are spliced into their parent, and named inline structs and unions get classes named after
+    ///     the member.
+    /// </summary>
     [TestMethod]
     public void UnionsPromotedMembersAndInlineTypes_AreSplicedAndNamed()
     {
@@ -181,6 +189,9 @@ public class TypeEmissionTests
         Assert.AreEqual(pos, root.GetProperty("Pos")!.PropertyType);
     }
 
+    /// <summary>
+    ///     A struct typedef names the generated class, while pointer, scalar, and array aliases generate no type.
+    /// </summary>
     [TestMethod]
     public void TypedefAliases_NameTheClassAndPointerAliasesGetNoType()
     {
@@ -205,6 +216,9 @@ public class TypeEmissionTests
         Assert.AreEqual(typeof(byte[]), root.GetProperty("Pr")!.PropertyType);
     }
 
+    /// <summary>
+    ///     <c>KeepNames</c> keeps layout spellings, and member, enum, class, and view name collisions report CSG003.
+    /// </summary>
     [TestMethod]
     public void KeepNames_KeepsTheLayoutSpelling_AndMemberCollisionsAreCSG003()
     {
@@ -272,6 +286,11 @@ public class TypeEmissionTests
         Assert.IsEmpty(unplaced.GeneratorDiagnostics);
     }
 
+    /// <summary>
+    ///     Quotes a layout as a regular C# string literal, escaping backslashes, quotes, and line breaks.
+    /// </summary>
+    /// <param name="definition">The layout text.</param>
+    /// <returns>The literal, including its quotes.</returns>
     private static string SourceLiteral(string definition)
     {
         return "\"" + definition.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r") + "\"";

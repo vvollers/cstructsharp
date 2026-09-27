@@ -18,6 +18,10 @@ public class WriterParityTests
 {
     private const string Arguments = "Root = \"root\", PointerSize = 2, Aligned = false, LittleEndian = true";
 
+    /// <summary>
+    ///     After the same change, the generated writer accepts or rejects numeric ranges, text lengths, and array
+    ///     counts exactly as the runtime writer does.
+    /// </summary>
     [TestMethod]
     public void ValueRules_MatchTheRuntime()
     {
@@ -56,6 +60,10 @@ public class WriterParityTests
         Compare("rest-any", Arrays, arrays, "rest", new byte[] { 1, 2, 3, 4, 5, 6 });
     }
 
+    /// <summary>
+    ///     After the same change, the generated writer handles union selections, pointer addresses, conditional arms,
+    ///     and write limits exactly as the runtime writer does.
+    /// </summary>
     [TestMethod]
     public void UnionsPointersAndConditionals_MatchTheRuntime()
     {
@@ -89,6 +97,15 @@ public class WriterParityTests
         Compare("limit-nesting", Limits, limits, "n", (byte)2, new WriteOptions { MaxNestingDepth = 1 });
     }
 
+    /// <summary>
+    ///     Sets one member to the same new value on both readers' values and compares the writers' outcomes.
+    /// </summary>
+    /// <param name="id">The case name, which also names the generated class.</param>
+    /// <param name="definition">The layout; its root struct is <c>root</c>.</param>
+    /// <param name="bytes">The input both readers decode first.</param>
+    /// <param name="member">The layout name of the member to change.</param>
+    /// <param name="newValue">The new value; an empty <see cref="object"/> array stands for an empty array.</param>
+    /// <param name="options">The write options, or <see langword="null"/> for the defaults.</param>
     private static void Compare(string id, string definition, byte[] bytes, string member, object newValue, WriteOptions? options = null)
     {
         (CStruct runtime, Type generatedClass, StructValue runtimeValue, object generatedValue) = Load(id, definition, bytes);
@@ -97,6 +114,18 @@ public class WriterParityTests
         AssertSameOutcome(id, runtime, generatedClass, runtimeValue, generatedValue, options);
     }
 
+    /// <summary>
+    ///     Replaces the <c>value</c> union on both sides, by selected member or raw storage, and compares the writers'
+    ///     outcomes.
+    /// </summary>
+    /// <param name="id">The case name, which also names the generated class.</param>
+    /// <param name="definition">The layout; its root struct has a <c>choice</c> union named <c>value</c>.</param>
+    /// <param name="bytes">The input both readers decode first.</param>
+    /// <param name="selectedMember">The member to select, or <see langword="null"/> to set raw storage.</param>
+    /// <param name="payload">The member value, or the raw bytes when no member is selected.</param>
+    /// <param name="expectedBytes">
+    ///     The bytes the runtime must write, or <see langword="null"/> to skip that check.
+    /// </param>
     private static void CompareUnion(string id, string definition, byte[] bytes, string? selectedMember, object payload, byte[]? expectedBytes)
     {
         (CStruct runtime, Type generatedClass, StructValue runtimeValue, object generatedValue) = Load(id, definition, bytes);
@@ -123,6 +152,16 @@ public class WriterParityTests
         }
     }
 
+    /// <summary>
+    ///     Serializes the root with both writers and asserts the same bytes, or the same failure type and message with
+    ///     offsets removed.
+    /// </summary>
+    /// <param name="id">The case name used in failure messages.</param>
+    /// <param name="runtime">The runtime layout.</param>
+    /// <param name="generatedClass">The generated layout class.</param>
+    /// <param name="runtimeValue">The changed runtime value.</param>
+    /// <param name="generatedValue">The changed generated value.</param>
+    /// <param name="options">The write options, or <see langword="null"/> for the defaults.</param>
     private static void AssertSameOutcome(string id, CStruct runtime, Type generatedClass, StructValue runtimeValue, object generatedValue, WriteOptions? options)
     {
         MethodInfo serialize = generatedClass.GetMethods().Single(method => method.Name == "SerializeRoot" && method.GetParameters().Length == 3);
@@ -136,6 +175,13 @@ public class WriterParityTests
         }
     }
 
+    /// <summary>
+    ///     Generates a layout class for the case and reads the input with both readers, which must agree.
+    /// </summary>
+    /// <param name="id">The case name, which also names the generated class.</param>
+    /// <param name="definition">The layout; its root struct is <c>root</c>.</param>
+    /// <param name="bytes">The input to read.</param>
+    /// <returns>The runtime layout, the generated class, and the value each reader produced.</returns>
     private static (CStruct Runtime, Type GeneratedClass, StructValue RuntimeValue, object GeneratedValue) Load(string id, string definition, byte[] bytes)
     {
         string className = "Writer" + string.Concat(id.Split('-').Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1)));
@@ -149,6 +195,14 @@ public class WriterParityTests
         return (runtime, generated, runtimeValue, generatedValue);
     }
 
+    /// <summary>
+    ///     Sets a generated property, converting addresses, empty arrays, and primitives to its type, and sets its
+    ///     <c>Has</c> flag when it has one.
+    /// </summary>
+    /// <param name="target">The generated value to change.</param>
+    /// <param name="member">The layout name of the member.</param>
+    /// <param name="newValue">The new value in the form the runtime accepts.</param>
+    /// <exception cref="AssertFailedException">The generated type has no property for the member.</exception>
     private static void SetProperty(object target, string member, object newValue)
     {
         PropertyInfo property = target.GetType().GetProperty(Pascal(member)) ?? throw new AssertFailedException("No property " + member);
@@ -168,8 +222,16 @@ public class WriterParityTests
         }
     }
 
+    /// <summary>Converts a snake_case layout name to its generated property name by capitalizing each part.</summary>
+    /// <param name="name">The layout name.</param>
+    /// <returns>The property name.</returns>
     private static string Pascal(string name) => string.Concat(name.Split('_').Select(part => part.Length == 0 ? string.Empty : char.ToUpperInvariant(part[0]) + part.Substring(1)));
 
+    /// <summary>
+    ///     Runs a write and returns the <see cref="CStructException"/> it throws, unwrapping reflection failures.
+    /// </summary>
+    /// <param name="action">The write to run.</param>
+    /// <returns>The exception, or <see langword="null"/> when the write succeeds; other exceptions propagate.</returns>
     private static Exception? Catch(Action action)
     {
         try

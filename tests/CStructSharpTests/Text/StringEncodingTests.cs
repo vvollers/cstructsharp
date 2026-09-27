@@ -527,11 +527,10 @@ public class StringEncodingTests
     }
 
     /// <summary>
-    ///     Regression coverage for the architecture improvement plan's optimization that rents <c>ReadIntoString</c>'s chunk buffer from a shared <see cref="System.Buffers.ArrayPool{T}"/>
-    ///     instead of allocating a fresh one per call. Reading many terminated strings of varying lengths in
-    ///     immediate succession - including a short string immediately after a long one - must decode each one
-    ///     exactly, proving a rented (and possibly reused, larger, or previously dirty) buffer never leaks a
-    ///     stale tail byte from an earlier rental into a later, shorter read.
+    ///     <c>ReadIntoString</c> rents its chunk buffer from a shared <see cref="System.Buffers.ArrayPool{T}"/>.
+    ///     Reading many terminated strings of varying lengths back to back - a short string right after a long one
+    ///     included - must decode each exactly: a rented, possibly reused, larger or dirty buffer never leaks a stale
+    ///     tail byte into a later, shorter read.
     /// </summary>
     [TestMethod]
     public void TerminatedString_ReadManyBackToBack_EachDecodesExactlyDespiteBufferReuse()

@@ -22,6 +22,10 @@ public class ReaderParityTests
 
         """;
 
+    /// <summary>
+    ///     Generated readers decode every manual fixture with bytes as the runtime does, and every truncated prefix
+    ///     fails with the runtime's exception type and message.
+    /// </summary>
     [TestMethod]
     public void ManualFixtures_ParseAndTruncationSweep_MatchTheRuntime()
     {
@@ -74,6 +78,8 @@ public class ReaderParityTests
         Assert.IsEmpty(failures, string.Join("\n\n", failures));
     }
 
+    /// <summary>Runs one manual fixture through both readers with the options it was recorded with.</summary>
+    /// <param name="fixture">A fixture that has input bytes.</param>
     private static void RunParity(ManualFixture fixture)
     {
         RunParity(fixture.Id, fixture.Definition, ManualFixtures.AttributeArguments(fixture), fixture.Root, Convert.FromHexString(fixture.Bytes!), fixture.Variables, null, null);
@@ -99,6 +105,7 @@ public class ReaderParityTests
 
         Assert.AreEqual(12, compared);
 
+        /// <summary>Returns the generated <c>source</c> without its <c>Definition</c> constant line.</summary>
         static string Strip(string source) => string.Join("\n", source.Split('\n').Where(line => !line.Contains("public const string Definition = ", StringComparison.Ordinal)));
     }
 
@@ -234,6 +241,12 @@ public class ReaderParityTests
         }
     }
 
+    /// <summary>
+    ///     Chooses the prefix lengths to try: every prefix of an input up to 1024 bytes; for a larger one, the first
+    ///     64, about 97 spread prefixes, and the last 16.
+    /// </summary>
+    /// <param name="length">The input length in bytes.</param>
+    /// <returns>Prefix lengths shorter than the input.</returns>
     private static IEnumerable<int> SweepLengths(int length)
     {
         if (length <= 1024)
@@ -262,6 +275,14 @@ public class ReaderParityTests
         }
     }
 
+    /// <summary>
+    ///     Calls a generated span reader through its <c>byte[]</c> overload, rethrowing its exceptions unwrapped.
+    /// </summary>
+    /// <param name="parse">The generated span reader.</param>
+    /// <param name="bytes">The input.</param>
+    /// <param name="variables">The caller variables, or <see langword="null"/> for none.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>The generated value.</returns>
     private static object Invoke(MethodInfo parse, byte[] bytes, IReadOnlyDictionary<string, int>? variables, ReadOptions? options)
     {
         // A ReadOnlySpan<byte> parameter cannot be boxed; call the byte[] overload, which forwards to the span one.
@@ -277,6 +298,9 @@ public class ReaderParityTests
         }
     }
 
+    /// <summary>Runs a read and returns the <see cref="CStructException"/> it throws.</summary>
+    /// <param name="action">The read to run.</param>
+    /// <returns>The exception, or <see langword="null"/> when the read succeeds; other exceptions propagate.</returns>
     private static Exception? Catch(Func<object?> action)
     {
         try
@@ -290,6 +314,12 @@ public class ReaderParityTests
         }
     }
 
+    /// <summary>
+    ///     Finds the name suffix of the generated <c>Parse</c> method for a root, ignoring case and underscores.
+    /// </summary>
+    /// <param name="root">The root name in the layout.</param>
+    /// <param name="generated">The generated layout class.</param>
+    /// <returns>The suffix after <c>Parse</c>, or the root name when no method matches.</returns>
     private static string PascalRoot(string root, Type generated)
     {
         foreach (MethodInfo method in generated.GetMethods())
@@ -303,6 +333,11 @@ public class ReaderParityTests
         return root;
     }
 
+    /// <summary>
+    ///     Quotes a layout as a regular C# string literal, escaping backslashes, quotes, and line breaks.
+    /// </summary>
+    /// <param name="definition">The layout text.</param>
+    /// <returns>The literal, including its quotes.</returns>
     internal static string Literal(string definition)
     {
         return "\"" + definition.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r") + "\"";

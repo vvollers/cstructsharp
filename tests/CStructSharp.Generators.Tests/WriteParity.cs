@@ -17,8 +17,26 @@ using CStructSharp.Values;
 /// </summary>
 internal static class WriteParity
 {
+    /// <summary>The shape of a generated serializer that writes into a caller-supplied span.</summary>
+    /// <typeparam name="T">The generated composite type.</typeparam>
+    /// <param name="value">The value to write.</param>
+    /// <param name="destination">The span to fill from its start.</param>
+    /// <param name="variables">The caller variables.</param>
+    /// <param name="options">The write options.</param>
+    /// <returns>The number of bytes written.</returns>
     private delegate int SpanSerializer<in T>(T value, Span<byte> destination, IReadOnlyDictionary<string, int>? variables, WriteOptions? options);
 
+    /// <summary>
+    ///     Writes a struct or union value back with both writers and asserts equal bytes, or the same refusal, and the
+    ///     same capacity failures for every smaller span; other values are skipped.
+    /// </summary>
+    /// <param name="id">The case name used in failure messages.</param>
+    /// <param name="generatedClass">The generated layout class.</param>
+    /// <param name="runtime">The runtime layout.</param>
+    /// <param name="root">The root name in the layout.</param>
+    /// <param name="runtimeValue">The value the runtime read.</param>
+    /// <param name="generatedValue">The value the generated reader read.</param>
+    /// <param name="variables">The caller variables, or <see langword="null"/> for none.</param>
     public static void AssertRoundTrip(string id, Type generatedClass, CStruct runtime, string root, object runtimeValue, object generatedValue, IReadOnlyDictionary<string, int>? variables)
     {
         if (runtimeValue is not StructValue and not UnionValue)
@@ -59,8 +77,19 @@ internal static class WriteParity
         }
     }
 
+    /// <summary>
+    ///     Removes the <c>, offset N</c> part of a failure message, where the two writers legitimately differ.
+    /// </summary>
+    /// <param name="message">The failure message, or <see langword="null"/>.</param>
+    /// <returns>The message without its offset, or <see langword="null"/> for no message.</returns>
     public static string? WithoutOffset(string? message) => message is null ? null : Regex.Replace(message, @", offset \d+", string.Empty);
 
+    /// <summary>
+    ///     Chooses the too-small destination sizes to try: every size below a length up to 512 bytes; for a longer
+    ///     value, the first 32, about 41 spread sizes, and one byte short.
+    /// </summary>
+    /// <param name="length">The serialized length in bytes.</param>
+    /// <returns>Destination sizes shorter than the value.</returns>
     private static IEnumerable<int> CapacitySweep(int length)
     {
         if (length <= 512)
@@ -86,6 +115,12 @@ internal static class WriteParity
         yield return length - 1;
     }
 
+    /// <summary>Calls a generated array-returning serializer, rethrowing its exceptions unwrapped.</summary>
+    /// <param name="method">The generated serializer.</param>
+    /// <param name="value">The value to write.</param>
+    /// <param name="variables">The caller variables, or <see langword="null"/> for none.</param>
+    /// <param name="options">The write options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>The serialized bytes.</returns>
     private static object Invoke(MethodInfo method, object value, IReadOnlyDictionary<string, int>? variables, WriteOptions? options)
     {
         try
@@ -99,6 +134,12 @@ internal static class WriteParity
         }
     }
 
+    /// <summary>Calls a generated span serializer, rethrowing its exceptions unwrapped.</summary>
+    /// <param name="method">The generated span serializer.</param>
+    /// <param name="value">The value to write.</param>
+    /// <param name="destination">The array the span covers.</param>
+    /// <param name="variables">The caller variables, or <see langword="null"/> for none.</param>
+    /// <returns>The boxed number of bytes written.</returns>
     private static object InvokeSpan(MethodInfo method, object value, byte[] destination, IReadOnlyDictionary<string, int>? variables)
     {
         // A Span<byte> parameter cannot be boxed: a generic helper closed over the value type builds a typed delegate.
@@ -114,12 +155,22 @@ internal static class WriteParity
         }
     }
 
+    /// <summary>Binds a span serializer to <see cref="SpanSerializer{T}"/> and calls it with default options.</summary>
+    /// <typeparam name="T">The generated composite type.</typeparam>
+    /// <param name="method">The generated span serializer.</param>
+    /// <param name="value">The value to write.</param>
+    /// <param name="destination">The array the span covers.</param>
+    /// <param name="variables">The caller variables, or <see langword="null"/> for none.</param>
+    /// <returns>The number of bytes written.</returns>
     private static int CallSpan<T>(MethodInfo method, T value, byte[] destination, IReadOnlyDictionary<string, int>? variables)
     {
         var caller = (SpanSerializer<T>)Delegate.CreateDelegate(typeof(SpanSerializer<T>), method);
         return caller(value, destination, variables, null);
     }
 
+    /// <summary>Runs a write and returns the <see cref="CStructException"/> it throws.</summary>
+    /// <param name="action">The write to run.</param>
+    /// <returns>The exception, or <see langword="null"/> when the write succeeds; other exceptions propagate.</returns>
     private static Exception? Catch(Func<object?> action)
     {
         try

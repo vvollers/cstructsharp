@@ -13,7 +13,7 @@ using Naming = Generators::CStructSharp.Generators.Naming;
 
 /// <summary>The generator's frame: attribute discovery, the incremental request, the emitted class shell, and the diagnostics CSG001-CSG005/CSG010.</summary>
 [TestClass]
-public class SkeletonTests
+public class GeneratorFrameTests
 {
     private const string Header = """
         using CStructSharp;
@@ -22,6 +22,10 @@ public class SkeletonTests
 
         """;
 
+    /// <summary>
+    ///     An inline definition emits the class shell, its constants, and a runtime layout built once with the
+    ///     attribute's options.
+    /// </summary>
     [TestMethod]
     public void InlineDefinition_EmitsTheFrameAndTheRuntimeLayout()
     {
@@ -30,7 +34,7 @@ public class SkeletonTests
             public static partial class HeaderLayout { }
             """).AssertClean();
 
-        Snapshot.Match("Skeleton.InlineDefinition", result.Source);
+        Snapshot.Match("GeneratorFrame.InlineDefinition", result.Source);
         Assert.AreEqual("Demo.HeaderLayout.CStructLayout.g.cs", result.GeneratedSources[0].HintName);
 
         Type generated = result.Load().GetType("Demo.HeaderLayout")!;
@@ -44,6 +48,9 @@ public class SkeletonTests
         Assert.AreSame(layout, generated.GetProperty("Layout")!.GetValue(null), "the runtime layout is built once");
     }
 
+    /// <summary>
+    ///     A <c>File</c> layout is read from the additional files, and its root, defined symbols, and options apply.
+    /// </summary>
     [TestMethod]
     public void LayoutFile_IsReadFromAdditionalFiles_AndRootAndDefinedApply()
     {
@@ -54,7 +61,7 @@ public class SkeletonTests
                 """,
             [("/project/layouts/png.cstruct", "struct chunk { uint32 length; };\n#ifdef WITH_TAIL\nstruct root { chunk first; uint8 tail; };\n#else\nstruct root { chunk first; };\n#endif\n")]).AssertClean();
 
-        Snapshot.Match("Skeleton.LayoutFile", result.Source);
+        Snapshot.Match("GeneratorFrame.LayoutFile", result.Source);
         Type generated = result.Load().GetType("Demo.Png")!;
         Assert.AreEqual("root", generated.GetField("RootName")!.GetValue(null));
         var layout = (CStruct)generated.GetProperty("Layout")!.GetValue(null)!;
@@ -86,6 +93,7 @@ public class SkeletonTests
         Assert.AreEqual(0, disabled.GeneratorDiagnostics.Length);
     }
 
+    /// <summary>A <c>File</c> that is not among the additional files reports CSG002 and generates nothing.</summary>
     [TestMethod]
     public void MissingFile_ReportsCSG002()
     {
@@ -99,6 +107,7 @@ public class SkeletonTests
         Assert.IsEmpty(result.GeneratedSources);
     }
 
+    /// <summary>An attribute with neither a definition nor a <c>File</c> reports CSG001.</summary>
     [TestMethod]
     public void NeitherDefinitionNorFile_ReportsCSG001()
     {
@@ -129,6 +138,9 @@ public class SkeletonTests
         Assert.IsEmpty(result.GeneratedSources);
     }
 
+    /// <summary>
+    ///     An invalid layout in a regular string literal reports CSG001 at the start of the attribute argument.
+    /// </summary>
     [TestMethod]
     public void InvalidLayout_InARegularLiteral_IsLocatedAtTheArgument()
     {
@@ -144,6 +156,7 @@ public class SkeletonTests
         Assert.AreEqual("[CStructLayout(".Length, span.StartLinePosition.Character, "the whole argument, since a regular literal's columns are not the layout's");
     }
 
+    /// <summary>A class that is not static and partial, or sits in a non-partial container, reports CSG005.</summary>
     [TestMethod]
     public void NotStaticPartial_ReportsCSG005()
     {
@@ -169,6 +182,7 @@ public class SkeletonTests
         Assert.HasCount(1, containerNotPartial.DiagnosticsWithId("CSG005"));
     }
 
+    /// <summary>A class nested in partial containers is emitted inside the same container chain.</summary>
     [TestMethod]
     public void NestedInPartialContainers_EmitsTheChain()
     {
@@ -183,10 +197,11 @@ public class SkeletonTests
             }
             """).AssertClean();
 
-        Snapshot.Match("Skeleton.Nested", result.Source);
+        Snapshot.Match("GeneratorFrame.Nested", result.Source);
         Assert.AreEqual("Demo.Outer.Middle.Inner.CStructLayout.g.cs", result.GeneratedSources[0].HintName);
     }
 
+    /// <summary>A class in the global namespace is emitted without a namespace declaration.</summary>
     [TestMethod]
     public void GlobalNamespace_EmitsWithoutANamespaceBlock()
     {
@@ -200,6 +215,7 @@ public class SkeletonTests
         Assert.IsNotNull(result.Load().GetType("GlobalLayout"));
     }
 
+    /// <summary>An unknown <c>Root</c> reports the CSG004 warning, and the first struct becomes the root.</summary>
     [TestMethod]
     public void UnknownRoot_ReportsCSG004AndUsesTheFirstStruct()
     {
@@ -215,6 +231,7 @@ public class SkeletonTests
         StringAssert.Contains(result.Source, "RootName = \"first\"");
     }
 
+    /// <summary>A consumer compiled as C# 11 reports CSG010 and generates nothing.</summary>
     [TestMethod]
     public void OldLanguageVersion_ReportsCSG010()
     {
@@ -229,6 +246,9 @@ public class SkeletonTests
         Assert.IsEmpty(result.GeneratedSources);
     }
 
+    /// <summary>
+    ///     Layout names that collide after renaming, or with the class or a generated member, report CSG003.
+    /// </summary>
     [TestMethod]
     public void NameCollision_ReportsCSG003()
     {
@@ -260,6 +280,7 @@ public class SkeletonTests
         Assert.IsEmpty(kept.GeneratorDiagnostics);
     }
 
+    /// <summary>An edit outside the attribute leaves the generated source unchanged.</summary>
     [TestMethod]
     public void IncrementalPipeline_CachesAnUnchangedRequest()
     {
@@ -272,8 +293,9 @@ public class SkeletonTests
         Assert.AreEqual(first.Source, second.Source);
     }
 
+    /// <summary>Layout names convert to PascalCase, and kept names escape C# keywords.</summary>
     [TestMethod]
-    public void Naming_FollowsAppendixC()
+    public void Naming_ConvertsToPascalCaseAndEscapesKeywords()
     {
         Assert.AreEqual("ChunkType", Naming.ToPascalCase("chunk_type"));
         Assert.AreEqual("BitDepth", Naming.ToPascalCase("bit_depth"));

@@ -62,6 +62,10 @@ public class ViewTests
         }
         """";
 
+    /// <summary>
+    ///     Views decode fixed members without allocating, and the stream, sequence, asynchronous, and try-parse readers
+    ///     return the span reader's value and failures and honor cancellation.
+    /// </summary>
     [TestMethod]
     public void Views_DecodeStaticMembersWithoutAllocating_AndStreamsParseLikeSpans()
     {
@@ -205,14 +209,21 @@ public class ViewTests
         return new System.Buffers.ReadOnlySequence<byte>(first, 0, last, last.Memory.Length);
     }
 
+    /// <summary>One linked segment of a multi-segment <see cref="System.Buffers.ReadOnlySequence{T}"/>.</summary>
     private sealed class Segment : System.Buffers.ReadOnlySequenceSegment<byte>
     {
+        /// <summary>Creates a segment over a block of memory.</summary>
+        /// <param name="memory">The segment's bytes.</param>
+        /// <param name="runningIndex">The byte offset of the segment within the whole sequence.</param>
         public Segment(ReadOnlyMemory<byte> memory, long runningIndex)
         {
             this.Memory = memory;
             this.RunningIndex = runningIndex;
         }
 
+        /// <summary>Links a new segment after this one.</summary>
+        /// <param name="memory">The next segment's bytes.</param>
+        /// <returns>The new last segment.</returns>
         public Segment Append(ReadOnlyMemory<byte> memory)
         {
             var next = new Segment(memory, this.RunningIndex + this.Memory.Length);

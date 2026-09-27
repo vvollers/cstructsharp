@@ -98,6 +98,10 @@ public class CustomCodecTests
         }
         """";
 
+    /// <summary>
+    ///     Generated readers decode codec members with the instances from <c>CreateCodecs()</c> and match the runtime's
+    ///     values, failure messages, and truncation behavior.
+    /// </summary>
     [TestMethod]
     public void DeclaredCodecs_ReadThroughTheInstancesTheClassSupplies()
     {
@@ -148,6 +152,10 @@ public class CustomCodecTests
         }
     }
 
+    /// <summary>
+    ///     A codec instance whose size differs from its declaration fails at first use, and each malformed codec
+    ///     declaration reports one CSG006.
+    /// </summary>
     [TestMethod]
     public void MismatchedInstance_FailsAtFirstUse_AndMalformedDeclarationsAreCsg006()
     {
@@ -166,6 +174,12 @@ public class CustomCodecTests
         }
     }
 
+    /// <summary>Runs an action and returns its exception, unwrapping reflection failures.</summary>
+    /// <param name="action">The read to run.</param>
+    /// <returns>
+    ///     The thrown <see cref="CStructException"/> or reflection-wrapped exception,
+    ///     or <see langword="null"/> when the action succeeds.
+    /// </returns>
     private static Exception? Catch(Action action)
     {
         try

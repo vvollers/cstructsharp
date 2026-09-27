@@ -14,6 +14,12 @@ public class OptionSnapshotTests
 {
     private const string Definition = "#ifdef WIDE\\nstruct root { long a; uint8 b_c:3; uint8 d:5; uint32 e; };\\n#else\\nstruct root { uint16 a; uint8 b_c:3; uint8 d:5; uint32 e; };\\n#endif";
 
+    /// <summary>
+    ///     Each attribute option produces its own snapshot and changes the generated code and runtime layout as the
+    ///     option specifies.
+    /// </summary>
+    /// <param name="variant">The option's name, which names its snapshot and selects its checks.</param>
+    /// <param name="arguments">The attribute arguments appended after the definition.</param>
     [TestMethod]
     [DataRow("Defaults", "")]
     [DataRow("Aligned", ", Aligned = true")]

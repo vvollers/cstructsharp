@@ -11,6 +11,11 @@ using Microsoft.CodeAnalysis;
 /// <summary>What one generator run produced.</summary>
 internal sealed class GeneratorResult
 {
+    /// <summary>Captures the outputs of one generator driver run.</summary>
+    /// <param name="generatedSources">The hint name and text of every generated source.</param>
+    /// <param name="generatorDiagnostics">The diagnostics the generators reported.</param>
+    /// <param name="output">The consumer compilation with the generated sources added.</param>
+    /// <param name="runResult">The driver's run result, which exposes the incremental step outputs.</param>
     public GeneratorResult(
         IReadOnlyList<(string HintName, string Source)> generatedSources,
         ImmutableArray<Diagnostic> generatorDiagnostics,

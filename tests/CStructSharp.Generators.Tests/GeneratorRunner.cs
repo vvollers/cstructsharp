@@ -25,6 +25,14 @@ internal static class GeneratorRunner
 {
     private static readonly Lazy<ImmutableArray<MetadataReference>> References = new(CreateReferences);
 
+    /// <summary>Compiles one consumer source and runs the layout and mapped generators over it.</summary>
+    /// <param name="source">The consumer C# source, parsed as <c>Consumer.cs</c>.</param>
+    /// <param name="additionalFiles">The additional files (such as layout files) the generators can read.</param>
+    /// <param name="languageVersion">The consumer's C# language version.</param>
+    /// <param name="assemblyName">The name of the consumer assembly.</param>
+    /// <param name="globalOptions">The build properties the generators see as global analyzer options.</param>
+    /// <param name="fileOptions">The metadata of each additional file, keyed by its path.</param>
+    /// <returns>The generated sources, the generator diagnostics, and the output compilation.</returns>
     public static GeneratorResult Run(
         string source,
         IReadOnlyList<(string Path, string Text)>? additionalFiles = null,
@@ -62,6 +70,8 @@ internal static class GeneratorRunner
         return new GeneratorResult(generated, generatorDiagnostics, output, runResult);
     }
 
+    /// <summary>Collects the platform assemblies a consumer needs, plus the CStructSharp runtime assembly.</summary>
+    /// <returns>The metadata references every consumer compilation shares.</returns>
     private static ImmutableArray<MetadataReference> CreateReferences()
     {
         var references = new List<MetadataReference>();
@@ -83,11 +93,15 @@ internal static class GeneratorRunner
     public static AnalyzerConfigOptionsProvider OptionsProvider(IReadOnlyDictionary<string, string>? globalOptions, IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? fileOptions)
         => new InMemoryOptionsProvider(globalOptions, fileOptions);
 
+    /// <summary>Serves build properties and additional-file metadata from dictionaries instead of MSBuild.</summary>
     private sealed class InMemoryOptionsProvider : AnalyzerConfigOptionsProvider
     {
         private readonly InMemoryOptions global;
         private readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> files;
 
+        /// <summary>Creates a provider; missing dictionaries stand for no options.</summary>
+        /// <param name="globalOptions">The build properties every syntax tree sees.</param>
+        /// <param name="fileOptions">The metadata of each additional file, keyed by its path.</param>
         public InMemoryOptionsProvider(IReadOnlyDictionary<string, string>? globalOptions, IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? fileOptions)
         {
             this.global = new InMemoryOptions(globalOptions ?? new Dictionary<string, string>(StringComparer.Ordinal));
@@ -96,28 +110,45 @@ internal static class GeneratorRunner
 
         public override AnalyzerConfigOptions GlobalOptions => this.global;
 
+        /// <summary>Returns the global options, because the tests set no per-tree options.</summary>
+        /// <param name="tree">The syntax tree; not consulted.</param>
+        /// <returns>The global options.</returns>
         public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => this.global;
 
+        /// <summary>Returns an additional file's recorded metadata, or empty options.</summary>
+        /// <param name="textFile">The additional file, looked up by its path.</param>
+        /// <returns>The file's options.</returns>
         public override AnalyzerConfigOptions GetOptions(AdditionalText textFile)
             => this.files.TryGetValue(textFile.Path, out IReadOnlyDictionary<string, string>? options) ? new InMemoryOptions(options) : new InMemoryOptions(new Dictionary<string, string>(StringComparer.Ordinal));
 
+        /// <summary>A read-only set of analyzer options backed by a dictionary.</summary>
         private sealed class InMemoryOptions : AnalyzerConfigOptions
         {
             private readonly IReadOnlyDictionary<string, string> values;
 
+            /// <summary>Wraps a dictionary of option values without copying it.</summary>
+            /// <param name="values">The option values, keyed by option name.</param>
             public InMemoryOptions(IReadOnlyDictionary<string, string> values)
             {
                 this.values = values;
             }
 
+            /// <summary>Looks up one option value.</summary>
+            /// <param name="key">The option name.</param>
+            /// <param name="value">The option value, or <see langword="null"/> when the option is absent.</param>
+            /// <returns><see langword="true"/> when the option is present.</returns>
             public override bool TryGetValue(string key, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? value) => this.values.TryGetValue(key, out value);
         }
     }
 
+    /// <summary>An additional file whose text lives in memory.</summary>
     private sealed class InMemoryAdditionalText : AdditionalText
     {
         private readonly SourceText text;
 
+        /// <summary>Creates an additional file with the given path and UTF-8 text.</summary>
+        /// <param name="path">The path the generators see.</param>
+        /// <param name="text">The file contents.</param>
         public InMemoryAdditionalText(string path, string text)
         {
             this.Path = path;
@@ -126,6 +157,9 @@ internal static class GeneratorRunner
 
         public override string Path { get; }
 
+        /// <summary>Returns the file text.</summary>
+        /// <param name="cancellationToken">Not observed; the text is already in memory.</param>
+        /// <returns>The file contents as source text.</returns>
         public override SourceText GetText(System.Threading.CancellationToken cancellationToken = default) => this.text;
     }
 }

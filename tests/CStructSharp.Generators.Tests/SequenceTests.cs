@@ -75,6 +75,10 @@ public class SequenceTests
     private static readonly byte[] Headers = [0, 1, 7, 1, 0, 2, 7, 2, 0, 3, 7, 3,];
     private static readonly byte[] Roots = [1, 0xAA, 0, 4, 0xBB, 0xCC, 2, 0xAA, 0xAB, 0, 5, 0xDD, 0xEE,];
 
+    /// <summary>
+    ///     Generated record sequences read the records <c>ParseMany</c> reads from memory, sequences, and streams,
+    ///     synchronously and asynchronously, including forward-only streams, refilled windows, and cancellation.
+    /// </summary>
     [TestMethod]
     public void Records_ReadWhatParseManyReads_FromEveryInput()
     {
@@ -154,6 +158,10 @@ public class SequenceTests
         Assert.IsInstanceOfType<OperationCanceledException>(Assert.Throws<AggregateException>(() => { ((dynamic)moveNext.Invoke(enumerator, null)!).AsTask().Wait(); }).InnerException);
     }
 
+    /// <summary>
+    ///     Trailing or cut-short bytes fail on the record step that meets them with the runtime's message, and the view
+    ///     enumerator walks whole headers without allocating.
+    /// </summary>
     [TestMethod]
     public void TrailingBytes_FailOnTheStepThatMeetsThem_WithTheRuntimesText()
     {
@@ -198,6 +206,10 @@ public class SequenceTests
         Assert.AreEqual(0, readings[4]);
     }
 
+    /// <summary>
+    ///     Layout names that collide with the derived <c>Records</c> and view enumerator names report CSG003 while
+    ///     views are on.
+    /// </summary>
     [TestMethod]
     public void DerivedNames_AreReserved()
     {
@@ -226,6 +238,11 @@ public class SequenceTests
         Assert.IsTrue(noViews.Source.Contains("public sealed partial class HdrViewEnumerator", StringComparison.Ordinal), "without views the name is free for the composite");
     }
 
+    /// <summary>Wraps the same bytes as each synchronous input kind the record readers accept.</summary>
+    /// <param name="bytes">The encoded records.</param>
+    /// <returns>
+    ///     Memory, a single-segment sequence, a segmented sequence, and a memory stream, each with a label.
+    /// </returns>
     private static IEnumerable<(string Kind, object Input)> Inputs(byte[] bytes)
     {
         yield return ("memory", new ReadOnlyMemory<byte>(bytes));
@@ -234,6 +251,11 @@ public class SequenceTests
         yield return ("stream", new MemoryStream(bytes));
     }
 
+    /// <summary>
+    ///     Enumerates an <c>IAsyncEnumerable&lt;T&gt;</c> of a runtime-only type by blocking on each step.
+    /// </summary>
+    /// <param name="asyncEnumerable">The asynchronous sequence a generated method returned.</param>
+    /// <returns>Every item in order; a failed step throws <see cref="AggregateException"/>.</returns>
     private static List<object> CollectAsync(object asyncEnumerable)
     {
         // The compiler's iterator class is private, so the interface members are reached through their interface types.
@@ -251,6 +273,10 @@ public class SequenceTests
         return list;
     }
 
+    /// <summary>
+    ///     A non-seekable stream over an array that returns at most three bytes per read and counts them.
+    /// </summary>
+    /// <param name="bytes">The stream contents.</param>
     private sealed class ForwardOnly(byte[] bytes) : Stream
     {
         private int position;
@@ -267,10 +293,16 @@ public class SequenceTests
 
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
 
+        /// <summary>Does nothing.</summary>
         public override void Flush()
         {
         }
 
+        /// <summary>Copies up to three of the next bytes.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <param name="offset">The first index to fill.</param>
+        /// <param name="count">The most bytes to read.</param>
+        /// <returns>The number of bytes copied; 0 at the end.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
             int chunk = Math.Min(Math.Min(count, 3), bytes.Length - this.position);
@@ -279,10 +311,23 @@ public class SequenceTests
             return chunk;
         }
 
+        /// <summary>Always throws; the stream cannot seek.</summary>
+        /// <param name="offset">The offset.</param>
+        /// <param name="origin">The origin.</param>
+        /// <returns>Never returns.</returns>
+        /// <exception cref="NotSupportedException">Always.</exception>
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
+        /// <summary>Always throws; the length is fixed.</summary>
+        /// <param name="value">The length.</param>
+        /// <exception cref="NotSupportedException">Always.</exception>
         public override void SetLength(long value) => throw new NotSupportedException();
 
+        /// <summary>Always throws; the stream is read-only.</summary>
+        /// <param name="buffer">The source.</param>
+        /// <param name="offset">The first index to write.</param>
+        /// <param name="count">The byte count.</param>
+        /// <exception cref="NotSupportedException">Always.</exception>
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }

@@ -17,6 +17,12 @@ internal static class Snapshot
         .Single(attribute => attribute.Key == "SnapshotDirectory")
         .Value!;
 
+    /// <summary>
+    ///     Fails the test with an excerpt at the first difference when the snapshot does not match the generated text;
+    ///     with <c>UPDATE_SNAPSHOTS=1</c> it writes the snapshot instead.
+    /// </summary>
+    /// <param name="name">The snapshot name, without the <c>.g.cs</c> extension.</param>
+    /// <param name="generated">The generated source text.</param>
     public static void Match(string name, string generated)
     {
         string path = Path.Combine(Directory, name + ".g.cs");
@@ -49,6 +55,10 @@ internal static class Snapshot
         return System.Text.RegularExpressions.Regex.Replace(unified, "GeneratedCode\\(\"CStructSharp\", \"[^\"]*\"\\)", "GeneratedCode(\"CStructSharp\", \"<version>\")");
     }
 
+    /// <summary>Cuts up to 400 characters of text around a position for a failure message.</summary>
+    /// <param name="text">The whole text.</param>
+    /// <param name="index">The character position of the first difference.</param>
+    /// <returns>The text from 200 characters before the position.</returns>
     private static string Excerpt(string text, int index)
     {
         int start = Math.Max(0, index - 200);

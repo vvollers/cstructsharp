@@ -21,6 +21,10 @@ public class ConditionalParityTests
 
     private static readonly IReadOnlyDictionary<string, int> NoVariables = new Dictionary<string, int>();
 
+    /// <summary>
+    ///     Generated readers decode the guide's conditional cases - per-item decisions, evaluate-once, unavailable
+    ///     locals, nested groups, and unmatched switches - with the runtime's values and failures.
+    /// </summary>
     [TestMethod]
     public void GuideCases_MatchTheRuntime()
     {
@@ -70,6 +74,10 @@ public class ConditionalParityTests
         Run("chained-else", "struct root { uint8 tag; if (tag) { uint8 n; } else { uint8 m; } uint8 data[tag ? n : m]; if (n == 2) { uint8 extra; } };", "00 01 0a", expectedError: "CStructReadException");
     }
 
+    /// <summary>
+    ///     Generated readers apply caller variables over defines, enum constants, and selector expression failures as
+    ///     the runtime does.
+    /// </summary>
     [TestMethod]
     public void VariableRules_MatchTheRuntime()
     {
@@ -110,6 +118,12 @@ public class ConditionalParityTests
         Assert.AreEqual(12, cases);
     }
 
+    /// <summary>Compares the generated reader with the runtime for one unaligned little-endian case.</summary>
+    /// <param name="id">The case name used in failure messages and the generated class name.</param>
+    /// <param name="definition">The layout text; its root struct is <c>root</c>.</param>
+    /// <param name="hex">The input bytes as hex digits; spaces are ignored.</param>
+    /// <param name="variables">The caller variables, or <see langword="null"/> for none.</param>
+    /// <param name="expectedError">The exception type name both must throw, or <see langword="null"/>.</param>
     private static void Run(string id, string definition, string hex, IReadOnlyDictionary<string, int>? variables = null, string? expectedError = null)
     {
         byte[] bytes = Convert.FromHexString(hex.Replace(" ", string.Empty, StringComparison.Ordinal));

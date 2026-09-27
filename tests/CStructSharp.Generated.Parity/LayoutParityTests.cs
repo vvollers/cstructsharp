@@ -23,8 +23,18 @@ public class LayoutParityTests
 {
     private static readonly Lazy<JsonDocument> Index = new(() => JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "layouts.json"))));
 
+    /// <summary>The shape of the generated <c>ParseWithDebug</c>.</summary>
+    /// <typeparam name="TResult">The value and debug record pair type.</typeparam>
+    /// <param name="source">The encoded root struct.</param>
+    /// <param name="variables">The caller variables.</param>
+    /// <param name="options">The read options.</param>
+    /// <returns>The parsed value with its debug records.</returns>
     private delegate TResult DebugCall<out TResult>(ReadOnlySpan<byte> source, IReadOnlyDictionary<string, int>? variables, ReadOptions? options);
 
+    /// <summary>
+    ///     Every indexed layout (at least 200) has a generated class whose definition, runtime layout, and static sizes
+    ///     match the runtime.
+    /// </summary>
     [TestMethod]
     public void EveryLayout_GeneratesAndBuildsItsRuntimeLayout()
     {
@@ -61,6 +71,10 @@ public class LayoutParityTests
         Assert.IsEmpty(failures, string.Join("\n", failures));
     }
 
+    /// <summary>
+    ///     Every manual fixture's generated class reads, writes, streams, enumerates records, and fails on truncation
+    ///     as the runtime does.
+    /// </summary>
     [TestMethod]
     public void ManualFixtures_ValuesWritesAddressesAndTruncations_MatchTheRuntime()
     {
@@ -81,6 +95,10 @@ public class LayoutParityTests
         Assert.IsEmpty(failures, string.Join("\n\n", failures));
     }
 
+    /// <summary>
+    ///     Every benchmark fixture up to 256 KiB with a generated class matches the runtime's values, writes, expected
+    ///     errors, and truncation failures.
+    /// </summary>
     [TestMethod]
     public void BenchmarkFixtures_ValuesWritesAndTruncations_MatchTheRuntime()
     {
@@ -106,6 +124,10 @@ public class LayoutParityTests
         Assert.IsEmpty(failures, string.Join("\n\n", failures));
     }
 
+    /// <summary>
+    ///     The shape layouts, over bytes the runtime writes from their values, and the conditional cases, over filled
+    ///     bytes, match the runtime's values, writes, and truncation failures.
+    /// </summary>
     [TestMethod]
     public void ShapesAndConditionalCases_ValuesWritesAndTruncations_MatchTheRuntime()
     {
@@ -154,6 +176,20 @@ public class LayoutParityTests
         Assert.IsEmpty(failures, string.Join("\n\n", failures));
     }
 
+    /// <summary>
+    ///     Asserts that a generated class matches the runtime for one input: the value or expected error, the array
+    ///     and asynchronous forms, record sequences, debug ranges, and every truncated prefix through <c>Parse</c> and
+    ///     <c>TryParse</c>.
+    /// </summary>
+    /// <param name="id">The case name used in failure messages.</param>
+    /// <param name="generated">The generated layout class.</param>
+    /// <param name="root">The layout name of the composite to read.</param>
+    /// <param name="bytes">The input.</param>
+    /// <param name="variables">The caller variables, or <see langword="null"/> for none.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <param name="expectedError">
+    ///     A non-null value means both readers must fail with the same exception; the name itself is not checked here.
+    /// </param>
     private static void Compare(string id, Type generated, string root, byte[] bytes, IReadOnlyDictionary<string, int>? variables, ReadOptions? options, string? expectedError)
     {
         var runtime = (CStruct)generated.GetProperty("Layout")!.GetValue(null)!;
@@ -304,6 +340,10 @@ public class LayoutParityTests
         }
     }
 
+    /// <summary>Finds the generated class for an entry of <c>layouts.json</c>.</summary>
+    /// <param name="layout">The index entry with its <c>source</c>, <c>className</c>, and <c>id</c>.</param>
+    /// <returns>The generated class.</returns>
+    /// <exception cref="AssertFailedException">No generated class has the entry's name.</exception>
     private static Type LayoutType(JsonElement layout)
         => Type.GetType("CStructSharp.Generated.Parity.Layouts." + layout.GetProperty("source").GetString() + "." + layout.GetProperty("className").GetString())
            ?? throw new AssertFailedException("no layout class for " + layout.GetProperty("id").GetString());
@@ -322,8 +362,17 @@ public class LayoutParityTests
         return Pascal(layoutName);
     }
 
+    /// <summary>Converts a kebab-case or snake_case name to PascalCase by capitalizing each part.</summary>
+    /// <param name="id">The fixture id or layout name.</param>
+    /// <returns>The PascalCase name.</returns>
     private static string Pascal(string id) => string.Concat(id.Split('-', '_').Where(part => part.Length > 0).Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1)));
 
+    /// <summary>
+    ///     Chooses the prefix lengths to try: every prefix of an input up to 1024 bytes; for a larger one, the first
+    ///     64, about 97 spread prefixes, and the last 16.
+    /// </summary>
+    /// <param name="length">The input length in bytes.</param>
+    /// <returns>Prefix lengths shorter than the input.</returns>
     private static IEnumerable<int> SweepLengths(int length)
     {
         if (length <= 1024)
@@ -369,6 +418,12 @@ public class LayoutParityTests
         }
     }
 
+    /// <summary>Invokes a static generated method with three arguments, rethrowing its exceptions unwrapped.</summary>
+    /// <param name="method">The generated reader, writer, or record sequence method.</param>
+    /// <param name="first">The input or the value to write.</param>
+    /// <param name="variables">The caller variables, or <see langword="null"/> for none.</param>
+    /// <param name="options">The read or write options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>The method's result.</returns>
     private static object Invoke(MethodInfo method, object first, IReadOnlyDictionary<string, int>? variables, object? options)
     {
         try
@@ -382,15 +437,33 @@ public class LayoutParityTests
         }
     }
 
+    /// <summary>Invokes the generated <c>ParseWithDebug</c>, whose read-only span parameter cannot be boxed.</summary>
+    /// <param name="method">The generated <c>ParseWithDebug</c>.</param>
+    /// <param name="bytes">The encoded root struct.</param>
+    /// <param name="variables">The caller variables, or <see langword="null"/> for none.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>The boxed pair of the value and its debug records.</returns>
     private static object InvokeSpan(MethodInfo method, byte[] bytes, IReadOnlyDictionary<string, int>? variables, ReadOptions? options)
     {
         MethodInfo helper = typeof(LayoutParityTests).GetMethod(nameof(CallDebug), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(method.ReturnType);
         return helper.Invoke(null, [method, bytes, variables, options])!;
     }
 
+    /// <summary>Binds <c>ParseWithDebug</c> to <see cref="DebugCall{TResult}"/> and calls it.</summary>
+    /// <typeparam name="TResult">The value and debug record pair type.</typeparam>
+    /// <param name="method">The generated <c>ParseWithDebug</c>.</param>
+    /// <param name="bytes">The encoded root struct.</param>
+    /// <param name="variables">The caller variables, or <see langword="null"/> for none.</param>
+    /// <param name="options">The read options, or <see langword="null"/> for the defaults.</param>
+    /// <returns>The parsed value with its debug records.</returns>
     private static TResult CallDebug<TResult>(MethodInfo method, byte[] bytes, IReadOnlyDictionary<string, int>? variables, ReadOptions? options)
         => ((DebugCall<TResult>)Delegate.CreateDelegate(typeof(DebugCall<TResult>), method))(bytes, variables, options);
 
+    /// <summary>Runs an operation and returns the <see cref="CStructException"/> it throws.</summary>
+    /// <param name="action">The operation to run.</param>
+    /// <returns>
+    ///     The exception, or <see langword="null"/> when the operation succeeds; other exceptions propagate.
+    /// </returns>
     private static Exception? Catch(Func<object?> action)
     {
         try

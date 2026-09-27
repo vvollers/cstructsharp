@@ -12,6 +12,12 @@ internal static class BenchmarkFixtures
 {
     public static string Root { get; } = FindRepositoryRoot();
 
+    /// <summary>
+    ///     Reads every fixture case file in ordinal name order and keeps the cases that describe their bytes and whose
+    ///     bytes fit the size limit.
+    /// </summary>
+    /// <param name="maximumBytes">The largest input to load, in bytes; larger inputs are skipped.</param>
+    /// <returns>The loaded fixtures with their options, variables, read limits, and expected error.</returns>
     public static IReadOnlyList<BenchmarkFixture> Load(long maximumBytes)
     {
         var fixtures = new List<BenchmarkFixture>();
@@ -56,6 +62,10 @@ internal static class BenchmarkFixtures
         return fixtures;
     }
 
+    /// <summary>Builds a fixture input from inline hex, a data file, or a xorshift stream.</summary>
+    /// <param name="spec">The <c>bytes</c> object with its <c>kind</c> and the kind's settings.</param>
+    /// <param name="maximumBytes">The largest file or stream size, in bytes, to produce.</param>
+    /// <returns>The bytes, or <see langword="null"/> when too large or of an unknown kind.</returns>
     private static byte[]? LoadBytes(JsonElement spec, long maximumBytes)
     {
         switch (spec.GetProperty("kind").GetString())
@@ -100,6 +110,9 @@ internal static class BenchmarkFixtures
         }
     }
 
+    /// <summary>Converts a <c>readOptions</c> object; omitted members keep the default limits.</summary>
+    /// <param name="element">The <c>readOptions</c> object of the fixture case.</param>
+    /// <returns>The read options the fixture specifies.</returns>
     private static ReadOptions ToReadOptions(JsonElement element)
     {
         int maxArrayElements = 1_000_000;
@@ -154,6 +167,9 @@ internal static class BenchmarkFixtures
         };
     }
 
+    /// <summary>Walks up from the test output directory to the directory that holds <c>CStructSharp.sln</c>.</summary>
+    /// <returns>The absolute repository root path.</returns>
+    /// <exception cref="InvalidOperationException">No parent directory contains the solution file.</exception>
     private static string FindRepositoryRoot()
     {
         string? directory = AppContext.BaseDirectory;

@@ -8,6 +8,8 @@ using System.Text.Json;
 /// <summary>The language contract's manual fixtures (<c>contracts/language/manual-fixtures-v1.json</c>): one valid definition per accepted declaration shape.</summary>
 internal static class ManualFixtures
 {
+    /// <summary>Reads the valid half of every feature pair from the copied fixture file.</summary>
+    /// <returns>One fixture per feature pair, in file order, with its options and optional input bytes.</returns>
     public static IReadOnlyList<ManualFixture> Load()
     {
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(Path.Combine(System.AppContext.BaseDirectory, "manual-fixtures-v1.json")));

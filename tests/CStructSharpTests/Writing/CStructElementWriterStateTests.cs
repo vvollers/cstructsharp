@@ -138,13 +138,9 @@ public class CStructElementWriterStateTests
     }
 
     /// <summary>
-    ///     Regression coverage for the architecture improvement plan's optimization that converted WriteOptions/UpdateOptions to records and replaced their hand-maintained
-    ///     property-by-property snapshot with the record's own <c>with</c> expression. Uses the record's
-    ///     auto-generated structural equality as the proof: a snapshot that is value-equal to its source across
-    ///     every one of its properties (not just the handful an earlier, more narrowly-listed test happens to
-    ///     assert on) is exactly the guarantee `with` is meant to provide - and, unlike a hand-picked property
-    ///     list, this assertion could never silently start passing again if a future property were added and
-    ///     accidentally left out of a hand-maintained copy.
+    ///     WriteOptions and UpdateOptions are records whose snapshot is the record's own <c>with</c> copy. The record's
+    ///     structural equality is the proof: a snapshot value-equal to its source across every property is exactly what
+    ///     <c>with</c> guarantees, and unlike a hand-picked property list the assertion covers a property added later.
     /// </summary>
     [TestMethod]
     public void SnapshotUpdateOptions_ProducesARecordValueEqualToTheSource()

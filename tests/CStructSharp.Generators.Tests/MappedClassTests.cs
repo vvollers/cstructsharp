@@ -74,6 +74,10 @@ public class MappedClassTests
         }
         """";
 
+    /// <summary>
+    ///     Mapped classes read and write every supported member kind through the runtime, bridge from generated values,
+    ///     and match names at run time when no layout resolves.
+    /// </summary>
     [TestMethod]
     public void MappedClasses_ReadAndWriteThroughTheRuntime()
     {
@@ -153,6 +157,10 @@ public class MappedClassTests
         Assert.AreEqual(33L, ((CStructSharp.Values.Pointer)loose.GetProperty("Link")!.GetValue(looseValue)!).Address);
     }
 
+    /// <summary>
+    ///     A mapped class that is not partial or lacks a parameterless constructor reports CSG100, an unmappable member
+    ///     type CSG101, and a member missing from the resolved layout CSG102.
+    /// </summary>
     [TestMethod]
     public void Diagnostics_CoverPartialConstructorMemberTypesAndMissingMembers()
     {
@@ -181,6 +189,13 @@ public class MappedClassTests
         StringAssert.Contains(source, "MemberName(source, \"Missing\")", "an unresolved member falls back to run-time matching");
     }
 
+    /// <summary>
+    ///     Reads the <c>root</c> struct as a mapped class through the runtime's generic <c>ReadValue</c>.
+    /// </summary>
+    /// <param name="mapped">The mapped class to read.</param>
+    /// <param name="runtime">The runtime layout that reads the bytes.</param>
+    /// <param name="bytes">The input, starting at the root struct.</param>
+    /// <returns>The mapped instance; a read failure propagates unwrapped.</returns>
     private static object ReadValue(Type mapped, CStruct runtime, byte[] bytes)
     {
         // ReadValue<T> over a span cannot be called through reflection with a span: a generic helper closed over T does it.
@@ -196,5 +211,13 @@ public class MappedClassTests
         }
     }
 
+    /// <summary>
+    ///     Calls <c>ReadValue&lt;T&gt;</c> for the <c>root</c> struct; <see cref="ReadValue"/> invokes it by
+    ///     reflection.
+    /// </summary>
+    /// <typeparam name="T">The mapped class.</typeparam>
+    /// <param name="runtime">The runtime layout that reads the bytes.</param>
+    /// <param name="bytes">The input, starting at the root struct.</param>
+    /// <returns>The mapped instance.</returns>
     private static T Call<T>(CStruct runtime, byte[] bytes) => runtime.ReadValue<T>(bytes, "root");
 }

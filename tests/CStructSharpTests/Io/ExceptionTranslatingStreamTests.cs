@@ -158,12 +158,10 @@ public class ExceptionTranslatingStreamTests
     }
 
     /// <summary>
-    ///     Regression coverage for the architecture improvement plan's fix that widened both budget streams' physical-failure classification from IOException alone to also
-    ///     include NotSupportedException (an operation the physical stream does not implement) and
-    ///     ObjectDisposedException (a stream disposed out from under an in-progress operation) - matching
-    ///     SparseUpdateStream's own, already-broader classifier. Before this fix, either exception type would
-    ///     leak out of ReadBudgetStream/WriteBudgetStream as a raw BCL exception instead of the documented,
-    ///     bounded CStructReadException/CStructWriteException.
+    ///     Both budget streams classify NotSupportedException (an operation the physical stream does not implement) and
+    ///     ObjectDisposedException (a stream disposed during an operation) as physical failures, like IOException and
+    ///     like SparseUpdateStream's classifier, so neither leaks out of ReadBudgetStream or WriteBudgetStream as a raw
+    ///     BCL exception instead of the documented CStructReadException or CStructWriteException.
     /// </summary>
     [TestMethod]
     public void BudgetStreams_ClassifyNotSupportedAndObjectDisposedAsPhysicalFailuresToo()

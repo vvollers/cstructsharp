@@ -18,6 +18,12 @@ using Pointer = CStructSharp.Values.Pointer;
 /// </summary>
 internal static class ParityComparer
 {
+    /// <summary>Fails the test at the first member where the generated value differs from the runtime value.</summary>
+    /// <param name="runtime">
+    ///     The runtime's parsed value: a struct, union, enum, pointer, string, list, or scalar.
+    /// </param>
+    /// <param name="generated">The generated value read by reflection.</param>
+    /// <param name="path">The member path used in failure messages.</param>
     public static void AssertSame(object? runtime, object? generated, string path)
     {
         switch (runtime)
@@ -51,6 +57,13 @@ internal static class ParityComparer
         }
     }
 
+    /// <summary>
+    ///     Compares every runtime member with its generated property, and checks that each <c>Has</c> flag is set
+    ///     exactly when the runtime produced the conditional member.
+    /// </summary>
+    /// <param name="runtime">The runtime's struct value.</param>
+    /// <param name="generated">The generated value read by reflection.</param>
+    /// <param name="path">The member path used in failure messages.</param>
     private static void AssertStruct(StructValue runtime, object? generated, string path)
     {
         Assert.IsNotNull(generated, path + ": expected a struct");
@@ -85,6 +98,12 @@ internal static class ParityComparer
         }
     }
 
+    /// <summary>
+    ///     Compares a union's raw storage and every decoded member; the generated selection must be unset.
+    /// </summary>
+    /// <param name="runtime">The runtime's union value.</param>
+    /// <param name="generated">The generated value read by reflection.</param>
+    /// <param name="path">The member path used in failure messages.</param>
     private static void AssertUnion(UnionValue runtime, object? generated, string path)
     {
         Assert.IsNotNull(generated, path + ": expected a union");
@@ -100,6 +119,12 @@ internal static class ParityComparer
         }
     }
 
+    /// <summary>
+    ///     Compares a pointer's address, depth, and dereference state, and its target when it was followed.
+    /// </summary>
+    /// <param name="runtime">The runtime's pointer.</param>
+    /// <param name="generated">The generated <c>Pointer&lt;T&gt;</c>.</param>
+    /// <param name="path">The member path used in failure messages.</param>
     private static void AssertPointer(Pointer runtime, object? generated, string path)
     {
         Assert.IsNotNull(generated, path + ": expected a pointer");
@@ -114,6 +139,10 @@ internal static class ParityComparer
         }
     }
 
+    /// <summary>Compares an array's length and each element in order.</summary>
+    /// <param name="runtime">The runtime's elements.</param>
+    /// <param name="generated">The generated array or collection.</param>
+    /// <param name="path">The member path used in failure messages.</param>
     private static void AssertList(IEnumerable runtime, object? generated, string path)
     {
         Assert.IsNotNull(generated, path + ": expected an array");
@@ -127,6 +156,10 @@ internal static class ParityComparer
         }
     }
 
+    /// <summary>Compares two scalars, by numeric value when their types differ, as bitfields do.</summary>
+    /// <param name="runtime">The runtime's scalar.</param>
+    /// <param name="generated">The generated scalar.</param>
+    /// <param name="path">The member path used in failure messages.</param>
     private static void AssertScalar(object runtime, object? generated, string path)
     {
         Assert.IsNotNull(generated, path);
@@ -140,6 +173,11 @@ internal static class ParityComparer
         Assert.AreEqual(runtime, generated, path);
     }
 
+    /// <summary>
+    ///     Converts a numeric value, including <see cref="Half"/> and 128-bit and big integers, to a decimal.
+    /// </summary>
+    /// <param name="value">The boxed number.</param>
+    /// <returns>The number as a decimal.</returns>
     private static decimal ToDecimal(object value)
     {
         return value switch
@@ -152,6 +190,10 @@ internal static class ParityComparer
         };
     }
 
+    /// <summary>Finds the generated property for a layout member by its exact, Pascal-cased, or escaped name.</summary>
+    /// <param name="type">The generated class.</param>
+    /// <param name="layoutName">The member name in the layout.</param>
+    /// <returns>The property, or <see langword="null"/> when none matches.</returns>
     private static PropertyInfo? FindProperty(Type type, string layoutName)
     {
         foreach (PropertyInfo property in type.GetProperties())
@@ -165,6 +207,11 @@ internal static class ParityComparer
         return null;
     }
 
+    /// <summary>
+    ///     Converts a snake_case layout name to PascalCase; an all-capitals part is lowered after its first letter.
+    /// </summary>
+    /// <param name="identifier">The layout name.</param>
+    /// <returns>The expected generated property name.</returns>
     private static string Pascal(string identifier)
     {
         var builder = new System.Text.StringBuilder();

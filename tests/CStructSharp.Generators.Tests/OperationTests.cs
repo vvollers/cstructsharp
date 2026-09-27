@@ -29,14 +29,40 @@ public class OperationTests
         public static partial class Packet { }
         """";
 
+    /// <summary>The shape of a generated <c>Update</c> setter for a scalar member.</summary>
+    /// <typeparam name="T">The member's value type.</typeparam>
+    /// <param name="target">The encoded root struct to change in place.</param>
+    /// <param name="value">The new member value.</param>
     private delegate void Setter<in T>(Span<byte> target, T value);
 
+    /// <summary>The shape of a generated <c>Update</c> setter for one element of a fixed array.</summary>
+    /// <typeparam name="T">The element's value type.</typeparam>
+    /// <param name="target">The encoded root struct to change in place.</param>
+    /// <param name="index">The zero-based element index.</param>
+    /// <param name="value">The new element value.</param>
     private delegate void IndexedSetter<in T>(Span<byte> target, int index, T value);
 
+    /// <summary>The shape of a generated path operation such as <c>ResolveAddress</c>.</summary>
+    /// <typeparam name="TResult">The operation's result type.</typeparam>
+    /// <param name="source">The encoded root struct.</param>
+    /// <param name="path">The member path, starting at the root name.</param>
+    /// <param name="variables">The caller variables.</param>
+    /// <param name="options">The read options.</param>
+    /// <returns>The operation's answer.</returns>
     private delegate TResult PathCall<out TResult>(ReadOnlySpan<byte> source, string path, IReadOnlyDictionary<string, int>? variables, ReadOptions? options);
 
+    /// <summary>The shape of the generated <c>ParseWithDebug</c>.</summary>
+    /// <typeparam name="TResult">The value and debug record pair type.</typeparam>
+    /// <param name="source">The encoded root struct.</param>
+    /// <param name="variables">The caller variables.</param>
+    /// <param name="options">The read options.</param>
+    /// <returns>The parsed value with its debug records.</returns>
     private delegate TResult DebugCall<out TResult>(ReadOnlySpan<byte> source, IReadOnlyDictionary<string, int>? variables, ReadOptions? options);
 
+    /// <summary>
+    ///     The generated size and offset constants, typed setters, path operations, and <c>ICStructGenerated</c>
+    ///     implementation give the runtime's answers and bytes.
+    /// </summary>
     [TestMethod]
     public void ConstantsSettersAndPathOperations_MatchTheRuntime()
     {
@@ -91,6 +117,13 @@ public class OperationTests
         CollectionAssert.AreEqual(runtime.Serialize("root", runtime.Parse(bytes, "root")), (byte[])generic.Invoke(null, [bytes])!);
     }
 
+    /// <summary>
+    ///     Parses, serializes, and try-parses through the static <c>ICStructGenerated&lt;T&gt;</c> members, and checks
+    ///     that a three-byte prefix fails with the throwing reader's message.
+    /// </summary>
+    /// <typeparam name="T">The generated root class.</typeparam>
+    /// <param name="bytes">The encoded root struct.</param>
+    /// <returns>The serialized bytes, trimmed to the written length.</returns>
     private static byte[] RoundTrip<T>(byte[] bytes)
         where T : ICStructGenerated<T>
     {
@@ -110,6 +143,19 @@ public class OperationTests
         return destination[..written];
     }
 
+    /// <summary>Changes one member with the runtime's path update and with a generated setter.</summary>
+    /// <param name="runtime">The runtime layout.</param>
+    /// <param name="expected">The bytes the runtime updates in place.</param>
+    /// <param name="actual">The bytes the generated setter updates in place.</param>
+    /// <param name="path">The member path the runtime updates.</param>
+    /// <param name="runtimeValue">The value the runtime writes.</param>
+    /// <param name="setter">The generated setter.</param>
+    /// <param name="generatedValue">
+    ///     The setter's value when its type differs; <see langword="null"/> reuses the runtime value.
+    /// </param>
+    /// <param name="extra">
+    ///     The setter's arguments when it takes more than a value, such as an index and a value.
+    /// </param>
     private static void Apply(CStruct runtime, byte[] expected, byte[] actual, string path, object runtimeValue, MethodInfo setter, object? generatedValue, params object[] extra)
     {
         runtime.Update(expected.AsSpan(), path, runtimeValue);
@@ -117,6 +163,13 @@ public class OperationTests
         Invoke(setter, actual, arguments);
     }
 
+    /// <summary>
+    ///     Invokes a generated setter whose first parameter is a span, rethrowing its exceptions unwrapped.
+    /// </summary>
+    /// <param name="setter">The generated setter.</param>
+    /// <param name="target">The bytes to change in place.</param>
+    /// <param name="arguments">The value, or the index and the value.</param>
+    /// <exception cref="AssertFailedException">The setter's signature does not bind to the setter delegate.</exception>
     private static void Invoke(MethodInfo setter, byte[] target, params object[] arguments)
     {
         // A Span<byte> parameter cannot be boxed: bind through a delegate closed over the value type.
@@ -136,10 +189,26 @@ public class OperationTests
         }
     }
 
+    /// <summary>Binds a scalar setter to <see cref="Setter{T}"/> and calls it.</summary>
+    /// <typeparam name="T">The member's value type.</typeparam>
+    /// <param name="setter">The generated setter.</param>
+    /// <param name="target">The bytes to change in place.</param>
+    /// <param name="value">The new member value.</param>
     private static void Call<T>(MethodInfo setter, byte[] target, T value) => ((Setter<T>)Delegate.CreateDelegate(typeof(Setter<T>), setter))(target, value);
 
+    /// <summary>Binds an array element setter to <see cref="IndexedSetter{T}"/> and calls it.</summary>
+    /// <typeparam name="T">The element's value type.</typeparam>
+    /// <param name="setter">The generated setter.</param>
+    /// <param name="target">The bytes to change in place.</param>
+    /// <param name="index">The zero-based element index.</param>
+    /// <param name="value">The new element value.</param>
     private static void CallIndexed<T>(MethodInfo setter, byte[] target, int index, T value) => ((IndexedSetter<T>)Delegate.CreateDelegate(typeof(IndexedSetter<T>), setter))(target, index, value);
 
+    /// <summary>Invokes a generated operation whose first parameter is a read-only span.</summary>
+    /// <param name="method">A path operation, or <c>ParseWithDebug</c> when <paramref name="path"/> is null.</param>
+    /// <param name="bytes">The encoded root struct.</param>
+    /// <param name="path">The member path, or <see langword="null"/> for <c>ParseWithDebug</c>.</param>
+    /// <returns>The operation's boxed result.</returns>
     private static object InvokeSpan(MethodInfo method, byte[] bytes, string? path)
     {
         // A ReadOnlySpan<byte> parameter cannot be boxed: bind through a delegate closed over the return type.
@@ -147,9 +216,24 @@ public class OperationTests
         return helper.Invoke(null, path is null ? [method, bytes] : [method, bytes, path])!;
     }
 
+    /// <summary>
+    ///     Binds a path operation to <see cref="PathCall{TResult}"/> and calls it without variables or options.
+    /// </summary>
+    /// <typeparam name="TResult">The operation's result type.</typeparam>
+    /// <param name="method">The generated path operation.</param>
+    /// <param name="bytes">The encoded root struct.</param>
+    /// <param name="path">The member path.</param>
+    /// <returns>The operation's answer.</returns>
     private static TResult CallPath<TResult>(MethodInfo method, byte[] bytes, string path)
         => ((PathCall<TResult>)Delegate.CreateDelegate(typeof(PathCall<TResult>), method))(bytes, path, null, null);
 
+    /// <summary>
+    ///     Binds <c>ParseWithDebug</c> to <see cref="DebugCall{TResult}"/> and calls it without variables or options.
+    /// </summary>
+    /// <typeparam name="TResult">The value and debug record pair type.</typeparam>
+    /// <param name="method">The generated <c>ParseWithDebug</c>.</param>
+    /// <param name="bytes">The encoded root struct.</param>
+    /// <returns>The parsed value with its debug records.</returns>
     private static TResult CallDebug<TResult>(MethodInfo method, byte[] bytes)
         => ((DebugCall<TResult>)Delegate.CreateDelegate(typeof(DebugCall<TResult>), method))(bytes, null, null);
 }
