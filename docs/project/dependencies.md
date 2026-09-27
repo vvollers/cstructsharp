@@ -20,7 +20,6 @@ Use project manifests, the local .NET tool manifest, and npm lockfiles for curre
 | Build, private | StyleCop.Analyzers | Checks source style |
 | Tests | Microsoft.NET.Test.Sdk | Hosts managed tests |
 | Tests | MSTest | Defines and runs test cases |
-| Tests | Pidgin | Frozen reference grammar for the parser differential tests |
 | Tests, private | coverlet.collector / coverlet.msbuild | Measures line and branch coverage |
 | Benchmarks | BenchmarkDotNet | Measures timing and allocation |
 | Local tool | dotnet-stryker | Runs mutation tests |
@@ -29,8 +28,7 @@ Use project manifests, the local .NET tool manifest, and npm lockfiles for curre
 
 The core library has no runtime package dependencies: the layout parser is hand-written (`LayoutParser`), and
 CStructSharp itself performs name resolution, layout calculation, value conversion, safety limits, and every public
-operation. The test project uses Pidgin, a parser-combinator library, for a frozen reference grammar; `ParserDifferentialTests` parses the fixture corpus and thousands of
-mutations of it through both parsers so a parser change cannot silently change the documented language.
+operation.
 
 `PrivateAssets` prevents analyzer and build packages from becoming dependencies of an application that installs the
 library. Source Link is enabled in CI/release-style builds where repository metadata is available.

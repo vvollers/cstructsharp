@@ -132,9 +132,6 @@ public class PublicApiSurfaceTests
                 .SelectMany(GetSignatureTypes);
             foreach (Type signatureType in signatureTypes.SelectMany(FlattenType))
             {
-                Assert.IsFalse(
-                    signatureType.Namespace?.StartsWith("Pidgin", StringComparison.Ordinal) == true,
-                    $"{type.FullName} exposes Pidgin type {signatureType}.");
                 Assert.AreNotEqual(
                     "CStructSharp.Syntax",
                     signatureType.Namespace,

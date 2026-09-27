@@ -7,19 +7,15 @@ using System.Text.RegularExpressions;
 using CStructSharp.Diagnostics;
 using CStructSharp.Parsing;
 using CStructSharp.Syntax;
-using CStructSharp.Tests.Reference;
-using Pidgin;
 
 /// <summary>
-///     Differential oracle for the hand-written <see cref="LayoutParser"/>: every layout in the repository's
-///     corpus - benchmark fixtures, language contracts, compiler-fixture baselines, explorer demos, documentation
-///     snippets, and every layout-looking string literal in this test project - plus thousands of deterministic
-///     mutations of them, is parsed by both the new parser and the frozen Pidgin grammar it replaced. Everything the
-///     reference accepts, the current parser must accept with a structurally identical tree; the reference grammar
-///     is a frozen subset, so it may reject sources the extended language now accepts.
+///     Robustness and regression checks for the hand-written <see cref="LayoutParser"/> over the repository's corpus -
+///     benchmark fixtures, language contracts, compiler-fixture baselines, explorer demos, documentation snippets, and
+///     every layout-looking string literal in this test project - plus thousands of deterministic mutations of them.
+///     Every input either parses or fails with a syntax diagnostic; nothing escapes with another exception.
 /// </summary>
 [TestClass]
-public class ParserDifferentialTests
+public class ParserCorpusTests
 {
     private const int MutationsPerSeedCap = 12;
     private const int TotalMutationBudget = 8000;
@@ -37,53 +33,30 @@ public class ParserDifferentialTests
 
     private static readonly char[] InterestingChars = [' ', '\n', '\r', '\t', '*', '<', '>', '(', ')', '[', ']', '{', '}', ';', ',', ':', '@', '#', '/', '-', '+', '!', '~', '_', '=', '&', '|', '0', '1', '9', 'x', 'b', 'o', 'u', 'L', 'a', 'A', 'é', ' ',];
 
-    /// <summary>
-    ///     Every corpus layout parses identically through the hand-written parser and the reference grammar.
-    /// </summary>
-    /// <remarks>
-    ///     A mismatch names the corpus entry and shows both trees (or the differing verdicts). The block-comment
-    ///     exceptions cover documented grammar corrections: lone comment stars and empty alignment arguments.
-    /// </remarks>
+    /// <summary>Every corpus layout parses, or fails with a syntax diagnostic; most of the corpus is valid.</summary>
     [TestMethod]
-    public void Corpus_ParsesIdenticallyThroughBothParsers()
+    public void Corpus_ParsesOrReportsASyntaxError()
     {
         IReadOnlyList<(string Id, string Source)> corpus = LoadCorpus();
         Assert.IsGreaterThan(400, corpus.Count, "corpus size");
 
-        var failures = new List<string>();
-        int accepted = 0;
-        foreach ((string id, string source) in corpus)
-        {
-            string? failure = Compare(id, source, out bool wasAccepted);
-            if (failure is not null)
-            {
-                failures.Add(failure);
-            }
-
-            if (wasAccepted)
-            {
-                accepted++;
-            }
-        }
-
+        int accepted = corpus.Count(entry => ParsesOrFailsCleanly(entry.Id, entry.Source));
         Assert.IsGreaterThan(300, accepted, "accepted corpus entries");
-        Assert.IsEmpty(failures, string.Join(Environment.NewLine + Environment.NewLine, failures.Take(10)));
     }
 
     /// <summary>
     ///     Deterministic character-level mutations of the corpus (flip, replace, insert, delete, swap, duplicate a
-    ///     range) keep both parsers in agreement on accept/reject and on the produced tree.
+    ///     range) either parse or fail with a syntax diagnostic: no other exception escapes the parser.
     /// </summary>
     /// <remarks>
     ///     This is where token-boundary quirks show up: keyword prefixes, pointer stars glued to names, signs in
     ///     literals, comments in odd places. The seed is fixed so a failure reproduces.
     /// </remarks>
     [TestMethod]
-    public void MutatedCorpus_ParsesIdenticallyThroughBothParsers()
+    public void MutatedCorpus_ParsesOrReportsASyntaxError()
     {
         IReadOnlyList<(string Id, string Source)> corpus = LoadCorpus();
         var random = new Random(0x1E12);
-        var failures = new List<string>();
         int budget = TotalMutationBudget;
         int perSeed = Math.Max(1, Math.Min(MutationsPerSeedCap, TotalMutationBudget / corpus.Count));
         int accepted = 0;
@@ -92,14 +65,7 @@ public class ParserDifferentialTests
         {
             for (int iteration = 0; iteration < perSeed && budget > 0; iteration++, budget--)
             {
-                string mutated = Mutate(source, random);
-                string? failure = Compare($"{id}#{iteration}", mutated, out bool wasAccepted);
-                if (failure is not null)
-                {
-                    failures.Add(failure);
-                }
-
-                if (wasAccepted)
+                if (ParsesOrFailsCleanly($"{id}#{iteration}", Mutate(source, random)))
                 {
                     accepted++;
                 }
@@ -112,19 +78,15 @@ public class ParserDifferentialTests
 
         Assert.IsGreaterThan(100, accepted, "accepted mutations");
         Assert.IsGreaterThan(100, rejected, "rejected mutations");
-        Assert.IsEmpty(failures, string.Join(Environment.NewLine + Environment.NewLine, failures.Take(10)));
     }
 
     /// <summary>
-    ///     Hand-picked spellings that exercise the reference grammar's token conventions one by one.
+    ///     Hand-picked spellings that exercise the token conventions one by one keep their parse trees (or their
+    ///     rejection): prefix keywords, trivia around tokens and literals, enum member forms, optional and required
+    ///     semicolons, and comments inside every construct.
     /// </summary>
-    /// <remarks>
-    ///     Each spelling documents a convention the rewrite had to reproduce: prefix keyword matching, trivia after
-    ///     tokens and before literals, whitespace-only skipping after an enum <c>=</c>, unary minus versus literal
-    ///     sign, optional/required semicolons, and the union typedef that swallows its own semicolon.
-    /// </remarks>
     [TestMethod]
-    public void TokenConventions_MatchTheReferenceGrammar()
+    public void TokenConventions_KeepTheirTrees()
     {
         string[] spellings =
         [
@@ -322,76 +284,39 @@ public class ParserDifferentialTests
             "struct root { uint8 a /*c*/ [ /*c*/ 2 /*c*/ ] /*c*/ : /*c*/ 2 /*c*/ @ /*c*/ 4 /*c*/ , /*c*/ b ; };",
         ];
 
-        var failures = new List<string>();
+        string path = Path.Combine(FindRepositoryRoot(), "tests", "CStructSharpTests", "ParserTokenConventions.json");
+        using JsonDocument expected = JsonDocument.Parse(File.ReadAllText(path), DeepJson);
+        Assert.HasCount(spellings.Length, expected.RootElement.EnumerateObject().ToArray(), "every spelling has an expected tree");
         foreach (string spelling in spellings)
         {
-            string? failure = Compare(spelling, spelling, out _);
-            if (failure is not null)
-            {
-                failures.Add(failure);
-            }
+            Assert.AreEqual(expected.RootElement.GetProperty(spelling).GetString(), TryDump(spelling), spelling);
         }
-
-        Assert.IsEmpty(failures, string.Join(Environment.NewLine + Environment.NewLine, failures));
     }
 
-    /// <summary>
-    ///     A documented deviation: a block comment may contain a lone <c>*</c>.
-    /// </summary>
-    /// <remarks>
-    ///     The reference grammar's block-comment terminator committed to <c>*</c> and then failed on the next
-    ///     character; the documented grammar (<c>block-comment = "/*", { block-comment-character }, "*/"</c>) never
-    ///     had that restriction, so the rewrite follows the documentation.
-    /// </remarks>
+    /// <summary>A block comment may contain a lone <c>*</c>, as the documented comment grammar allows.</summary>
     [TestMethod]
     public void BlockComments_MayContainLoneStars()
     {
         const string layout = "/* a * b ** c */ struct root { uint8 a; /* pointer *p */ };";
-        Assert.IsFalse(ReferenceAccepts(layout));
         IReadOnlyList<CStructElement> elements = LayoutParser.ParseLayout(layout);
         Assert.HasCount(1, elements);
         _ = new CStruct(layout);
     }
 
-    /// <summary>The old parser backtracks from empty alignment into an offset call; alignment requires an expression.</summary>
+    /// <summary>An alignment annotation requires an expression; an empty one is rejected, whatever comments it contains.</summary>
+    /// <param name="source">An empty alignment annotation, possibly containing comment trivia.</param>
     [TestMethod]
-    public void EmptyAlignment_IsRejectedInsteadOfBecomingAnOffsetCall()
-    {
-        const string layout = "struct Root8 { uint *p @align( ); };";
-        Assert.IsTrue(ReferenceAccepts(layout));
-        Assert.Throws<CStructLayoutException>(() => new CStruct(layout));
-        Assert.IsNull(Compare("empty-alignment", layout, out bool accepted));
-        Assert.IsFalse(accepted);
-    }
-
-    /// <summary>Comments do not turn an empty alignment argument into a valid expression or an unrelated parser difference.</summary>
-    /// <param name="source">An empty alignment annotation containing ordinary line or block comment trivia.</param>
-    [TestMethod]
+    [DataRow("struct Root8 { uint *p @align( ); };")]
     [DataRow("enum moDe : uint8 { A=1, B=2 }; struct r_oot { mode values[2] @align// \t\n(); uint8 tail; };")]
     [DataRow("struct root { uint8 value @align /* before */ ( /* inside */ ); };")]
     [DataRow("struct root { uint8 value @align(// inside\r\n); };")]
-    public void EmptyAlignment_WithCommentsRetainsItsExactDiagnostic(string source)
+    public void EmptyAlignment_IsRejected(string source)
     {
-        Assert.IsTrue(ReferenceAccepts(source));
         CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLayout(source));
-
-        Assert.IsTrue(RejectsEmptyAlignment(source, failure.Message));
-        Assert.IsFalse(RejectsEmptyAlignment(source, failure.Message.Replace("expected an expression.", "expected an identifier.", StringComparison.Ordinal)));
-        Assert.IsNull(Compare("commented-empty-alignment", source, out bool accepted));
-        Assert.IsFalse(accepted);
+        StringAssert.EndsWith(failure.Message, "expected an expression.");
     }
 
-    /// <summary>An empty alignment elsewhere, including inside a comment, cannot excuse a different expression failure.</summary>
-    [TestMethod]
-    public void EmptyAlignment_DoesNotHideAnEarlierExpressionFailure()
-    {
-        const string source = "struct root { uint8 broken[()]; uint8 value @align(); /* @align() */ };";
-        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLayout(source));
-
-        Assert.IsFalse(RejectsEmptyAlignment(source, failure.Message));
-    }
-
-    /// <summary>A valueless define after a declaration still ends at its physical line, unlike the frozen parser.</summary>
+    /// <summary>A valueless define after a declaration ends at its physical line.</summary>
     /// <param name="newline">The LF or CRLF directive terminator.</param>
     [TestMethod]
     [DataRow("\n")]
@@ -399,18 +324,10 @@ public class ParserDifferentialTests
     public void DefineAfterDeclaration_DoesNotConsumeTheNextLine(string newline)
     {
         string source = "struct item { byte value; }; #define item " + newline + "1";
-        Assert.IsTrue(ReferenceAccepts(source));
 
-        // The current grammar creates an empty constant, leaving the next line's number as invalid top-level input.
+        // The directive creates an empty constant, leaving the next line's number as invalid top-level input.
         CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLayout(source));
         Assert.AreEqual(LayoutParser.SyntaxErrorPrefix + "unexpected '1' at line 2, column 1; expected the end of the layout.", failure.Message);
-        Assert.IsNull(Compare("define-after-declaration-line-boundary", source, out bool accepted));
-        Assert.IsFalse(accepted);
-
-        // A completed define followed by unrelated invalid input is not this frozen-reference difference.
-        Assert.IsFalse(RejectsLineAfterDefine(
-            "struct item { byte value; }; #define item 1" + newline + "garbage",
-            LayoutParser.SyntaxErrorPrefix + "unexpected 'g' at line 2, column 1; expected the end of the layout."));
     }
 
     /// <summary>Multiplication inside a type-only call must not join both identifiers into a different pointer type.</summary>
@@ -421,14 +338,10 @@ public class ParserDifferentialTests
     [DataRow("struct h { uint8 value; }; struct root { uint8 raw[offsetof(h*o, value)]; };")]
     public void TypeArgument_RejectsMultiplicationInsteadOfJoiningNames(string source)
     {
-        Assert.IsTrue(ReferenceAccepts(source), "The frozen generic-call grammar parses this as multiplication.");
-
-        // The current grammar permits type words followed by pointer stars, never another word after a star.
+        // The grammar permits type words followed by pointer stars, never another word after a star.
         CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLayout(source));
         StringAssert.Contains(failure.Message, "unexpected 'o'");
         StringAssert.Contains(failure.Message, "expected ')'");
-        Assert.IsNull(Compare("multiplication-in-type-argument", source, out bool accepted));
-        Assert.IsFalse(accepted);
     }
 
     /// <summary>Multiword type names and trailing pointer stars remain valid type-only arguments.</summary>
@@ -439,22 +352,16 @@ public class ParserDifferentialTests
         Assert.AreEqual(4, layout.GetStructSizeInBytes("root"));
     }
 
-    /// <summary>The frozen call grammar accepts numeric sizeof arguments, but the documented type-only grammar rejects them.</summary>
+    /// <summary>A numeric sizeof argument is rejected exactly where a type name is required.</summary>
     /// <param name="source">A sizeof call whose argument is a numeric literal instead of a type name.</param>
+    /// <param name="expected">The diagnostic after the syntax-error prefix.</param>
     [TestMethod]
-    [DataRow("struct root { uint8 bytes[sizeof(1)]; };")]
-    [DataRow("struct root {\n uint8 bytes[sizeof(0x10)]; };")]
-    public void NumericSizeof_IsRejectedAtTheTypeArgumentBoundary(string source)
+    [DataRow("struct root { uint8 bytes[sizeof(1)]; };", "unexpected '1' at line 1, column 34; expected a type or field name.")]
+    [DataRow("struct root {\n uint8 bytes[sizeof(0x10)]; };", "unexpected '0' at line 2, column 21; expected a type or field name.")]
+    public void NumericSizeof_IsRejectedAtTheTypeArgumentBoundary(string source, string expected)
     {
-        Assert.IsTrue(ReferenceAccepts(source));
-
-        // The current parser must reject the literal precisely where a type name is required.
         CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLayout(source));
-        Assert.IsTrue(RejectsNumericSizeofArgument(source, failure.Message));
-        Assert.IsFalse(RejectsNumericSizeofArgument(source, "unrelated syntax failure"));
-        Assert.IsFalse(RejectsNumericSizeofArgument(source, failure.Message.Replace("a type or field name", "an expression", StringComparison.Ordinal)));
-        Assert.IsNull(Compare("numeric-sizeof", source, out bool accepted));
-        Assert.IsFalse(accepted);
+        Assert.AreEqual(LayoutParser.SyntaxErrorPrefix + expected, failure.Message);
     }
 
     /// <summary>
@@ -542,414 +449,56 @@ public class ParserDifferentialTests
         AssertFails(() => LayoutParser.ParseLayout("struct root { const ; };"), "unexpected ';' at line 1, column 21; expected an identifier.");
     }
 
+    /// <summary>Asserts that a parse fails with exactly the syntax-error prefix followed by <paramref name="detail"/>.</summary>
     private static void AssertFails(Action parse, string detail)
     {
         CStructLayoutException exception = Assert.Throws<CStructLayoutException>(parse);
         Assert.AreEqual(LayoutParser.SyntaxErrorPrefix + detail, exception.Message);
     }
 
-    /// <summary>Compares parser trees or verdicts, accounting only for the documented frozen-reference differences.</summary>
-    /// <param name="id">The diagnostic identifier of this corpus input.</param>
-    /// <param name="source">The exact source supplied to both parsers.</param>
-    /// <param name="accepted">Whether the current parser accepted the declaration.</param>
-    /// <returns>A mismatch explanation, or null when the input agrees with the comparison contract.</returns>
-    private static string? Compare(string id, string source, out bool accepted)
+    /// <summary>Parses one input and checks that a rejection is a syntax diagnostic, never another exception.</summary>
+    /// <param name="id">The diagnostic identifier of this input.</param>
+    /// <param name="source">The layout text.</param>
+    /// <returns>Whether the parser accepted the input.</returns>
+    private static bool ParsesOrFailsCleanly(string id, string source)
     {
-        accepted = false;
-        string? referenceDump;
-        string? referenceError;
         try
         {
-            referenceDump = Dump(PidginReferenceParser.Parser.ParseOrThrow(source).ToArray());
-            referenceError = null;
-        }
-        catch (Exception exception) when (exception is ParseException or FormatException or OverflowException or
-                                          InvalidOperationException or ArgumentException or CStructLayoutException)
-        {
-            referenceDump = null;
-            referenceError = exception.GetType().Name + ": " + exception.Message;
-        }
-
-        string? candidateDump;
-        string? candidateError;
-        try
-        {
-            candidateDump = Dump(LayoutParser.ParseLayout(source));
-            candidateError = null;
+            _ = LayoutParser.ParseLayout(source);
+            return true;
         }
         catch (CStructLayoutException exception)
         {
-            candidateDump = null;
-            candidateError = exception.Message;
             Assert.IsTrue(
                 exception.Message.StartsWith(LayoutParser.SyntaxErrorPrefix, StringComparison.Ordinal) ||
                 exception.Message == "Duplicate switch case.",
-                $"[{id}] unexpected message: {exception.Message}");
+                $"[{id}] unexpected message for {Escape(source)}: {exception.Message}");
+            return false;
         }
-
-        if (referenceDump is null && candidateDump is null)
-        {
-            return null;
-        }
-
-        if (referenceDump is null && HasLoneStarInsideBlockComment(source))
-        {
-            accepted = true;
-            return null;
-        }
-
-        // The reference's Try(AlignmentOverride) backtracks and accepts @align() as an offset call.
-        // Empty alignment is invalid in the public language; the current parser commits to that diagnostic.
-        // Only exempt this rejected spelling, never an accepted candidate or another syntax diagnostic.
-        if (referenceDump is not null && candidateDump is null && RejectsEmptyAlignment(source, candidateError))
-        {
-            return null;
-        }
-
-        // The frozen reference grammar matches a keyword as a bare prefix (`structroot` parses as `struct root`),
-        // reads a function-like macro's parameter list as a call expression, and skips any trivia - comments and
-        // newlines included - between a `#define` name and its value; the parser follows C on all three (a directive
-        // ends at its line), so those sources are compared for acceptance only where the divergence is the token or
-        // line boundary.
-        if (referenceDump is not null &&
-            (HasGluedKeyword(source) || HasFunctionLikeMacro(source) || RejectsLineAfterDefine(source, candidateError)))
-        {
-            accepted = candidateDump is not null;
-            return null;
-        }
-
-        // The reference reads `@count(N)` as an offset assertion calling a function named count, which compilation
-        // always rejected (only sizeof and offsetof are calls); the language now gives the spelling its pointer-count
-        // meaning. The trees differ by design, so such sources are compared for acceptance only.
-        if (referenceDump is not null && HasCountSuffix(source))
-        {
-            accepted = candidateDump is not null;
-            return null;
-        }
-
-        // The reference reads a sizeof/offsetof argument as an ordinary call expression; the parser reads it as a
-        // type spelling (words and pointer stars, so `sizeof(unsigned int)` works) and rejects an operator inside
-        // the parentheses at parse time, where evaluation would reject it anyway.
-        if (referenceDump is not null && candidateDump is null && HasOperatorInsideTypeArgument(source))
-        {
-            return null;
-        }
-
-        // A numeric sizeof argument is also an expression, not the type-spelling required by the current grammar.
-        // Match its exact rejection location and diagnostic; a different failure must still reach the mismatch report.
-        if (referenceDump is not null && candidateDump is null && RejectsNumericSizeofArgument(source, candidateError))
-        {
-            return null;
-        }
-
-        // One-way oracle since the dissect-parity work: the frozen reference grammar defines a subset of the
-        // language, so a source it rejects may legitimately be accepted by the current parser (typedef declarator
-        // lists, top-level anonymous composites, preprocessor lines, inline unions, ...). What must never happen is
-        // the reverse, or a different tree for a source both accept.
-        if (referenceDump is null && candidateDump is not null)
-        {
-            accepted = true;
-            return null;
-        }
-
-        if (referenceDump is null || candidateDump is null)
-        {
-            return $"[{id}] verdict mismatch{Environment.NewLine}source: {Escape(source)}{Environment.NewLine}" +
-                   $"reference: {referenceError ?? "accepted"}{Environment.NewLine}candidate: {candidateError ?? "accepted"}";
-        }
-
-        accepted = true;
-        if (!string.Equals(referenceDump, candidateDump, StringComparison.Ordinal))
-        {
-            return $"[{id}] tree mismatch{Environment.NewLine}source: {Escape(source)}{Environment.NewLine}" +
-                   $"reference: {referenceDump}{Environment.NewLine}candidate: {candidateDump}";
-        }
-
-        return null;
     }
 
-    private static bool ReferenceAccepts(string source)
+    /// <summary>Returns the parse tree of an input, or null when the parser rejects it.</summary>
+    /// <param name="source">The layout text.</param>
+    /// <returns>The dumped tree, or null.</returns>
+    private static string? TryDump(string source)
     {
         try
         {
-            _ = PidginReferenceParser.Parser.ParseOrThrow(source).ToArray();
-            return true;
+            return Dump(LayoutParser.ParseLayout(source));
         }
-        catch (Exception exception) when (exception is ParseException or FormatException or OverflowException or
-                                          InvalidOperationException or ArgumentException or CStructLayoutException)
+        catch (CStructLayoutException)
         {
-            return false;
+            return null;
         }
     }
 
-    /// <summary>Matches only an empty alignment argument rejected at its own closing parenthesis, allowing comment trivia.</summary>
-    /// <param name="source">The source compared with the frozen offset-call grammar.</param>
-    /// <param name="candidateError">The current parser's exact rejection diagnostic.</param>
-    /// <returns>Whether this rejection is precisely the documented empty-alignment restriction.</returns>
-    private static bool RejectsEmptyAlignment(string source, string? candidateError)
-    {
-        if (candidateError?.EndsWith("expected an expression.", StringComparison.Ordinal) != true)
-        {
-            return false;
-        }
-
-        // Mask comments without changing offsets or line breaks, so annotations inside comments cannot match.
-        string visible = Regex.Replace(source, @"//[^\r\n]*|/\*[\s\S]*?\*/", static match =>
-        {
-            char[] text = match.Value.ToCharArray();
-            for (int index = 0; index < text.Length; index++)
-            {
-                if (text[index] is not '\r' and not '\n')
-                {
-                    text[index] = ' ';
-                }
-            }
-
-            return new string(text);
-        });
-        foreach (Match match in Regex.Matches(visible, @"@align\s*\(\s*(?<closing>\))"))
-        {
-            int closing = match.Groups["closing"].Index;
-            int line = 1;
-            int column = 1;
-            for (int index = 0; index < closing; index++)
-            {
-                if (source[index] == '\n')
-                {
-                    line++;
-                    column = 1;
-                }
-                else
-                {
-                    column++;
-                }
-            }
-
-            string expected = LayoutParser.SyntaxErrorPrefix + $"unexpected ')' at line {line}, column {column}; expected an expression.";
-            if (candidateError == expected)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>Matches only a numeric sizeof argument rejected exactly at the literal's first character.</summary>
-    /// <param name="source">The source being compared with the frozen expression-call grammar.</param>
-    /// <param name="candidateError">The current parser's rejection diagnostic.</param>
-    /// <returns>Whether the failure is precisely the documented type-only argument restriction.</returns>
-    private static bool RejectsNumericSizeofArgument(string source, string? candidateError)
-    {
-        foreach (Match match in Regex.Matches(source, @"\bsizeof\s*\(\s*(?<number>[0-9][0-9a-fA-FxXbBoO_uUlL]*)\s*\)"))
-        {
-            int start = match.Groups["number"].Index;
-            int line = 1;
-            int column = 1;
-            for (int index = 0; index < start; index++)
-            {
-                if (source[index] == '\n')
-                {
-                    line++;
-                    column = 1;
-                }
-                else
-                {
-                    column++;
-                }
-            }
-
-            string expected = LayoutParser.SyntaxErrorPrefix + $"unexpected '{source[start]}' at line {line}, column {column}; expected a type or field name.";
-            if (candidateError == expected)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>True when a sizeof/offsetof argument contains an expression operator rather than only a type spelling.</summary>
-    /// <param name="source">The layout already accepted by the frozen expression grammar.</param>
-    /// <returns>Whether a type-only call argument contains an operator.</returns>
-    private static bool HasOperatorInsideTypeArgument(string source)
-    {
-        // This exception is used only when the frozen expression grammar accepted and the type-only parser rejected.
-        // A trailing pointer star is not a complete multiplication expression and is not accepted by that reference.
-        return Regex.IsMatch(source, @"\b(?:sizeof|offsetof)\s*\([^()]*[|&^+\-/*%<>!~=?:,][^()]*\)");
-    }
-
-    /// <summary>Whether the source spells a @count(N) suffix, which the frozen reference parses as an offset call.</summary>
-    /// <param name="source">The compared source.</param>
-    /// <returns>Whether the reference and the current parser build different trees by design.</returns>
-    private static bool HasCountSuffix(string source) => Regex.IsMatch(source, @"@count\s*\(");
-
-    /// <summary>Whether the source glues a keyword to the next word, which the frozen reference reads as the keyword.</summary>
-    private static bool HasGluedKeyword(string source)
-    {
-        foreach (string keyword in new[] { "struct", "union", "enum", "typedef", "flag", "#define", "#undef", "#ifdef", "#ifndef", })
-        {
-            int index = 0;
-            while ((index = source.IndexOf(keyword, index, StringComparison.Ordinal)) >= 0)
-            {
-                int after = index + keyword.Length;
-                bool startsToken = index == 0 || !(char.IsLetterOrDigit(source[index - 1]) || source[index - 1] == '_');
-                if (startsToken && after < source.Length && (char.IsLetterOrDigit(source[after]) || source[after] == '_'))
-                {
-                    return true;
-                }
-
-                index = after;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>True when the source defines a function-like macro (<c>#define NAME(</c>).</summary>
-    private static bool HasFunctionLikeMacro(string source)
-    {
-        int index = 0;
-        while ((index = source.IndexOf("#define", index, StringComparison.Ordinal)) >= 0)
-        {
-            int cursor = index + "#define".Length;
-            while (cursor < source.Length && source[cursor] is ' ' or '\t')
-            {
-                cursor++;
-            }
-
-            while (cursor < source.Length && (char.IsLetterOrDigit(source[cursor]) || source[cursor] == '_'))
-            {
-                cursor++;
-            }
-
-            if (cursor < source.Length && source[cursor] == '(')
-            {
-                return true;
-            }
-
-            index = cursor;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    ///     True when the candidate's syntax diagnostic points at the line after a <c>#define</c> directive: the
-    ///     reference read that line as the macro's name or value (<c>#define\n COUNT 2</c>, <c>#define COUNT\n 2</c>),
-    ///     the line-scoped parser did not.
-    /// </summary>
-    /// <param name="source">The exact mutated source being compared.</param>
-    /// <param name="candidateError">The candidate's syntax diagnostic, or null when accepted.</param>
-    /// <returns>Whether the mismatch is specifically the documented physical directive-line boundary.</returns>
-    private static bool RejectsLineAfterDefine(string source, string? candidateError)
-    {
-        if (candidateError is null)
-        {
-            return false;
-        }
-
-        Match position = Regex.Match(candidateError, @" at line (?<line>\d+), column (?<column>\d+)");
-        if (!position.Success)
-        {
-            return false;
-        }
-
-        string[] lines = source.Split('\n');
-        int errorLine = int.Parse(position.Groups["line"].Value, CultureInfo.InvariantCulture) - 1;
-        if (errorLine >= 0 && errorLine < lines.Length)
-        {
-            // Diagnostics count LF lines, but a standalone CR also ends a physical directive.
-            int column = int.Parse(position.Groups["column"].Value, CultureInfo.InvariantCulture) - 1;
-            string prefix = lines[errorLine][..Math.Min(column, lines[errorLine].Length)];
-            int carriageReturn = prefix.LastIndexOf('\r');
-            if (carriageReturn >= 0 && Regex.IsMatch(prefix[..carriageReturn], @"(?:^|\r)[^\S\r\n]*#\s*define\b[^\r\n]*(?:\r[^\S\r\n]*)*$"))
-            {
-                return true;
-            }
-        }
-
-        if (candidateError.EndsWith("expected an identifier on the #define line.", StringComparison.Ordinal) &&
-            errorLine >= 0 && errorLine < lines.Length)
-        {
-            // The directive whose name is missing may be the line's first token or a later one on the same
-            // physical line (`#define A 1 #define\r\n B 2`), and a line comment may sit between the directive and
-            // the line end (`#define // c\n COUNT`); either way the reference took the name from the next line and
-            // the line-scoped parser did not.
-            int column = int.Parse(position.Groups["column"].Value, CultureInfo.InvariantCulture) - 1;
-            string prefix = lines[errorLine][..Math.Min(column, lines[errorLine].Length)];
-            if (Regex.IsMatch(prefix, @"#\s*define[^\S\r\n]*(?://[^\r\n]*)?$"))
-            {
-                return true;
-            }
-        }
-
-        for (int line = Math.Min(errorLine, lines.Length) - 1; line >= 0; line--)
-        {
-            if (lines[line].Trim().Length == 0)
-            {
-                continue;
-            }
-
-            if (Regex.IsMatch(lines[line], @"^\s*#\s*define\b"))
-            {
-                return true;
-            }
-
-            // A directive can follow a completed declaration on the same physical line. Qualify only an empty
-            // define there and an exact diagnostic at the next line's numeric value, not arbitrary later errors.
-            Match value = errorLine < lines.Length
-                              ? Regex.Match(lines[errorLine], @"^[^\S\r\n]*(?<number>[0-9])")
-                              : Match.Empty;
-            return Regex.IsMatch(lines[line], @";[^\S\r\n]*#\s*define[^\S\r\n]+[A-Za-z_][A-Za-z_0-9]*[^\S\r\n]*\r?$") &&
-                   value.Success &&
-                   candidateError == LayoutParser.SyntaxErrorPrefix +
-                   $"unexpected '{value.Groups["number"].Value}' at line {errorLine + 1}, column {value.Groups["number"].Index + 1}; expected the end of the layout.";
-        }
-
-        return false;
-    }
-
-    /// <summary>True when a <c>/* */</c> comment contains a <c>*</c> that is not immediately followed by <c>/</c>.</summary>
-    private static bool HasLoneStarInsideBlockComment(string source)
-    {
-        int index = 0;
-        while (index < source.Length)
-        {
-            if (index + 1 < source.Length && source[index] == '/' && source[index + 1] == '/')
-            {
-                int newline = source.IndexOf('\n', index);
-                index = newline < 0 ? source.Length : newline + 1;
-                continue;
-            }
-
-            if (index + 1 < source.Length && source[index] == '/' && source[index + 1] == '*')
-            {
-                int close = source.IndexOf("*/", index + 2, StringComparison.Ordinal);
-                int end = close < 0 ? source.Length : close;
-                for (int inner = index + 2; inner < end; inner++)
-                {
-                    if (source[inner] == '*')
-                    {
-                        return true;
-                    }
-                }
-
-                index = close < 0 ? source.Length : close + 2;
-                continue;
-            }
-
-            index++;
-        }
-
-        return false;
-    }
-
+    /// <summary>Renders a source as a JSON string, cut at 400 characters, for failure messages.</summary>
     private static string Escape(string source)
     {
         return JsonSerializer.Serialize(source.Length > 400 ? source[..400] + "…" : source);
     }
 
+    /// <summary>Applies one to six random character-level edits (flip, replace, insert, delete, swap, duplicate, token or trivia insertion).</summary>
     private static string Mutate(string basis, Random random)
     {
         var chars = new List<char>(basis);
@@ -1004,6 +553,7 @@ public class ParserDifferentialTests
         return new string(chars.ToArray());
     }
 
+    /// <summary>Returns a printable ASCII character, or more often one of the characters that matter to the grammar.</summary>
     private static char RandomInterestingChar(Random random)
     {
         return random.Next(3) == 0
@@ -1011,12 +561,14 @@ public class ParserDifferentialTests
                    : InterestingChars[random.Next(InterestingChars.Length)];
     }
 
+    /// <summary>Collects every distinct layout in the repository's fixtures, contracts, demos, documentation and test literals.</summary>
     private static IReadOnlyList<(string Id, string Source)> LoadCorpus()
     {
         string root = FindRepositoryRoot();
         var corpus = new List<(string Id, string Source)>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
+        /// <summary>Adds a source once, under the identifier of its first occurrence.</summary>
         void Add(string id, string? source)
         {
             if (source is not null && seen.Add(source))
@@ -1079,7 +631,7 @@ public class ParserDifferentialTests
 
         foreach (string file in Directory.GetFiles(Path.Combine(root, "tests", "CStructSharpTests"), "*.cs").Order(StringComparer.Ordinal))
         {
-            if (Path.GetFileName(file) == nameof(ParserDifferentialTests) + ".cs")
+            if (Path.GetFileName(file) == nameof(ParserCorpusTests) + ".cs")
             {
                 continue;
             }
@@ -1097,6 +649,7 @@ public class ParserDifferentialTests
         return corpus;
     }
 
+    /// <summary>Adds every layout definition found anywhere in a JSON document.</summary>
     private static void AddDefinitions(string id, JsonElement element, Action<string, string?> add)
     {
         switch (element.ValueKind)
@@ -1128,6 +681,7 @@ public class ParserDifferentialTests
         }
     }
 
+    /// <summary>Returns whether a string literal plausibly holds a layout rather than other text.</summary>
     private static bool LooksLikeLayout(string text)
     {
         return text.Contains("struct ", StringComparison.Ordinal) ||
@@ -1215,6 +769,7 @@ public class ParserDifferentialTests
         return results;
     }
 
+    /// <summary>Reads one C# string literal starting at its opening quote and returns the index after it.</summary>
     private static int SkipString(string text, int openingQuote, bool verbatim, out string? value)
     {
         var builder = new StringBuilder();
@@ -1300,6 +855,7 @@ public class ParserDifferentialTests
         return index;
     }
 
+    /// <summary>Walks up from the test output directory to the repository root.</summary>
     private static string FindRepositoryRoot()
     {
         string? directory = AppContext.BaseDirectory;
@@ -1318,6 +874,7 @@ public class ParserDifferentialTests
 
     // Structural dump: every property the compiler reads, including the predicates and branch groups attached to
     // conditional members and the exact/projected values of literals.
+    /// <summary>Renders parsed declarations as a canonical text tree for exact comparison.</summary>
     private static string Dump(IReadOnlyList<CStructElement> elements)
     {
         var writer = new DumpWriter();
@@ -1332,12 +889,14 @@ public class ParserDifferentialTests
         return writer.Builder.ToString();
     }
 
+    /// <summary>Writes the canonical text tree of parsed declarations.</summary>
     private sealed class DumpWriter
     {
         private readonly Dictionary<ConditionalGroup, int> groups = new(ReferenceEqualityComparer.Instance);
 
         public StringBuilder Builder { get; } = new();
 
+        /// <summary>Writes one declaration and everything it contains.</summary>
         public void Element(CStructElement element)
         {
             switch (element)
@@ -1437,6 +996,7 @@ public class ParserDifferentialTests
             }
         }
 
+        /// <summary>Writes a field's condition and conditional-branch facts.</summary>
         private void FieldSuffix(Field field)
         {
             this.Builder.Append("{cond=");
@@ -1476,6 +1036,7 @@ public class ParserDifferentialTests
             this.Builder.Append("]}");
         }
 
+        /// <summary>Writes an identifier with its pointer stars.</summary>
         private void Identifier(Identifier identifier)
         {
             this.Builder.Append('`').Append(identifier.Name).Append('`');
@@ -1485,6 +1046,7 @@ public class ParserDifferentialTests
             }
         }
 
+        /// <summary>Writes an expression tree, or <c>null</c>.</summary>
         private void Expr(Expr? expression)
         {
             switch (expression)

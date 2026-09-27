@@ -149,12 +149,11 @@ See `MUTATION_TESTING.md` for the review criteria and the distinction from ordin
 Mutation runners use source-project context so Stryker honors the configured core test project. Reports containing
 tests from unintended projects fail validation. Generator/parity suites remain independently required in normal CI.
 
-The layout parser has its own oracle: `ParserDifferentialTests` parses every fixture, contract, demo, and
-documentation layout - and thousands of deterministic mutations of them - through both `LayoutParser` and the
-frozen Pidgin reference grammar kept under `tests/CStructSharpTests/Reference/`, requiring identical accept/reject
-decisions and identical syntax trees except for explicitly tested grammar corrections (comment stars and empty
-alignment arguments). The Portable contract defines the intended behavior for these cases. Extend the language in `LayoutParser` and, for the differential test to
-keep its meaning, in the reference grammar too.
+The layout parser has its own corpus checks: `ParserCorpusTests` parses every fixture, contract, demo, and
+documentation layout - and thousands of deterministic mutations of them - and requires each to parse or fail with a
+syntax diagnostic, never another exception. Hand-picked token-convention spellings keep their exact syntax trees,
+recorded in `tests/CStructSharpTests/ParserTokenConventions.json`. The Portable contract defines the intended
+language; a deliberate grammar change updates that file together with the contract.
 
 Do not lower thresholds, add broad exclusions, or classify a real survivor away to make a run green.
 

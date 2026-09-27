@@ -77,6 +77,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 - Browser bridge: the managed `ParseWithDebug` export (the adapter now uses `ParseBytes` with debug ranges) and the
   unused `SerializeCompiled` and `UpdateCompiled` exports are removed; the JavaScript API and the envelope are
   unchanged. The analyzer release file lists the CSG rules as shipped in 0.7.0.
+- The test project no longer depends on Pidgin: `ParserCorpusTests` replaces the differential test against the frozen
+  reference grammar. The corpus and its mutations must parse or fail with a syntax diagnostic, and the token-convention
+  spellings keep their recorded syntax trees (`ParserTokenConventions.json`).
 
 ## 0.10.0 — 2026-09-26
 
