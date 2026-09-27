@@ -37,7 +37,7 @@ test("demo generation keeps extracted inputs complete and constructor options in
   const manifest = JSON.parse(generate());
   const byId = new Map(manifest.tests.map((entry) => [entry.id, entry]));
 
-  const nestedArray = byId.get("PathAccess.ParseStream_Path_StringInNestedArray_IsExpected_V2");
+  const nestedArray = byId.get("PathAccessTests.ParseStream_Path_StringInNestedArray_ReturnsValue");
   assert.equal(nestedArray.runnable, true);
   assert.equal(nestedArray.binaryHex, "6f 6e 65 00 74 65 73 74");
   assert.equal(nestedArray.parserOptions.pointerSize, 1);

@@ -124,10 +124,10 @@ test("the optimized local production build reaches managed readiness within its 
 test("the explorer displays source explanations for runnable and parameterized tests", async ({
   page,
 }) => {
-  await page.goto("/#test=PathAccess.ParseStream_Path_StringInNestedArray_IsExpected_V2");
+  await page.goto("/#test=PathAccessTests.ParseStream_Path_StringInNestedArray_ReturnsValue");
   const sourceLink = page.getByRole("link", { name: "View source on GitHub" });
   const runnableSource = testManifest.tests.find(
-    (entry) => entry.id === "PathAccess.ParseStream_Path_StringInNestedArray_IsExpected_V2",
+    (entry) => entry.id === "PathAccessTests.ParseStream_Path_StringInNestedArray_ReturnsValue",
   )!;
   await expect(sourceLink).toHaveAttribute("href", runnableSource.sourceUrl);
   await expect(sourceLink).toHaveAttribute("target", "_blank");
