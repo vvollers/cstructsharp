@@ -1,10 +1,9 @@
-namespace CStructSharpTests;
+namespace CStructSharp.Tests;
 
 using System.Text.Json;
 using CStructSharp;
 using CStructSharp.Diagnostics;
 using CStructSharp.Reading;
-using CStructSharp.Tests;
 using CStructSharp.Values;
 
 /// <summary>

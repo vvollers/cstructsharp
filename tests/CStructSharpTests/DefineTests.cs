@@ -5,7 +5,7 @@ using CStructSharp.Syntax;
 
 /// <summary>Groups tests for defines so changes to this behavior are caught.</summary>
 [TestClass]
-public class Defines
+public class DefineTests
 {
     /// <summary>
     ///     The definition gives a name to 2 + myvariable * 4.

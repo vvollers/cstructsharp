@@ -82,7 +82,7 @@ public class AsyncBufferBoundaryTests
     [TestMethod]
     public void SynchronousBuffering_StopsExactlyAtCapacity()
     {
-        using var source = new CStructSharpTests.AsyncStreamBufferTests.NonSeekableStream([1, 2, 3, 4,]);
+        using var source = new AsyncStreamBufferTests.NonSeekableStream([1, 2, 3, 4,]);
         byte[] buffer = AsyncStreamBuffer.Rent(source, new ReadOptions { MaxTotalBytesRead = 1, }, out int length);
         try
         {

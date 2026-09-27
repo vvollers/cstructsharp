@@ -6,7 +6,7 @@ using Enum = CStructSharp.Syntax.Enum;
 
 /// <summary>Groups tests for enums so changes to this behavior are caught.</summary>
 [TestClass]
-public class Enums
+public class EnumTests
 {
     /// <summary>
     ///     Red starts at 5, so Green and Blue must become 6 and 7.

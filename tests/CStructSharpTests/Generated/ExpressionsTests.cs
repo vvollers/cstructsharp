@@ -1,4 +1,4 @@
-namespace CStructSharpTests.Generated;
+namespace CStructSharp.Tests.Generated;
 
 using System;
 using CStructSharp;

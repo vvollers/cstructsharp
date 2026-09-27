@@ -1,4 +1,4 @@
-namespace CStructSharpTests;
+namespace CStructSharp.Tests;
 
 using System.Collections.Frozen;
 using System.Collections.Immutable;

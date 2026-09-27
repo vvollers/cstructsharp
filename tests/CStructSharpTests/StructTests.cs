@@ -5,7 +5,7 @@ using CStructSharp.Syntax;
 
 /// <summary>Groups tests for structs so changes to this behavior are caught.</summary>
 [TestClass]
-public class Structs
+public class StructTests
 {
     /// <summary>
     ///     The declaration names the record mystruct and lists int fields a then b.

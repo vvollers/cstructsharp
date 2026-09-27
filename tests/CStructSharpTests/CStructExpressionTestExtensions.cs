@@ -1,4 +1,4 @@
-namespace CStructSharp;
+namespace CStructSharp.Tests;
 
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;

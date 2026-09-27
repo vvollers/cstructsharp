@@ -5,7 +5,7 @@ using CStructSharp.Syntax;
 
 /// <summary>Groups tests for expressions so changes to this behavior are caught.</summary>
 [TestClass]
-public class Expressions
+public class ExpressionTests
 {
     /// <summary>
     ///     These inputs are formulas, not binary records.

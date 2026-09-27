@@ -177,7 +177,7 @@ public class ReadBudgetStreamBoundaryTests
     [TestMethod]
     public void ForwardOnlySource_DeclinesPreflightWithoutReading()
     {
-        using var source = new CStructSharpTests.AsyncStreamBufferTests.NonSeekableStream([11, 12,]);
+        using var source = new AsyncStreamBufferTests.NonSeekableStream([11, 12,]);
         using var reader = new ReadBudgetStream(source, 100, 100);
         Assert.IsFalse(reader.IsShortBy(3));
         Assert.IsFalse(reader.TryReadBlockWithinBudget(new byte[1]));

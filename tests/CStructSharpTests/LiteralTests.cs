@@ -5,7 +5,7 @@ using CStructSharp.Parsing;
 
 /// <summary>Groups tests for literals so changes to this behavior are caught.</summary>
 [TestClass]
-public class Literals
+public class LiteralTests
 {
     /// <summary>
     ///     The low-level character parser accepts 0, 1, and the underscore separator.
