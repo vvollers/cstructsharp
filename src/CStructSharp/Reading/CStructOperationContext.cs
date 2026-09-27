@@ -199,6 +199,12 @@ internal sealed class CStructOperationContext
 
     public long NextPosition { get; set; }
 
+    /// <summary>Returns whether the nesting and array limits admit running <paramref name="plan"/> at the current structure depth.</summary>
+    /// <param name="plan">The static read plan.</param>
+    /// <returns>Whether the plan's structs and arrays stay within the limits; the byte budget is checked when the bytes are taken.</returns>
+    public bool CoversPlan(StaticReadPlan plan)
+        => this.StructureDepth + plan.NestingDepth <= this.MaxNestingDepth && plan.MaximumArrayCount <= this.MaxArrayElements;
+
     /// <summary>Closes the open bitfield storage unit, so the next bitfield starts a new one.</summary>
     public void ResetBitfieldUnit()
     {

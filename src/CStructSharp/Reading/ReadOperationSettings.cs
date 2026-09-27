@@ -15,6 +15,32 @@ internal readonly record struct ReadOperationSettings(
     System.Threading.CancellationToken CancellationToken = default,
     ExecutionPath ExecutionPath = ExecutionPath.Fastest)
 {
+    /// <summary>
+    ///     Gets whether every limit is usable and the operation is not already cancelled. When this is false the general
+    ///     reader reports the problem, so a fast path must leave the call to it.
+    /// </summary>
+    public bool HasValidLimits =>
+        !this.CancellationToken.IsCancellationRequested && this.MaxPointerDepth >= 0 && !(this.MaxPointerTargetBytes < 0) &&
+        this.MaxArrayElements >= 0 && this.MaxStringBytes >= 0 && this.MaxTotalBytesRead >= 0 && this.MaxNestingDepth > 0;
+
+    /// <summary>
+    ///     Returns whether these limits admit a read the general reader would complete at structure depth
+    ///     <paramref name="structureDepth"/>: <paramref name="bytes"/> within the byte budget, the read's structs within the
+    ///     nesting limit, and its longest array within the element limit.
+    /// </summary>
+    /// <param name="bytes">The bytes the read consumes.</param>
+    /// <param name="structureDepth">The structure depth the read starts at (0 for a root).</param>
+    /// <param name="nestingDepth">The struct levels the read adds.</param>
+    /// <param name="arrayCount">The largest element count among the read's arrays.</param>
+    /// <returns>Whether the read stays within every limit.</returns>
+    public bool Covers(long bytes, int structureDepth, int nestingDepth, int arrayCount)
+        => bytes <= this.MaxTotalBytesRead && structureDepth + nestingDepth <= this.MaxNestingDepth && arrayCount <= this.MaxArrayElements;
+
+    /// <summary>Returns whether these limits admit running <paramref name="plan"/> as a root read.</summary>
+    /// <param name="plan">The static read plan.</param>
+    /// <returns>Whether the plan's bytes, nesting and arrays stay within the limits.</returns>
+    public bool CoversPlan(StaticReadPlan plan) => this.Covers(plan.Size, 0, plan.NestingDepth, plan.MaximumArrayCount);
+
     /// <summary>Copies every read choice before variable enumeration, stream access, or another caller callback.</summary>
     public static ReadOperationSettings SnapshotReadOptions(ReadOptions? options)
     {

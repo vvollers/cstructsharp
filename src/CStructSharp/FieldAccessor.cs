@@ -5,6 +5,7 @@ using System.Collections;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
 using CStructSharp.Generated;
+using CStructSharp.Reading;
 using CStructSharp.Values;
 
 /// <summary>
@@ -192,9 +193,8 @@ public sealed class FieldAccessor<T>
         int end = this.offset + this.codec.Size;
         if (this.offset < 0 || end > source.Length ||
             (options is not null &&
-             (options.CancellationToken.IsCancellationRequested || options.MaxPointerDepth < 0 || options.MaxPointerTargetBytes < 0 ||
-              options.MaxStringBytes < 0 || options.MaxTotalBytesRead < end || options.MaxArrayElements < this.maximumArrayCount ||
-              options.MaxNestingDepth <= this.nestingDepth)))
+             (ReadOperationSettings.SnapshotReadOptions(options) is not { HasValidLimits: true } settings ||
+              !settings.Covers(end, 0, this.nestingDepth, this.maximumArrayCount))))
         {
             member = default!;
             return false;

@@ -12,6 +12,7 @@ using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Reading;
+using CStructSharp.Streams;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
 using CstructEnum = CStructSharp.Syntax.Enum;
@@ -81,36 +82,17 @@ public partial class CStruct
         // The general reader aligns members to absolute stream positions; the plan's offsets are relative to the
         // struct start, which coincide only when the struct itself starts on its alignment boundary.
         if (!state.Debug && !state.GeneralPathOnly && ReferenceEquals(destination.Shape, composite.Shape) && composite.StaticPlan is StaticReadPlan plan &&
-            state.StructureDepth + plan.NestingDepth <= state.MaxNestingDepth && plan.MaximumArrayCount <= state.MaxArrayElements &&
-            (!this.Aligned || state.Stream.Position % composite.Symbol.Alignment == 0))
+            state.CoversPlan(plan) && StaticReadPlan.CanRunAt(composite, this.Aligned, state.Stream.Position))
         {
-            if (state.Stream.TryReadSpanWithinBudget(plan.Size, out ReadOnlySpan<byte> staticBytes))
+            // A stream source (FileStream, a MemoryStream without an exposed buffer) stages the composite's extent in a
+            // pooled block; composites beyond the block size stay on the general reader.
+            using StagedBytes staged = StagedBytes.Take(state.Stream, plan.Size);
+            if (staged.Available)
             {
-                this.ExecuteStaticPlan(plan, staticBytes, destination, state);
+                this.ExecuteStaticPlan(plan, staged.Bytes, destination, state);
                 state.ResetBitfieldUnit();
                 state.NextPosition = state.Stream.Position;
                 return;
-            }
-
-            // A stream source (FileStream, a MemoryStream without an exposed buffer) reads the composite's extent
-            // into a pooled block first; composites beyond the block size stay on the general reader.
-            if (plan.Size <= ReadBlock.Size)
-            {
-                byte[] block = ArrayPool<byte>.Shared.Rent(plan.Size);
-                try
-                {
-                    if (state.Stream.TryReadBlockWithinBudget(block.AsSpan(0, plan.Size)))
-                    {
-                        this.ExecuteStaticPlan(plan, block.AsSpan(0, plan.Size), destination, state);
-                        state.ResetBitfieldUnit();
-                        state.NextPosition = state.Stream.Position;
-                        return;
-                    }
-                }
-                finally
-                {
-                    ArrayPool<byte>.Shared.Return(block);
-                }
             }
         }
 

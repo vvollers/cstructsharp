@@ -57,18 +57,9 @@ public sealed partial class CStruct
         }
 
         // The general reader validates the limits and observes a cancelled token before reading; leave both to it.
+        // Otherwise these are the preconditions under which it runs this plan for a root at offset zero.
         settings = ReadOperationSettings.SnapshotReadOptions(options);
-        if (settings.CancellationToken.IsCancellationRequested ||
-            settings.MaxPointerDepth < 0 || settings.MaxPointerTargetBytes < 0 || settings.MaxArrayElements < 0 ||
-            settings.MaxStringBytes < 0 || settings.MaxTotalBytesRead < 0 || settings.MaxNestingDepth <= 0)
-        {
-            return false;
-        }
-
-        // The same preconditions under which the general reader runs this plan for a root at offset zero: the
-        // bytes are present and within the read budget, and the nesting and array limits hold for the whole plan.
-        return plan.Size <= source.Length && plan.Size <= settings.MaxTotalBytesRead &&
-               plan.NestingDepth <= settings.MaxNestingDepth && plan.MaximumArrayCount <= settings.MaxArrayElements;
+        return settings.HasValidLimits && plan.Size <= source.Length && settings.CoversPlan(plan);
     }
 
     /// <summary>Reads a whole fixed root directly when the conditions in the class remarks hold.</summary>

@@ -12,6 +12,7 @@ using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
 using CStructSharp.Reading;
+using CStructSharp.Streams;
 using CStructSharp.Syntax;
 using CStructSharp.Values;
 using CstructEnum = CStructSharp.Syntax.Enum;
@@ -492,8 +493,7 @@ public partial class CStruct
                         compiledField.PointerDepth == 0 && nestedComposite is { IsUnion: false } composite && compiledField.Array.Dimensions.Length == 1)
                     {
                         if (composite.StaticPlan is StaticReadPlan plan && plan.Size > 0 && compiledField.FixedElementSize == plan.Size &&
-                            state.StructureDepth + plan.NestingDepth <= state.MaxNestingDepth && plan.MaximumArrayCount <= state.MaxArrayElements &&
-                            (!this.Aligned || state.Stream.Position % composite.Symbol.Alignment == 0) &&
+                            state.CoversPlan(plan) && StaticReadPlan.CanRunAt(composite, this.Aligned, state.Stream.Position) &&
                             (long)numFieldValues * plan.Size <= int.MaxValue &&
                             state.Stream.TryReadSpanWithinBudget(numFieldValues * plan.Size, out ReadOnlySpan<byte> elements))
                         {
@@ -893,31 +893,9 @@ public partial class CStruct
     /// <returns>Whether the characters were read.</returns>
     private bool TryReadCharacterBlock(CStructOperationContext state, int count, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? text)
     {
-        if (state.Stream.TryReadSpanWithinBudget(count, out ReadOnlySpan<byte> bytes))
-        {
-            text = state.FixedText(ReadLatin1Characters(bytes));
-            return true;
-        }
-
-        if (count <= ReadBlock.Size)
-        {
-            byte[] block = System.Buffers.ArrayPool<byte>.Shared.Rent(count);
-            try
-            {
-                if (state.Stream.TryReadBlockWithinBudget(block.AsSpan(0, count)))
-                {
-                    text = state.FixedText(ReadLatin1Characters(block.AsSpan(0, count)));
-                    return true;
-                }
-            }
-            finally
-            {
-                System.Buffers.ArrayPool<byte>.Shared.Return(block);
-            }
-        }
-
-        text = null;
-        return false;
+        using StagedBytes staged = StagedBytes.Take(state.Stream, count);
+        text = staged.Available ? state.FixedText(ReadLatin1Characters(staged.Bytes)) : null;
+        return staged.Available;
     }
 
     /// <summary>
