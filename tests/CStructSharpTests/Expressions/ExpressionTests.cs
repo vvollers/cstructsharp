@@ -3,7 +3,10 @@ namespace CStructSharp.Tests;
 using CStructSharp.Parsing;
 using CStructSharp.Syntax;
 
-/// <summary>Groups tests for expressions so changes to this behavior are caught.</summary>
+/// <summary>
+///     Checks the arithmetic, bitwise and shift operators of layout expressions against C#, and an expression that
+///     names a variable.
+/// </summary>
 [TestClass]
 public class ExpressionTests
 {
@@ -72,7 +75,7 @@ public class ExpressionTests
     ///     match C# integer results; this is useful for testing packed flag expressions.
     /// </remarks>
     [TestMethod]
-    public void TestExpressionAnd()
+    public void BitwiseAnd_MatchesCSharp()
     {
         Assert.AreEqual(555 & 3, LayoutParser.ParseExpression("555&3").Evaluate());
         Assert.AreEqual(10 & 500 & 3 & 2, LayoutParser.ParseExpression("10&500&3&2").Evaluate());
@@ -87,7 +90,7 @@ public class ExpressionTests
     ///     right.
     /// </remarks>
     [TestMethod]
-    public void TestExpressionDiv()
+    public void Division_TruncatesLikeCSharp()
     {
         Assert.AreEqual(555 / 3, LayoutParser.ParseExpression("555/3").Evaluate());
         Assert.AreEqual(10 / 500 / 3 / 2, LayoutParser.ParseExpression("10/500/3/2").Evaluate());
@@ -101,7 +104,7 @@ public class ExpressionTests
     ///     subtracting header sizes from a total length.
     /// </remarks>
     [TestMethod]
-    public void TestExpressionMinus()
+    public void Subtraction_AppliesLeftToRight()
     {
         Assert.AreEqual(100 - 1, LayoutParser.ParseExpression("100-1").Evaluate());
         Assert.AreEqual(10 - 500 - 1 - 3, LayoutParser.ParseExpression("10-500-1-3").Evaluate());
@@ -115,7 +118,7 @@ public class ExpressionTests
     ///     independent flags; it is different from adding their numbers.
     /// </remarks>
     [TestMethod]
-    public void TestExpressionOr()
+    public void BitwiseOr_MatchesCSharp()
     {
         Assert.AreEqual(555 | 3, LayoutParser.ParseExpression("555|3").Evaluate());
         Assert.AreEqual(10 | 500 | 3 | 2, LayoutParser.ParseExpression("10|500|3|2").Evaluate());
@@ -129,7 +132,7 @@ public class ExpressionTests
     ///     are used in a struct declaration.
     /// </remarks>
     [TestMethod]
-    public void TestExpressionPlus()
+    public void Addition_SumsEveryTerm()
     {
         Assert.AreEqual(2, LayoutParser.ParseExpression("1+1").Evaluate());
         Assert.AreEqual(10 + 500 + 1 + 3, LayoutParser.ParseExpression("10+500+1+3").Evaluate());
@@ -143,7 +146,7 @@ public class ExpressionTests
     ///     place flag bits at a specific position.
     /// </remarks>
     [TestMethod]
-    public void TestExpressionShiftLeft()
+    public void ShiftLeft_MatchesCSharp()
     {
         Assert.AreEqual(555 << 2, LayoutParser.ParseExpression("555<<2").Evaluate());
         Assert.AreEqual(1000 << 3 << 4, LayoutParser.ParseExpression("1000<<3<<4").Evaluate());
@@ -157,7 +160,7 @@ public class ExpressionTests
     ///     packed values.
     /// </remarks>
     [TestMethod]
-    public void TestExpressionShiftRight()
+    public void ShiftRight_MatchesCSharp()
     {
         Assert.AreEqual(555 >> 2, LayoutParser.ParseExpression("555>>2").Evaluate());
         Assert.AreEqual(1000 >> 3 >> 4, LayoutParser.ParseExpression("1000>>3>>4").Evaluate());
@@ -171,7 +174,7 @@ public class ExpressionTests
     ///     such as element count multiplied by element size.
     /// </remarks>
     [TestMethod]
-    public void TestExpressionTimes()
+    public void Multiplication_MatchesCSharp()
     {
         Assert.AreEqual(555 * 3, LayoutParser.ParseExpression("555*3").Evaluate());
         Assert.AreEqual(10 * 500 * 3 * 2, LayoutParser.ParseExpression("10*500*3*2").Evaluate());
@@ -185,7 +188,7 @@ public class ExpressionTests
     ///     dictionary supplies the value used when the expression is evaluated.
     /// </remarks>
     [TestMethod]
-    public void TestExpressionWithVariable()
+    public void Variable_SuppliesItsValue()
     {
         Expr? someVar = LayoutParser.ParseExpression("1 + 1+    a   + 3 + 4");
         var vars = new Dictionary<string, Expr>();

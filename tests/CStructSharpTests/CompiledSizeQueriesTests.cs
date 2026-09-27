@@ -6,11 +6,9 @@ using CStructSharp.Expressions;
 using CStructSharp.Syntax;
 
 /// <summary>
-///     Exercises <see cref="CompiledSizeQueries"/> directly against a real compiled layout. Only reachable
-///     indirectly through the public API before this type was extracted from the God-Object <c>CStruct</c> partial
-///     class. Also proves the type is usable purely from its own constructor inputs - the same shape <c>CStruct</c>
-///     relies on to answer a union member's fixed-storage check mid-construction, before its own compiled model
-///     exists.
+///     Exercises <see cref="CompiledSizeQueries"/> directly against a real compiled layout. Also proves the type is
+///     usable purely from its own constructor inputs - the same shape <c>CStruct</c> relies on to answer a union
+///     member's fixed-storage check mid-construction, before its own compiled model exists.
 /// </summary>
 [TestClass]
 public class CompiledSizeQueriesTests

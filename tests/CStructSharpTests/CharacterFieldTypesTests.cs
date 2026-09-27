@@ -5,8 +5,6 @@ using CStructSharp.Syntax;
 
 /// <summary>
 ///     Exercises <see cref="CharacterFieldTypes"/> directly, independent of a compiled <see cref="CStruct"/> layout.
-///     Only reachable indirectly through the public API before this type was extracted from the God-Object
-///     <c>CStruct</c> partial class.
 /// </summary>
 [TestClass]
 public class CharacterFieldTypesTests

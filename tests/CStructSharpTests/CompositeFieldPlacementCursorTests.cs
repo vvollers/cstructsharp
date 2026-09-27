@@ -5,15 +5,12 @@ using CStructSharp.Syntax;
 
 /// <summary>
 ///     Exercises <see cref="CompositeFieldPlacementCursor"/> directly, independent of address resolution or extent
-///     measurement. Only reachable indirectly through the public API before this type was extracted to remove two
-///     byte-identical copies of the same bitfield-unit-and-alignment state machine from
-///     <c>CStructAddressResolver.cs</c>.
+///     measurement.
 /// </summary>
 /// <remarks>
 ///     Each test cross-validates the cursor's output against <c>CompiledField.FixedOffset</c>/<c>BitOffset</c>,
-///     which are computed independently by <c>PlaceCompiledFields</c> during construction using the same algorithm.
-///     That construction-time code was not touched by this extraction, so agreement between the two is a strong
-///     signal the cursor reproduces it exactly.
+///     which <c>PlaceCompiledFields</c> computes separately during construction, so agreement between the two is a
+///     strong signal that the cursor reproduces compile-time placement exactly.
 /// </remarks>
 [TestClass]
 public class CompositeFieldPlacementCursorTests

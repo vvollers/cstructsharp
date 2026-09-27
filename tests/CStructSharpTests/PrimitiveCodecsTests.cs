@@ -6,10 +6,9 @@ using CStructSharp.Streams;
 
 /// <summary>
 ///     Exercises <see cref="PrimitiveCodecs"/> directly, independent of a compiled <see cref="CStruct"/> layout.
-///     Only reachable indirectly through the public API before this type was extracted from the God-Object
-///     <c>CStruct</c> partial class. <c>ReadIntoString</c>'s chunked-read and byte-budget behavior already has
-///     thorough coverage exercised through the real public API in <c>StringEncodingTests.cs</c>, so these tests
-///     focus on proving each member is independently callable and on the members that had no direct coverage yet.
+///     <c>ReadIntoString</c>'s chunked-read and byte-budget behavior already has thorough coverage exercised through
+///     the real public API in <c>StringEncodingTests.cs</c>, so these tests focus on proving each member is
+///     independently callable and on the members that had no direct coverage yet.
 /// </summary>
 [TestClass]
 public class PrimitiveCodecsTests

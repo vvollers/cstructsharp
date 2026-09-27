@@ -3,11 +3,7 @@ namespace CStructSharp.Tests;
 using CStructSharp.Diagnostics;
 using CStructSharp.Writing;
 
-/// <summary>
-///     Exercises <see cref="CStructElementWriterState"/> directly, independent of a real write operation. Only
-///     reachable indirectly through the public API before this type was extracted from the God-Object <c>CStruct</c>
-///     partial class.
-/// </summary>
+/// <summary>Exercises <see cref="CStructElementWriterState"/> directly, independent of a real write operation.</summary>
 [TestClass]
 public class CStructElementWriterStateTests
 {

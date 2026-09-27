@@ -3,11 +3,7 @@ namespace CStructSharp.Tests;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 
-/// <summary>
-///     Exercises <see cref="LayoutMath"/> directly, independent of a compiled <see cref="CStruct"/> layout. Only
-///     reachable indirectly through the public API before this type was extracted from the God-Object <c>CStruct</c>
-///     partial class.
-/// </summary>
+/// <summary>Exercises <see cref="LayoutMath"/> directly, independent of a compiled <see cref="CStruct"/> layout.</summary>
 [TestClass]
 public class LayoutMathTests
 {

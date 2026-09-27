@@ -3,10 +3,14 @@ namespace CStructSharp.Tests;
 using System.Numerics;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
+using CStructSharp.Introspection;
 using CStructSharp.Syntax;
 using Definition = CStructSharp.Syntax.Defines;
 
-/// <summary>Checks deferred definition capture, exact enum expressions and resolution diagnostics.</summary>
+/// <summary>
+///     Checks how <c>#define</c> values resolve: deferred capture, constants that stay expressions when they cannot be
+///     evaluated statically, exact enum expressions and their shift widths, and resolution diagnostics.
+/// </summary>
 [TestClass]
 public class DefinitionResolutionBoundaryTests
 {
@@ -192,6 +196,30 @@ public class DefinitionResolutionBoundaryTests
         // Int32 evaluation overflows on the left; exact evaluation reaches division by zero on the right.
         // The unused macro remains deferred, but a later Int32 consumer must still reject it.
         Assert.ThrowsExactly<OverflowException>(() => ExpressionEvaluator.Default.Evaluate(resolver.CreateStatic()["HUGE"]));
+    }
+
+    /// <summary>An unused out-of-range shift stays an expression instead of being cast to a numeric constant.</summary>
+    /// <param name="expression">The shift expression outside both ordinary and exact evaluation limits.</param>
+    [TestMethod]
+    [DataRow("1 << 128")]
+    [DataRow("1 << -1")]
+    public void UnevaluatedStaticDefinition_RemainsAnExpression(string expression)
+    {
+        var layout = new CStruct("#define UNUSED " + expression + "\nstruct root { uint8 value; };");
+
+        Assert.AreEqual(LayoutConstantKind.Expression, layout.Constants["UNUSED"].Kind);
+        Assert.IsNull(layout.Constants["UNUSED"].Value);
+    }
+
+    /// <summary>A wide intermediate shift remains invalid even when later arithmetic would produce a small value.</summary>
+    /// <param name="definitions">The direct or transitive definition chain used by the enum member.</param>
+    [TestMethod]
+    [DataRow("#define VALUE ((1 << 64) >> 64)\n")]
+    [DataRow("#define BASE ((1 << 64) >> 64)\n#define VALUE BASE\n")]
+    public void DefinitionShift_UsesTheEnumWidth(string definitions)
+    {
+        // The generic constant evaluator permits 128-bit shifts, but a uint64 enum permits counts only through 63.
+        Assert.Throws<CStructLayoutException>(() => new CStruct(definitions + "enum flags : uint64 { Selected = VALUE }; struct root { flags value; };"));
     }
 
     /// <summary>Measures current-thread allocation for 128 retained-through-call dictionary results.</summary>

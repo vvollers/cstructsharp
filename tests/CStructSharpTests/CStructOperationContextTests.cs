@@ -5,11 +5,7 @@ using CStructSharp.Expressions;
 using CStructSharp.Reading;
 using CStructSharp.Syntax;
 
-/// <summary>
-///     Exercises <see cref="CStructOperationContext"/> directly, independent of a real parse/read operation. Only
-///     reachable indirectly through the public API before this type was extracted from the God-Object <c>CStruct</c>
-///     partial class.
-/// </summary>
+/// <summary>Exercises <see cref="CStructOperationContext"/> directly, independent of a real parse/read operation.</summary>
 [TestClass]
 public class CStructOperationContextTests
 {

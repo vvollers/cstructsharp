@@ -4,11 +4,7 @@ using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
-/// <summary>
-///     Exercises <see cref="CompiledModelQueries"/> directly against a real compiled layout. Only reachable
-///     indirectly through the public API before this type was extracted from the God-Object <c>CStruct</c> partial
-///     class.
-/// </summary>
+/// <summary>Exercises <see cref="CompiledModelQueries"/> directly against a real compiled layout.</summary>
 [TestClass]
 public class CompiledModelQueriesTests
 {

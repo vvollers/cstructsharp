@@ -7,11 +7,7 @@ using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
-/// <summary>
-///     Exercises <see cref="EnumFieldValueParser"/> directly against a real compiled enum descriptor. Only reachable
-///     indirectly through the public API before this type was extracted from the God-Object <c>CStruct</c> partial
-///     class.
-/// </summary>
+/// <summary>Exercises <see cref="EnumFieldValueParser"/> directly against a real compiled enum descriptor.</summary>
 [TestClass]
 public class EnumFieldValueParserTests
 {

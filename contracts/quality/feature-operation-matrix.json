@@ -1500,7 +1500,7 @@
           "%, ^, ?:, sizeof, offsetof, and Enum.Member fold to integers before any operation, so every operation sees the same counts."
         ],
         "evidence": [
-          "tests/CStructSharpTests/ExpressionExtensionTests.cs#Extensions_RoundTripThroughEveryOperation"
+          "tests/CStructSharpTests/Expressions/ExpressionExtensionTests.cs#Extensions_RoundTripThroughEveryOperation"
         ]
       },
       "bytes": {
@@ -1509,7 +1509,7 @@
           "Folded counts are part of the compiled layout, so parsing and serialization agree on the byte image."
         ],
         "evidence": [
-          "tests/CStructSharpTests/ExpressionExtensionTests.cs#Extensions_RoundTripThroughEveryOperation"
+          "tests/CStructSharpTests/Expressions/ExpressionExtensionTests.cs#Extensions_RoundTripThroughEveryOperation"
         ]
       }
     },
@@ -2006,7 +2006,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ExpressionSafetyTests.cs#Define_WithSuffixedLiteral_EvaluatesTheSameAsUnsuffixed",
+          "test": "tests/CStructSharpTests/Expressions/ExpressionSafetyTests.cs#Define_WithSuffixedLiteral_EvaluatesTheSameAsUnsuffixed",
           "operations": [
             "parse"
           ]
@@ -3294,20 +3294,20 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ExpressionSafetyTests.cs#SelectedWideField_PreservesTheRangeDiagnostic",
+          "test": "tests/CStructSharpTests/Expressions/ExpressionSafetyTests.cs#SelectedWideField_PreservesTheRangeDiagnostic",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ExpressionSafetyTests.cs#UnselectedWideField_RemainsReadableAndWritable",
+          "test": "tests/CStructSharpTests/Expressions/ExpressionSafetyTests.cs#UnselectedWideField_RemainsReadableAndWritable",
           "operations": [
             "parse",
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ExpressionSafetyTests.cs#RuntimeCount_OperationsAgreeThroughPointersAndEndianness",
+          "test": "tests/CStructSharpTests/Expressions/ExpressionSafetyTests.cs#RuntimeCount_OperationsAgreeThroughPointersAndEndianness",
           "operations": [
             "parse",
             "debug",
@@ -5538,31 +5538,31 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/ExpressionExtensionTests.cs#ModuloAndXor_FollowCPrecedence",
+          "test": "tests/CStructSharpTests/Expressions/ExpressionExtensionTests.cs#ModuloAndXor_FollowCPrecedence",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ExpressionExtensionTests.cs#Conditional_EvaluatesOnlyTheSelectedArm",
+          "test": "tests/CStructSharpTests/Expressions/ExpressionExtensionTests.cs#Conditional_EvaluatesOnlyTheSelectedArm",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ExpressionExtensionTests.cs#SizeofAndOffsetof_FoldAtConstruction",
+          "test": "tests/CStructSharpTests/Expressions/ExpressionExtensionTests.cs#SizeofAndOffsetof_FoldAtConstruction",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ExpressionExtensionTests.cs#QualifiedEnumMember_IsAConstant",
+          "test": "tests/CStructSharpTests/Expressions/ExpressionExtensionTests.cs#QualifiedEnumMember_IsAConstant",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/ExpressionExtensionTests.cs#Extensions_RoundTripThroughEveryOperation",
+          "test": "tests/CStructSharpTests/Expressions/ExpressionExtensionTests.cs#Extensions_RoundTripThroughEveryOperation",
           "operations": [
             "debug",
             "address",

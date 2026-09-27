@@ -8,11 +8,7 @@ using CStructSharp.Introspection;
 using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
-/// <summary>
-///     Exercises <see cref="SymbolValidation"/> directly, independent of a full layout compilation. Only reachable
-///     indirectly through the public API before this type was extracted from the God-Object <c>CStruct</c> partial
-///     class.
-/// </summary>
+/// <summary>Exercises <see cref="SymbolValidation"/> directly, independent of a full layout compilation.</summary>
 [TestClass]
 public class SymbolValidationTests
 {

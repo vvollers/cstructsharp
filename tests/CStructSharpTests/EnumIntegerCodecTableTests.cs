@@ -7,11 +7,9 @@ using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>
-///     Exercises <see cref="EnumIntegerCodecTable"/> directly, independent of a compiled <see cref="CStruct"/>
-///     layout. Only reachable indirectly through the public API before this type was extracted from the
-///     God-Object <c>CStruct</c> partial class. <see cref="EnumIntegerCodec"/> itself already has thorough direct
-///     coverage in <c>EnumDomainTests.cs</c>, so these tests focus on the table's own construction-time
-///     resolution and lookup behavior.
+///     Exercises <see cref="EnumIntegerCodecTable"/> directly, independent of a compiled <see cref="CStruct"/> layout.
+///     <see cref="EnumIntegerCodec"/> itself already has thorough direct coverage in <c>EnumDomainTests.cs</c>, so
+///     these tests focus on the table's own construction-time resolution and lookup behavior.
 /// </summary>
 [TestClass]
 public class EnumIntegerCodecTableTests

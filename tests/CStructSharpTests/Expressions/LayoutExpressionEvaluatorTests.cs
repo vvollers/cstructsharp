@@ -6,12 +6,15 @@ using CStructSharp.Syntax;
 
 /// <summary>
 ///     Exercises <see cref="LayoutExpressionEvaluator"/> directly, independent of a compiled <see cref="CStruct"/>
-///     layout. Only reachable indirectly through the public API before this type was extracted from the God-Object
-///     <c>CStruct</c> partial class.
+///     layout.
 /// </summary>
 [TestClass]
 public class LayoutExpressionEvaluatorTests
 {
+    /// <summary>Creates an evaluator with the given depth and node limits.</summary>
+    /// <param name="maximumDepth">The deepest expression nesting allowed.</param>
+    /// <param name="maximumNodes">The most expression nodes one evaluation may visit.</param>
+    /// <returns>The evaluator.</returns>
     private static LayoutExpressionEvaluator CreateEvaluator(int maximumDepth = 64, int maximumNodes = 10_000)
     {
         return new LayoutExpressionEvaluator(
