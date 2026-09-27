@@ -22,7 +22,7 @@ using CStructSharp.Writing;
 ///     static read plan uses; only its execution differs.
 /// </summary>
 [SuppressMessage("StyleCop.CSharp.OrderingRules", "SA1204:StaticElementsMustAppearBeforeInstanceElements", Justification = "helpers follow the executor they serve")]
-public partial class CStruct
+public sealed partial class CStruct
 {
     /// <summary>
     ///     Writes <paramref name="composite"/> through its static plan when that is exactly equivalent to the

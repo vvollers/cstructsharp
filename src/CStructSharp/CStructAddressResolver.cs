@@ -14,7 +14,7 @@ using CStructSharp.Syntax;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
 /// <summary>Resolves semantic path targets by walking only the selected compiled layout prefix.</summary>
-public partial class CStruct
+public sealed partial class CStruct
 {
     /// <summary>
     ///     Resolves a path target without materializing the root or following pointers that are not on the path.

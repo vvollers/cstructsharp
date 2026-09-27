@@ -34,7 +34,7 @@
       "Addressing/CStructPointerArithmetic.cs",
       "CStructPrimitiveCodecs.cs",
       "CStructReader.cs",
-      "CStructSelectedReader.cs",
+      "CStructReader.Composites.cs",
       "**/CStructSharp.Core/Compilation/SymbolValidation.cs",
       "CStructValueReader.cs",
       "CStructWriter.cs",

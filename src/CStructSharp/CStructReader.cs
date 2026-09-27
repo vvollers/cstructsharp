@@ -21,7 +21,7 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///     Contains the stream-reading half of <see cref="CStruct"/>.
 ///     These methods turn compiled layout elements into nested <see cref="StructValue"/> values while keeping pointer and debug state together.
 /// </summary>
-public partial class CStruct
+public sealed partial class CStruct
 {
     private static readonly List<DebugData> NoDebugData = new(0);
 

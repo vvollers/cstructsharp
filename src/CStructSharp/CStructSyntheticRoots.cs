@@ -18,7 +18,7 @@ using CStructSharp.Syntax;
 ///     first use into the same root-field projection a typedef gets, so the readers and writers never see the
 ///     difference. A declared name always wins over a spelling.
 /// </summary>
-public partial class CStruct
+public sealed partial class CStruct
 {
     private const int PathCacheCapacity = 256;
 

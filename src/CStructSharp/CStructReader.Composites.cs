@@ -17,8 +17,12 @@ using CStructSharp.Syntax;
 using CStructSharp.Values;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
-/// <summary>Reads a selected nested object without materializing unrelated siblings.</summary>
-public partial class CStruct
+/// <summary>
+///     Reads a struct's or union's members into its value: the general member loop with conditional selection, the
+///     static read plans for fixed layouts, and union values. A read of a selected nested object starts here without
+///     materializing its siblings.
+/// </summary>
+public sealed partial class CStruct
 {
     /// <summary>A <c>char[N]</c> buffer is one Latin-1 character per byte, exactly as the per-element <c>char</c> reader produces.</summary>
     private static string ReadLatin1Characters(ReadOnlySpan<byte> bytes)

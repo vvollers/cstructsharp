@@ -14,7 +14,7 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///     The read-only description of a compiled layout (<see cref="Layout"/>), its rendering back to Portable text
 ///     (<see cref="ToDefinition"/>), and sibling layouts compiled from the same source with one option changed.
 /// </summary>
-public partial class CStruct
+public sealed partial class CStruct
 {
     /// <summary>
     ///     Gets the declarations, fields, offsets, sizes, and members of this layout. Built from the compiled model on

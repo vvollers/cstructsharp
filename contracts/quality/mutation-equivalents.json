@@ -18,20 +18,20 @@
    ]
   },
   {
-   "pattern": "CStructSelectedReader.cs",
-   "sourceSha256": "6c0437fd36201db4ee3aa6c443ff77a0eb37928efdc1a5c9c71cebdadf00a4b6",
+   "pattern": "CStructReader.Composites.cs",
+   "sourceSha256": "89eb423ec20e6a155a9b64fc47c73375980fc256aaa0f8fa747a19e12e465062",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount) :null)",
-     "location": {"start":{"line":101,"column":25},"end":{"line":101,"column":165}},
+     "location": {"start":{"line":105,"column":25},"end":{"line":105,"column":165}},
      "reason": "Only unconditional composites change arms. Their CompiledCompositeType constructor leaves ConditionalGroupCount zero and each owned field's ConditionalBranches empty, because branch metadata is populated only when HasDirectConditionalFields is true. The added selection allocates empty state; IsActive iterates no branches and returns true without evaluating expressions, exactly matching the original null-selection fallback. Conditional composites retain the original selection and cached arm decisions. No field visibility, diagnostic, input operation or variable changes; this proof covers the unused allocation, not removal of a real selector." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":140,"column":21},"end":{"line":140,"column":27}},
+     "location": {"start":{"line":144,"column":21},"end":{"line":144,"column":27}},
      "reason": "This throw is inside the exception filter guarded by CStructException.NoteMember. That nonvirtual method records the innermost field context and always returns false, so this catch body is never entered. Removing only its unreachable rethrow preserves the filter evaluation, diagnostic context and propagation of the original exception. The field reader and subsequent conditional-scope completion are unchanged." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":415,"column":21},"end":{"line":415,"column":27}},
+     "location": {"start":{"line":419,"column":21},"end":{"line":419,"column":27}},
      "reason": "The union-member catch filter calls CStructException.NoteMember, which attaches member context and unconditionally returns false. Its catch body cannot execute. Removing this unreachable throw does not suppress the original failure or skip the filter; the surrounding finally still restores variables, pointer suppression, structure depth and the union end position. No executed cleanup statement is qualified by this proof." },
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?field.QualifiedPrefix :outerPrefix + field.QualifiedPrefix)",
-     "location": {"start":{"line":305,"column":53},"end":{"line":305,"column":134}},
+     "location": {"start":{"line":309,"column":53},"end":{"line":309,"column":134}},
      "reason": "For a non-null outerPrefix the selected concatenation is already the original arm. For a null outerPrefix, two-string concatenation returns the other string unchanged, giving the same field.QualifiedPrefix instance as the original direct arm without allocating another string. HasQualifiedPrefix guarantees a present field prefix. Nested static-plan variable publication and subsequent prefix restoration therefore receive identical values; this does not qualify discarding a non-null outer prefix." }
    ]
   },
@@ -109,7 +109,7 @@
   },
   {
    "pattern": "CStructPrimitiveCodecs.cs",
-   "sourceSha256": "96d7d949716e1d98ddd1d29d0b5fe97f2642eca5653b2492976a4ee4372c5188",
+   "sourceSha256": "50e099bbff1827f663c7cee9a6b5db602cf23530ef6a879da1cf89f66c6259a3",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":72,"column":13},"end":{"line":72,"column":132}},
@@ -331,10 +331,10 @@
   },
   {
    "pattern": "CStructConditionalFields.cs",
-   "sourceSha256": "35d13c23e7ff86ef8cda1d554041b4ef26abfa3466768eead8c1923b4a819d35",
+   "sourceSha256": "1bec346511d22fd94f7901d6fe9ccdb6e820a9b4f63f44af3cb4497f851d4f30",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":37,"column":13},"end":{"line":37,"column":30}},
+     "location": {"start":{"line":47,"column":13},"end":{"line":47,"column":30}},
      "reason": "CaptureUpdateLayout is private and its three call sites pass either readState.Stream (a ReadBudgetStream) or stagingStream (a SparseUpdateStream). Its new operation context wraps that object in another ReadBudgetStream. Memory backing is selected only for a FixedBufferStream or an exposed MemoryStream; neither permitted input is one. Complete therefore calls FlushPosition on a non-memory-backed wrapper, which is a no-op. Stream-mode reads already delegate their position changes, and the update owner restores its original position separately." }
    ]
   },
@@ -439,7 +439,7 @@
   },
   {
    "pattern": "CStructAddressResolver.cs",
-   "sourceSha256": "1c37712a8b22f1057626f209e7cabf4678a7ab051186ccb79c079dcf86769dcc",
+   "sourceSha256": "587ef502095645829594f610b4247ae277174f9546087ef6e127d2d45877edfe",
    "mutants": [
     { "mutatorName": "Logical mutation", "replacement": "compiledField.HasQualifiedPrefix || compiledField.Array.Kind == CompiledArrayKind.Scalar",
      "location": {"start":{"line":710,"column":17},"end":{"line":710,"column":105}},
@@ -544,7 +544,7 @@
   },
   {
    "pattern": "CStructWriter.cs",
-   "sourceSha256": "a33d76aa68b89c26fdae55e0d842b5ea7d9e7650c6e310849604b10d6a982d7f",
+   "sourceSha256": "f30de481768864a0f74fb2c40545840f3a63bf1954958be241baeebeafa9250b",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":241,"column":25},"end":{"line":241,"column":78}},
@@ -1009,7 +1009,7 @@
   },
   {
    "pattern": "CStructReader.cs",
-   "sourceSha256": "27f18c5fde0016812218e49bb84f745e3e9dc368ce079d2d9a8f42fec1a3ff81",
+   "sourceSha256": "cdbb2e01aacae8ac558fc4ab60a8e09acc8d67b5561583494c1deeb39a4cba00",
    "mutants": [
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?new DebugPath(debugStack, unionName) :debugStack)",
      "location": {"start":{"line":132,"column":46},"end":{"line":132,"column":109}},

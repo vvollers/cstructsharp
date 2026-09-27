@@ -12,7 +12,7 @@ using CStructSharp.Reading;
 using CStructSharp.Syntax;
 
 /// <summary>Builds the primitive binary codec maps used by the CStruct facade.</summary>
-public partial class CStruct
+public sealed partial class CStruct
 {
     /// <summary>
     ///     The canonical, direction-suffixed primitive readers (for example <c>int32&gt;</c>/<c>int32&lt;</c>, or

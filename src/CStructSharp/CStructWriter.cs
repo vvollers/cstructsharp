@@ -25,7 +25,7 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///     Contains the stream-writing half of <see cref="CStruct"/>.
 ///     It writes the same layout model used by the reader, including arrays, alignment, unions, pointers, and bitfields.
 /// </summary>
-public partial class CStruct
+public sealed partial class CStruct
 {
     /// <summary>Replaces one bitfield inside its shared storage value without changing neighboring bits.</summary>
     private void WriteBitFieldValue(
