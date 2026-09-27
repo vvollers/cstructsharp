@@ -116,6 +116,17 @@ source span, replacement and explanation. For example, skipping an exact-name fa
 name through the following case-insensitive search. Do not invent string-reference identity requirements to test
 a method that promises only a name's spelling.
 
+An edit to a reviewed file changes its hash, so every entry for that file must be reviewed again. When the edit
+only moves reviewed code, carry the entries with:
+
+```sh
+node tools/quality/remap-mutation-equivalents.mjs --base <revision the entries were reviewed against>
+```
+
+It maps each mutant through the diff, refuses mutants whose lines changed, and prints the mutants close to a changed
+hunk with their reasons and the current code. Read each printed case, then rerun with `--write` to record the new
+locations and hashes. A mutant whose own lines changed needs a new proof by hand, or removal.
+
 The validator reports individually qualified equivalent survivors separately. Their Stryker status remains
 `Survived`: they stay in the raw score's denominator and are never counted as killed, timed out or ignored.
 Every unexplained survivor still fails, as do uncovered and runtime-error mutations. A source/tool change requires
