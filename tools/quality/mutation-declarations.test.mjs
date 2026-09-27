@@ -6,8 +6,11 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { loadNonMutableDeclarations, qualifyNonMutableDeclaration } from "../lib/mutation-declarations.mjs";
-import { mutationSource } from "../lib/mutation-partitions.mjs";
+import { mutationSource, PERMANENT_SCOPE_SIZE } from "../lib/mutation-partitions.mjs";
 import { repositoryRoot } from "../lib/tooling.mjs";
+
+// Every scope file but the one non-mutable declaration contributes one killed mutant to the synthetic report.
+const MEASURED = PERMANENT_SCOPE_SIZE - 1;
 
 /** Creates isolated policy/source files plus a complete synthetic report for testing the real validator. */
 function fixture(t) {
@@ -44,8 +47,8 @@ test("a complete report explicitly accounts for the exact non-mutable declaratio
   const f = fixture(t);
   const result = validate(f);
   assert.equal(result.status, 0, result.output);
-  assert.match(result.output, /74\/74 detected/);
-  assert.match(result.output, /75 configured files; 1 reviewed non-mutable declarations/);
+  assert.ok(result.output.includes(`${MEASURED}/${MEASURED} detected`), result.output);
+  assert.ok(result.output.includes(`${PERMANENT_SCOPE_SIZE} configured files; 1 reviewed non-mutable declarations`), result.output);
   assert.match(result.output, /Not applicable .*Values\/ReadAttempt.cs/);
 });
 
@@ -58,7 +61,7 @@ test("the real gate reports reviewed equivalent survivors with an unchanged raw 
   f.report.files[mutationSource(sample.pattern)].mutants.push({ ...reviewed, id: "equivalent", status: "Survived" });
   const result = validate(f);
   assert.equal(result.status, 0, result.output);
-  assert.match(result.output, /74\/75 detected \(98.67%\)/);
+  assert.ok(result.output.includes(`${MEASURED}/${MEASURED + 1} detected (${(100 * MEASURED / (MEASURED + 1)).toFixed(2)}%)`), result.output);
   assert.match(result.output, /1 survived/);
   assert.match(result.output, /Reviewed equivalent survivors: 1/);
   f.report.files[mutationSource(sample.pattern)].mutants[1].replacement = "false";
