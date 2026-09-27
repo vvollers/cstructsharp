@@ -18,6 +18,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   `Codec.ReadLeb128`, `ReadCursor.Align`, `ReadCursor.RequireTerminatedStringBytes`, `WriteCursor.Align` and
   `WriteCursor.FailUnwritable`. Generated layouts are unaffected. Migration: decode LEB128 with
   `ReadCursor.TakeLeb128`; for alignment, move `Position` to the padded offset (writers: `Pad` the gap).
+- **Breaking (API):** `MemorySchema.CompiledLayout` and `MemorySchema.GetCompiledName` are internal: they exposed the
+  generated storage views, whose names never appear in results. `PointerRequest.TargetTypeId` is non-nullable, since
+  every pointer request names its target type. Migration: use `MemorySchema.Types` and `GetType` for metadata, and
+  drop null checks on `TargetTypeId`.
 
 ### Added
 

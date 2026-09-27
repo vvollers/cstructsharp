@@ -773,12 +773,10 @@ namespace CStructSharp.Memory
     public sealed class MemorySchema
     {
         public MemorySchema(System.Collections.Generic.IEnumerable<CStructSharp.Memory.MemoryTypeDefinition> types, bool isLittleEndian = true, CStructSharp.CStructCompilationOptions? options = null, int maxTypes = 100000, int maxFields = 1000000, int pointerSize = 8, System.Threading.CancellationToken cancellationToken = default, bool bestEffort = false) { }
-        public CStructSharp.CStruct CompiledLayout { get; }
         public System.Collections.Generic.IReadOnlyList<string> Diagnostics { get; }
         public bool IsLittleEndian { get; }
         public int PointerSize { get; }
         public System.Collections.Generic.IReadOnlyDictionary<string, CStructSharp.Memory.MemoryTypeDefinition> Types { get; }
-        public string GetCompiledName(string typeId) { }
         public CStructSharp.Memory.MemoryField GetField(string typeId, string name) { }
         public CStructSharp.Memory.MemoryTypeDefinition GetType(string id) { }
     }
@@ -863,14 +861,14 @@ namespace CStructSharp.Memory
     }
     public sealed class PointerRequest : System.IEquatable<CStructSharp.Memory.PointerRequest>
     {
-        public PointerRequest(CStructSharp.Memory.StoredPointer Pointer, CStructSharp.Memory.MemoryRegion Storage, CStructSharp.Memory.MemoryRegion Container, string? TargetTypeId, int TargetSize, string Path, int Depth) { }
+        public PointerRequest(CStructSharp.Memory.StoredPointer Pointer, CStructSharp.Memory.MemoryRegion Storage, CStructSharp.Memory.MemoryRegion Container, string TargetTypeId, int TargetSize, string Path, int Depth) { }
         public CStructSharp.Memory.MemoryRegion Container { get; init; }
         public int Depth { get; init; }
         public string Path { get; init; }
         public CStructSharp.Memory.StoredPointer Pointer { get; init; }
         public CStructSharp.Memory.MemoryRegion Storage { get; init; }
         public int TargetSize { get; init; }
-        public string? TargetTypeId { get; init; }
+        public string TargetTypeId { get; init; }
     }
     public static class PortableMemorySchema
     {

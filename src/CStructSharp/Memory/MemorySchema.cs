@@ -14,11 +14,10 @@ using System.Text;
 /// Pointer cycles remain legal because a pointer has a finite size.
 /// </para>
 /// <para>
-/// Two views of the same information coexist. <see cref="Types"/> is the semantic graph: real names, IDs, offsets,
-/// bit slices, and provenance, which is what an analyzer should show. <see cref="CompiledLayout"/> is a generated
-/// Portable layout in which every metadata type is expressed as a union of byte arrays at the recorded offsets.
-/// That construction lets the memory APIs reuse the core scalar and bitfield codecs without writing a second
-/// decoder; its generated names (<c>m0</c>, <c>f0</c>) are implementation details, not metadata names.
+/// <see cref="Types"/> is the semantic graph: real names, IDs, offsets, bit slices, and provenance, which is what an
+/// analyzer should show. To decode, the schema also compiles an internal Portable layout in which every metadata
+/// type is a union of byte arrays at the recorded offsets, so the memory APIs reuse the core scalar and bitfield
+/// codecs instead of a second decoder; its generated names (<c>m0</c>, <c>f0</c>) never appear in results.
 /// </para>
 /// <para>
 /// Compile once and reuse the schema across many regions and sessions; it holds no bytes and no mutable state.
@@ -147,7 +146,7 @@ public sealed class MemorySchema
     public int PointerSize { get; }
 
     /// <summary>Gets the generated Portable storage views. Their names are placement labels; semantic names live in <see cref="Types"/>.</summary>
-    public CStruct CompiledLayout { get; }
+    internal CStruct CompiledLayout { get; }
 
     /// <summary>Gets one note per definition that best-effort validation demoted to <see cref="MemoryTypeKind.Opaque"/>, in ordinal order; empty unless the schema was constructed with <c>bestEffort: true</c>.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
@@ -163,7 +162,7 @@ public sealed class MemorySchema
     /// <summary>Returns the generated name under which a type appears in <see cref="CompiledLayout"/>.</summary>
     /// <param name="typeId">Stable identity of the definition.</param>
     /// <returns>The generated view name, such as <c>m3</c>.</returns>
-    public string GetCompiledName(string typeId) => this.compiledNames[typeId];
+    internal string GetCompiledName(string typeId) => this.compiledNames[typeId];
 
     /// <summary>Finds an immediate member by name; promoted members are resolved by session paths, not here.</summary>
     /// <param name="typeId">Stable identity of the containing struct or union.</param>

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 48,
+  "baselineRevision": 49,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.10.0",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 1083,
-    "normalizedSha256": "B8F63A5CF6B4B8080DFDC87FDE3110E6F38108D8B594E11B3AEE05ECC893E95D"
+    "lines": 1081,
+    "normalizedSha256": "E9F83A81165AD707A850FA12BD12A31173424F007D3E0CE8317672468D181CD3"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "4CE48A9526EDF1351D10CC32DBEA716DCF88FA4CAD120640D9EEA86F0AA49AB8",
+      "normalizedSha256": "D8A0166712BC31DB5881AAFD4B4DA97EF5E2017EB7AC6C368AC2676DBBE4ED1C",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "379590E50BCABACC48D480B1DD8661BB4F9641549D4CCC1E2F00770B5B9BAF5F",
+      "normalizedSha256": "CD15872A5365C47EC0128B7E410876EB3A63772CFB84F0803F58790983F4EC26",
       "aotCompatible": true
     }
   ],
@@ -465,6 +465,15 @@
       "combinedSha256": "EA54461F77375A2597FBB111DD3B4AF6A31FA480AF0DA0249573E04A703826A6",
       "rationale": "Remove generated-support members the source generator never emits: Codec.ReadLeb128, ReadCursor.Align, ReadCursor.RequireTerminatedStringBytes, WriteCursor.Align and WriteCursor.FailUnwritable.",
       "releaseImpact": "Only hand-written code calling these helpers breaks; generated layouts are unaffected. Use ReadCursor.TakeLeb128 for LEB128, Position plus padding for alignment, and CStruct operations for value diagnostics."
+    },
+    {
+      "revision": 49,
+      "kind": "breaking",
+      "date": "2026-09-27",
+      "packageVersion": "0.10.0",
+      "combinedSha256": "56B87D7AB88DA4BFDE3D54B88D08197AF75331B1A3E03840571B0B86CDF2570F",
+      "rationale": "MemorySchema.CompiledLayout and GetCompiledName expose the generated Portable storage views, an implementation detail whose names never appear in results; they become internal. PointerRequest.TargetTypeId is never null (every pointer has a target type), so its annotation becomes non-nullable.",
+      "releaseImpact": "Code reading MemorySchema.CompiledLayout or GetCompiledName must use Types/GetType instead; pointer resolvers can drop null checks on TargetTypeId."
     }
   ]
 }

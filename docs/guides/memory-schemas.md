@@ -226,11 +226,10 @@ which should not need it.
 `Provenance` strings that say where a definition came from. Use these in an analyzer's user interface.
 `GetField` looks up immediate members; session paths additionally resolve uniquely promoted members.
 
-To decode bytes, the schema also compiles a `CompiledLayout`: an ordinary Portable `CStruct` in which every
-metadata type becomes a union of byte arrays placed at the recorded offsets. This trick lets the memory APIs reuse
-the core's scalar and bitfield codecs without a second decoder. Its generated names such as `m0` and `f0` are
-placement labels, not metadata names. `GetCompiledName(id)` connects a semantic type to its view when you need to
-inspect the compilation. Do not show these generated names to users as if the metadata had supplied them.
+To decode bytes, the schema also compiles an internal Portable layout in which every metadata type becomes a union
+of byte arrays placed at the recorded offsets. This lets the memory APIs reuse the core's scalar and bitfield
+codecs without a second decoder. The layout and its generated names (such as `m0` and `f0`) are not part of the
+API: results and diagnostics always use the metadata's own names and IDs.
 
 ## Check your understanding
 

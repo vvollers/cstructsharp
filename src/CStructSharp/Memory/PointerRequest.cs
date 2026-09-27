@@ -18,8 +18,8 @@ namespace CStructSharp.Memory;
 /// <param name="Pointer">Stored bits and byte width, exactly as read from memory.</param>
 /// <param name="Storage">Region holding the pointer bytes; its source is the address space the pointer was read from.</param>
 /// <param name="Container">Region of the record that contains the pointer, for relative encodings.</param>
-/// <param name="TargetTypeId">ID of the pointed-to type, or null for an untyped address.</param>
+/// <param name="TargetTypeId">ID of the pointed-to type.</param>
 /// <param name="TargetSize">Minimum number of bytes the returned region must cover.</param>
 /// <param name="Path">The full path being resolved, for diagnostics.</param>
 /// <param name="Depth">Path depth at this step, counting member, index, and pointer steps.</param>
-public sealed record PointerRequest(StoredPointer Pointer, MemoryRegion Storage, MemoryRegion Container, string? TargetTypeId, int TargetSize, string Path, int Depth);
+public sealed record PointerRequest(StoredPointer Pointer, MemoryRegion Storage, MemoryRegion Container, string TargetTypeId, int TargetSize, string Path, int Depth);
