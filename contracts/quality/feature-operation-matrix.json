@@ -791,8 +791,8 @@
         ],
         "evidence": [
           "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip",
-          "tests/CStructSharpTests/MultidimensionalArrayTests.cs#TwoDimensionalArray_RoundTripsThroughWriteAndParse",
-          "tests/CStructSharpTests/MultidimensionalArrayTests.cs#ThreeDimensionalArray_RoundTripsThroughWriteAndParse"
+          "tests/CStructSharpTests/Arrays/MultidimensionalArrayTests.cs#TwoDimensionalArray_RoundTripsThroughWriteAndParse",
+          "tests/CStructSharpTests/Arrays/MultidimensionalArrayTests.cs#ThreeDimensionalArray_RoundTripsThroughWriteAndParse"
         ]
       },
       "bytes": {
@@ -802,7 +802,7 @@
         ],
         "evidence": [
           "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedCompositeLayouts_NormalizedValuesAndCanonicalBytesRoundTrip",
-          "tests/CStructSharpTests/MultidimensionalArrayTests.cs#TwoDimensionalArray_RoundTripsThroughWriteAndParse"
+          "tests/CStructSharpTests/Arrays/MultidimensionalArrayTests.cs#TwoDimensionalArray_RoundTripsThroughWriteAndParse"
         ]
       }
     },
@@ -1344,8 +1344,8 @@
         "evidence": [
           "tests/CStructSharpTests/Parsing/TypedefFormTests.cs#ArrayTypedef_RoundTripsThroughEveryOperation",
           "tests/CStructSharpTests/Parsing/TypedefFormTests.cs#DeclaratorList_DeclaresEveryAlias",
-          "tests/CStructSharpTests/LiteralTypedefCountBoundaryTests.cs#ArrayAlias_RejectsInvalidLiteralCount",
-          "tests/CStructSharpTests/LiteralTypedefCountBoundaryTests.cs#ArrayAlias_AcceptsNonnegativeLiteralCount",
+          "tests/CStructSharpTests/Arrays/LiteralTypedefCountBoundaryTests.cs#ArrayAlias_RejectsInvalidLiteralCount",
+          "tests/CStructSharpTests/Arrays/LiteralTypedefCountBoundaryTests.cs#ArrayAlias_AcceptsNonnegativeLiteralCount",
           "tests/CStructSharpTests/PointerArrayAliasBoundaryTests.cs#PointerAlias_CannotHideAnArrayTarget"
         ]
       },
@@ -1433,8 +1433,8 @@
           "A terminated array's elements must not themselves be all-zero (an all-zero element ends the array); an [EOF] array must be the last data in the input."
         ],
         "evidence": [
-          "tests/CStructSharpTests/DataSizedArrayTests.cs#ToEnd_RoundTripsThroughEveryOperation",
-          "tests/CStructSharpTests/DataSizedArrayTests.cs#Terminated_StructArrayRoundTrips"
+          "tests/CStructSharpTests/Arrays/DataSizedArrayTests.cs#ToEnd_RoundTripsThroughEveryOperation",
+          "tests/CStructSharpTests/Arrays/DataSizedArrayTests.cs#Terminated_StructArrayRoundTrips"
         ]
       },
       "bytes": {
@@ -1443,8 +1443,8 @@
           "Writing a terminated array appends one all-zero element; writing an [EOF] array appends nothing, so the parsed byte image is reproduced exactly."
         ],
         "evidence": [
-          "tests/CStructSharpTests/DataSizedArrayTests.cs#ToEnd_RoundTripsThroughEveryOperation",
-          "tests/CStructSharpTests/DataSizedArrayTests.cs#Terminated_StructArrayRoundTrips"
+          "tests/CStructSharpTests/Arrays/DataSizedArrayTests.cs#ToEnd_RoundTripsThroughEveryOperation",
+          "tests/CStructSharpTests/Arrays/DataSizedArrayTests.cs#Terminated_StructArrayRoundTrips"
         ]
       }
     },
@@ -2172,7 +2172,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/TerminatedStringArrayTraversalTests.cs#SelectedElements_MatchTheWholeArray",
+          "test": "tests/CStructSharpTests/Arrays/TerminatedStringArrayTraversalTests.cs#SelectedElements_MatchTheWholeArray",
           "operations": [
             "parse",
             "address",
@@ -2181,7 +2181,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/TerminatedStringArrayTraversalTests.cs#SelectedUpdate_PreservesTheOtherStringAndTail",
+          "test": "tests/CStructSharpTests/Arrays/TerminatedStringArrayTraversalTests.cs#SelectedUpdate_PreservesTheOtherStringAndTail",
           "operations": [
             "update"
           ]
@@ -2462,7 +2462,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FixedArrayShapeTests.cs#FixedArrays_ZeroOneTwoMatrixAgreesAcrossOperations",
+          "test": "tests/CStructSharpTests/Arrays/FixedArrayShapeTests.cs#FixedArrays_ZeroOneTwoMatrixAgreesAcrossOperations",
           "operations": [
             "parse",
             "debug",
@@ -2514,43 +2514,43 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/MultidimensionalArrayTests.cs#TwoDimensionalArray_ParsesIntoANestedListInRowMajorOrder",
+          "test": "tests/CStructSharpTests/Arrays/MultidimensionalArrayTests.cs#TwoDimensionalArray_ParsesIntoANestedListInRowMajorOrder",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/MultidimensionalArrayTests.cs#ParseStreamWithDebug_FullyIndexedStructArrayElement_FiltersToThatElement",
+          "test": "tests/CStructSharpTests/Arrays/MultidimensionalArrayTests.cs#ParseStreamWithDebug_FullyIndexedStructArrayElement_FiltersToThatElement",
           "operations": [
             "debug"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/MultidimensionalArrayTests.cs#ResolveAddress_ResolvesWholeArrayPartialIndexAndFullIndex",
+          "test": "tests/CStructSharpTests/Arrays/MultidimensionalArrayTests.cs#ResolveAddress_ResolvesWholeArrayPartialIndexAndFullIndex",
           "operations": [
             "address"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/MultidimensionalArrayTests.cs#GetDynamicArrayLength_ReportsTheCurrentDimensionsCount",
+          "test": "tests/CStructSharpTests/Arrays/MultidimensionalArrayTests.cs#GetDynamicArrayLength_ReportsTheCurrentDimensionsCount",
           "operations": [
             "length"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/MultidimensionalArrayTests.cs#TwoDimensionalArray_RoundTripsThroughWriteAndParse",
+          "test": "tests/CStructSharpTests/Arrays/MultidimensionalArrayTests.cs#TwoDimensionalArray_RoundTripsThroughWriteAndParse",
           "operations": [
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/MultidimensionalArrayTests.cs#UpdateStream_PartialIndex_ReplacesTheSelectedSubArray",
+          "test": "tests/CStructSharpTests/Arrays/MultidimensionalArrayTests.cs#UpdateStream_PartialIndex_ReplacesTheSelectedSubArray",
           "operations": [
             "update"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/MultidimensionalArrayTests.cs#ReadValue_PartialIndex_ReturnsTheSelectedSubArray",
+          "test": "tests/CStructSharpTests/Arrays/MultidimensionalArrayTests.cs#ReadValue_PartialIndex_ReturnsTheSelectedSubArray",
           "operations": [
             "read-value"
           ]
@@ -5298,13 +5298,13 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/DataSizedArrayTests.cs#ToEnd_ReadsEveryRemainingElement",
+          "test": "tests/CStructSharpTests/Arrays/DataSizedArrayTests.cs#ToEnd_ReadsEveryRemainingElement",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/DataSizedArrayTests.cs#ToEnd_RoundTripsThroughEveryOperation",
+          "test": "tests/CStructSharpTests/Arrays/DataSizedArrayTests.cs#ToEnd_RoundTripsThroughEveryOperation",
           "operations": [
             "parse",
             "debug",
@@ -5317,13 +5317,13 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/DataSizedArrayTests.cs#Terminated_ReadsUntilAZeroElement",
+          "test": "tests/CStructSharpTests/Arrays/DataSizedArrayTests.cs#Terminated_ReadsUntilAZeroElement",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/DataSizedArrayTests.cs#Terminated_StructArrayRoundTrips",
+          "test": "tests/CStructSharpTests/Arrays/DataSizedArrayTests.cs#Terminated_StructArrayRoundTrips",
           "operations": [
             "parse",
             "debug",
@@ -5335,7 +5335,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/DataSizedArrayTests.cs#DataSizedArrays_HaveNoFixedSize",
+          "test": "tests/CStructSharpTests/Arrays/DataSizedArrayTests.cs#DataSizedArrays_HaveNoFixedSize",
           "operations": [
             "parse"
           ]

@@ -8,8 +8,8 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
 /// <summary>
-///     Verifies multidimensional arrays (<c>value[rows][columns]</c>), following
-///     <c>docs/adr/0016-multidimensional-arrays.md</c>'s fixed-dimensions-only first slice.
+///     Verifies multidimensional arrays (<c>value[rows][columns]</c>): their shape and placement in every operation,
+///     and selected paths that reject an overflowing row index or preceding element count before reading.
 /// </summary>
 [TestClass]
 public class MultidimensionalArrayTests
@@ -516,5 +516,31 @@ public class MultidimensionalArrayTests
         Assert.IsTrue(debug.All(dbg => dbg.Path.StartsWith("root.grid", StringComparison.Ordinal)));
         Assert.AreEqual(10L, debug[0].Start);
         Assert.AreEqual(12L, debug[^1].End);
+    }
+
+    /// <summary>Skipping rows of variable-size elements must use checked multiplication.</summary>
+    /// <param name="composite">Whether the leaf is a runtime-sized record rather than a variable-width integer.</param>
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void SelectedRow_RejectsOverflowWithoutReading(bool composite)
+    {
+        string element = composite ? "item" : "uleb128_32";
+        var layout = new CStruct("struct item { uint8 count; uint8 values[count]; }; struct root { " + element + " rows[3][1073741824]; };");
+        using var source = new MemoryStream(new byte[] { 0, });
+        var options = new ReadOptions { MaxArrayElements = int.MaxValue, };
+        Assert.Throws<OverflowException>(() => layout.ResolveAddress(source, "root.rows[2]", options: options));
+        Assert.AreEqual(0L, source.Position);
+    }
+
+    /// <summary>An unrepresentable count fails before traversal instead of wrapping to zero and exposing the wrong trailing byte.</summary>
+    [TestMethod]
+    public void SelectedTrailingField_RejectsOverflowingPrecedingElementCount()
+    {
+        var layout = new CStruct("struct child { uint8 count; uint8 data[count]; }; struct root { child values[65536][65536]; uint8 tail; };");
+        using var input = new MemoryStream(new byte[] { 55, });
+
+        Assert.Throws<OverflowException>(() => layout.ReadValue<byte>(input, "root.tail"));
+        Assert.AreEqual(0L, input.Position);
     }
 }

@@ -149,23 +149,31 @@ public class DataSizedArrayTests
         Assert.AreEqual(2, layout.GetStructAlignmentInBytes("root"));
     }
 
+    /// <summary>A mapped class for the tests' <c>Root</c> record, read and written through the runtime.</summary>
     internal sealed class Root : ICStructMapped<Root>
     {
         public ushort Header { get; set; }
 
         public Entry[] Entries { get; set; } = [];
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static Root ReadFrom(StructValue source)
         {
             return new Root { Header = source.Get<ushort>("header"), Entries = source.Get<Entry[]>("entries"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(Root value, StructValue target)
         {
             target["header"] = value.Header;
             target["entries"] = value.Entries;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -173,23 +181,31 @@ public class DataSizedArrayTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>Entry</c> record, read and written through the runtime.</summary>
     internal sealed class Entry : ICStructMapped<Entry>
     {
         public byte Kind { get; set; }
 
         public byte Size { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static Entry ReadFrom(StructValue source)
         {
             return new Entry { Kind = source.Get<byte>("kind"), Size = source.Get<byte>("size"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(Entry value, StructValue target)
         {
             target["kind"] = value.Kind;
             target["size"] = value.Size;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
