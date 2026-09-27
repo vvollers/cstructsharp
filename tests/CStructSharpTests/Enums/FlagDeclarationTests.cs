@@ -63,6 +63,7 @@ public class FlagDeclarationTests
         dynamic parsed = layout.Parse(new byte[] { 0x05, 0x01, 0x03, 0x00, 0x00, 0x00, }.AsSpan(), "root");
         CollectionAssert.AreEqual(new byte[] { 0x05, 0x01, 0x03, 0x00, 0x00, 0x00, }, layout.Serialize("root", parsed));
 
+        /// <summary>Serializes the record with the given <c>mode</c> input and zero <c>modes</c>.</summary>
         byte[] Write(object mode)
         {
             return layout.Serialize("root", new Dictionary<string, object?> { ["mode"] = mode, ["modes"] = new object[] { 0, 0, }, });
@@ -192,23 +193,31 @@ public class FlagDeclarationTests
         Assert.Throws<CStructLayoutException>(() => new CStruct("#define N 2\nflag { A = N, B }; struct root { uint8 v; };"));
     }
 
+    /// <summary>A mapped class for the tests' <c>Root</c> record, read and written through the runtime.</summary>
     internal sealed class Root : ICStructMapped<Root>
     {
         public Access Mode { get; set; }
 
         public Access[] Modes { get; set; } = [];
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static Root ReadFrom(StructValue source)
         {
             return new Root { Mode = source.Get<Access>("mode"), Modes = source.Get<Access[]>("modes"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(Root value, StructValue target)
         {
             target["mode"] = value.Mode;
             target["modes"] = value.Modes;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {

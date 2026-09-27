@@ -2,9 +2,13 @@ namespace CStructSharp.Tests;
 
 using CStructSharp.Parsing;
 using CStructSharp.Syntax;
+using CStructSharp.Values;
 using Enum = CStructSharp.Syntax.Enum;
 
-/// <summary>Groups tests for enums so changes to this behavior are caught.</summary>
+/// <summary>
+///     Checks enum declarations and roots: member values in declaration order, explicit and implicit numbering, the
+///     storage type, and an enum root read from an unaligned position.
+/// </summary>
 [TestClass]
 public class EnumTests
 {
@@ -16,7 +20,7 @@ public class EnumTests
     ///     library rule, not a claim about the size of enums in every C compiler.
     /// </remarks>
     [TestMethod]
-    public void TestEnums()
+    public void ImplicitMembers_NumberOnFromTheirPredecessor()
     {
         var enm = (Enum)LayoutParser.ParseElement("enum zing { Red = 5 , Green, Blue  };");
 
@@ -41,7 +45,7 @@ public class EnumTests
     ///     does not mean the completed layout will accept that out-of-range enum value.
     /// </remarks>
     [TestMethod]
-    public void TestEnumsWithType()
+    public void BackingType_IsRecordedWithEvaluatedMembers()
     {
         var enm = (Enum)LayoutParser.ParseElement(
                                                                   "enum zang : uint8 {Dark,Grey=0xFFF,Light=0b1001_0110+5};");
@@ -66,7 +70,7 @@ public class EnumTests
     ///     enum, which is outside this individual-member test.
     /// </remarks>
     [TestMethod]
-    public void TestEnumValue()
+    public void MemberValues_KeepTheirNamesAcrossSpacing()
     {
         EnumValue? enumValue1 = LayoutParser.ParseEnumValue("Red=2");
         Assert.AreEqual(2, enumValue1.Value.Evaluate());
@@ -92,7 +96,7 @@ public class EnumTests
     ///     belongs to the full enum parser; the list parser must not guess it early.
     /// </remarks>
     [TestMethod]
-    public void TestEnumValues()
+    public void Members_StayInDeclarationOrder()
     {
         List<EnumValue> enums = LayoutParser.ParseEnumValues(" Red = 5, Green, Blue=9 ").ToList();
         Assert.HasCount(3, enums);
@@ -112,7 +116,7 @@ public class EnumTests
     ///     marked as missing, so a later step can apply enum numbering rules.
     /// </remarks>
     [TestMethod]
-    public void TestEnumValuesInBrackets()
+    public void Members_ParseWithinBraces()
     {
         List<EnumValue> enums = LayoutParser.ParseEnumValuesInBrackets("{ Silver = 5, Gold, Diamond=0  }").
                                                         ToList();
@@ -146,5 +150,21 @@ public class EnumTests
         Assert.AreEqual("SilverD", enums3[0].Name.Name);
         Assert.AreEqual("GoldE", enums3[1].Name.Name);
         Assert.AreEqual("DiamondF", enums3[2].Name.Name);
+    }
+
+    /// <summary>Direct and aliased enum roots begin at the supplied stream position, not the next natural boundary.</summary>
+    /// <param name="root">The exported enum or its typedef alias.</param>
+    [TestMethod]
+    [DataRow("kind")]
+    [DataRow("alias")]
+    public void UnalignedEnumRoot_PreservesTheRequestedOrigin(string root)
+    {
+        var layout = new CStruct("enum kind : uint16 { VALUE = 0x1234 }; typedef kind alias;", aligned: false);
+        using var source = new MemoryStream(new byte[] { 99, 0x34, 0x12, 0x56, }) { Position = 1, };
+
+        var value = (EnumValueResult)layout.ReadValue(source, root)!;
+
+        Assert.AreEqual("VALUE", value.Name);
+        Assert.AreEqual(3L, source.Position);
     }
 }

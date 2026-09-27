@@ -747,7 +747,7 @@
         ],
         "evidence": [
           "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip",
-          "tests/CStructSharpTests/EnumDomainTests.cs#IntegerDomains_RoundTripBoundariesAcrossOperations"
+          "tests/CStructSharpTests/Enums/EnumDomainTests.cs#IntegerDomains_RoundTripBoundariesAcrossOperations"
         ]
       },
       "bytes": {
@@ -757,7 +757,7 @@
         ],
         "evidence": [
           "tests/CStructSharpTests/RoundTripPropertyTests.cs#GeneratedEnumAndBitfieldValues_ValueAndCanonicalBytesRoundTrip",
-          "tests/CStructSharpTests/EnumDomainTests.cs#IntegerDomains_RoundTripBoundariesAcrossOperations"
+          "tests/CStructSharpTests/Enums/EnumDomainTests.cs#IntegerDomains_RoundTripBoundariesAcrossOperations"
         ]
       }
     },
@@ -1456,8 +1456,8 @@
           "A flag value is its backing integer; names are a decomposition view, and any bit pattern (including unnamed bits) round-trips."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_RoundTripsThroughEveryOperation",
-          "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_WritesFromEveryInputShape"
+          "tests/CStructSharpTests/Enums/FlagDeclarationTests.cs#Flag_RoundTripsThroughEveryOperation",
+          "tests/CStructSharpTests/Enums/FlagDeclarationTests.cs#Flag_WritesFromEveryInputShape"
         ]
       },
       "bytes": {
@@ -1466,7 +1466,7 @@
           "The backing integer's byte order applies, as for enums."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_RoundTripsThroughEveryOperation"
+          "tests/CStructSharpTests/Enums/FlagDeclarationTests.cs#Flag_RoundTripsThroughEveryOperation"
         ]
       }
     },
@@ -1478,7 +1478,7 @@
           "The stored value is truncated to the declared bit width, so a value round trip is exact only for members that fit the width."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FlagDeclarationTests.cs#EnumBitfield_StoresBitsInTheBackingType"
+          "tests/CStructSharpTests/Enums/FlagDeclarationTests.cs#EnumBitfield_StoresBitsInTheBackingType"
         ]
       },
       "bytes": {
@@ -1487,8 +1487,8 @@
           "Bits are allocated in the enum's backing type exactly as for the same integer bitfield."
         ],
         "evidence": [
-          "tests/CStructSharpTests/FlagDeclarationTests.cs#EnumBitfield_StoresBitsInTheBackingType",
-          "tests/CStructSharpTests/FlagDeclarationTests.cs#EnumBitfield_IsAddressable"
+          "tests/CStructSharpTests/Enums/FlagDeclarationTests.cs#EnumBitfield_StoresBitsInTheBackingType",
+          "tests/CStructSharpTests/Enums/FlagDeclarationTests.cs#EnumBitfield_IsAddressable"
         ]
       }
     },
@@ -1585,7 +1585,7 @@
           "An enum value round-trips within the selected storage's domain, named or not."
         ],
         "evidence": [
-          "tests/CStructSharpTests/DefaultEnumStorageTests.cs#NamedStorage_RoundTripsThroughEveryOperation"
+          "tests/CStructSharpTests/Enums/DefaultEnumStorageTests.cs#NamedStorage_RoundTripsThroughEveryOperation"
         ]
       },
       "bytes": {
@@ -1594,7 +1594,7 @@
           "The same DefaultEnumStorage is used for parsing and serialization."
         ],
         "evidence": [
-          "tests/CStructSharpTests/DefaultEnumStorageTests.cs#NamedStorage_RoundTripsThroughEveryOperation"
+          "tests/CStructSharpTests/Enums/DefaultEnumStorageTests.cs#NamedStorage_RoundTripsThroughEveryOperation"
         ]
       }
     },
@@ -2273,7 +2273,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/EnumDomainTests.cs#IntegerDomains_RoundTripBoundariesAcrossOperations",
+          "test": "tests/CStructSharpTests/Enums/EnumDomainTests.cs#IntegerDomains_RoundTripBoundariesAcrossOperations",
           "operations": [
             "parse",
             "debug",
@@ -2284,7 +2284,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/EnumDomainTests.cs#Shapes_UseOneExactEnumCodec",
+          "test": "tests/CStructSharpTests/Enums/EnumDomainTests.cs#Shapes_UseOneExactEnumCodec",
           "operations": [
             "parse",
             "serialize",
@@ -5392,13 +5392,13 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_ReadsDecomposedNames",
+          "test": "tests/CStructSharpTests/Enums/FlagDeclarationTests.cs#Flag_ReadsDecomposedNames",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_WritesFromEveryInputShape",
+          "test": "tests/CStructSharpTests/Enums/FlagDeclarationTests.cs#Flag_WritesFromEveryInputShape",
           "operations": [
             "serialize",
             "write",
@@ -5406,20 +5406,20 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_TypedReadMapsToClrEnum",
+          "test": "tests/CStructSharpTests/Enums/FlagDeclarationTests.cs#Flag_TypedReadMapsToClrEnum",
           "operations": [
             "read-value"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_AutoValuesFollowTheHighestBit",
+          "test": "tests/CStructSharpTests/Enums/FlagDeclarationTests.cs#Flag_AutoValuesFollowTheHighestBit",
           "operations": [
             "parse",
             "serialize"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FlagDeclarationTests.cs#Flag_RoundTripsThroughEveryOperation",
+          "test": "tests/CStructSharpTests/Enums/FlagDeclarationTests.cs#Flag_RoundTripsThroughEveryOperation",
           "operations": [
             "debug",
             "address",
@@ -5475,7 +5475,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/FlagDeclarationTests.cs#EnumBitfield_StoresBitsInTheBackingType",
+          "test": "tests/CStructSharpTests/Enums/FlagDeclarationTests.cs#EnumBitfield_StoresBitsInTheBackingType",
           "operations": [
             "parse",
             "debug",
@@ -5486,7 +5486,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/FlagDeclarationTests.cs#EnumBitfield_IsAddressable",
+          "test": "tests/CStructSharpTests/Enums/FlagDeclarationTests.cs#EnumBitfield_IsAddressable",
           "operations": [
             "address"
           ]
@@ -5862,13 +5862,13 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/DefaultEnumStorageTests.cs#CompilerRule_Selects32BitsAndSignednessFromTheMembers",
+          "test": "tests/CStructSharpTests/Enums/DefaultEnumStorageTests.cs#CompilerRule_Selects32BitsAndSignednessFromTheMembers",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/DefaultEnumStorageTests.cs#NamedStorage_RoundTripsThroughEveryOperation",
+          "test": "tests/CStructSharpTests/Enums/DefaultEnumStorageTests.cs#NamedStorage_RoundTripsThroughEveryOperation",
           "operations": [
             "debug",
             "address",

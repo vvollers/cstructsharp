@@ -11,7 +11,10 @@ using CStructSharp.Syntax;
 using CStructSharp.Values;
 using CstructEnum = CStructSharp.Syntax.Enum;
 
-/// <summary>Verifies exact enum compilation, reading, writing, and traversal across every supported integer domain.</summary>
+/// <summary>
+///     Verifies exact enum compilation, reading, writing, and traversal across every supported integer domain, and one
+///     failure cause for an enum count too wide for a layout expression.
+/// </summary>
 [TestClass]
 public class EnumDomainTests
 {
@@ -823,12 +826,34 @@ public class EnumDomainTests
         Assert.AreEqual(ulong.MaxValue.ToString(CultureInfo.InvariantCulture), ((EnumValueResult)unknown.value).ToString());
     }
 
+    /// <summary>An enum value outside the expression domain fails consistently in whole and selected reads.</summary>
+    [TestMethod]
+    public void WideEnumCount_PreservesTheWholeReadFailureCause()
+    {
+        var layout = new CStruct("enum count_type : uint64 { Maximum = 18446744073709551615 }; struct root { count_type count; uint8 values[count]; uint8 tail; };");
+        byte[] bytes = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 42,];
+
+        // Both operations reject the same decoded count, independently of their outer path context.
+        CStructReadException whole = Assert.Throws<CStructReadException>(() => layout.Parse(bytes.AsSpan(), "root"));
+        CStructReadException selected = Assert.Throws<CStructReadException>(() => layout.ResolveAddress(bytes, "root.tail"));
+        Assert.IsNotNull(whole.InnerException);
+        Assert.IsNotNull(selected.InnerException);
+        Assert.AreEqual(whole.InnerException.Message, selected.InnerException.Message);
+    }
+
+    /// <summary>Asserts an enum member's exact evaluated value.</summary>
+    /// <param name="enm">The declaration.</param>
+    /// <param name="name">The member name.</param>
+    /// <param name="expected">The expected value.</param>
     private static void AssertMember(CstructEnum enm, string name, BigInteger expected)
     {
         EnumValue member = enm.Values.Single(value => value.Name.Name == name);
         Assert.AreEqual(expected, ((Literal)member.Value).ExactValue, enm.Name.Name + "." + name);
     }
 
+    /// <summary>The canonical codec a backing type spelling resolves to.</summary>
+    /// <param name="backingType">The spelling.</param>
+    /// <returns>The canonical name.</returns>
     private static string CanonicalBacking(string backingType)
     {
         return backingType switch
@@ -844,6 +869,11 @@ public class EnumDomainTests
         };
     }
 
+    /// <summary>Encodes a value as two's-complement storage, independently of the library's codecs.</summary>
+    /// <param name="value">The value.</param>
+    /// <param name="size">The storage size in bytes.</param>
+    /// <param name="isLittleEndian">The byte order.</param>
+    /// <returns>The bytes.</returns>
     private static byte[] Encode(BigInteger value, int size, bool isLittleEndian)
     {
         int bitWidth = checked(size * 8);
@@ -859,6 +889,10 @@ public class EnumDomainTests
         return bytes;
     }
 
+    /// <summary>The two's-complement bits of a value in the given width.</summary>
+    /// <param name="value">The value.</param>
+    /// <param name="bitWidth">The width in bits.</param>
+    /// <returns>The raw bits.</returns>
     private static ulong ToRawBits(BigInteger value, int bitWidth)
     {
         BigInteger raw = value < BigInteger.Zero ? (BigInteger.One << bitWidth) + value : value;

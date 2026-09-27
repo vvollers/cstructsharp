@@ -104,6 +104,10 @@ public class EnumIntegerCodecTableTests
         StringAssert.StartsWith(failure.Message, "Enum has no validated integer storage descriptor: never_declared");
     }
 
+    /// <summary>An enum declaration without members over the given storage type.</summary>
+    /// <param name="name">The declaration name.</param>
+    /// <param name="storageTypeName">The storage type spelling.</param>
+    /// <returns>The declaration.</returns>
     private static CstructEnum MakeEnum(string name, string storageTypeName)
     {
         return new CstructEnum(new Identifier(name), ImmutableArray<EnumValue>.Empty, new Identifier(storageTypeName));

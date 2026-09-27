@@ -5,8 +5,9 @@ using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
 /// <summary>
-///     The storage of an enum declared without a backing type: the compiler rule by default (32 bits, unsigned
-///     unless a member is negative) or the spelling <see cref="CStructCompilationOptions.DefaultEnumStorage"/> names.
+///     The storage of an enum declared without a backing type: the compiler rule by default (32 bits, unsigned unless a
+///     member is negative, a leading literal zero included) or the spelling <see
+///     cref="CStructCompilationOptions.DefaultEnumStorage"/> names.
 /// </summary>
 [TestClass]
 public class DefaultEnumStorageTests
@@ -53,5 +54,19 @@ public class DefaultEnumStorageTests
 
         Assert.Throws<CStructLayoutException>(() => new CStruct("enum big { HUGE = 256 }; struct root { big b; };", compilationOptions: options));
         Assert.Throws<ArgumentOutOfRangeException>(() => new CStruct(source, compilationOptions: new CStructCompilationOptions { DefaultEnumStorage = " ", }));
+    }
+
+    /// <summary>Zero is not a negative literal and must not force signed default storage.</summary>
+    /// <param name="keyword">The enum or flag declaration keyword.</param>
+    [TestMethod]
+    [DataRow("enum")]
+    [DataRow("flag")]
+    public void LiteralZero_PreservesUnsignedDefaultStorage(string keyword)
+    {
+        var layout = new CStruct(keyword + " kind { Zero=0 }; struct root { kind value; };");
+        EnumValueResult value = layout.ReadValue<EnumValueResult>(new byte[] { 255, 255, 255, 255, }.AsSpan(), "root.value");
+        Assert.IsFalse(value.IsSigned);
+        Assert.AreEqual(32, value.BitWidth);
+        Assert.AreEqual(new BigInteger(uint.MaxValue), value.Value);
     }
 }
