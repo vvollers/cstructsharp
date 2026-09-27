@@ -173,12 +173,21 @@ public class AsyncStreamBufferTests
 
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
 
+        /// <summary>Does nothing: the stream is read-only.</summary>
         public override void Flush()
         {
         }
 
+        /// <summary>Reads through the span overload.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <param name="offset">The first index to fill.</param>
+        /// <param name="count">The most bytes to read.</param>
+        /// <returns>The bytes read.</returns>
         public override int Read(byte[] buffer, int offset, int count) => this.Read(buffer.AsSpan(offset, count));
 
+        /// <summary>Reads at most three bytes, and fails once <see cref="FailAfter"/> bytes have been read.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <returns>The bytes read.</returns>
         public override int Read(Span<byte> buffer)
         {
             if (this.position >= this.FailAfter)
@@ -198,31 +207,52 @@ public class AsyncStreamBufferTests
             return chunk;
         }
 
+        /// <summary>Observes cancellation, then reads synchronously.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The bytes read.</returns>
         public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             return new ValueTask<int>(this.Read(buffer.Span));
         }
 
+        /// <summary>Not supported: the stream is forward-only.</summary>
+        /// <param name="offset">The offset, unused.</param>
+        /// <param name="origin">The origin, unused.</param>
+        /// <returns>Never returns.</returns>
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
+        /// <summary>Not supported: the stream is read-only.</summary>
+        /// <param name="value">The length, unused.</param>
         public override void SetLength(long value) => throw new NotSupportedException();
 
+        /// <summary>Not supported: the stream is read-only.</summary>
+        /// <param name="buffer">The source, unused.</param>
+        /// <param name="offset">The first index, unused.</param>
+        /// <param name="count">The byte count, unused.</param>
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
+    /// <summary>An array pool that counts rentals and returns and never reuses an array.</summary>
     private sealed class CountingPool : ArrayPool<byte>
     {
         public int Rented { get; private set; }
 
         public int Returned { get; private set; }
 
+        /// <summary>Counts the rental and allocates a new array.</summary>
+        /// <param name="minimumLength">The array length.</param>
+        /// <returns>The array.</returns>
         public override byte[] Rent(int minimumLength)
         {
             this.Rented++;
             return new byte[minimumLength];
         }
 
+        /// <summary>Counts the return.</summary>
+        /// <param name="array">The array.</param>
+        /// <param name="clearArray">Whether to clear it, ignored.</param>
         public override void Return(byte[] array, bool clearArray = false)
         {
             this.Returned++;

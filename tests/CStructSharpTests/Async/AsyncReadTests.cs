@@ -8,14 +8,18 @@ using CStructSharp.Values;
 ///     Pins the awaitable read forms against the synchronous stream forms: the same values, debug ranges (as stream
 ///     coordinates), addresses, lengths, failure texts, and final positions over a memory stream that exposes its
 ///     buffer (read in place), one that does not (buffered), a file opened for asynchronous I/O, and a forward-only
-///     stream (consumed up to the budget); the non-throwing form's outcome; cancellation.
+///     stream (consumed up to the budget); the non-throwing form's outcome; cancellation; and the ordinary decoding
+///     path for a lowered nested alignment.
 /// </summary>
 [TestClass]
 public class AsyncReadTests
 {
     private const string Layout = "struct item { uint16 id; uint8 flags; }; struct root { uint8 count; item items[count]; cstring name; uint16 *link; };";
+
     private const int Origin = 2;
+
     private const int ValueLength = 18;
+
     private static readonly byte[] Bytes = [0xAA, 0xBB, 2, 0x34, 0x12, 1, 0x78, 0x56, 2, (byte)'o', (byte)'k', 0, 18, 0, 0, 0, 0, 0, 0, 0, 0xEE, 0xFF, 0xCC,];
 
     /// <summary>Every awaitable read agrees with its synchronous stream form on every stream kind, and leaves a seekable stream just after the value (or at the origin for address and length queries).</summary>
@@ -142,6 +146,34 @@ public class AsyncReadTests
         await Assert.ThrowsAsync<OperationCanceledException>(async () => await layout.TryReadValueAsync<StructValue>(stream, "root", cancellationToken: cancelled.Token));
     }
 
+    /// <summary>Lowered nested alignment must not make an ordinary async wrapper silently select debug decoding.</summary>
+    /// <param name="visible">Whether the async operation borrows the input buffer instead of copying it.</param>
+    /// <returns>A task that completes after comparing decoded values and consumed byte positions.</returns>
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task LoweredNestedAlignment_PreservesOrdinaryReadParity(bool visible)
+    {
+        var layout = new CStruct("struct item { uint8 first; uint16 second; }; struct root { uint8 prefix; item values[2] @align(1); uint8 tail; };", aligned: true);
+        byte[] bytes = [9, 0xA1, 0xB2, 0xC3, 0xD4, 0xEE, 0x16, 0x27, 0x63, 0,];
+        using var synchronous = new MemoryStream(bytes);
+        using var asynchronous = new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: visible);
+
+        // Compare the public ordinary-read forms without declaring either placement algorithm the layout oracle.
+        StructValue expected = layout.Parse(synchronous, "root");
+        StructValue actual = await layout.ParseAsync(asynchronous, "root");
+        Assert.AreEqual(expected.Get<byte>("prefix"), actual.Get<byte>("prefix"));
+        Assert.AreEqual(expected.Get<byte>("values[0].first"), actual.Get<byte>("values[0].first"));
+        Assert.AreEqual(expected.Get<ushort>("values[0].second"), actual.Get<ushort>("values[0].second"));
+        Assert.AreEqual(expected.Get<byte>("values[1].first"), actual.Get<byte>("values[1].first"));
+        Assert.AreEqual(expected.Get<ushort>("values[1].second"), actual.Get<ushort>("values[1].second"));
+        Assert.AreEqual(expected.Get<byte>("tail"), actual.Get<byte>("tail"));
+        Assert.AreEqual(synchronous.Position, asynchronous.Position);
+    }
+
+    /// <summary>The stream kinds the awaitable reads must agree across, each positioned at the origin.</summary>
+    /// <param name="bytes">The content, or the default fixture bytes.</param>
+    /// <returns>Each kind's name and a factory.</returns>
     private static IEnumerable<(string Kind, Func<Stream> Open)> Streams(byte[]? bytes = null)
     {
         bytes ??= Bytes;
@@ -150,6 +182,9 @@ public class AsyncReadTests
         yield return ("file (async)", () => OpenFile(bytes));
     }
 
+    /// <summary>Writes the bytes to a temporary file and opens it for asynchronous reads; the file is deleted when closed.</summary>
+    /// <param name="bytes">The content.</param>
+    /// <returns>The stream, positioned at the origin.</returns>
     private static FileStream OpenFile(byte[] bytes)
     {
         string path = Path.Combine(Path.GetTempPath(), $"cstructsharp-async-read-{Guid.NewGuid():N}.bin");
@@ -157,6 +192,7 @@ public class AsyncReadTests
         return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous | FileOptions.DeleteOnClose) { Position = Origin, };
     }
 
+    /// <summary>A memory stream that reports it cannot be read.</summary>
     private sealed class WriteOnlyStream : MemoryStream
     {
         public override bool CanRead => false;

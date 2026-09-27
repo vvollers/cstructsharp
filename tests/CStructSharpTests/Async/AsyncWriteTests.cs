@@ -122,11 +122,17 @@ public class AsyncWriteTests
     }
 
     /// <summary>A memory stream that records the position and length of every write.</summary>
+    /// <summary>A memory stream over the bytes that records its asynchronous writes.</summary>
+    /// <param name="bytes">The content.</param>
     private sealed class RecordingStream(byte[] bytes) : MemoryStream(bytes, writable: true)
     {
         public List<(long Position, int Count)> Writes { get; } = [];
 
-        // Only the asynchronous write is recorded: the memory stream forwards it to a synchronous overload internally.
+        /// <summary>Records where the write starts and how long it is, then writes.</summary>
+        /// <remarks>Only the asynchronous write is recorded: the memory stream forwards it to a synchronous overload internally.</remarks>
+        /// <param name="buffer">The source.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The write.</returns>
         public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
         {
             this.Writes.Add((this.Position, buffer.Length));
