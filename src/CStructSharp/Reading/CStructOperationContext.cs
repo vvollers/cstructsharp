@@ -56,6 +56,7 @@ internal sealed class CStructOperationContext
         this.MaxArrayElements = options.MaxArrayElements;
         this.MaxNestingDepth = options.MaxNestingDepth;
         this.TrimFixedText = options.TrimFixedText;
+        this.GeneralPathOnly = options.ExecutionPath == ExecutionPath.GeneralOnly;
         if (this.MaxPointerDepth < 0)
         {
             // A negative limit has no meaningful safety interpretation and would make the comparison misleading.
@@ -130,6 +131,9 @@ internal sealed class CStructOperationContext
 
     /// <summary>Whether fixed-capacity text drops its trailing NUL padding (<see cref="ReadOptions.TrimFixedText"/>).</summary>
     public bool TrimFixedText { get; }
+
+    /// <summary>Gets whether the read must avoid static plans and block reads (<see cref="ExecutionPath.GeneralOnly"/>).</summary>
+    public bool GeneralPathOnly { get; }
 
     public int MaxNestingDepth { get; }
 

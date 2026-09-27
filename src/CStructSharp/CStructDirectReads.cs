@@ -23,21 +23,9 @@ using CStructSharp.Values;
 /// </remarks>
 public sealed partial class CStruct
 {
-    // Test hook: disables the direct paths on the current thread, so the general reader and writer (with their own
-    // static plans still enabled) can be compared against them.
-    [ThreadStatic]
-    private static bool directAccessDisabledForTesting;
-
     // The most recent root-name lookup of TryGetFixedRootPlan. The entry is immutable and replaced whole, so a reader
     // never sees a torn entry; the box keeps the layout's own fields readonly after construction.
     private readonly StrongBox<FixedRootEntry?> lastFixedRoot = new();
-
-    /// <summary>Gets or sets the per-thread test switch that routes whole-root reads and writes through the general reader and writer.</summary>
-    internal static bool DirectAccessDisabledForTesting
-    {
-        get => directAccessDisabledForTesting;
-        set => directAccessDisabledForTesting = value;
-    }
 
     /// <summary>
     ///     Checks the conditions in the class remarks for a direct read of a whole fixed root: a bare root name with a
@@ -61,7 +49,7 @@ public sealed partial class CStruct
         out ReadOperationSettings settings)
     {
         settings = default;
-        if (variables is not null || StaticReadPlan.DisabledForTesting || directAccessDisabledForTesting || !this.TryGetFixedRootPlan(path, out composite, out plan))
+        if (variables is not null || options?.ExecutionPath is not (null or ExecutionPath.Fastest) || !this.TryGetFixedRootPlan(path, out composite, out plan))
         {
             composite = null;
             plan = null;

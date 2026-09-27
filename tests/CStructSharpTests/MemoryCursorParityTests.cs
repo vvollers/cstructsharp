@@ -49,9 +49,7 @@ public class MemoryCursorParityTests
 
             // The same memory-backed source through the general reader only (static read plans disabled).
             using var unplanned = new MemoryStream(bytes, writable: false);
-            StaticReadPlan.DisabledForTesting = true;
-            (object? unplannedResult, string? unplannedError) = Try(() => layout.Parse(unplanned, rootName, options: readOptions));
-            StaticReadPlan.DisabledForTesting = false;
+            (object? unplannedResult, string? unplannedError) = Try(() => layout.Parse(unplanned, rootName, options: readOptions with { ExecutionPath = ExecutionPath.GeneralOnly }));
 
             Assert.AreEqual(spanError, memoryError, id);
             Assert.AreEqual(spanError, chunkedError, id);

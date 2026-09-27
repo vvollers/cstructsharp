@@ -422,7 +422,7 @@ public partial class CStruct
                     bool bulkCharacters = isArray && !state.Debug && !useLegacyPlacement && numFieldValues > 0 &&
                                           compiledField.IsCharElement && !compiledField.IsWideCharElement && !compiledField.IsPointer &&
                                           compiledField.BitSize == 0 && compiledField.Array.Dimensions.Length == 1 && compiledField.Name.Length > 0 &&
-                                          !compiledField.CapturesLayoutVariable && !state.CaptureAllLayoutVariables && !StaticReadPlan.DisabledForTesting;
+                                          !compiledField.CapturesLayoutVariable && !state.CaptureAllLayoutVariables && !state.GeneralPathOnly;
                     if (isArray && !typedArray && !bulkCharacters)
                     {
                         containerDict[compiledField.Name] = new List<object?>(numFieldValues);
@@ -489,7 +489,7 @@ public partial class CStruct
 
                     // A one-dimensional array of a fully fixed struct whose whole extent is in memory
                     // is read by looping the element's static plan over one span instead of dispatching per element.
-                    if (isArray && firstElement == 0 && numFieldValues > 0 && !state.Debug && !useLegacyPlacement && !StaticReadPlan.DisabledForTesting &&
+                    if (isArray && firstElement == 0 && numFieldValues > 0 && !state.Debug && !useLegacyPlacement && !state.GeneralPathOnly &&
                         compiledField.PointerDepth == 0 && nestedComposite is { IsUnion: false } composite && compiledField.Array.Dimensions.Length == 1)
                     {
                         if (composite.StaticPlan is StaticReadPlan plan && plan.Size > 0 && compiledField.FixedElementSize == plan.Size &&

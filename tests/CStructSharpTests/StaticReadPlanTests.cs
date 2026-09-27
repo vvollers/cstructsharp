@@ -102,9 +102,7 @@ public class StaticReadPlanTests
             string fast = Render(layout.Parse(withPlan, "root"));
             using var withoutPlan = new MemoryStream(bytes, writable: false);
             withoutPlan.Position = start;
-            StaticReadPlan.DisabledForTesting = true;
-            string general = Render(layout.Parse(withoutPlan, "root"));
-            StaticReadPlan.DisabledForTesting = false;
+            string general = Render(layout.Parse(withoutPlan, "root", options: ExecutionPaths.GeneralOnly()));
             Assert.AreEqual(general, fast, $"start {start}");
             Assert.AreEqual(withoutPlan.Position, withPlan.Position, $"start {start}: position");
         }
@@ -167,9 +165,7 @@ public class StaticReadPlanTests
             using Stream? withPlan = create();
             using Stream? withoutPlan = create();
             (object? fast, Exception? fastError) = Try(() => withPlan is null ? layout.Parse(bytes, "root", options: options) : layout.Parse(withPlan, "root", options: options));
-            StaticReadPlan.DisabledForTesting = true;
-            (object? general, Exception? generalError) = Try(() => withoutPlan is null ? layout.Parse(bytes, "root", options: options) : layout.Parse(withoutPlan, "root", options: options));
-            StaticReadPlan.DisabledForTesting = false;
+            (object? general, Exception? generalError) = Try(() => withoutPlan is null ? layout.Parse(bytes, "root", options: ExecutionPaths.GeneralOnly(options)) : layout.Parse(withoutPlan, "root", options: ExecutionPaths.GeneralOnly(options)));
             string caseLabel = label + " / " + source;
             Assert.AreEqual(generalError?.GetType(), fastError?.GetType(), caseLabel);
             Assert.AreEqual((generalError as CStructException)?.Offset, (fastError as CStructException)?.Offset, caseLabel + ": failure offset");

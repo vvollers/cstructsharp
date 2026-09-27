@@ -48,6 +48,7 @@ internal sealed class CStructElementWriterState
         this.AddressingMode = this.Options.AddressingMode;
         this.RejectUnknownMembers = this.Options.UnknownMembers == UnknownMemberPolicy.Reject;
         this.MaxNestingDepth = this.Options.MaxNestingDepth;
+        this.GeneralPathOnly = this.Options.ExecutionPath == ExecutionPath.GeneralOnly;
         this.StructureDepth = initialStructureDepth;
         if (initialStructureDepth < 0 || initialStructureDepth > this.MaxNestingDepth)
         {
@@ -68,6 +69,9 @@ internal sealed class CStructElementWriterState
     public bool RejectUnknownMembers { get; }
 
     public WriteOptions Options { get; }
+
+    /// <summary>Gets whether the write must avoid static plans and block writes (<see cref="ExecutionPath.GeneralOnly"/>).</summary>
+    public bool GeneralPathOnly { get; }
 
     public long PointerOrigin { get; }
 

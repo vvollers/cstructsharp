@@ -16,7 +16,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 ///     and both <c>Serialize</c> forms run the static plan straight over the caller's span - together with the typed
 ///     conversions and the allocation-free path walk they rely on. Each must be indistinguishable from the general
 ///     reader and writer: the same values, bytes, exception types, messages, paths and offsets, for every truncation,
-///     budget and limit. <see cref="CStruct.DirectAccessDisabledForTesting"/> routes a call through the general path.
+///     budget and limit. The internal <see cref="ExecutionPath.NoDirectAccess"/> option routes a call through the general path.
 /// </summary>
 [TestClass]
 public class DirectRootAccessTests
@@ -67,14 +67,14 @@ public class DirectRootAccessTests
                 foreach ((string label, byte[] input, ReadOptions? options) in cases)
                 {
                     string caseLabel = $"aligned={aligned} {root} {label}";
-                    AssertSame(() => layout.Parse(input, root, options: options), caseLabel + " / Parse");
-                    AssertSame(() => layout.ReadValue(input, root, options: options), caseLabel + " / ReadValue");
-                    AssertSame(() => layout.Parse(input, root, new Dictionary<string, int>(), options), caseLabel + " / variables");
+                    AssertSame(o => layout.Parse(input, root, options: o), options, caseLabel + " / Parse");
+                    AssertSame(o => layout.ReadValue(input, root, options: o), options, caseLabel + " / ReadValue");
+                    AssertSame(o => layout.Parse(input, root, new Dictionary<string, int>(), o), options, caseLabel + " / variables");
                     if (root == "plain")
                     {
-                        AssertSame(() => layout.ReadValue<PlainRecord>(input, root, options: options), caseLabel + " / ReadValue<T>");
-                        AssertSame(() => layout.ReadValue<NarrowPlain>(input, root, options: options), caseLabel + " / failing mapper");
-                        AssertSame(() => layout.ReadValue<ThrowingPlain>(input, root, options: options), caseLabel + " / throwing mapper");
+                        AssertSame(o => layout.ReadValue<PlainRecord>(input, root, options: o), options, caseLabel + " / ReadValue<T>");
+                        AssertSame(o => layout.ReadValue<NarrowPlain>(input, root, options: o), options, caseLabel + " / failing mapper");
+                        AssertSame(o => layout.ReadValue<ThrowingPlain>(input, root, options: o), options, caseLabel + " / throwing mapper");
                     }
                 }
             }
@@ -120,11 +120,11 @@ public class DirectRootAccessTests
                 foreach ((string optionLabel, WriteOptions? writeOptions) in options)
                 {
                     string label = $"aligned={aligned} {valueLabel} {optionLabel}";
-                    AssertSame(() => layout.Serialize("plain", value, options: writeOptions), label + " / array");
+                    AssertSameWrite(o => layout.Serialize("plain", value, options: o), writeOptions, label + " / array");
                     for (int capacity = size - 1; capacity <= size + 1; capacity++)
                     {
                         int length = capacity;
-                        AssertSameWrite(destination => layout.Serialize(destination, "plain", value, options: writeOptions), length, $"{label} / span of {length}");
+                        AssertSameWrite((destination, o) => layout.Serialize(destination, "plain", value, options: o), writeOptions, length, $"{label} / span of {length}");
                     }
                 }
             }
@@ -259,15 +259,7 @@ public class DirectRootAccessTests
                 ["samples"] = new uint[] { 1, 2, 3 },
                 ["ok"] = true,
             };
-        StaticReadPlan.DisabledForTesting = true;
-        try
-        {
-            return layout.Serialize(root, value);
-        }
-        finally
-        {
-            StaticReadPlan.DisabledForTesting = false;
-        }
+        return layout.Serialize(root, value, options: new WriteOptions { ExecutionPath = ExecutionPath.GeneralOnly });
     }
 
     /// <summary>Runs <see cref="ReadCursor.TryTakeFixed"/> from <paramref name="start"/> and reports how far the cursor moved.</summary>
@@ -297,28 +289,35 @@ public class DirectRootAccessTests
         AssertSameOutcome(general, generalError, fast, fastError, label);
     }
 
-    /// <summary>Asserts that an operation behaves the same with the direct path enabled and disabled.</summary>
-    private static void AssertSame(Func<object?> operation, string label)
+    /// <summary>Asserts that a read behaves the same with the caller's options and with the direct path excluded from them.</summary>
+    private static void AssertSame(Func<ReadOptions?, object?> operation, ReadOptions? options, string label)
     {
-        (object? fast, Exception? fastError) = Run(operation);
-        CStruct.DirectAccessDisabledForTesting = true;
-        (object? general, Exception? generalError) = Run(operation);
-        CStruct.DirectAccessDisabledForTesting = false;
+        (object? fast, Exception? fastError) = Run(() => operation(options));
+        (object? general, Exception? generalError) = Run(() => operation((options ?? new ReadOptions()) with { ExecutionPath = ExecutionPath.NoDirectAccess }));
         AssertSameOutcome(general, generalError, fast, fastError, label);
     }
 
-    /// <summary>Asserts that a span write behaves the same with the direct path enabled and disabled, destination bytes included.</summary>
-    private static void AssertSameWrite(Func<byte[], int> write, int capacity, string label)
+    /// <summary>Asserts that a write to a new array behaves the same with the caller's options and with the direct path excluded from them.</summary>
+    private static void AssertSameWrite(Func<WriteOptions?, object?> operation, WriteOptions? options, string label)
+    {
+        (object? fast, Exception? fastError) = Run(() => operation(options));
+        (object? general, Exception? generalError) = Run(() => operation(WithoutDirectAccess(options)));
+        AssertSameOutcome(general, generalError, fast, fastError, label);
+    }
+
+    /// <summary>Asserts that a span write behaves the same with the caller's options and with the direct path excluded, destination bytes included.</summary>
+    private static void AssertSameWrite(Func<byte[], WriteOptions?, int> write, WriteOptions? options, int capacity, string label)
     {
         byte[] fastDestination = Enumerable.Repeat((byte)0xCC, capacity).ToArray();
         byte[] generalDestination = Enumerable.Repeat((byte)0xCC, capacity).ToArray();
-        (object? fast, Exception? fastError) = Run(() => write(fastDestination));
-        CStruct.DirectAccessDisabledForTesting = true;
-        (object? general, Exception? generalError) = Run(() => write(generalDestination));
-        CStruct.DirectAccessDisabledForTesting = false;
+        (object? fast, Exception? fastError) = Run(() => write(fastDestination, options));
+        (object? general, Exception? generalError) = Run(() => write(generalDestination, WithoutDirectAccess(options)));
         AssertSameOutcome(general, generalError, fast, fastError, label);
         CollectionAssert.AreEqual(generalDestination, fastDestination, label + ": destination");
     }
+
+    /// <summary>Returns the write options with direct span access excluded.</summary>
+    private static WriteOptions WithoutDirectAccess(WriteOptions? options) => (options ?? new WriteOptions()) with { ExecutionPath = ExecutionPath.NoDirectAccess };
 
     /// <summary>Compares two outcomes: exception type, message, path, offset and inner exception, or the rendered value.</summary>
     private static void AssertSameOutcome(object? general, Exception? generalError, object? fast, Exception? fastError, string label)

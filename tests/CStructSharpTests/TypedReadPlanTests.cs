@@ -137,9 +137,7 @@ public class TypedReadPlanTests
         using var withPlan = new MemoryStream(Bytes, writable: false);
         RootExact fast = layout.ReadValue<RootExact>(withPlan, "root");
         using var withoutPlan = new MemoryStream(Bytes, writable: false);
-        StaticReadPlan.DisabledForTesting = true;
-        RootExact general = layout.ReadValue<RootExact>(withoutPlan, "root");
-        StaticReadPlan.DisabledForTesting = false;
+        RootExact general = layout.ReadValue<RootExact>(withoutPlan, "root", options: ExecutionPaths.GeneralOnly());
         Assert.AreEqual(Render(general), Render(fast));
         Assert.AreEqual(withoutPlan.Position, withPlan.Position);
 
@@ -152,20 +150,17 @@ public class TypedReadPlanTests
             string fastText = Render(aligned.ReadValue<Small>(fastStream, "root"));
             using var generalStream = new MemoryStream(bytes, writable: false);
             generalStream.Position = start;
-            StaticReadPlan.DisabledForTesting = true;
-            string generalText = Render(aligned.ReadValue<Small>(generalStream, "root"));
-            StaticReadPlan.DisabledForTesting = false;
+            string generalText = Render(aligned.ReadValue<Small>(generalStream, "root", options: ExecutionPaths.GeneralOnly()));
             Assert.AreEqual(generalText, fastText, $"start {start}");
             Assert.AreEqual(generalStream.Position, fastStream.Position, $"start {start}: position");
         }
     }
 
+    /// <summary>Asserts that a typed read gives the same value or failure with the static plan and with only the general reader.</summary>
     private static void AssertSameOutcome<T>(CStruct layout, byte[] bytes, string path, ReadOptions? options, string label)
     {
         (string? fast, Exception? fastError) = Try(() => Render(layout.ReadValue<T>(bytes, path, options: options)));
-        StaticReadPlan.DisabledForTesting = true;
-        (string? general, Exception? generalError) = Try(() => Render(layout.ReadValue<T>(bytes, path, options: options)));
-        StaticReadPlan.DisabledForTesting = false;
+        (string? general, Exception? generalError) = Try(() => Render(layout.ReadValue<T>(bytes, path, options: ExecutionPaths.GeneralOnly(options))));
         Assert.AreEqual(generalError?.GetType(), fastError?.GetType(), label);
         Assert.AreEqual(generalError?.Message, fastError?.Message, label);
         Assert.AreEqual((generalError as CStructException)?.Path, (fastError as CStructException)?.Path, label + ": failure path");

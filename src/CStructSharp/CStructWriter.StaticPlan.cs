@@ -37,7 +37,7 @@ public partial class CStruct
     /// </remarks>
     private bool TryWriteStaticPlan(CompiledCompositeType composite, object data, CStructElementWriterState state)
     {
-        if (state.Options is UpdateOptions || StaticReadPlan.DisabledForTesting || composite.StaticPlan is not { SupportsWrite: true } plan ||
+        if (state.Options is UpdateOptions || state.GeneralPathOnly || composite.StaticPlan is not { SupportsWrite: true } plan ||
             plan.Size > ReadBlock.Size || state.StructureDepth + plan.NestingDepth > state.MaxNestingDepth ||
             plan.MaximumArrayCount > state.Options.MaxArrayElements)
         {

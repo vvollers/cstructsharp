@@ -67,7 +67,7 @@ public class StaticReadAllocationBoundaryTests
         Assert.AreEqual(Measure(layout, bytes, false, generous), Measure(layout, bytes, false, boundary));
     }
 
-    /// <summary>Warms one decoding mode, then measures steady-state allocation while restoring the caller's per-thread switch.</summary>
+    /// <summary>Warms one decoding mode, then measures steady-state allocation.</summary>
     /// <param name="layout">The prepared record layout, excluded from the measured allocation.</param>
     /// <param name="bytes">The complete input, shared unchanged by both decoding modes.</param>
     /// <param name="disabled">Whether to route fixed composites through the general reader.</param>
@@ -75,34 +75,30 @@ public class StaticReadAllocationBoundaryTests
     /// <returns>The smallest current-thread allocation across three batches of eight completed parses.</returns>
     private static long Measure(CStruct layout, byte[] bytes, bool disabled, ReadOptions? options = null)
     {
-        bool previous = StaticReadPlan.DisabledForTesting;
-        StaticReadPlan.DisabledForTesting = disabled;
-        try
+        if (disabled)
         {
-            for (int repeat = 0; repeat < 4; repeat++)
+            options = (options ?? new ReadOptions()) with { ExecutionPath = ExecutionPath.GeneralOnly };
+        }
+
+        for (int repeat = 0; repeat < 4; repeat++)
+        {
+            GC.KeepAlive(layout.Parse(bytes.AsSpan(), "root", options: options));
+        }
+
+        // Runtime initialization can add a one-off allocation after warm-up. Repeated batches isolate
+        // steady-state decoder work without relaxing the exact comparison or scratch-size boundaries.
+        long minimum = long.MaxValue;
+        for (int sample = 0; sample < 3; sample++)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            for (int repeat = 0; repeat < 8; repeat++)
             {
                 GC.KeepAlive(layout.Parse(bytes.AsSpan(), "root", options: options));
             }
 
-            // Runtime initialization can add a one-off allocation after warm-up. Repeated batches isolate
-            // steady-state decoder work without relaxing the exact comparison or scratch-size boundaries.
-            long minimum = long.MaxValue;
-            for (int sample = 0; sample < 3; sample++)
-            {
-                long before = GC.GetAllocatedBytesForCurrentThread();
-                for (int repeat = 0; repeat < 8; repeat++)
-                {
-                    GC.KeepAlive(layout.Parse(bytes.AsSpan(), "root", options: options));
-                }
-
-                minimum = Math.Min(minimum, GC.GetAllocatedBytesForCurrentThread() - before);
-            }
-
-            return minimum;
+            minimum = Math.Min(minimum, GC.GetAllocatedBytesForCurrentThread() - before);
         }
-        finally
-        {
-            StaticReadPlan.DisabledForTesting = previous;
-        }
+
+        return minimum;
     }
 }

@@ -16,16 +16,7 @@ public class WriterEmptyTailTests
     {
         var layout = new CStruct("struct root {};", aligned: aligned);
         using var destination = new PositionCountingStream();
-        bool previous = StaticReadPlan.DisabledForTesting;
-        StaticReadPlan.DisabledForTesting = true;
-        try
-        {
-            layout.Write(destination, "root", new Dictionary<string, object?>());
-        }
-        finally
-        {
-            StaticReadPlan.DisabledForTesting = previous;
-        }
+        layout.Write(destination, "root", new Dictionary<string, object?>(), options: ExecutionPaths.GeneralWrite());
 
         Assert.AreEqual(expectedReads, destination.PositionReads);
         Assert.AreEqual(0L, destination.Length);

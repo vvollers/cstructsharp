@@ -156,9 +156,9 @@ public sealed partial class CStruct
         }
 
         // Direct decoding needs limits that cover the whole struct; any other options read each member through ReadValue.
-        bool direct = plan is not null && !StaticReadPlan.DisabledForTesting && !DirectAccessDisabledForTesting &&
+        bool direct = plan is not null &&
                       (options is null ||
-                       (!options.CancellationToken.IsCancellationRequested && options.MaxPointerDepth >= 0 && !(options.MaxPointerTargetBytes < 0) &&
+                       (options.ExecutionPath == ExecutionPath.Fastest && !options.CancellationToken.IsCancellationRequested && options.MaxPointerDepth >= 0 && !(options.MaxPointerTargetBytes < 0) &&
                         options.MaxStringBytes >= 0 && options.MaxTotalBytesRead >= plan.Size && options.MaxArrayElements >= plan.MaximumArrayCount &&
                         options.MaxNestingDepth > plan.NestingDepth));
         return new StructView(this, root, composite, plan is null ? source : source[..plan.Size], source, options, direct);

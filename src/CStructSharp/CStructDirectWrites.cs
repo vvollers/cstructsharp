@@ -44,7 +44,7 @@ public sealed partial class CStruct
         out int written)
     {
         written = 0;
-        if (variables is not null || data is null || options is UpdateOptions || StaticReadPlan.DisabledForTesting || DirectAccessDisabledForTesting ||
+        if (variables is not null || data is null || options is UpdateOptions || options?.ExecutionPath is not (null or ExecutionPath.Fastest) ||
             !this.TryGetFixedRootPlan(path, out CompiledCompositeType? composite, out StaticReadPlan? plan) ||
             !plan.SupportsWrite || plan.Size > ReadBlock.Size || plan.Size > destination.Length)
         {

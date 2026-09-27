@@ -86,7 +86,7 @@ public partial class CStruct
         // never consumes bytes and then fails: such inputs go to the general reader and fail where they always did.
         // The general reader aligns members to absolute stream positions; the plan's offsets are relative to the
         // struct start, which coincide only when the struct itself starts on its alignment boundary.
-        if (!state.Debug && !StaticReadPlan.DisabledForTesting && ReferenceEquals(destination.Shape, composite.Shape) && composite.StaticPlan is StaticReadPlan plan &&
+        if (!state.Debug && !state.GeneralPathOnly && ReferenceEquals(destination.Shape, composite.Shape) && composite.StaticPlan is StaticReadPlan plan &&
             state.StructureDepth + plan.NestingDepth <= state.MaxNestingDepth && plan.MaximumArrayCount <= state.MaxArrayElements &&
             (!this.Aligned || state.Stream.Position % composite.Symbol.Alignment == 0))
         {

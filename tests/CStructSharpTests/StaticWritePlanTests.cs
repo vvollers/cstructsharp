@@ -174,9 +174,7 @@ public class StaticWritePlanTests
             using var withoutPlan = new MemoryStream();
             withoutPlan.Write(existing);
             withoutPlan.Position = start;
-            StaticReadPlan.DisabledForTesting = true;
-            layout.Write(withoutPlan, "root", data);
-            StaticReadPlan.DisabledForTesting = false;
+            layout.Write(withoutPlan, "root", data, options: ExecutionPaths.GeneralWrite());
 
             CollectionAssert.AreEqual(withoutPlan.ToArray(), withPlan.ToArray(), $"start {start}");
             Assert.AreEqual(withoutPlan.Position, withPlan.Position, $"start {start}: position");
@@ -262,9 +260,7 @@ public class StaticWritePlanTests
             }
 
             (byte[]? planned, Exception? plannedError) = Try(() => layout.Serialize(rootName, parsed));
-            StaticReadPlan.DisabledForTesting = true;
-            (byte[]? general, Exception? generalError) = Try(() => layout.Serialize(rootName, parsed));
-            StaticReadPlan.DisabledForTesting = false;
+            (byte[]? general, Exception? generalError) = Try(() => layout.Serialize(rootName, parsed, options: ExecutionPaths.GeneralWrite()));
             Assert.AreEqual(WithoutOffset(generalError?.Message), WithoutOffset(plannedError?.Message), id);
             if (general is not null)
             {
@@ -277,6 +273,7 @@ public class StaticWritePlanTests
         Assert.IsGreaterThan(30, compared);
     }
 
+    /// <summary>Asserts that every write destination gives the same bytes and failure with the static write plan and with only the general writer.</summary>
     private static void AssertSameOutcome(CStruct layout, object data, WriteOptions? options, string label)
     {
         foreach ((string destination, Func<object, WriteOptions?, byte[]> write) in new (string, Func<object, WriteOptions?, byte[]>)[]
@@ -303,9 +300,7 @@ public class StaticWritePlanTests
         })
         {
             (byte[]? planned, Exception? plannedError) = Try(() => write(data, options));
-            StaticReadPlan.DisabledForTesting = true;
-            (byte[]? general, Exception? generalError) = Try(() => write(data, options));
-            StaticReadPlan.DisabledForTesting = false;
+            (byte[]? general, Exception? generalError) = Try(() => write(data, ExecutionPaths.GeneralOnly(options)));
             string caseLabel = label + " / " + destination;
             Assert.AreEqual(generalError?.GetType(), plannedError?.GetType(), caseLabel);
             Assert.AreEqual(WithoutOffset(generalError?.Message), WithoutOffset(plannedError?.Message), caseLabel);

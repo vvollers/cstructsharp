@@ -12,7 +12,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 /// <summary>
 ///     Pins the block reads and writes inside the general reader and writer - a <c>char[n]</c> read and written as one
 ///     block, and a typed numeric array written as one block - against the element-by-element paths they replace
-///     (<see cref="StaticReadPlan.DisabledForTesting"/>): the same values, bytes, destination contents, exception types,
+///     (the internal <see cref="ExecutionPath.GeneralOnly"/> option): the same values, bytes, destination contents, exception types,
 ///     messages, paths and offsets for every truncation, budget, capacity and invalid value.
 /// </summary>
 [TestClass]
@@ -57,9 +57,9 @@ public class GeneralPathBlockTests
             foreach ((string label, byte[] input, ReadOptions? options) in cases)
             {
                 string caseLabel = $"aligned={aligned} {label}";
-                AssertSame(() => Render(layout.Parse(input, "packet", options: options)), caseLabel + " / span");
-                AssertSame(() => Render(layout.Parse(new MemoryStream(input, writable: false), "packet", options: options)), caseLabel + " / stream");
-                AssertSame(() => Render(layout.Parse(new ChunkedMemoryStream(input, 3, writable: false), "packet", options: options)), caseLabel + " / chunked");
+                AssertSameRead(o => Render(layout.Parse(input, "packet", options: o)), options, caseLabel + " / span");
+                AssertSameRead(o => Render(layout.Parse(new MemoryStream(input, writable: false), "packet", options: o)), options, caseLabel + " / stream");
+                AssertSameRead(o => Render(layout.Parse(new ChunkedMemoryStream(input, 3, writable: false), "packet", options: o)), options, caseLabel + " / chunked");
             }
         }
     }
@@ -94,12 +94,12 @@ public class GeneralPathBlockTests
                 foreach ((string optionLabel, WriteOptions? writeOptions) in options)
                 {
                     string label = $"aligned={aligned} {valueLabel} {optionLabel}";
-                    AssertSame(() => Convert.ToHexString(layout.Serialize("packet", value, options: writeOptions)), label + " / array");
+                    AssertSameWrite(o => Convert.ToHexString(layout.Serialize("packet", value, options: o)), writeOptions, label + " / array");
                     foreach (int capacity in new[] { 0, 5, size - 1, size, size + 3 })
                     {
                         byte[] destination = Enumerable.Repeat((byte)0xCC, capacity).ToArray();
-                        AssertSame(
-                            () =>
+                        AssertSameWrite(
+                            o =>
                             {
                                 // The same starting contents for both runs, then the count and every destination byte.
                                 Array.Fill(destination, (byte)0xCC);
@@ -107,7 +107,7 @@ public class GeneralPathBlockTests
                                 int written = -1;
                                 try
                                 {
-                                    written = layout.Serialize(destination, "packet", value, options: writeOptions);
+                                    written = layout.Serialize(destination, "packet", value, options: o);
                                 }
                                 catch (CStructException exception)
                                 {
@@ -116,16 +116,18 @@ public class GeneralPathBlockTests
 
                                 return written + ":" + Convert.ToHexString(destination) + ":" + Describe(failure);
                             },
+                            writeOptions,
                             $"{label} / span of {capacity}");
                     }
 
-                    AssertSame(
-                        () =>
+                    AssertSameWrite(
+                        o =>
                         {
                             using var stream = new MemoryStream();
-                            layout.Write(stream, "packet", value, options: writeOptions);
+                            layout.Write(stream, "packet", value, options: o);
                             return Convert.ToHexString(stream.ToArray());
                         },
+                        writeOptions,
                         label + " / stream");
                 }
             }
@@ -147,15 +149,7 @@ public class GeneralPathBlockTests
             ["value"] = 21.5,
             ["note"] = "calibrated",
         };
-        StaticReadPlan.DisabledForTesting = true;
-        try
-        {
-            return layout.Serialize("packet", value);
-        }
-        finally
-        {
-            StaticReadPlan.DisabledForTesting = false;
-        }
+        return layout.Serialize("packet", value, options: new WriteOptions { ExecutionPath = ExecutionPath.GeneralOnly });
     }
 
     /// <summary>A copy of <paramref name="source"/> with one member replaced.</summary>
@@ -170,21 +164,19 @@ public class GeneralPathBlockTests
         return copy;
     }
 
-    /// <summary>Runs an operation with the block paths enabled and disabled and asserts the same outcome.</summary>
-    private static void AssertSame(Func<string> operation, string label)
+    /// <summary>Runs a read with the caller's options and with only the general reader, and asserts the same outcome.</summary>
+    private static void AssertSameRead(Func<ReadOptions?, string> operation, ReadOptions? options, string label)
     {
-        string block = Outcome(operation);
-        StaticReadPlan.DisabledForTesting = true;
-        string element;
-        try
-        {
-            element = Outcome(operation);
-        }
-        finally
-        {
-            StaticReadPlan.DisabledForTesting = false;
-        }
+        string block = Outcome(() => operation(options));
+        string element = Outcome(() => operation((options ?? new ReadOptions()) with { ExecutionPath = ExecutionPath.GeneralOnly }));
+        Assert.AreEqual(element, block, label);
+    }
 
+    /// <summary>Runs a write with the caller's options and with only the general writer, and asserts the same outcome.</summary>
+    private static void AssertSameWrite(Func<WriteOptions?, string> operation, WriteOptions? options, string label)
+    {
+        string block = Outcome(() => operation(options));
+        string element = Outcome(() => operation((options ?? new WriteOptions()) with { ExecutionPath = ExecutionPath.GeneralOnly }));
         Assert.AreEqual(element, block, label);
     }
 

@@ -1100,7 +1100,7 @@ public partial class CStruct
     private static bool CanWriteBlock(CStructElementWriterState state, int length)
     {
         WriteBudgetStream stream = state.BudgetStream;
-        if (state.Options is UpdateOptions || stream.IsSparseUpdate || StaticReadPlan.DisabledForTesting || !stream.CanAffordBlock(length, length))
+        if (state.Options is UpdateOptions || stream.IsSparseUpdate || state.GeneralPathOnly || !stream.CanAffordBlock(length, length))
         {
             return false;
         }

@@ -15,10 +15,6 @@ using CStructSharp.Values;
 /// </summary>
 internal sealed class StaticReadPlan
 {
-    /// <summary>Test hook: disables plan execution on the current thread so the general reader can be compared against it.</summary>
-    [System.ThreadStatic]
-    private static bool disabledForTesting;
-
     /// <summary>Builds operation limits and write eligibility for a fixed composite read plan.</summary>
     /// <param name="size">The complete composite storage size in bytes.</param>
     /// <param name="operations">Named field reads at offsets relative to the composite start.</param>
@@ -105,13 +101,6 @@ internal sealed class StaticReadPlan
 
     /// <summary>The largest fixed array count in the plan - checked against the array limit before any byte is consumed.</summary>
     public int MaximumArrayCount { get; }
-
-    /// <summary>Gets or sets the per-thread test switch that routes every composite through the general reader.</summary>
-    internal static bool DisabledForTesting
-    {
-        get => disabledForTesting;
-        set => disabledForTesting = value;
-    }
 
     /// <summary>The composite's fixed storage size, including trailing padding.</summary>
     public int Size { get; }

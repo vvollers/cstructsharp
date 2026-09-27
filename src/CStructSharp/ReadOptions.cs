@@ -29,6 +29,9 @@ public sealed record ReadOptions
     /// <summary>Gets the shared default options an operation uses when the caller passes none.</summary>
     internal static ReadOptions Default { get; } = new();
 
+    /// <summary>Gets which implementation paths the read may take; tests restrict it to compare paths.</summary>
+    internal ExecutionPath ExecutionPath { get; init; }
+
     /// <summary>Gets whether pointer addresses are stream positions or offsets from <see cref="Origin"/>.</summary>
     public PointerAddressingMode AddressingMode { get; init; } = PointerAddressingMode.Absolute;
 
