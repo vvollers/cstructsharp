@@ -411,6 +411,7 @@ namespace CStructSharp.Generated
         public CStructSharp.Generated.BitfieldSlot AdvanceToBitfield(int declaredSize, int alignment, int width, int runBits, bool littleEndian, string member) { }
         public long AdvanceToField(int alignment) { }
         public long AdvanceToSeparator(int declaredSize, int alignment, int runBits) { }
+        public string? CheckOffset(long position, int asserted, string field) { }
         public void CompleteField(long fieldEnd) { }
         public long Finish(int structAlignment) { }
         public static CStructSharp.Generated.CompositeCursor Start(long start, bool aligned, CStructSharp.BitfieldPacking packing, CStructSharp.BitfieldAllocation allocation) { }
@@ -560,6 +561,7 @@ namespace CStructSharp.Generated
         public void ExitComposite() { }
         public CStructSharp.Diagnostics.CStructWriteException Fail(string message, string? member, string? memberType) { }
         public System.Exception FailExpression(System.Exception exception, string context, string? member, string? memberType) { }
+        public CStructSharp.Diagnostics.CStructLayoutException FailLayout(string message, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructWriteLimitException FailLimit(string message, string? member, string? memberType) { }
         public void Pad(int count, string? member, string? memberType) { }
         public void RequireArrayLength(long count, string member, string? memberType) { }

@@ -1233,6 +1233,11 @@
       "category": "explicit placement"
     },
     {
+      "id": "offset-assertion-names-a-field",
+      "definition": "struct root { uint8 n; uint8 value @n; };",
+      "category": "explicit placement"
+    },
+    {
       "id": "unrecognized-integer-spelling",
       "definition": "struct root { intmax_t value; };",
       "category": "host fundamental type"

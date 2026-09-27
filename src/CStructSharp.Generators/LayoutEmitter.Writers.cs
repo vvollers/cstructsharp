@@ -283,6 +283,21 @@ internal sealed partial class LayoutEmitter
         }
     }
 
+    /// <summary>
+    ///     Emits the write of one field: its placement (a separator, a bitfield's storage unit, or an aligned field with
+    ///     its offset assertion) and then its value, element by element for an array.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="field">The field.</param>
+    /// <param name="scope">The expression scope for counts and conditions.</param>
+    /// <param name="target">The expression holding the value being written.</param>
+    /// <param name="inUnion">Whether the field is a union member, placed at the union's start.</param>
+    /// <param name="placement">The composite cursor's local.</param>
+    /// <param name="promoted">Whether the field is an anonymous member promoted into the parent's value.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    /// <param name="generated">The field's generated member, or <see langword="null"/> to look it up in <paramref name="scope"/>.</param>
+    /// <param name="openBlock">Whether to wrap the emitted code in its own block.</param>
     private void EmitWriteFieldBody(SourceWriter writer, CompiledField field, ReaderScope scope, string target, bool inUnion, string placement, bool promoted, string member, string memberType, GeneratedMember? generated, bool openBlock)
     {
         if (openBlock)
@@ -311,7 +326,7 @@ internal sealed partial class LayoutEmitter
         if (!inUnion)
         {
             writer.Line("cursor.Seek(" + placement + ".AdvanceToField(" + Int(field.Alignment) + "), " + member + ", " + memberType + ");");
-            this.EmitOffsetAssertion(writer, field, scope, member, memberType);
+            EmitOffsetAssertion(writer, field, placement, member, memberType);
         }
 
         CompiledCompositeType? inline = this.InlineComposite(field);

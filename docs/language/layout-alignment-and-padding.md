@@ -185,20 +185,28 @@ struct sample {
 };
 ```
 
-`N` is a full expression, evaluated the same way `@align(N)`'s argument is, so a `#define`d constant works. `N`
-must be non-negative. A mismatch between the asserted value and the field's actual computed offset fails, naming
-both values (`offset-assertion-mismatch` in [`portable-v1.json`](../../contracts/language/portable-v1.json)). Unlike
-`@align(N)`, `@N` never changes placement - it only validates the placement that would already have been computed
-without it, so parsing, addressing, serializing, writing, and updating are all unaffected by whether `@N` is
-present.
+`N` is a constant expression, evaluated once when the layout is built, the same way `@align(N)`'s argument is: it can
+use numbers, operators and `#define`d constants, but not fields or a caller's variables
+(`offset-assertion-names-a-field`). `N` must be non-negative. Like C's `offsetof`, it counts bytes from the start
+of the field's own struct or union, not from the start of the input. A mismatch between the asserted value and the
+field's actual offset fails, naming both values (`offset-assertion-mismatch` in
+[`portable-v1.json`](../../contracts/language/portable-v1.json)). Unlike `@align(N)`, `@N` never changes placement -
+it only validates the placement that would already have been computed without it, so parsing, addressing,
+serializing, writing, and updating are all unaffected by whether `@N` is present.
 
-**`@N` is checked eagerly at construction when the field's byte offset is statically computable at that point** -
-true for the overwhelming majority of layouts. A field following a runtime-length array or terminated-string
-sibling has no statically known offset at construction time; for such a field, construction always succeeds
-regardless of whether the assertion is right, but the check is not skipped - it happens instead at the first
-operation that actually reaches the field (parsing, serializing, writing, updating, or resolving a path to it),
-the point at which its real position finally becomes known. A field an operation never reaches is never checked,
-the same as any lazy validation. **`@N` is not supported on a bitfield declarator**
+**`@N` is checked at construction when the field's byte offset is known at that point** - true for most layouts. A
+field after a runtime-length array or terminated string has no known offset until the data is read. For such a
+field, construction succeeds whether or not the assertion is right, and every operation that reaches the field
+(parsing, serializing, writing, updating, or resolving a path to it) checks it where it places the field:
+
+```c
+struct inner { uint8 n; uint8 d[n]; uint8 x @2; };
+struct root { uint8 pad; inner i; };
+```
+
+With the input bytes `00 01 02 03`, `inner` starts at byte 1 and `n` is 1, so `d` holds one byte and `x` is at
+offset 2 of `inner` (byte 3 of the input): the assertion holds and `x` is 3. With `@3` instead, parsing fails with
+"Field 'x' asserts offset 3 but computed offset is 2". A field an operation never reaches is never checked. **`@N` is not supported on a bitfield declarator**
 (`offset-assertion-on-bitfield`) - rejected outright at construction rather than resolving the narrower question of
 whether it should apply to a whole shared storage unit or only its first member.
 

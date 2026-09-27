@@ -44,6 +44,7 @@ public class StaticReadPlanTests
         Assert.IsTrue(HasPlan("struct leaf { uint8 k; }; struct root { leaf x; leaf y; struct { uint8 p; }; };", "root"));
         Assert.IsTrue(HasPlan("enum e : uint16 { one = 1 }; struct root { e value; };", "root"));
         Assert.IsTrue(HasPlan("struct root { uint16 a; uint32 b; };", "root", aligned: true));
+        Assert.IsTrue(HasPlan("struct root { uint8 a; uint8 b @1; };", "root"), "offset assertion checked at construction");
         Assert.IsFalse(HasPlan("struct root { uint8 n; uint8 items[n]; };", "root"), "dynamic array");
         Assert.IsFalse(HasPlan("struct root { uint8 flag; if (flag == 1) { uint8 yes; } };", "root"), "conditional");
         Assert.IsFalse(HasPlan("struct root { uint8 *p; };", "root"), "pointer");
@@ -51,7 +52,6 @@ public class StaticReadPlanTests
         Assert.IsFalse(HasPlan("union u { uint8 a; uint16 b; }; struct root { u value; };", "root"), "union member");
         Assert.IsFalse(HasPlan("struct root { uint8 grid[2][2]; };", "root"), "multidimensional array");
         Assert.IsFalse(HasPlan("struct root { wchar name[4]; };", "root"), "wide characters");
-        Assert.IsFalse(HasPlan("struct root { uint8 a; uint8 b @1; };", "root"), "offset assertion");
         Assert.IsFalse(HasPlan("struct root { utf8 text[4]; };", "root"), "bounded text");
     }
 

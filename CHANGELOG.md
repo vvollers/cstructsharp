@@ -18,6 +18,11 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   addresses and enum numbers - fail with their exact value in every operation. Migration: read the field as an
   integer type or an enum (for a four-character tag, `enum chunk : uint32 { IHDR = 0x52444849 }` and
   `switch (tag) { case chunk.IHDR: ... }`), or name a numeric field instead.
+- **Breaking (language):** an `@N` offset assertion is a constant, like `@align(N)`: it is evaluated once when the
+  layout is built and can use numbers and `#define`s, but not fields or a caller's variables. Before, an assertion on a
+  field after a runtime-sized field was evaluated during each operation and could name fields and variables, while
+  the same assertion elsewhere failed to build. Migration: assert a constant offset, or define the value with
+  `#define`.
 - **Breaking (behaviour):** a struct now follows its pointers after its last field is read, in declaration order,
   instead of at each pointer field. The runtime reader and generated code follow the same rule. Values are
   unchanged. Two things change: `ParseWithDebug` lists a pointer's target records after the struct's own fields,
@@ -45,6 +50,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- An `@N` offset assertion that is checked during an operation (on a field after a runtime-sized field) counts from
+  the start of the field's own struct, as a check at construction does and as C's `offsetof` does. It counted from
+  the start of the input, so the assertion in a nested struct that does not start at byte 0 failed on correct data.
+  Generated writers for such a layout now compile.
 - A generated layout with an array of pointers (`node *items[2];`) no longer fails to compile.
 - Writing a string value to a numeric field no longer depends on the current culture: `"1.5"` written to a `float64`
   under a comma-decimal culture such as de-DE now stores 1.5 instead of 15. Every conversion of a caller value to a

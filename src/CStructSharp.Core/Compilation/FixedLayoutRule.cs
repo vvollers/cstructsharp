@@ -21,15 +21,15 @@ internal static class FixedLayoutRule
         => !composite.IsUnion && composite.Symbol.FixedSize is not null && !composite.HasDirectConditionalFields;
 
     /// <summary>
-    ///     Returns whether a member can be read by offset: placed at a build-time offset, unconditional, without an
-    ///     offset assertion, neither a pointer nor a bitfield, and either a scalar or a one-dimensional array of fixed
-    ///     length. A nested struct member additionally needs its own fixed layout.
+    ///     Returns whether a member can be read by offset: placed at a build-time offset (so the layout already checked
+    ///     any offset assertion), unconditional, neither a pointer nor a bitfield, and either a scalar or a
+    ///     one-dimensional array of fixed length. A nested struct member additionally needs its own fixed layout.
     /// </summary>
     /// <param name="field">The compiled member.</param>
     /// <returns>Whether the member's placement and shape qualify; its codec is checked by the consumer.</returns>
     public static bool IsFixedMember(CompiledField field)
         => field.FixedOffset is not null && field.BitSize == 0 && !field.IsZeroWidthBitfield && field.PointerDepth == 0 &&
-           field.Declaration.Condition is null && field.ConditionalBranches.Length == 0 && field.Declaration.OffsetAssertionExpression is null &&
+           field.Declaration.Condition is null && field.ConditionalBranches.Length == 0 &&
            (field.Array.Kind == CompiledArrayKind.Scalar ||
             (field.Array.Kind == CompiledArrayKind.Fixed && field.Array.Dimensions.Length == 1 && field.Array.FixedCount is not null));
 }

@@ -1,6 +1,7 @@
 namespace CStructSharp.Compilation;
 
 using System;
+using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
 /// <summary>
@@ -30,7 +31,12 @@ internal sealed class CompositeFieldPlacementCursor
     ///     Advances to one field's start, placing a bitfield in its storage unit (opening a new one when the packing
     ///     rule requires) or aligning an ordinary field normally.
     /// </summary>
+    /// <remarks>
+    ///     An ordinary field with an <c>@N</c> offset assertion that compilation could not check (its offset depends on
+    ///     the data) is checked here, so every operation that places the field checks it.
+    /// </remarks>
     /// <returns>The field's start (a bitfield's unit start), the bit offset inside the unit, and the unit size in bytes (0 for an ordinary field).</returns>
+    /// <exception cref="CStructLayoutException">The field does not sit at its asserted offset.</exception>
     public (long FieldStart, int BitOffset, int UnitSize) AdvanceToField(CompiledField compiledField)
     {
         if (compiledField.IsZeroWidthBitfield)
@@ -47,7 +53,14 @@ internal sealed class CompositeFieldPlacementCursor
             return (unitStart, bitOffset, unitSize);
         }
 
-        return (this.cursor.AdvanceToField(compiledField.Alignment)!.Value, 0, 0);
+        long fieldStart = this.cursor.AdvanceToField(compiledField.Alignment)!.Value;
+        if (compiledField.AssertedOffset is int asserted && compiledField.FixedOffset is null &&
+            this.cursor.CheckAssertedOffset(fieldStart, asserted, compiledField.Name) is { } failure)
+        {
+            throw new CStructLayoutException(failure);
+        }
+
+        return (fieldStart, 0, 0);
     }
 
     /// <summary>Records where a just-placed non-bitfield field actually ends, so the next field starts after it.</summary>

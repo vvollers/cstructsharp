@@ -69,6 +69,7 @@ equivalence with every native compiler.
 | `non-power-of-two-pack-pragma` | `#pragma pack(3)` | A pack value is a composite alignment override and follows the same power-of-two rule | Use `#pragma pack(1)`, `(2)`, `(4)`, ... |
 | `offset-assertion-mismatch` | `struct root { uint8 a; uint8 value @5; };` where `value` naturally lands at offset 1 | An offset assertion is checked against the field's actual computed offset | Correct the asserted value, or omit it if the field's placement is expected to vary |
 | `offset-assertion-on-bitfield` | `uint8 flag : 1 @2;` | An offset assertion is not supported on a bitfield declarator | Assert the offset of a non-bitfield sibling, or omit the assertion |
+| `offset-assertion-names-a-field` | `struct root { uint8 n; uint8 value @n; };` | An offset assertion is a constant, like `@align(N)`: it can use numbers and `#define`s, but not fields or a caller's variables | Assert a constant offset, or use a `#define` |
 
 Broader unsupported families include other floating types, textual macro expansion, and named compiler modes. One
 fixture may represent several equivalent spellings. Forms that were rejected in earlier releases and are now

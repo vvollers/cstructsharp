@@ -27,19 +27,6 @@ public class AddressResolutionExtentTests
         Assert.AreEqual(0L, source.Length);
     }
 
-    /// <summary>A failed runtime offset expression identifies which field's assertion could not be evaluated.</summary>
-    [TestMethod]
-    public void RuntimeOffset_MissingVariableNamesItsEvaluationContext()
-    {
-        var layout = new CStruct("struct root { uint8 values[count]; uint8 tail @(expected); };");
-
-        // The array count is supplied; only the independent offset assertion lacks its variable.
-        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => layout.ResolveAddress(
-            new byte[] { 11, 22, }, "root.tail", new Dictionary<string, int> { ["count"] = 1, }));
-        StringAssert.StartsWith(failure.Message, "Cannot evaluate offset assertion for tail:");
-        StringAssert.Contains(failure.Message, "expected");
-    }
-
     /// <summary>A runtime offset mismatch reports the requested and actual byte positions and selected field.</summary>
     [TestMethod]
     public void RuntimeOffset_MismatchExplainsBothPositions()
@@ -72,16 +59,5 @@ public class AddressResolutionExtentTests
     {
         var layout = new CStruct("struct root { uint8 values[count]; uint8 tail @(0); };");
         Assert.AreEqual(0L, layout.ResolveAddress(new byte[] { 23, }, "root.tail", new Dictionary<string, int> { ["count"] = 0, }));
-    }
-
-    /// <summary>A runtime negative assertion names the field and rejected value before comparing offsets.</summary>
-    [TestMethod]
-    public void RuntimeOffset_NegativeValueHasItsOwnDiagnostic()
-    {
-        var layout = new CStruct("struct root { uint8 values[count]; uint8 tail @(count - 2); };");
-
-        // count is provided at operation time, so this assertion cannot be validated during compilation.
-        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => layout.ResolveAddress(new byte[] { 1, 2, }, "root.tail", new Dictionary<string, int> { ["count"] = 1, }));
-        StringAssert.Contains(failure.Message, "Explicit offset assertion must be non-negative: tail = -1");
     }
 }

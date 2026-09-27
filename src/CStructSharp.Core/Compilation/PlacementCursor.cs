@@ -14,16 +14,18 @@ namespace CStructSharp.Compilation;
 internal struct PlacementCursor
 {
     private readonly bool aligned;
+    private readonly long start;
     private BitfieldPlacement bitfields;
     private long? current;
 
     /// <summary>Starts placing a composite at <paramref name="start"/>.</summary>
-    /// <param name="start">The composite's first byte, or <see langword="null"/> when unknown.</param>
+    /// <param name="start">The composite's first byte; compilation places from 0.</param>
     /// <param name="aligned">Whether the layout applies the portable alignment rules.</param>
     /// <param name="packing">The bitfield storage-sharing rule.</param>
     /// <param name="highBitFirst">Whether the first bitfield occupies the high end of its storage unit.</param>
-    public PlacementCursor(long? start, bool aligned, BitfieldPacking packing, bool highBitFirst)
+    public PlacementCursor(long start, bool aligned, BitfieldPacking packing, bool highBitFirst)
     {
+        this.start = start;
         this.current = start;
         this.aligned = aligned;
         this.bitfields = new BitfieldPlacement(packing, aligned, highBitFirst);
@@ -39,6 +41,14 @@ internal struct PlacementCursor
     /// <returns>The union's size in bytes.</returns>
     public static long UnionEnd(long largestMember, int unionAlignment, bool aligned)
         => aligned ? LayoutMath.AlignUp(largestMember, unionAlignment) : largestMember;
+
+    /// <summary>Checks a field's <c>@N</c> offset assertion, which counts from the composite's first byte.</summary>
+    /// <param name="fieldStart">Where the field was placed, in the cursor's coordinates.</param>
+    /// <param name="asserted">The asserted offset in bytes.</param>
+    /// <param name="field">The field name, for the diagnostic.</param>
+    /// <returns><see langword="null"/> when the assertion holds; otherwise the failure message.</returns>
+    public readonly string? CheckAssertedOffset(long fieldStart, int asserted, string field)
+        => OffsetAssertion.Check(field, asserted, fieldStart - this.start);
 
     /// <summary>Places an ordinary field: closes any bitfield run and aligns when the layout is aligned.</summary>
     /// <param name="alignment">The field type's alignment in bytes.</param>

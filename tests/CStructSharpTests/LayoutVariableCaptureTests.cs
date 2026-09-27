@@ -16,7 +16,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 [TestClass]
 public class LayoutVariableCaptureTests
 {
-    /// <summary>Every runtime expression site - array count, condition, switch selector, offset assertion - still sees the field it names; compile-time sites (case labels, bit widths, alignment, enum values, defines) cannot name fields at all.</summary>
+    /// <summary>Every runtime expression site - array count, condition, switch selector - still sees the field it names; compile-time sites (case labels, bit widths, alignment and offset assertions, enum values, defines) cannot name fields at all.</summary>
     [TestMethod]
     public void EveryExpressionSite_ReadsItsReferencedField()
     {
@@ -31,7 +31,7 @@ public class LayoutVariableCaptureTests
                 if (flag == 1) { uint8 yes; } else { uint8 no; }
                 uint8 sel;
                 switch (sel) { case 1: { uint8 a; } default: { uint8 b; } }
-                uint8 mark @ (base + 5 + n);
+                uint8 mark @10;
                 uint8 bits : 3;
                 uint8 tail;
             };
@@ -46,12 +46,12 @@ public class LayoutVariableCaptureTests
         Assert.AreEqual((byte)0x44, parsed.tail);
         Assert.AreEqual(3, cstruct.GetArrayLength(new MemoryStream(bytes), "root.items"));
         Assert.AreEqual(10L, cstruct.ResolveAddress(new MemoryStream(bytes), "root.mark"));
-        foreach (string referenced in new[] { "base", "n", "flag", "sel" })
+        foreach (string referenced in new[] { "n", "flag", "sel" })
         {
             Assert.IsTrue(CapturesVariable(cstruct, referenced), referenced);
         }
 
-        foreach (string unreferenced in new[] { "lo", "items", "yes", "no", "a", "b", "mark", "bits", "tail" })
+        foreach (string unreferenced in new[] { "base", "lo", "items", "yes", "no", "a", "b", "mark", "bits", "tail" })
         {
             Assert.IsFalse(CapturesVariable(cstruct, unreferenced), unreferenced);
         }

@@ -201,15 +201,14 @@ itself is the anonymous one (`uint8 :3;`); a run of two or more words before a b
 single-word run has no name token to spare. This means a multi-word anonymous type is not supported directly - it
 falls back to naming the field after its last word instead (`unsigned int :3;` declares a field named `int` of type
 `unsigned`, not an anonymous `unsigned int`). See [bitfields](bitfields.md#unnamed-padding-fields). A declarator may
-carry at most one trailing placement suffix - either `@align(N)`, overriding that one
-declarator's own natural alignment, or bare `@N`, asserting the declarator's expected byte offset without ever
-changing it. Both accept a full expression, evaluated the same way `bit-width` is, so a `#define`d constant works
-for either. `@align(N)`'s `N` must be a positive power of two; it only has an observable effect when the enclosing
+carry at most one trailing placement suffix - either `@align(N)`, overriding that one declarator's own natural
+alignment, or bare `@N`, asserting the declarator's expected byte offset without ever changing it. Both accept a
+constant expression, evaluated once when the layout is built, so a `#define`d constant works for either; neither can
+name a field. `@align(N)`'s `N` must be a positive power of two; it only has an observable effect when the enclosing
 layout is constructed with `aligned: true` - in packed mode it is accepted but has no effect, the same as every
-field's own natural alignment already having none there. `@N`'s value must be non-negative and is checked against
-the declarator's actual computed offset only when that offset is statically known at construction time; if not
-statically known, it is instead checked the first time any operation actually reaches the field. It is not
-supported on a bitfield declarator. See
+field's own natural alignment already having none there. `@N`'s value must be non-negative and counts from the start
+of the declarator's own struct or union. It is checked at construction when that offset is known then; otherwise
+every operation that reaches the field checks it. It is not supported on a bitfield declarator. See
 [Layout, alignment, and padding](layout-alignment-and-padding.md#explicit-field-alignment-override). A pointer
 declarator may also carry one `@count(N)` suffix, before or after its placement suffix; it makes the pointer's final
 target `N` consecutive values instead of one. `N` may name a field declared after the pointer. See

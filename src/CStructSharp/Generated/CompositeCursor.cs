@@ -37,6 +37,13 @@ public struct CompositeCursor
     public static CompositeCursor Start(long start, bool aligned, BitfieldPacking packing, BitfieldAllocation allocation)
         => new(start, aligned, packing, allocation == BitfieldAllocation.HighBitFirst);
 
+    /// <summary>Checks a field's <c>@N</c> offset assertion, which counts from the composite's first byte.</summary>
+    /// <param name="position">Where the field was placed, in the read/write cursor's coordinates.</param>
+    /// <param name="asserted">The asserted offset in bytes.</param>
+    /// <param name="field">The field name, for the diagnostic.</param>
+    /// <returns><see langword="null"/> when the assertion holds; otherwise the runtime's failure message.</returns>
+    public readonly string? CheckOffset(long position, int asserted, string field) => this.cursor.CheckAssertedOffset(position, asserted, field);
+
     /// <summary>Places an ordinary field: closes any bitfield run and aligns when the layout is aligned.</summary>
     /// <param name="alignment">The field type's alignment in bytes.</param>
     /// <returns>The field's start.</returns>

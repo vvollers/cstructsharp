@@ -303,7 +303,6 @@ public partial class CStruct
     private void WritePromotedUnion(CompiledCompositeType composite, CompiledField field, object data, CStructElementWriterState state, CompositeFieldPlacementCursor cursor)
     {
         (long unionPosition, _, _) = cursor.AdvanceToField(field);
-        this.ValidateOffsetAssertionAtRuntime(field, unionPosition, state.Variables);
         state.Stream.Position = unionPosition;
         int unionSize = this.compiledSizeQueries.GetCompiledStructSizeInBytes(composite, state.Variables, false);
 
@@ -725,7 +724,6 @@ public partial class CStruct
             // storage unit or opens a new one) - apply its decision once, for every array element, instead of
             // re-deriving it per element.
             (long fieldStart, int bitOffset, int unitSize) = cursor!.AdvanceToField(valueField);
-            this.ValidateOffsetAssertionAtRuntime(valueField, fieldStart, state.Variables);
             state.Stream.Position = fieldStart;
             if (compiledField.BitSize > 0)
             {

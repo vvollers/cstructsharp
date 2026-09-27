@@ -603,6 +603,18 @@ public ref struct WriteCursor
         return exception;
     }
 
+    /// <summary>A layout failure (an offset assertion that does not hold) at the current position, with the runtime's context.</summary>
+    /// <param name="message">The diagnostic.</param>
+    /// <param name="member">The layout field.</param>
+    /// <param name="memberType">The field's type spelling.</param>
+    /// <returns>The exception to throw.</returns>
+    public readonly CStructLayoutException FailLayout(string message, string? member, string? memberType)
+    {
+        var exception = new CStructLayoutException(message);
+        this.Attach(exception, member, memberType);
+        return exception;
+    }
+
     /// <summary>A limit failure at the current position, with the runtime's context.</summary>
     /// <param name="message">The diagnostic.</param>
     /// <param name="member">The layout field, or <see langword="null"/> when none applies.</param>

@@ -167,6 +167,20 @@ public class ReaderParityTests
             "CStructReadLimitException");
     }
 
+    /// <summary>
+    ///     An <c>@N</c> assertion after a runtime-sized field is checked while reading and writing, counted from the start
+    ///     of the field's own struct (here <c>inner</c> starts at byte 1): both readers and writers accept the right
+    ///     offset and fail the wrong one with the same message.
+    /// </summary>
+    [TestMethod]
+    public void RuntimeCheckedOffsetAssertions_MatchTheRuntime()
+    {
+        const string LittleOne = "PointerSize = 1, Aligned = false, LittleEndian = true";
+        const string Layout = "struct inner { uint8 n; uint8 d[n]; uint8 x @2; }; struct root { uint8 pad; inner i; };";
+        RunParity("offset-nested", Layout, "Root = \"root\", " + LittleOne, "root", [0, 1, 2, 3,], new Dictionary<string, int>(), null, null);
+        RunParity("offset-nested-wrong", Layout.Replace("@2", "@3", StringComparison.Ordinal), "Root = \"root\", " + LittleOne, "root", [0, 1, 2, 3,], new Dictionary<string, int>(), null, "CStructLayoutException");
+    }
+
     /// <summary>Runs one ad-hoc case through both readers: the value (or the expected failure) and the truncation sweep.</summary>
     internal static void RunParity(string id, string definition, string arguments, string root, byte[] bytes, IReadOnlyDictionary<string, int> fixtureVariables, ReadOptions? options, string? expectedError)
     {

@@ -98,7 +98,6 @@ internal sealed partial class LayoutCompilation
         switch (element)
         {
         case Struct strct:
-            AddReferences(strct.CompositeAlignmentOverrideExpression, ref referenced, ref pending);
             CollectFieldReferences(strct, ref referenced, ref pending);
             foreach (Field member in strct.Fields)
             {
@@ -129,7 +128,10 @@ internal sealed partial class LayoutCompilation
         }
     }
 
-    /// <summary>Adds the names every expression of one field can read: dimensions, bit width, conditions, suffixes, and the pointer count.</summary>
+    /// <summary>Adds the names every expression of one field can read: dimensions, bit width, conditions, and the <c>@count</c> element count.</summary>
+    /// <param name="field">The field declaration.</param>
+    /// <param name="referenced">The collected names, created on first use.</param>
+    /// <param name="pending">The work stack for nested expressions, created on first use.</param>
     private static void CollectFieldReferences(Field field, ref HashSet<string>? referenced, ref Stack<Expr>? pending)
     {
         IReadOnlyList<Expr> dimensions = field.ArrayCount;
@@ -140,8 +142,6 @@ internal sealed partial class LayoutCompilation
 
         AddReferences(field.BitSizeExpression, ref referenced, ref pending);
         AddReferences(field.Condition, ref referenced, ref pending);
-        AddReferences(field.AlignmentOverrideExpression, ref referenced, ref pending);
-        AddReferences(field.OffsetAssertionExpression, ref referenced, ref pending);
         AddReferences(field.PointerCountExpression, ref referenced, ref pending);
         IReadOnlyList<ConditionalBranch> branches = field.BranchConditions;
         for (int index = 0; index < branches.Count; index++)
@@ -959,6 +959,16 @@ internal sealed partial class LayoutCompilation
                     }
                 }
 
+                // Like @align(N), @N is a constant: it is evaluated once, with the #define constants only.
+                int? assertedOffset = field.OffsetAssertionExpression is null
+                                          ? null
+                                          : OffsetAssertion.Validate(
+                                              this.layoutExpressionEvaluator.Evaluate(
+                                                  field.OffsetAssertionExpression,
+                                                  this.staticLayoutVariables,
+                                                  "offset assertion for " + field.Name.Name),
+                                              field.Name.Name);
+
                 var compiledField = new CompiledField(
                     field,
                     effectiveField,
@@ -977,6 +987,7 @@ internal sealed partial class LayoutCompilation
                     this.IsLittleEndian)
                 {
                     PointerElements = pointerElements,
+                    AssertedOffset = assertedOffset,
                 };
                 fields.Add(compiledField);
             }
@@ -1003,17 +1014,10 @@ internal sealed partial class LayoutCompilation
     ///     Calculates immutable fixed offsets and bit offsets without making runtime-sized offsets look static.
     /// </summary>
     /// <remarks>
-    ///     Deliberately not consolidated onto <see cref="CompositeFieldPlacementCursor"/> (see the
-    ///     placement-arithmetic consolidation this session): this method runs once at compile time, before any
-    ///     runtime <c>variables</c> exist, and needs a nullable, one-way "permanently unknown from here on" position
-    ///     the moment any field's size is statically undeterminable - the cursor's non-nullable <c>long</c> position
-    ///     has no such state, since every other consumer only ever drives it when a concrete field end is always
-    ///     computable (a live stream, or pure-math storage sizes). Its output, <see cref="CompiledField.FixedOffset"/>,
-    ///     is the "already checked statically at construction time" signal
-    ///     <see cref="CStruct.ValidateOffsetAssertionAtRuntime"/> reads to skip re-validating a
-    ///     field's <c>@N</c> offset assertion whose placement was already known here - a field left with
-    ///     no <see cref="CompiledField.FixedOffset"/> (because its own or a preceding sibling's size is
-    ///     runtime-dependent) is instead checked the first time any operation actually reaches it.
+    ///     Uses the same <see cref="PlacementCursor"/> as the runtime, from offset 0; its position becomes unknown after
+    ///     the first conditional or runtime-sized field. A field with a known offset has its <c>@N</c> assertion checked
+    ///     here, and a known <see cref="CompiledField.FixedOffset"/> tells the runtime cursor and generated code that
+    ///     the check is done; any other asserted field is checked where an operation places it.
     /// </remarks>
     private ImmutableArray<CompiledField> PlaceCompiledFields(
         Struct strct,
@@ -1082,23 +1086,10 @@ internal sealed partial class LayoutCompilation
             }
 
             int? offset = ToOffset(cursor.AdvanceToField(field.Alignment));
-            if (offset.HasValue && field.Declaration.OffsetAssertionExpression is not null)
+            if (offset is int known && field.AssertedOffset is int asserted &&
+                cursor.CheckAssertedOffset(known, asserted, field.Declaration.Name.Name) is { } failure)
             {
-                int asserted = this.layoutExpressionEvaluator.Evaluate(
-                    field.Declaration.OffsetAssertionExpression,
-                    this.staticLayoutVariables,
-                    "offset assertion for " + field.Declaration.Name.Name);
-                if (asserted < 0)
-                {
-                    throw new CStructLayoutException(
-                        "Explicit offset assertion must be non-negative: " + field.Declaration.Name.Name + " = " + asserted);
-                }
-
-                if (asserted != offset.Value)
-                {
-                    throw new CStructLayoutException(
-                        $"Field '{field.Declaration.Name.Name}' asserts offset {asserted} but computed offset is {offset.Value}.");
-                }
+                throw new CStructLayoutException(failure);
             }
 
             cursor.CompleteField(offset.HasValue && field.FixedStorageSize.HasValue
@@ -1245,8 +1236,9 @@ internal sealed partial class LayoutCompilation
     /// <summary>
     ///     Marks the fields whose values an expression can read back. The evaluator resolves identifiers only
     ///     through the layout's own expressions - array dimensions, conditions, switch selectors and cases, bit sizes,
-    ///     alignment/offset assertions, <c>#define</c>s, enum values - so their identifier dependencies are the complete
-    ///     set of capturable names. A name that only non-integer fields can supply fails construction. Allocation-
+    ///     <c>#define</c>s, enum values - so their identifier dependencies are the complete set of capturable names.
+    ///     Placement suffixes (<c>@align(N)</c> and <c>@N</c>) are constants evaluated with the <c>#define</c>s only,
+    ///     so they never read a field. A name that only non-integer fields can supply fails construction. Allocation-
     ///     conscious on purpose: the release gate budgets a small layout's compilation to the byte, so the sets are
     ///     created only when the first identifier appears and the fields are walked through their composites' arrays
     ///     rather than through LINQ.

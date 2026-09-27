@@ -88,6 +88,7 @@ internal sealed class CompiledField
         this.PointerDepth = effectiveField.PointerDepth;
         this.SetCharacterFacts();
         this.CapturesLayoutVariable = parent.CapturesLayoutVariable;
+        this.AssertedOffset = parent.AssertedOffset;
         this.countedTarget = parent.countedTarget;
         this.Codec = this.PointerDepth == parent.PointerDepth
                          ? parent.Codec
@@ -165,6 +166,12 @@ internal sealed class CompiledField
     public int? FixedElementSize { get; }
 
     public int? FixedOffset { get; }
+
+    /// <summary>
+    ///     The field's <c>@N</c> offset assertion in bytes from the start of its struct or union, evaluated once when the
+    ///     layout is built; <see langword="null"/> without one. See <see cref="OffsetAssertion"/>.
+    /// </summary>
+    public int? AssertedOffset { get; init; }
 
     public int? FixedStorageSize { get; }
 

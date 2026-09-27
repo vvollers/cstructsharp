@@ -183,7 +183,6 @@ public partial class CStruct
             }
 
             (long fieldStart, int bitOffset, int unitSize) = cursor.AdvanceToField(compiledField);
-            this.ValidateOffsetAssertionAtRuntime(compiledField, fieldStart, state.Variables);
             if (compiledField.IsZeroWidthBitfield)
             {
                 continue;
@@ -814,7 +813,6 @@ public partial class CStruct
             }
 
             (long fieldStart, int bitOffset, int unitSize) = cursor.AdvanceToField(compiledField);
-            this.ValidateOffsetAssertionAtRuntime(compiledField, fieldStart, state.Variables);
             if (compiledField.IsZeroWidthBitfield)
             {
                 continue;
@@ -859,45 +857,6 @@ public partial class CStruct
             {
                 state.ExitStructure();
             }
-        }
-    }
-
-    /// <summary>
-    ///     Validates a field's runtime-resolved placement against its own <c>@N</c> offset assertion,
-    ///     when present. Skips fields already validated eagerly at construction time by
-    ///     <c>LayoutCompilation.PlaceCompiledFields</c> - <see cref="CompiledField.FixedOffset"/> is exactly the
-    ///     signal for "already checked," since it is set only when that pass could compute the offset statically.
-    ///     This closes the gap for a field whose offset depends on an earlier runtime-length sibling, where no
-    ///     static check was possible.
-    /// </summary>
-    private void ValidateOffsetAssertionAtRuntime(
-        CompiledField compiledField,
-        long fieldStart,
-        IReadOnlyDictionary<string, Expr> variables)
-    {
-        Expr? assertion = compiledField.Declaration.OffsetAssertionExpression;
-        if (assertion is null || compiledField.FixedOffset.HasValue)
-        {
-            return;
-        }
-
-        int asserted = this.layoutExpressionEvaluator.Evaluate(
-            assertion,
-            variables,
-            "offset assertion for " + compiledField.Name);
-        if (asserted < 0)
-        {
-            throw new CStructLayoutException(
-                "Explicit offset assertion must be non-negative: " +
-                compiledField.Name +
-                " = " +
-                asserted);
-        }
-
-        if (asserted != fieldStart)
-        {
-            throw new CStructLayoutException(
-                $"Field '{compiledField.Name}' asserts offset {asserted} but computed offset is {fieldStart}.");
         }
     }
 
