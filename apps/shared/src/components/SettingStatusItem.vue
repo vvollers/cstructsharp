@@ -1,6 +1,11 @@
 <script setup lang="ts">
+/**
+ * One setting in a status line: a coloured label and value that shows an explanation tooltip on hover or focus.
+ * The tooltip is placed below the item, or above it when it would leave the viewport, and closes on Escape.
+ */
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
+/** The setting name, its current value, the accent colour, and the explanation the tooltip shows. */
 const props = defineProps<{
   label: string;
   value: string | boolean;
@@ -13,9 +18,11 @@ const visible = ref(false);
 const position = ref({ left: "0px", top: "0px" });
 const id = `setting-help-${props.label.toLowerCase().replace(/ /g, "-")}`;
 let closeTimer: ReturnType<typeof setTimeout> | undefined;
+/** Cancels a pending close, so moving from the item into the tooltip keeps it open. */
 function keepOpen() {
   clearTimeout(closeTimer);
 }
+/** Opens the tooltip and positions it inside the viewport once it has rendered and has a size. */
 async function show() {
   keepOpen();
   visible.value = true;
@@ -28,26 +35,35 @@ async function show() {
     top: `${anchor.bottom + box.height + 8 <= window.innerHeight ? anchor.bottom + 6 : Math.max(8, anchor.top - box.height - 6)}px`,
   };
 }
+/** Closes the tooltip after a short delay, so the pointer can cross the gap between item and tooltip. */
 function hideSoon() {
   closeTimer = setTimeout(() => {
     visible.value = false;
   }, 120);
 }
+/** Closes the tooltip immediately. */
 function hide() {
   keepOpen();
   visible.value = false;
 }
+/**
+ * Closes the tooltip on Escape.
+ * @param event The window key event.
+ */
 function onKey(event: KeyboardEvent) {
   if (event.key === "Escape") hide();
 }
+/** Keeps an open tooltip next to its item when the page scrolls or resizes. */
 function reposition() {
   if (visible.value) void show();
 }
+// Window listeners follow the item into scroll containers and close it from the keyboard.
 onMounted(() => {
   window.addEventListener("keydown", onKey);
   window.addEventListener("resize", reposition);
   window.addEventListener("scroll", reposition, true);
 });
+// Removes the window listeners and any pending close timer.
 onBeforeUnmount(() => {
   keepOpen();
   window.removeEventListener("keydown", onKey);

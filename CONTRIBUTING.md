@@ -181,7 +181,7 @@ node tools/quality/changed-documentation.mjs --base origin/main --language cshar
 node tools/quality/changed-documentation.mjs --base origin/main --language script
 ```
 
-The C# check needs the SDK in `global.json`; the script check needs `npm ci` in `apps/explorer`.
+The C# check needs the SDK in `global.json`; the script check needs `npm ci` in `apps/`.
 Both use syntax trees, inspect changed declaration bodies as well as signatures, and leave unchanged neighbors
 alone. Deleted comments are checked too. Generated `.g.cs` files and build artifacts are excluded: document their
 generator instead. The check establishes comment presence, not correctness. Review ownership, units, failures,

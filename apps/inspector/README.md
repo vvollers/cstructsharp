@@ -96,7 +96,7 @@ features through lessons and expected results; it is not used for the inspector'
 ### Build and verification
 
 `src/` owns the UI and definitions; `wasm/` holds declarations copied from the runtime package.
-From the repository root run `node tools/packaging/publish-wasm.mjs`. Then, in this directory, run
-`npm ci`, `npm run build`, `npm run test:unit`, and `npm run test:e2e`.
+From the repository root run `node tools/packaging/publish-wasm.mjs`. Install dependencies with `npm ci` in `apps/`
+(the apps workspace). Then, in this directory, run `npm run build`, `npm run test:unit`, and `npm run test:e2e`.
 `npm run copy:wasm` copies and validates existing runtime artifacts without rebuilding them.
 `dist/`, `public/wasm/`, and browser reports are ignored output.

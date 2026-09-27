@@ -121,18 +121,17 @@ jobs:
             .replace(/<VersionPrefix>[^<]+<\/VersionPrefix>/, `<VersionPrefix>${version}</VersionPrefix>`)
             .replace(/\s*<VersionSuffix>[^<]+<\/VersionSuffix>/, '');
           fs.writeFileSync(projectPath, updatedProject);
-          for (const dir of ['apps/explorer', 'apps/inspector', 'packages/cstructsharp']) {
+          for (const dir of ['apps/explorer', 'apps/inspector', 'apps/shared', 'packages/cstructsharp']) {
             const packagePath = `${dir}/package.json`;
             const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
             packageJson.version = version;
             fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
-            const lockPath = `${dir}/package-lock.json`;
-            if (!fs.existsSync(lockPath)) continue;
-            const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
-            lock.version = version;
-            if (lock.packages?.['']) lock.packages[''].version = version;
-            fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
           }
+          // The apps workspace has one lockfile; its workspace entries carry the member versions.
+          const lockPath = 'apps/package-lock.json';
+          const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+          for (const member of ['explorer', 'inspector', 'shared']) lock.packages[member].version = version;
+          fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\ntag=v${version}\n`);
           NODE
 
@@ -163,8 +162,8 @@ jobs:
       - name: Install WebAssembly workload
         run: dotnet workload restore ./src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
 
-      - name: Install explorer dependencies
-        working-directory: apps/explorer
+      - name: Install the apps workspace
+        working-directory: apps
         run: npm ci
 
       - name: Pack NuGet package for all target frameworks
@@ -187,12 +186,8 @@ jobs:
         working-directory: apps/explorer
         run: npm run build
 
-      # Both independent apps stage the repository-owned validated WASM publication.
+      # Both apps stage the repository-owned validated WASM publication.
       # The explorer's full build above has already populated artifacts/wasm.
-      - name: Install inspector dependencies
-        working-directory: apps/inspector
-        run: npm ci
-
       - name: Build binary inspector
         working-directory: apps/inspector
         run: npm run build
@@ -223,14 +218,6 @@ jobs:
           npm run test:e2e
           npm run --prefix ../.. test:wasm-reproducibility
 
-      # apps/inspector pins the same @playwright/test range as apps/explorer, but each app's own
-      # lockfile can independently drift to a different resolved patch version - and different patches can
-      # require a different downloaded browser revision. Install this app's own browser build explicitly
-      # rather than assuming the previous step's Chromium download still satisfies it.
-      - name: Install browser for inspector checks
-        working-directory: apps/inspector
-        run: npx playwright install --with-deps chromium
-
       - name: Verify binary inspector
         working-directory: apps/inspector
         run: npm run test:e2e
@@ -245,9 +232,7 @@ jobs:
       # onboarding check is reused.
       - name: Install Firefox and WebKit for the cross-engine smoke
         working-directory: apps/explorer
-        run: |
-          npx playwright install --with-deps firefox webkit
-          (cd ../inspector && npx playwright install --with-deps firefox webkit)
+        run: npx playwright install --with-deps firefox webkit
 
       - name: Smoke the starter page and the inspector in Firefox and WebKit
         env:
@@ -297,10 +282,10 @@ jobs:
           name: version-bump-files
           path: |
             src/CStructSharp/CStructSharp.csproj
+            apps/package-lock.json
             apps/explorer/package.json
-            apps/explorer/package-lock.json
             apps/inspector/package.json
-            apps/inspector/package-lock.json
+            apps/shared/package.json
             packages/cstructsharp/package.json
           retention-days: 90
           if-no-files-found: error

@@ -38,10 +38,12 @@ jobs:
         run: node tools/documentation/validate-documentation.mjs --installed
       - name: Install WebAssembly workload
         run: dotnet workload restore ./src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
+      - name: Install the apps workspace
+        working-directory: apps
+        run: npm ci
       - name: Build and test explorer
         working-directory: apps/explorer
         run: |
-          npm ci
           npm run build
           npx playwright install --with-deps chromium
           npm run test:unit
@@ -49,9 +51,7 @@ jobs:
       - name: Build and test inspector
         working-directory: apps/inspector
         run: |
-          npm ci
           npm run build
-          npx playwright install --with-deps chromium
           npm run test:unit
           npm run test:e2e
       - name: Prepare README badges

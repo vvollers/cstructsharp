@@ -125,6 +125,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   (`compare-benchmark-baseline.mjs --matching-only`).
 - Explorer: the generated test catalog loads as its own chunk, so the entry bundle holds application code only
   (226 KB instead of 1.5 MB). The web size budget is re-measured, with the entry-bundle limit lowered to 256 KiB.
+- The explorer and the inspector form one npm workspace in `apps/` with one lockfile and a shared source package
+  (`apps/shared`, imported as `@cstructsharp/app-shared`); run `npm ci` once in `apps/`. Both apps now use the
+  same dependency versions, and the `dompurify` override applies to both from the workspace manifest.
 - API baselines are named by role: `contracts/api/managed` and `contracts/api/browser` (published under
   `/docs/contracts/api/`). The managed manifest keeps the approved hash of every revision and the review text of the
   current one; the release history is this changelog. The `frozen` status, work-item code and stale package version

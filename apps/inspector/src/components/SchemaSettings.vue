@@ -16,7 +16,7 @@ export interface SchemaSettingsValues {
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import SettingStatusItem from "./SettingStatusItem.vue";
+import SettingStatusItem from "@cstructsharp/app-shared/components/SettingStatusItem.vue";
 
 const options = defineModel<SchemaSettingsValues>({ required: true });
 const open = defineModel<boolean>("open", { default: false });

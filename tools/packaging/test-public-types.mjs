@@ -32,7 +32,7 @@ try {
   );
   const result = spawnSync(
     process.execPath,
-    [path.join(webRoot, "node_modules/typescript/bin/tsc"), "-p", work],
+    [path.join(webRoot, "../node_modules/typescript/bin/tsc"), "-p", work],
     { stdio: "inherit" },
   );
   if (result.status !== 0) throw new Error("Packaged TypeScript consumer failed.");

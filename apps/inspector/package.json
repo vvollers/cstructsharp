@@ -7,7 +7,6 @@
     "node": ">=22.14.0",
     "npm": ">=10.0.0"
   },
-  "packageManager": "npm@12.0.2",
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -21,6 +20,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cstructsharp/app-shared": "*",
     "@iconify-icons/vscode-icons": "^2.0.6",
     "@iconify/vue": "^5.0.1",
     "@vueuse/core": "^15.0.0",
@@ -48,8 +48,5 @@
     "vite": "^8.3.0",
     "vitest": "^5.0.1",
     "vue-tsc": "^3.3.11"
-  },
-  "overrides": {
-    "dompurify": "^3.4.15"
   }
 }

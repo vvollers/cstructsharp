@@ -2,7 +2,7 @@
 import { computed, ref, watch } from "vue";
 
 import { VueHex } from "vuehex";
-import SettingStatusItem from "./SettingStatusItem.vue";
+import SettingStatusItem from "@cstructsharp/app-shared/components/SettingStatusItem.vue";
 import LayoutEditor from "./LayoutEditor.vue";
 import GeneratedCodeDialog from "./GeneratedCodeDialog.vue";
 import { formatLayout } from "../format-layout";

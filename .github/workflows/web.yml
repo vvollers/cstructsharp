@@ -64,16 +64,10 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
-          cache-dependency-path: |
-            apps/explorer/package-lock.json
-            apps/inspector/package-lock.json
+          cache-dependency-path: apps/package-lock.json
 
-      - name: Install explorer dependencies
-        working-directory: apps/explorer
-        run: npm ci
-
-      - name: Install inspector dependencies
-        working-directory: apps/inspector
+      - name: Install the apps workspace (explorer, inspector, shared)
+        working-directory: apps
         run: npm ci
 
       - name: Check changed script documentation
@@ -85,17 +79,10 @@ jobs:
           node tools/quality/changed-documentation.mjs --base "$DIFF_BASE" --language script
 
       - name: Lint tools and the WASM bridge
-        run: node apps/explorer/node_modules/eslint/bin/eslint.js --config tools/eslint.config.mjs "tools/**/*.mjs" "packages/cstructsharp/src/**/*.js" --max-warnings 0
+        run: node apps/node_modules/eslint/bin/eslint.js --config tools/eslint.config.mjs "tools/**/*.mjs" "packages/cstructsharp/src/**/*.js" --max-warnings 0
 
-      - name: Explorer lint, format, and unit tests
-        working-directory: apps/explorer
-        run: |
-          npm run lint
-          npm run format:check
-          npm run test:unit
-
-      - name: Inspector lint, format, and unit tests
-        working-directory: apps/inspector
+      - name: Apps lint, format, and unit tests (every workspace)
+        working-directory: apps
         run: |
           npm run lint
           npm run format:check
@@ -118,16 +105,14 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
-          cache-dependency-path: |
-            apps/explorer/package-lock.json
-            apps/inspector/package-lock.json
+          cache-dependency-path: apps/package-lock.json
       - run: dotnet workload restore src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
       - run: npm ci
-        working-directory: apps/explorer
+        working-directory: apps
       - run: npx playwright install --with-deps chromium
         working-directory: apps/explorer
       # The package scripts live in the repository root; the browser and TypeScript consumer checks resolve
-      # Vite, Playwright, and tsc from the explorer's pinned dependencies installed above.
+      # Vite, Playwright, and tsc from the apps workspace's pinned dependencies installed above.
       - name: Build once and test the actual tarball
         run: |
           npm run build:wasm
@@ -146,9 +131,7 @@ jobs:
       - name: Inspector build and browser tests against the same WASM
         working-directory: apps/inspector
         run: |
-          npm ci
           npm run build
-          npx playwright install --with-deps chromium
           npm run test:e2e
       - name: Standalone WASM onboarding
         run: |
