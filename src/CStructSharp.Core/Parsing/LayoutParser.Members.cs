@@ -15,6 +15,27 @@ using CStructSharpEnum = CStructSharp.Syntax.Enum;
 /// <summary>The members of a struct or union: fields and their declarators and suffixes, inline composites, and <c>if</c>/<c>switch</c> groups.</summary>
 internal sealed partial class LayoutParser
 {
+    /// <summary>A struct or union body up to its closing brace, with the <c>if</c>/<c>switch</c> groups declared in it.</summary>
+    /// <param name="isUnion">Whether the body is a union's.</param>
+    /// <param name="groups">The body's groups, nested ones included, in the order they close.</param>
+    /// <returns>The members, in declaration order.</returns>
+    private List<Field> ParseCompositeBody(bool isUnion, out ImmutableArray<ConditionalGroup> groups)
+    {
+        List<ConditionalGroup>? outer = this.bodyGroups;
+        var own = new List<ConditionalGroup>();
+        this.bodyGroups = own;
+        try
+        {
+            List<Field> fields = this.ParseCompositeMembers(isUnion);
+            groups = own.ToImmutableArray();
+            return fields;
+        }
+        finally
+        {
+            this.bodyGroups = outer;
+        }
+    }
+
     /// <summary>
     ///     A struct or union body up to its closing brace: fields, inline structs and unions, and - in a struct only -
     ///     <c>if</c>/<c>switch</c> groups, whose members become conditional fields. A union member may itself be an
@@ -111,35 +132,35 @@ internal sealed partial class LayoutParser
     private void ParseInlineComposite(bool isUnion, Expr? alignment, Identifier? tag, List<Field> destination)
     {
         int bodyStart = this.position;
-        List<Field> fields = this.ParseCompositeMembers(isUnion);
+        List<Field> fields = this.ParseCompositeBody(isUnion, out ImmutableArray<ConditionalGroup> groups);
         this.ExpectToken('}');
         if (tag is null)
         {
             Identifier name = this.TryParseIdentifier() ?? new Identifier(string.Empty);
             this.ExpectToken(';');
-            destination.Add(new Struct(name, fields.ToImmutableList(), isUnion, alignment));
+            destination.Add(new Struct(name, fields.ToImmutableList(), isUnion, alignment) { Groups = groups });
             return;
         }
 
-        this.hoisted.Add(new Struct(tag, fields.ToImmutableList(), isUnion, alignment ?? this.CurrentPack));
+        this.hoisted.Add(new Struct(tag, fields.ToImmutableList(), isUnion, alignment ?? this.CurrentPack) { Groups = groups });
         if (this.TryToken(';'))
         {
             int resume = this.position;
             int hoistedCount = this.hoisted.Count;
             this.position = bodyStart;
-            List<Field> promoted = this.ParseCompositeMembers(isUnion);
+            List<Field> promoted = this.ParseCompositeBody(isUnion, out ImmutableArray<ConditionalGroup> promotedGroups);
             this.position = resume;
 
             // The second pass hoists the body's own tags again; the first pass already declared them.
             this.hoisted.RemoveRange(hoistedCount, this.hoisted.Count - hoistedCount);
-            destination.Add(new Struct(new Identifier(string.Empty), promoted.ToImmutableList(), isUnion, alignment));
+            destination.Add(new Struct(new Identifier(string.Empty), promoted.ToImmutableList(), isUnion, alignment) { Groups = promotedGroups });
             return;
         }
 
         destination.AddRange(this.ParseFieldDeclaration(tag, isUnion ? "union" : "struct"));
     }
 
-    /// <summary><c>if (condition) { members } [else { members }]</c>, flattened with per-member predicates.</summary>
+    /// <summary><c>if (condition) { members } [else { members }]</c>: one group whose arms' members are placed in the body.</summary>
     private void ParseConditional(List<Field> destination)
     {
         this.SkipKeyword("if");
@@ -158,8 +179,9 @@ internal sealed partial class LayoutParser
         }
 
         var group = new ConditionalGroup(condition);
-        ApplyCondition(condition, yes, group, 1, destination);
-        ApplyCondition(new UnaryOp(UnaryOperatorType.LogicalNot, condition), no, group, 0, destination);
+        this.bodyGroups!.Add(group);
+        ApplyCondition(yes, group, 1, destination);
+        ApplyCondition(no, group, 0, destination);
     }
 
     /// <summary><c>switch (selector) { case tag: { members } ... [default: { members }] }</c>, no fall-through.</summary>
@@ -198,10 +220,11 @@ internal sealed partial class LayoutParser
             labels[index] = arms[index].Tag;
         }
 
+        // The group keeps every label, an empty arm's too, so normalization rejects duplicate and non-constant labels
+        // whatever the data selects.
         var group = new ConditionalGroup(selector, labels);
-        Expr any = new Literal(0);
+        this.bodyGroups!.Add(group);
         var tags = new HashSet<Expr>();
-        int insertAt = destination.Count;
         for (int armIndex = 0; armIndex < arms.Count; armIndex++)
         {
             (Expr tag, List<Field> armFields) = arms[armIndex];
@@ -210,35 +233,25 @@ internal sealed partial class LayoutParser
                 throw new CStructLayoutException("Duplicate switch case.");
             }
 
-            var condition = new BinaryOp(BinaryOperatorType.Equal, selector, tag);
-            ApplyCondition(condition, armFields, group, armIndex, destination);
-            any = new BinaryOp(BinaryOperatorType.LogicalOr, any, condition);
+            ApplyCondition(armFields, group, armIndex, destination);
         }
 
-        ApplyCondition(new UnaryOp(UnaryOperatorType.LogicalNot, any), fallback, group, -1, destination);
-
-        // This marker is removed during normalization. Keeping it even for empty arms makes duplicate and
-        // non-constant labels a compilation error regardless of runtime selection.
-        destination.Insert(insertAt, new SwitchCaseValidation(labels));
+        ApplyCondition(fallback, group, -1, destination);
     }
 
     /// <summary>
-    ///     Makes the members of one <c>if</c>/<c>switch</c> arm conditional: each gets the arm's condition (combined with
-    ///     any condition it already has from a nested group) and the arm as its outermost branch.
+    ///     Makes the members of one <c>if</c>/<c>switch</c> arm conditional: each gets the arm as its outermost branch,
+    ///     before any branch it already has from a nested group.
     /// </summary>
-    /// <param name="condition">The arm's condition.</param>
     /// <param name="fields">The arm's members.</param>
     /// <param name="group">The <c>if</c> or <c>switch</c> group.</param>
     /// <param name="arm">The arm's index in the group.</param>
     /// <param name="destination">The enclosing body's members, which receive the arm's.</param>
-    private static void ApplyCondition(Expr condition, List<Field> fields, ConditionalGroup group, int arm, List<Field> destination)
+    private static void ApplyCondition(List<Field> fields, ConditionalGroup group, int arm, List<Field> destination)
     {
         var branch = new ConditionalBranch(group, arm);
         foreach (Field field in fields)
         {
-            field.Condition = field.Condition is null
-                                  ? condition
-                                  : new BinaryOp(BinaryOperatorType.LogicalAnd, condition, field.Condition);
             IReadOnlyList<ConditionalBranch> inner = field.BranchConditions;
             var branches = new ConditionalBranch[inner.Count + 1];
             branches[0] = branch;

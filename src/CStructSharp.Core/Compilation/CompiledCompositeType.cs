@@ -12,11 +12,14 @@ internal sealed partial class CompiledCompositeType : CompiledType
 {
     private StructShape? shape;
 
+    /// <summary>Creates the composite and numbers its if/switch groups, giving each conditional field its compiled arms.</summary>
+    /// <param name="symbol">The composite's type symbol.</param>
+    /// <param name="fields">The fields in declaration order; their <see cref="CompiledField.ConditionalBranches"/> are set here.</param>
     public CompiledCompositeType(CompiledTypeSymbol symbol, ImmutableArray<CompiledField> fields)
         : base(symbol)
     {
         this.Fields = fields;
-        this.HasDirectConditionalFields = fields.Any(field => field.Declaration.Condition is not null);
+        this.HasDirectConditionalFields = fields.Any(field => field.IsConditional);
         if (this.HasDirectConditionalFields)
         {
             var groups = new Dictionary<ConditionalGroup, int>();

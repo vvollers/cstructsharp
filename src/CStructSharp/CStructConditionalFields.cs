@@ -28,7 +28,7 @@ public partial class CStruct
 
             foreach (CompiledField field in composite.Fields)
             {
-                if (field.Declaration.Condition is not null)
+                if (field.IsConditional)
                 {
                     return true;
                 }

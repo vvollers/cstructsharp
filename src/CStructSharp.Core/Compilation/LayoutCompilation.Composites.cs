@@ -45,7 +45,7 @@ internal sealed partial class LayoutCompilation
         int index = 0;
         while (index < fields.Length)
         {
-            if (!fields[index].BitStorageSize.HasValue || fields[index].IsZeroWidthBitfield || fields[index].Declaration.Condition is not null)
+            if (!fields[index].BitStorageSize.HasValue || fields[index].IsZeroWidthBitfield || fields[index].IsConditional)
             {
                 index++;
                 continue;
@@ -53,7 +53,7 @@ internal sealed partial class LayoutCompilation
 
             int start = index;
             long bits = 0;
-            while (index < fields.Length && fields[index].BitStorageSize.HasValue && !fields[index].IsZeroWidthBitfield && fields[index].Declaration.Condition is null)
+            while (index < fields.Length && fields[index].BitStorageSize.HasValue && !fields[index].IsZeroWidthBitfield && !fields[index].IsConditional)
             {
                 // Separator padding belongs to placement, not to either neighboring run's storage window.
                 CompiledField field = fields[index];
@@ -435,7 +435,7 @@ internal sealed partial class LayoutCompilation
         var cursor = new PlacementCursor(0, this.Aligned, this.BitfieldPacking, this.highBitFirst);
         foreach (CompiledField field in fields)
         {
-            if (field.Declaration.Condition is not null)
+            if (field.IsConditional)
             {
                 cursor.CompleteField(null);
                 if (field.BitStorageSize.HasValue)

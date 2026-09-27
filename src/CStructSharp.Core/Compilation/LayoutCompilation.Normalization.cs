@@ -310,16 +310,23 @@ internal sealed partial class LayoutCompilation
     /// <summary>Rebuilds a composite with precompiled array expressions and statically evaluated bit widths.</summary>
     private Struct NormalizeStructExpressions(Struct strct, Dictionary<Expr, Expr>? inheritedCaseConstants = null, Dictionary<ConditionalGroup, ConditionalGroup>? normalizedGroups = null)
     {
-        if (normalizedGroups is null && (strct.BranchConditions.Count > 0 || strct.Fields.Any(field => field.BranchConditions.Count > 0)))
+        if (normalizedGroups is null && (strct.IsConditional || strct.Groups.Length > 0))
         {
             normalizedGroups = new Dictionary<ConditionalGroup, ConditionalGroup>();
         }
 
+        // Every switch's labels are evaluated here, an empty arm's too, so a duplicate or non-constant label fails
+        // compilation whatever the data selects. A nested body inherits the constants: it may sit in an outer arm.
         Dictionary<Expr, Expr>? caseConstants = inheritedCaseConstants;
         bool copiedConstants = false;
         var fields = new List<Field>(strct.Fields.Count);
-        foreach (SwitchCaseValidation validation in strct.Fields.OfType<SwitchCaseValidation>())
+        foreach (ConditionalGroup group in strct.Groups)
         {
+            if (group.CaseLabels is null)
+            {
+                continue;
+            }
+
             if (!copiedConstants)
             {
                 caseConstants = inheritedCaseConstants is null
@@ -329,7 +336,7 @@ internal sealed partial class LayoutCompilation
             }
 
             var values = new HashSet<int>();
-            foreach (Expr tag in validation.Tags)
+            foreach (Expr tag in group.CaseLabels)
             {
                 int value = this.layoutExpressionEvaluator.Evaluate(
                     tag, this.staticLayoutVariables, "switch case constant");
@@ -342,11 +349,8 @@ internal sealed partial class LayoutCompilation
             }
         }
 
-        foreach (Field field in strct.Fields.Where(field => field is not SwitchCaseValidation))
+        foreach (Field field in strct.Fields)
         {
-            // A field's flattened condition is never evaluated: selection uses its branch groups, whose selectors
-            // NormalizeConditionalGroup compiles. Compiling the flattened form would also fail for a large switch,
-            // whose default-arm condition nests one level per case.
             if (field is Struct nested)
             {
                 fields.Add(this.NormalizeStructExpressions(nested, caseConstants, normalizedGroups));
@@ -423,7 +427,6 @@ internal sealed partial class LayoutCompilation
                     field.OffsetAssertionExpression)
                 {
                     PointerCountExpression = field.PointerCountExpression,
-                    Condition = NormalizeCaseConstants(field.Condition, caseConstants),
                     BranchConditions = field.BranchConditions.Count == 0 ? Array.Empty<ConditionalBranch>() : field.BranchConditions.Select(item =>
                         new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray(),
                 });
@@ -431,7 +434,7 @@ internal sealed partial class LayoutCompilation
 
         return new Struct(strct.Name, fields.ToImmutableList(), strct.IsUnion, strct.CompositeAlignmentOverrideExpression)
         {
-            Condition = NormalizeCaseConstants(strct.Condition, caseConstants),
+            Groups = strct.Groups.Length == 0 ? strct.Groups : strct.Groups.Select(group => this.NormalizeConditionalGroup(group, caseConstants, normalizedGroups!)).ToImmutableArray(),
             BranchConditions = strct.BranchConditions.Count == 0 ? Array.Empty<ConditionalBranch>() : strct.BranchConditions.Select(item =>
                 new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray(),
         };

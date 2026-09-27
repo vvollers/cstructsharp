@@ -874,7 +874,7 @@ public class ParserCorpusTests
 
     /// <summary>
     ///     Renders parsed declarations as a canonical text tree for exact comparison: every property the compiler reads,
-    ///     including the predicates and branch groups attached to conditional members and the exact and projected values
+    ///     including each body's if/switch groups, the arms conditional members sit in, and the exact and projected values
     ///     of literals.
     /// </summary>
     private static string Dump(IReadOnlyList<CStructElement> elements)
@@ -915,19 +915,15 @@ public class ParserCorpusTests
                     this.Builder.Append(';');
                 }
 
-                this.Builder.Append("])");
-                this.FieldSuffix(composite);
-                break;
-            case SwitchCaseValidation validation:
-                this.Builder.Append("switch-validation(tags=[");
-                foreach (Expr tag in validation.Tags)
+                this.Builder.Append("],groups=[");
+                foreach (ConditionalGroup group in composite.Groups)
                 {
-                    this.Expr(tag);
+                    this.Group(group);
                     this.Builder.Append(',');
                 }
 
                 this.Builder.Append("])");
-                this.FieldSuffix(validation);
+                this.FieldSuffix(composite);
                 break;
             case Field field:
                 this.Builder.Append("field(type=");
@@ -998,44 +994,49 @@ public class ParserCorpusTests
             }
         }
 
-        /// <summary>Writes a field's condition and conditional-branch facts.</summary>
+        /// <summary>Writes the arms a field sits in, outermost first.</summary>
         private void FieldSuffix(Field field)
         {
-            this.Builder.Append("{cond=");
-            this.Expr(field.Condition);
-            this.Builder.Append(",branches=[");
+            this.Builder.Append("{branches=[");
             foreach (ConditionalBranch branch in field.BranchConditions)
             {
-                if (!this.groups.TryGetValue(branch.Group, out int groupId))
-                {
-                    groupId = this.groups.Count;
-                    this.groups.Add(branch.Group, groupId);
-                    this.Builder.Append("g").Append(groupId).Append("(sel=");
-                    this.Expr(branch.Group.Selector);
-                    this.Builder.Append(",labels=");
-                    if (branch.Group.CaseLabels is null)
-                    {
-                        this.Builder.Append("null");
-                    }
-                    else
-                    {
-                        this.Builder.Append('[');
-                        foreach (Expr label in branch.Group.CaseLabels)
-                        {
-                            this.Expr(label);
-                            this.Builder.Append(',');
-                        }
-
-                        this.Builder.Append(']');
-                    }
-
-                    this.Builder.Append(')');
-                }
-
-                this.Builder.Append("g").Append(groupId).Append('#').Append(branch.Arm).Append(',');
+                this.Group(branch.Group);
+                this.Builder.Append('#').Append(branch.Arm).Append(',');
             }
 
             this.Builder.Append("]}");
+        }
+
+        /// <summary>Writes a group's id, preceded by its selector and labels where it first appears.</summary>
+        private void Group(ConditionalGroup group)
+        {
+            if (!this.groups.TryGetValue(group, out int groupId))
+            {
+                groupId = this.groups.Count;
+                this.groups.Add(group, groupId);
+                this.Builder.Append("g").Append(groupId).Append("(sel=");
+                this.Expr(group.Selector);
+                this.Builder.Append(",labels=");
+                if (group.CaseLabels is null)
+                {
+                    this.Builder.Append("null");
+                }
+                else
+                {
+                    this.Builder.Append('[');
+                    foreach (Expr label in group.CaseLabels)
+                    {
+                        this.Expr(label);
+                        this.Builder.Append(',');
+                    }
+
+                    this.Builder.Append(']');
+                }
+
+                this.Builder.Append(')');
+            }
+
+            this.Builder.Append("g").Append(groupId);
         }
 
         /// <summary>Writes an identifier with its pointer stars.</summary>

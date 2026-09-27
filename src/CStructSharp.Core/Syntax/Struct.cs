@@ -26,6 +26,13 @@ internal class Struct : Field
 
     public ImmutableList<Field> Fields { get; }
 
+    /// <summary>
+    ///     The <c>if</c>/<c>switch</c> groups declared in this body, nested ones included - also those whose arms are all
+    ///     empty, so their case labels are still validated. Each conditional member names its groups through
+    ///     <see cref="Field.BranchConditions"/>.
+    /// </summary>
+    public ImmutableArray<ConditionalGroup> Groups { get; init; } = ImmutableArray<ConditionalGroup>.Empty;
+
     public override Identifier Name { get; }
 
     public bool IsUnion { get; }

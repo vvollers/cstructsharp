@@ -26,11 +26,11 @@ internal sealed partial class LayoutParser
         Expr? alignment = this.TryParseAlignmentOverride();
         if (this.TryToken('{'))
         {
-            List<Field> fields = this.ParseCompositeMembers(isUnion);
+            List<Field> fields = this.ParseCompositeBody(isUnion, out ImmutableArray<ConditionalGroup> groups);
             this.ExpectToken('}');
             Identifier name = this.ExpectIdentifier();
             this.ExpectToken(';');
-            destination.Add(new Struct(name, fields.ToImmutableList(), isUnion, alignment ?? this.CurrentPack));
+            destination.Add(new Struct(name, fields.ToImmutableList(), isUnion, alignment ?? this.CurrentPack) { Groups = groups });
             return;
         }
 
@@ -42,7 +42,7 @@ internal sealed partial class LayoutParser
         }
 
         this.ExpectToken('{');
-        List<Field> members = this.ParseCompositeMembers(isUnion);
+        List<Field> members = this.ParseCompositeBody(isUnion, out ImmutableArray<ConditionalGroup> memberGroups);
         this.ExpectToken('}');
 
         // `struct X { ... } variable;` declares an object of the type; the variable itself is not part of a layout.
@@ -56,7 +56,7 @@ internal sealed partial class LayoutParser
             this.TryToken(';');
         }
 
-        destination.Add(new Struct(tag, members.ToImmutableList(), isUnion, alignment ?? this.CurrentPack));
+        destination.Add(new Struct(tag, members.ToImmutableList(), isUnion, alignment ?? this.CurrentPack) { Groups = memberGroups });
     }
 
     private Expr? CurrentPack => this.packStack.Count == 0 ? null : this.packStack[^1];
@@ -81,10 +81,10 @@ internal sealed partial class LayoutParser
             Expr? alignment = this.TryParseAlignmentOverride();
             if (this.TryToken('{'))
             {
-                List<Field> fields = this.ParseCompositeMembers(isUnion);
+                List<Field> fields = this.ParseCompositeBody(isUnion, out ImmutableArray<ConditionalGroup> groups);
                 this.ExpectToken('}');
                 Identifier alias = this.ExpectIdentifier();
-                var declared = new Struct(alias, fields.ToImmutableList(), isUnion, alignment ?? this.CurrentPack);
+                var declared = new Struct(alias, fields.ToImmutableList(), isUnion, alignment ?? this.CurrentPack) { Groups = groups };
                 destination.Add(new Typedef(alias, declared));
                 this.ParseTypedefDeclaratorTail(alias, destination);
                 return;
@@ -99,9 +99,9 @@ internal sealed partial class LayoutParser
                 Expr? tagAlignment = this.TryParseAlignmentOverride();
                 if (this.TryToken('{'))
                 {
-                    List<Field> fields = this.ParseCompositeMembers(isUnion);
+                    List<Field> fields = this.ParseCompositeBody(isUnion, out ImmutableArray<ConditionalGroup> groups);
                     this.ExpectToken('}');
-                    var declared = new Struct(tag, fields.ToImmutableList(), isUnion, tagAlignment ?? this.CurrentPack);
+                    var declared = new Struct(tag, fields.ToImmutableList(), isUnion, tagAlignment ?? this.CurrentPack) { Groups = groups };
                     if (this.AtDeclarationKeyword() || (this.TryToken(';') && !this.AtBareIdentifierStatement()))
                     {
                         // `typedef struct NAME { ... };` - the tag is the only name (the semicolon is as optional

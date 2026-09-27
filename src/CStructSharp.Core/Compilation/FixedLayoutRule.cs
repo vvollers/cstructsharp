@@ -29,7 +29,7 @@ internal static class FixedLayoutRule
     /// <returns>Whether the member's placement and shape qualify; its codec is checked by the consumer.</returns>
     public static bool IsFixedMember(CompiledField field)
         => field.FixedOffset is not null && field.BitSize == 0 && !field.IsZeroWidthBitfield && field.PointerDepth == 0 &&
-           field.Declaration.Condition is null && field.ConditionalBranches.Length == 0 &&
+           !field.IsConditional &&
            (field.Array.Kind == CompiledArrayKind.Scalar ||
             (field.Array.Kind == CompiledArrayKind.Fixed && field.Array.Dimensions.Length == 1 && field.Array.FixedCount is not null));
 }

@@ -59,7 +59,7 @@ internal static class LayoutFingerprint
                 .Append(field.IsZeroWidthBitfield ? "z" : string.Empty)
                 .Append(field.IsCharacterArray ? "c" : string.Empty)
                 .Append(field.IsWideCharElement ? "w" : string.Empty)
-                .Append(field.Declaration.Condition is not null || field.ConditionalBranches.Length > 0 ? "?" : string.Empty)
+                .Append(field.IsConditional ? "?" : string.Empty)
                 .Append(field.AssertedOffset is int asserted ? "!" + asserted.ToString(CultureInfo.InvariantCulture) : string.Empty)
                 .Append(field.HasCountedTarget ? "#" : string.Empty)
                 .Append(composite.PromotedFields.Contains(field) ? "^" : string.Empty);

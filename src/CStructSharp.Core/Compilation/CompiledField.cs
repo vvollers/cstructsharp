@@ -102,6 +102,10 @@ internal sealed class CompiledField
         this.IsFixedPoint = this.Codec.IsFixedPoint;
     }
 
+    /// <summary>Whether the field sits in an arm of an <c>if</c> or <c>switch</c>, so the data decides whether it is present.</summary>
+    public bool IsConditional => this.Declaration.IsConditional;
+
+    /// <summary>The compiled arms this field sits in, outermost first; empty for an unconditional field.</summary>
     public ImmutableArray<CompiledConditionalBranch> ConditionalBranches { get; internal set; } = ImmutableArray<CompiledConditionalBranch>.Empty;
 
     /// <summary>

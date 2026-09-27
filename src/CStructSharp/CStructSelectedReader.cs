@@ -112,7 +112,7 @@ public partial class CStruct
             foreach (CompiledField field in composite.Fields)
             {
                 bool active = selection?.IsActive(field, state.Variables) ?? true;
-                if (field.Declaration.Condition is not null)
+                if (field.IsConditional)
                 {
                     state.ConditionalLayoutTrace?.Add((field.Declaration.Name.Name, state.Stream.Position, active ? 1L : 0L));
                 }

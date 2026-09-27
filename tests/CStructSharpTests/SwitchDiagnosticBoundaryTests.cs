@@ -21,4 +21,20 @@ public class SwitchDiagnosticBoundaryTests
 
         StringAssert.Contains(failure.Message, reason);
     }
+
+    /// <summary>
+    ///     A switch whose arms declare no members is still a group of its body, so its labels are validated wherever it
+    ///     is nested: in an if or switch arm, or in an inline struct.
+    /// </summary>
+    /// <param name="members">The struct members around the invalid, empty switch.</param>
+    [TestMethod]
+    [DataRow("uint8 tag; if (tag) { switch (tag) { case 1: {} case (0+1): {} } }")]
+    [DataRow("uint8 tag; switch (tag) { case 2: { switch (tag) { case 1: {} case (0+1): {} } } }")]
+    [DataRow("uint8 tag; struct { uint8 inner; switch (inner) { case 1: {} case (0+1): {} } } nested;")]
+    [DataRow("uint8 tag; if (tag) { struct { uint8 inner; switch (inner) { case 1: {} case (0+1): {} } } nested; }")]
+    public void InvalidLabels_InNestedEmptySwitchAreRejected(string members)
+    {
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { " + members + " };"));
+        StringAssert.Contains(failure.Message, "Duplicate switch case value: 1");
+    }
 }

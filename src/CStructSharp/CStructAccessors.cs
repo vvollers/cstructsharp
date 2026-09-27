@@ -84,7 +84,7 @@ public sealed partial class CStruct
             // A constant offset needs every member on the path statically placed and unconditional; an index needs a
             // one-dimensional fixed array of fixed-size elements.
             fixedOffset &= !composite.IsUnion && fieldOffset >= 0 && field.PointerDepth == 0 && field.BitSize == 0 &&
-                           field.Declaration.Condition is null && field.ConditionalBranches.Length == 0;
+                           !field.IsConditional;
             offset += fieldOffset;
             leafIsElement = false;
             if (indexes.Length > 0)

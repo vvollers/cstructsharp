@@ -230,11 +230,6 @@ internal sealed partial class LayoutCompilation
         var open = new List<ConditionalBranch>();
         foreach (Field field in composite.Fields)
         {
-            if (field is SwitchCaseValidation)
-            {
-                continue;
-            }
-
             MoveToBranches(builder, open, field.BranchConditions, inner);
             string fieldIndent = inner + new string(' ', 4 * open.Count);
             if (field is Struct nested)
@@ -394,7 +389,7 @@ internal sealed partial class LayoutCompilation
                     field.BitSize > 0 || field.IsZeroWidthBitfield ? field.BitSize : null,
                     field.BitSize > 0 ? field.BitOffset : null,
                     composite.PromotedFields.Contains(field),
-                    declaration.Condition is not null,
+                    declaration.IsConditional,
                     promoted)
                 {
                     HasCountedTarget = field.HasCountedTarget,

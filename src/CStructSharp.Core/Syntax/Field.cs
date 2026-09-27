@@ -81,12 +81,12 @@ internal class Field : CStructElement
 
     internal Expr BitSizeExpression { get; }
 
-    /// <summary>Optional runtime predicate controlling whether this field consumes storage.</summary>
-    internal Expr? Condition { get; set; }
-
-    /// <summary>Ordered outer-to-inner predicates with shared identity for all arms of one syntactic group.</summary>
+    /// <summary>The arms this field sits in, outermost first; empty for an unconditional field.</summary>
     internal IReadOnlyList<ConditionalBranch> BranchConditions { get; set; } =
         Array.Empty<ConditionalBranch>();
+
+    /// <summary>Whether the field sits in an arm of an <c>if</c> or <c>switch</c>, so the data decides whether it is present.</summary>
+    internal bool IsConditional => this.BranchConditions.Count > 0;
 
     public bool IsPointer { get; }
 

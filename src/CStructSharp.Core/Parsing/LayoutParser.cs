@@ -53,6 +53,9 @@ internal sealed partial class LayoutParser
     /// <summary>Tags declared inside a body (<c>struct tag { } member;</c>) - C and dissect both make them global types.</summary>
     private readonly List<CStructElement> hoisted = [];
 
+    /// <summary>The <c>if</c>/<c>switch</c> groups of the struct or union body being parsed, or null outside one.</summary>
+    private List<ConditionalGroup>? bodyGroups;
+
     private int position;
 
     /// <summary>Set when an expression named a qualified member (<c>Enum.Member</c>), so the compiler publishes those names.</summary>
