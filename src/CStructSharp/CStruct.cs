@@ -290,8 +290,7 @@ public sealed partial class CStruct
         }
         catch (CStructException exception)
         {
-            state.Complete();
-            ExceptionContext.Attach(exception, segments, stream);
+            state.CompleteWithContext(exception, segments, stream);
             throw;
         }
         finally
@@ -388,8 +387,7 @@ public sealed partial class CStruct
         }
         catch (CStructException exception)
         {
-            state.Complete();
-            ExceptionContext.Attach(exception, segments, stream);
+            state.CompleteWithContext(exception, segments, stream);
             throw;
         }
         finally

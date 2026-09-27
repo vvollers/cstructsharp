@@ -48,7 +48,7 @@ public sealed partial class CStruct
             // registered mapped class (ICStructMapped<T>) built from the parsed composite.
             object? naturalValue = this.ReadValueCore(
                 stream,
-                elementNameOrPath,
+                segments,
                 LayoutVariableInput.FromIntegers(variables),
                 options);
             return (T)TypedValueConverter.Convert(naturalValue, typeof(T), ExceptionContext.FormatPath(segments))!;
@@ -61,6 +61,11 @@ public sealed partial class CStruct
     }
 
     /// <summary>Reads one semantically resolved target through the compiled reader.</summary>
+    /// <param name="stream">The source, at the operation origin.</param>
+    /// <param name="elementNameOrPath">The path of the value.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="options">The read options, or the defaults.</param>
+    /// <returns>The value.</returns>
     internal object? ReadValueCore(
         Stream stream,
         string elementNameOrPath,
@@ -68,7 +73,21 @@ public sealed partial class CStruct
         ReadOptions? options)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        IReadOnlyList<PathSegment> segments = this.ParsePath(elementNameOrPath);
+        return this.ReadValueCore(stream, this.ParsePath(elementNameOrPath), variables, options);
+    }
+
+    /// <summary>Reads the value a parsed path selects through the compiled reader.</summary>
+    /// <param name="stream">The source, at the operation origin.</param>
+    /// <param name="segments">The parsed path.</param>
+    /// <param name="variables">The caller's layout variables.</param>
+    /// <param name="options">The read options, or the defaults.</param>
+    /// <returns>The value.</returns>
+    private object? ReadValueCore(
+        Stream stream,
+        IReadOnlyList<PathSegment> segments,
+        LayoutVariableInput variables,
+        ReadOptions? options)
+    {
         ReadOperationSettings effectiveOptions = ReadOperationSettings.SnapshotReadOptions(options);
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         var state = new CStructOperationContext(
@@ -84,8 +103,7 @@ public sealed partial class CStruct
         }
         catch (CStructException exception)
         {
-            state.Complete();
-            ExceptionContext.Attach(exception, segments, stream);
+            state.CompleteWithContext(exception, segments, stream);
             throw;
         }
         finally

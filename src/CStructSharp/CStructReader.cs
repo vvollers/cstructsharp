@@ -334,107 +334,53 @@ public partial class CStruct
         // Copy caller variables and resolve layout-wide definitions without mutating caller-owned state.
         Dictionary<string, Expr> effectiveVariables = variables.Resolve(this.layoutVariableResolver);
         string rootName = segments[0].Name;
-        if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out _))
+        if (!this.compiledModelQueries.TryGetCompiledDeclaration(rootName, out CStructElement? declaration))
         {
             throw this.compiledModelQueries.UnknownRoot(rootName);
         }
 
-        StructValue root;
         try
         {
-            if (debug)
-            {
-                // Debug reads use the same parser but additionally retain byte ranges and layout stacks for each value.
-                (List<DebugData> DebugData, StructValue Result) parsed
-                    = this.ParseStreamRootDebug(stream, rootName, effectiveVariables, options);
-                debugData = parsed.DebugData;
-                root = parsed.Result;
-            }
-            else
-            {
-                // Keep a non-null empty list so callers can handle both modes through the same return shape; the
-                // non-debug callers discard it, so one shared empty instance serves every plain parse.
-                debugData = NoDebugData;
-                root = this.ParseStreamRoot(stream, rootName, effectiveVariables, options);
-            }
+            return this.ParseStreamRoot(stream, rootName, declaration, effectiveVariables, options, debug, out debugData);
         }
         catch (CStructException exception)
         {
             ExceptionContext.Attach(exception, segments, stream);
             throw;
         }
-
-        return root;
     }
 
-    /// <summary>Creates the root object and reads one named layout element without collecting debug byte ranges.</summary>
+    /// <summary>Reads one declared root into a new root object, recording byte ranges in debug mode.</summary>
+    /// <param name="stream">The source, at the root's first byte.</param>
+    /// <param name="rootName">The root's declared name.</param>
+    /// <param name="declaration">The root's declaration.</param>
+    /// <param name="variables">The operation's layout variables.</param>
+    /// <param name="options">The read settings.</param>
+    /// <param name="debug">Whether to record each value's byte range and layout path.</param>
+    /// <param name="debugData">The records; one shared empty list outside debug mode, which callers only discard.</param>
+    /// <returns>The root object, holding the root's value under its name.</returns>
     private StructValue ParseStreamRoot(
         Stream stream,
-        string elementName,
+        string rootName,
+        CStructElement declaration,
         Dictionary<string, Expr> variables,
-        ReadOperationSettings options)
+        ReadOperationSettings options,
+        bool debug,
+        out List<DebugData> debugData)
     {
-        // Create a container for the named root layout element before constructing all per-read mutable state.
-        var root = new StructValue(this.compiledModelQueries.GetRootShape(elementName));
-
-        if (!this.compiledModelQueries.TryGetCompiledDeclaration(elementName, out CStructElement? cstructElement))
-        {
-            throw this.compiledModelQueries.UnknownRoot(elementName);
-        }
-
-        // The state captures stream progress, variables, alignment, and pointer policy for this one parse operation.
-        var state = new CStructOperationContext(
-                                                  stream,
-                                                  variables,
-                                                  this.Aligned,
-                                                  options);
-
-        // Start with an empty debug stack; it remains empty in ordinary parsing but keeps the shared call shape simple.
+        var root = new StructValue(this.compiledModelQueries.GetRootShape(rootName));
+        var state = new CStructOperationContext(stream, variables, this.Aligned, options) { Debug = debug, };
         try
         {
-            this.HandleCStructElement(cstructElement, root, state, null);
+            this.HandleCStructElement(declaration, root, state, null);
         }
         finally
         {
             state.Complete();
         }
 
+        debugData = debug ? state.DebugMapping : NoDebugData;
         return root;
-    }
-
-    /// <summary>Creates the root object and reads one named layout element while collecting debug byte ranges.</summary>
-    private (List<DebugData> DebugData, StructValue Result) ParseStreamRootDebug(
-        Stream stream,
-        string elementName,
-        Dictionary<string, Expr> variables,
-        ReadOperationSettings options)
-    {
-        // Debug mode uses the same root construction as ordinary mode, with one flag enabled in the operation state.
-        var root = new StructValue(this.compiledModelQueries.GetRootShape(elementName));
-
-        if (!this.compiledModelQueries.TryGetCompiledDeclaration(elementName, out CStructElement? cstructElement))
-        {
-            throw this.compiledModelQueries.UnknownRoot(elementName);
-        }
-
-        var state = new CStructOperationContext(
-                                                  stream,
-                                                  variables,
-                                                  this.Aligned,
-                                                  options)
-        { Debug = true, };
-
-        // Each nested call appends its element to the stack before recording a byte range.
-        try
-        {
-            this.HandleCStructElement(cstructElement, root, state, null);
-        }
-        finally
-        {
-            state.Complete();
-        }
-
-        return (state.DebugMapping, root);
     }
 
     /// <summary>Reads a pointer address using the pointer width and byte order chosen for this layout.</summary>
@@ -562,14 +508,7 @@ public partial class CStruct
             string text = state.FixedText(characters.ToString());
             if (element.IsWideCharElement)
             {
-                try
-                {
-                    _ = this.GetWideCharacterEncoding(element).GetByteCount(text);
-                }
-                catch (EncoderFallbackException exception)
-                {
-                    throw new CStructReadException(ReadFailures.WideTextInvalid, exception);
-                }
+                PrimitiveCodecs.ValidateWideText(text, this.GetWideCharacterEncoding(element));
             }
 
             return text;
@@ -1517,14 +1456,7 @@ public partial class CStruct
         string text = state.FixedText(new string(characters.Cast<char>().ToArray()));
         if (compiledField.IsWideCharElement)
         {
-            try
-            {
-                _ = this.GetWideCharacterEncoding(compiledField).GetByteCount(text);
-            }
-            catch (EncoderFallbackException exception)
-            {
-                throw new CStructReadException(ReadFailures.WideTextInvalid, exception);
-            }
+            PrimitiveCodecs.ValidateWideText(text, this.GetWideCharacterEncoding(compiledField));
         }
 
         return text;

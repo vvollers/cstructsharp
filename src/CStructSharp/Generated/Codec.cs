@@ -854,14 +854,7 @@ public static class Codec
         }
 
         string text = new(characters);
-        try
-        {
-            _ = (littleEndian ? PrimitiveCodecs.StrictUtf16LittleEndianEncoding : PrimitiveCodecs.StrictUtf16BigEndianEncoding).GetByteCount(text);
-        }
-        catch (System.Text.EncoderFallbackException exception)
-        {
-            throw new CStructReadException(ReadFailures.WideTextInvalid, exception);
-        }
+        PrimitiveCodecs.ValidateWideText(text, littleEndian ? PrimitiveCodecs.StrictUtf16LittleEndianEncoding : PrimitiveCodecs.StrictUtf16BigEndianEncoding);
 
         return TrimsFixedText(options) ? text.TrimEnd('\0') : text;
     }

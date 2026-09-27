@@ -26,6 +26,22 @@ internal static partial class PrimitiveCodecs
     /// </summary>
     private const int TerminatedStringReadChunkSize = 256;
 
+    /// <summary>Checks that decoded wide characters form valid UTF-16 (no unpaired surrogate), as every read requires.</summary>
+    /// <param name="text">The decoded text.</param>
+    /// <param name="strictEncoding">A strict UTF-16 encoding, which throws on an invalid sequence.</param>
+    /// <exception cref="CStructReadException">The text is not valid UTF-16.</exception>
+    public static void ValidateWideText(string text, Encoding strictEncoding)
+    {
+        try
+        {
+            _ = strictEncoding.GetByteCount(text);
+        }
+        catch (EncoderFallbackException exception)
+        {
+            throw new CStructReadException(ReadFailures.WideTextInvalid, exception);
+        }
+    }
+
     /// <summary>Reads exactly the declared encoded byte extent, including embedded NULs, without reading ahead.</summary>
     public static string ReadBoundedText(Stream stream, int byteCount, string type)
     {

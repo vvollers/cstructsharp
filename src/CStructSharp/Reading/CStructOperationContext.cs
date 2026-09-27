@@ -3,6 +3,7 @@ namespace CStructSharp.Reading;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using CStructSharp.Addressing;
 using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Expressions;
@@ -235,6 +236,18 @@ internal sealed class CStructOperationContext
             this.pointers = null;
             PointerTraversal.Return(pointers);
         }
+    }
+
+    /// <summary>Completes a failed operation, then adds the path and the failure's stream offset to its exception.</summary>
+    /// <remarks>Completing first writes the operation's position back to <paramref name="stream"/>, and that position
+    /// is the offset the exception reports. Completing again in a <c>finally</c> block does nothing more.</remarks>
+    /// <param name="exception">The failure, rethrown by the caller.</param>
+    /// <param name="segments">The operation's parsed path.</param>
+    /// <param name="stream">The caller's stream.</param>
+    public void CompleteWithContext(CStructException exception, IReadOnlyList<PathSegment> segments, Stream stream)
+    {
+        this.Complete();
+        ExceptionContext.Attach(exception, segments, stream);
     }
 
     /// <summary>Claims one nested-struct level and rejects input that exceeds the caller's recursion budget.</summary>
