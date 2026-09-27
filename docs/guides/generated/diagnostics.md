@@ -6,7 +6,7 @@ description: Every CSG diagnostic the generator and the analyzer report - what c
 # Generator and analyzer diagnostics
 
 The generator reports problems as build diagnostics with ids `CSG001` to `CSG300`, each pointing at the attribute
-or expression that caused it. The table is generated from the analyzer's release file by
+or expression that caused it. The table is generated from the analyzer's release files by
 `tools/documentation/validate-generator-diagnostics.mjs`, which the documentation gate runs with `--check` so the
 list cannot drift from what ships.
 

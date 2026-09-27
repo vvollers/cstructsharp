@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
  * Keeps the generator diagnostics lesson (docs/guides/generated/diagnostics.md) in step with the analyzer's release
- * file (src/CStructSharp.Generators/AnalyzerReleases.Unshipped.md): the id/severity/title table between the
- * `generator-diagnostics` markers is generated from the release file, and every listed id must have its own
- * `## CSGnnn` section with the cause and the fix, and no section may describe an id the analyzer does not ship.
+ * files (src/CStructSharp.Generators/AnalyzerReleases.Shipped.md and .Unshipped.md): the id/severity/title table
+ * between the `generator-diagnostics` markers is generated from the rules the two files add (minus any they remove),
+ * every listed id must have its own `## CSGnnn` section with the cause and the fix, and no section may describe an
+ * id the analyzer does not ship.
  *
- *   node tools/documentation/validate-generator-diagnostics.mjs [--check] [--release-path ...] [--page-path ...]
+ *   node tools/documentation/validate-generator-diagnostics.mjs [--check] [--release-dir ...] [--page-path ...]
  *
  * Without --check the table is rewritten in place; with --check a stale table fails.
  */
@@ -14,10 +15,10 @@ import path from "node:path";
 import { assertCondition, main, parseArguments, repositoryRoot } from "../lib/tooling.mjs";
 import { isFile } from "../lib/files.mjs";
 
-const options = parseArguments(process.argv.slice(2), { check: "flag", "release-path": "string", "page-path": "string" }, {
+const options = parseArguments(process.argv.slice(2), { check: "flag", "release-dir": "string", "page-path": "string" }, {
   defaults: {
     check: false,
-    "release-path": path.join(repositoryRoot, "src/CStructSharp.Generators/AnalyzerReleases.Unshipped.md"),
+    "release-dir": path.join(repositoryRoot, "src/CStructSharp.Generators"),
     "page-path": path.join(repositoryRoot, "docs/guides/generated/diagnostics.md"),
   },
 });
@@ -25,11 +26,23 @@ const START = "<!-- generator-diagnostics:start -->";
 const END = "<!-- generator-diagnostics:end -->";
 const SEVERITIES = new Set(["Error", "Warning", "Info", "Hidden"]);
 
-/** The rules of the release file: `Rule ID | Category | Severity | Notes` rows under `### New Rules`. */
+/**
+ * The rules a release file adds and removes: `Rule ID | Category | Severity | Notes` rows under `### New Rules`
+ * and `### Removed Rules`, across every release section.
+ * @param {string} text The release file's text.
+ * @returns {{ added: Array<{ id: string, severity: string, title: string }>, removed: string[] }} The rules in file order.
+ */
 export function parseReleaseRules(text) {
   const rules = [];
+  const removed = [];
   let inTable = false;
+  let section = "";
   for (const line of text.split(/\r?\n/)) {
+    const heading = /^###\s+(.+?)\s*$/.exec(line);
+    if (heading) {
+      section = heading[1];
+      continue;
+    }
     if (/^Rule ID\s*\|/.test(line)) {
       inTable = true;
       continue;
@@ -46,9 +59,30 @@ export function parseReleaseRules(text) {
     assertCondition(category === "CStructSharp", `Diagnostic ${id} has category '${category}'; expected CStructSharp.`);
     assertCondition(SEVERITIES.has(severity), `Diagnostic ${id} has an unknown severity '${severity}'.`);
     assertCondition(title.length > 0, `Diagnostic ${id} has no title.`);
-    rules.push({ id, severity, title });
+    if (section === "Removed Rules") removed.push(id);
+    else if (section === "New Rules") rules.push({ id, severity, title });
   }
-  return rules;
+  return { added: rules, removed };
+}
+
+/**
+ * The rules the analyzer ships now: every rule the shipped and unshipped release files add, minus the removed ones.
+ * @param {string} directory The generator project directory holding both release files.
+ * @returns {Array<{ id: string, severity: string, title: string }>} The rules, sorted by id.
+ */
+export function currentRules(directory) {
+  const rules = new Map();
+  for (const name of ["AnalyzerReleases.Shipped.md", "AnalyzerReleases.Unshipped.md"]) {
+    const file = path.join(directory, name);
+    assertCondition(isFile(file), `Release file '${file}' does not exist.`);
+    const { added, removed } = parseReleaseRules(fs.readFileSync(file, "utf8"));
+    for (const rule of added) {
+      assertCondition(!rules.has(rule.id), `The release files add diagnostic ${rule.id} twice.`);
+      rules.set(rule.id, rule);
+    }
+    for (const id of removed) rules.delete(id);
+  }
+  return [...rules.values()].sort((a, b) => a.id.localeCompare(b.id));
 }
 
 /** The anchor DocFX (markdig) gives a heading: lowercase, punctuation dropped, whitespace runs joined by '-'. */
@@ -61,14 +95,10 @@ export function renderTable(rules) {
 }
 
 await main(() => {
-  assertCondition(isFile(options["release-path"]), `Release file '${options["release-path"]}' does not exist.`);
   assertCondition(isFile(options["page-path"]), `Diagnostics page '${options["page-path"]}' does not exist.`);
-  const rules = parseReleaseRules(fs.readFileSync(options["release-path"], "utf8"));
-  assertCondition(rules.length > 0, "The release file lists no rules.");
+  const rules = currentRules(options["release-dir"]);
+  assertCondition(rules.length > 0, "The release files list no rules.");
   const ids = rules.map((rule) => rule.id);
-  assertCondition(new Set(ids).size === ids.length, "The release file repeats a diagnostic id.");
-  const sortedIds = [...ids].sort();
-  assertCondition(ids.join(",") === sortedIds.join(","), "The release file must list diagnostics in id order.");
 
   const page = fs.readFileSync(options["page-path"], "utf8");
   const start = page.indexOf(START);
