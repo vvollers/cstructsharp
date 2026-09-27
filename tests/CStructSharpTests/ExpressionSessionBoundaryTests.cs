@@ -21,7 +21,7 @@ public class ExpressionSessionBoundaryTests
 
         // Seed a valid near-limit state instead of executing billions of earlier validation steps.
         counter.SetValue(session, int.MaxValue - 1);
-        Expr expression = CStructDefinitionParser.ParseExpression("1 + 2");
+        Expr expression = LayoutParser.ParseExpression("1 + 2");
 
         // Three more instructions overflow the checked counter; the failed assignment must leave it unchanged.
         Assert.Throws<OverflowException>(() => session.Evaluate(expression));
@@ -37,7 +37,7 @@ public class ExpressionSessionBoundaryTests
     [DataRow("0 || missing")]
     public void SelectedMissingDependency_IdentifiesTheName(string source)
     {
-        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        Expr expression = LayoutParser.ParseExpression(source);
         var variables = new Dictionary<string, Expr>();
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(20, 100));
 
@@ -58,7 +58,7 @@ public class ExpressionSessionBoundaryTests
     [DataRow("0 || a")]
     public void SelectedDependencyCycle_IdentifiesTheRepeatedName(string dependency)
     {
-        var variables = new Dictionary<string, Expr> { ["a"] = CStructDefinitionParser.ParseExpression(dependency), };
+        var variables = new Dictionary<string, Expr> { ["a"] = LayoutParser.ParseExpression(dependency), };
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(20, 100));
 
         for (int engine = 0; engine < 3; engine++)
@@ -77,7 +77,7 @@ public class ExpressionSessionBoundaryTests
     [DataRow("~(~value)", 2)]
     public void NestedUnary_DoesNotRepeatDependencyLookups(string source, int expected)
     {
-        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        Expr expression = LayoutParser.ParseExpression(source);
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(10, 100));
         var sessionVariables = new CountedVariables { ["value"] = new Literal(2), };
         var directVariables = new CountedVariables { ["value"] = new Literal(2), };
@@ -98,7 +98,7 @@ public class ExpressionSessionBoundaryTests
     [DataRow("value + 1", 3, 3)]
     public void SimpleDependencyDepth_ExplainsItsLimit(string source, int depth, int expected)
     {
-        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        Expr expression = LayoutParser.ParseExpression(source);
         var variables = new Dictionary<string, Expr> { ["value"] = new Literal(2), };
         Assert.AreEqual(expected, new ExpressionEvaluator(new ExpressionEvaluationLimits(depth, 100)).Evaluate(expression, variables));
         var limited = new ExpressionEvaluator(new ExpressionEvaluationLimits(depth - 1, 100));
@@ -116,7 +116,7 @@ public class ExpressionSessionBoundaryTests
     [DataRow(2)]
     public void DependencyDepth_AcceptsExactBoundaryAndRejectsOneLess(int engine)
     {
-        var variables = new Dictionary<string, Expr> { ["a"] = CStructDefinitionParser.ParseExpression("b + 1"), ["b"] = new Literal(2), };
+        var variables = new Dictionary<string, Expr> { ["a"] = LayoutParser.ParseExpression("b + 1"), ["b"] = new Literal(2), };
         Expr root = new Identifier("a");
         Assert.AreEqual(new BigInteger(3), Evaluate(new ExpressionEvaluator(new ExpressionEvaluationLimits(4, 100)), root, variables, engine));
 
@@ -134,8 +134,8 @@ public class ExpressionSessionBoundaryTests
     public void DependencyWork_CountsEachDistinctLiteralOnce(int engine)
     {
         var variables = new Dictionary<string, Expr> { ["a"] = new Literal(2), ["b"] = new Literal(3), };
-        Expr repeated = CStructDefinitionParser.ParseExpression("a + a");
-        Expr distinct = CStructDefinitionParser.ParseExpression("a + b");
+        Expr repeated = LayoutParser.ParseExpression("a + a");
+        Expr distinct = LayoutParser.ParseExpression("a + b");
         Assert.AreEqual(new BigInteger(4), Evaluate(new ExpressionEvaluator(new ExpressionEvaluationLimits(10, 4)), repeated, variables, engine));
         Assert.AreEqual(new BigInteger(5), Evaluate(new ExpressionEvaluator(new ExpressionEvaluationLimits(10, 5)), distinct, variables, engine));
 
@@ -169,9 +169,9 @@ public class ExpressionSessionBoundaryTests
     [DataRow("1 ? 2 : sizeof(root)")]
     public void CallDiscovery_VisitsEveryChildPosition(string source)
     {
-        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        Expr expression = LayoutParser.ParseExpression(source);
         Assert.IsTrue(ExpressionEvaluator.ContainsCall(expression));
-        Assert.IsFalse(ExpressionEvaluator.ContainsCall(CStructDefinitionParser.ParseExpression("1 ? -2 : 3 + 4")));
+        Assert.IsFalse(ExpressionEvaluator.ContainsCall(LayoutParser.ParseExpression("1 ? -2 : 3 + 4")));
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(20, 100));
 
         // Calls must be folded by layout compilation before ordinary expression compilation can execute them.

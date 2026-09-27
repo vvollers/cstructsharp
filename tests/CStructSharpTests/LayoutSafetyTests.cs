@@ -331,10 +331,10 @@ public class LayoutSafetyTests
     [TestMethod]
     public void Expressions_UseSharedPrecedenceRows()
     {
-        Assert.AreEqual(4, CStructDefinitionParser.ParseExpression("6 * 2 / 3").Evaluate());
-        Assert.AreEqual(7, CStructDefinitionParser.ParseExpression("1 + 2 * 3").Evaluate());
-        Assert.AreEqual(4, CStructDefinitionParser.ParseExpression("1 << 1 + 1").Evaluate());
-        Assert.AreEqual(4, CStructDefinitionParser.ParseExpression("8 >> 1 & 7").Evaluate());
+        Assert.AreEqual(4, LayoutParser.ParseExpression("6 * 2 / 3").Evaluate());
+        Assert.AreEqual(7, LayoutParser.ParseExpression("1 + 2 * 3").Evaluate());
+        Assert.AreEqual(4, LayoutParser.ParseExpression("1 << 1 + 1").Evaluate());
+        Assert.AreEqual(4, LayoutParser.ParseExpression("8 >> 1 & 7").Evaluate());
     }
 
     /// <summary>

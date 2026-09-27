@@ -162,8 +162,6 @@ internal sealed class CompiledField
 
     public Field EffectiveField { get; }
 
-    public int? FixedArrayCount => this.Array.FixedCount;
-
     public int? FixedElementSize { get; }
 
     public int? FixedOffset { get; }

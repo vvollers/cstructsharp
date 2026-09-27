@@ -14,7 +14,7 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 ///     Answers runtime lookups against one immutable, fully bound <see cref="CompiledLayoutModel"/>. Every member
 ///     here is safe only after construction has finished binding the model; the handful of compiled-model queries
 ///     that are also reachable mid-construction (composite and storage-size resolution, used while a union member's
-///     fixed storage is still being validated) remain instance methods on <see cref="CStruct"/> for that reason.
+///     fixed storage is still being validated) live in <see cref="CompiledSizeQueries"/> instead.
 /// </summary>
 internal sealed class CompiledModelQueries
 {

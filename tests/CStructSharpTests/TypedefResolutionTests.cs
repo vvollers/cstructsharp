@@ -22,7 +22,7 @@ public class TypedefResolutionTests
     [TestMethod]
     public void PrimitiveTypedef_UsesAliasNameAndUnderlyingType()
     {
-        var alias = (Typedef)CStructDefinitionParser.ParseElement("typedef uint16 word;");
+        var alias = (Typedef)LayoutParser.ParseElement("typedef uint16 word;");
 
         Assert.AreEqual("word", alias.Name.Name);
         Assert.AreEqual("uint16", alias.Type.Name);

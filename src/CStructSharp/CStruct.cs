@@ -114,16 +114,16 @@ public sealed partial class CStruct
         this.staticLayoutVariables = this.compilation.StaticLayoutVariables;
     }
 
-    /// <summary>
-    ///     Gets the exported top-level declarations by their case-sensitive names. Anonymous inline declarations remain
-    ///     attached to their containing fields and are not promoted into this namespace.
-    /// </summary>
     /// <summary>The compile-time half of this layout: declarations, compiled model, placement, and introspection.</summary>
     internal LayoutCompilation Compilation => this.compilation;
 
     /// <summary>The immutable compiled layout model (the compilation's), for tests and the WASM static-plan export.</summary>
     internal CompiledLayoutModel CompiledModel => this.compilation.CompiledModel;
 
+    /// <summary>
+    ///     Gets the exported top-level declarations by their case-sensitive names. Anonymous inline declarations remain
+    ///     attached to their containing fields and are not promoted into this namespace.
+    /// </summary>
     internal IReadOnlyDictionary<string, CStructElement> CStructElements => this.compilation.CStructElements;
 
     /// <summary>Gets whether composite fields use their portable alignment boundaries.</summary>

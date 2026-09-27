@@ -12,6 +12,9 @@ using CStructSharp.Syntax;
 /// <summary>Keeps stream position, variables, options, and bitfield progress for one write operation.</summary>
 internal sealed class CStructElementWriterState
 {
+    /// <summary>The variable-dictionary key that holds the active qualified prefix; no field can be spelled this way.</summary>
+    private const string QualifiedPrefixKey = "\0qualified-prefix";
+
     /// <summary>
     ///     The same instance as <see cref="Stream" />, kept under its concrete type so
     ///     <see cref="EnsureStringBytes" />/<see cref="WriteZeroes" /> can call its budget-specific members
@@ -19,9 +22,6 @@ internal sealed class CStructElementWriterState
     ///     constructor is the only place that needs to know the concrete type is always a
     ///     <see cref="WriteBudgetStream" />.
     /// </summary>
-    /// <summary>The variable-dictionary key that holds the active qualified prefix; no field can be spelled this way.</summary>
-    private const string QualifiedPrefixKey = "\0qualified-prefix";
-
     private readonly WriteBudgetStream budgetStream;
 
     private bool hasQualifiedPrefix;

@@ -254,6 +254,31 @@ internal sealed partial class LayoutCompilation
         };
     }
 
+    /// <summary>
+    ///     Checks that a type written with a <c>struct</c>, <c>union</c> or <c>enum</c> keyword names that kind of type.
+    /// </summary>
+    /// <param name="keyword">The keyword written before the type name, or <see langword="null"/> when none was.</param>
+    /// <param name="type">The resolved type.</param>
+    /// <param name="subject">The declaration, for the diagnostic (for example <c>Field 'x'</c>).</param>
+    /// <param name="typeName">The written type name; its source offset locates the diagnostic.</param>
+    /// <exception cref="CStructLayoutException">The keyword names a different kind of type.</exception>
+    private static void CheckTypeKeyword(string? keyword, CompiledTypeReference type, string subject, Identifier typeName)
+    {
+        if (keyword is null)
+        {
+            return;
+        }
+
+        string actualKind = type.Symbol.Kind.ToString().ToLowerInvariant();
+        if (!string.Equals(keyword, actualKind, StringComparison.Ordinal))
+        {
+            throw new CStructLayoutException($"{subject} declared as '{keyword}' but '{typeName.Name}' is a {actualKind}.")
+            {
+                SourceOffset = typeName.SourceOffset,
+            };
+        }
+    }
+
     /// <summary>Builds the operation-time model after parsed declarations have passed all layout validation.</summary>
     private CompiledLayoutModel CompileIntermediateRepresentation()
     {
@@ -508,7 +533,6 @@ internal sealed partial class LayoutCompilation
         }
     }
 
-    /// <summary>Resolves one exported or primitive name once, accumulating pointer depth across typedef chains.</summary>
     /// <summary>
     ///     Resolves a field's declared type and, when the spelling is unknown, reports it with the field, the
     ///     containing declaration, and the most likely cause: a multi-word spelling whose first word is itself a
@@ -551,6 +575,7 @@ internal sealed partial class LayoutCompilation
         }
     }
 
+    /// <summary>Resolves one exported or primitive name once, accumulating pointer depth across typedef chains.</summary>
     private CompiledTypeReference ResolveCompiledTypeReference(
         string name,
         ImmutableDictionary<string, CompiledTypeReference>.Builder namedTypes,
@@ -598,15 +623,7 @@ internal sealed partial class LayoutCompilation
                     namedTypes,
                     compositeSymbols,
                     resolvingAliases);
-                if (alias.TypeKeywordHint is not null)
-                {
-                    string actualKind = target.Symbol.Kind.ToString().ToLowerInvariant();
-                    if (!string.Equals(alias.TypeKeywordHint, actualKind, StringComparison.Ordinal))
-                    {
-                        throw new CStructLayoutException(
-                            $"Typedef '{name}' declared as '{alias.TypeKeywordHint}' but '{alias.Type.Name}' is a {actualKind}.");
-                    }
-                }
+                CheckTypeKeyword(alias.TypeKeywordHint, target, $"Typedef '{name}'", alias.Type);
 
                 resolved = new CompiledTypeReference(
                     target.Symbol,
@@ -756,18 +773,7 @@ internal sealed partial class LayoutCompilation
                                                      0,
                                                      inlineStruct.Name.Name)
                                                  : this.ResolveFieldTypeReference(field, strct, namedTypes, compositeSymbols, resolvingAliases);
-                if (field.TypeKeywordHint is not null)
-                {
-                    string actualKind = type.Symbol.Kind.ToString().ToLowerInvariant();
-                    if (!string.Equals(field.TypeKeywordHint, actualKind, StringComparison.Ordinal))
-                    {
-                        throw new CStructLayoutException(
-                            $"Field '{field.Name.Name}' declared as '{field.TypeKeywordHint}' but '{field.Type.Name}' is a {actualKind}.")
-                        {
-                            SourceOffset = field.Type.SourceOffset,
-                        };
-                    }
-                }
+                CheckTypeKeyword(field.TypeKeywordHint, type, $"Field '{field.Name.Name}'", field.Type);
 
                 int pointerDepth = checked(field.PointerDepth + type.PointerDepth);
                 if (pointerDepth == 0 && type.TerminalName == "void")
@@ -1155,10 +1161,8 @@ internal sealed partial class LayoutCompilation
             return this.CompileSingleArrayDimension(field, field.ArrayCount[0]);
         }
 
-        // A multidimensional array (fixed dimensions only): every
-        // dimension must be a compile-time-fixed count - a runtime-sized outermost dimension is a deliberately
-        // separate, smaller follow-on this slice does not implement, and an inner dimension can never be
-        // runtime-sized even once that follow-on lands.
+        // A multidimensional array has fixed dimensions only: a data-dependent count is supported for a
+        // one-dimensional array, where the element layout does not depend on it.
         var dimensions = ImmutableArray.CreateBuilder<CompiledArrayDimension>(field.ArrayCount.Count);
         foreach (Expr dimensionExpression in field.ArrayCount)
         {
@@ -1168,7 +1172,7 @@ internal sealed partial class LayoutCompilation
             {
                 throw new CStructLayoutException(
                     "Every dimension of a multidimensional array must be a compile-time-fixed count; a " +
-                    "runtime-sized dimension is not yet supported for two or more dimensions: " + field.Name.Name);
+                    "runtime-sized dimension is supported only in a one-dimensional array: " + field.Name.Name);
             }
 
             int dimensionCount = this.layoutExpressionEvaluator.Evaluate(
@@ -1181,8 +1185,6 @@ internal sealed partial class LayoutCompilation
         ImmutableArray<CompiledArrayDimension> dimensionList = dimensions.MoveToImmutable();
         return new CompiledArrayShape(
             CompiledArrayKind.Fixed,
-            dimensionList[0].CountExpression,
-            dimensionList[0].FixedCount,
             ImmutableArray<string>.Empty,
             dimensionList);
     }
@@ -1196,8 +1198,6 @@ internal sealed partial class LayoutCompilation
             // all-zero element (C's flexible member has no extent of its own, dissect's convention gives it one).
             return new CompiledArrayShape(
                 CharacterFieldTypes.IsCharArrayField(field) ? CompiledArrayKind.Flexible : CompiledArrayKind.Terminated,
-                dimensionExpression,
-                null,
                 ImmutableArray<string>.Empty,
                 ImmutableArray.Create(new CompiledArrayDimension(dimensionExpression, null)));
         }
@@ -1208,8 +1208,6 @@ internal sealed partial class LayoutCompilation
             // the ordinary count meaning.
             return new CompiledArrayShape(
                 CompiledArrayKind.ToEnd,
-                dimensionExpression,
-                null,
                 ImmutableArray<string>.Empty,
                 ImmutableArray.Create(new CompiledArrayDimension(dimensionExpression, null)));
         }
@@ -1221,8 +1219,6 @@ internal sealed partial class LayoutCompilation
         {
             return new CompiledArrayShape(
                 CompiledArrayKind.Runtime,
-                dimensionExpression,
-                null,
                 dependencies,
                 ImmutableArray.Create(new CompiledArrayDimension(dimensionExpression, null)));
         }
@@ -1233,8 +1229,6 @@ internal sealed partial class LayoutCompilation
             "array length for " + field.Name.Name);
         return new CompiledArrayShape(
             CompiledArrayKind.Fixed,
-            dimensionExpression,
-            count,
             ImmutableArray<string>.Empty,
             ImmutableArray.Create(new CompiledArrayDimension(dimensionExpression, count)));
     }

@@ -6,53 +6,50 @@ using CStructSharp.Syntax;
 /// <summary>Stores one immutable validated array-count strategy and its direct dependencies.</summary>
 internal sealed class CompiledArrayShape
 {
+    /// <summary>Creates a shape from its kind, the names its count reads, and its dimensions.</summary>
+    /// <param name="kind">How the outermost dimension's count is decided.</param>
+    /// <param name="dependencies">The layout variables the count expression reads.</param>
+    /// <param name="dimensions">Every dimension, outermost first; empty for a scalar.</param>
     public CompiledArrayShape(
         CompiledArrayKind kind,
-        Expr? countExpression,
-        int? fixedCount,
         ImmutableArray<string> dependencies,
         ImmutableArray<CompiledArrayDimension> dimensions)
     {
         this.Kind = kind;
-        this.CountExpression = countExpression;
-        this.FixedCount = fixedCount;
         this.Dependencies = dependencies;
         this.Dimensions = dimensions;
     }
 
+    /// <summary>Gets the shape of a field that is not an array: no dimensions and one element.</summary>
     public static CompiledArrayShape Scalar { get; } = new(
         CompiledArrayKind.Scalar,
-        null,
-        1,
         ImmutableArray<string>.Empty,
         ImmutableArray<CompiledArrayDimension>.Empty);
 
-    public Expr? CountExpression { get; }
+    /// <summary>Gets the outermost dimension's count expression, or <see langword="null"/> for a scalar.</summary>
+    public Expr? CountExpression => this.Dimensions.IsEmpty ? null : this.Dimensions[0].CountExpression;
 
+    /// <summary>Gets the layout variables the count expression reads.</summary>
     public ImmutableArray<string> Dependencies { get; }
 
     /// <summary>
-    ///     Every dimension this array actually has, outermost first - empty for <see cref="Scalar"/>, one entry
-    ///     For every array shape this codebase supported before multidimensional arrays (mirroring <see cref="Kind"/>/
-    ///     <see cref="CountExpression"/>/<see cref="FixedCount"/> exactly), N entries for a multidimensional
-    /// field. Only the first entry may describe a Runtime/Flexible dimension; every entry after the
-    ///     first is always Fixed, since only the outermost dimension of a multidimensional array may ever be
-    ///     non-fixed - true today, and still true once a future runtime-sized-outermost-
-    ///     dimension follow-on lands, since <see cref="PeelOuterDimension"/> always removes the *current*
-    ///     outermost entry, and only the *original* outermost entry can ever be non-fixed.
+    ///     Gets every dimension, outermost first: empty for <see cref="Scalar"/>, one entry for a one-dimensional
+    ///     array, N entries for an N-dimensional one. Only the first entry may be runtime-sized or flexible; every
+    ///     later entry is fixed, because only the outermost dimension of a multidimensional array may depend on data.
     /// </summary>
     public ImmutableArray<CompiledArrayDimension> Dimensions { get; }
 
-    public int? FixedCount { get; }
+    /// <summary>Gets the outermost dimension's static count, 1 for a scalar, or <see langword="null"/> when it depends on data.</summary>
+    public int? FixedCount => this.Dimensions.IsEmpty ? 1 : this.Dimensions[0].FixedCount;
 
+    /// <summary>Gets how the outermost dimension's count is decided.</summary>
     public CompiledArrayKind Kind { get; }
 
     /// <summary>
     ///     The total element count across every dimension - 1 for <see cref="Scalar"/>, the product of every
     ///     dimension's fixed count otherwise, or <see langword="null"/> if any dimension has no statically known
-    ///     count (a 1-D runtime/flexible array; a multidimensional array can never reach this case, since every
-    ///     dimension but the outermost is always fixed and this slice rejects a runtime-sized outermost dimension
-    ///     when N &gt; 1).
+    ///     count (a one-dimensional runtime-sized or flexible array; a multidimensional array never is, because
+    ///     compilation requires every one of its dimensions to be fixed).
     /// </summary>
     public int? TotalFixedElementCount
     {
@@ -93,12 +90,6 @@ internal sealed class CompiledArrayShape
         }
 
         ImmutableArray<CompiledArrayDimension> remaining = this.Dimensions.RemoveAt(0);
-        CompiledArrayDimension next = remaining[0];
-        return new CompiledArrayShape(
-            CompiledArrayKind.Fixed,
-            next.CountExpression,
-            next.FixedCount,
-            ImmutableArray<string>.Empty,
-            remaining);
+        return new CompiledArrayShape(CompiledArrayKind.Fixed, ImmutableArray<string>.Empty, remaining);
     }
 }

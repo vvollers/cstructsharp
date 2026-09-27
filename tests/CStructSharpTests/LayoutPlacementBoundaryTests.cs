@@ -77,6 +77,6 @@ public class LayoutPlacementBoundaryTests
         // The count is a field value, so it cannot be folded to a compile-time dimension.
         CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => new CStruct("struct root { uint8 count; uint8 values[count][2]; };"));
         StringAssert.Contains(failure.Message, "Every dimension of a multidimensional array must be a compile-time-fixed count");
-        StringAssert.Contains(failure.Message, "runtime-sized dimension is not yet supported for two or more dimensions: values");
+        StringAssert.Contains(failure.Message, "runtime-sized dimension is supported only in a one-dimensional array: values");
     }
 }

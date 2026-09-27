@@ -45,7 +45,7 @@ public class MultidimensionalArrayTests
 
     /// <summary>
     ///     A two-dimensional fixed array declares and compiles correctly - the outermost dimension's own count
-    ///     (via <see cref="CompiledField.FixedArrayCount"/>) and the total element count both report correctly,
+    ///     (via <see cref="CompiledField.Array.FixedCount"/>) and the total element count both report correctly,
     ///     and a sibling field placed after the array lands at exactly <c>rows * columns</c> bytes, proving the
     ///     total-size math (seam 2) is wired end to end through real declaration/compilation, not just reachable
     ///     via a hand-built shape.
@@ -61,7 +61,7 @@ public class MultidimensionalArrayTests
         var compiledRoot = (CompiledCompositeType)cstruct.CompiledModel.Composites[root].Definition!;
         CompiledField matrixField = compiledRoot.Fields[0];
         Assert.AreEqual(2, matrixField.Array.Dimensions.Length);
-        Assert.AreEqual(3, matrixField.FixedArrayCount);
+        Assert.AreEqual(3, matrixField.Array.FixedCount);
         Assert.AreEqual(12, matrixField.Array.TotalFixedElementCount);
         Assert.AreEqual(12, matrixField.FixedStorageSize);
     }

@@ -98,7 +98,7 @@ public class LayoutParsingValidationTests
         CStructLayoutException exception = Assert.Throws<CStructLayoutException>(() => new CStruct(layout));
         StringAssert.Contains(exception.Message, "depth");
 
-        CStructSharp.Syntax.Expr parsed = CStructDefinitionParser.ParseExpression("!~-" + new string('-', 50_000) + "7");
+        CStructSharp.Syntax.Expr parsed = LayoutParser.ParseExpression("!~-" + new string('-', 50_000) + "7");
         Assert.IsInstanceOfType<CStructSharp.Syntax.UnaryOp>(parsed);
     }
 

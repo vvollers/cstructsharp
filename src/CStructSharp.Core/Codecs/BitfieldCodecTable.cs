@@ -53,7 +53,6 @@ internal sealed class BitfieldCodecTable
         }
     }
 
-    /// <summary>Extracts one unsigned bit slice from a signed or unsigned primitive storage value.</summary>
     /// <summary>
     ///     The shift of a slice inside its unit: the declaration-order offset itself for low-bit-first allocation, or
     ///     counted down from the unit's top bit for high-bit-first allocation.

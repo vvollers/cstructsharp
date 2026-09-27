@@ -17,7 +17,7 @@ public class Structs
     [TestMethod]
     public void TestSimpleStruct()
     {
-        var mystruct = (Struct)CStructDefinitionParser.ParseElement("struct mystruct { int a; int b; };");
+        var mystruct = (Struct)LayoutParser.ParseElement("struct mystruct { int a; int b; };");
         Assert.AreEqual("mystruct", mystruct.Name.Name);
         Assert.HasCount(2, mystruct.Fields);
         Assert.AreEqual("a", mystruct.Fields[0].Name.Name);
@@ -54,7 +54,7 @@ public class Structs
                                        uint16  bootsig;
                                    };
                                    """;
-        var mystruct = (Struct)CStructDefinitionParser.ParseElement(mystructTxt);
+        var mystruct = (Struct)LayoutParser.ParseElement(mystructTxt);
         Assert.AreEqual("mbr_s", mystruct.Name.Name);
         Assert.HasCount(13, mystruct.Fields);
         Assert.AreEqual("jmp", mystruct.Fields[0].Name.Name);
@@ -103,7 +103,7 @@ public class Structs
     public void TestStructWithBitfields()
     {
         var mystruct
-            = (Struct)CStructDefinitionParser.ParseElement("struct mystruct { int a : 4; int b : 2; byte c; };");
+            = (Struct)LayoutParser.ParseElement("struct mystruct { int a : 4; int b : 2; byte c; };");
         Assert.AreEqual("mystruct", mystruct.Name.Name);
         Assert.HasCount(3, mystruct.Fields);
         Assert.AreEqual("a", mystruct.Fields[0].Name.Name);
@@ -127,7 +127,7 @@ public class Structs
     [TestMethod]
     public void TestUknownArraySize()
     {
-        var mystruct = (Struct)CStructDefinitionParser.ParseElement("struct mystruct { char a[]; };");
+        var mystruct = (Struct)LayoutParser.ParseElement("struct mystruct { char a[]; };");
         Assert.AreEqual("mystruct", mystruct.Name.Name);
         Assert.HasCount(1, mystruct.Fields);
         Assert.AreEqual("a", mystruct.Fields[0].Name.Name);

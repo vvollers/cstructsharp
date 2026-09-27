@@ -7,11 +7,10 @@ using System.Linq;
 /// <summary>Represents a name in a layout expression or declaration and records any pointer stars written with it.</summary>
 internal class Identifier : Expr
 {
-    // public static Identifier DEFAULT = new("default");
-    public static readonly Identifier BYTE = new("byte");
-
+    /// <summary>The storage type of an enum with a negative member and no declared storage.</summary>
     public static readonly Identifier INT32 = new("int32");
 
+    /// <summary>The storage type of an enum with no negative member and no declared storage.</summary>
     public static readonly Identifier UINT32 = new("uint32");
 
     /// <summary>Creates an identifier, removing pointer stars from its name while remembering their count.</summary>

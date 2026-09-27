@@ -12,7 +12,7 @@ completed `CStruct` can be reused for many records.
 
 Constructing [`CStruct`](xref:CStructSharp.CStruct) has four stages:
 
-1. **Parse the source.** `CStructDefinitionParser` hands the text to `LayoutParser`, a hand-written
+1. **Parse the source.** `LayoutParser` reads the text. It is a hand-written
    recursive-descent parser: one cursor over the source, direct character tests, and one method per grammar
    production. It builds the small model classes (`Struct`, `Field`, `Enum`, `Typedef`, `Defines`, and the `Expr`
    tree) the later stages consume, and reports every syntax error as a `CStructLayoutException` with a line and

@@ -94,7 +94,7 @@ internal sealed partial class LayoutCompilation
             bool usesQualifiedIdentifiers;
             try
             {
-                structResult = CStructDefinitionParser.ParseLayout(this.Source, effectiveCompilationOptions.Defined, effectiveCompilationOptions.DefaultEnumStorage, out usesQualifiedIdentifiers);
+                structResult = LayoutParser.ParseLayout(this.Source, effectiveCompilationOptions.Defined, effectiveCompilationOptions.DefaultEnumStorage, out usesQualifiedIdentifiers);
             }
             catch (Exception exception) when (exception is FormatException or OverflowException or
                                               InvalidOperationException or ArgumentException)

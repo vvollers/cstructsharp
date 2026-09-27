@@ -18,8 +18,8 @@ public class ExpressionPoolOwnershipTests
     public void SelectedDependency_ReturnsTheOuterStack(bool fail)
     {
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(20, 100));
-        Expr root = CStructDefinitionParser.ParseExpression("1 ? value : 0");
-        Expr dependency = CStructDefinitionParser.ParseExpression(fail ? "1 / 0" : "7");
+        Expr root = LayoutParser.ParseExpression("1 ? value : 0");
+        Expr dependency = LayoutParser.ParseExpression(fail ? "1 / 0" : "7");
         evaluator.Compile(root);
         evaluator.Compile(dependency);
         using var returns = new PoolReturnListener();

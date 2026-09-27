@@ -16,10 +16,10 @@ public class ParserDeclarationBoundaryTests
     public void ParseElement_RejectsMultipleTypedefDeclarations()
     {
         const string source = "typedef uint8 first, second;";
-        Assert.HasCount(2, CStructDefinitionParser.ParseLayout(source));
+        Assert.HasCount(2, LayoutParser.ParseLayout(source));
 
         // Parsing one statement is not the same as obtaining exactly one declared type.
-        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseElement(source));
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseElement(source));
         StringAssert.Contains(failure.Message, "expected a struct, union, typedef, enum, or #define declaration");
     }
 
@@ -36,7 +36,7 @@ public class ParserDeclarationBoundaryTests
     [DataRow("typedef flag : uint8 { A=1 } alias;", "alias", true)]
     public void EnumTypedef_PreservesDeclarationIdentity(string declaration, string name, bool flag)
     {
-        IReadOnlyList<CStructElement> elements = CStructDefinitionParser.ParseLayout(declaration);
+        IReadOnlyList<CStructElement> elements = LayoutParser.ParseLayout(declaration);
         Assert.HasCount(1, elements);
         SyntaxEnum enumeration = Assert.IsInstanceOfType<SyntaxEnum>(elements[0]);
         Assert.AreEqual(name, enumeration.Name.Name);
@@ -58,7 +58,7 @@ public class ParserDeclarationBoundaryTests
     public void EnumTypedef_PreservesDistinctAndPointerAliases()
     {
         const string source = "typedef enum tag : uint8 { A=1 } alias, *pointer;";
-        IReadOnlyList<CStructElement> elements = CStructDefinitionParser.ParseLayout(source);
+        IReadOnlyList<CStructElement> elements = LayoutParser.ParseLayout(source);
         Assert.HasCount(3, elements);
         Typedef alias = Assert.IsInstanceOfType<Typedef>(elements[1]);
         Assert.AreEqual("alias", alias.Name.Name);

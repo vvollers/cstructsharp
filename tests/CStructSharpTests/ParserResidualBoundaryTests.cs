@@ -71,7 +71,7 @@ public class ParserResidualBoundaryTests
     public void IncompleteFunctionPointer_ReportsTheUnrecognizedParenthesis(string source)
     {
         // Recognition must fail normally, including when the closing declarator parenthesis is the last character.
-        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseFieldGroup(source));
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseFieldGroup(source));
         StringAssert.Contains(failure.Message, "expected ';'");
     }
 }

@@ -65,7 +65,7 @@ public class ConditionalExecutionOptimizationTests
     {
         foreach (string source in new[] { "42", "a", "-a", "~a", "!a", "a+b", "a==b" })
         {
-            Expr expression = CStructDefinitionParser.ParseExpression(source);
+            Expr expression = LayoutParser.ParseExpression(source);
             var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(256, 100_000));
             var variables = new Dictionary<string, Expr> { ["a"] = new Literal(1), ["b"] = new Literal(2) };
             for (int index = 0; index < 100; index++)
@@ -99,7 +99,7 @@ public class ConditionalExecutionOptimizationTests
         string[] expressions = ["a", "42", "-a", "~a", "!a", "a+a", "a+b", "a-b", "a*b", "a/b", "a<<b", "a>>b", "a==b", "a!=b", "a<b", "a>=b", "a&b", "a|b"];
         foreach (string source in expressions)
         {
-            Expr expression = CStructDefinitionParser.ParseExpression(source);
+            Expr expression = LayoutParser.ParseExpression(source);
             foreach (int a in new[] { int.MinValue, -1, 0, int.MaxValue })
             {
                 foreach (int b in new[] { -1, 0, 1, 32 })

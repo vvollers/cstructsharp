@@ -446,6 +446,7 @@ internal sealed partial class LayoutEmitter
         this.EmitArrayWrite(writer, field, generated, scope, access, member, memberType);
     }
 
+    /// <summary>Emits the statements that write one array field, choosing the count by the array kind.</summary>
     private void EmitArrayWrite(SourceWriter writer, CompiledField field, GeneratedMember generated, ReaderScope scope, string access, string member, string memberType)
     {
         switch (field.Array.Kind)
@@ -465,7 +466,7 @@ internal sealed partial class LayoutEmitter
             break;
         case CompiledArrayKind.Fixed when field.Array.Dimensions.Length > 1 || field.Array.CountExpression is null:
             {
-                int total = field.Array.TotalFixedElementCount ?? field.FixedArrayCount ?? throw new InvalidOperationException("Fixed array without a count: " + field.Name);
+                int total = field.Array.TotalFixedElementCount ?? throw new InvalidOperationException("Fixed array without a count: " + field.Name);
                 writer.Line("int count = " + Int(total) + ";");
                 if (field.Array.Dimensions.Length > 1)
                 {

@@ -22,7 +22,7 @@ public class LayoutConstructionDiagnosticTests
     [DataRow("struct root { uint8 value @ (-1); };", "Explicit offset assertion must be non-negative: value = -1")]
     [DataRow("struct root { uint8 value : 3 @ (0); };", "An explicit offset assertion is not supported on a bitfield declarator: value")]
     [DataRow("struct root { utf8 text[2][3]; };", "Encoded text buffers support one byte-length dimension; use an array of structs for multiple strings: text")]
-    [DataRow("struct root { uint8 n; uint8 items[n][2]; };", "runtime-sized dimension is not yet supported for two or more dimensions: items")]
+    [DataRow("struct root { uint8 n; uint8 items[n][2]; };", "runtime-sized dimension is supported only in a one-dimensional array: items")]
     [DataRow("struct root { float value : 3; };", "Invalid bitfield declaration: value")]
     public void InvalidDeclaration_ReportsItsSpecificRestriction(string definition, string reason)
     {
@@ -54,6 +54,16 @@ public class LayoutConstructionDiagnosticTests
         Assert.AreEqual(definition.LastIndexOf("kind", StringComparison.Ordinal), failure.SourceOffset);
         Assert.AreEqual(2, failure.Line);
         Assert.AreEqual(22, failure.Column);
+    }
+
+    /// <summary>A typedef with a mismatched type keyword fails with the same text as a field.</summary>
+    [TestMethod]
+    public void TypedefKeywordMismatch_IdentifiesTheTypeSpelling()
+    {
+        const string definition = "enum kind : uint8 { A = 1 };\ntypedef struct kind alias;";
+
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => new CStruct(definition));
+        StringAssert.Contains(failure.Message, "Typedef 'alias' declared as 'struct' but 'kind' is a enum.");
     }
 
     /// <summary>Overflow while constructing a fixed storage extent is wrapped with its arithmetic cause.</summary>

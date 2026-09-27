@@ -23,7 +23,7 @@ internal sealed partial class LayoutEmitter
         {
         case CompiledArrayKind.Fixed when field.Array.Dimensions.Length > 1 || field.Array.CountExpression is null:
             {
-                int total = field.Array.TotalFixedElementCount ?? field.FixedArrayCount ?? throw new InvalidOperationException("Fixed array without a count: " + field.Name);
+                int total = field.Array.TotalFixedElementCount ?? throw new InvalidOperationException("Fixed array without a count: " + field.Name);
                 writer.Line("count = " + Int(total) + ";");
                 if (field.Array.Dimensions.Length > 1)
                 {

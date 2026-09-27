@@ -90,7 +90,7 @@ public partial class CStruct
         IReadOnlyList<Field> fields;
         try
         {
-            fields = CStructDefinitionParser.ParseFieldGroup(head + " value" + dimensions + ";");
+            fields = LayoutParser.ParseFieldGroup(head + " value" + dimensions + ";");
         }
         catch (CStructLayoutException)
         {

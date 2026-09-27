@@ -15,7 +15,7 @@ public class ExpressionCompilerBoundaryTests
     {
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(10, 100));
         IReadOnlyCollection<string> literal = evaluator.GetDependencies(new Literal(1));
-        IReadOnlyCollection<string> addition = evaluator.GetDependencies(CStructDefinitionParser.ParseExpression("2 + 3"));
+        IReadOnlyCollection<string> addition = evaluator.GetDependencies(LayoutParser.ParseExpression("2 + 3"));
 
         Assert.AreEqual(0, literal.Count);
         Assert.AreSame(literal, addition, "A program without names does not need its own empty dependency array.");
@@ -29,7 +29,7 @@ public class ExpressionCompilerBoundaryTests
     public void ExactDependency_ValidatesUnselectedSyntax(string dependency)
     {
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(10, 100));
-        var variables = new Dictionary<string, Expr> { ["value"] = CStructDefinitionParser.ParseExpression(dependency), };
+        var variables = new Dictionary<string, Expr> { ["value"] = LayoutParser.ParseExpression(dependency), };
 
         // Layout calls must already have been folded; exact arithmetic does not bypass compiler validation.
         NotSupportedException failure = Assert.Throws<NotSupportedException>(() => evaluator.EvaluateExact(new Identifier("value"), variables, 64));
@@ -76,7 +76,7 @@ public class ExpressionCompilerBoundaryTests
     [TestMethod]
     public void SyntaxWork_ReportsTheConfiguredLimit()
     {
-        Expr expression = CStructDefinitionParser.ParseExpression("1 + 2");
+        Expr expression = LayoutParser.ParseExpression("1 + 2");
         new ExpressionEvaluator(new ExpressionEvaluationLimits(10, 3)).Compile(expression);
         var limited = new ExpressionEvaluator(new ExpressionEvaluationLimits(10, 2));
 

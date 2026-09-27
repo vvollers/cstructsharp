@@ -22,12 +22,12 @@ public class Literals
 
         foreach (char c in binaryChars)
         {
-            Assert.IsTrue(CStructDefinitionParser.IsDigitOrSeparator(c, 2), c.ToString());
+            Assert.IsTrue(LayoutParser.IsDigitOrSeparator(c, 2), c.ToString());
         }
 
         foreach (char c in nonBinaryChars)
         {
-            Assert.IsFalse(CStructDefinitionParser.IsDigitOrSeparator(c, 2), c.ToString());
+            Assert.IsFalse(LayoutParser.IsDigitOrSeparator(c, 2), c.ToString());
         }
     }
 
@@ -41,12 +41,12 @@ public class Literals
     [TestMethod]
     public void TestBinaryLiteral()
     {
-        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("0b1", 2).Evaluate());
-        Assert.AreEqual(-0b1000, CStructDefinitionParser.ParseLiteral("-0b1000", 2).Evaluate());
-        Assert.AreEqual(0b1000_1000, CStructDefinitionParser.ParseLiteral("0b1000_1000", 2).Evaluate());
-        Assert.AreEqual(-0b1001_0110, CStructDefinitionParser.ParseLiteral("-0b1001_0110", 2).Evaluate());
-        Assert.AreEqual(0b001001, CStructDefinitionParser.ParseLiteral("0b001001;92", 2).Evaluate());
-        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("0b23456F", 2).Evaluate());
+        Assert.AreEqual(0b1, LayoutParser.ParseLiteral("0b1", 2).Evaluate());
+        Assert.AreEqual(-0b1000, LayoutParser.ParseLiteral("-0b1000", 2).Evaluate());
+        Assert.AreEqual(0b1000_1000, LayoutParser.ParseLiteral("0b1000_1000", 2).Evaluate());
+        Assert.AreEqual(-0b1001_0110, LayoutParser.ParseLiteral("-0b1001_0110", 2).Evaluate());
+        Assert.AreEqual(0b001001, LayoutParser.ParseLiteral("0b001001;92", 2).Evaluate());
+        Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLiteral("0b23456F", 2).Evaluate());
     }
 
     /// <summary>
@@ -59,10 +59,10 @@ public class Literals
     [TestMethod]
     public void TestBinaryString()
     {
-        Assert.IsTrue(CStructDefinitionParser.ParseDigits("1001001", 2).Equals("1001001"));
-        Assert.IsTrue(CStructDefinitionParser.ParseDigits("1001_0110", 2).Equals("10010110"));
-        Assert.IsTrue(CStructDefinitionParser.ParseDigits("1010;987", 2).Equals("1010"));
-        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseDigits("23456", 2));
+        Assert.IsTrue(LayoutParser.ParseDigits("1001001", 2).Equals("1001001"));
+        Assert.IsTrue(LayoutParser.ParseDigits("1001_0110", 2).Equals("10010110"));
+        Assert.IsTrue(LayoutParser.ParseDigits("1010;987", 2).Equals("1010"));
+        Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseDigits("23456", 2));
     }
 
     /// <summary>
@@ -80,12 +80,12 @@ public class Literals
 
         foreach (char c in decimalChars)
         {
-            Assert.IsTrue(CStructDefinitionParser.IsDigitOrSeparator(c, 10), c.ToString());
+            Assert.IsTrue(LayoutParser.IsDigitOrSeparator(c, 10), c.ToString());
         }
 
         foreach (char c in nonDecimalChars)
         {
-            Assert.IsFalse(CStructDefinitionParser.IsDigitOrSeparator(c, 10), c.ToString());
+            Assert.IsFalse(LayoutParser.IsDigitOrSeparator(c, 10), c.ToString());
         }
     }
 
@@ -99,12 +99,12 @@ public class Literals
     [TestMethod]
     public void TestDecimalLiteral()
     {
-        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("12345", 10).Evaluate());
-        Assert.AreEqual(-12345, CStructDefinitionParser.ParseLiteral("-12345", 10).Evaluate());
-        Assert.AreEqual(123456, CStructDefinitionParser.ParseLiteral("123_456", 10).Evaluate());
-        Assert.AreEqual(-123456, CStructDefinitionParser.ParseLiteral("-123_456", 10).Evaluate());
-        Assert.AreEqual(1234, CStructDefinitionParser.ParseLiteral("1234;92", 10).Evaluate());
-        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("FFFFFF", 10).Evaluate());
+        Assert.AreEqual(12345, LayoutParser.ParseLiteral("12345", 10).Evaluate());
+        Assert.AreEqual(-12345, LayoutParser.ParseLiteral("-12345", 10).Evaluate());
+        Assert.AreEqual(123456, LayoutParser.ParseLiteral("123_456", 10).Evaluate());
+        Assert.AreEqual(-123456, LayoutParser.ParseLiteral("-123_456", 10).Evaluate());
+        Assert.AreEqual(1234, LayoutParser.ParseLiteral("1234;92", 10).Evaluate());
+        Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLiteral("FFFFFF", 10).Evaluate());
     }
 
     /// <summary>
@@ -117,10 +117,10 @@ public class Literals
     [TestMethod]
     public void TestDecimalString()
     {
-        Assert.IsTrue(CStructDefinitionParser.ParseDigits("12314", 10).Equals("12314"));
-        Assert.IsTrue(CStructDefinitionParser.ParseDigits("12_314", 10).Equals("12314"));
-        Assert.IsTrue(CStructDefinitionParser.ParseDigits("12314;987", 10).Equals("12314"));
-        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseDigits("FFFFFF", 10));
+        Assert.IsTrue(LayoutParser.ParseDigits("12314", 10).Equals("12314"));
+        Assert.IsTrue(LayoutParser.ParseDigits("12_314", 10).Equals("12314"));
+        Assert.IsTrue(LayoutParser.ParseDigits("12314;987", 10).Equals("12314"));
+        Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseDigits("FFFFFF", 10));
     }
 
     /// <summary>
@@ -133,12 +133,12 @@ public class Literals
     [TestMethod]
     public void TestHexLiteral()
     {
-        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("0x12345", 16).Evaluate());
-        Assert.AreEqual(-0x12345, CStructDefinitionParser.ParseLiteral("-0x12345", 16).Evaluate());
-        Assert.AreEqual(0x123456, CStructDefinitionParser.ParseLiteral("0x123_456", 16).Evaluate());
-        Assert.AreEqual(-0x123456, CStructDefinitionParser.ParseLiteral("-0x123_456", 16).Evaluate());
-        Assert.AreEqual(0x1234, CStructDefinitionParser.ParseLiteral("0x1234;92", 16).Evaluate());
-        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("0xQQQQYYY", 16).Evaluate());
+        Assert.AreEqual(0x12345, LayoutParser.ParseLiteral("0x12345", 16).Evaluate());
+        Assert.AreEqual(-0x12345, LayoutParser.ParseLiteral("-0x12345", 16).Evaluate());
+        Assert.AreEqual(0x123456, LayoutParser.ParseLiteral("0x123_456", 16).Evaluate());
+        Assert.AreEqual(-0x123456, LayoutParser.ParseLiteral("-0x123_456", 16).Evaluate());
+        Assert.AreEqual(0x1234, LayoutParser.ParseLiteral("0x1234;92", 16).Evaluate());
+        Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLiteral("0xQQQQYYY", 16).Evaluate());
     }
 
     /// <summary>
@@ -151,10 +151,10 @@ public class Literals
     [TestMethod]
     public void TestHexString()
     {
-        Assert.IsTrue(CStructDefinitionParser.ParseDigits("89AF2", 16).Equals("89AF2"));
-        Assert.IsTrue(CStructDefinitionParser.ParseDigits("89__AF2", 16).Equals("89AF2"));
-        Assert.IsTrue(CStructDefinitionParser.ParseDigits("89AF2;987", 16).Equals("89AF2"));
-        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseDigits("QWERTY", 16));
+        Assert.IsTrue(LayoutParser.ParseDigits("89AF2", 16).Equals("89AF2"));
+        Assert.IsTrue(LayoutParser.ParseDigits("89__AF2", 16).Equals("89AF2"));
+        Assert.IsTrue(LayoutParser.ParseDigits("89AF2;987", 16).Equals("89AF2"));
+        Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseDigits("QWERTY", 16));
     }
 
     /// <summary>
@@ -167,31 +167,31 @@ public class Literals
     [TestMethod]
     public void TestLiteral()
     {
-        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("0b1").Evaluate());
-        Assert.AreEqual(Convert.ToInt32("673747", 8), CStructDefinitionParser.ParseLiteral("0o673747").Evaluate());
-        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("0x12345").Evaluate());
-        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("12345").Evaluate());
+        Assert.AreEqual(0b1, LayoutParser.ParseLiteral("0b1").Evaluate());
+        Assert.AreEqual(Convert.ToInt32("673747", 8), LayoutParser.ParseLiteral("0o673747").Evaluate());
+        Assert.AreEqual(0x12345, LayoutParser.ParseLiteral("0x12345").Evaluate());
+        Assert.AreEqual(12345, LayoutParser.ParseLiteral("12345").Evaluate());
 
-        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("  0b1").Evaluate());
-        Assert.AreEqual(Convert.ToInt32("673747", 8), CStructDefinitionParser.ParseLiteral("  0o673747").Evaluate());
-        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("  0x12345").Evaluate());
-        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("  12345").Evaluate());
+        Assert.AreEqual(0b1, LayoutParser.ParseLiteral("  0b1").Evaluate());
+        Assert.AreEqual(Convert.ToInt32("673747", 8), LayoutParser.ParseLiteral("  0o673747").Evaluate());
+        Assert.AreEqual(0x12345, LayoutParser.ParseLiteral("  0x12345").Evaluate());
+        Assert.AreEqual(12345, LayoutParser.ParseLiteral("  12345").Evaluate());
 
-        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("0b1  575").Evaluate());
+        Assert.AreEqual(0b1, LayoutParser.ParseLiteral("0b1  575").Evaluate());
         Assert.AreEqual(
                         Convert.ToInt32("673747", 8),
-                        CStructDefinitionParser.ParseLiteral("0o673747  575").Evaluate());
-        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("0x12345  575").Evaluate());
-        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("12345  575").Evaluate());
+                        LayoutParser.ParseLiteral("0o673747  575").Evaluate());
+        Assert.AreEqual(0x12345, LayoutParser.ParseLiteral("0x12345  575").Evaluate());
+        Assert.AreEqual(12345, LayoutParser.ParseLiteral("12345  575").Evaluate());
 
-        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("  0b1  575").Evaluate());
+        Assert.AreEqual(0b1, LayoutParser.ParseLiteral("  0b1  575").Evaluate());
         Assert.AreEqual(
                         Convert.ToInt32("673747", 8),
-                        CStructDefinitionParser.ParseLiteral("  0o673747  575").Evaluate());
-        Assert.AreEqual(0x12345, CStructDefinitionParser.ParseLiteral("  0x12345  575").Evaluate());
-        Assert.AreEqual(12345, CStructDefinitionParser.ParseLiteral("  12345  575").Evaluate());
+                        LayoutParser.ParseLiteral("  0o673747  575").Evaluate());
+        Assert.AreEqual(0x12345, LayoutParser.ParseLiteral("  0x12345  575").Evaluate());
+        Assert.AreEqual(12345, LayoutParser.ParseLiteral("  12345  575").Evaluate());
 
-        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("%tBEQOFKF").Evaluate());
+        Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLiteral("%tBEQOFKF").Evaluate());
     }
 
     /// <summary>
@@ -206,20 +206,20 @@ public class Literals
     {
         Assert.AreEqual(
                         Convert.ToInt32("673747", 8),
-                        CStructDefinitionParser.ParseLiteral("0o673747", 8).Evaluate());
+                        LayoutParser.ParseLiteral("0o673747", 8).Evaluate());
         Assert.AreEqual(
                         -Convert.ToInt32("673747", 8),
-                        CStructDefinitionParser.ParseLiteral("-0o673747", 8).Evaluate());
+                        LayoutParser.ParseLiteral("-0o673747", 8).Evaluate());
         Assert.AreEqual(
                         Convert.ToInt32("673747", 8),
-                        CStructDefinitionParser.ParseLiteral("0o673_747", 8).Evaluate());
+                        LayoutParser.ParseLiteral("0o673_747", 8).Evaluate());
         Assert.AreEqual(
                         -Convert.ToInt32("673747", 8),
-                        CStructDefinitionParser.ParseLiteral("-0o673_747", 8).Evaluate());
+                        LayoutParser.ParseLiteral("-0o673_747", 8).Evaluate());
         Assert.AreEqual(
                         Convert.ToInt32("673747", 8),
-                        CStructDefinitionParser.ParseLiteral("0o673_747;92", 8).Evaluate());
-        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLiteral("0o98F98", 8).Evaluate());
+                        LayoutParser.ParseLiteral("0o673_747;92", 8).Evaluate());
+        Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLiteral("0o98F98", 8).Evaluate());
     }
 
     /// <summary>
@@ -232,10 +232,10 @@ public class Literals
     [TestMethod]
     public void TestOctalString()
     {
-        Assert.IsTrue(CStructDefinitionParser.ParseDigits("767226", 8).Equals("767226"));
-        Assert.IsTrue(CStructDefinitionParser.ParseDigits("767_226", 8).Equals("767226"));
-        Assert.IsTrue(CStructDefinitionParser.ParseDigits("767226;987", 8).Equals("767226"));
-        Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseDigits("89FFF", 8));
+        Assert.IsTrue(LayoutParser.ParseDigits("767226", 8).Equals("767226"));
+        Assert.IsTrue(LayoutParser.ParseDigits("767_226", 8).Equals("767226"));
+        Assert.IsTrue(LayoutParser.ParseDigits("767226;987", 8).Equals("767226"));
+        Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseDigits("89FFF", 8));
     }
 
     /// <summary>
@@ -249,22 +249,22 @@ public class Literals
     [TestMethod]
     public void TestIntegerLiteralSuffix()
     {
-        Assert.AreEqual(1, CStructDefinitionParser.ParseLiteral("1U", 10).Evaluate());
-        Assert.AreEqual(1, CStructDefinitionParser.ParseLiteral("1u", 10).Evaluate());
-        Assert.AreEqual(100, CStructDefinitionParser.ParseLiteral("100UL", 10).Evaluate());
-        Assert.AreEqual(100, CStructDefinitionParser.ParseLiteral("100LU", 10).Evaluate());
-        Assert.AreEqual(100, CStructDefinitionParser.ParseLiteral("100LL", 10).Evaluate());
-        Assert.AreEqual(100, CStructDefinitionParser.ParseLiteral("100ULL", 10).Evaluate());
-        Assert.AreEqual(-5, CStructDefinitionParser.ParseLiteral("-5U", 10).Evaluate());
-        Assert.AreEqual(1, CStructDefinitionParser.ParseLiteral("1U;92", 10).Evaluate());
+        Assert.AreEqual(1, LayoutParser.ParseLiteral("1U", 10).Evaluate());
+        Assert.AreEqual(1, LayoutParser.ParseLiteral("1u", 10).Evaluate());
+        Assert.AreEqual(100, LayoutParser.ParseLiteral("100UL", 10).Evaluate());
+        Assert.AreEqual(100, LayoutParser.ParseLiteral("100LU", 10).Evaluate());
+        Assert.AreEqual(100, LayoutParser.ParseLiteral("100LL", 10).Evaluate());
+        Assert.AreEqual(100, LayoutParser.ParseLiteral("100ULL", 10).Evaluate());
+        Assert.AreEqual(-5, LayoutParser.ParseLiteral("-5U", 10).Evaluate());
+        Assert.AreEqual(1, LayoutParser.ParseLiteral("1U;92", 10).Evaluate());
 
-        Assert.AreEqual(0x1, CStructDefinitionParser.ParseLiteral("0x1UL", 16).Evaluate());
-        Assert.AreEqual(0b1, CStructDefinitionParser.ParseLiteral("0b1U", 2).Evaluate());
+        Assert.AreEqual(0x1, LayoutParser.ParseLiteral("0x1UL", 16).Evaluate());
+        Assert.AreEqual(0b1, LayoutParser.ParseLiteral("0b1U", 2).Evaluate());
         Assert.AreEqual(
                         Convert.ToInt32("17", 8),
-                        CStructDefinitionParser.ParseLiteral("0o17U", 8).Evaluate());
+                        LayoutParser.ParseLiteral("0o17U", 8).Evaluate());
 
-        Assert.AreEqual(1, CStructDefinitionParser.ParseLiteral("1U").Evaluate());
+        Assert.AreEqual(1, LayoutParser.ParseLiteral("1U").Evaluate());
     }
 
     /// <summary>
@@ -282,12 +282,12 @@ public class Literals
 
         foreach (char c in hexChars)
         {
-            Assert.IsTrue(CStructDefinitionParser.IsDigitOrSeparator(c, 16), c.ToString());
+            Assert.IsTrue(LayoutParser.IsDigitOrSeparator(c, 16), c.ToString());
         }
 
         foreach (char c in nonHexChars)
         {
-            Assert.IsFalse(CStructDefinitionParser.IsDigitOrSeparator(c, 16), c.ToString());
+            Assert.IsFalse(LayoutParser.IsDigitOrSeparator(c, 16), c.ToString());
         }
     }
 
@@ -306,12 +306,12 @@ public class Literals
 
         foreach (char c in octalChars)
         {
-            Assert.IsTrue(CStructDefinitionParser.IsDigitOrSeparator(c, 8), c.ToString());
+            Assert.IsTrue(LayoutParser.IsDigitOrSeparator(c, 8), c.ToString());
         }
 
         foreach (char c in nonOctalChars)
         {
-            Assert.IsFalse(CStructDefinitionParser.IsDigitOrSeparator(c, 8), c.ToString());
+            Assert.IsFalse(LayoutParser.IsDigitOrSeparator(c, 8), c.ToString());
         }
     }
 }

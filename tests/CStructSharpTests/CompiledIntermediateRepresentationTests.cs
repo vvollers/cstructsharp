@@ -48,7 +48,7 @@ public class CompiledIntermediateRepresentationTests
         Assert.AreEqual("uint16", count.CodecName);
         Assert.AreEqual(2, count.Alignment);
         Assert.AreEqual(2, count.FixedElementSize);
-        Assert.AreEqual(1, count.FixedArrayCount);
+        Assert.AreEqual(1, count.Array.FixedCount);
         Assert.AreEqual(2, count.FixedStorageSize);
         Assert.AreEqual(0, count.FixedOffset);
         Assert.IsTrue(count.HasCodec);
@@ -56,7 +56,7 @@ public class CompiledIntermediateRepresentationTests
         Assert.IsNotNull(cstruct.Codecs.WriterOf(count));
 
         CompiledField values = compiledRoot.Fields[1];
-        Assert.AreEqual(2, values.FixedArrayCount);
+        Assert.AreEqual(2, values.Array.FixedCount);
         Assert.AreEqual(2, values.FixedElementSize);
         Assert.AreEqual(4, values.FixedStorageSize);
         Assert.AreEqual(2, values.FixedOffset);
@@ -112,7 +112,7 @@ public class CompiledIntermediateRepresentationTests
             (CompiledCompositeType)cstruct.CompiledModel.Composites[root].Definition!;
 
         Assert.IsNull(compiledRoot.Symbol.FixedSize);
-        Assert.IsNull(compiledRoot.Fields[0].FixedArrayCount);
+        Assert.IsNull(compiledRoot.Fields[0].Array.FixedCount);
         Assert.IsNull(compiledRoot.Fields[0].FixedStorageSize);
         Assert.IsNull(compiledRoot.Fields[1].FixedOffset);
 
@@ -385,8 +385,6 @@ public class CompiledIntermediateRepresentationTests
     {
         var twoDimensional = new CompiledArrayShape(
             CompiledArrayKind.Fixed,
-            new Literal(3),
-            3,
             ImmutableArray<string>.Empty,
             ImmutableArray.Create(
                 new CompiledArrayDimension(new Literal(3), 3),
@@ -443,7 +441,7 @@ public class CompiledIntermediateRepresentationTests
         var compiledRoot = (CompiledCompositeType)cstruct.CompiledModel.Composites[root].Definition!;
         CompiledField valuesField = compiledRoot.Fields[0];
         Assert.AreEqual(1, valuesField.Array.Dimensions.Length);
-        Assert.AreEqual(4, valuesField.FixedArrayCount);
+        Assert.AreEqual(4, valuesField.Array.FixedCount);
         Assert.AreEqual(4, valuesField.Array.TotalFixedElementCount);
         Assert.AreEqual(4, valuesField.FixedStorageSize);
     }

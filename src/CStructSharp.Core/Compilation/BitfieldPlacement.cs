@@ -48,9 +48,6 @@ internal struct BitfieldPlacement
         set => this.bitPosition = value;
     }
 
-    /// <summary>Whether the last placed field was a bitfield whose run the next bitfield may continue.</summary>
-    public readonly bool InRun => this.runActive;
-
     /// <summary>The byte position after the storage placed so far: where the next ordinary field starts (before its own alignment).</summary>
     public readonly long RunEnd => this.packing == BitfieldPacking.Msvc
                                        ? this.unitStart + this.unitSize

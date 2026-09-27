@@ -348,7 +348,7 @@ public class ParserDifferentialTests
     {
         const string layout = "/* a * b ** c */ struct root { uint8 a; /* pointer *p */ };";
         Assert.IsFalse(ReferenceAccepts(layout));
-        IReadOnlyList<CStructElement> elements = CStructDefinitionParser.ParseLayout(layout);
+        IReadOnlyList<CStructElement> elements = LayoutParser.ParseLayout(layout);
         Assert.HasCount(1, elements);
         _ = new CStruct(layout);
     }
@@ -373,7 +373,7 @@ public class ParserDifferentialTests
     public void EmptyAlignment_WithCommentsRetainsItsExactDiagnostic(string source)
     {
         Assert.IsTrue(ReferenceAccepts(source));
-        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLayout(source));
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLayout(source));
 
         Assert.IsTrue(RejectsEmptyAlignment(source, failure.Message));
         Assert.IsFalse(RejectsEmptyAlignment(source, failure.Message.Replace("expected an expression.", "expected an identifier.", StringComparison.Ordinal)));
@@ -386,7 +386,7 @@ public class ParserDifferentialTests
     public void EmptyAlignment_DoesNotHideAnEarlierExpressionFailure()
     {
         const string source = "struct root { uint8 broken[()]; uint8 value @align(); /* @align() */ };";
-        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLayout(source));
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLayout(source));
 
         Assert.IsFalse(RejectsEmptyAlignment(source, failure.Message));
     }
@@ -402,7 +402,7 @@ public class ParserDifferentialTests
         Assert.IsTrue(ReferenceAccepts(source));
 
         // The current grammar creates an empty constant, leaving the next line's number as invalid top-level input.
-        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLayout(source));
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLayout(source));
         Assert.AreEqual(LayoutParser.SyntaxErrorPrefix + "unexpected '1' at line 2, column 1; expected the end of the layout.", failure.Message);
         Assert.IsNull(Compare("define-after-declaration-line-boundary", source, out bool accepted));
         Assert.IsFalse(accepted);
@@ -424,7 +424,7 @@ public class ParserDifferentialTests
         Assert.IsTrue(ReferenceAccepts(source), "The frozen generic-call grammar parses this as multiplication.");
 
         // The current grammar permits type words followed by pointer stars, never another word after a star.
-        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLayout(source));
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLayout(source));
         StringAssert.Contains(failure.Message, "unexpected 'o'");
         StringAssert.Contains(failure.Message, "expected ')'");
         Assert.IsNull(Compare("multiplication-in-type-argument", source, out bool accepted));
@@ -449,7 +449,7 @@ public class ParserDifferentialTests
         Assert.IsTrue(ReferenceAccepts(source));
 
         // The current parser must reject the literal precisely where a type name is required.
-        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => CStructDefinitionParser.ParseLayout(source));
+        CStructLayoutException failure = Assert.Throws<CStructLayoutException>(() => LayoutParser.ParseLayout(source));
         Assert.IsTrue(RejectsNumericSizeofArgument(source, failure.Message));
         Assert.IsFalse(RejectsNumericSizeofArgument(source, "unrelated syntax failure"));
         Assert.IsFalse(RejectsNumericSizeofArgument(source, failure.Message.Replace("a type or field name", "an expression", StringComparison.Ordinal)));
@@ -487,13 +487,13 @@ public class ParserDifferentialTests
         foreach ((string source, string detail) in cases)
         {
             CStructLayoutException exception = Assert.Throws<CStructLayoutException>(
-                () => CStructDefinitionParser.ParseLayout(source), source);
+                () => LayoutParser.ParseLayout(source), source);
             Assert.AreEqual(LayoutParser.SyntaxErrorPrefix + detail, exception.Message, source);
             Assert.AreEqual(exception.Message, Assert.Throws<CStructLayoutException>(() => new CStruct(source)).Message, source);
         }
 
         CStructLayoutException duplicate = Assert.Throws<CStructLayoutException>(
-            () => CStructDefinitionParser.ParseLayout("struct root { uint8 x; switch (x) { case 1: { } case 1: { } } };"));
+            () => LayoutParser.ParseLayout("struct root { uint8 x; switch (x) { case 1: { } case 1: { } } };"));
         Assert.AreEqual("Duplicate switch case.", duplicate.Message);
     }
 
@@ -508,38 +508,38 @@ public class ParserDifferentialTests
     [TestMethod]
     public void EntryPoints_ValidateInputAndConsumeEverything()
     {
-        Assert.Throws<ArgumentNullException>(() => CStructDefinitionParser.ParseLayout(null!));
-        Assert.Throws<ArgumentNullException>(() => CStructDefinitionParser.ParseElement(null!));
-        Assert.Throws<ArgumentNullException>(() => CStructDefinitionParser.ParseExpression(null!));
-        Assert.Throws<ArgumentNullException>(() => CStructDefinitionParser.ParseLiteral(null!));
-        Assert.Throws<ArgumentNullException>(() => CStructDefinitionParser.ParseDigits(null!, 10));
-        Assert.Throws<ArgumentNullException>(() => CStructDefinitionParser.ParseEnumValue(null!));
-        Assert.Throws<ArgumentNullException>(() => CStructDefinitionParser.ParseEnumValues(null!));
-        Assert.Throws<ArgumentNullException>(() => CStructDefinitionParser.ParseEnumValuesInBrackets(null!));
-        Assert.Throws<ArgumentNullException>(() => CStructDefinitionParser.ParseFieldGroup(null!));
-        Assert.Throws<ArgumentOutOfRangeException>(() => CStructDefinitionParser.ParseLiteral("1", 3));
+        Assert.Throws<ArgumentNullException>(() => LayoutParser.ParseLayout(null!));
+        Assert.Throws<ArgumentNullException>(() => LayoutParser.ParseElement(null!));
+        Assert.Throws<ArgumentNullException>(() => LayoutParser.ParseExpression(null!));
+        Assert.Throws<ArgumentNullException>(() => LayoutParser.ParseLiteral(null!));
+        Assert.Throws<ArgumentNullException>(() => LayoutParser.ParseDigits(null!, 10));
+        Assert.Throws<ArgumentNullException>(() => LayoutParser.ParseEnumValue(null!));
+        Assert.Throws<ArgumentNullException>(() => LayoutParser.ParseEnumValues(null!));
+        Assert.Throws<ArgumentNullException>(() => LayoutParser.ParseEnumValuesInBrackets(null!));
+        Assert.Throws<ArgumentNullException>(() => LayoutParser.ParseFieldGroup(null!));
+        Assert.Throws<ArgumentOutOfRangeException>(() => LayoutParser.ParseLiteral("1", 3));
 
-        Assert.AreEqual("root", CStructDefinitionParser.ParseElement(" /*c*/ struct root { uint8 a; }; ").Name.Name);
-        Assert.IsInstanceOfType<Syntax.BinaryOp>(CStructDefinitionParser.ParseExpression(" /*c*/ (1) + x "));
-        Assert.AreEqual("Blue", CStructDefinitionParser.ParseEnumValue("  Blue =4 ").Name.Name);
-        Assert.HasCount(2, CStructDefinitionParser.ParseEnumValues(" A, B "));
-        Assert.HasCount(0, CStructDefinitionParser.ParseEnumValuesInBrackets("{ }"));
-        Assert.HasCount(2, CStructDefinitionParser.ParseFieldGroup("uint8 a, b; "));
-        Assert.AreEqual("12", CStructDefinitionParser.ParseDigits("1_2x", 10));
+        Assert.AreEqual("root", LayoutParser.ParseElement(" /*c*/ struct root { uint8 a; }; ").Name.Name);
+        Assert.IsInstanceOfType<Syntax.BinaryOp>(LayoutParser.ParseExpression(" /*c*/ (1) + x "));
+        Assert.AreEqual("Blue", LayoutParser.ParseEnumValue("  Blue =4 ").Name.Name);
+        Assert.HasCount(2, LayoutParser.ParseEnumValues(" A, B "));
+        Assert.HasCount(0, LayoutParser.ParseEnumValuesInBrackets("{ }"));
+        Assert.HasCount(2, LayoutParser.ParseFieldGroup("uint8 a, b; "));
+        Assert.AreEqual("12", LayoutParser.ParseDigits("1_2x", 10));
 
-        AssertFails(() => CStructDefinitionParser.ParseElement("uint8 x;"), "unexpected 'u' at line 1, column 1; expected a struct, union, typedef, enum, or #define declaration.");
-        AssertFails(() => CStructDefinitionParser.ParseElement("struct root { uint8 a; }; x"), "unexpected 'x' at line 1, column 27; expected the end of the layout.");
-        AssertFails(() => CStructDefinitionParser.ParseExpression("1 + 2 3"), "unexpected '3' at line 1, column 7; expected the end of the layout.");
-        AssertFails(() => CStructDefinitionParser.ParseLiteral("x"), "unexpected 'x' at line 1, column 1; expected an integer literal.");
-        AssertFails(() => CStructDefinitionParser.ParseLiteral("\t", 16), "unexpected '\\t' at line 1, column 1; expected an integer literal.");
-        AssertFails(() => CStructDefinitionParser.ParseDigits("x", 10), "unexpected 'x' at line 1, column 1; expected a digit.");
-        AssertFails(() => CStructDefinitionParser.ParseDigits("\n", 2), "unexpected '\\n' at line 1, column 1; expected a digit.");
-        AssertFails(() => CStructDefinitionParser.ParseDigits("\r1", 8), "unexpected '\\r' at line 1, column 1; expected a digit.");
-        AssertFails(() => CStructDefinitionParser.ParseEnumValues("A, B }"), "unexpected '}' at line 1, column 6; expected the end of the layout.");
-        AssertFails(() => CStructDefinitionParser.ParseEnumValuesInBrackets("{ A } ;"), "unexpected ';' at line 1, column 7; expected the end of the layout.");
-        AssertFails(() => CStructDefinitionParser.ParseFieldGroup("uint8 a; uint8 b;"), "unexpected 'u' at line 1, column 10; expected the end of the layout.");
-        AssertFails(() => CStructDefinitionParser.ParseLayout("struct root { enum ; };"), "unexpected ';' at line 1, column 20; expected a field type.");
-        AssertFails(() => CStructDefinitionParser.ParseLayout("struct root { const ; };"), "unexpected ';' at line 1, column 21; expected an identifier.");
+        AssertFails(() => LayoutParser.ParseElement("uint8 x;"), "unexpected 'u' at line 1, column 1; expected a struct, union, typedef, enum, or #define declaration.");
+        AssertFails(() => LayoutParser.ParseElement("struct root { uint8 a; }; x"), "unexpected 'x' at line 1, column 27; expected the end of the layout.");
+        AssertFails(() => LayoutParser.ParseExpression("1 + 2 3"), "unexpected '3' at line 1, column 7; expected the end of the layout.");
+        AssertFails(() => LayoutParser.ParseLiteral("x"), "unexpected 'x' at line 1, column 1; expected an integer literal.");
+        AssertFails(() => LayoutParser.ParseLiteral("\t", 16), "unexpected '\\t' at line 1, column 1; expected an integer literal.");
+        AssertFails(() => LayoutParser.ParseDigits("x", 10), "unexpected 'x' at line 1, column 1; expected a digit.");
+        AssertFails(() => LayoutParser.ParseDigits("\n", 2), "unexpected '\\n' at line 1, column 1; expected a digit.");
+        AssertFails(() => LayoutParser.ParseDigits("\r1", 8), "unexpected '\\r' at line 1, column 1; expected a digit.");
+        AssertFails(() => LayoutParser.ParseEnumValues("A, B }"), "unexpected '}' at line 1, column 6; expected the end of the layout.");
+        AssertFails(() => LayoutParser.ParseEnumValuesInBrackets("{ A } ;"), "unexpected ';' at line 1, column 7; expected the end of the layout.");
+        AssertFails(() => LayoutParser.ParseFieldGroup("uint8 a; uint8 b;"), "unexpected 'u' at line 1, column 10; expected the end of the layout.");
+        AssertFails(() => LayoutParser.ParseLayout("struct root { enum ; };"), "unexpected ';' at line 1, column 20; expected a field type.");
+        AssertFails(() => LayoutParser.ParseLayout("struct root { const ; };"), "unexpected ';' at line 1, column 21; expected an identifier.");
     }
 
     private static void AssertFails(Action parse, string detail)
@@ -574,7 +574,7 @@ public class ParserDifferentialTests
         string? candidateError;
         try
         {
-            candidateDump = Dump(CStructDefinitionParser.ParseLayout(source));
+            candidateDump = Dump(LayoutParser.ParseLayout(source));
             candidateError = null;
         }
         catch (CStructLayoutException exception)

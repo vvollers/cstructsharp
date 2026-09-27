@@ -18,29 +18,29 @@ public class Expressions
     [TestMethod]
     public void CombinedExpressions()
     {
-        Assert.AreEqual(10 + (20 * 30), CStructDefinitionParser.ParseExpression("10+20*30").Evaluate());
-        Assert.AreEqual(10 - (20 * 30), CStructDefinitionParser.ParseExpression("10-20*30").Evaluate());
-        Assert.AreEqual((10 * 20) - 30, CStructDefinitionParser.ParseExpression("10*20-30").Evaluate());
-        Assert.AreEqual((50 / 10) + (20 * 30), CStructDefinitionParser.ParseExpression("50/10+20*30").Evaluate());
-        Assert.AreEqual((50 / 10) - (20 * 30), CStructDefinitionParser.ParseExpression("50/10-20*30").Evaluate());
-        Assert.AreEqual((50 / 10 * 20) - 30, CStructDefinitionParser.ParseExpression("50/10*20-30").Evaluate());
-        Assert.AreEqual((50 * 10) + (20 / 30), CStructDefinitionParser.ParseExpression("50*10+20/30").Evaluate());
-        Assert.AreEqual((50 * 10) - (20 / 30), CStructDefinitionParser.ParseExpression("50*10-20/30").Evaluate());
-        Assert.AreEqual((50 * 10 * 20) - 30, CStructDefinitionParser.ParseExpression("50*10*20-30").Evaluate());
-        Assert.AreEqual(10 + (20 * 30 / 3), CStructDefinitionParser.ParseExpression("10+20*30/3").Evaluate());
-        Assert.AreEqual(10 - (20 * 30 / 3), CStructDefinitionParser.ParseExpression("10-20*30/3").Evaluate());
-        Assert.AreEqual((10 * 20) - (30 / 3), CStructDefinitionParser.ParseExpression("10*20-30/3").Evaluate());
-        Assert.AreEqual((1 * 2) + 3, CStructDefinitionParser.ParseExpression("1*2+3").Evaluate());
-        Assert.AreEqual(1 + (2 * 3) + 4, CStructDefinitionParser.ParseExpression("1+2*3+4").Evaluate());
-        Assert.AreEqual(1 + (2 * 3 * 4 / 2) - 2, CStructDefinitionParser.ParseExpression("1+2*3*4/2-2").Evaluate());
-        Assert.AreEqual(11 - 4 + 93, CStructDefinitionParser.ParseExpression("11-4+93").Evaluate());
-        Assert.AreEqual(11 - 4 + 98 - 5, CStructDefinitionParser.ParseExpression("11-4+98-5").Evaluate());
-        Assert.AreEqual(11 * 4 / 98 * 5, CStructDefinitionParser.ParseExpression("11*4/98*5").Evaluate());
-        Assert.AreEqual(12 / 4 * 100 / 5, CStructDefinitionParser.ParseExpression("12/4*100/5").Evaluate());
-        Assert.AreEqual(1 + (5 * 2) - 4 + 98 - 5, CStructDefinitionParser.ParseExpression("1+5*2-4+98-5").Evaluate());
+        Assert.AreEqual(10 + (20 * 30), LayoutParser.ParseExpression("10+20*30").Evaluate());
+        Assert.AreEqual(10 - (20 * 30), LayoutParser.ParseExpression("10-20*30").Evaluate());
+        Assert.AreEqual((10 * 20) - 30, LayoutParser.ParseExpression("10*20-30").Evaluate());
+        Assert.AreEqual((50 / 10) + (20 * 30), LayoutParser.ParseExpression("50/10+20*30").Evaluate());
+        Assert.AreEqual((50 / 10) - (20 * 30), LayoutParser.ParseExpression("50/10-20*30").Evaluate());
+        Assert.AreEqual((50 / 10 * 20) - 30, LayoutParser.ParseExpression("50/10*20-30").Evaluate());
+        Assert.AreEqual((50 * 10) + (20 / 30), LayoutParser.ParseExpression("50*10+20/30").Evaluate());
+        Assert.AreEqual((50 * 10) - (20 / 30), LayoutParser.ParseExpression("50*10-20/30").Evaluate());
+        Assert.AreEqual((50 * 10 * 20) - 30, LayoutParser.ParseExpression("50*10*20-30").Evaluate());
+        Assert.AreEqual(10 + (20 * 30 / 3), LayoutParser.ParseExpression("10+20*30/3").Evaluate());
+        Assert.AreEqual(10 - (20 * 30 / 3), LayoutParser.ParseExpression("10-20*30/3").Evaluate());
+        Assert.AreEqual((10 * 20) - (30 / 3), LayoutParser.ParseExpression("10*20-30/3").Evaluate());
+        Assert.AreEqual((1 * 2) + 3, LayoutParser.ParseExpression("1*2+3").Evaluate());
+        Assert.AreEqual(1 + (2 * 3) + 4, LayoutParser.ParseExpression("1+2*3+4").Evaluate());
+        Assert.AreEqual(1 + (2 * 3 * 4 / 2) - 2, LayoutParser.ParseExpression("1+2*3*4/2-2").Evaluate());
+        Assert.AreEqual(11 - 4 + 93, LayoutParser.ParseExpression("11-4+93").Evaluate());
+        Assert.AreEqual(11 - 4 + 98 - 5, LayoutParser.ParseExpression("11-4+98-5").Evaluate());
+        Assert.AreEqual(11 * 4 / 98 * 5, LayoutParser.ParseExpression("11*4/98*5").Evaluate());
+        Assert.AreEqual(12 / 4 * 100 / 5, LayoutParser.ParseExpression("12/4*100/5").Evaluate());
+        Assert.AreEqual(1 + (5 * 2) - 4 + 98 - 5, LayoutParser.ParseExpression("1+5*2-4+98-5").Evaluate());
         Assert.AreEqual(
                         1 + (5 * 2) - 4 + 98 - (5 / 2),
-                        CStructDefinitionParser.ParseExpression(" 1 + 5 * 2 - 4+    98- 5/ 2").Evaluate());
+                        LayoutParser.ParseExpression(" 1 + 5 * 2 - 4+    98- 5/ 2").Evaluate());
     }
 
     /// <summary>
@@ -53,15 +53,15 @@ public class Expressions
     [TestMethod]
     public void ParenthesizedExpressions()
     {
-        Assert.AreEqual((10 + 20) * 30, CStructDefinitionParser.ParseExpression("(10+20)*30").Evaluate());
-        Assert.AreEqual(50 / (10 + 20) * 30, CStructDefinitionParser.ParseExpression("50/(10+20)*30").Evaluate());
+        Assert.AreEqual((10 + 20) * 30, LayoutParser.ParseExpression("(10+20)*30").Evaluate());
+        Assert.AreEqual(50 / (10 + 20) * 30, LayoutParser.ParseExpression("50/(10+20)*30").Evaluate());
         Assert.AreEqual(
                         ((1 + 5) * 2) - (4 + 98 - 5),
-                        CStructDefinitionParser.ParseExpression("(1+5)*2-(4+98-5)").Evaluate());
+                        LayoutParser.ParseExpression("(1+5)*2-(4+98-5)").Evaluate());
         Assert.AreEqual(
                         11 * (4 / 12) * (5 / 10) * 6,
-                        CStructDefinitionParser.ParseExpression("11*(4/2*(5/10)*6)").Evaluate());
-        Assert.AreEqual((5 - (4 + 98 - 5)) * -3, CStructDefinitionParser.ParseExpression("(5-(4+98-5))*-3").Evaluate());
+                        LayoutParser.ParseExpression("11*(4/2*(5/10)*6)").Evaluate());
+        Assert.AreEqual((5 - (4 + 98 - 5)) * -3, LayoutParser.ParseExpression("(5-(4+98-5))*-3").Evaluate());
     }
 
     /// <summary>
@@ -74,8 +74,8 @@ public class Expressions
     [TestMethod]
     public void TestExpressionAnd()
     {
-        Assert.AreEqual(555 & 3, CStructDefinitionParser.ParseExpression("555&3").Evaluate());
-        Assert.AreEqual(10 & 500 & 3 & 2, CStructDefinitionParser.ParseExpression("10&500&3&2").Evaluate());
+        Assert.AreEqual(555 & 3, LayoutParser.ParseExpression("555&3").Evaluate());
+        Assert.AreEqual(10 & 500 & 3 & 2, LayoutParser.ParseExpression("10&500&3&2").Evaluate());
     }
 
     /// <summary>
@@ -89,8 +89,8 @@ public class Expressions
     [TestMethod]
     public void TestExpressionDiv()
     {
-        Assert.AreEqual(555 / 3, CStructDefinitionParser.ParseExpression("555/3").Evaluate());
-        Assert.AreEqual(10 / 500 / 3 / 2, CStructDefinitionParser.ParseExpression("10/500/3/2").Evaluate());
+        Assert.AreEqual(555 / 3, LayoutParser.ParseExpression("555/3").Evaluate());
+        Assert.AreEqual(10 / 500 / 3 / 2, LayoutParser.ParseExpression("10/500/3/2").Evaluate());
     }
 
     /// <summary>
@@ -103,8 +103,8 @@ public class Expressions
     [TestMethod]
     public void TestExpressionMinus()
     {
-        Assert.AreEqual(100 - 1, CStructDefinitionParser.ParseExpression("100-1").Evaluate());
-        Assert.AreEqual(10 - 500 - 1 - 3, CStructDefinitionParser.ParseExpression("10-500-1-3").Evaluate());
+        Assert.AreEqual(100 - 1, LayoutParser.ParseExpression("100-1").Evaluate());
+        Assert.AreEqual(10 - 500 - 1 - 3, LayoutParser.ParseExpression("10-500-1-3").Evaluate());
     }
 
     /// <summary>
@@ -117,8 +117,8 @@ public class Expressions
     [TestMethod]
     public void TestExpressionOr()
     {
-        Assert.AreEqual(555 | 3, CStructDefinitionParser.ParseExpression("555|3").Evaluate());
-        Assert.AreEqual(10 | 500 | 3 | 2, CStructDefinitionParser.ParseExpression("10|500|3|2").Evaluate());
+        Assert.AreEqual(555 | 3, LayoutParser.ParseExpression("555|3").Evaluate());
+        Assert.AreEqual(10 | 500 | 3 | 2, LayoutParser.ParseExpression("10|500|3|2").Evaluate());
     }
 
     /// <summary>
@@ -131,8 +131,8 @@ public class Expressions
     [TestMethod]
     public void TestExpressionPlus()
     {
-        Assert.AreEqual(2, CStructDefinitionParser.ParseExpression("1+1").Evaluate());
-        Assert.AreEqual(10 + 500 + 1 + 3, CStructDefinitionParser.ParseExpression("10+500+1+3").Evaluate());
+        Assert.AreEqual(2, LayoutParser.ParseExpression("1+1").Evaluate());
+        Assert.AreEqual(10 + 500 + 1 + 3, LayoutParser.ParseExpression("10+500+1+3").Evaluate());
     }
 
     /// <summary>
@@ -145,8 +145,8 @@ public class Expressions
     [TestMethod]
     public void TestExpressionShiftLeft()
     {
-        Assert.AreEqual(555 << 2, CStructDefinitionParser.ParseExpression("555<<2").Evaluate());
-        Assert.AreEqual(1000 << 3 << 4, CStructDefinitionParser.ParseExpression("1000<<3<<4").Evaluate());
+        Assert.AreEqual(555 << 2, LayoutParser.ParseExpression("555<<2").Evaluate());
+        Assert.AreEqual(1000 << 3 << 4, LayoutParser.ParseExpression("1000<<3<<4").Evaluate());
     }
 
     /// <summary>
@@ -159,8 +159,8 @@ public class Expressions
     [TestMethod]
     public void TestExpressionShiftRight()
     {
-        Assert.AreEqual(555 >> 2, CStructDefinitionParser.ParseExpression("555>>2").Evaluate());
-        Assert.AreEqual(1000 >> 3 >> 4, CStructDefinitionParser.ParseExpression("1000>>3>>4").Evaluate());
+        Assert.AreEqual(555 >> 2, LayoutParser.ParseExpression("555>>2").Evaluate());
+        Assert.AreEqual(1000 >> 3 >> 4, LayoutParser.ParseExpression("1000>>3>>4").Evaluate());
     }
 
     /// <summary>
@@ -173,8 +173,8 @@ public class Expressions
     [TestMethod]
     public void TestExpressionTimes()
     {
-        Assert.AreEqual(555 * 3, CStructDefinitionParser.ParseExpression("555*3").Evaluate());
-        Assert.AreEqual(10 * 500 * 3 * 2, CStructDefinitionParser.ParseExpression("10*500*3*2").Evaluate());
+        Assert.AreEqual(555 * 3, LayoutParser.ParseExpression("555*3").Evaluate());
+        Assert.AreEqual(10 * 500 * 3 * 2, LayoutParser.ParseExpression("10*500*3*2").Evaluate());
     }
 
     /// <summary>
@@ -187,7 +187,7 @@ public class Expressions
     [TestMethod]
     public void TestExpressionWithVariable()
     {
-        Expr? someVar = CStructDefinitionParser.ParseExpression("1 + 1+    a   + 3 + 4");
+        Expr? someVar = LayoutParser.ParseExpression("1 + 1+    a   + 3 + 4");
         var vars = new Dictionary<string, Expr>();
         vars["a"] = new Literal(10);
         int result = someVar.Evaluate(vars);

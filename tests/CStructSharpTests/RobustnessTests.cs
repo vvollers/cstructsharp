@@ -193,8 +193,8 @@ public class RobustnessTests
     [TestMethod]
     public void Expressions_RejectUndefinedIdentifiersAndCalls()
     {
-        Assert.Throws<KeyNotFoundException>(() => CStructDefinitionParser.ParseExpression("missing").Evaluate());
-        Assert.Throws<NotSupportedException>(() => CStructDefinitionParser.ParseExpression("unsupported(1)").Evaluate());
+        Assert.Throws<KeyNotFoundException>(() => LayoutParser.ParseExpression("missing").Evaluate());
+        Assert.Throws<NotSupportedException>(() => LayoutParser.ParseExpression("unsupported(1)").Evaluate());
     }
 
     /// <summary>

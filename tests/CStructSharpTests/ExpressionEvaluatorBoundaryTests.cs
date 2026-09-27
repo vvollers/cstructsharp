@@ -41,7 +41,7 @@ public class ExpressionEvaluatorBoundaryTests
     [DataRow("||", -3, 2, 1)]
     public void VariableTruthValues_AgreeAcrossEvaluators(string operation, int left, int right, int expected)
     {
-        Expr expression = CStructDefinitionParser.ParseExpression($"a {operation} b");
+        Expr expression = LayoutParser.ParseExpression($"a {operation} b");
         var variables = new Dictionary<string, Expr> { ["a"] = new Literal(left), ["b"] = new Literal(right), };
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(32, 100));
         Assert.AreEqual(expected, evaluator.Evaluate(expression, variables));
@@ -59,7 +59,7 @@ public class ExpressionEvaluatorBoundaryTests
     [DataRow("0 ? missing : 9", 9)]
     public void ShortCircuit_SkipsUndefinedBranches(string source, int expected)
     {
-        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        Expr expression = LayoutParser.ParseExpression(source);
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(32, 100));
         Assert.AreEqual(expected, evaluator.Evaluate(expression));
         Assert.AreEqual(new BigInteger(expected), evaluator.EvaluateExact(expression, null, 64));
@@ -70,10 +70,10 @@ public class ExpressionEvaluatorBoundaryTests
     public void ExactModulo_PreservesRemaindersAndZeroFailure()
     {
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(32, 100));
-        Assert.AreEqual(new BigInteger(-2), evaluator.EvaluateExact(CStructDefinitionParser.ParseExpression("-17 % 5"), null, 64));
+        Assert.AreEqual(new BigInteger(-2), evaluator.EvaluateExact(LayoutParser.ParseExpression("-17 % 5"), null, 64));
 
         // Enum arithmetic is exact, but division by zero still has no mathematical result.
-        Assert.Throws<DivideByZeroException>(() => evaluator.EvaluateExact(CStructDefinitionParser.ParseExpression("17 % 0"), null, 64));
+        Assert.Throws<DivideByZeroException>(() => evaluator.EvaluateExact(LayoutParser.ParseExpression("17 % 0"), null, 64));
     }
 
     /// <summary>Exact shifts report the caller's enum width and accept its highest valid bit index.</summary>
@@ -81,10 +81,10 @@ public class ExpressionEvaluatorBoundaryTests
     public void ExactShift_UsesTheDeclaredWidth()
     {
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(32, 100));
-        Assert.AreEqual(new BigInteger(128), evaluator.EvaluateExact(CStructDefinitionParser.ParseExpression("1 << 7"), null, 8));
+        Assert.AreEqual(new BigInteger(128), evaluator.EvaluateExact(LayoutParser.ParseExpression("1 << 7"), null, 8));
 
         // The eighth bit index is outside an eight-bit declaration even though BigInteger can represent it.
-        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => evaluator.EvaluateExact(CStructDefinitionParser.ParseExpression("1 << 8"), null, 8));
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => evaluator.EvaluateExact(LayoutParser.ParseExpression("1 << 8"), null, 8));
         Assert.AreEqual("Enum expression shift count must be between 0 and 7.", failure.Message);
     }
 }

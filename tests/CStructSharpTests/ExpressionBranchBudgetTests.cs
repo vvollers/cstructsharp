@@ -17,8 +17,8 @@ public class ExpressionBranchBudgetTests
     [DataRow("value + 1")]
     public void ExactBinaryDependencyDepth_CountsEitherOperand(string source)
     {
-        Expr expression = CStructDefinitionParser.ParseExpression(source);
-        var variables = new Dictionary<string, Expr> { ["value"] = CStructDefinitionParser.ParseExpression("-1"), };
+        Expr expression = LayoutParser.ParseExpression(source);
+        var variables = new Dictionary<string, Expr> { ["value"] = LayoutParser.ParseExpression("-1"), };
         var sufficient = new ExpressionEvaluator(new ExpressionEvaluationLimits(4, 100));
         Assert.AreEqual(BigInteger.Zero, sufficient.EvaluateExact(expression, variables, 64));
         var limited = new ExpressionEvaluator(new ExpressionEvaluationLimits(3, 100));
@@ -40,8 +40,8 @@ public class ExpressionBranchBudgetTests
     [DataRow("value", "0 ? 2 : 3", 7, 3)]
     public void SelectedDependencyValidation_ChargesTheWholeProgram(string source, string dependency, int work, int expected)
     {
-        Expr expression = CStructDefinitionParser.ParseExpression(source);
-        var variables = new Dictionary<string, Expr> { ["value"] = CStructDefinitionParser.ParseExpression(dependency), };
+        Expr expression = LayoutParser.ParseExpression(source);
+        var variables = new Dictionary<string, Expr> { ["value"] = LayoutParser.ParseExpression(dependency), };
         var sufficient = new ExpressionEvaluator(new ExpressionEvaluationLimits(10, work));
         Assert.AreEqual(expected, sufficient.CreateSession(variables).Evaluate(expression));
         var limited = new ExpressionEvaluator(new ExpressionEvaluationLimits(10, work - 1));
@@ -59,11 +59,11 @@ public class ExpressionBranchBudgetTests
     [DataRow("0 ? 0 : a")]
     public void SelectedCachedDependency_PreservesItsFullDepth(string source)
     {
-        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        Expr expression = LayoutParser.ParseExpression(source);
         var variables = new Dictionary<string, Expr>
         {
-            ["a"] = CStructDefinitionParser.ParseExpression("b + 1"),
-            ["b"] = CStructDefinitionParser.ParseExpression("-1"),
+            ["a"] = LayoutParser.ParseExpression("b + 1"),
+            ["b"] = LayoutParser.ParseExpression("-1"),
         };
         ExpressionEvaluator.ExpressionEvaluationSession sufficient = new ExpressionEvaluator(new ExpressionEvaluationLimits(6, 100)).CreateSession(variables);
         Assert.AreEqual(-1, sufficient.Evaluate(new Identifier("b")));
@@ -90,7 +90,7 @@ public class ExpressionBranchBudgetTests
     [DataRow("0 ? 1 : (2 + 3)")]
     public void CompilationDepth_CountsEveryChildPosition(string source)
     {
-        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        Expr expression = LayoutParser.ParseExpression(source);
         new ExpressionEvaluator(new ExpressionEvaluationLimits(3, 100)).Compile(expression);
         var limited = new ExpressionEvaluator(new ExpressionEvaluationLimits(2, 100));
 
@@ -109,7 +109,7 @@ public class ExpressionBranchBudgetTests
     [DataRow("1 + (0 ? 2 : 3)", 4)]
     public void NestedConditionalJoin_PreservesFollowingInstructions(string source, int expected)
     {
-        Expr expression = CStructDefinitionParser.ParseExpression(source);
+        Expr expression = LayoutParser.ParseExpression(source);
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(10, 100));
 
         Assert.AreEqual(expected, evaluator.Evaluate(expression));
@@ -126,8 +126,8 @@ public class ExpressionBranchBudgetTests
     [DataRow("0 ? 2 : value", -1)]
     public void ExactConditionalDepth_IncludesSelectedDependencies(string source, int expected)
     {
-        Expr expression = CStructDefinitionParser.ParseExpression(source);
-        var variables = new Dictionary<string, Expr> { ["value"] = CStructDefinitionParser.ParseExpression("-1"), };
+        Expr expression = LayoutParser.ParseExpression(source);
+        var variables = new Dictionary<string, Expr> { ["value"] = LayoutParser.ParseExpression("-1"), };
         var sufficient = new ExpressionEvaluator(new ExpressionEvaluationLimits(4, 100));
         Assert.AreEqual(new BigInteger(expected), sufficient.EvaluateExact(expression, variables, 64));
         var limited = new ExpressionEvaluator(new ExpressionEvaluationLimits(3, 100));
@@ -144,8 +144,8 @@ public class ExpressionBranchBudgetTests
     [DataRow("0 ? 0 : value")]
     public void SessionConditionalDepth_IncludesTheSelectedProgram(string source)
     {
-        Expr expression = CStructDefinitionParser.ParseExpression(source);
-        var variables = new Dictionary<string, Expr> { ["value"] = CStructDefinitionParser.ParseExpression("-1"), };
+        Expr expression = LayoutParser.ParseExpression(source);
+        var variables = new Dictionary<string, Expr> { ["value"] = LayoutParser.ParseExpression("-1"), };
         var sufficient = new ExpressionEvaluator(new ExpressionEvaluationLimits(4, 100));
         Assert.AreEqual(-1, sufficient.Evaluate(expression, variables));
         Assert.AreEqual(-1, sufficient.CreateSession(variables).Evaluate(expression));
@@ -162,7 +162,7 @@ public class ExpressionBranchBudgetTests
     [TestMethod]
     public void FailedSessionEvaluations_StillConsumeWork()
     {
-        var variables = new Dictionary<string, Expr> { ["bad"] = CStructDefinitionParser.ParseExpression("1 / 0"), };
+        var variables = new Dictionary<string, Expr> { ["bad"] = LayoutParser.ParseExpression("1 / 0"), };
         var evaluator = new ExpressionEvaluator(new ExpressionEvaluationLimits(10, 8));
         ExpressionEvaluator.ExpressionEvaluationSession session = evaluator.CreateSession(variables);
         Expr root = new Identifier("bad");

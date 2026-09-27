@@ -194,20 +194,6 @@ public sealed class MemorySchema
         return field?.BitWidth is not null ? this.bitLayouts[(parentId!, field.Name)] : this.scalarLayouts[type.Id];
     }
 
-    /// <summary>Validates one definition and compiles its leaf codecs, checking metadata extents against actual codec sizes.</summary>
-    /// <remarks>
-    /// <para>
-    /// Scalars are compiled as a one-member Portable struct so the core reports the codec's real size; a metadata
-    /// integer described as four bytes must not silently decode through a differently sized codec. Bit slices get
-    /// their own tiny layout: an anonymous bitfield of <c>BitOffset</c> bits followed by the selected bits, which
-    /// makes the core's low-bit-first allocator land on exactly the requested slice.
-    /// </para>
-    /// <para>
-    /// Overlap is checked on bit intervals. A whole member occupies <c>[offset*8, (offset+size)*8)</c>. A bit slice
-    /// is converted byte by byte into the physical bits it touches, because in a big-endian storage unit bit 0 of
-    /// the integer lives in the last byte. Two slices may share a storage unit as long as their bits are disjoint.
-    /// </para>
-    /// </remarks>
     /// <summary>The demotion reason for a struct or union whose bitfield storage type <paramref name="storageId"/> was demoted.</summary>
     private static string DemotedStorageMessage(string storageId) => $"its bitfield storage type '{storageId}' was demoted.";
 
@@ -226,6 +212,19 @@ public sealed class MemorySchema
     ///     Checks one definition against the others (kind, size, member extents, bitfield storage, overlap) and compiles
     ///     its scalar and bit-slice codecs.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Scalars are compiled as a one-member Portable struct so the core reports the codec's real size; a metadata
+    /// integer described as four bytes must not silently decode through a differently sized codec. Bit slices get
+    /// their own tiny layout: an anonymous bitfield of <c>BitOffset</c> bits followed by the selected bits, which
+    /// makes the core's low-bit-first allocator land on exactly the requested slice.
+    /// </para>
+    /// <para>
+    /// Overlap is checked on bit intervals. A whole member occupies <c>[offset*8, (offset+size)*8)</c>. A bit slice
+    /// is converted byte by byte into the physical bits it touches, because in a big-endian storage unit bit 0 of
+    /// the integer lives in the last byte. Two slices may share a storage unit as long as their bits are disjoint.
+    /// </para>
+    /// </remarks>
     /// <param name="type">The definition to check.</param>
     /// <exception cref="ArgumentException">The definition is invalid.</exception>
     private void Validate(MemoryTypeDefinition type)

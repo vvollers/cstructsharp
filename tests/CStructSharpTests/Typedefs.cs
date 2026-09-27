@@ -17,7 +17,7 @@ public class Typedefs
     [TestMethod]
     public void TestSimpleTypedef()
     {
-        var def = (Typedef)CStructDefinitionParser.ParseElement("typedef int myint;");
+        var def = (Typedef)LayoutParser.ParseElement("typedef int myint;");
         Assert.AreEqual("myint", def.Name.Name);
         Assert.AreEqual("int", def.Type.Name);
     }
@@ -32,7 +32,7 @@ public class Typedefs
     [TestMethod]
     public void TestTypedefStruct()
     {
-        var def = (Typedef)CStructDefinitionParser.ParseElement(
+        var def = (Typedef)LayoutParser.ParseElement(
                                                                               "typedef struct mystruct_t { int a; int b; } mystruct;");
         Assert.AreEqual("mystruct", def.Name.Name);
         Assert.AreEqual("struct", def.Type.Name);
