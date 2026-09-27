@@ -39,22 +39,23 @@ public static class PortableMemorySchema
         var builder = new Builder(layout);
         builder.Add(rootType, null, 0);
         builder.CompleteAliases();
-        var options = new CStructCompilationOptions
-        {
-            Codecs = layout.CompilationOptions.Codecs,
-            CLongWidth = layout.CompilationOptions.CLongWidth,
-            DefaultEnumStorage = layout.CompilationOptions.DefaultEnumStorage,
-            BitfieldAllocation = layout.CompilationOptions.BitfieldAllocation,
-            BitfieldPacking = layout.CompilationOptions.BitfieldPacking,
-            MaxDefinitionLength = layout.CompilationOptions.MaxDefinitionLength,
-        };
-        return new MemorySchema(builder.Types.Values, layout.IsLittleEndian, options, pointerSize: layout.PointerSize);
+        return new MemorySchema(builder.Types.Values, layout.IsLittleEndian, SchemaOptions(layout), pointerSize: layout.PointerSize);
     }
+
+    /// <summary>
+    ///     The layout's own compilation options for the schema's codecs, without its prelude: a declaration the schema
+    ///     compiles is the rendered layout (<see cref="CStruct.ToDefinition"/>), which already holds the prelude's
+    ///     declarations.
+    /// </summary>
+    /// <param name="layout">The compiled layout.</param>
+    /// <returns>The options.</returns>
+    private static CStructCompilationOptions SchemaOptions(CStruct layout) => layout.CompilationOptions with { Prelude = null };
 
     /// <summary>Accumulates descriptors for the reachable types of one layout, generating IDs for anonymous pointer, array, and inline types.</summary>
     private sealed class Builder
     {
         private readonly CStruct layout;
+        private readonly Lazy<string> definition;
         private readonly Dictionary<string, LayoutDeclarationInfo> declarations;
         private readonly Dictionary<string, string> aliases = new(StringComparer.Ordinal);
         private int generated;
@@ -64,6 +65,7 @@ public static class PortableMemorySchema
         internal Builder(CStruct layout)
         {
             this.layout = layout;
+            this.definition = new Lazy<string>(layout.ToDefinition);
 
             // Names are unique in compiled Portable layouts.
             this.declarations = layout.Layout.Declarations.ToDictionary(declaration => declaration.Name, StringComparer.Ordinal);
@@ -181,13 +183,16 @@ public static class PortableMemorySchema
                 return;
             }
 
+            // A declared scalar (an enum) needs the layout's declarations to compile its codec; a primitive, alias or
+            // custom codec needs none, so its probe and codec compile one small struct instead of the whole layout.
+            bool declared = declaration is not null;
             if (!knownSize.HasValue)
             {
-                var probe = new CStruct(this.layout.ToDefinition() + $"\nstruct __probe {{ {id} value; }};", pointerSize: this.layout.PointerSize, isLittleEndian: this.layout.IsLittleEndian, compilationOptions: new CStructCompilationOptions { Codecs = this.layout.CompilationOptions.Codecs, CLongWidth = this.layout.CompilationOptions.CLongWidth, });
+                var probe = new CStruct($"struct __probe {{ {id} value; }};", pointerSize: this.layout.PointerSize, isLittleEndian: this.layout.IsLittleEndian, compilationOptions: SchemaOptions(this.layout));
                 knownSize = probe.GetStructSizeInBytes("__probe");
             }
 
-            this.Types.Add(id, new(id, id, MemoryTypeKind.Scalar, knownSize.Value, scalarType: id, declaration: this.layout.ToDefinition(), provenance: "Portable compiled layout"));
+            this.Types.Add(id, new(id, id, MemoryTypeKind.Scalar, knownSize.Value, scalarType: id, declaration: declared ? this.definition.Value : null, provenance: "Portable compiled layout"));
         }
 
         /// <summary>Creates one pointer descriptor per indirection level; the innermost level targets the named type, or nothing for <c>void</c>.</summary>

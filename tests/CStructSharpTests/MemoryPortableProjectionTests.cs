@@ -43,6 +43,27 @@ public class MemoryPortableProjectionTests
         Assert.IsNull(session.Resolve(region, "Root", "raw").Type.ElementTypeId);
     }
 
+    /// <summary>
+    ///     A primitive scalar carries no declaration, so its codec compiles one small struct rather than the whole
+    ///     layout; an enum keeps the rendered layout its codec needs. A layout with a prelude projects without
+    ///     declaring the prelude's types twice.
+    /// </summary>
+    [TestMethod]
+    public void Portable_ScalarsCarryOnlyTheDeclarationsTheyNeed()
+    {
+        var layout = new CStruct("enum kind : uint8 { a = 1, b = 2 }; struct Root { word w; kind k; uint32 n; };", compilationOptions: new CStructCompilationOptions { Prelude = "typedef uint16 word;", });
+        var session = new MemorySession(PortableMemorySchema.Create(layout, "Root"));
+        Assert.IsNull(session.Schema.GetType("uint32").Declaration);
+        StringAssert.Contains(session.Schema.GetType("kind").Declaration, "enum kind");
+
+        var source = new ByteArrayMemorySource("image", new byte[] { 0x34, 0x12, 2, 5, 0, 0, 0, });
+        var region = new MemoryRegion(source, 0, 7);
+        Assert.AreEqual((ushort)0x1234, session.Read(region, "Root", "w"));
+        Assert.AreEqual(5u, session.Read(region, "Root", "n"));
+        session.PlanUpdate(region, "Root", "n", 9u).Commit();
+        CollectionAssert.AreEqual(new byte[] { 0x34, 0x12, 2, 9, 0, 0, 0, }, source.ToArray());
+    }
+
     /// <summary>Anonymous unions remain overlapping views and bit padding never becomes a writable named member.</summary>
     [TestMethod]
     public void Portable_ProjectsPromotedUnionsAndBitfields()

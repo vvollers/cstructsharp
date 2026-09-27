@@ -269,8 +269,7 @@ public sealed class MemorySession
             {
                 // A bit slice is patched in place with the core's masked update, never re-encoded as a whole integer.
                 CStruct codec = this.Schema.GetCodec(selected.Type, selected.Field, selected.ParentTypeId);
-                using var staging = new MemoryStream(bytes, writable: true);
-                codec.Update(staging, "__bits.value", EncodeBits(selected.Field, value));
+                codec.Update(bytes, "__bits.value", EncodeBits(selected.Field, value));
             }
             else
             {
@@ -302,9 +301,39 @@ public sealed class MemorySession
         }
 
         var bytes = new byte[(int)region.Length];
-        using Stream stream = region.OpenRead(context);
-        stream.ReadExactly(bytes);
+        ReadExactly(region, bytes, context);
         return bytes;
+    }
+
+    /// <summary>
+    ///     Fills <paramref name="destination"/> from the start of <paramref name="region"/>, with the rules of the
+    ///     region's stream view: a short read continues, and a read of zero bytes inside the region is
+    ///     <see cref="MemoryFailure.MissingBytes"/>, never padding.
+    /// </summary>
+    /// <param name="region">The region; <paramref name="destination"/> must not be longer.</param>
+    /// <param name="destination">The bytes to fill.</param>
+    /// <param name="context">Shared budget charged by every underlying source read, and the cancellation token.</param>
+    /// <exception cref="MemoryAccessException">The source returned an invalid count or no bytes.</exception>
+    private static void ReadExactly(MemoryRegion region, Span<byte> destination, MemoryAccessContext context)
+    {
+        for (int offset = 0; offset < destination.Length;)
+        {
+            context.CancellationToken.ThrowIfCancellationRequested();
+            ulong address = checked(region.Address + (ulong)offset);
+            int count = destination.Length - offset;
+            int read = region.Source.Read(address, destination[offset..], context);
+            if (read < 0 || read > count)
+            {
+                throw new MemoryAccessException(MemoryFailure.SourceFailure, region.Source.Id, address, count, "Backing source returned an invalid read count.");
+            }
+
+            if (read == 0)
+            {
+                throw new MemoryAccessException(MemoryFailure.MissingBytes, region.Source.Id, address, count, "Backing bytes are unavailable.");
+            }
+
+            offset += read;
+        }
     }
 
     /// <summary>The default resolver: the stored bits are an absolute address in the source the pointer was read from.</summary>
@@ -470,10 +499,11 @@ public sealed class MemorySession
         MemoryTypeDefinition type = selected.Type;
         if (type.Kind is MemoryTypeKind.Scalar or MemoryTypeKind.Pointer)
         {
-            // The region's stream view hands the bytes to the core codec; a bit slice uses its own slice codec.
-            using Stream stream = selected.Region.OpenRead(context);
+            // The scalar's bytes go to the core codec as a span; a bit slice uses its own slice codec.
+            Span<byte> bytes = type.Size <= 64 ? stackalloc byte[type.Size] : new byte[type.Size];
+            ReadExactly(selected.Region, bytes, context);
             CStruct codec = this.Schema.GetCodec(type, selected.Field, selected.ParentTypeId);
-            object value = codec.ReadValue(stream, selected.Field?.BitWidth is null ? MemorySchema.CodecRoot(type) : "__bits.value")!;
+            object value = codec.ReadValue(bytes, selected.Field?.BitWidth is null ? MemorySchema.CodecRoot(type) : "__bits.value")!;
             if (type.Kind == MemoryTypeKind.Pointer)
             {
                 return new StoredPointer(Convert.ToUInt64(value, CultureInfo.InvariantCulture), type.Size);
@@ -571,14 +601,15 @@ public sealed class MemorySession
             }
 
             ArgumentNullException.ThrowIfNull(scalar);
-            byte[] bytes = this.Schema.GetCodec(type).Serialize(MemorySchema.CodecRoot(type), scalar);
-            if (bytes.Length != destination.Length)
+
+            // The schema checked that the codec's size is the metadata extent, so it writes exactly the destination.
+            int written = this.Schema.GetCodec(type).Serialize(destination, MemorySchema.CodecRoot(type), scalar);
+            if (written != destination.Length)
             {
                 throw new ArgumentException("Codec output differs from the metadata extent.");
             }
 
-            context.Charge("serialize", 0, bytes.Length);
-            bytes.CopyTo(destination);
+            context.Charge("serialize", 0, written);
         }
         else if (type.Kind == MemoryTypeKind.Array)
         {
@@ -647,8 +678,8 @@ public sealed class MemorySession
 
     /// <summary>Encodes one member into its slice of the destination; a bit slice changes only its own bits of the storage unit.</summary>
     /// <remarks>A bit slice cannot be serialized as a fresh integer, because that would overwrite the other slices
-    /// sharing the storage unit. Instead the unit's current bytes are copied out, the core masked
-    /// <see cref="CStruct.Update(System.IO.Stream, string, object, System.Collections.Generic.IReadOnlyDictionary{string, int}?, UpdateOptions?)"/> changes only the selected bits, and the unit is copied back.</remarks>
+    /// sharing the storage unit. Instead the core masked
+    /// <see cref="CStruct.Update(Span{byte}, string, object, System.Collections.Generic.IReadOnlyDictionary{string, int}?, UpdateOptions?)"/> changes only the selected bits of the unit in place.</remarks>
     /// <param name="parent">Containing struct or union, which keys the slice codec.</param>
     /// <param name="field">Member to encode.</param>
     /// <param name="value">Value for that member.</param>
@@ -661,11 +692,8 @@ public sealed class MemorySession
         Span<byte> target = destination.Slice(field.Offset, member.Size);
         if (field.BitWidth is not null)
         {
-            byte[] bytes = target.ToArray();
-            using var stream = new MemoryStream(bytes, writable: true);
-            this.Schema.GetCodec(member, field, parent.Id).Update(stream, "__bits.value", EncodeBits(field, value));
-            context.Charge("serialize", 0, bytes.Length);
-            bytes.CopyTo(target);
+            this.Schema.GetCodec(member, field, parent.Id).Update(target, "__bits.value", EncodeBits(field, value));
+            context.Charge("serialize", 0, target.Length);
         }
         else
         {
