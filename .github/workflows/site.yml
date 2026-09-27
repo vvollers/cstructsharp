@@ -38,8 +38,7 @@ jobs:
         run: node tools/documentation/validate-documentation.mjs --installed
       - name: Install WebAssembly workload
         run: dotnet workload restore ./src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
-      - name: Install the apps workspace
-        working-directory: apps
+      - name: Install the npm workspace
         run: npm ci
       - name: Build and test explorer
         working-directory: apps/explorer

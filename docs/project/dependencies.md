@@ -82,10 +82,10 @@ The web apps are outside routine core and documentation builds:
 | Lint integration | `typescript-eslint` / `globals` |
 | Format/orchestration | `prettier` |
 
-The explorer, the inspector and their shared source form one npm workspace in `apps/`. Use the `engines`
-requirements in the [workspace manifest](https://github.com/vvollers/cstructsharp/blob/main/apps/package.json), which
-also records the dependency overrides. The one lockfile, `apps/package-lock.json`, not a floating manifest range,
-records the exact installed graph of both apps.
+The explorer, the inspector, their shared source and the npm package form one npm workspace at the repository root.
+Use the `engines` requirements in the [workspace manifest](https://github.com/vvollers/cstructsharp/blob/main/package.json),
+which also records the dependency overrides. The one lockfile, `package-lock.json`, not a floating manifest range,
+records the exact installed graph.
 
 ## Review an update
 
@@ -101,6 +101,6 @@ Do not change a version only to silence an audit. Confirm whether the vulnerable
 record how the chosen update or accepted limitation addresses it.
 
 The weekly `dependency-check` workflow runs `dotnet list package --vulnerable --include-transitive` for both
-solutions and `npm audit --audit-level=high` for every lockfile (the apps workspace, the documentation, and the
+solutions and `npm audit --audit-level=high` for every lockfile (the repository workspace, the documentation, and the
 JavaScript benchmarks); it fails on a known high-severity advisory in a locked graph, and it can be started on
 demand from the Actions page.

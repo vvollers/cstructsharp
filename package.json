@@ -2,10 +2,18 @@
   "name": "cstructsharp-repository",
   "private": true,
   "type": "module",
-  "description": "Repository-level scripts for the cstructsharp npm package and the standalone WASM bundle; the apps in apps/ own their own manifests.",
+  "description": "Repository-level npm workspace: the explorer and inspector apps with their shared source (apps/), and the cstructsharp npm package (packages/cstructsharp); plus the scripts that build and check the package and the standalone WASM bundle.",
+  "workspaces": [
+    "apps/shared",
+    "apps/explorer",
+    "apps/inspector",
+    "packages/cstructsharp"
+  ],
   "engines": {
-    "node": ">=22.14.0"
+    "node": ">=22.14.0",
+    "npm": ">=10.0.0"
   },
+  "packageManager": "npm@12.0.2",
   "scripts": {
     "build:wasm": "node tools/packaging/publish-wasm.mjs",
     "verify:wasm": "node tools/packaging/verify-wasm-publication.mjs",
@@ -18,6 +26,12 @@
     "test:public-types": "node tools/packaging/test-public-types.mjs",
     "test:wasm-publication": "node --test tools/packaging/wasm-publication.test.mjs",
     "test:wasm-reproducibility": "node tools/packaging/test-wasm-reproducibility.mjs",
-    "bench:js": "npm --prefix benchmarks/js run bench:node"
+    "bench:js": "npm --prefix benchmarks/js run bench:node",
+    "lint": "npm run lint --workspaces --if-present",
+    "format:check": "npm run format:check --workspaces --if-present",
+    "test:unit": "npm run test:unit --workspaces --if-present"
+  },
+  "overrides": {
+    "dompurify": "^3.4.15"
   }
 }

@@ -41,7 +41,7 @@ await main(() => {
   const types = runCommand(process.execPath, [path.join(repositoryRoot, "tools/packaging/test-public-types.mjs"), bundle], { cwd: web, allowFailure: true });
   process.stdout.write(`${types.stdout ?? ""}${types.stderr ?? ""}`);
   if (types.status !== 0) throw new Error("Packaged public TypeScript declarations failed.");
-  const playwright = runCommand(process.execPath, [path.join(web, "../node_modules/@playwright/test/cli.js"), "test", "--config", "playwright.starter.config.ts"], { cwd: web, allowFailure: true });
+  const playwright = runCommand(process.execPath, [path.join(web, "../../node_modules/@playwright/test/cli.js"), "test", "--config", "playwright.starter.config.ts"], { cwd: web, allowFailure: true });
   process.stdout.write(`${playwright.stdout ?? ""}${playwright.stderr ?? ""}`);
   if (playwright.status !== 0) throw new Error("Packaged browser onboarding checks failed.");
 });

@@ -15,8 +15,8 @@ updates:
           - "*"
 
   - package-ecosystem: npm
-    # The apps workspace: explorer, inspector and their shared source, one lockfile.
-    directory: /apps
+    # The repository workspace: the apps, their shared source and the npm package, one lockfile.
+    directory: /
     # Keep the supported TypeScript 6 toolchain; ignore every TypeScript 7 release.
     ignore:
       - dependency-name: typescript

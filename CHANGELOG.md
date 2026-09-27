@@ -133,9 +133,10 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   (`compare-benchmark-baseline.mjs --matching-only`).
 - Explorer: the generated test catalog loads as its own chunk, so the entry bundle holds application code only
   (226 KB instead of 1.5 MB). The web size budget is re-measured, with the entry-bundle limit lowered to 256 KiB.
-- The explorer and the inspector form one npm workspace in `apps/` with one lockfile and a shared source package
-  (`apps/shared`, imported as `@cstructsharp/app-shared`); run `npm ci` once in `apps/`. Both apps now use the
-  same dependency versions, and the `dompurify` override applies to both from the workspace manifest.
+- The repository is one npm workspace: the explorer, the inspector, their shared source package (`apps/shared`,
+  imported as `@cstructsharp/app-shared`) and the npm package (`packages/cstructsharp`), with one lockfile at the
+  root; run `npm ci` once at the repository root instead of in each app. Both apps use the same dependency versions,
+  and the `dompurify` override applies to both from the root manifest.
 - Both apps load and validate the WebAssembly runtime through one shared adapter (`apps/shared/src/wasm`) whose
   types come from the npm package declarations, instead of two hand-copied modules.
 - The apps share the layout formatter (the explorer now also puts each enum and flag value on its own line), the

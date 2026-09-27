@@ -45,7 +45,7 @@ jobs:
 
       - name: Node packages with known high-severity vulnerabilities
         run: |
-          for directory in apps docs benchmarks/js; do
+          for directory in . docs benchmarks/js; do
             echo "==> $directory"
             (cd "$directory" && npm ci --ignore-scripts --no-audit --no-fund && npm audit --audit-level=high)
           done

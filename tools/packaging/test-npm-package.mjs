@@ -133,7 +133,7 @@ assert.throws(
 
 // CI's cross-platform Node matrix needs no browser or frontend dependencies.
 if (!process.argv.includes("--node-only")) {
-  const tsc = path.join(root, "apps", "node_modules", "typescript", "bin", "tsc");
+  const tsc = path.join(root, "node_modules", "typescript", "bin", "tsc");
   const ts =
     'import { parseWithDebug, loadCStructSharpWasm, type ParseResult, type ParsedStruct } from "cstructsharp"; import { cstructsharp } from "cstructsharp/vite"; const result: ParseResult = await parseWithDebug("struct x { uint8 a; };", new Uint8Array([1])); if (!result.success) throw Error(result.error.message); console.log(result.root, (result.data as ParsedStruct).a); void cstructsharp; void loadCStructSharpWasm;';
   fs.writeFileSync(path.join(consumer, "types.mts"), ts);

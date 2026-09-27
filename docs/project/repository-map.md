@@ -25,7 +25,6 @@ and which direction their dependencies point.
 | `docs/` | DocFX pages, examples, site assets, browser checks, and machine-readable reference data | Reads a prebuilt core net10 assembly |
 | `src/CStructSharp.Wasm/` | Managed WebAssembly bridge (exports, DTOs, JSON projection) | References core |
 | `packages/cstructsharp/` | Public npm package: loaders, Vite plugin, README, declarations, the JavaScript adapter sources (`src/`), and the standalone bundle pieces (`standalone/`) | Packages the prebuilt WASM bridge for Node.js and browsers |
-| `apps/` | npm workspace of the two apps and their shared source; one lockfile | Install once with `npm ci` here |
 | `apps/shared/` | Components and modules both apps compile | Imported as `@cstructsharp/app-shared/...` |
 | `apps/explorer/` | Test/lesson explorer | Loads the published WASM adapter output |
 | `apps/inspector/` | Binary inspector UI, format examples, and browser checks | Stages the repository WASM publication |

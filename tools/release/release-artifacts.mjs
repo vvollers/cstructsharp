@@ -11,7 +11,7 @@ import { verifySourceJobs } from "../lib/release-verification.mjs";
 const manifestPath = path.join(root, "artifacts", "release-manifest.json");
 const versionFiles = [
   "src/CStructSharp/CStructSharp.csproj",
-  "apps/package-lock.json",
+  "package-lock.json",
   "apps/explorer/package.json",
   "apps/inspector/package.json",
   "apps/shared/package.json",

@@ -127,10 +127,10 @@ jobs:
             packageJson.version = version;
             fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
           }
-          // The apps workspace has one lockfile; its workspace entries carry the member versions.
-          const lockPath = 'apps/package-lock.json';
+          // The repository workspace has one lockfile; its member entries carry the member versions.
+          const lockPath = 'package-lock.json';
           const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
-          for (const member of ['explorer', 'inspector', 'shared']) lock.packages[member].version = version;
+          for (const member of ['apps/explorer', 'apps/inspector', 'apps/shared', 'packages/cstructsharp']) lock.packages[member].version = version;
           fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\ntag=v${version}\n`);
           NODE
@@ -162,8 +162,7 @@ jobs:
       - name: Install WebAssembly workload
         run: dotnet workload restore ./src/CStructSharp.Wasm/CStructSharpWeb.Wasm.csproj
 
-      - name: Install the apps workspace
-        working-directory: apps
+      - name: Install the npm workspace
         run: npm ci
 
       - name: Pack NuGet package for all target frameworks
@@ -282,7 +281,7 @@ jobs:
           name: version-bump-files
           path: |
             src/CStructSharp/CStructSharp.csproj
-            apps/package-lock.json
+            package-lock.json
             apps/explorer/package.json
             apps/inspector/package.json
             apps/shared/package.json

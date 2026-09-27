@@ -9,9 +9,9 @@ apps compile, imported as `@cstructsharp/app-shared/...`:
 - `composables/useWasmRuntime`, `components/SettingStatusItem.vue`, and the layout formatter, error hints, hex helpers
   and option defaults.
 
-The three form one npm workspace with one lockfile (`apps/package-lock.json`), so both apps use the same versions of
-Vue, Vite and their tools.
+The three are members of the repository's npm workspace, with the npm package in `packages/cstructsharp`: one
+lockfile (`package-lock.json` at the repository root), so both apps use the same versions of Vue, Vite and their tools.
 
-Install everything once with `npm ci` in `apps/`. From `apps/`, `npm run lint`, `npm run format:check` and
-`npm run test:unit` check every workspace. Build WASM once using `node tools/packaging/publish-wasm.mjs`, then build
+Install everything once with `npm ci` at the repository root. From the root, `npm run lint`, `npm run format:check`
+and `npm run test:unit` check every workspace. Build WASM once using `node tools/packaging/publish-wasm.mjs`, then build
 either app from its directory. See each app README for commands.
