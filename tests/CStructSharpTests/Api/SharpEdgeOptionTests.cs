@@ -118,23 +118,31 @@ public class SharpEdgeOptionTests
         CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, promoted.Serialize("root", parsed, options: reject));
     }
 
+    /// <summary>A mapped class for the tests' <c>Root</c> record, read and written through the runtime.</summary>
     internal sealed class Root : ICStructMapped<Root>
     {
         public string Name { get; set; } = string.Empty;
 
         public byte Tail { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static Root ReadFrom(StructValue source)
         {
             return new Root { Name = source.Get<string>("name"), Tail = source.Get<byte>("tail"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(Root value, StructValue target)
         {
             target["name"] = value.Name;
             target["tail"] = value.Tail;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -142,20 +150,28 @@ public class SharpEdgeOptionTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>InnerPoco</c> record, read and written through the runtime.</summary>
     internal sealed class InnerPoco : ICStructMapped<InnerPoco>
     {
         public byte A { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static InnerPoco ReadFrom(StructValue source)
         {
             return new InnerPoco { A = source.Get<byte>("a"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(InnerPoco value, StructValue target)
         {
             target["a"] = value.A;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -163,23 +179,31 @@ public class SharpEdgeOptionTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>RootPoco</c> record, read and written through the runtime.</summary>
     internal sealed class RootPoco : ICStructMapped<RootPoco>
     {
         public ushort Kind { get; set; }
 
         public InnerPoco Nested { get; set; } = new();
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static RootPoco ReadFrom(StructValue source)
         {
             return new RootPoco { Kind = source.Get<ushort>("kind"), Nested = source.Get<InnerPoco>("nested"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(RootPoco value, StructValue target)
         {
             target["kind"] = value.Kind;
             target["nested"] = value.Nested;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -196,11 +220,17 @@ public class SharpEdgeOptionTests
 
         public int Extra { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static RootPocoWithExtra ReadFrom(StructValue source)
         {
             return new RootPocoWithExtra { Kind = source.Get<ushort>("kind"), Nested = source.Get<InnerPoco>("nested"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(RootPocoWithExtra value, StructValue target)
         {
             target["kind"] = value.Kind;
@@ -208,6 +238,7 @@ public class SharpEdgeOptionTests
             target["Extra"] = value.Extra;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {

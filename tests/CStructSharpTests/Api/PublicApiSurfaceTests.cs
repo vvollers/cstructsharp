@@ -245,6 +245,9 @@ public class PublicApiSurfaceTests
                 method => method.GetParameters()[0].ParameterType == typeof(IBufferWriter<byte>)));
     }
 
+    /// <summary>The types a public member's signature names: parameters, return, field, property and event types.</summary>
+    /// <param name="member">The member.</param>
+    /// <returns>The types.</returns>
     private static IEnumerable<Type> GetSignatureTypes(MemberInfo member)
     {
         return member switch
@@ -260,6 +263,9 @@ public class PublicApiSurfaceTests
         };
     }
 
+    /// <summary>A type with its element types and generic arguments, recursively.</summary>
+    /// <param name="type">The type.</param>
+    /// <returns>The types.</returns>
     private static IEnumerable<Type> FlattenType(Type type)
     {
         yield return type;
@@ -280,6 +286,9 @@ public class PublicApiSurfaceTests
         }
     }
 
+    /// <summary>Whether a type belongs to the internal syntax tree namespace.</summary>
+    /// <param name="type">The type.</param>
+    /// <returns>Whether it does.</returns>
     private static bool IsSyntaxTreeType(Type type)
     {
         return type.Namespace == "CStructSharp.Syntax";

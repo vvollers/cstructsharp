@@ -8,9 +8,10 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     Pins the cancellation contract: the token on the option records is observed at composite, pointer, block,
-///     element, and chunk boundaries, cancellation is an <see cref="OperationCanceledException"/> (never a read or
-///     write failure, never swallowed by a <c>Try</c> form), and a cancelled operation leaves the caller's stream
-///     position and destination as an expected failure would.
+///     element, and chunk boundaries - in writes too, between materializing an array and converting its elements and
+///     between a record and its nested composite - cancellation is an <see cref="OperationCanceledException"/> (never a
+///     read or write failure, never swallowed by a <c>Try</c> form), and a cancelled operation leaves the caller's
+///     stream position and destination as an expected failure would.
 /// </summary>
 [TestClass]
 public class CancellationTests
@@ -69,6 +70,7 @@ public class CancellationTests
         byte[] bytes = Bytes();
 
         // Each attempt gets its own token source: the codec cancels it on its first call.
+        /// <summary>A layout whose tag codec cancels the read options' token when it runs.</summary>
         (CStruct Layout, CancellingTag Codec, ReadOptions Options) Arrange()
         {
             var source = new CancellationTokenSource();
@@ -163,6 +165,40 @@ public class CancellationTests
         Assert.AreEqual(CancellationToken.None, new UpdateOptions().CancellationToken);
     }
 
+    /// <summary>Cancelling after input enumeration takes precedence over an invalid composite-target pointer value.</summary>
+    [TestMethod]
+    public void CompositePointerArray_CancelsBeforeConvertingAnElement()
+    {
+        var layout = new CStruct("struct child { uint8 value; }; struct root { child *values[1]; };");
+        using var cancellation = new CancellationTokenSource();
+        var data = new Dictionary<string, object?> { ["values"] = CancelAfterValue(cancellation), };
+        using var destination = new MemoryStream();
+
+        // State construction starts uncancelled; enumeration requests cancellation before element conversion.
+        OperationCanceledException failure = Assert.Throws<OperationCanceledException>(() =>
+            layout.Write(destination, "root", data, options: new WriteOptions { CancellationToken = cancellation.Token, }));
+        Assert.AreEqual(cancellation.Token, failure.CancellationToken);
+        Assert.AreEqual(0L, destination.Length);
+    }
+
+    /// <summary>A nested composite observes cancellation before its static plan can write the nested bytes.</summary>
+    [TestMethod]
+    public void NestedComposite_CancelsAfterItsValueIsRetrieved()
+    {
+        var layout = new CStruct("struct child { uint8 value; }; struct root { uint8 count; uint8 padding[count]; child nested; };");
+        using var cancellation = new CancellationTokenSource();
+        var data = new CancellingDictionary(cancellation);
+        using var destination = new MemoryStream();
+
+        OperationCanceledException failure = Assert.Throws<OperationCanceledException>(() =>
+            layout.Write(destination, "root", data, options: new WriteOptions { CancellationToken = cancellation.Token, }));
+
+        Assert.AreEqual(cancellation.Token, failure.CancellationToken);
+        CollectionAssert.AreEqual(new byte[] { 0, }, destination.ToArray());
+    }
+
+    /// <summary>A three-element record array followed by a kilobyte of padding and a terminated string.</summary>
+    /// <returns>The bytes.</returns>
     private static byte[] Bytes()
     {
         var bytes = new List<byte> { 3, };
@@ -175,6 +211,15 @@ public class CancellationTests
         bytes.AddRange(new byte[1024]);
         bytes.AddRange("ok\0"u8.ToArray());
         return [.. bytes,];
+    }
+
+    /// <summary>Yields one invalid pointer address, then requests cancellation when materialization completes.</summary>
+    /// <param name="cancellation">The operation's cancellation source.</param>
+    /// <returns>One negative physical address.</returns>
+    private static IEnumerable<object> CancelAfterValue(CancellationTokenSource cancellation)
+    {
+        yield return -1L;
+        cancellation.Cancel();
     }
 
     /// <summary>A one-byte tag codec that cancels the shared token the first time it is called.</summary>
@@ -190,6 +235,11 @@ public class CancellationTests
 
         public int Writes { get; set; }
 
+        /// <summary>Counts the read, cancels the token, then decodes one byte.</summary>
+        /// <param name="source1">The available bytes.</param>
+        /// <param name="value">Receives the decoded value.</param>
+        /// <param name="bytesConsumed">Receives the bytes the value used.</param>
+        /// <returns>Whether the value was decoded or needs more bytes.</returns>
         public OperationStatus Read(ReadOnlySpan<byte> source1, out object? value, out int bytesConsumed)
         {
             this.Reads++;
@@ -199,6 +249,11 @@ public class CancellationTests
             return OperationStatus.Done;
         }
 
+        /// <summary>Counts the write, cancels the token, then encodes one byte.</summary>
+        /// <param name="destination">The bytes to fill.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="bytesWritten">Receives the bytes written.</param>
+        /// <returns>Whether the value was written or needs more room.</returns>
         public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
         {
             this.Writes++;
@@ -206,6 +261,36 @@ public class CancellationTests
             destination[0] = (byte)Convert.ToUInt64(value, CultureInfo.InvariantCulture);
             bytesWritten = 1;
             return OperationStatus.Done;
+        }
+    }
+
+    /// <summary>Requests cancellation only when the writer reaches the nested member, after writing the count.</summary>
+    private sealed class CancellingDictionary : Dictionary<string, object?>, IDictionary<string, object?>
+    {
+        private readonly CancellationTokenSource cancellation;
+
+        /// <summary>Creates an ordinary root value whose nested-member lookup requests cancellation.</summary>
+        /// <param name="cancellation">The cancellation source owned by the test.</param>
+        public CancellingDictionary(CancellationTokenSource cancellation)
+        {
+            this.cancellation = cancellation;
+            this["count"] = (byte)0;
+            this["padding"] = Array.Empty<byte>();
+            this["nested"] = new Dictionary<string, object?> { ["value"] = (byte)7, };
+        }
+
+        /// <summary>Returns the requested member and cancels immediately before returning the nested value.</summary>
+        /// <param name="key">The member requested by the writer.</param>
+        /// <param name="value">The stored value, or null for an absent member.</param>
+        /// <returns>Whether the requested member exists.</returns>
+        bool IDictionary<string, object?>.TryGetValue(string key, out object? value)
+        {
+            if (key == "nested")
+            {
+                this.cancellation.Cancel();
+            }
+
+            return this.TryGetValue(key, out value);
         }
     }
 }

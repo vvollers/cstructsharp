@@ -162,7 +162,7 @@
       "tests/CStructSharpTests/Reading/OperationOwnershipTests.cs#UpdateOperation_SnapshotsTraversalOptionsBeforeVariableEnumeration",
       "tests/CStructSharpTests/Reading/TraversalLimitTests.cs#SelectedRead_UsesOneTotalByteBudget",
       "tests/CStructSharpTests/Reading/TraversalLimitTests.cs#SelectedPointerTarget_PreservesPathDereferenceDepth",
-      "tests/CStructSharpTests/CancellationTests.cs#CancelledMidRead_StopsAtTheNextBoundary_AndTryFormsRestoreThePosition"
+      "tests/CStructSharpTests/Api/CancellationTests.cs#CancelledMidRead_StopsAtTheNextBoundary_AndTryFormsRestoreThePosition"
     ],
     "workItem": "IR-03"
   },
@@ -211,7 +211,7 @@
       "tests/CStructSharpTests/Async/AsyncWriteTests.cs#UpdateAsync_LeavesTheStreamUnchangedOnFailure",
       "tests/CStructSharpTests/Reading/RecordSequenceTests.cs#ParseManyAsync_ReadsFilesForwardOnlyStreamsAndWindows",
       "tests/CStructSharpTests/Reading/RecordSequenceTests.cs#StreamForms_LeaveThePositionAtTheRecordsEnd",
-      "tests/CStructSharpTests/CancellationTests.cs#CancelledMidRead_StopsAtTheNextBoundary_AndTryFormsRestoreThePosition",
+      "tests/CStructSharpTests/Api/CancellationTests.cs#CancelledMidRead_StopsAtTheNextBoundary_AndTryFormsRestoreThePosition",
       "tests/CStructSharp.Generators.Tests/SequenceTests.cs#Records_ReadWhatParseManyReads_FromEveryInput",
       "tests/CStructSharp.Generated.Parity/LayoutParityTests.cs#ManualFixtures_ValuesWritesAddressesAndTruncations_MatchTheRuntime"
     ],
@@ -4223,7 +4223,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/PublicExceptionBoundaryTests.cs#Compilation_SeparatesLayoutFailuresFromArgumentFailures",
+          "test": "tests/CStructSharpTests/Api/PublicExceptionBoundaryTests.cs#Compilation_SeparatesLayoutFailuresFromArgumentFailures",
           "operations": [
             "parse",
             "debug",

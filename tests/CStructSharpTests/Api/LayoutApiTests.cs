@@ -9,11 +9,11 @@ using CStructSharp.Introspection;
 using CStructSharp.Values;
 
 /// <summary>
-///     The API surface added for dissect parity: roots named by a type spelling, custom codecs, preludes, sibling
-///     layouts, and the read-only layout description with its rendering back to source.
+///     Checks the layout-level API: roots named by a type spelling, custom codecs, preludes, sibling layouts, and the
+///     read-only layout description with its rendering back to source.
 /// </summary>
 [TestClass]
-public class LayoutApiParityTests
+public class LayoutApiTests
 {
     /// <summary>A primitive, enum, typedef, or struct spelling with optional dimensions is a root, like <c>cs.uint32(fh)</c>.</summary>
     [TestMethod]
@@ -244,6 +244,11 @@ public class LayoutApiParityTests
 
         public int Alignment => 1;
 
+        /// <summary>Decodes an unsigned LEB128 value of at most ten bytes.</summary>
+        /// <param name="source">The available bytes.</param>
+        /// <param name="value">Receives the decoded value.</param>
+        /// <param name="bytesConsumed">Receives the bytes the value used.</param>
+        /// <returns>Whether the value was decoded or needs more bytes.</returns>
         public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
         {
             ulong result = 0;
@@ -263,6 +268,11 @@ public class LayoutApiParityTests
             return source.Length >= 10 ? OperationStatus.InvalidData : OperationStatus.NeedMoreData;
         }
 
+        /// <summary>Encodes the value as unsigned LEB128.</summary>
+        /// <param name="destination">The bytes to fill.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="bytesWritten">Receives the bytes written.</param>
+        /// <returns>Whether the value was written or needs more room.</returns>
         public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
         {
             ulong remaining = Convert.ToUInt64(value, CultureInfo.InvariantCulture);
@@ -295,6 +305,11 @@ public class LayoutApiParityTests
 
         public int Alignment => 1;
 
+        /// <summary>Decodes four bytes as their decimal values joined by hyphens.</summary>
+        /// <param name="source">The available bytes.</param>
+        /// <param name="value">Receives the decoded value.</param>
+        /// <param name="bytesConsumed">Receives the bytes the value used.</param>
+        /// <returns>Whether the value was decoded or needs more bytes.</returns>
         public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
         {
             if (source.Length < 4)
@@ -309,6 +324,11 @@ public class LayoutApiParityTests
             return OperationStatus.Done;
         }
 
+        /// <summary>Encodes hyphen-separated decimal values as one byte each.</summary>
+        /// <param name="destination">The bytes to fill.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="bytesWritten">Receives the bytes written.</param>
+        /// <returns>Whether the value was written or needs more room.</returns>
         public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
         {
             string[] parts = ((string)value).Split('-');
@@ -328,6 +348,8 @@ public class LayoutApiParityTests
         }
     }
 
+    /// <summary>A one-byte codec with a chosen name, to test codec name validation.</summary>
+    /// <param name="name">The codec name.</param>
     private sealed class NamedCodec(string name) : ICustomCodec
     {
         public string Name => name;
@@ -336,6 +358,11 @@ public class LayoutApiParityTests
 
         public int Alignment => 1;
 
+        /// <summary>Decodes one byte.</summary>
+        /// <param name="source">The available bytes.</param>
+        /// <param name="value">Receives the decoded value.</param>
+        /// <param name="bytesConsumed">Receives the bytes the value used.</param>
+        /// <returns>Whether the value was decoded or needs more bytes.</returns>
         public OperationStatus Read(ReadOnlySpan<byte> source, out object? value, out int bytesConsumed)
         {
             value = source.Length > 0 ? source[0] : null;
@@ -343,6 +370,11 @@ public class LayoutApiParityTests
             return source.Length > 0 ? OperationStatus.Done : OperationStatus.NeedMoreData;
         }
 
+        /// <summary>Encodes one byte.</summary>
+        /// <param name="destination">The bytes to fill.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="bytesWritten">Receives the bytes written.</param>
+        /// <returns>Whether the value was written or needs more room.</returns>
         public OperationStatus Write(Span<byte> destination, object value, out int bytesWritten)
         {
             destination[0] = Convert.ToByte(value, CultureInfo.InvariantCulture);

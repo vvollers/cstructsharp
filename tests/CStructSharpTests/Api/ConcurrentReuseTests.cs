@@ -278,6 +278,9 @@ public class ConcurrentReuseTests
             $"{name} must be read-only through its collection view.");
     }
 
+    /// <summary>A record exercising every field kind of the shared layout, with a distinct pointer target per thread.</summary>
+    /// <param name="pointerCell">The pointer's target value.</param>
+    /// <returns>The record.</returns>
     private static IDictionary<string, object?> CreatePayload(int pointerCell)
     {
         return new Dictionary<string, object?>

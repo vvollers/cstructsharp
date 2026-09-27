@@ -5,7 +5,10 @@ using System.Dynamic;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
-/// <summary>Defines the public CLR failure categories shared by metadata, read, path, write, and update operations.</summary>
+/// <summary>
+///     Defines the public CLR failure categories shared by metadata, read, path, write, and update operations,
+///     including a null source rejected before its path is interpreted.
+/// </summary>
 [TestClass]
 public class PublicExceptionBoundaryTests
 {
@@ -394,16 +397,56 @@ public class PublicExceptionBoundaryTests
                 }));
     }
 
+    /// <summary>A null stream is the primary argument error even when the selected path is empty.</summary>
+    /// <param name="operation">The typed, natural-value, array-length or address-query entry point.</param>
+    [TestMethod]
+    [DataRow("typed")]
+    [DataRow("natural")]
+    [DataRow("length")]
+    [DataRow("address")]
+    public void NullStream_IsRejectedBeforeAnEmptyPath(string operation)
+    {
+        var layout = new CStruct("struct root { uint8 values[2]; };");
+
+        // The source precondition must be checked before path parsing can report a different error.
+        ArgumentNullException failure = Assert.Throws<ArgumentNullException>(() =>
+        {
+            switch (operation)
+            {
+            case "typed":
+                _ = layout.ReadValue<byte>((Stream)null!, string.Empty);
+                break;
+            case "natural":
+                _ = layout.ReadValue((Stream)null!, string.Empty);
+                break;
+            case "address":
+                _ = layout.ResolveAddress((Stream)null!, string.Empty);
+                break;
+            default:
+                _ = layout.GetArrayLength((Stream)null!, string.Empty);
+                break;
+            }
+        });
+        Assert.AreEqual("stream", failure.ParamName);
+    }
+
+    /// <summary>Compiles the fixture layout with one-byte pointers.</summary>
+    /// <returns>The layout.</returns>
     private static CStruct CreateLayout()
     {
         return new CStruct(Layout, pointerSize: 1);
     }
 
+    /// <summary>Asserts a failure's error code.</summary>
+    /// <param name="exception">The failure.</param>
+    /// <param name="expected">The expected code.</param>
     private static void AssertCode(CStructException exception, CStructErrorCode expected)
     {
         Assert.AreEqual(expected, exception.Code);
     }
 
+    /// <summary>A valid value for the fixture root.</summary>
+    /// <returns>The value.</returns>
     private static ExpandoObject CreateValue()
     {
         dynamic nested = new ExpandoObject();
@@ -416,6 +459,7 @@ public class PublicExceptionBoundaryTests
         return value;
     }
 
+    /// <summary>A forward-only stream that reads nothing.</summary>
     private sealed class NonSeekableReadStream : Stream
     {
         public override bool CanRead => true;
@@ -432,31 +476,48 @@ public class PublicExceptionBoundaryTests
             set => throw new NotSupportedException();
         }
 
+        /// <summary>Does nothing.</summary>
         public override void Flush()
         {
         }
 
+        /// <summary>Reads nothing.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <param name="offset">The first index to fill.</param>
+        /// <param name="count">The most bytes to read.</param>
+        /// <returns>0.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
             return 0;
         }
 
+        /// <summary>Not supported: the stream is forward-only.</summary>
+        /// <param name="offset">The offset.</param>
+        /// <param name="origin">The origin.</param>
+        /// <returns>The position after the seek.</returns>
         public override long Seek(long offset, SeekOrigin origin)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>Not supported: the stream is read-only.</summary>
+        /// <param name="value">The length, unused.</param>
         public override void SetLength(long value)
         {
             throw new NotSupportedException();
         }
 
+        /// <summary>Not supported: the stream is read-only.</summary>
+        /// <param name="buffer">The source.</param>
+        /// <param name="offset">The first index to write.</param>
+        /// <param name="count">The byte count.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
             throw new NotSupportedException();
         }
     }
 
+    /// <summary>A seekable memory stream that cannot be read.</summary>
     private sealed class WriteOnlySeekableStream : Stream
     {
         private readonly MemoryStream inner = new();
@@ -467,40 +528,55 @@ public class PublicExceptionBoundaryTests
 
         public override bool CanWrite => true;
 
+        /// <inheritdoc/>
         public override long Length => this.inner.Length;
 
+        /// <inheritdoc/>
         public override long Position
         {
             get => this.inner.Position;
             set => this.inner.Position = value;
         }
 
+        /// <inheritdoc/>
         public override void Flush()
         {
             this.inner.Flush();
         }
 
+        /// <summary>Not supported: the stream cannot be read.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <param name="offset">The first index to fill.</param>
+        /// <param name="count">The most bytes to read.</param>
+        /// <returns>Never returns.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
             throw new NotSupportedException();
         }
 
+        /// <inheritdoc/>
         public override long Seek(long offset, SeekOrigin origin)
         {
             return this.inner.Seek(offset, origin);
         }
 
+        /// <inheritdoc/>
         public override void SetLength(long value)
         {
             this.inner.SetLength(value);
         }
 
+        /// <inheritdoc/>
         public override void Write(byte[] buffer, int offset, int count)
         {
             this.inner.Write(buffer, offset, count);
         }
     }
 
+    /// <summary>An empty stream that reports the given capabilities, to test which ones each operation requires.</summary>
+    /// <param name="canRead">Whether it reports it can be read.</param>
+    /// <param name="canSeek">Whether it reports it can seek.</param>
+    /// <param name="canWrite">Whether it reports it can be written.</param>
     private sealed class CapabilityStream(bool canRead, bool canSeek, bool canWrite) : Stream
     {
         public override bool CanRead => canRead;
@@ -513,30 +589,50 @@ public class PublicExceptionBoundaryTests
 
         public override long Position { get; set; }
 
+        /// <summary>Does nothing.</summary>
         public override void Flush()
         {
         }
 
+        /// <summary>Reads nothing.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <param name="offset">The first index to fill.</param>
+        /// <param name="count">The most bytes to read.</param>
+        /// <returns>0.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
             return 0;
         }
 
+        /// <summary>Moves to the offset, treating every origin as the start.</summary>
+        /// <param name="offset">The offset.</param>
+        /// <param name="origin">The origin.</param>
+        /// <returns>The position after the seek.</returns>
         public override long Seek(long offset, SeekOrigin origin)
         {
             this.Position = offset;
             return this.Position;
         }
 
+        /// <summary>Ignores the length.</summary>
+        /// <param name="value">The length.</param>
         public override void SetLength(long value)
         {
         }
 
+        /// <summary>Discards the bytes.</summary>
+        /// <param name="buffer">The source.</param>
+        /// <param name="offset">The first index to write.</param>
+        /// <param name="count">The byte count.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
         }
     }
 
+    /// <summary>A 64-byte memory stream whose reads, writes or position access throw the given exceptions.</summary>
+    /// <param name="readException">What every read throws, or an I/O failure.</param>
+    /// <param name="writeException">What every write throws, or an I/O failure.</param>
+    /// <param name="positionException">What setting the position throws, or nothing.</param>
     private sealed class FaultingStream(
         Exception? readException = null,
         Exception? writeException = null,
@@ -558,46 +654,67 @@ public class PublicExceptionBoundaryTests
             set => this.inner.Position = value;
         }
 
+        /// <inheritdoc/>
         public override void Flush()
         {
             this.inner.Flush();
         }
 
+        /// <summary>Throws the read exception.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <param name="offset">The first index to fill.</param>
+        /// <param name="count">The most bytes to read.</param>
+        /// <returns>Never returns.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
             throw readException ?? new IOException("Unexpected read.");
         }
 
+        /// <summary>Throws the read exception.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <returns>Never returns.</returns>
         public override int Read(Span<byte> buffer)
         {
             throw readException ?? new IOException("Unexpected read.");
         }
 
+        /// <summary>Throws the read exception.</summary>
+        /// <returns>Never returns.</returns>
         public override int ReadByte()
         {
             throw readException ?? new IOException("Unexpected read.");
         }
 
+        /// <inheritdoc/>
         public override long Seek(long offset, SeekOrigin origin)
         {
             return this.inner.Seek(offset, origin);
         }
 
+        /// <inheritdoc/>
         public override void SetLength(long value)
         {
             this.inner.SetLength(value);
         }
 
+        /// <summary>Throws the write exception.</summary>
+        /// <param name="buffer">The source.</param>
+        /// <param name="offset">The first index to write.</param>
+        /// <param name="count">The byte count.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
             throw writeException ?? new IOException("Unexpected write.");
         }
 
+        /// <summary>Throws the write exception.</summary>
+        /// <param name="buffer">The source.</param>
         public override void Write(ReadOnlySpan<byte> buffer)
         {
             throw writeException ?? new IOException("Unexpected write.");
         }
 
+        /// <summary>Throws the write exception.</summary>
+        /// <param name="value">The byte.</param>
         public override void WriteByte(byte value)
         {
             throw writeException ?? new IOException("Unexpected write.");
