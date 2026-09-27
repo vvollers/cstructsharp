@@ -102,6 +102,13 @@ internal sealed partial class LayoutEmitter
         }
     }
 
+    /// <summary>
+    ///     Emits one view property that decodes a member straight from the struct's bytes at its build-time offset; a
+    ///     conditional member, a member without a fixed offset, or a separator gets none.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="composite">The struct or union the view reads.</param>
+    /// <param name="member">The member.</param>
     private void EmitViewMember(SourceWriter writer, GeneratedComposite composite, GeneratedMember member)
     {
         CompiledField field = member.Field;
@@ -180,7 +187,7 @@ internal sealed partial class LayoutEmitter
             writer.Line("public global::System.ReadOnlySpan<byte> " + member.PropertyName + "Bytes => " + bytes + ".Slice(" + Int(start) + ", " + Int(count * width) + ");");
             writer.Line();
             writer.Line("/// <summary><c>" + DescribeDeclaration(field) + "</c> as text (trailing NULs kept unless the options set <c>TrimFixedText</c>, as the reader does); allocates the string.</summary>");
-            string littleEndian = Bool(field.ExplicitWideCharacterEncoding is null ? this.request.LittleEndian : field.Codec.LittleEndian);
+            string littleEndian = Bool(field.ExplicitWideCharacterEncoding is null ? this.request.Settings.LittleEndian : field.Codec.LittleEndian);
             writer.Line("public string " + member.PropertyName + " => " + (field.IsWideCharElement
                                                                               ? CodecClass + ".DecodeWideText(" + member.PropertyName + "Bytes, " + littleEndian + ", this.options)"
                                                                               : CodecClass + ".DecodeFixedText(" + member.PropertyName + "Bytes, " + CodecClass + ".TrimsFixedText(this.options))") + ";");

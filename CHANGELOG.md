@@ -52,6 +52,11 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- The analyzer's path check (CSG200) covers every `CStruct` method that takes a path, including `TryReadValue`,
+  `GetAccessor` and `CreateView`, and the declaration name of `GetStructSizeInBytes`. It compiles a layout with the
+  settings it is built with - a constructor's constant pointer size, alignment and byte order, or a
+  `[CStructLayout]` class's settings and codecs - instead of the defaults, so a layout that only compiles with its
+  own settings is checked too.
 - An `@N` offset assertion that is checked during an operation (on a field after a runtime-sized field) counts from
   the start of the field's own struct, as a check at construction does and as C's `offsetof` does. It counted from
   the start of the input, so the assertion in a nested struct that does not start at byte 0 failed on correct data.

@@ -50,12 +50,12 @@ internal sealed partial class LayoutEmitter
     private void EmitReaders(SourceWriter writer)
     {
         writer.Line();
-        writer.Line("private const bool Aligned = " + Bool(this.request.Aligned) + ";");
-        writer.Line("private const bool LittleEndian = " + Bool(this.request.LittleEndian) + ";");
-        writer.Line("private const int PointerSize = " + this.request.PointerSize.ToString(CultureInfo.InvariantCulture) + ";");
+        writer.Line("private const bool Aligned = " + Bool(this.request.Settings.Aligned) + ";");
+        writer.Line("private const bool LittleEndian = " + Bool(this.request.Settings.LittleEndian) + ";");
+        writer.Line("private const int PointerSize = " + this.request.Settings.PointerSize.ToString(CultureInfo.InvariantCulture) + ";");
         writer.Line("private const bool HighBitFirst = " + Bool(this.compilation.HighBitFirst) + ";");
-        writer.Line("private const global::CStructSharp.BitfieldPacking Packing = global::CStructSharp.BitfieldPacking." + this.request.BitfieldPacking + ";");
-        writer.Line("private const global::CStructSharp.BitfieldAllocation Allocation = global::CStructSharp.BitfieldAllocation." + this.request.BitfieldAllocation + ";");
+        writer.Line("private const global::CStructSharp.BitfieldPacking Packing = global::CStructSharp.BitfieldPacking." + this.request.Settings.BitfieldPacking + ";");
+        writer.Line("private const global::CStructSharp.BitfieldAllocation Allocation = global::CStructSharp.BitfieldAllocation." + this.request.Settings.BitfieldAllocation + ";");
 
         GeneratedComposite? root = this.model.Composites.FirstOrDefault(composite => composite.IsDeclared && composite.LayoutName == this.rootName);
         foreach (GeneratedComposite composite in this.model.Composites)

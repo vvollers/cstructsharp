@@ -341,12 +341,8 @@ internal sealed partial class LayoutCompilation
     /// <summary>Creates all type symbols first, then binds immutable enum, field, and composite definitions.</summary>
     private CompiledLayoutModel BuildCompiledLayout()
     {
+        // The catalog's symbols include its custom codecs.
         var namedTypes = this.catalog.Symbols.ToBuilder();
-
-        foreach (KeyValuePair<string, CompiledTypeReference> custom in this.customSymbols)
-        {
-            namedTypes[custom.Key] = custom.Value;
-        }
 
         // A layout declaration shadows a built-in alias spelling of the same name (SymbolValidation lets those
         // through); drop the built-in entry so the declaration is what the name resolves to.

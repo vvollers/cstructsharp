@@ -117,10 +117,12 @@ needs no public setter: the mapper only considers public properties that can be 
 
 ## CSG200 - Path does not resolve against the layout
 
-**Cause.** A constant path passed to `ReadValue`, `ResolveAddress`, `GetArrayLength`, `Update`, or `UpdatePath` on
-a `CStruct` whose layout is visible at build time (`new CStruct("...")`, `CStruct.GetOrCompile("...")`, or a
-generated class's `Layout`) names a declaration or member the layout does not have. A warning, because the
-runtime would throw `CStructPathException`.
+**Cause.** A constant path - the `path` argument of any `CStruct` method, such as `ReadValue`, `TryReadValue`,
+`GetAccessor`, `ResolveAddress`, `GetArrayLength` or `Update`, or the declaration name of `GetStructSizeInBytes` -
+names a declaration or member that the layout does not have. The analyzer checks it when the `CStruct`'s layout is
+visible at build time: `new CStruct("...")` or `CStruct.GetOrCompile("...")` with constant arguments and no
+compilation options, or a generated class's `Layout`. It compiles the layout with the same pointer size, alignment,
+byte order and attribute settings as the runtime. A warning, because the runtime would throw `CStructPathException`.
 
 ```csharp
 Wire.Layout.ReadValue(bytes, "header.lenght"); // CSG200: no member 'lenght' in 'header'

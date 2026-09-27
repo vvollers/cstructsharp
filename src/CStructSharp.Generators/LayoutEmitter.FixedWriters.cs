@@ -44,7 +44,7 @@ internal sealed partial class LayoutEmitter
             return;
         }
 
-        writer.Open("if (Is" + composite.Name + "FixedWritable(value) && cursor.TryReserveFixed(" + Int(plan.Size) + ", " + Int(this.request.Aligned ? plan.Alignment : 1) + ", " + Int(plan.NestingLevels) + ", " + Int(plan.MaximumArrayCount) + ", out global::System.Span<byte> fixedBytes))");
+        writer.Open("if (Is" + composite.Name + "FixedWritable(value) && cursor.TryReserveFixed(" + Int(plan.Size) + ", " + Int(this.request.Settings.Aligned ? plan.Alignment : 1) + ", " + Int(plan.NestingLevels) + ", " + Int(plan.MaximumArrayCount) + ", out global::System.Span<byte> fixedBytes))");
         writer.Line("Write" + composite.Name + "Fixed(fixedBytes, value);");
         writer.Line("return;");
         writer.Close();

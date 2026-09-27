@@ -638,7 +638,7 @@ internal sealed partial class LayoutEmitter
     private void EmitCharacterArrayWrite(SourceWriter writer, CompiledField field, string access, string member, string memberType)
     {
         bool wide = field.IsWideCharElement;
-        string littleEndian = Bool(field.ExplicitWideCharacterEncoding is null ? this.request.LittleEndian : field.Codec.LittleEndian);
+        string littleEndian = Bool(field.ExplicitWideCharacterEncoding is null ? this.request.Settings.LittleEndian : field.Codec.LittleEndian);
         if (field.Array.Dimensions.Length <= 1)
         {
             writer.Line("cursor.WriteFixedText(count, " + access + ", " + Bool(wide) + ", " + littleEndian + ", " + member + ", " + memberType + ");");
@@ -851,10 +851,16 @@ internal sealed partial class LayoutEmitter
         };
     }
 
+    /// <summary>The statement that writes a terminated string with the field's encoding and terminator.</summary>
+    /// <param name="field">The terminated-text field.</param>
+    /// <param name="access">The expression holding the string.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    /// <returns>The write statement.</returns>
     private string TerminatedWrite(CompiledField field, string access, string member, string memberType)
     {
         string name = PrimitiveCatalog.CanonicalNames[field.TerminatedCodecId];
-        PrimitiveCodec codec = PrimitiveCodec.Resolve(name, this.request.LittleEndian);
+        PrimitiveCodec codec = PrimitiveCodec.Resolve(name, this.request.Settings.LittleEndian);
         return "cursor.WriteTerminatedString(" + TerminatedEncoding(codec) + ", " + CharLiteral(codec.Terminator) + ", " + access + ", " + member + ", " + memberType + ");";
     }
 }

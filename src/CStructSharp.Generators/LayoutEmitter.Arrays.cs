@@ -115,10 +115,19 @@ internal sealed partial class LayoutEmitter
         }
     }
 
+    /// <summary>
+    ///     Emits the read of a fixed character array as text: one string, or for a multidimensional array a table of
+    ///     strings, one per innermost row. Wide characters use the field's explicit byte order or the layout's.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="field">The character array field.</param>
+    /// <param name="property">The expression the text is assigned to.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
     private void EmitCharacterArray(SourceWriter writer, CompiledField field, string property, string member, string memberType)
     {
         bool wide = field.IsWideCharElement;
-        string littleEndian = Bool(field.ExplicitWideCharacterEncoding is null ? this.request.LittleEndian : field.Codec.LittleEndian);
+        string littleEndian = Bool(field.ExplicitWideCharacterEncoding is null ? this.request.Settings.LittleEndian : field.Codec.LittleEndian);
         string readRow = wide
                              ? "cursor.TakeWideText(rowLength, " + littleEndian + ", " + member + ", " + memberType + ")"
                              : "cursor.TakeFixedText(rowLength, " + member + ", " + memberType + ")";
@@ -190,10 +199,15 @@ internal sealed partial class LayoutEmitter
         };
     }
 
+    /// <summary>The expression that reads a terminated string with the field's encoding and terminator.</summary>
+    /// <param name="field">The terminated-text field.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    /// <returns>The read expression.</returns>
     private string TerminatedRead(CompiledField field, string member, string memberType)
     {
         string name = PrimitiveCatalog.CanonicalNames[field.TerminatedCodecId];
-        PrimitiveCodec codec = PrimitiveCodec.Resolve(name, this.request.LittleEndian);
+        PrimitiveCodec codec = PrimitiveCodec.Resolve(name, this.request.Settings.LittleEndian);
         return "cursor.TakeTerminatedString(" + TerminatedEncoding(codec) + ", " + CharLiteral(codec.Terminator) + ", " + member + ", " + memberType + ")";
     }
 
@@ -234,7 +248,7 @@ internal sealed partial class LayoutEmitter
         bool counted = field.HasCountedTarget;
         string countParameter = counted ? "int count, " : string.Empty;
         string countArgument = counted ? "count, " : string.Empty;
-        string fixedTargetSize = FixedPointerTargetSize(field, this.request.PointerSize);
+        string fixedTargetSize = FixedPointerTargetSize(field, this.request.Settings.PointerSize);
         string declaration = DescribeDeclaration(field).Replace(" " + field.Name, string.Empty);
 
         writer.Line("/// <summary>Reads a <c>" + declaration + "</c> pointer: the address, then the target when pointers are followed.</summary>");
@@ -264,7 +278,7 @@ internal sealed partial class LayoutEmitter
         {
             // A counted target keeps its element type at every level; only a plain character pointer ends in a terminated string.
             string? terminated = !counted && PrimitiveCatalog.CanonicalNames.Length > field.TerminatedCodecId && field.TerminatedCodecId >= 0 ? PrimitiveCatalog.CanonicalNames[field.TerminatedCodecId] : null;
-            CompiledField inner = field.SelectPointerTarget(field.PointerDepth - 1, terminated, this.request.PointerSize);
+            CompiledField inner = field.SelectPointerTarget(field.PointerDepth - 1, terminated, this.request.Settings.PointerSize);
             this.RequirePointerReader(inner);
             read = "Read" + PointerReaderName(inner) + "(ref cursor, variables, " + countArgument + "member, memberType)";
         }
@@ -310,10 +324,10 @@ internal sealed partial class LayoutEmitter
     {
         string member = "member ?? " + SourceWriter.Literal(field.Name);
         const string memberType = "memberType";
-        CompiledField element = field.CountedElement(this.request.PointerSize);
+        CompiledField element = field.CountedElement(this.request.Settings.PointerSize);
         if (element.IsCharElement || element.IsWideCharElement)
         {
-            string littleEndian = Bool(element.ExplicitWideCharacterEncoding is null ? this.request.LittleEndian : element.Codec.LittleEndian);
+            string littleEndian = Bool(element.ExplicitWideCharacterEncoding is null ? this.request.Settings.LittleEndian : element.Codec.LittleEndian);
             return element.IsWideCharElement
                        ? "cursor.TakeWideText(count, " + littleEndian + ", " + member + ", " + memberType + ")"
                        : "cursor.TakeFixedText(count, " + member + ", " + memberType + ")";
@@ -359,11 +373,11 @@ internal sealed partial class LayoutEmitter
         if (shape.Enum is not null)
         {
             // An enum target is stored as its integer type.
-            PrimitiveCodec storage = PrimitiveCodec.Resolve(shape.Enum.Compiled.Integer.StorageType, this.request.LittleEndian);
+            PrimitiveCodec storage = PrimitiveCodec.Resolve(shape.Enum.Compiled.Integer.StorageType, this.request.Settings.LittleEndian);
             return "(" + shape.Enum.Name + ")" + this.NumericRead(storage, member, memberType);
         }
 
-        PrimitiveCodec target = PrimitiveCodec.Resolve(field.Type.Symbol.Name, this.request.LittleEndian);
+        PrimitiveCodec target = PrimitiveCodec.Resolve(field.Type.Symbol.Name, this.request.Settings.LittleEndian);
         return this.PrimitiveRead(target, field.Type.Symbol.Name, member, memberType);
     }
 }

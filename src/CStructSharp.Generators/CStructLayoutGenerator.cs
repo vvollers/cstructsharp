@@ -86,23 +86,16 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
     {
         foreach (LayoutRequest request in layouts)
         {
-            if (request.Definition is null)
+            // A layout read from a file, or one whose codec declarations do not parse (its own class reports that), is
+            // not searched.
+            if (request.Definition is null || !request.Settings.TryParseCodecs(out List<CustomCodecDescriptor> codecs, out _))
             {
                 continue;
             }
 
             try
             {
-                var codecs = new List<CustomCodecDescriptor>();
-                foreach (string declaration in request.Codecs)
-                {
-                    if (CustomCodecDeclaration.TryParse(declaration, out CustomCodecDescriptor descriptor))
-                    {
-                        codecs.Add(descriptor);
-                    }
-                }
-
-                LayoutCompilation compilation = Compile(request.Definition, request, CodecCatalog(request, codecs));
+                LayoutCompilation compilation = request.Settings.Compile(request.Definition, request.Settings.CodecCatalog(codecs));
                 foreach (KeyValuePair<Syntax.Struct, CompiledTypeSymbol> entry in compilation.CompiledModel.Composites)
                 {
                     if (entry.Value.Definition is CompiledCompositeType composite && composite.Name == layoutName)
@@ -137,15 +130,6 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         string? definition = attribute.ConstructorArguments.Length == 1 ? attribute.ConstructorArguments[0].Value as string : null;
         string? file = null;
         string? root = null;
-        bool aligned = false;
-        bool littleEndian = true;
-        int pointerSize = 8;
-        string packing = "SysV";
-        string allocation = "LowBitFirst";
-        int cLongWidth = 0;
-        string[]? defined = null;
-        string? defaultEnumStorage = null;
-        string[]? codecs = null;
         bool keepNames = false;
         bool views = true;
         foreach (KeyValuePair<string, TypedConstant> named in attribute.NamedArguments)
@@ -157,35 +141,6 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                 break;
             case "Root":
                 root = named.Value.Value as string;
-                break;
-            case "Aligned":
-                aligned = named.Value.Value is true;
-                break;
-            case "LittleEndian":
-                littleEndian = named.Value.Value is not false;
-                break;
-            case "PointerSize":
-                pointerSize = named.Value.Value is int size ? size : 8;
-                break;
-            case "BitfieldPacking":
-                packing = EnumMemberName(named.Value, "SysV");
-                break;
-            case "BitfieldAllocation":
-                allocation = EnumMemberName(named.Value, "LowBitFirst");
-                break;
-            case "CLongWidth":
-                cLongWidth = named.Value.Value is int width ? width : 0;
-                break;
-            case "Defined":
-                // Copy symbol names out of compiler-owned attribute metadata into the request's own array.
-                defined = named.Value.Values.Select(value => value.Value as string ?? string.Empty).ToArray();
-                break;
-            case "DefaultEnumStorage":
-                defaultEnumStorage = named.Value.Value as string;
-                break;
-            case "Codecs":
-                // Preserve custom codec declarations in their registered order for the immutable request.
-                codecs = named.Value.Values.Select(value => value.Value as string ?? string.Empty).ToArray();
                 break;
             case "KeepNames":
                 keepNames = named.Value.Value is true;
@@ -226,15 +181,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             definition,
             file,
             root,
-            aligned,
-            littleEndian,
-            pointerSize,
-            packing,
-            allocation,
-            cLongWidth,
-            new EquatableArray<string>(defined),
-            defaultEnumStorage,
-            new EquatableArray<string>(codecs),
+            LayoutSettings.FromAttribute(attribute),
             keepNames,
             views,
             SourceSpan.From(attributeLocation),
@@ -243,22 +190,9 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             ((CSharpParseOptions)declaration.SyntaxTree.Options).LanguageVersion.ToDisplayString());
     }
 
-    private static string EnumMemberName(TypedConstant constant, string fallback)
-    {
-        if (constant.Type is INamedTypeSymbol { TypeKind: TypeKind.Enum } enumType && constant.Value is not null)
-        {
-            foreach (IFieldSymbol member in enumType.GetMembers().OfType<IFieldSymbol>())
-            {
-                if (member.HasConstantValue && Equals(member.ConstantValue, constant.Value))
-                {
-                    return member.Name;
-                }
-            }
-        }
-
-        return fallback;
-    }
-
+    /// <summary>The declaration keyword of a containing type, for re-declaring it around the generated partial class.</summary>
+    /// <param name="type">The containing type.</param>
+    /// <returns><c>class</c>, <c>struct</c>, <c>record</c>, <c>record struct</c>, or <c>interface</c>.</returns>
     private static string TypeKeyword(INamedTypeSymbol type)
     {
         return type.TypeKind switch
@@ -269,6 +203,12 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         };
     }
 
+    /// <summary>
+    ///     Describes the definition argument's literal: for a multi-line raw string, the source line its content
+    ///     starts on and the indentation its closing quotes remove, so a layout line and column map to the file.
+    /// </summary>
+    /// <param name="expression">The definition argument.</param>
+    /// <returns>The shape; not raw multi-line for any other expression.</returns>
     private static DefinitionLiteralShape DescribeLiteral(ExpressionSyntax expression)
     {
         if (expression is LiteralExpressionSyntax { Token: { } token } && token.IsKind(SyntaxKind.MultiLineRawStringLiteralToken))
@@ -324,25 +264,17 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             }
         }
 
-        var codecs = new List<CustomCodecDescriptor>();
-        foreach (string declaration in request.Codecs)
+        if (!request.Settings.TryParseCodecs(out List<CustomCodecDescriptor> codecs, out string? invalid))
         {
-            if (CustomCodecDeclaration.TryParse(declaration, out CustomCodecDescriptor descriptor))
-            {
-                codecs.Add(descriptor);
-            }
-            else
-            {
-                context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.CodecDeclarationInvalid, request.AttributeSpan.ToLocation(), declaration));
-                return;
-            }
+            context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.CodecDeclarationInvalid, request.AttributeSpan.ToLocation(), invalid));
+            return;
         }
 
         // The codecs join the catalog in their own step, so a failure there is a codec declaration's.
         PrimitiveCatalog catalog;
         try
         {
-            catalog = CodecCatalog(request, codecs);
+            catalog = request.Settings.CodecCatalog(codecs);
         }
         catch (ArgumentException exception)
         {
@@ -353,7 +285,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         LayoutCompilation compilation;
         try
         {
-            compilation = Compile(definition, request, catalog);
+            compilation = request.Settings.Compile(definition, catalog);
         }
         catch (Exception exception) when (exception is CStructException or ArgumentException)
         {
@@ -388,78 +320,18 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         context.AddSource(request.HintName, SourceText.From(emitter.Emit(), System.Text.Encoding.UTF8));
     }
 
-    /// <summary>The primitive catalog with the layout's custom codecs, as the runtime's <c>CStruct</c> constructor builds it.</summary>
-    /// <param name="request">The attribute's settings.</param>
-    /// <param name="codecs">The parsed codec declarations.</param>
-    /// <returns>The catalog.</returns>
-    /// <exception cref="ArgumentException">A codec's name or storage facts are invalid.</exception>
-    private static PrimitiveCatalog CodecCatalog(LayoutRequest request, IReadOnlyList<CustomCodecDescriptor> codecs)
-        => PrimitiveCatalog.For(request.LittleEndian, CLongWidth(request)).WithCustomCodecs(codecs);
-
-    /// <summary>The attribute's <c>long</c> width in bits; 0 (unset) means the runtime's default of 64.</summary>
-    /// <param name="request">The attribute's settings.</param>
-    /// <returns>32 or 64.</returns>
-    private static int CLongWidth(LayoutRequest request) => request.CLongWidth == 0 ? 64 : request.CLongWidth;
-
-    /// <summary>The compilation the runtime's <c>CStruct</c> constructor performs, minus its codec delegate table.</summary>
-    /// <param name="definition">The layout text.</param>
-    /// <param name="request">The attribute's settings.</param>
-    /// <param name="catalog">The primitive catalog with the layout's custom codecs (see <see cref="CodecCatalog"/>).</param>
-    /// <returns>The compiled layout.</returns>
-    private static LayoutCompilation Compile(string definition, LayoutRequest request, PrimitiveCatalog catalog)
-    {
-        var options = new CStructCompilationOptions
-        {
-            CLongWidth = CLongWidth(request),
-            BitfieldPacking = ParseEnum(request.BitfieldPacking, BitfieldPacking.SysV),
-            BitfieldAllocation = ParseEnum(request.BitfieldAllocation, BitfieldAllocation.LowBitFirst),
-            Defined = request.Defined.Count == 0 ? null : DefinedSet(request.Defined),
-            DefaultEnumStorage = request.DefaultEnumStorage,
-        };
-        Parsing.LayoutSourceValidator.ValidateLayoutSource(definition, options);
-        if (request.PointerSize is not (1 or 2 or 4 or 8))
-        {
-            throw new ArgumentOutOfRangeException(nameof(request), "Pointer size must be 1, 2, 4, or 8 bytes.");
-        }
-
-        // As the runtime's CStruct constructor: the custom codecs become primitive symbols of the catalog.
-        ImmutableDictionary<string, CompiledTypeReference>.Builder symbols = ImmutableDictionary.CreateBuilder<string, CompiledTypeReference>(StringComparer.Ordinal);
-        foreach (CustomCodecDescriptor descriptor in catalog.CustomCodecs)
-        {
-            symbols.Add(descriptor.Name, catalog.Symbols[descriptor.Name]);
-        }
-
-        return new LayoutCompilation(
-            definition,
-            (byte)request.PointerSize,
-            request.Aligned,
-            request.LittleEndian,
-            options,
-            catalog,
-            symbols.ToImmutable());
-    }
-
-    internal static IReadOnlySet<string> DefinedSet(EquatableArray<string> defined)
-    {
-        var set = new HashSet<string>(defined, StringComparer.Ordinal);
-#if NETSTANDARD2_0
-        return new ReadOnlySetAdapter<string>(set);
-#else
-        return set;
-#endif
-    }
-
-    private static TEnum ParseEnum<TEnum>(string name, TEnum fallback)
-        where TEnum : struct
-    {
-        return Enum.TryParse(name, out TEnum value) ? value : fallback;
-    }
-
+    /// <summary>Whether the consuming project's C# version is 12 or later, which the generated code needs.</summary>
+    /// <param name="languageVersion">The version's display text.</param>
+    /// <returns>Whether it is at least C# 12.</returns>
     private static bool LanguageVersionIsAtLeast12(string languageVersion)
     {
         return LanguageVersionFacts.TryParse(languageVersion, out LanguageVersion parsed) && parsed >= Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp12;
     }
 
+    /// <summary>The text of the <c>.cstruct</c> additional file the attribute's <c>File</c> names: the same path, or one ending with it.</summary>
+    /// <param name="files">The project's layout files.</param>
+    /// <param name="requested">The attribute's relative path, with either slash.</param>
+    /// <returns>The file's text, or <see langword="null"/> when no file matches.</returns>
     private static string? FindLayoutFile(ImmutableArray<(string Path, string Text)> files, string requested)
     {
         string normalized = requested.Replace('\\', '/');

@@ -36,7 +36,6 @@ public sealed partial class CStruct
     private readonly BitfieldCodecTable bitfieldCodecs;
     private readonly PrimitiveCatalog catalog;
     private readonly CodecTable codecs;
-    private readonly IReadOnlyDictionary<string, CompiledTypeReference> customSymbols;
     private readonly bool highBitFirst;
     private readonly CompiledModelQueries compiledModelQueries;
     private readonly CompiledSizeQueries compiledSizeQueries;
@@ -68,41 +67,18 @@ public sealed partial class CStruct
     {
         CStructCompilationOptions effectiveCompilationOptions =
             compilationOptions ?? new CStructCompilationOptions();
-        if (!string.IsNullOrEmpty(effectiveCompilationOptions.Prelude))
-        {
-            ArgumentNullException.ThrowIfNull(layout);
-
-            // The prelude is simply earlier source text: one parse, one namespace, one cache entry.
-            layout = effectiveCompilationOptions.Prelude + "\n" + layout;
-        }
-
-        LayoutSourceValidator.ValidateLayoutSource(layout, effectiveCompilationOptions);
-
-        // Reject pointer widths that the primitive reader and writer cannot represent.
-        if (pointerSize is not (1 or 2 or 4 or 8))
-        {
-            throw new ArgumentOutOfRangeException(nameof(pointerSize), "Pointer size must be 1, 2, 4, or 8 bytes.");
-        }
 
         // The catalog (names, ids, alignments, symbols) is compile-time knowledge shared with the source generator;
         // the codec table is its runtime delegate half. Both are built once per byte order and long width; only a
         // layout that registers custom codecs derives its own pair.
-        IReadOnlyDictionary<string, CompiledTypeReference> customSymbols;
-        if (effectiveCompilationOptions.Codecs is { Count: > 0, } customCodecs)
-        {
-            (_, this.codecs, customSymbols) = RegisterCustomCodecs(isLittleEndian, effectiveCompilationOptions.CLongWidth, customCodecs);
-        }
-        else
-        {
-            this.codecs = GetSharedCodecTable(isLittleEndian, effectiveCompilationOptions.CLongWidth);
-            customSymbols = ImmutableDictionary<string, CompiledTypeReference>.Empty;
-        }
+        this.codecs = effectiveCompilationOptions.Codecs is { Count: > 0, } customCodecs
+                          ? RegisterCustomCodecs(isLittleEndian, effectiveCompilationOptions.CLongWidth, customCodecs)
+                          : GetSharedCodecTable(isLittleEndian, effectiveCompilationOptions.CLongWidth);
 
         // Everything known before a byte is read lives in the compilation; the fields below are its members
         // cached on this instance so the operation partials read them as their own.
-        this.compilation = new LayoutCompilation(layout, pointerSize, aligned, isLittleEndian, effectiveCompilationOptions, this.codecs.Catalog, customSymbols);
+        this.compilation = LayoutCompilation.Create(layout, pointerSize, aligned, isLittleEndian, effectiveCompilationOptions, this.codecs.Catalog);
         this.catalog = this.compilation.Catalog;
-        this.customSymbols = this.compilation.CustomSymbols;
         this.bitfieldCodecs = this.compilation.BitfieldCodecs;
         this.highBitFirst = this.compilation.HighBitFirst;
         this.compiledModelQueries = this.compilation.ModelQueries;
@@ -230,11 +206,16 @@ public sealed partial class CStruct
     }
 
     /// <summary>
-    ///     Derives the catalog and delegate table of a layout that registers custom codecs: the shared catalog gains
-    ///     one descriptor per codec (validating names, alignment, and size), and the table gains one adapter pair.
+    ///     Derives the delegate table of a layout that registers custom codecs: the shared catalog gains one descriptor
+    ///     per codec (validating names, alignment, and size), and the table gains one adapter pair.
     /// </summary>
-    private static (PrimitiveCatalog Catalog, CodecTable Codecs, IReadOnlyDictionary<string, CompiledTypeReference> Symbols)
-        RegisterCustomCodecs(bool littleEndian, int cLongWidth, IReadOnlyList<ICustomCodec> codecs)
+    /// <param name="littleEndian">The layout's byte order.</param>
+    /// <param name="cLongWidth">The layout's <c>long</c> width in bits.</param>
+    /// <param name="codecs">The caller's codecs, in declaration order.</param>
+    /// <returns>The codec table, whose <see cref="CodecTable.Catalog"/> holds the codecs' descriptors.</returns>
+    /// <exception cref="ArgumentNullException">A codec is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">A codec's name, alignment, or size is invalid.</exception>
+    private static CodecTable RegisterCustomCodecs(bool littleEndian, int cLongWidth, IReadOnlyList<ICustomCodec> codecs)
     {
         var descriptors = new CustomCodecDescriptor[codecs.Count];
         var instances = ImmutableArray.CreateBuilder<ICustomCodec>(codecs.Count);
@@ -247,13 +228,7 @@ public sealed partial class CStruct
         }
 
         PrimitiveCatalog catalog = PrimitiveCatalog.For(littleEndian, cLongWidth).WithCustomCodecs(descriptors);
-        var symbols = new Dictionary<string, CompiledTypeReference>(StringComparer.Ordinal);
-        foreach (CustomCodecDescriptor descriptor in catalog.CustomCodecs)
-        {
-            symbols.Add(descriptor.Name, catalog.Symbols[descriptor.Name]);
-        }
-
-        return (catalog, BuildCodecTable(catalog, instances.ToImmutable()), symbols);
+        return BuildCodecTable(catalog, instances.ToImmutable());
     }
 
     /// <summary>

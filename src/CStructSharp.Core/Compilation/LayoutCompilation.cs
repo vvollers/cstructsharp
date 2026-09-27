@@ -31,7 +31,6 @@ internal sealed partial class LayoutCompilation
 
     private readonly ConstructionDictionary<string, byte> fieldAlignments;
     private readonly PrimitiveCatalog catalog;
-    private readonly IReadOnlyDictionary<string, CompiledTypeReference> customSymbols;
     private readonly bool highBitFirst;
     private readonly CompiledModelQueries compiledModelQueries;
     private readonly CompiledSizeQueries compiledSizeQueries;
@@ -45,7 +44,7 @@ internal sealed partial class LayoutCompilation
 
     /// <summary>
     ///     Parses and compiles <paramref name="layout"/> (the prelude already prepended and the source validated by
-    ///     the caller) with the given placement settings and primitive vocabulary.
+    ///     <see cref="Create"/>) with the given placement settings and primitive vocabulary.
     /// </summary>
     /// <param name="layout">The complete layout text.</param>
     /// <param name="pointerSize">The stored pointer width in bytes (1, 2, 4, or 8).</param>
@@ -53,16 +52,14 @@ internal sealed partial class LayoutCompilation
     /// <param name="isLittleEndian">The byte order neutral primitive spellings resolve to.</param>
     /// <param name="compilationOptions">The effective options (never null).</param>
     /// <param name="catalog">The primitive catalog, including any custom codec descriptors.</param>
-    /// <param name="customSymbols">The custom codec symbols the catalog registered, by name.</param>
     /// <exception cref="CStructLayoutException">The layout text is invalid; the source position is attached when known.</exception>
-    public LayoutCompilation(
+    private LayoutCompilation(
         string layout,
         byte pointerSize,
         bool aligned,
         bool isLittleEndian,
         CStructCompilationOptions compilationOptions,
-        PrimitiveCatalog catalog,
-        IReadOnlyDictionary<string, CompiledTypeReference> customSymbols)
+        PrimitiveCatalog catalog)
     {
         CStructCompilationOptions effectiveCompilationOptions = compilationOptions;
         this.CompilationOptions = effectiveCompilationOptions;
@@ -78,7 +75,6 @@ internal sealed partial class LayoutCompilation
         this.PointerSize = pointerSize;
         this.IsLittleEndian = isLittleEndian;
         this.catalog = catalog;
-        this.customSymbols = customSymbols;
 
         // The catalog's alignments are the shared baseline; only this layout's declarations are added on top.
         this.fieldAlignments = new ConstructionDictionary<string, byte>(StringComparer.Ordinal, this.catalog.Alignments);
@@ -256,8 +252,6 @@ internal sealed partial class LayoutCompilation
 
     public PrimitiveCatalog Catalog => this.catalog;
 
-    public IReadOnlyDictionary<string, CompiledTypeReference> CustomSymbols => this.customSymbols;
-
     public BitfieldCodecTable BitfieldCodecs => this.bitfieldCodecs;
 
     public CompiledModelQueries ModelQueries => this.compiledModelQueries;
@@ -279,6 +273,54 @@ internal sealed partial class LayoutCompilation
     public byte PointerSize { get; }
 
     public string Source { get; }
+
+    /// <summary>
+    ///     Compiles a layout the one way the runtime's <c>CStruct</c> constructor, the source generator and the analyzer
+    ///     all do: the options' prelude joins the text, the text and options are validated, and the pointer width is
+    ///     checked. The catalog's custom codecs are type names like any primitive.
+    /// </summary>
+    /// <param name="layout">The layout text, without the prelude.</param>
+    /// <param name="pointerSize">The stored pointer width in bytes: 1, 2, 4, or 8.</param>
+    /// <param name="aligned">Whether members are placed at their natural alignment.</param>
+    /// <param name="isLittleEndian">The byte order neutral primitive spellings resolve to.</param>
+    /// <param name="compilationOptions">The effective options.</param>
+    /// <param name="catalog">
+    ///     The primitive catalog for the options' byte order and <c>long</c> width, with any custom codecs
+    ///     (<see cref="PrimitiveCatalog.WithCustomCodecs"/>); callers build it first so a codec error stays theirs.
+    /// </param>
+    /// <returns>The compiled layout.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="layout"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="pointerSize"/> is unsupported, or an option is out of range.</exception>
+    /// <exception cref="CStructLayoutException">The layout text is empty, exceeds a limit, or is invalid.</exception>
+    public static LayoutCompilation Create(
+        string layout,
+        int pointerSize,
+        bool aligned,
+        bool isLittleEndian,
+        CStructCompilationOptions compilationOptions,
+        PrimitiveCatalog catalog)
+    {
+        if (!string.IsNullOrEmpty(compilationOptions.Prelude))
+        {
+            if (layout is null)
+            {
+                throw new ArgumentNullException(nameof(layout));
+            }
+
+            // The prelude is simply earlier source text: one parse, one namespace, one cache entry.
+            layout = compilationOptions.Prelude + "\n" + layout;
+        }
+
+        LayoutSourceValidator.ValidateLayoutSource(layout, compilationOptions);
+
+        // Reject pointer widths that the primitive reader and writer cannot represent.
+        if (pointerSize is not (1 or 2 or 4 or 8))
+        {
+            throw new ArgumentOutOfRangeException(nameof(pointerSize), "Pointer size must be 1, 2, 4, or 8 bytes.");
+        }
+
+        return new LayoutCompilation(layout, (byte)pointerSize, aligned, isLittleEndian, compilationOptions, catalog);
+    }
 
     /// <summary>Finds a named struct or union declaration through its finite chain of aliases.</summary>
     /// <param name="name">The declaration or alias name to resolve.</param>

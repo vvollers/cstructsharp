@@ -156,7 +156,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>The runtime <see cref=\"global::CStructSharp.CStruct\"/> for the same definition and options, built on first use: introspection, JSON, memory images, and the parity oracle.</summary>");
         writer.Line("public static global::CStructSharp.CStruct Layout => LayoutInstance.Value;");
         writer.Line();
-        if (this.request.Codecs.Count > 0)
+        if (this.request.Settings.Codecs.Count > 0)
         {
             this.EmitCodecInstances(writer);
         }
@@ -165,23 +165,23 @@ internal sealed partial class LayoutEmitter
         writer.Line("var options = new global::CStructSharp.CStructCompilationOptions");
         writer.Line("{");
         writer.Indent();
-        if (this.request.Codecs.Count > 0)
+        if (this.request.Settings.Codecs.Count > 0)
         {
             writer.Line("Codecs = CodecInstances.Value,");
         }
 
-        writer.Line("CLongWidth = " + (this.request.CLongWidth == 0 ? 64 : this.request.CLongWidth).ToString(CultureInfo.InvariantCulture) + ",");
-        writer.Line("BitfieldPacking = global::CStructSharp.BitfieldPacking." + this.request.BitfieldPacking + ",");
-        writer.Line("BitfieldAllocation = global::CStructSharp.BitfieldAllocation." + this.request.BitfieldAllocation + ",");
-        if (this.request.DefaultEnumStorage is not null)
+        writer.Line("CLongWidth = " + this.request.Settings.CLongWidth.ToString(CultureInfo.InvariantCulture) + ",");
+        writer.Line("BitfieldPacking = global::CStructSharp.BitfieldPacking." + this.request.Settings.BitfieldPacking + ",");
+        writer.Line("BitfieldAllocation = global::CStructSharp.BitfieldAllocation." + this.request.Settings.BitfieldAllocation + ",");
+        if (this.request.Settings.DefaultEnumStorage is not null)
         {
-            writer.Line("DefaultEnumStorage = " + SourceWriter.Literal(this.request.DefaultEnumStorage) + ",");
+            writer.Line("DefaultEnumStorage = " + SourceWriter.Literal(this.request.Settings.DefaultEnumStorage) + ",");
         }
 
-        if (this.request.Defined.Count > 0)
+        if (this.request.Settings.Defined.Count > 0)
         {
             writer.Write("Defined = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal) { ");
-            foreach (string symbol in this.request.Defined)
+            foreach (string symbol in this.request.Settings.Defined)
             {
                 writer.Write(SourceWriter.Literal(symbol) + ", ");
             }
@@ -192,9 +192,9 @@ internal sealed partial class LayoutEmitter
         writer.Outdent();
         writer.Line("};");
         writer.Line(
-            "return new global::CStructSharp.CStruct(Definition, pointerSize: " + this.request.PointerSize.ToString(CultureInfo.InvariantCulture) +
-            ", aligned: " + (this.request.Aligned ? "true" : "false") +
-            ", isLittleEndian: " + (this.request.LittleEndian ? "true" : "false") + ", compilationOptions: options);");
+            "return new global::CStructSharp.CStruct(Definition, pointerSize: " + this.request.Settings.PointerSize.ToString(CultureInfo.InvariantCulture) +
+            ", aligned: " + (this.request.Settings.Aligned ? "true" : "false") +
+            ", isLittleEndian: " + (this.request.Settings.LittleEndian ? "true" : "false") + ", compilationOptions: options);");
         writer.Close();
     }
 
@@ -206,7 +206,7 @@ internal sealed partial class LayoutEmitter
     private void EmitCodecInstances(SourceWriter writer)
     {
         const string CodecType = "global::CStructSharp.Codecs.ICustomCodec";
-        writer.Line("/// <summary>Supplies the custom codec instances the layout declares (<c>" + string.Join(", ", this.request.Codecs) + "</c>), one per declaration and in that order.</summary>");
+        writer.Line("/// <summary>Supplies the custom codec instances the layout declares (<c>" + string.Join(", ", this.request.Settings.Codecs) + "</c>), one per declaration and in that order.</summary>");
         writer.Line("/// <returns>The codec instances.</returns>");
         writer.Line("private static partial global::System.Collections.Generic.IReadOnlyList<" + CodecType + "> CreateCodecs();");
         writer.Line();
@@ -214,7 +214,7 @@ internal sealed partial class LayoutEmitter
         writer.Line();
         writer.Open("private static " + CodecType + "[] ResolveCodecs()");
         writer.Line("global::System.Collections.Generic.IReadOnlyList<" + CodecType + "> supplied = CreateCodecs() ?? throw new global::System.InvalidOperationException(\"CreateCodecs() returned null; return one ICustomCodec per declared codec.\");");
-        writer.Line("string[] expected = { " + string.Join(", ", this.request.Codecs.Select(declaration => SourceWriter.Literal(Expected(declaration)))) + " };");
+        writer.Line("string[] expected = { " + string.Join(", ", this.request.Settings.Codecs.Select(declaration => SourceWriter.Literal(Expected(declaration)))) + " };");
         writer.Open("if (supplied.Count != expected.Length)");
         writer.Line("throw new global::System.InvalidOperationException(\"CreateCodecs() returned \" + supplied.Count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \" codecs; the layout declares \" + expected.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
         writer.Close();
@@ -239,9 +239,9 @@ internal sealed partial class LayoutEmitter
     /// <summary>The index of a custom codec's instance in <c>CodecInstances</c>: the position of its declaration.</summary>
     private int CodecIndex(string typeName)
     {
-        for (int index = 0; index < this.request.Codecs.Count; index++)
+        for (int index = 0; index < this.request.Settings.Codecs.Count; index++)
         {
-            if (CustomCodecDeclaration.TryParse(this.request.Codecs[index], out CustomCodecDescriptor descriptor) && descriptor.Name == typeName)
+            if (CustomCodecDeclaration.TryParse(this.request.Settings.Codecs[index], out CustomCodecDescriptor descriptor) && descriptor.Name == typeName)
             {
                 return index;
             }

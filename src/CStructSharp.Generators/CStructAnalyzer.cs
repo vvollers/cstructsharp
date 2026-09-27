@@ -20,36 +20,14 @@ using Microsoft.CodeAnalysis.Operations;
 ///     The analyzer beside the generators: a string path in a <c>CStruct</c> call that cannot resolve against the
 ///     layout its receiver was built from (CSG200), <c>Parse</c> on a root that is a union or a scalar (CSG201), and
 ///     <c>dynamic</c> over a <c>StructValue</c>/<c>UnionValue</c> in a trimmed or AOT-published project (CSG300).
-///     A layout is resolved only when it is plainly visible - <c>new CStruct("literal")</c> or
-///     <c>CStruct.GetOrCompile("literal")</c> assigned to the local, field, or property the call uses, or a
-///     <c>[CStructLayout]</c> class's <c>Layout</c> - and anything else stays silent: never a false positive.
+///     A layout is resolved only when it is plainly visible - <c>new CStruct("literal", ...)</c> or
+///     <c>CStruct.GetOrCompile("literal", ...)</c> with constant arguments, assigned to the local, field, or property
+///     the call uses, or a <c>[CStructLayout]</c> class's <c>Layout</c> - and it is compiled with those settings, as the
+///     runtime would. Anything else stays silent: never a false positive.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class CStructAnalyzer : DiagnosticAnalyzer
 {
-    private static readonly ImmutableHashSet<string> PathMethods = ImmutableHashSet.Create(
-        StringComparer.Ordinal,
-        "Parse",
-        "ParseAsync",
-        "ParseMany",
-        "ParseManyAsync",
-        "ParseWithDebug",
-        "ParseWithDebugAsync",
-        "ReadValue",
-        "ReadValueAsync",
-        "ReadValueWithDebug",
-        "ReadValueWithDebugAsync",
-        "ResolveAddress",
-        "ResolveAddressAsync",
-        "GetArrayLength",
-        "GetArrayLengthAsync",
-        "Serialize",
-        "Write",
-        "WriteAsync",
-        "Update",
-        "UpdateAsync",
-        "GetStructSizeInBytes");
-
     /// <summary>The operations that return a struct and reject a union or scalar root at run time (CSG201).</summary>
     private static readonly ImmutableHashSet<string> StructOnlyMethods = ImmutableHashSet.Create(
         StringComparer.Ordinal,
@@ -60,7 +38,8 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
         "ParseWithDebug",
         "ParseWithDebugAsync");
 
-    private readonly ConcurrentDictionary<string, LayoutCompilation?> layouts = new(StringComparer.Ordinal);
+    // Keyed by the text and the settings: the same text built with another pointer size or byte order is another layout.
+    private readonly ConcurrentDictionary<(string Text, LayoutSettings Settings), LayoutCompilation?> layouts = new();
 
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
@@ -75,16 +54,23 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
         context.RegisterOperationAction(AnalyzeConversion, OperationKind.Conversion);
     }
 
+    /// <summary>
+    ///     CSG200 and CSG201: a constant path passed to a <c>CStruct</c> method is resolved against the receiver's layout,
+    ///     when that layout is visible.
+    /// </summary>
+    /// <param name="context">The invocation being analyzed.</param>
     private void AnalyzeInvocation(OperationAnalysisContext context)
     {
         var invocation = (IInvocationOperation)context.Operation;
         IMethodSymbol method = invocation.TargetMethod;
-        if (method.ContainingType?.ToDisplayString() != "CStructSharp.CStruct" || !PathMethods.Contains(method.Name))
+        if (method.IsStatic || method.ContainingType?.ToDisplayString() != "CStructSharp.CStruct")
         {
             return;
         }
 
-        IArgumentOperation? pathArgument = invocation.Arguments.FirstOrDefault(argument => argument.Parameter?.Name == "path" || argument.Parameter?.Name == "elementNameOrPath" || (argument.Parameter?.Type.SpecialType == SpecialType.System_String && argument.Parameter.Name.EndsWith("Path", StringComparison.Ordinal)));
+        // A path method is recognized by its shape - a string parameter named "path", or the declaration "name" of the
+        // size and alignment queries - so a new overload is checked without being listed here.
+        IArgumentOperation? pathArgument = invocation.Arguments.FirstOrDefault(argument => argument.Parameter is { Type.SpecialType: SpecialType.System_String, Name: "path" or "name", });
         if (pathArgument is null || !pathArgument.Value.ConstantValue.HasValue || pathArgument.Value.ConstantValue.Value is not string path)
         {
             return;
@@ -190,51 +176,41 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
     }
 
     /// <summary>The compiled layout the receiver plainly refers to, or <see langword="null"/> when it is not visible.</summary>
+    /// <param name="receiver">The <c>CStruct</c> instance a path method is called on.</param>
+    /// <returns>The layout, compiled with the settings it was built with, or <see langword="null"/>.</returns>
     private LayoutCompilation? ResolveLayout(IOperation receiver)
     {
-        string? text = null;
-        string[]? defined = null;
-        switch (receiver)
+        (string? text, LayoutSettings? settings) = receiver switch
         {
-        case IObjectCreationOperation creation:
-            text = LayoutLiteral(creation.Arguments);
-            break;
-        case IInvocationOperation factory when factory.TargetMethod.Name == "GetOrCompile" && factory.TargetMethod.ContainingType?.ToDisplayString() == "CStructSharp.CStruct":
-            text = LayoutLiteral(factory.Arguments);
-            break;
-        case ILocalReferenceOperation local:
-            text = InitializerLiteral(local.Local, receiver.SemanticModel);
-            break;
-        case IFieldReferenceOperation field:
-            text = InitializerLiteral(field.Field, receiver.SemanticModel);
-            break;
-        case IPropertyReferenceOperation { Property.Name: "Layout" } property when property.Property.ContainingType is { } owner:
-            (text, defined) = AttributeLayout(owner);
-            break;
-        default:
-            return null;
-        }
-
-        if (text is null)
+            IObjectCreationOperation creation => CallLayout(creation.Arguments),
+            IInvocationOperation factory when IsGetOrCompile(factory.TargetMethod) => CallLayout(factory.Arguments),
+            ILocalReferenceOperation local => InitializerLayout(local.Local, receiver.SemanticModel),
+            IFieldReferenceOperation field => InitializerLayout(field.Field, receiver.SemanticModel),
+            IPropertyReferenceOperation { Property.Name: "Layout" } property when property.Property.ContainingType is { } owner => AttributeLayout(owner),
+            _ => (null, null),
+        };
+        if (text is null || settings is null)
         {
             return null;
         }
 
-        string key = defined is null ? text : text + "\0" + string.Join(",", defined);
-        return this.layouts.GetOrAdd(key, _ => Compile(text, defined));
+        return this.layouts.GetOrAdd((text, settings), key => Compile(key.Text, key.Settings));
     }
 
-    private static LayoutCompilation? Compile(string text, string[]? defined)
+    /// <summary>Compiles a layout as the runtime would, or returns <see langword="null"/> when it does not compile (the runtime reports that).</summary>
+    /// <param name="text">The layout text.</param>
+    /// <param name="settings">The settings it is built with.</param>
+    /// <returns>The compiled layout, or <see langword="null"/>.</returns>
+    private static LayoutCompilation? Compile(string text, LayoutSettings settings)
     {
+        if (!settings.TryParseCodecs(out List<CustomCodecDescriptor> codecs, out _))
+        {
+            return null;
+        }
+
         try
         {
-            var options = new CStructCompilationOptions
-            {
-                Defined = defined is null ? null : CStructLayoutGenerator.DefinedSet(new EquatableArray<string>(defined)),
-            };
-            Parsing.LayoutSourceValidator.ValidateLayoutSource(text, options);
-            PrimitiveCatalog catalog = PrimitiveCatalog.For(true, 64);
-            return new LayoutCompilation(text, 8, false, true, options, catalog, ImmutableDictionary<string, CompiledTypeReference>.Empty);
+            return settings.Compile(text, settings.CodecCatalog(codecs));
         }
         catch (Exception exception) when (exception is CStructException or ArgumentException)
         {
@@ -242,18 +218,59 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private static string? LayoutLiteral(ImmutableArray<IArgumentOperation> arguments)
+    /// <summary>Whether a method is <c>CStruct.GetOrCompile</c>, which takes the same layout arguments as the constructor.</summary>
+    /// <param name="method">The invoked method.</param>
+    /// <returns>Whether it is the cached-compilation factory.</returns>
+    private static bool IsGetOrCompile(IMethodSymbol method)
+        => method.Name == "GetOrCompile" && method.ContainingType?.ToDisplayString() == "CStructSharp.CStruct";
+
+    /// <summary>
+    ///     The layout of a <c>new CStruct(...)</c> or <c>CStruct.GetOrCompile(...)</c> call: the literal text and the
+    ///     constant pointer size, alignment, and byte order (their defaults when omitted). A non-constant argument, or
+    ///     compilation options other than <see langword="null"/>, leave the layout unknown.
+    /// </summary>
+    /// <param name="arguments">The call's arguments, including omitted optional ones.</param>
+    /// <returns>The text and settings, or <see langword="null"/>s when either is not plainly visible.</returns>
+    private static (string? Text, LayoutSettings? Settings) CallLayout(ImmutableArray<IArgumentOperation> arguments)
     {
-        IArgumentOperation? first = arguments.FirstOrDefault(argument => argument.Parameter?.Ordinal == 0);
-        return first?.Value.ConstantValue is { HasValue: true, Value: string literal } ? literal : null;
+        string? text = null;
+        LayoutSettings settings = LayoutSettings.Default;
+        foreach (IArgumentOperation argument in arguments)
+        {
+            Optional<object?> constant = argument.Value.ConstantValue;
+            switch (argument.Parameter?.Name)
+            {
+            case "layout" when constant is { HasValue: true, Value: string literal, }:
+                text = literal;
+                break;
+            case "pointerSize" when constant is { HasValue: true, Value: byte size, }:
+                settings = settings with { PointerSize = size };
+                break;
+            case "aligned" when constant is { HasValue: true, Value: bool aligned, }:
+                settings = settings with { Aligned = aligned };
+                break;
+            case "isLittleEndian" when constant is { HasValue: true, Value: bool littleEndian, }:
+                settings = settings with { LittleEndian = littleEndian };
+                break;
+            case "compilationOptions" when constant is { HasValue: true, Value: null, }:
+                break;
+            default:
+                return (null, null);
+            }
+        }
+
+        return (text, settings);
     }
 
     /// <summary>
-    ///     The layout literal of a local's or field's initializer, read from its syntax: <c>new CStruct("...")</c> or
-    ///     <c>CStruct.GetOrCompile("...")</c> with a string literal (or a constant the receiver's own tree resolves)
-    ///     as the first argument.
+    ///     The layout of a local's or field's initializer: <c>new CStruct(...)</c> or <c>CStruct.GetOrCompile(...)</c>.
+    ///     Its arguments are read through the semantic model when the declaration is in the receiver's own tree;
+    ///     elsewhere only a single string-literal argument (every setting at its default) is recognized.
     /// </summary>
-    private static string? InitializerLiteral(ISymbol symbol, SemanticModel? model)
+    /// <param name="symbol">The local or field.</param>
+    /// <param name="model">The receiver's semantic model.</param>
+    /// <returns>The text and settings, or <see langword="null"/>s when the initializer is not plainly visible.</returns>
+    private static (string? Text, LayoutSettings? Settings) InitializerLayout(ISymbol symbol, SemanticModel? model)
     {
         foreach (SyntaxReference reference in symbol.DeclaringSyntaxReferences)
         {
@@ -262,56 +279,43 @@ public sealed class CStructAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
-            ExpressionSyntax? first = initializer switch
-            {
-                ObjectCreationExpressionSyntax creation when creation.Type.ToString() is "CStruct" or "CStructSharp.CStruct" or "global::CStructSharp.CStruct" => creation.ArgumentList?.Arguments.FirstOrDefault()?.Expression,
-                ImplicitObjectCreationExpressionSyntax implicitCreation => implicitCreation.ArgumentList.Arguments.FirstOrDefault()?.Expression,
-                InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "GetOrCompile" } } factory => factory.ArgumentList.Arguments.FirstOrDefault()?.Expression,
-                _ => null,
-            };
-            if (first is null)
-            {
-                return null;
-            }
-
-            if (first is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.StringLiteralExpression))
-            {
-                return literal.Token.ValueText;
-            }
-
             if (model is not null && ReferenceEquals(model.SyntaxTree, reference.SyntaxTree))
             {
-                Optional<object?> constant = model.GetConstantValue(first);
-                return constant.HasValue ? constant.Value as string : null;
+                return model.GetOperation(initializer) switch
+                {
+                    IObjectCreationOperation creation when creation.Type?.ToDisplayString() == "CStructSharp.CStruct" => CallLayout(creation.Arguments),
+                    IInvocationOperation factory when IsGetOrCompile(factory.TargetMethod) => CallLayout(factory.Arguments),
+                    _ => (null, null),
+                };
             }
 
-            return null;
+            ArgumentListSyntax? arguments = initializer switch
+            {
+                ObjectCreationExpressionSyntax creation when creation.Type.ToString() is "CStruct" or "CStructSharp.CStruct" or "global::CStructSharp.CStruct" => creation.ArgumentList,
+                ImplicitObjectCreationExpressionSyntax implicitCreation => implicitCreation.ArgumentList,
+                InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "GetOrCompile" } } factory => factory.ArgumentList,
+                _ => null,
+            };
+            return arguments is { Arguments: [{ Expression: LiteralExpressionSyntax literal }] } && literal.IsKind(SyntaxKind.StringLiteralExpression)
+                       ? (literal.Token.ValueText, LayoutSettings.Default)
+                       : (null, null);
         }
 
-        return null;
+        return (null, null);
     }
 
-    /// <summary>The layout text of a [CStructLayout] class, when it is inline (a file is not read here).</summary>
-    private static (string? Text, string[]? Defined) AttributeLayout(INamedTypeSymbol owner)
+    /// <summary>The inline layout text and settings of a <c>[CStructLayout]</c> class (a layout file is not read here).</summary>
+    /// <param name="owner">The attributed class.</param>
+    /// <returns>The text and settings, or <see langword="null"/>s when the class has no inline layout.</returns>
+    private static (string? Text, LayoutSettings? Settings) AttributeLayout(INamedTypeSymbol owner)
     {
         foreach (AttributeData attribute in owner.GetAttributes())
         {
-            if (attribute.AttributeClass?.ToDisplayString() != "CStructSharp.CStructLayoutAttribute")
+            if (attribute.AttributeClass?.ToDisplayString() == "CStructSharp.CStructLayoutAttribute")
             {
-                continue;
+                string? text = attribute.ConstructorArguments.Length == 1 ? attribute.ConstructorArguments[0].Value as string : null;
+                return (text, LayoutSettings.FromAttribute(attribute));
             }
-
-            string? text = attribute.ConstructorArguments.Length == 1 && attribute.ConstructorArguments[0].Value is string literal ? literal : null;
-            string[]? defined = null;
-            foreach (KeyValuePair<string, TypedConstant> named in attribute.NamedArguments)
-            {
-                if (named.Key == "Defined" && !named.Value.IsNull)
-                {
-                    defined = named.Value.Values.Select(value => value.Value as string ?? string.Empty).ToArray();
-                }
-            }
-
-            return (text, defined);
         }
 
         return (null, null);
