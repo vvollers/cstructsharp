@@ -152,9 +152,12 @@ public class SymbolValidationTests
         SymbolValidation.ValidateBuiltInNameCollision(distinctStruct, catalog);
     }
 
+    /// <summary>A <c>uint8</c> scalar field.</summary>
+    /// <param name="name">The field name.</param>
+    /// <returns>The field.</returns>
     private static Field ScalarField(string name)
     {
-        return new Field(new Identifier("uint8"), new Identifier(name), Field.NoArray, 0);
+        return new Field(new Identifier("uint8"), new Identifier(name), Field.NoArray, Field.Width(0));
     }
 
     private static Struct MakeStruct(string name, bool isUnion, params Field[] fields)

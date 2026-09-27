@@ -20,7 +20,7 @@ public class SyntaxMetadataBoundaryTests
         for (int index = 1; index <= 32; index++)
         {
             Expr[] dimensions = { new Literal(dimension == 0 ? index : 2), new Literal(dimension == 1 ? index : 3), };
-            var field = new Field(new Identifier("uint8"), new Identifier("matrix"), dimensions, 0);
+            var field = new Field(new Identifier("uint8"), new Identifier("matrix"), dimensions, Field.Width(0));
             hashes.Add(field.GetHashCode());
         }
 
@@ -37,7 +37,7 @@ public class SyntaxMetadataBoundaryTests
     {
         var type = new Identifier("uint8");
         var name = new Identifier("value");
-        Field field = resolved ? new Field(type, name, Field.NoArray, 3) : new Field(type, name, Field.NoArray, NoneExpr.Instance);
+        Field field = resolved ? new Field(type, name, Field.NoArray, Field.Width(3)) : new Field(type, name, Field.NoArray, NoneExpr.Instance);
         int expected = resolved ? 3 : 0;
         for (int index = 0; index < 32; index++)
         {
@@ -92,26 +92,23 @@ public class SyntaxMetadataBoundaryTests
         StringAssert.StartsWith(failure.Message, "Unknown field 'missing' in 'root'.");
     }
 
-    /// <summary>Both field constructors combine pointer spellings unless an explicit depth overrides them, including zero.</summary>
-    /// <param name="expressionWidth">Whether the constructor receives a parsed expression rather than a resolved width.</param>
+    /// <summary>A field combines the pointer spellings of its type and name unless an explicit depth overrides them, including zero.</summary>
     [TestMethod]
-    [DataRow(false)]
-    [DataRow(true)]
-    public void PointerDepth_DerivesFromBothNamesAndHonorsZeroOverride(bool expressionWidth)
+    public void PointerDepth_DerivesFromBothNamesAndHonorsZeroOverride()
     {
         var type = new Identifier("uint8*");
         var name = new Identifier("**value");
-        Field inferred = expressionWidth ? new Field(type, name, Field.NoArray, NoneExpr.Instance) : new Field(type, name, Field.NoArray, 0);
-        Field overridden = expressionWidth ? new Field(type, name, Field.NoArray, NoneExpr.Instance, pointerDepth: 0) : new Field(type, name, Field.NoArray, 0, pointerDepth: 0);
+        var inferred = new Field(type, name, Field.NoArray, NoneExpr.Instance);
+        var overridden = new Field(type, name, Field.NoArray, NoneExpr.Instance, pointerDepth: 0);
         Assert.AreEqual(3, inferred.PointerDepth);
         Assert.IsTrue(inferred.IsPointer);
         Assert.AreEqual(0, overridden.PointerDepth);
         Assert.IsFalse(overridden.IsPointer);
     }
 
-    /// <summary>Parsed widths distinguish ordinary fields, explicit positive widths and invalid negative expressions.</summary>
+    /// <summary>Parsed widths distinguish ordinary fields, explicit positive widths, invalid negative ones and unevaluated expressions.</summary>
     [TestMethod]
-    public void ParsedWidth_EvaluatesItsExpressionAndExplainsNegativeValues()
+    public void ParsedWidth_IsStoredAndExplainsNegativeOrUnevaluatedValues()
     {
         var type = new Identifier("uint8");
         var name = new Identifier("value");
@@ -126,6 +123,10 @@ public class SyntaxMetadataBoundaryTests
         // The parsed node is inspected before compiler normalization, so invalid widths must still be rejected here.
         InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => _ = negative.BitSize);
         Assert.AreEqual("Bitfield width cannot be negative.", failure.Message);
+
+        // A width written as an expression has no value until normalization evaluates it with the layout's constants.
+        var unevaluated = new Field(type, name, Field.NoArray, new Identifier("WIDTH"));
+        StringAssert.StartsWith(Assert.Throws<InvalidOperationException>(() => _ = unevaluated.BitSize).Message, "Bitfield width is not evaluated yet");
     }
 
     /// <summary>Debug descriptions preserve declaration kinds, names, backing types, members and every array dimension.</summary>
@@ -137,7 +138,7 @@ public class SyntaxMetadataBoundaryTests
         SyntaxEnum flags = SyntaxEnum.CreateUnevaluated(new Identifier("choice"), values, new Identifier("uint8"), isFlag: true);
         Assert.AreEqual("Enum [choice] [[uint8]] (EnumValue([A],Literal: 1), EnumValue([B],Literal: 2))", enumeration.ToString());
         Assert.AreEqual("Flag [choice] [[uint8]] (EnumValue([A],Literal: 1), EnumValue([B],Literal: 2))", flags.ToString());
-        var field = new Field(new Identifier("uint8"), new Identifier("matrix"), new Expr[] { new Literal(2), new Literal(3), }, 0);
+        var field = new Field(new Identifier("uint8"), new Identifier("matrix"), new Expr[] { new Literal(2), new Literal(3), }, Field.Width(0));
         Assert.AreEqual("[matrix] ([uint8]) [Literal: 2][Literal: 3]", field.ToString());
     }
 

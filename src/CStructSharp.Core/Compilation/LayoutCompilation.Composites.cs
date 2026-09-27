@@ -240,9 +240,8 @@ internal sealed partial class LayoutCompilation
                     new Identifier(type.TerminalName),
                     field.Name,
                     arrayCount,
-                    field.BitSize,
-                    pointerDepth,
-                    hasBitfieldDeclarator: field.HasBitfieldDeclarator);
+                    Field.Width(field.BitSize, field.HasBitfieldDeclarator),
+                    pointerDepth);
 
                 // An unsized dimension can only ever be the sole entry of a one-dimensional
                 // ArrayCount list - the grammar already rejects it as an inner dimension of a multidimensional
@@ -315,9 +314,9 @@ internal sealed partial class LayoutCompilation
                         // acceptable storage, exactly as in C; an enum or flag stores its bits in its backing type.
                         // A zero-width separator is validated as a one-bit field of its type: only the unit size matters.
                         Field storageField = type.Symbol.Definition is CompiledEnumType enumStorage && pointerDepth == 0
-                                                 ? new Field(new Identifier(enumStorage.Underlying.TerminalName), field.Name, field.ArrayCount, Math.Max(field.BitSize, 1), 0)
+                                                 ? new Field(new Identifier(enumStorage.Underlying.TerminalName), field.Name, field.ArrayCount, Field.Width(Math.Max(field.BitSize, 1)), 0)
                                                  : zeroWidthBitfield
-                                                     ? new Field(effectiveField.Type, field.Name, field.ArrayCount, 1, 0)
+                                                     ? new Field(effectiveField.Type, field.Name, field.ArrayCount, Field.Width(1), 0)
                                                      : effectiveField;
                         bitfieldStorage = this.bitfieldCodecs.ValidateBitField(storageField);
                     }
@@ -520,7 +519,7 @@ internal sealed partial class LayoutCompilation
         // The target is compiled like a one-dimensional array declarator `T name[N]`, so a literal count is fixed and
         // a named count is evaluated from the operation's variables when the pointer is followed.
         this.expressionEvaluator.Compile(count);
-        var targetArray = new Field(effectiveField.Type, field.Name, [count,], 0, 0);
+        var targetArray = new Field(effectiveField.Type, field.Name, [count,], NoneExpr.Instance, 0);
         return this.CompileSingleArrayDimension(targetArray, count);
     }
 

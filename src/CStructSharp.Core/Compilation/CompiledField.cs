@@ -369,7 +369,7 @@ internal sealed class CompiledField
             this.EffectiveField.Type,
             this.EffectiveField.Name,
             Field.NoArray,
-            this.EffectiveField.BitSize,
+            Field.Width(this.EffectiveField.BitSize),
             this.PointerDepth);
 
         int? nextStorageSize = isScalarResult || this.FixedElementSize is not int elementSize
@@ -417,7 +417,7 @@ internal sealed class CompiledField
         Identifier type = terminatedCodecName is null
                               ? this.EffectiveField.Type
                               : new Identifier(terminatedCodecName);
-        var field = new Field(type, this.EffectiveField.Name, Field.NoArray, 0, remainingPointerDepth);
+        var field = new Field(type, this.EffectiveField.Name, Field.NoArray, NoneExpr.Instance, remainingPointerDepth);
         bool targetIsTerminated = remainingPointerDepth == 0 && terminatedCodecName is not null;
         int alignment = remainingPointerDepth > 0 ? pointerSize : targetIsTerminated ? 1 : this.Type.Symbol.Alignment;
         int? elementSize = remainingPointerDepth > 0

@@ -19,33 +19,20 @@ internal class Field : CStructElement
     /// </summary>
     public static readonly Expr UnknownArraysize = new Literal(int.MinValue);
 
-    /// <summary>Creates a field definition and derives pointer depth from the type and field name when it is not supplied.</summary>
+    /// <summary>
+    ///     Creates a field. A parsed field carries its width as written; normalization replaces the width with its
+    ///     evaluated literal (see <see cref="Width"/>), which <see cref="BitSize"/> then returns. The pointer depth is
+    ///     the type's and the name's stars together unless <paramref name="pointerDepth"/> gives it.
+    /// </summary>
+    /// <param name="type">The type name.</param>
+    /// <param name="name">The field name.</param>
+    /// <param name="arraycount">Every dimension's count expression, outermost first; <see cref="NoArray"/> for a scalar.</param>
+    /// <param name="bitSize">The <c>: width</c> expression, or <see cref="NoneExpr.Instance"/> for a field without one.</param>
+    /// <param name="pointerDepth">The pointer depth, or -1 to derive it from the type and name.</param>
+    /// <param name="typeKeywordHint">The struct/union/enum keyword written before the type, or <see langword="null"/>.</param>
+    /// <param name="alignmentOverrideExpression">The <c>@align(N)</c> expression, or <see langword="null"/>.</param>
+    /// <param name="offsetAssertionExpression">The <c>@N</c> expression, or <see langword="null"/>.</param>
     public Field(
-        Identifier type,
-        Identifier name,
-        IReadOnlyList<Expr> arraycount,
-        int bitSize,
-        int pointerDepth = -1,
-        string? typeKeywordHint = null,
-        Expr? alignmentOverrideExpression = null,
-        Expr? offsetAssertionExpression = null,
-        bool hasBitfieldDeclarator = false)
-    {
-        this.Type = type;
-        this.Name = name;
-        this.ArrayCount = arraycount;
-        this.bitSize = bitSize;
-        this.BitSizeExpression = bitSize == 0 && !hasBitfieldDeclarator ? NoneExpr.Instance : new Literal(bitSize);
-        int derivedPointerDepth = type.PointerDepth + name.PointerDepth;
-        this.PointerDepth = pointerDepth >= 0 ? pointerDepth : derivedPointerDepth;
-        this.IsPointer = this.PointerDepth > 0;
-        this.TypeKeywordHint = typeKeywordHint;
-        this.AlignmentOverrideExpression = alignmentOverrideExpression;
-        this.OffsetAssertionExpression = offsetAssertionExpression;
-    }
-
-    /// <summary>Creates a parsed field whose bit width will be evaluated with the compiled layout's expression policy.</summary>
-    internal Field(
         Identifier type,
         Identifier name,
         IReadOnlyList<Expr> arraycount,
@@ -59,6 +46,12 @@ internal class Field : CStructElement
         this.Name = name;
         this.ArrayCount = arraycount;
         this.BitSizeExpression = bitSize;
+        this.bitSize = bitSize switch
+        {
+            NoneExpr => 0,
+            Literal literal => literal.Value,
+            _ => null,
+        };
         int derivedPointerDepth = type.PointerDepth + name.PointerDepth;
         this.PointerDepth = pointerDepth >= 0 ? pointerDepth : derivedPointerDepth;
         this.IsPointer = this.PointerDepth > 0;
@@ -74,29 +67,14 @@ internal class Field : CStructElement
     /// </summary>
     public IReadOnlyList<Expr> ArrayCount { get; }
 
-    public int BitSize
+    /// <summary>Gets the bitfield width in bits; 0 for a field without one.</summary>
+    /// <exception cref="InvalidOperationException">The width is negative, or is an expression normalization has not evaluated yet.</exception>
+    public int BitSize => this.bitSize switch
     {
-        get
-        {
-            if (this.bitSize.HasValue)
-            {
-                return this.bitSize.Value;
-            }
-
-            if (ReferenceEquals(this.BitSizeExpression, NoneExpr.Instance))
-            {
-                return 0;
-            }
-
-            int value = global::CStructSharp.Expressions.ExpressionEvaluator.Default.Evaluate(this.BitSizeExpression);
-            if (value < 0)
-            {
-                throw new InvalidOperationException("Bitfield width cannot be negative.");
-            }
-
-            return value;
-        }
-    }
+        >= 0 and int value => value,
+        int => throw new InvalidOperationException("Bitfield width cannot be negative."),
+        null => throw new InvalidOperationException("Bitfield width is not evaluated yet: " + this.BitSizeExpression),
+    };
 
     /// <summary>Whether the declarator carried a <c>: width</c>; a zero width with no name is a storage-unit separator.</summary>
     internal bool HasBitfieldDeclarator => !ReferenceEquals(this.BitSizeExpression, NoneExpr.Instance);
@@ -132,6 +110,13 @@ internal class Field : CStructElement
     ///     written. It makes the pointer's final target an array of N elements instead of one value.
     /// </summary>
     internal Expr? PointerCountExpression { get; init; }
+
+    /// <summary>The width expression for an evaluated width: none for 0 without a <c>:</c>, otherwise the literal.</summary>
+    /// <param name="bitSize">The width in bits.</param>
+    /// <param name="hasBitfieldDeclarator">Whether the declarator carries a <c>: width</c> (a <c>: 0</c> separator does).</param>
+    /// <returns>The expression for <see cref="Field"/>'s constructor.</returns>
+    public static Expr Width(int bitSize, bool hasBitfieldDeclarator = false)
+        => bitSize == 0 && !hasBitfieldDeclarator ? NoneExpr.Instance : new Literal(bitSize);
 
     /// <summary>Checks whether another value represents the same layout data.</summary>
     public override bool Equals(CStructElement? other)

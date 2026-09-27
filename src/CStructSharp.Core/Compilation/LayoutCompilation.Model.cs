@@ -217,7 +217,7 @@ internal sealed partial class LayoutCompilation
                 new Identifier(type.TerminalName),
                 declaration.Name,
                 rootShape,
-                0,
+                NoneExpr.Instance,
                 type.PointerDepth);
             int codecId = GetCompiledCodecId(type.Symbol);
             int terminatedCodecId = PrimitiveCatalog.NoCodec;

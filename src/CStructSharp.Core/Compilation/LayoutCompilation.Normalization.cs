@@ -82,7 +82,7 @@ internal sealed partial class LayoutCompilation
             {
                 // Validate the pointer where it is declared: following aliases only from a later member
                 // can stop at this pointer and silently lose the target array's dimensions.
-                var pointerField = new Field(pointerAlias.Type, pointerAlias.Name, Field.NoArray, 0, pointerAlias.Type.PointerDepth);
+                var pointerField = new Field(pointerAlias.Type, pointerAlias.Name, Field.NoArray, NoneExpr.Instance, pointerAlias.Type.PointerDepth);
                 _ = this.ResolveTypedefArrayShape(pointerField);
             }
 
@@ -416,12 +416,11 @@ internal sealed partial class LayoutCompilation
                     fieldType,
                     field.Name,
                     arrayCount,
-                    bitSize,
+                    Field.Width(bitSize, field.HasBitfieldDeclarator),
                     field.PointerDepth,
                     field.TypeKeywordHint,
                     field.AlignmentOverrideExpression,
-                    field.OffsetAssertionExpression,
-                    field.HasBitfieldDeclarator)
+                    field.OffsetAssertionExpression)
                 {
                     PointerCountExpression = field.PointerCountExpression,
                     Condition = NormalizeCaseConstants(field.Condition, caseConstants),

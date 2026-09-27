@@ -50,7 +50,7 @@ public class CharacterFieldTypesTests
     [TestMethod]
     public void IsCharArrayField_NonPointerNarrowChar_ReturnsTrue()
     {
-        var field = new Field(new Identifier("char"), new Identifier("label"), [new Literal(4),], 0);
+        var field = new Field(new Identifier("char"), new Identifier("label"), [new Literal(4),], Field.Width(0));
 
         Assert.IsTrue(CharacterFieldTypes.IsCharArrayField(field));
     }
@@ -59,7 +59,7 @@ public class CharacterFieldTypesTests
     [TestMethod]
     public void IsCharArrayField_PointerToChar_ReturnsFalse()
     {
-        var field = new Field(new Identifier("char"), new Identifier("label"), Field.NoArray, 0, pointerDepth: 1);
+        var field = new Field(new Identifier("char"), new Identifier("label"), Field.NoArray, Field.Width(0), pointerDepth: 1);
 
         Assert.IsFalse(CharacterFieldTypes.IsCharArrayField(field));
     }
@@ -68,7 +68,7 @@ public class CharacterFieldTypesTests
     [TestMethod]
     public void IsCharArrayField_NonPointerWideChar_ReturnsTrue()
     {
-        var field = new Field(new Identifier("wchar"), new Identifier("label"), [new Literal(4),], 0);
+        var field = new Field(new Identifier("wchar"), new Identifier("label"), [new Literal(4),], Field.Width(0));
 
         Assert.IsTrue(CharacterFieldTypes.IsCharArrayField(field));
     }
@@ -77,7 +77,7 @@ public class CharacterFieldTypesTests
     [TestMethod]
     public void IsCharArrayField_NonCharacterType_ReturnsFalse()
     {
-        var field = new Field(new Identifier("uint32"), new Identifier("count"), Field.NoArray, 0);
+        var field = new Field(new Identifier("uint32"), new Identifier("count"), Field.NoArray, Field.Width(0));
 
         Assert.IsFalse(CharacterFieldTypes.IsCharArrayField(field));
     }

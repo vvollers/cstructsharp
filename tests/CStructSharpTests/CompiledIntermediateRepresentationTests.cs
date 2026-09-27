@@ -290,7 +290,7 @@ public class CompiledIntermediateRepresentationTests
             new Struct(
                 new Identifier("root"),
                 System.Collections.Immutable.ImmutableList.Create(
-                    new Field(new Identifier("uint8"), new Identifier("wrong"), Field.NoArray, 0)),
+                    new Field(new Identifier("uint8"), new Identifier("wrong"), Field.NoArray, Field.Width(0))),
                 false));
         AssertPrivateDictionaryRejectsMutation(cstruct, "fieldAlignments", "uint16", (byte)1);
 

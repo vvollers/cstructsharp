@@ -84,7 +84,7 @@ public class BitfieldCodecTableTests
     public void ValidateBitField_RejectsAnArrayField()
     {
         BitfieldCodecTable table = CreateValidTable(true, out _);
-        var arrayField = new Field(new Identifier("uint8"), new Identifier("values"), [new Literal(4),], 3);
+        var arrayField = new Field(new Identifier("uint8"), new Identifier("values"), [new Literal(4),], Field.Width(3));
 
         // Array storage must fail before interpreting its element as scalar bitfield storage.
         InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(arrayField));
@@ -96,7 +96,7 @@ public class BitfieldCodecTableTests
     public void ValidateBitField_RejectsAPointerField()
     {
         BitfieldCodecTable table = CreateValidTable(true, out _);
-        var pointerField = new Field(new Identifier("uint8"), new Identifier("ptr"), Field.NoArray, 3, pointerDepth: 1);
+        var pointerField = new Field(new Identifier("uint8"), new Identifier("ptr"), Field.NoArray, Field.Width(3), pointerDepth: 1);
 
         // A valid pointee type does not make a pointer itself integral bitfield storage.
         InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() => table.ValidateBitField(pointerField));
@@ -234,9 +234,13 @@ public class BitfieldCodecTableTests
         Assert.Throws<CStructWriteException>(() => BitfieldCodecTable.ValidateBitfieldWriteValue(field.Name.Name, field.BitSize, 16));
     }
 
+    /// <summary>A bitfield named <c>value</c>.</summary>
+    /// <param name="typeName">The storage type.</param>
+    /// <param name="bitSize">The width in bits.</param>
+    /// <returns>The field.</returns>
     private static Field BitfieldField(string typeName, int bitSize)
     {
-        return new Field(new Identifier(typeName), new Identifier("value"), Field.NoArray, bitSize);
+        return new Field(new Identifier(typeName), new Identifier("value"), Field.NoArray, Field.Width(bitSize));
     }
 
     private static BitfieldCodecTable CreateValidTable(bool isLittleEndian, out Dictionary<string, byte> alignments)

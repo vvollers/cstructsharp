@@ -397,7 +397,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/CompiledField.cs",
-   "sourceSha256": "58cfc2a918d506a37e4cb2dde2e03b1baaa617eaa750eb5c635ddade85c15f8a",
+   "sourceSha256": "985f7efb2757bb8665c4af0b1727f05749d6c7459d10f75ff4d5aab7c07365c5",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "elementSize * remainingCount",
      "location": {"start":{"line":378,"column":43},"end":{"line":378,"column":80}},
@@ -910,7 +910,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Model.cs",
-   "sourceSha256": "c5a48df93f56bdf701c0a6675e7939c61910e021950f1afb2d30faea73db03c9",
+   "sourceSha256": "236f3679f9679875ceec9949e71d167818593ae0158c3888945426cd4f7126b1",
    "mutants": [
     { "mutatorName": "Logical mutation", "replacement": "exception.SourceOffset < 0 || exception.Message.StartsWith(\"Unknown field type: \", StringComparison.Ordinal)",
      "location": {"start":{"line":321,"column":56},"end":{"line":321,"column":164}},
@@ -1204,7 +1204,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Composites.cs",
-   "sourceSha256": "440b5a1110f115bf5f08092a9f7aa4e95f6a66abad44e0df8c43888e83037920",
+   "sourceSha256": "ff7edc5c1e1a2ef145265ce8ff785b5fc15dca8055bb48b4c801d1610cbc3b06",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "field.PointerDepth + type.PointerDepth",
      "location": {"start":{"line":198,"column":36},"end":{"line":198,"column":83}},
@@ -1228,7 +1228,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Normalization.cs",
-   "sourceSha256": "d70552b92e2afc35bfa95546cbdd10f99d11eaf65e70dfa800e387518c613aca",
+   "sourceSha256": "d2a74155c365d0336671e96721ced84f0b21d7d8d28a079acc102eab1d3b9aff",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "remainingDeclarations-- >= 0",
      "location": {"start":{"line":182,"column":16},"end":{"line":182,"column":43}},
@@ -1255,7 +1255,7 @@
      "location": {"start":{"line":367,"column":17},"end":{"line":367,"column":61}},
      "reason": "RejectNonIntegerConstants is the immediate next call, and its first operation is expressionEvaluator.GetDependencies(dimension). That method obtains the same GetProgram used by Compile, so compilation and all syntax-tree limits still run before constant validation or evaluation, with no intervening state change. The same cached program, dependencies and exceptions result. This removes only a redundant cache warm-up, not dimension validation." },
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?Array.Empty<ConditionalBranch>() :field.BranchConditions.Select(item =>\n                        new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray())",
-     "location": {"start":{"line":428,"column":40},"end":{"line":429,"column":145}},
+     "location": {"start":{"line":427,"column":40},"end":{"line":428,"column":145}},
      "reason": "Only the empty branch list changes arms. Selecting and materializing an empty list produces another empty branch array without invoking the projection, so NormalizeConditionalGroup is not called and a null normalizedGroups value is never accessed. All consumers inspect branch contents/counts, not array reference identity. Nonempty lists execute the identical projection in both versions. No condition, selector, arm or field visibility changes." }
    ]
   }

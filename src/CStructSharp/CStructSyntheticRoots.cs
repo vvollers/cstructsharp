@@ -141,7 +141,7 @@ public partial class CStruct
             }
         }
 
-        var field = new Field(new Identifier(type.TerminalName), new Identifier(spelling), arrayCount, 0, pointerDepth);
+        var field = new Field(new Identifier(type.TerminalName), new Identifier(spelling), arrayCount, NoneExpr.Instance, pointerDepth);
         bool isUnsizedCharacterArray = arrayCount.Count == 1 && ReferenceEquals(arrayCount[0], Field.UnknownArraysize) && CharacterFieldTypes.IsCharArrayField(field);
         int terminatedCodecId = PrimitiveCatalog.NoCodec;
         if (isUnsizedCharacterArray || (pointerDepth > 0 && CharacterFieldTypes.IsStringPointerType(field.Type)))

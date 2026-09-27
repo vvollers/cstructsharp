@@ -21,12 +21,12 @@ public class LayoutModelEqualityTests
     {
         var name = new Identifier("field");
         var type = new Identifier("uint16");
-        var fourBits = new Field(type, name, Field.NoArray, 4);
-        var eightBits = new Field(type, name, Field.NoArray, 8);
+        var fourBits = new Field(type, name, Field.NoArray, Field.Width(4));
+        var eightBits = new Field(type, name, Field.NoArray, Field.Width(8));
         Assert.AreNotEqual(fourBits, eightBits);
 
         var fieldsA = System.Collections.Immutable.ImmutableList.Create(fourBits);
-        var fieldsB = System.Collections.Immutable.ImmutableList.Create(new Field(type, name, Field.NoArray, 4));
+        var fieldsB = System.Collections.Immutable.ImmutableList.Create(new Field(type, name, Field.NoArray, Field.Width(4)));
         var structA = new Struct(new Identifier("shape"), fieldsA, false);
         var structB = new Struct(new Identifier("shape"), fieldsB, false);
         var union = new Struct(new Identifier("shape"), fieldsB, true);
@@ -52,7 +52,7 @@ public class LayoutModelEqualityTests
 
         var structC = new Struct(
             new Identifier("shape"),
-            System.Collections.Immutable.ImmutableList.Create(new Field(type, name, Field.NoArray, 4)),
+            System.Collections.Immutable.ImmutableList.Create(new Field(type, name, Field.NoArray, Field.Width(4))),
             false);
         Assert.IsTrue(structA.Equals((object)structA));
         Assert.AreEqual(structA, structB);
