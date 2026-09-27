@@ -55,7 +55,7 @@ public class MemoryFuzzTests
             input[random.Next(input.Length)] = (byte)random.Next(256);
             try
             {
-                MetadataImportResult result = IsfMetadata.Import(input, "u", maxBytes: 1024, maxTypes: 16);
+                MetadataImportResult result = new IsfMetadata(input, maxBytes: 1024).Import("u", new MetadataImportOptions { MaxTypes = 16, });
                 Assert.IsTrue(result.Schema.Types.Count <= 16);
                 Assert.IsTrue(result.Schema.GetType(result.RootTypeId).Size <= 16);
                 accepted++;

@@ -76,7 +76,7 @@ public class MemoryMetadataTests
         Assert.Throws<ArgumentException>(() => new BtfMetadata(data, maxBytes: 16));
         Word(data.AsSpan(56, 4), 99, true);
         Assert.Throws<ArgumentException>(() => new BtfMetadata(data).Import(2));
-        Assert.Throws<System.Text.Json.JsonException>(() => IsfMetadata.Import("{"u8.ToArray(), "node"));
+        Assert.Throws<System.Text.Json.JsonException>(() => new IsfMetadata("{"u8.ToArray()));
     }
 
     /// <summary>ISF resolves a recursive node pointer and signed slices without external profiles or native ABI assumptions.</summary>
@@ -100,7 +100,7 @@ public class MemoryMetadataTests
           "enums": {}, "symbols": {}
         }
         """;
-        MetadataImportResult imported = IsfMetadata.Import(Encoding.UTF8.GetBytes(json), "node");
+        MetadataImportResult imported = new IsfMetadata(Encoding.UTF8.GetBytes(json)).Import("node");
         var session = new MemorySession(imported.Schema);
         byte[] bytes = session.Serialize(imported.RootTypeId, new Dictionary<string, object?> { ["flags"] = -1, ["id"] = 42U, ["next"] = new StoredPointer(ulong.MaxValue), });
         Assert.AreEqual(14, bytes[0]);

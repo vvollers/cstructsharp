@@ -272,7 +272,7 @@ public class MemoryBtfCoverageTests
         Assert.AreEqual(MemoryTypeKind.Struct, imported.Schema.GetType(imported.RootTypeId).Kind);
     }
 
-    /// <summary><see cref="BtfMetadata.Import"/>'s <c>bestEffort</c> flag threads through to
+    /// <summary><see cref="MetadataImportOptions.BestEffort"/> threads through <see cref="BtfMetadata.Import"/> to
     /// <see cref="MemorySchema"/>: a self-inconsistent inner struct no longer aborts an import that embeds it by
     /// value, the placeholder is reported as a diagnostic, and strict import (the default) is unaffected.</summary>
     [TestMethod]
@@ -291,7 +291,7 @@ public class MemoryBtfCoverageTests
 
         Assert.Throws<ArgumentException>(() => metadata.Import(outerId));
 
-        MetadataImportResult result = metadata.Import(outerId, bestEffort: true);
+        MetadataImportResult result = metadata.Import(outerId, new MetadataImportOptions { BestEffort = true, });
         Assert.AreEqual(MemoryTypeKind.Opaque, result.Schema.GetType("btf:2").Kind);
         StringAssert.Contains(string.Join('\n', result.Diagnostics), "btf:2");
     }
@@ -316,5 +316,21 @@ public class MemoryBtfCoverageTests
                 // Invalid metadata is rejected; runtime failures such as indexing bugs must escape this filter.
             }
         }
+    }
+
+    /// <summary>An import stops at its descriptor budget, which counts bitfield storage and every reached type.</summary>
+    [TestMethod]
+    public void Import_StopsAtTheDescriptorBudget()
+    {
+        var metadata = new BtfMetadata(Blob(
+            [
+            1, 0x01000000, 4, 32,
+            7, 0x04000001, 4, 9, 1, 0,
+            ],
+            "\0u32\0x\0Outer\0"));
+        uint outerId = metadata.FindType("Outer");
+
+        Assert.AreEqual(2, metadata.Import(outerId, new MetadataImportOptions { MaxTypes = 2, }).Schema.Types.Count);
+        StringAssert.Contains(Assert.Throws<ArgumentException>(() => metadata.Import(outerId, new MetadataImportOptions { MaxTypes = 1, })).Message, "descriptor budget");
     }
 }

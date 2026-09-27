@@ -134,11 +134,23 @@ Take `RootTypeId` from the result rather than guessing the importer's ID spellin
 `Schema.Types` when deciding which imported types can be read by value; a successful import can retain address-only
 types as pointer targets without making those targets readable.
 
-ISF import requires format `6.2.0`. It supports base integers, floats and booleans, structs, classes, unions,
-arrays, enums, pointers, and member bitfields. Pass the target's pointer width explicitly when it is not eight
-bytes. A base type's explicit endianness overrides the schema default. `maxBytes`, `maxTypes`, and cancellation
-bound the import; symbol evaluation, relocations, profile matching, and guesses about older formats are outside
-its scope.
+`new IsfMetadata(json)` parses the document once; `Import(rootName, options)` then compiles one root and
+everything it references, so several roots can share one parsed document. ISF import requires format `6.2.0`. It
+supports base integers, floats and booleans, structs, classes, unions, arrays, enums, pointers, and member
+bitfields. A base type's explicit endianness overrides the schema default that the constructor's `isLittleEndian`
+sets. The constructor's `maxBytes` bounds the document; symbol evaluation, relocations, profile matching, and
+guesses about older formats are outside its scope.
+
+Both importers take the same `MetadataImportOptions`:
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `PointerSize` | 8 | The analyzed image's pointer width in bytes. Set 4 for a 32-bit capture, even on a 64-bit host. |
+| `BestEffort` | false | Demote a type that fails validation to an opaque placeholder instead of failing (see below). |
+| `MaxTypes` | 100,000 | The most type descriptors one import may create, bitfield storage and generated types included. |
+
+An import walks the type graph with an explicit work list rather than recursion, so a long chain of pointers or
+nested members does not run into a depth limit.
 
 ## Import BTF and split tables
 
@@ -149,7 +161,7 @@ their bit offsets. Tools usually read the blob from the `.BTF` section of a kern
 `/sys/kernel/btf`; this API does neither. You obtain the bytes and pass them in.
 
 First supply the blob to `new BtfMetadata(bytes)`, which validates and indexes it. Then `FindType("task")`
-locates a unique named type and `Import(typeId, pointerSize: 8)` compiles that type and everything it references.
+locates a unique named type and `Import(typeId, options)` compiles that type and everything it references.
 `FindType` rejects duplicate names rather than picking one, because two kernel types can share a name while having
 different layouts. When names are ambiguous, use the numeric ID from the metadata producer.
 
@@ -209,7 +221,8 @@ when the type you actually asked for is perfectly consistent on its own terms. F
 like `task_struct` can reach several thousand types, that means one bad type anywhere in a huge graph blocks
 everything.
 
-Passing `bestEffort: true` to `MemorySchema`'s constructor, or to `BtfMetadata.Import`, changes this: a type that
+Passing `bestEffort: true` to `MemorySchema`'s constructor, or `BestEffort = true` in the `MetadataImportOptions`
+of a BTF or ISF import, changes this: a type that
 fails validation is demoted in place to a same-sized `MemoryTypeKind.Opaque` placeholder instead, and the
 substitution is recorded as a diagnostic rather than thrown. A placeholder keeps the type's real, checked size, so
 every other definition that embeds it - by pointer or directly by value - still places its own members correctly;

@@ -78,6 +78,7 @@ public class PublicApiSurfaceTests
         "CStructSharp.Memory.Metadata.BtfMetadata",
         "CStructSharp.Memory.Metadata.BtfTypeDescription",
         "CStructSharp.Memory.Metadata.IsfMetadata",
+        "CStructSharp.Memory.Metadata.MetadataImportOptions",
         "CStructSharp.Memory.Metadata.MetadataImportResult",
         "CStructSharp.Memory.OverlayMemorySource",
         "CStructSharp.Memory.PointerRequest",

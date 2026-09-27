@@ -37,7 +37,7 @@ public class MemoryIsfCoverageTests
         """;
 
     /// <summary>Imports the independently authored profile using bounded defaults.</summary>
-    private static MetadataImportResult Import(string profile = Profile) => IsfMetadata.Import(Encoding.UTF8.GetBytes(profile), "root");
+    private static MetadataImportResult Import(string profile = Profile) => new IsfMetadata(Encoding.UTF8.GetBytes(profile)).Import("root");
 
     /// <summary>Metadata-defined byte order, enum values, arrays, and promoted unions agree across read and creation.</summary>
     [TestMethod]
@@ -96,10 +96,61 @@ public class MemoryIsfCoverageTests
         }
 
         Assert.Throws<KeyNotFoundException>(() => Import(Profile.Replace("\"name\":\"u16\"", "\"name\":\"absent\"", StringComparison.Ordinal)));
-        Assert.Throws<ArgumentException>(() => IsfMetadata.Import(Encoding.UTF8.GetBytes(Profile), "root", maxBytes: 16));
-        Assert.Throws<ArgumentException>(() => IsfMetadata.Import(Encoding.UTF8.GetBytes(Profile), "root", maxTypes: 1));
-        Assert.Throws<ArgumentException>(() => IsfMetadata.Import(Encoding.UTF8.GetBytes(Profile), "root", maxTypes: 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => IsfMetadata.Import(Encoding.UTF8.GetBytes(Profile), "root", pointerSize: 3));
-        Assert.Throws<OperationCanceledException>(() => IsfMetadata.Import(Encoding.UTF8.GetBytes(Profile), "root", cancellationToken: new CancellationToken(true)));
+        Assert.Throws<ArgumentException>(() => new IsfMetadata(Encoding.UTF8.GetBytes(Profile), maxBytes: 16));
+        Assert.Throws<OperationCanceledException>(() => new IsfMetadata(Encoding.UTF8.GetBytes(Profile), cancellationToken: new CancellationToken(true)));
+        var metadata = new IsfMetadata(Encoding.UTF8.GetBytes(Profile));
+        Assert.Throws<ArgumentException>(() => metadata.Import("root", new MetadataImportOptions { MaxTypes = 1, }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => metadata.Import("root", new MetadataImportOptions { MaxTypes = 0, }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => metadata.Import("root", new MetadataImportOptions { PointerSize = 3, }));
+        Assert.Throws<OperationCanceledException>(() => metadata.Import("root", cancellationToken: new CancellationToken(true)));
+    }
+
+    /// <summary>
+    ///     A pointer chain of user types far longer than the old 128-level recursion limit imports: each type points
+    ///     to the next, and the walk crosses every link.
+    /// </summary>
+    [TestMethod]
+    public void Isf_ImportsAChainDeeperThanTheCallStackLimit()
+    {
+        const int Depth = 2000;
+        var types = new StringBuilder();
+        for (int index = 0; index < Depth; index++)
+        {
+            // The last type points back to the first, closing the chain into a cycle the walk must also end.
+            string next = "t" + ((index + 1) % Depth).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            types.Append(index == 0 ? string.Empty : ",")
+                 .Append("\"t").Append(index).Append("\":{\"kind\":\"struct\",\"size\":8,\"fields\":{\"next\":{\"offset\":0,")
+                 .Append("\"type\":{\"kind\":\"pointer\",\"subtype\":{\"kind\":\"struct\",\"name\":\"").Append(next).Append("\"}}}}}");
+        }
+
+        string profile = "{\"metadata\":{\"format\":\"6.2.0\"},\"base_types\":{},\"user_types\":{" + types + "},\"enums\":{},\"symbols\":{}}";
+        MetadataImportResult imported = new IsfMetadata(Encoding.UTF8.GetBytes(profile)).Import("t0");
+
+        // Every user type and one generated pointer per type.
+        Assert.AreEqual(Depth * 2, imported.Schema.Types.Count);
+        Assert.AreEqual(MemoryTypeKind.Struct, imported.Schema.GetType("isf:user:t" + (Depth - 1)).Kind);
+    }
+
+    /// <summary>One parsed document serves several roots, and <see cref="MetadataImportOptions.BestEffort"/> demotes a broken type instead of failing.</summary>
+    [TestMethod]
+    public void Isf_ReusesOneDocumentAndHonorsBestEffort()
+    {
+        const string Broken = """
+            {"metadata":{"format":"6.2.0"},
+             "base_types":{"u32":{"kind":"int","size":4,"signed":false,"endian":"little"}},
+             "user_types":{
+               "inner":{"kind":"struct","size":4,"fields":{"x":{"offset":100,"type":{"kind":"base","name":"u32"}}}},
+               "outer":{"kind":"struct","size":4,"fields":{"inner":{"offset":0,"type":{"kind":"struct","name":"inner"}}}},
+               "plain":{"kind":"struct","size":4,"fields":{"x":{"offset":0,"type":{"kind":"base","name":"u32"}}}}
+             },
+             "enums":{},"symbols":{}}
+            """;
+        var metadata = new IsfMetadata(Encoding.UTF8.GetBytes(Broken));
+
+        Assert.AreEqual(MemoryTypeKind.Struct, metadata.Import("plain").Schema.GetType("isf:user:plain").Kind);
+        Assert.Throws<ArgumentException>(() => metadata.Import("outer"));
+        MetadataImportResult tolerant = metadata.Import("outer", new MetadataImportOptions { BestEffort = true, });
+        Assert.AreEqual(MemoryTypeKind.Opaque, tolerant.Schema.GetType("isf:user:inner").Kind);
+        StringAssert.Contains(string.Join('\n', tolerant.Diagnostics), "isf:user:inner");
     }
 }

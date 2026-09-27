@@ -37,6 +37,13 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
   generated storage views, whose names never appear in results. `PointerRequest.TargetTypeId` is non-nullable, since
   every pointer request names its target type. Migration: use `MemorySchema.Types` and `GetType` for metadata, and
   drop null checks on `TargetTypeId`.
+- **Breaking (API):** the BTF and ISF importers have one shape: parse the metadata once, then import a root with a
+  `MetadataImportOptions` record (`PointerSize`, `BestEffort`, `MaxTypes`). `IsfMetadata` is a parsed document
+  (`new IsfMetadata(json, isLittleEndian, maxBytes)`) instead of a static class, so one document serves several
+  roots, and ISF imports gain best-effort mode. Migration: replace `metadata.Import(id, pointerSize: 4,
+  bestEffort: true)` with `metadata.Import(id, new MetadataImportOptions { PointerSize = 4, BestEffort = true })`,
+  and `IsfMetadata.Import(json, "task", pointerSize, isLittleEndian, maxBytes, maxTypes)` with
+  `new IsfMetadata(json, isLittleEndian, maxBytes).Import("task", new MetadataImportOptions { PointerSize = pointerSize, MaxTypes = maxTypes })`.
 
 ### Added
 
@@ -52,6 +59,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 ### Fixed
 
+- ISF import no longer fails on a long chain of types: it stopped about 42 pointer hops from the root with
+  "ISF type/depth budget exceeded". It now walks the graph with an explicit work list, as BTF import does, and is
+  bounded by the descriptor budget instead.
 - A mapped class's property finds its layout member by the same rule at build time and at run time. When two layout
   members matched a property case-insensitively (`flag` and `FLAG` for `Flag`), the generator went on to the
   underscore rule and could bind the property to a third member, while the runtime left it unmatched; both now

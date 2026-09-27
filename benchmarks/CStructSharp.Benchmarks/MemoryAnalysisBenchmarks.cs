@@ -89,9 +89,9 @@ public class MemoryAnalysisBenchmarks
             maxNodes: 4096);
     }
 
-    /// <summary>Imports a bounded profile and compiles its scalar and placement views.</summary>
+    /// <summary>Parses a bounded profile, imports one record and compiles its scalar and placement views.</summary>
     [Benchmark]
-    public MetadataImportResult ImportIsf() => IsfMetadata.Import(this.metadata, "record");
+    public MetadataImportResult ImportIsf() => new IsfMetadata(this.metadata).Import("record");
 
     /// <summary>Plans and commits a scalar patch spanning two physical fragments.</summary>
     [Benchmark]

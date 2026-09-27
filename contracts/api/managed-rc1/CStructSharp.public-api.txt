@@ -940,7 +940,7 @@ namespace CStructSharp.Memory.Metadata
         public int TypeCount { get; }
         public CStructSharp.Memory.Metadata.BtfTypeDescription Describe(uint id, int pointerSize = 8) { }
         public uint FindType(string name) { }
-        public CStructSharp.Memory.Metadata.MetadataImportResult Import(uint rootTypeId, int pointerSize = 8, System.Threading.CancellationToken cancellationToken = default, bool bestEffort = false) { }
+        public CStructSharp.Memory.Metadata.MetadataImportResult Import(uint rootTypeId, CStructSharp.Memory.Metadata.MetadataImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
     public sealed class BtfTypeDescription : System.IEquatable<CStructSharp.Memory.Metadata.BtfTypeDescription>
     {
@@ -954,9 +954,19 @@ namespace CStructSharp.Memory.Metadata
         public int Size { get; init; }
         public uint? TargetTypeId { get; init; }
     }
-    public static class IsfMetadata
+    public sealed class IsfMetadata
     {
-        public static CStructSharp.Memory.Metadata.MetadataImportResult Import(System.ReadOnlyMemory<byte> json, string rootName, int pointerSize = 8, bool isLittleEndian = true, int maxBytes = 16777216, int maxTypes = 100000, System.Threading.CancellationToken cancellationToken = default) { }
+        public IsfMetadata(System.ReadOnlyMemory<byte> json, bool isLittleEndian = true, int maxBytes = 16777216, System.Threading.CancellationToken cancellationToken = default) { }
+        public bool IsLittleEndian { get; }
+        public CStructSharp.Memory.Metadata.MetadataImportResult Import(string rootName, CStructSharp.Memory.Metadata.MetadataImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+    }
+    public sealed class MetadataImportOptions : System.IEquatable<CStructSharp.Memory.Metadata.MetadataImportOptions>
+    {
+        public MetadataImportOptions() { }
+        public bool BestEffort { get; init; }
+        public int MaxTypes { get; init; }
+        public int PointerSize { get; init; }
+        public static CStructSharp.Memory.Metadata.MetadataImportOptions Default { get; }
     }
     public sealed class MetadataImportResult : System.IEquatable<CStructSharp.Memory.Metadata.MetadataImportResult>
     {

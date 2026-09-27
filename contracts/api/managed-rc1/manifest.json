@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 53,
+  "baselineRevision": 54,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.10.0",
   "assembly": "CStructSharp.dll",
-  "exportedTypes": 87,
+  "exportedTypes": 88,
   "generator": {
     "package": "PublicApiGenerator.Tool",
     "version": "11.5.4",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 1091,
-    "normalizedSha256": "607BC21A02D4FB62A51A64D02939ED609D7617B6670C48807489CF8AD6115D4A"
+    "lines": 1101,
+    "normalizedSha256": "E4A87DF925BEC1962879DE8A000CD8B0DE395B451E676A67DF0F6E7AFA394CC8"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "FB3F50A3262AAFD55951F867B5D153C97CCF220B492FE5518DEE8599F7BB46B9",
+      "normalizedSha256": "AFF52AAC55ABA760EC146850640FD6EB023DFB5E2A42FD26CB5FA84B1927845D",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "83456C27B310BC62526E2D289D3ADAE63B98420FF05A918CC5EA90501E4B6A6B",
+      "normalizedSha256": "5600870B1E819CB7CF5D94F61E7C55B207675A30BD8532D7E19F045F203F41E3",
       "aotCompatible": true
     }
   ],
@@ -510,6 +510,15 @@
       "combinedSha256": "9B2B037D55C03CC12A0C84C0622AFD4B8AECF1993D5CFDAA71CBC29CB3E805A8",
       "rationale": "Generated writers encode a bool array with Codec.EncodeBooleans, the counterpart of DecodeBooleans, so every bulk array encode is one call.",
       "releaseImpact": "One additive generated-support member; existing generated code keeps its loop and still works."
+    },
+    {
+      "revision": 54,
+      "kind": "breaking",
+      "date": "2026-09-27",
+      "packageVersion": "0.10.0",
+      "combinedSha256": "793D7999699C3AEBF0C168F7CC375951A7742EB0AE9AD89066A06F452BDF6289",
+      "rationale": "BTF and ISF imports take one MetadataImportOptions record (PointerSize, BestEffort, MaxTypes); ISF becomes a parsed IsfMetadata document with an Import method, like BtfMetadata.",
+      "releaseImpact": "Pass new MetadataImportOptions { PointerSize = ..., BestEffort = ... } to BtfMetadata.Import; replace IsfMetadata.Import(json, root, ...) with new IsfMetadata(json, isLittleEndian, maxBytes).Import(root, options)."
     }
   ]
 }

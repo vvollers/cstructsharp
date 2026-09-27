@@ -96,7 +96,7 @@ internal static class MemoryTutorialExamples
               } } }, "enums": {}, "symbols": {} }
             """;
         // The importer follows "counter" and the types it references; RootTypeId is the importer's ID for it.
-        MetadataImportResult imported = IsfMetadata.Import(Encoding.UTF8.GetBytes(json), "counter", pointerSize: 8);
+        MetadataImportResult imported = new IsfMetadata(Encoding.UTF8.GetBytes(json)).Import("counter", new MetadataImportOptions { PointerSize = 8, });
         var session = new MemorySession(imported.Schema);
 
         // Offsets 0..3 are outside the selected member, so their contents cannot influence the result.
@@ -125,7 +125,7 @@ internal static class MemoryTutorialExamples
         // Parsing indexes the table; FindType demands a unique name; Import compiles the reachable graph.
         var metadata = new BtfMetadata(blob);
         uint rootId = metadata.FindType("record");
-        MetadataImportResult imported = metadata.Import(rootId, pointerSize: 8);
+        MetadataImportResult imported = metadata.Import(rootId, new MetadataImportOptions { PointerSize = 8, });
         var session = new MemorySession(imported.Schema);
         var image = new ByteArrayMemorySource("BTF record", new byte[] { 0xaa, 0xbb, 0xcc, 0xdd, 9, 0, 0, 0 });
         Require((uint)session.Read(new MemoryRegion(image, 0, 8), imported.RootTypeId, "value")! == 9, "BTF member placement");

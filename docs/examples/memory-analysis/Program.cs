@@ -33,7 +33,7 @@ internal static class Program
         Console.WriteLine("Ten memory guide examples passed.");
 
         // Step 1: metadata describes the task layout; a 40 KiB byte array plays the role of the capture file.
-        MetadataImportResult imported = IsfMetadata.Import(Encoding.UTF8.GetBytes(Metadata), "task");
+        MetadataImportResult imported = new IsfMetadata(Encoding.UTF8.GetBytes(Metadata)).Import("task");
         var session = new MemorySession(imported.Schema);
         var image = new ByteArrayMemorySource("physical image", new byte[0xa000]);
 
