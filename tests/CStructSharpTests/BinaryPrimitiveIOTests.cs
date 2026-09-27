@@ -176,24 +176,36 @@ public class BinaryPrimitiveIOTests
     [TestMethod]
     public void WriteUnsigned_SupportedWidths_EncodesInRequestedByteOrder()
     {
-        CollectionAssert.AreEqual(new byte[] { 0x12, }, BinaryPrimitiveIO.WriteUnsigned(0x12, 1, true));
-        CollectionAssert.AreEqual(new byte[] { 0x34, 0x12, }, BinaryPrimitiveIO.WriteUnsigned(0x1234, 2, true));
-        CollectionAssert.AreEqual(new byte[] { 0x12, 0x34, }, BinaryPrimitiveIO.WriteUnsigned(0x1234, 2, false));
+        CollectionAssert.AreEqual(new byte[] { 0x12, }, WriteUnsigned(0x12, 1, true));
+        CollectionAssert.AreEqual(new byte[] { 0x34, 0x12, }, WriteUnsigned(0x1234, 2, true));
+        CollectionAssert.AreEqual(new byte[] { 0x12, 0x34, }, WriteUnsigned(0x1234, 2, false));
         CollectionAssert.AreEqual(
             new byte[] { 0x78, 0x56, 0x34, 0x12, },
-            BinaryPrimitiveIO.WriteUnsigned(0x12345678, 4, true));
+            WriteUnsigned(0x12345678, 4, true));
         CollectionAssert.AreEqual(
             new byte[] { 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, },
-            BinaryPrimitiveIO.WriteUnsigned(0x0102030405060708, 8, true));
+            WriteUnsigned(0x0102030405060708, 8, true));
     }
 
-    /// <summary>An unsupported byte size cannot be encoded as one of the four known integer widths.</summary>
+    /// <summary>An odd width is a bitfield window; zero and nine bytes cannot be encoded.</summary>
     [TestMethod]
     public void WriteUnsigned_OddSizes_AreBitfieldWindows_AndZeroOrNineThrow()
     {
-        CollectionAssert.AreEqual(new byte[] { 0x01, 0x02, 0x03 }, BinaryPrimitiveIO.WriteUnsigned(0x030201, 3, true));
-        CollectionAssert.AreEqual(new byte[] { 0x03, 0x02, 0x01 }, BinaryPrimitiveIO.WriteUnsigned(0x030201, 3, false));
-        Assert.Throws<InvalidOperationException>(() => BinaryPrimitiveIO.WriteUnsigned(1, 0, true));
-        Assert.Throws<InvalidOperationException>(() => BinaryPrimitiveIO.WriteUnsigned(1, 9, true));
+        CollectionAssert.AreEqual(new byte[] { 0x01, 0x02, 0x03 }, WriteUnsigned(0x030201, 3, true));
+        CollectionAssert.AreEqual(new byte[] { 0x03, 0x02, 0x01 }, WriteUnsigned(0x030201, 3, false));
+        Assert.Throws<InvalidOperationException>(() => WriteUnsigned(1, 0, true));
+        Assert.Throws<InvalidOperationException>(() => WriteUnsigned(1, 9, true));
+    }
+
+    /// <summary>Encodes one value through the stream helper and returns the bytes written.</summary>
+    /// <param name="value">The value.</param>
+    /// <param name="byteSize">The width in bytes.</param>
+    /// <param name="littleEndian">Whether to write little-endian.</param>
+    /// <returns>The bytes.</returns>
+    private static byte[] WriteUnsigned(ulong value, int byteSize, bool littleEndian)
+    {
+        using var stream = new MemoryStream();
+        BinaryPrimitiveIO.WriteUnsigned(stream, value, byteSize, littleEndian);
+        return stream.ToArray();
     }
 }

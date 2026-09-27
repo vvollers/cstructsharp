@@ -386,4 +386,39 @@ public class BitfieldSemanticsTests
             target[destination] = (byte)(value >> (index * 8));
         }
     }
+
+    /// <summary>
+    ///     Updating a bitfield reads and writes its storage unit through a stack buffer: it allocates no more per update
+    ///     than updating a plain byte field in the same layout (two heap buffers per update would add 64 bytes).
+    /// </summary>
+    [TestMethod]
+    [DoNotParallelize]
+    public void BitfieldUpdate_AllocatesNoStorageBuffers()
+    {
+        var layout = new CStruct("struct root { uint8 plain; uint8 bits:3; uint8 more:5; };");
+        byte[] data = new byte[2];
+
+        // Warm up, then average over many updates so one-time costs do not count.
+        /// <summary>The average bytes one update of <paramref name="path"/> allocates.</summary>
+        long PerUpdate(string path)
+        {
+            for (int index = 0; index < 50; index++)
+            {
+                layout.Update(data, path, (byte)1);
+            }
+
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            for (int index = 0; index < 1000; index++)
+            {
+                layout.Update(data, path, (byte)1);
+            }
+
+            return (GC.GetAllocatedBytesForCurrentThread() - before) / 1000;
+        }
+
+        long plain = PerUpdate("root.plain");
+        long bits = PerUpdate("root.bits");
+        Assert.IsLessThan(64L, bits - plain, $"A bitfield update allocated {bits} bytes against {plain} for a plain field.");
+        Assert.AreEqual(0x01, data[1] & 0x07);
+    }
 }

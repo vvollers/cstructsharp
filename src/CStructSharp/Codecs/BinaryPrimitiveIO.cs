@@ -343,13 +343,27 @@ internal static class BinaryPrimitiveIO
         stream.Write(buffer);
     }
 
-    /// <summary>Converts an unsigned value to one, two, four, or eight bytes in the layout's byte order.</summary>
-    public static byte[] WriteUnsigned(ulong value, int byteSize, bool littleEndian)
+    /// <summary>Writes an unsigned value as one to eight bytes in the given byte order: a pointer, or a bitfield storage unit.</summary>
+    /// <param name="stream">The destination, at the value's first byte.</param>
+    /// <param name="value">The value.</param>
+    /// <param name="byteSize">The width in bytes, 1 to 8.</param>
+    /// <param name="littleEndian">Whether the bytes are little-endian.</param>
+    /// <exception cref="InvalidOperationException">The width is not 1 to 8.</exception>
+    public static void WriteUnsigned(Stream stream, ulong value, int byteSize, bool littleEndian)
     {
-        byte[] bytes = new byte[byteSize];
-        Codec.WriteUnsigned(bytes, value, littleEndian);
-        return bytes;
+        Span<byte> bytes = stackalloc byte[8];
+        Span<byte> unit = UnitOf(bytes, byteSize);
+        Codec.WriteUnsigned(unit, value, littleEndian);
+        stream.Write(unit);
     }
+
+    /// <summary>The first <paramref name="byteSize"/> bytes of an eight-byte scratch buffer, for a value of one to eight bytes.</summary>
+    /// <param name="scratch">An eight-byte buffer.</param>
+    /// <param name="byteSize">The width in bytes.</param>
+    /// <returns>The slice.</returns>
+    /// <exception cref="InvalidOperationException">The width is not 1 to 8.</exception>
+    internal static Span<byte> UnitOf(Span<byte> scratch, int byteSize)
+        => byteSize is > 0 and <= 8 ? scratch[..byteSize] : throw new InvalidOperationException("Unsupported integer size: " + byteSize);
 
     /// <summary>Reads exactly the requested number of bytes, translating a short read into a layout-specific error.</summary>
     internal static void ReadExactlyOrThrow(Stream stream, Span<byte> buffer)

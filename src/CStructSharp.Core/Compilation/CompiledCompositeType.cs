@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
@@ -13,6 +14,9 @@ internal sealed partial class CompiledCompositeType : CompiledType
     private StructShape? shape;
 
     private CompiledConditionalScope? conditionalScope;
+
+    /// <summary>0 until <see cref="ReachesConditionalMembers"/> is first computed, then 1 (no) or 2 (yes).</summary>
+    private int reachesConditionalMembers;
 
     /// <summary>Creates the composite from its placed members.</summary>
     /// <param name="symbol">The composite's type symbol.</param>
@@ -58,6 +62,26 @@ internal sealed partial class CompiledCompositeType : CompiledType
 
     /// <summary>The number of <c>if</c>/<c>switch</c> decisions among the members: the length of an operation's selected-arm array.</summary>
     public int ConditionalGroupCount { get; }
+
+    /// <summary>
+    ///     Whether this composite or any type reachable from it - member types and pointer targets - has an <c>if</c> or
+    ///     <c>switch</c> member, so an update must read the layout around its target. Computed on first use; a race only
+    ///     computes the same answer twice.
+    /// </summary>
+    public bool ReachesConditionalMembers
+    {
+        get
+        {
+            int state = Volatile.Read(ref this.reachesConditionalMembers);
+            if (state == 0)
+            {
+                state = this.FindConditionalMember() ? 2 : 1;
+                Volatile.Write(ref this.reachesConditionalMembers, state);
+            }
+
+            return state == 2;
+        }
+    }
 
     /// <summary>
     ///     The layout variables kept for the members while nested declarations are read; <see langword="null"/> when no
@@ -115,6 +139,37 @@ internal sealed partial class CompiledCompositeType : CompiledType
         return result;
     }
 
+    /// <summary>Walks the types reachable from this composite, each once, for a conditional member.</summary>
+    /// <returns>Whether one is found.</returns>
+    private bool FindConditionalMember()
+    {
+        var pending = new Stack<CompiledTypeSymbol>();
+        var visited = new HashSet<CompiledTypeSymbol>();
+        pending.Push(this.Symbol);
+        while (pending.Count > 0)
+        {
+            CompiledTypeSymbol symbol = pending.Pop();
+            if (!visited.Add(symbol) || symbol.Definition is not CompiledCompositeType composite)
+            {
+                continue;
+            }
+
+            foreach (CompiledField field in composite.Fields)
+            {
+                if (field.IsConditional)
+                {
+                    return true;
+                }
+
+                pending.Push(field.Type.Symbol);
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Builds the shared value shape: declared names in order, promoted members spliced in.</summary>
+    /// <returns>The shape.</returns>
     private StructShape BuildShape()
     {
         var names = new List<string>();

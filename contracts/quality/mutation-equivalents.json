@@ -331,10 +331,10 @@
   },
   {
    "pattern": "CStructConditionalFields.cs",
-   "sourceSha256": "f0843b68896f1114d10924f8bd115c5921b54fedfbd5d4e953fee1ef9cd6d181",
+   "sourceSha256": "35d13c23e7ff86ef8cda1d554041b4ef26abfa3466768eead8c1923b4a819d35",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":59,"column":13},"end":{"line":59,"column":30}},
+     "location": {"start":{"line":37,"column":13},"end":{"line":37,"column":30}},
      "reason": "CaptureUpdateLayout is private and its three call sites pass either readState.Stream (a ReadBudgetStream) or stagingStream (a SparseUpdateStream). Its new operation context wraps that object in another ReadBudgetStream. Memory backing is selected only for a FixedBufferStream or an exposed MemoryStream; neither permitted input is one. Complete therefore calls FlushPosition on a non-memory-backed wrapper, which is a no-op. Stream-mode reads already delegate their position changes, and the update owner restores its original position separately." }
    ]
   },
@@ -400,16 +400,16 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/CompiledCompositeType.cs",
-   "sourceSha256": "1736f58ff0199dc6a9c817c8c49a878047b591955b4a8363130e1e7fa87e2ea6",
+   "sourceSha256": "3fa1197dea58f95fcac932ca25683e7ffc8e75c1e5cf4e1af95db97600b73230",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":130,"column":13},"end":{"line":130,"column":20}},
+     "location": {"start":{"line":185,"column":13},"end":{"line":185,"column":20}},
      "reason": "CollectShapeNames follows only promoted anonymous by-value composites. LayoutCompilation.Model rejects recursive by-value declarations before exposing the compiled model; pointer edges are not promoted composites. The active visiting set therefore never contains a valid child being entered. Its defensive cycle return is unreachable for compiled layouts." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":142,"column":17},"end":{"line":142,"column":26}},
+     "location": {"start":{"line":197,"column":17},"end":{"line":197,"column":26}},
      "reason": "PromotedFields contains only declarations matching Struct with an empty name. Without this continue, the subsequent ordinary-name branch still rejects name.Length equal to zero. Recursive collection already occurred and no empty name is added, so the final shape is identical." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":152,"column":9},"end":{"line":152,"column":31}},
+     "location": {"start":{"line":207,"column":9},"end":{"line":207,"column":31}},
      "reason": "CollectShapeNames visits a finite acyclic graph of promoted by-value composites and deduplicates output names in the separate seen set. Leaving a completed composite in visiting can only skip a later traversal of that identical composite; its entire reachable name sequence was already visited and every name is already in seen. Thus neither final names nor their first-occurrence order changes. The visiting set is private to one BuildShape call." }
    ]
   },
@@ -544,7 +544,7 @@
   },
   {
    "pattern": "CStructWriter.cs",
-   "sourceSha256": "d338fe57ccd31a7f5ed53df287426815dc2944e98af7b630ca75fb366bbf7d30",
+   "sourceSha256": "a33d76aa68b89c26fdae55e0d842b5ea7d9e7650c6e310849604b10d6a982d7f",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":241,"column":25},"end":{"line":241,"column":78}},
@@ -580,7 +580,7 @@
      "location": {"start":{"line":260,"column":21},"end":{"line":260,"column":74}},
      "reason": "This CompleteField call belongs only to a zero-width bitfield separator. Compilation permits width zero only with an empty declaration name and validates an integer or enum storage type, never a composite. CompiledConditionalScope therefore gives the separator no visible names or captured slots, and skips nested-shadow analysis for its non-composite type, leaving restored slots empty too. ConditionalVariableScope.CompleteField performs only its two slot loops; both are empty for this exact field. If the scope is null the original call also does nothing. Removing this call cannot affect variables or the placement/reset statements that precede it. Ordinary and promoted-struct CompleteField calls are not covered and are required by the nested-count regressions." },
     { "mutatorName": "Logical mutation", "replacement": "rootData is not null || !WriteDataBinding.IsMemberSource(rootData)",
-     "location": {"start":{"line":1511,"column":17},"end":{"line":1511,"column":83}},
+     "location": {"start":{"line":1510,"column":17},"end":{"line":1510,"column":83}},
      "reason": "This changes only the preliminary eligibility check for selected-path root materialization. Non-null non-member sources already take the same branch. The additional cases are null and member-source dictionaries: WriteDataBinding.Materialize returns those exact inputs immediately, before allocating a StructValue or invoking a mapper. IsMemberSource uses only interface type tests, so checking null has no callback. TryGetRootComposite examines the immutable root declaration and, for a compiled Struct or inline-struct typedef, reads its already-bound descriptor from the private symbol table; other roots return false. Neither extra lookup nor the early-return materialization changes caller data, state or failure behavior. The later path lookup and field writer therefore receive the same object (including null). This does not qualify removal of the distinct whole-composite null rejection in WriteStruct." },
     { "mutatorName": "Boolean mutation", "replacement": "true",
      "location": {"start":{"line":359,"column":20},"end":{"line":359,"column":25}},
@@ -589,16 +589,16 @@
      "location": {"start":{"line":371,"column":17},"end":{"line":371,"column":26}},
      "reason": "The recursive promoted-member branch applies only to anonymous inline Struct declarations in PromotedFields. Their empty declaration names are preserved by effective-field compilation and placement. If recursion finds no supplied named leaf, removing this continue only reaches the next name.Length > 0 guard with an empty name. It short-circuits without consulting caller data and proceeds to the same next member. A successful recursion still returns true before this statement. The nonempty-name guard remains required and is not qualified by this proof." },
     { "mutatorName": "String mutation", "replacement": "\"\"",
-     "location": {"start":{"line":1177,"column":18},"end":{"line":1177,"column":57}},
+     "location": {"start":{"line":1176,"column":18},"end":{"line":1176,"column":57}},
      "reason": "EnumIntegerCodecTable validates every enum backing type as a built-in signed/unsigned 8/16/32/64-bit integer, including resolved aliases; custom codecs cannot be backing types or replace built-in names. GetCompiledCodecId supplies the backing primitive's id to enum fields and root views. BuildCodecTable fills every canonical id with its required non-null writer before a CStruct instance can be used. Therefore WriterOf for this compiled enum cannot be null. This changes only the unreachable missing-delegate diagnostic, not enum input conversion, range validation or writing." },
     { "mutatorName": "String mutation", "replacement": "\"\"",
-     "location": {"start":{"line":1220,"column":45},"end":{"line":1220,"column":77}},
+     "location": {"start":{"line":1219,"column":45},"end":{"line":1219,"column":77}},
      "reason": "WritePrimitiveValue has two callers. WriteSingleFieldValue first handles pointers, bitfields, enums and composites, then rejects HasCodec=false before calling it. WriteFixedCharArray handles bounded and wide text separately; its remaining per-character caller has the compiled built-in char codec. BuildCodecTable fills every canonical id with a non-null writer and appends a non-null adapter delegate for every validated custom registration. Thus both callers supply an existing writer. A custom writer may throw, but cannot make its registered delegate null. The separate reachable no-handler error for a void alias is unaffected." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":1478,"column":13},"end":{"line":1478,"column":62}},
+     "location": {"start":{"line":1477,"column":13},"end":{"line":1477,"column":62}},
      "reason": "WriteStreamCore rejects blank paths before ParsePath. CStructPathResolver.ParseUncached starts segmentCount at one and either throws or returns an array of that positive length. Both successful TryCreateSyntheticRoot branches return exactly one segment; false branches cannot replace the parsed result. The two private caches only store these successful results, and no caller changes their length. Therefore ParsePath cannot return an empty segment list to this writer. Removing only the second, unreachable empty-list throw changes neither accepted paths nor the earlier empty-path diagnostic." },
     { "mutatorName": "String mutation", "replacement": "\"\"",
-     "location": {"start":{"line":1478,"column":44},"end":{"line":1478,"column":60}},
+     "location": {"start":{"line":1477,"column":44},"end":{"line":1477,"column":60}},
      "reason": "WriteStreamCore rejects blank paths before ParsePath. The ordinary path parser returns an array with at least one segment or throws; successful synthetic roots contain exactly one segment. Their private caches retain only these nonempty results. Thus the second empty-list guard cannot be reached, and changing only its diagnostic string has no observable effect. The earlier reachable empty-path exception remains unchanged." },
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?state.CurrentBitfieldSize\n:compiledField.BitStorageSize ??\n                             throw new InvalidOperationException(\n                                 \"Compiled bitfield has no storage size: \" + compiledField.Name))",
      "location": {"start":{"line":51,"column":24},"end":{"line":55,"column":97}},
@@ -624,9 +624,6 @@
     { "mutatorName": "String mutation", "replacement": "\"\"",
      "location": {"start":{"line":58,"column":42},"end":{"line":58,"column":81}},
      "reason": "LayoutCompilation.Model validates every positive bitfield with BitfieldCodecTable.ValidateBitField before constructing its immutable CompiledField. Only direct integral storage (including an enum's integral backing type) is accepted, and both ByteSize and IsLittleEndian are stored. BitStorageIsLittleEndian cannot be null when WriteBitFieldValue is called, so its fallback diagnostic cannot be observed." },
-    { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":88,"column":17},"end":{"line":88,"column":69}},
-     "reason": "WriteBitFieldValue allocates a new byte[byteSize], which is zero-initialized. Successful Stream.Read calls fill only the prefix ending at offset; at an ordinary end-of-stream the remaining suffix has never been written. Array.Clear repeats the existing zero state. In update mode the preceding throw remains, so removing this clear changes neither bytes nor failures for conforming streams." },
     { "mutatorName": "Conditional (true) mutation", "replacement": "(true?new ConditionalFieldSelection(this.layoutExpressionEvaluator, composite.ConditionalGroupCount, ExpressionFailureDomain.Write) :null)",
      "location": {"start":{"line":218,"column":29},"end":{"line":218,"column":200}},
      "reason": "A composite without direct conditional fields has zero conditional groups and its direct fields have empty ConditionalBranches. Constructing ConditionalFieldSelection in that case creates an empty selection array; IsActive visits no branches and returns true, matching the original null selection. Nested composites create their own selection state in either implementation." },
@@ -634,8 +631,11 @@
      "location": {"start":{"line":1105,"column":29},"end":{"line":1105,"column":79}},
      "reason": "CompleteStructTailPadding assigns the cursor's current byte position to the stream before calling FinishComposite. FinishComposite uses LayoutMath.AlignUp with a positive Int32 alignment; it either throws on the checked 64-bit addition or advances by at most alignment minus one. The resulting nonnegative difference fits Int32, so this narrowing cast cannot overflow and removing its checked wrapper changes no result or failure." },
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?compiledField.QualifiedPrefix :outerPrefix + compiledField.QualifiedPrefix)",
-     "location": {"start":{"line":1190,"column":41},"end":{"line":1190,"column":138}},
-     "reason": "When outerPrefix is non-null the original expression already concatenates it with compiledField.QualifiedPrefix. When it is null, C# string concatenation treats null as an empty string, producing exactly compiledField.QualifiedPrefix, which is non-null for fields satisfying HasQualifiedPrefix. Selecting the concatenation arm unconditionally preserves the published path." }
+     "location": {"start":{"line":1189,"column":41},"end":{"line":1189,"column":138}},
+     "reason": "When outerPrefix is non-null the original expression already concatenates it with compiledField.QualifiedPrefix. When it is null, C# string concatenation treats null as an empty string, producing exactly compiledField.QualifiedPrefix, which is non-null for fields satisfying HasQualifiedPrefix. Selecting the concatenation arm unconditionally preserves the published path." },
+    { "mutatorName": "Statement mutation", "replacement": ";",
+     "location": {"start":{"line":89,"column":17},"end":{"line":89,"column":42}},
+     "reason": "WriteBitFieldValue reads into a stackalloc buffer; the library does not skip locals initialization, so the buffer starts zeroed. Successful Stream.Read calls fill only the prefix ending at offset; at an ordinary end-of-stream the remaining suffix has never been written. The span Clear repeats the existing zero state. In update mode the preceding throw remains, so removing this clear changes neither bytes nor failures for conforming streams." }
    ]
   },
   {

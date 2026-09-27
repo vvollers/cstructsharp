@@ -12,33 +12,11 @@ using CStructSharp.Values;
 /// <summary>Conditional-field support for the runtime reader: detecting conditional layouts and tracing arm selection.</summary>
 public partial class CStruct
 {
-    /// <summary>Checks only types reachable from the selected root, including aliases and pointer targets.</summary>
+    /// <summary>Whether a root reaches a conditional member, which an update must re-read around.</summary>
+    /// <param name="rootName">The declared root name.</param>
+    /// <returns>Whether any type reachable from the root has an <c>if</c> or <c>switch</c> member.</returns>
     private bool HasConditionalLayout(string rootName)
-    {
-        var pending = new Stack<CompiledTypeSymbol>();
-        var visited = new HashSet<CompiledTypeSymbol>();
-        pending.Push(this.compilation.CompiledModel.Symbols[rootName].Symbol);
-        while (pending.Count > 0)
-        {
-            CompiledTypeSymbol symbol = pending.Pop();
-            if (!visited.Add(symbol) || symbol.Definition is not CompiledCompositeType composite)
-            {
-                continue;
-            }
-
-            foreach (CompiledField field in composite.Fields)
-            {
-                if (field.IsConditional)
-                {
-                    return true;
-                }
-
-                pending.Push(field.Type.Symbol);
-            }
-        }
-
-        return false;
-    }
+        => this.compilation.CompiledModel.Symbols[rootName].Symbol.Definition is CompiledCompositeType composite && composite.ReachesConditionalMembers;
 
     private (string Path, long Start, long End)[] CaptureUpdateLayout(
         Stream stream, long origin, CStructElement root, Dictionary<string, Expr> variables, ReadOperationSettings options)

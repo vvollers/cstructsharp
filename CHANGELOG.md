@@ -100,6 +100,9 @@ Related changes are consolidated; routine formatting and benchmark bookkeeping a
 
 - A read reuses its pointer bookkeeping (the cycle-detection set and the deferred-pointer list) from a per-thread
   cache instead of allocating it, so a read that follows pointers allocates less than before.
+- An update allocates less: whether its root reaches an `if`/`switch` member is computed once per layout instead
+  of on every update, and bitfield and pointer writes encode through a stack buffer instead of new byte arrays (about
+  260 bytes less per update, 60 more for a bitfield).
 
 ### Documentation and tooling
 

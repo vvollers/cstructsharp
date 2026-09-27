@@ -67,11 +67,12 @@ public partial class CStruct
 
         // Bitfields share bytes. Read the existing bytes so neighboring fields survive this update.
         long curPos = state.Stream.Position;
-        byte[] buffer = new byte[byteSize];
+        Span<byte> scratch = stackalloc byte[8];
+        Span<byte> buffer = BinaryPrimitiveIO.UnitOf(scratch, byteSize);
         int offset = 0;
         while (offset < buffer.Length)
         {
-            int read = state.Stream.Read(buffer, offset, buffer.Length - offset);
+            int read = state.Stream.Read(buffer[offset..]);
             if (read == 0)
             {
                 if (state.Options is UpdateOptions)
@@ -85,7 +86,7 @@ public partial class CStruct
                 // A new Serialize/Write destination may not contain the rest of this storage unit yet. Only a
                 // genuine end of stream is zero-extended; a legal short read is retried so neighbouring bits cannot
                 // be accidentally erased.
-                Array.Clear(buffer, offset, buffer.Length - offset);
+                buffer[offset..].Clear();
                 break;
             }
 
@@ -101,9 +102,8 @@ public partial class CStruct
             compiledField.BitSize);
 
         // Convert the merged number back to bytes, then overwrite exactly this storage unit.
-        byte[] output = BinaryPrimitiveIO.WriteUnsigned(newValue, byteSize, storageIsLittleEndian);
         state.Stream.Position = curPos;
-        state.Stream.Write(output, 0, output.Length);
+        BinaryPrimitiveIO.WriteUnsigned(state.Stream, newValue, byteSize, storageIsLittleEndian);
 
         // Keep the stream at the start while later bitfields share this same unit.
         state.CurrentBitOffset += compiledField.BitSize;
@@ -1125,8 +1125,7 @@ public partial class CStruct
             this.PointerSize);
 
         // The shared primitive helper handles the layout byte order for every supported pointer width.
-        byte[] bytes = BinaryPrimitiveIO.WriteUnsigned(value, this.PointerSize, this.IsLittleEndian);
-        stream.Write(bytes, 0, bytes.Length);
+        BinaryPrimitiveIO.WriteUnsigned(stream, value, this.PointerSize, this.IsLittleEndian);
     }
 
     /// <summary>Writes one scalar or array element, using zero storage for unnamed custom-codec padding.</summary>
