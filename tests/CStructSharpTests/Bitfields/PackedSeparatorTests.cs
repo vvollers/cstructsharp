@@ -2,7 +2,7 @@ namespace CStructSharp.Tests;
 
 /// <summary>Checks that packed SysV separators start an independently bounded run for the following bitfields.</summary>
 [TestClass]
-public class PackedSeparatorRegressionTests
+public class PackedSeparatorTests
 {
     /// <summary>A leading separator after ordinary bytes aligns a wider field without reading outside its packed run.</summary>
     /// <param name="prefixSize">The ordinary prefix length in bytes.</param>

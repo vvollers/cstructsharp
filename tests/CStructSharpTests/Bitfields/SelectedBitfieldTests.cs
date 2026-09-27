@@ -1,8 +1,13 @@
 namespace CStructSharp.Tests;
 
-/// <summary>Checks selected-value and address extent arithmetic before any physical input is touched.</summary>
+using CStructSharp.Values;
+
+/// <summary>
+///     Checks reading a selected bitfield: extent arithmetic before any input is touched, the position of the shared
+///     storage unit, and a pointer selection that must use its union target's bitfield storage.
+/// </summary>
 [TestClass]
-public class ReaderBitfieldExtentTests
+public class SelectedBitfieldTests
 {
     /// <summary>A root union validates its complete storage window before reading its overlapping views.</summary>
     [TestMethod]
@@ -46,6 +51,46 @@ public class ReaderBitfieldExtentTests
         Assert.Throws<OverflowException>(() => layout.ResolveAddress(source, path));
         Assert.AreEqual(0, source.ReadCalls);
         Assert.AreEqual(long.MaxValue - 1, source.Position);
+    }
+
+    /// <summary>A partial MSVC unit remains active, while a completely consumed unit advances to its end.</summary>
+    /// <param name="declaration">The storage type and bit width.</param>
+    /// <param name="expected">The selected integer value.</param>
+    /// <param name="advance">Bytes advanced beyond the input origin.</param>
+    [TestMethod]
+    [DataRow("uint8 value:3;", 4, 0)]
+    [DataRow("uint16 value:8;", 52, 0)]
+    [DataRow("uint16 value:16;", 4660, 2)]
+    public void SelectedBitfield_RetainsOrCompletesItsUnit(string declaration, int expected, int advance)
+    {
+        // MSVC packing retains the complete declared storage unit instead of shrinking a packed SysV window.
+        var layout = new CStruct(
+            "struct root { " + declaration + " };",
+            compilationOptions: new CStructCompilationOptions { BitfieldPacking = BitfieldPacking.Msvc, });
+        using var source = new MemoryStream(new byte[] { 0xAA, 0xBB, 0x34, 0x12, });
+        source.Position = 2;
+
+        Assert.AreEqual(expected, layout.ReadValue<int>(source, "root.value"));
+        Assert.AreEqual(2L + advance, source.Position);
+    }
+
+    /// <summary>A selected pointer reads each union bitfield from the target's actual storage unit.</summary>
+    /// <param name="rawFirst">Whether the ordinary byte view precedes the bitfield view.</param>
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void SelectedPointer_UsesTheUnionBitfieldStorage(bool rawFirst)
+    {
+        string members = rawFirst ? "uint8 raw; uint8 bits : 3;" : "uint8 bits : 3; uint8 raw;";
+        var layout = new CStruct("union choice { " + members + " }; struct root { choice *item; };", pointerSize: 1);
+        using var source = new MemoryStream(new byte[] { 1, 5, });
+        var pointer = (Pointer)layout.ReadValue(source, "root.item")!;
+        Assert.AreEqual(1L, pointer.Address);
+        Assert.IsTrue(pointer.IsDereferenced);
+        var target = (UnionValue)pointer.Value!;
+        Assert.AreEqual(5, target.Get<int>("bits"));
+        Assert.AreEqual((byte)5, target.Get<byte>("raw"));
+        Assert.AreEqual(1L, source.Position);
     }
 
     /// <summary>Advertises a near-limit cursor and rejects physical reads that preflight should prevent.</summary>

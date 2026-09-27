@@ -922,7 +922,7 @@
           "An anonymous declarator has no name, so it never becomes a POCO member, path segment, or JSON field to carry a value into - only its storage bits are observable, covered by the bytes contract below."
         ],
         "evidence": [
-          "tests/CStructSharpTests/AnonymousBitfieldTests.cs#PaddingBetweenNamedDeclarators_ConsumesBitsButIsNotExposed"
+          "tests/CStructSharpTests/Bitfields/AnonymousBitfieldTests.cs#PaddingBetweenNamedDeclarators_ConsumesBitsButIsNotExposed"
         ]
       },
       "bytes": {
@@ -931,8 +931,8 @@
           "New output always writes canonical zero for the padding bits, the same way struct tail padding is zero-filled; bits read from input are not guaranteed to survive a round trip, matching every other padding contract in this library."
         ],
         "evidence": [
-          "tests/CStructSharpTests/AnonymousBitfieldTests.cs#WriteStreamAndSerialize_AlwaysWriteZeroForThePadding",
-          "tests/CStructSharpTests/AnonymousBitfieldTests.cs#UpdateStream_OnANamedSibling_DoesNotDisturbThePaddingBits"
+          "tests/CStructSharpTests/Bitfields/AnonymousBitfieldTests.cs#WriteStreamAndSerialize_AlwaysWriteZeroForThePadding",
+          "tests/CStructSharpTests/Bitfields/AnonymousBitfieldTests.cs#UpdateStream_OnANamedSibling_DoesNotDisturbThePaddingBits"
         ]
       }
     },
@@ -1543,7 +1543,7 @@
           "Every bit slice round-trips exactly under either allocation order."
         ],
         "evidence": [
-          "tests/CStructSharpTests/BitfieldAllocationTests.cs#HighBitFirst_TakesTheTopBitsFirst"
+          "tests/CStructSharpTests/Bitfields/BitfieldAllocationTests.cs#HighBitFirst_TakesTheTopBitsFirst"
         ]
       },
       "bytes": {
@@ -1552,7 +1552,7 @@
           "The same BitfieldAllocation option is used for parsing and serialization."
         ],
         "evidence": [
-          "tests/CStructSharpTests/BitfieldAllocationTests.cs#HighBitFirst_KeepsUnitPlacement"
+          "tests/CStructSharpTests/Bitfields/BitfieldAllocationTests.cs#HighBitFirst_KeepsUnitPlacement"
         ]
       }
     },
@@ -2366,7 +2366,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/BitfieldSemanticsTests.cs#BitfieldOperations_FirstMiddleAndLastSlices_Agree",
+          "test": "tests/CStructSharpTests/Bitfields/BitfieldSemanticsTests.cs#BitfieldOperations_FirstMiddleAndLastSlices_Agree",
           "operations": [
             "parse",
             "debug",
@@ -2377,7 +2377,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/BitfieldPackingTests.cs#SysV_MatchesGcc",
+          "test": "tests/CStructSharpTests/Bitfields/BitfieldPackingTests.cs#SysV_MatchesGcc",
           "operations": [
             "parse",
             "debug",
@@ -3071,56 +3071,56 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#PaddingBetweenNamedDeclarators_ConsumesBitsButIsNotExposed",
+          "test": "tests/CStructSharpTests/Bitfields/AnonymousBitfieldTests.cs#PaddingBetweenNamedDeclarators_ConsumesBitsButIsNotExposed",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#WholeFieldAnonymousFromTheStart_Compiles",
+          "test": "tests/CStructSharpTests/Bitfields/AnonymousBitfieldTests.cs#WholeFieldAnonymousFromTheStart_Compiles",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#MultipleAnonymousFields_DoNotCollide",
+          "test": "tests/CStructSharpTests/Bitfields/AnonymousBitfieldTests.cs#MultipleAnonymousFields_DoNotCollide",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#WriteStreamAndSerialize_AlwaysWriteZeroForThePadding",
+          "test": "tests/CStructSharpTests/Bitfields/AnonymousBitfieldTests.cs#WriteStreamAndSerialize_AlwaysWriteZeroForThePadding",
           "operations": [
             "serialize",
             "write"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#UpdateStream_OnANamedSibling_DoesNotDisturbThePaddingBits",
+          "test": "tests/CStructSharpTests/Bitfields/AnonymousBitfieldTests.cs#UpdateStream_OnANamedSibling_DoesNotDisturbThePaddingBits",
           "operations": [
             "update"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#TwoWordRunWithBitWidth_KeepsExistingLastWordAsNameSplit",
+          "test": "tests/CStructSharpTests/Bitfields/AnonymousBitfieldTests.cs#TwoWordRunWithBitWidth_KeepsExistingLastWordAsNameSplit",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#DeclaratorWithNeitherNameNorBitWidth_IsRejected",
+          "test": "tests/CStructSharpTests/Bitfields/AnonymousBitfieldTests.cs#DeclaratorWithNeitherNameNorBitWidth_IsRejected",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#DebugOutput_StillRegistersThePaddingsByteRange",
+          "test": "tests/CStructSharpTests/Bitfields/AnonymousBitfieldTests.cs#DebugOutput_StillRegistersThePaddingsByteRange",
           "operations": [
             "debug"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/AnonymousBitfieldTests.cs#AnonymousField_IsNeverAddressableByPath",
+          "test": "tests/CStructSharpTests/Bitfields/AnonymousBitfieldTests.cs#AnonymousField_IsNeverAddressableByPath",
           "operations": [
             "parse"
           ]
@@ -5711,7 +5711,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/BitfieldAllocationTests.cs#HighBitFirst_TakesTheTopBitsFirst",
+          "test": "tests/CStructSharpTests/Bitfields/BitfieldAllocationTests.cs#HighBitFirst_TakesTheTopBitsFirst",
           "operations": [
             "parse",
             "serialize",
@@ -5720,7 +5720,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/BitfieldAllocationTests.cs#HighBitFirst_KeepsUnitPlacement",
+          "test": "tests/CStructSharpTests/Bitfields/BitfieldAllocationTests.cs#HighBitFirst_KeepsUnitPlacement",
           "operations": [
             "debug",
             "address",

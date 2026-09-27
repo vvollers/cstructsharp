@@ -1,13 +1,17 @@
 namespace CStructSharp.Tests;
 
+using System.Reflection;
+using System.Runtime.InteropServices;
+using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Values;
 
 /// <summary>
 ///     <see cref="BitfieldPacking"/>: SysV placement (the default) reproduces GCC's bytes for every recorded shape in
-///     aligned and packed placement; MSVC placement keeps one unit per declared size. Every shape is serialized,
-///     parsed back, and probed through the size, address, debug, and update operations so the placement rule is
-///     the same everywhere.
+///     aligned and packed placement; MSVC placement keeps one unit per declared size. Every shape is serialized, parsed
+///     back, and probed through the size, address, debug, and update operations so the placement rule is the same
+///     everywhere. Bitfield runs end at an ordinary or inline composite member, honour explicit storage byte order, and
+///     cannot overflow their bit count.
 /// </summary>
 [TestClass]
 public class BitfieldPackingTests
@@ -179,6 +183,90 @@ public class BitfieldPackingTests
         Assert.AreEqual(0, msvcB.BitOffset);
     }
 
+    /// <summary>Repeated valid unnamed 64-bit fields cross the Int32 bit-count boundary without huge source text.</summary>
+    [TestMethod]
+    [DoNotParallelize]
+    public void BitRun_RejectsMoreThanInt32Bits()
+    {
+        var layout = new CStruct("struct root { uint64 _:64; };");
+        var composite = (CompiledCompositeType)layout.CompiledModel.Composites[layout.GetStruct("root")].Definition!;
+        CompiledField field = composite.Fields[0];
+
+        // Reuse identical padding metadata: measurement reads each entry, so independent copies add no evidence.
+        // The reference array is 256 MiB; no binary input, giant layout source or per-field objects are allocated.
+        var fields = new CompiledField[(int)((long)int.MaxValue / 64) + 1];
+        Array.Fill(fields, field);
+        var run = ImmutableCollectionsMarshal.AsImmutableArray(fields);
+        MethodInfo measure = typeof(LayoutCompilation).GetMethod("MeasureBitfieldRun", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        // The checked conversion fails instead of returning a wrapped, negative width.
+        TargetInvocationException error = Assert.Throws<TargetInvocationException>(() => measure.Invoke(null, new object?[] { run, 0, null, }));
+        Assert.IsInstanceOfType<OverflowException>(error.InnerException);
+        Assert.AreEqual(64, field.BitRunBits);
+    }
+
+    /// <summary>Big-endian storage uses a whole unit for low-first bits and a narrow window for high-first bits.</summary>
+    /// <param name="allocation">The direction in which bitfields consume the storage unit.</param>
+    /// <param name="expectedBytes">The compiled storage window size in bytes.</param>
+    [TestMethod]
+    [DataRow(BitfieldAllocation.LowBitFirst, 2)]
+    [DataRow(BitfieldAllocation.HighBitFirst, 1)]
+    public void ExplicitBigEndianStorage_ControlsThePackedWindow(BitfieldAllocation allocation, int expectedBytes)
+    {
+        var layout = new CStruct("struct root { uint16> bits : 3; };", compilationOptions: new CStructCompilationOptions { BitfieldPacking = BitfieldPacking.SysV, BitfieldAllocation = allocation, });
+        var root = (CompiledCompositeType)layout.CompiledModel.Symbols["root"].Symbol.Definition!;
+
+        Assert.AreEqual(false, root.Fields[0].BitStorageIsLittleEndian);
+        Assert.AreEqual(expectedBytes, root.Fields[0].BitUnitSize);
+        Assert.AreEqual(expectedBytes, root.Symbol.FixedSize);
+    }
+
+    /// <summary>A non-bitfield member ends the previous storage run in both supported packing modes.</summary>
+    /// <param name="packing">The storage-unit placement rule.</param>
+    /// <param name="inline">Whether the separating byte belongs to an inline struct.</param>
+    [TestMethod]
+    [DataRow(BitfieldPacking.Msvc, false)]
+    [DataRow(BitfieldPacking.Msvc, true)]
+    [DataRow(BitfieldPacking.SysV, false)]
+    [DataRow(BitfieldPacking.SysV, true)]
+    public void SeparatingMember_StartsANewCompiledBitfieldRun(BitfieldPacking packing, bool inline)
+    {
+        string middle = inline ? "struct { uint8 value; } middle;" : "uint8 middle;";
+        var layout = new CStruct("struct root { uint8 first : 3; " + middle + " uint8 last : 3; };", compilationOptions: new CStructCompilationOptions { BitfieldPacking = packing, });
+        var root = (CompiledCompositeType)layout.CompiledModel.Symbols["root"].Symbol.Definition!;
+        CompiledField last = root.Fields[2];
+
+        Assert.AreEqual(2, last.FixedOffset);
+        Assert.AreEqual(0, last.BitOffset);
+        Assert.AreEqual(3, layout.GetStructSizeInBytes("root"));
+    }
+
+    /// <summary>The bitfield after a named or promoted inline struct opens a new storage unit.</summary>
+    /// <param name="named">Whether the inline struct has a member name instead of promoting its fields.</param>
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void InlineComposite_ClosesThePreviousBitfieldRun(bool named)
+    {
+        string suffix = named ? " child" : string.Empty;
+        var layout = new CStruct("struct root { uint8 first : 3; struct { uint8 value; }" + suffix + "; uint8 last : 3; };");
+        byte[] bytes = [5, 7, 6,];
+
+        StructValue root = layout.ParseWithDebug(bytes.AsSpan(), "root").Value;
+
+        StructValue child = named ? root.Get<StructValue>("child") : root;
+        Assert.AreEqual(5, root.Get<int>("first"));
+        Assert.AreEqual((byte)7, child.Get<byte>("value"));
+        Assert.AreEqual(6, root.Get<int>("last"));
+    }
+
+    /// <summary>
+    ///     Asserts a shape's placement through every operation: its size, the serialized bytes, the values parsed back, and
+    ///     the address, debug range and update of each field.
+    /// </summary>
+    /// <param name="layout">The compiled shape <c>s</c>.</param>
+    /// <param name="values">The field values, as <c>name=value</c> pairs separated by commas.</param>
+    /// <param name="hex">The expected bytes.</param>
     private static void AssertShape(CStruct layout, string values, string hex)
     {
         byte[] expected = Convert.FromHexString(hex);

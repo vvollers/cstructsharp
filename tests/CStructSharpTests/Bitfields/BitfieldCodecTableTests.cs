@@ -241,6 +241,10 @@ public class BitfieldCodecTableTests
         return new Field(new Identifier(typeName), new Identifier("value"), Field.NoArray, Field.Width(bitSize));
     }
 
+    /// <summary>Builds a table from every valid integral type and one alias.</summary>
+    /// <param name="isLittleEndian">The layout byte order.</param>
+    /// <param name="alignments">Receives the type widths the table was built from.</param>
+    /// <returns>The table.</returns>
     private static BitfieldCodecTable CreateValidTable(bool isLittleEndian, out Dictionary<string, byte> alignments)
     {
         alignments = ValidAlignments();
@@ -271,6 +275,8 @@ public class BitfieldCodecTableTests
         return alignments;
     }
 
+    /// <summary>The integral types wider than one byte, with their widths.</summary>
+    /// <returns>The types.</returns>
     private static IEnumerable<(string Name, byte ByteSize)> MultiByteTypes()
     {
         yield return ("wchar", 2);
