@@ -5,8 +5,9 @@ using CStructSharp.Values;
 
 /// <summary>
 ///     The one layout-variable capture rule, checked through every operation that captures: an expression may use only
-///     integer fields; a field that is not an integer fails construction when it alone supplies a name, and makes a
-///     shared name unusable; an integer outside the Int32 range fails with its exact value when used.
+///     integer fields (enums at their Int32 boundaries included); a field that is not an integer, such as an enum
+///     array, fails construction when it alone supplies a name and makes a shared name unusable; unnamed padding
+///     publishes nothing; and an integer outside the Int32 range fails with its exact value when used.
 /// </summary>
 [TestClass]
 public class LayoutVariableCaptureRuleTests
@@ -107,5 +108,51 @@ public class LayoutVariableCaptureRuleTests
         Assert.HasCount(8, (System.Collections.IList)value["v"]!);
         Assert.AreEqual(5L, layout.ResolveAddress(bytes, "root.v", options: options));
         Assert.AreEqual(8, layout.GetArrayLength(bytes, "root.v", options: options));
+    }
+
+    /// <summary>
+    ///     An enum array read under a name a definition also supplies makes that name unusable while its value is in
+    ///     effect: the array is not an integer, and the definition's older value must not stand in for it.
+    /// </summary>
+    [TestMethod]
+    public void EnumArray_MakesASharedNameUnusable()
+    {
+        var layout = new CStruct("#define count 1\nenum kind : uint8 { first = 1, second = 2 }; struct root { kind count[2]; uint8 data[count]; uint8 tail; };");
+        using var source = new MemoryStream(new byte[] { 1, 2, 0xA5, 0xB6, });
+        CStructReadException failure = Assert.ThrowsExactly<CStructReadException>(() => layout.Parse(source, "root"));
+        StringAssert.Contains(failure.Message, "'count' is an array");
+    }
+
+    /// <summary>Both inclusive Int32 endpoints may select a later field during reading and writing.</summary>
+    /// <param name="value">The signed enum value at one expression-domain endpoint.</param>
+    /// <param name="hex">The little-endian enum bytes followed by the selected payload.</param>
+    [TestMethod]
+    [DataRow(int.MinValue, "000000802A")]
+    [DataRow(int.MaxValue, "FFFFFF7F2A")]
+    public void BoundaryEnumValue_RemainsAvailableToACondition(int value, string hex)
+    {
+        var layout = new CStruct("enum edge : int32 { Low = -2147483648, High = 2147483647 }; struct root { edge value; if (value != 0) { uint8 payload; } };");
+        var data = new Dictionary<string, object?> { ["value"] = value, ["payload"] = (byte)42, };
+        byte[] expected = Convert.FromHexString(hex);
+
+        CollectionAssert.AreEqual(expected, layout.Serialize("root", data));
+        Assert.AreEqual((byte)42, layout.ReadValue<byte>(expected.AsSpan(), "root.payload"));
+    }
+
+    /// <summary>Unnamed padding never captures a layout variable, so it can never publish an empty name.</summary>
+    /// <param name="array">Whether the padding is an array.</param>
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void Padding_DoesNotPublishAnEmptyName(bool array)
+    {
+        string padding = array ? "uint8 _[2];" : "uint8 _;";
+        var layout = new CStruct("struct root { " + padding + " uint8 key; uint8 values[key]; uint8 tail; };");
+        Assert.IsFalse(layout.CompiledModel.AllFields().Single(field => field.Name.Length == 0).CapturesLayoutVariable);
+
+        byte[] bytes = array ? [2, 2, 1, 0xAA, 0xBB,] : [2, 1, 0xAA, 0xBB,];
+        StructValue result = layout.Parse(bytes.AsSpan(), "root", new Dictionary<string, int> { [string.Empty] = 1, });
+        Assert.AreEqual((byte)0xBB, result["tail"]);
+        Assert.IsFalse(result.ContainsKey(string.Empty));
     }
 }

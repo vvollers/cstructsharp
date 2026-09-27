@@ -154,11 +154,15 @@ public class Int32CaptureTests
         };
     }
 
+    /// <summary>The parsed record's <c>items</c> list.</summary>
+    /// <param name="parsed">A parsed record.</param>
+    /// <returns>The list.</returns>
     private static IList<object?> Items(object parsed)
     {
         return (IList<object?>)((IDictionary<string, object?>)parsed)["items"]!;
     }
 
+    /// <summary>A mapped class whose count property sizes its samples array.</summary>
     public sealed class SamplePoco : ICStructMapped<SamplePoco>
     {
         public uint Id { get; set; }
@@ -167,11 +171,17 @@ public class Int32CaptureTests
 
         public byte[] Samples { get; set; } = [];
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static SamplePoco ReadFrom(StructValue source)
         {
             return new SamplePoco { Id = source.Get<uint>("id"), Count = source.Get<ushort>("count"), Samples = source.Get<byte[]>("samples"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(SamplePoco value, StructValue target)
         {
             target["id"] = value.Id;
@@ -179,6 +189,7 @@ public class Int32CaptureTests
             target["samples"] = value.Samples;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {

@@ -66,7 +66,7 @@
     "snapshot": "Caller entries are copied into isolated mutable operation state and are never modified.",
     "precedence": "Caller entries override matching layout #define names.",
     "compatibility": "The greenfield public API exposes one read-only integer shape; parser expression nodes remain internal.",
-    "evidence": "tests/CStructSharpTests/ReadOnlyVariableInputTests.cs#PublicOperations_AcceptReadOnlyVariablesAndPreserveCallerState",
+    "evidence": "tests/CStructSharpTests/Variables/LayoutVariableCaptureTests.cs#PublicOperations_AcceptReadOnlyVariablesAndPreserveCallerState",
     "workItem": "API-06"
   },
   "memoryIoContract": {
@@ -1606,7 +1606,7 @@
           "The nested field's value is captured on every operation, so the count is the same for parsing and serialization."
         ],
         "evidence": [
-          "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_RoundTripsThroughEveryOperation"
+          "tests/CStructSharpTests/Variables/NestedReferenceTests.cs#DottedReference_RoundTripsThroughEveryOperation"
         ]
       },
       "bytes": {
@@ -1615,7 +1615,7 @@
           "The same nested value determines the extent on both sides."
         ],
         "evidence": [
-          "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_RoundTripsThroughEveryOperation"
+          "tests/CStructSharpTests/Variables/NestedReferenceTests.cs#DottedReference_RoundTripsThroughEveryOperation"
         ]
       }
     },
@@ -5936,7 +5936,7 @@
       },
       "evidence": [
         {
-          "test": "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_RoundTripsThroughEveryOperation",
+          "test": "tests/CStructSharpTests/Variables/NestedReferenceTests.cs#DottedReference_RoundTripsThroughEveryOperation",
           "operations": [
             "parse",
             "debug",
@@ -5949,13 +5949,13 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_SelectsTheNamedField",
+          "test": "tests/CStructSharpTests/Variables/NestedReferenceTests.cs#DottedReference_SelectsTheNamedField",
           "operations": [
             "parse"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_ReachesThroughLevels",
+          "test": "tests/CStructSharpTests/Variables/NestedReferenceTests.cs#DottedReference_ReachesThroughLevels",
           "operations": [
             "parse",
             "address",
@@ -5963,7 +5963,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/NestedReferenceTests.cs#DottedReference_ToNothing_FailsAtUse",
+          "test": "tests/CStructSharpTests/Variables/NestedReferenceTests.cs#DottedReference_ToNothing_FailsAtUse",
           "operations": [
             "parse"
           ]

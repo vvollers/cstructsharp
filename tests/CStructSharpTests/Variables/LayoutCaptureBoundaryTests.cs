@@ -4,7 +4,10 @@ using CStructSharp.Compilation;
 using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
-/// <summary>Verifies the compiled variable-capture plan for nested expressions and the fields an expression may name.</summary>
+/// <summary>
+///     Verifies the compiled variable-capture plan for nested expressions, the fields an expression may name, and the
+///     runtime fields a deferred definition captures while writing.
+/// </summary>
 [TestClass]
 public class LayoutCaptureBoundaryTests
 {
@@ -80,6 +83,21 @@ public class LayoutCaptureBoundaryTests
     {
         CStructLayoutException failure = Assert.ThrowsExactly<CStructLayoutException>(() => new CStruct(definition));
         StringAssert.Contains(failure.Message, "Field 'value' is " + reason);
+    }
+
+    /// <summary>A deferred definition override can use a field that the original layout did not reference.</summary>
+    [TestMethod]
+    public void DeferredDefinition_CapturesItsRuntimeField()
+    {
+        var layout = new CStruct("#define COUNT 1\nstruct root { uint8 count; uint8 values[COUNT]; };");
+        var data = new Dictionary<string, object?>
+        {
+            ["count"] = (byte)2,
+            ["values"] = new byte[] { 11, 12, },
+        };
+        var variables = new Dictionary<string, Expr> { ["COUNT"] = new Identifier("count"), };
+
+        CollectionAssert.AreEqual(new byte[] { 2, 11, 12, }, layout.Serialize("root", data, variables));
     }
 
     /// <summary>Returns the uniquely named field whose capture and dependency metadata the test examines.</summary>
