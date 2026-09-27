@@ -54,6 +54,7 @@
       "Values/UnionValue.cs",
       "Streams/WriteBudgetStream.cs",
       "**/CStructSharp.Core/Compilation/CompiledCompositeType.cs",
+      "**/CStructSharp.Core/Compilation/CompiledConditionalGroup.cs",
       "**/CStructSharp.Core/Compilation/CompiledField.cs",
       "**/CStructSharp.Core/Compilation/CompiledSizeQueries.cs",
       "**/CStructSharp.Core/Compilation/ConditionalFieldSelection.cs",

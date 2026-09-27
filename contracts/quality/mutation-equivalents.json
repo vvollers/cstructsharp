@@ -409,7 +409,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/CompiledCompositeType.cs",
-   "sourceSha256": "cf226bd012d759a0f5bc797c6a7d03285ba452db6ade866f6d262adebbf1ea05",
+   "sourceSha256": "9a83d7b317f603d29bfcb1f5e93b7f57d342edc8051cb99489dc4498268fb95e",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":30,"column":21},"end":{"line":30,"column":30}},
@@ -1165,34 +1165,31 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Capture.cs",
-   "sourceSha256": "9788a9f8b2680e6aa0fe0132fc70bc3ea7c3ff9525b60c51d35388ec0e17181b",
+   "sourceSha256": "646e7c8cf209f59232884f42c0eef991a20ab3221dec1ee513ef7ea61b66ccb7",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":120,"column":9},"end":{"line":120,"column":77}},
      "reason": "NormalizeStructExpressions evaluates bit widths against staticLayoutVariables and rebuilds every ordinary Field through its integer-width constructor before capture marking. BitSizeExpression is consequently a Literal or NoneExpr, both immediate no-ops in AddReferences. Inline Struct declarations also carry no bit-width expression. Removing this call cannot omit a runtime dependency or change bit-width validation, placement or capture." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":131,"column":21},"end":{"line":131,"column":71}},
-     "reason": "NormalizeConditionalGroup validates and freezes switch case labels into CaseArms before capture marking. Its rebuilt ConditionalGroup retains the selector but not the original CaseLabels list. Every branch reached by CollectFieldReferences therefore has null CaseLabels, and this inner AddReferences call is unreachable. Selectors are still collected by the separate unchanged call; case validation and frozen dispatch are unchanged." },
-    { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":101,"column":17},"end":{"line":101,"column":73}},
      "reason": "DeclaredValues retains enum source expressions, but EvaluateEnumDeclaration has already validated and frozen the members and CreateQualifiedMemberDefinitions has published literal Enum.Member definitions. Runtime enum reads/writes use the compiled integer table, not these source expressions. A data field whose name appears only in an enum initializer cannot influence the enum. Other runtime references and define dependencies are collected independently. Omitting this static-only capture source leaves enum validation, values, sizes, names and runtime expressions unchanged." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":176,"column":17},"end":{"line":176,"column":41}},
+     "location": {"start":{"line":169,"column":17},"end":{"line":169,"column":41}},
      "reason": "The executable calls accepted in layout dimensions are sizeof and offsetof, folded during compilation. Their callee identifiers name operators, not input variables. Unsupported expression calls fail compilation before a usable layout is returned. A field literally named sizeof or offsetof can still be captured if used as an ordinary identifier elsewhere, because that separate use is collected. Omitting the call target from this capture-only traversal does not remove call validation, folding or any runtime dependency." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":179,"column":21},"end":{"line":179,"column":44}},
+     "location": {"start":{"line":172,"column":21},"end":{"line":172,"column":44}},
      "reason": "Accepted sizeof/offsetof arguments are validated type/member names and are folded to a literal before a dimension executes. They do not refer to input-field values; unsupported call forms fail during compilation. Array arithmetic outside the call is still walked normally, and any ordinary runtime use of the same spelling is collected separately. Removing only argument capture bookkeeping preserves call validation, type/member lookup, folded sizes and all data-dependent expressions." },
     { "mutatorName": "Logical mutation", "replacement": "expression is null || ReferenceEquals(expression, NoneExpr.Instance) && expression is Literal",
-     "location": {"start":{"line":143,"column":13},"end":{"line":143,"column":106}},
+     "location": {"start":{"line":136,"column":13},"end":{"line":136,"column":106}},
      "reason": "This only sends NoneExpr and Literal leaves through the traversal instead of the fast return. Neither matches any traversal switch arm, so each is pushed and popped without adding a reference. The collected identifier set is identical; only temporary stack allocation/work can differ." },
     { "mutatorName": "Logical mutation", "replacement": "expression is null && ReferenceEquals(expression, NoneExpr.Instance)",
-     "location": {"start":{"line":143,"column":13},"end":{"line":143,"column":81}},
+     "location": {"start":{"line":136,"column":13},"end":{"line":136,"column":81}},
      "reason": "This sends null and NoneExpr through the traversal; Literal still returns early. Stack.Push accepts null and the switch has no null or NoneExpr arm, so traversal adds no identifiers and finishes with the same empty pending stack. No expression dependency changes." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":145,"column":13},"end":{"line":145,"column":20}},
+     "location": {"start":{"line":138,"column":13},"end":{"line":138,"column":20}},
      "reason": "Removing this leaf fast return only traverses null, NoneExpr and Literal. None matches an identifier or child-bearing expression arm; the stack accepts the item, pops it and is empty again. The referenced set and all later capture decisions remain unchanged." },
     { "mutatorName": "CoalesceAssignmentExpression to SimpleAssignmentExpression mutation", "replacement": "pending = new Stack<Expr>()",
-     "location": {"start":{"line":154,"column":9},"end":{"line":154,"column":38}},
+     "location": {"start":{"line":147,"column":9},"end":{"line":147,"column":38}},
      "reason": "Every completed traversal drains pending to zero; early-return paths never add to it, and it is private to this collection pass. Replacing the reusable empty stack with another empty stack therefore visits the same expressions and collects the same identifiers, at an extra allocation cost only." }
    ]
   },
@@ -1222,7 +1219,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.Normalization.cs",
-   "sourceSha256": "3823234b485a1d31289f8ea0f0486d2f0b83282dddd4a7ee1990fce8ef4b568b",
+   "sourceSha256": "93d2d271ed0e4cb0a2b1e4686ff55d9374946066ac4038967cb8a15974cef8fa",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "remainingDeclarations-- >= 0",
      "location": {"start":{"line":182,"column":16},"end":{"line":182,"column":43}},
@@ -1240,10 +1237,10 @@
      "location": {"start":{"line":204,"column":16},"end":{"line":204,"column":68}},
      "reason": "For a non-null shape both versions return the same tuple values. For a null shape the mutant allocates an Identifier and returns a tuple whose second item is null. The field-normalization caller uses the typed tuple pattern 'is (Identifier elementType, IReadOnlyList<Expr> typedefShape)', which rejects that null second item just as it rejects the original nullable null result, leaving the original type and dimensions unchanged. The pointer-alias validation caller discards either return value and relies only on exceptions. No tuple escapes these private calls." },
     { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":371,"column":17},"end":{"line":371,"column":61}},
+     "location": {"start":{"line":369,"column":17},"end":{"line":369,"column":61}},
      "reason": "RejectNonIntegerConstants is the immediate next call, and its first operation is expressionEvaluator.GetDependencies(dimension). That method obtains the same GetProgram used by Compile, so compilation and all syntax-tree limits still run before constant validation or evaluation, with no intervening state change. The same cached program, dependencies and exceptions result. This removes only a redundant cache warm-up, not dimension validation." },
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?Array.Empty<ConditionalBranch>() :field.BranchConditions.Select(item =>\n                        new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray())",
-     "location": {"start":{"line":430,"column":40},"end":{"line":431,"column":145}},
+     "location": {"start":{"line":428,"column":40},"end":{"line":429,"column":145}},
      "reason": "Only the empty branch list changes arms. Selecting and materializing an empty list produces another empty branch array without invoking the projection, so NormalizeConditionalGroup is not called and a null normalizedGroups value is never accessed. All consumers inspect branch contents/counts, not array reference identity. Nonempty lists execute the identical projection in both versions. No condition, selector, arm or field visibility changes." }
    ]
   }

@@ -1,6 +1,7 @@
 namespace CStructSharp.Compilation;
 
-using CStructSharp.Syntax;
-
-/// <summary>Indexes one field's arm membership in its containing composite's operation-local decision array.</summary>
-internal readonly record struct CompiledConditionalBranch(ConditionalGroup Group, int Slot, int Arm);
+/// <summary>One arm a compiled field sits in.</summary>
+/// <param name="Group">The decision.</param>
+/// <param name="Slot">The decision's index in its composite's per-instance array of selected arms.</param>
+/// <param name="Arm">The arm: 1 or 0 for an <c>if</c>; a switch's case index, or -1 for <c>default</c>.</param>
+internal readonly record struct CompiledConditionalBranch(CompiledConditionalGroup Group, int Slot, int Arm);

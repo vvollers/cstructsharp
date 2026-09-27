@@ -290,7 +290,7 @@ internal sealed partial class LayoutCompilation
         return result;
     }
 
-    /// <summary>Compiles a group's selector and case dispatch once, preserving identity across all its arms.</summary>
+    /// <summary>Compiles a group's selector and evaluates its case labels once, preserving identity across all its arms.</summary>
     private ConditionalGroup NormalizeConditionalGroup(ConditionalGroup group, Dictionary<Expr, Expr>? constants, Dictionary<ConditionalGroup, ConditionalGroup> normalizedGroups)
     {
         if (normalizedGroups.TryGetValue(group, out ConditionalGroup? existing))
@@ -300,9 +300,7 @@ internal sealed partial class LayoutCompilation
 
         Expr selector = NormalizeCaseConstants(group.Selector, constants)!;
         this.expressionEvaluator.Compile(selector);
-        ImmutableDictionary<int, int>? arms = group.CaseLabels?.Select((label, index) =>
-            new KeyValuePair<int, int>(((Literal)constants![label]).Value, index)).ToImmutableDictionary();
-        var normalized = new ConditionalGroup(selector) { CaseArms = arms };
+        var normalized = new ConditionalGroup(selector, group.CaseLabels?.Select(label => constants![label]).ToArray());
         normalizedGroups.Add(group, normalized);
         return normalized;
     }

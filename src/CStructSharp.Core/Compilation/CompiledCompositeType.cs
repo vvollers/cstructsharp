@@ -22,7 +22,7 @@ internal sealed partial class CompiledCompositeType : CompiledType
         this.HasDirectConditionalFields = fields.Any(field => field.IsConditional);
         if (this.HasDirectConditionalFields)
         {
-            var groups = new Dictionary<ConditionalGroup, int>();
+            var groups = new Dictionary<ConditionalGroup, CompiledConditionalBranch>();
             foreach (CompiledField field in fields)
             {
                 if (field.Declaration.BranchConditions.Count == 0)
@@ -33,13 +33,13 @@ internal sealed partial class CompiledCompositeType : CompiledType
                 var branches = ImmutableArray.CreateBuilder<CompiledConditionalBranch>(field.Declaration.BranchConditions.Count);
                 foreach (ConditionalBranch branch in field.Declaration.BranchConditions)
                 {
-                    if (!groups.TryGetValue(branch.Group, out int slot))
+                    if (!groups.TryGetValue(branch.Group, out CompiledConditionalBranch decision))
                     {
-                        slot = groups.Count;
-                        groups.Add(branch.Group, slot);
+                        decision = new CompiledConditionalBranch(new CompiledConditionalGroup(branch.Group), groups.Count, 0);
+                        groups.Add(branch.Group, decision);
                     }
 
-                    branches.Add(new CompiledConditionalBranch(branch.Group, slot, branch.Arm));
+                    branches.Add(decision with { Arm = branch.Arm });
                 }
 
                 field.ConditionalBranches = branches.MoveToImmutable();

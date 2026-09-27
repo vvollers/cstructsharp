@@ -28,6 +28,13 @@ internal sealed class ConditionalFieldSelection
         }
     }
 
+    /// <summary>
+    ///     Whether every arm a field sits in is selected, outermost first. A group not yet decided in this instance
+    ///     evaluates its selector now; an inactive outer arm stops before inner selectors are evaluated.
+    /// </summary>
+    /// <param name="field">A field of the composite this selection was created for.</param>
+    /// <param name="variables">The layout variables visible to the selectors.</param>
+    /// <returns>Whether the field is present.</returns>
     internal bool IsActive(CompiledField field, IReadOnlyDictionary<string, Expr> variables)
     {
         foreach (CompiledConditionalBranch branch in field.ConditionalBranches)
@@ -36,7 +43,7 @@ internal sealed class ConditionalFieldSelection
             if (selected == int.MinValue)
             {
                 int value = this.evaluator.Evaluate(branch.Group.Selector, variables, "conditional selector", this.domain);
-                selected = branch.Group.CaseArms is { } cases ? (cases.TryGetValue(value, out int arm) ? arm : -1) : value != 0 ? 1 : 0;
+                selected = branch.Group.SelectArm(value);
                 this.selectedArms[branch.Slot] = selected;
             }
 

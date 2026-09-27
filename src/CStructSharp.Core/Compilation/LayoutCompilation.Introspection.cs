@@ -120,10 +120,10 @@ internal sealed partial class LayoutCompilation
     private static string LevelIndent(string indent, int level) => indent + new string(' ', 4 * level);
 
     /// <summary>Whether a group is a <c>switch</c> (it has case labels) rather than an <c>if</c>.</summary>
-    private static bool IsSwitch(ConditionalGroup group) => group.CaseLabels is not null || group.CaseArms is not null;
+    private static bool IsSwitch(ConditionalGroup group) => group.CaseLabels is not null;
 
     /// <summary>The number of <c>case</c> arms of a switch group, excluding <c>default</c>.</summary>
-    private static int CaseCount(ConditionalGroup group) => group.CaseLabels?.Count ?? group.CaseArms!.Count;
+    private static int CaseCount(ConditionalGroup group) => group.CaseLabels!.Count;
 
     /// <summary>Emits the <c>case</c> line of switch arm <paramref name="arm"/>, or the <c>default</c> line for arm -1.</summary>
     private static void AppendArm(StringBuilder builder, ConditionalGroup group, int arm, string indent)
@@ -134,11 +134,7 @@ internal sealed partial class LayoutCompilation
             return;
         }
 
-        // A normalized group keeps each label's value (value -> arm); a parsed group keeps the label expressions.
-        string label = group.CaseLabels is { } labels
-                           ? ExpressionPrinter.Print(labels[arm])
-                           : group.CaseArms!.First(pair => pair.Value == arm).Key.ToString(CultureInfo.InvariantCulture);
-        builder.Append(indent).Append("case ").Append(label).AppendLine(": {");
+        builder.Append(indent).Append("case ").Append(ExpressionPrinter.Print(group.CaseLabels![arm])).AppendLine(": {");
     }
 
     /// <summary>

@@ -122,15 +122,8 @@ internal sealed partial class LayoutCompilation
         IReadOnlyList<ConditionalBranch> branches = field.BranchConditions;
         for (int index = 0; index < branches.Count; index++)
         {
-            ConditionalGroup group = branches[index].Group;
-            AddReferences(group.Selector, ref referenced, ref pending);
-            if (group.CaseLabels is not null)
-            {
-                foreach (Expr label in group.CaseLabels)
-                {
-                    AddReferences(label, ref referenced, ref pending);
-                }
-            }
+            // A normalized group's case labels are literals; only its selector can name a field.
+            AddReferences(branches[index].Group.Selector, ref referenced, ref pending);
         }
     }
 

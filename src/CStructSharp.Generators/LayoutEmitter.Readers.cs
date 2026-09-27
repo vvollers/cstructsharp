@@ -28,7 +28,7 @@ internal sealed partial class LayoutEmitter
     private const string ReadOptionsDoc = "/// <param name=\"options\">The read options; <see langword=\"null\"/> uses the documented defaults.</param>";
 
     // The conditional groups whose selector the reader being emitted has already evaluated (cleared per composite).
-    private readonly HashSet<ConditionalGroup> decidedGroups = new(ReferenceEqualityComparer.Instance);
+    private readonly HashSet<CompiledConditionalGroup> decidedGroups = new(ReferenceEqualityComparer.Instance);
 
     // The pointer fields of the struct reader being emitted whose targets are followed after its last field, in
     // declaration order (cleared per composite); the runtime defers the same fields.
@@ -416,7 +416,7 @@ internal sealed partial class LayoutEmitter
     }
 
     /// <summary>Evaluates a group's selector into its arm slot: an <c>if</c> selects arm 1 or 0, a <c>switch</c> maps the value through its case table (default is arm -1).</summary>
-    private void EmitSelector(SourceWriter writer, ConditionalGroup group, ReaderScope scope, string slot)
+    private void EmitSelector(SourceWriter writer, CompiledConditionalGroup group, ReaderScope scope, string slot)
     {
         string code = scope.Expressions.Emit(group.Selector);
         string selection;

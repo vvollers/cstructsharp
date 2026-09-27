@@ -476,4 +476,30 @@ public class CompiledIntermediateRepresentationTests
             () => indexer.SetValue(table, replacement, new object[] { key, }));
         Assert.IsInstanceOfType<InvalidOperationException>(exception.InnerException);
     }
+
+    /// <summary>
+    ///     A composite compiles each if/switch once, shared by all its arms, with the switch labels as a value-to-arm table:
+    ///     an unlisted value selects <c>default</c> (-1), and an if selects arm 1 for any nonzero value.
+    /// </summary>
+    [TestMethod]
+    public void CompiledGroups_AreSharedByTheirArmsAndMapValuesToArms()
+    {
+        var layout = new CStruct("#define TWO 2\nstruct root { uint8 tag; switch (tag) { case 1: { uint8 a; } case TWO: { uint8 b; } default: { uint8 c; } } if (tag) { uint8 d; } };");
+        var compiled = (CompiledCompositeType)layout.CompiledModel.Composites[layout.GetStruct("root")].Definition!;
+        CompiledConditionalBranch a = compiled.FindField("a").ConditionalBranches.Single();
+        CompiledConditionalBranch c = compiled.FindField("c").ConditionalBranches.Single();
+        CompiledConditionalBranch d = compiled.FindField("d").ConditionalBranches.Single();
+        Assert.AreSame(a.Group, c.Group);
+        Assert.AreEqual(2, compiled.ConditionalGroupCount);
+        Assert.AreNotEqual(a.Slot, d.Slot);
+        Assert.AreEqual(-1, c.Arm);
+
+        // The #define label was evaluated during normalization; any other value falls through to default.
+        Assert.AreEqual(0, a.Group.SelectArm(1));
+        Assert.AreEqual(1, a.Group.SelectArm(2));
+        Assert.AreEqual(-1, a.Group.SelectArm(3));
+        Assert.IsNull(d.Group.CaseArms);
+        Assert.AreEqual(1, d.Group.SelectArm(-5));
+        Assert.AreEqual(0, d.Group.SelectArm(0));
+    }
 }
