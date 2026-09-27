@@ -1222,10 +1222,10 @@
   },
   {
    "pattern": "Codecs/FixedPointCodec.cs",
-   "sourceSha256": "a4e4f4dc13296c760962d2e34c4dbf7332a60e7071bb4e181c6b2031f51d9365",
+   "sourceSha256": "c349efdfd47f7bb4b1065bf595944c257a3fd23abdb024264ec4d03a40d06b4b",
    "mutants": [
     { "mutatorName": "Negate expression", "replacement": "!(signed)",
-     "location": {"start":{"line":24,"column":18},"end":{"line":24,"column":24}},
+     "location": {"start":{"line":26,"column":18},"end":{"line":26,"column":24}},
      "reason": "EncodeFixedPoint validates signedness and range before this branch. Width 16 takes the unchanged first branch. For the 32-bit path, unchecked int and uint casts retain the identical low 32 bits; BinaryPrimitiveIO and Codec signed/unsigned writers both emit those exact four bits-per-byte groups in the requested endian order using the same stream.Write call. Flipping signed only selects an equivalent bit writer, without changing validation, byte count or I/O behavior." }
    ]
   },
