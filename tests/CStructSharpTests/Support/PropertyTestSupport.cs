@@ -48,6 +48,14 @@ internal static class PropertyTestSupport
         }
     }
 
+    /// <summary>Shrinks a failing case greedily: takes the first simpler variant that still fails, until none does.</summary>
+    /// <typeparam name="T">The case type.</typeparam>
+    /// <param name="original">The failing case.</param>
+    /// <param name="originalFailure">Its failure.</param>
+    /// <param name="assertion">The property.</param>
+    /// <param name="shrink">Yields simpler variants of a case.</param>
+    /// <param name="format">Describes a case; a variant whose description was already tried is skipped.</param>
+    /// <returns>The smallest failing case found, its failure and the shrink steps taken.</returns>
     private static (T Value, Exception Failure, int Steps) Minimize<T>(
         T original,
         Exception originalFailure,
@@ -93,6 +101,11 @@ internal static class PropertyTestSupport
         return (current, currentFailure, steps);
     }
 
+    /// <summary>Runs the property on one case.</summary>
+    /// <typeparam name="T">The case type.</typeparam>
+    /// <param name="value">The case.</param>
+    /// <param name="assertion">The property.</param>
+    /// <returns>The failure, or <see langword="null"/> when the property holds.</returns>
     private static Exception? CaptureFailure<T>(T value, Action<T> assertion)
     {
         try
