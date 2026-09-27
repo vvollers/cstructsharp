@@ -142,17 +142,24 @@ public class WriteDataBindingTests
 
         public short Y { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static Point ReadFrom(StructValue source)
         {
             return new Point { X = source.Get<short>("x"), Y = source.Get<short>("y"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(Point value, StructValue target)
         {
             target["x"] = value.X;
             target["y"] = value.Y;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -160,6 +167,7 @@ public class WriteDataBindingTests
         }
     }
 
+    /// <summary>A class with no registered mapping, which write data binding must reject.</summary>
     private sealed class NotMapped
     {
         public int Value { get; set; }

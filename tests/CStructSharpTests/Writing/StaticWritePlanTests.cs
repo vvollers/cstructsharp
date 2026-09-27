@@ -311,6 +311,9 @@ public class StaticWritePlanTests
         }
     }
 
+    /// <summary>Runs a write and records its bytes or its library failure.</summary>
+    /// <param name="write">The write.</param>
+    /// <returns>The bytes, or the failure.</returns>
     private static (byte[]? Result, Exception? Error) Try(Func<byte[]> write)
     {
         try
@@ -323,6 +326,8 @@ public class StaticWritePlanTests
         }
     }
 
+    /// <summary>The fixture record as a dictionary.</summary>
+    /// <returns>The record.</returns>
     private static Dictionary<string, object?> CreateDictionary()
     {
         return new Dictionary<string, object?>
@@ -349,6 +354,8 @@ public class StaticWritePlanTests
         };
     }
 
+    /// <summary>The fixture record as a mapped class.</summary>
+    /// <returns>The record.</returns>
     private static RootPoco CreatePoco()
     {
         return new RootPoco
@@ -366,6 +373,10 @@ public class StaticWritePlanTests
         };
     }
 
+    /// <summary>The input bytes a benchmark fixture describes: hex, a file, or xorshift bytes from a seed.</summary>
+    /// <param name="directory">The fixture directory.</param>
+    /// <param name="spec">The input description.</param>
+    /// <returns>The bytes.</returns>
     private static byte[] Materialize(string directory, JsonElement spec)
     {
         switch (spec.GetProperty("kind").GetString())
@@ -397,6 +408,8 @@ public class StaticWritePlanTests
         }
     }
 
+    /// <summary>Finds the benchmark fixture directory above the test output directory.</summary>
+    /// <returns>The directory.</returns>
     private static string FindFixtureDirectory()
     {
         string? directory = AppContext.BaseDirectory;
@@ -423,23 +436,31 @@ public class StaticWritePlanTests
         return message is null ? null : System.Text.RegularExpressions.Regex.Replace(message, @",? ?offset \d+", string.Empty);
     }
 
+    /// <summary>A mapped class for the tests' <c>LeafPoco</c> record, read and written through the runtime.</summary>
     public sealed class LeafPoco : ICStructMapped<LeafPoco>
     {
         public byte k { get; set; }
 
         public uint v { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static LeafPoco ReadFrom(StructValue source)
         {
             return new LeafPoco { k = source.Get<byte>("k"), v = source.Get<uint>("v"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(LeafPoco value, StructValue target)
         {
             target["k"] = value.k;
             target["v"] = value.v;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -447,6 +468,7 @@ public class StaticWritePlanTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>InnerPoco</c> record, read and written through the runtime.</summary>
     public sealed class InnerPoco : ICStructMapped<InnerPoco>
     {
         public LeafPoco first { get; set; } = null!;
@@ -455,11 +477,17 @@ public class StaticWritePlanTests
 
         public ushort pad { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static InnerPoco ReadFrom(StructValue source)
         {
             return new InnerPoco { first = source.Get<LeafPoco>("first"), second = source.Get<LeafPoco>("second"), pad = source.Get<ushort>("pad"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(InnerPoco value, StructValue target)
         {
             target["first"] = value.first;
@@ -467,6 +495,7 @@ public class StaticWritePlanTests
             target["pad"] = value.pad;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -474,6 +503,7 @@ public class StaticWritePlanTests
         }
     }
 
+    /// <summary>A mapped class for the tests' <c>RootPoco</c> record, read and written through the runtime.</summary>
     public sealed class RootPoco : ICStructMapped<RootPoco>
     {
         public ushort magic { get; set; }
@@ -496,6 +526,9 @@ public class StaticWritePlanTests
 
         public byte tail { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static RootPoco ReadFrom(StructValue source)
         {
             return new RootPoco
@@ -513,6 +546,9 @@ public class StaticWritePlanTests
             };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(RootPoco value, StructValue target)
         {
             target["magic"] = value.magic;
@@ -527,6 +563,7 @@ public class StaticWritePlanTests
             target["tail"] = value.tail;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {

@@ -2477,7 +2477,7 @@
           "operations": ["serialize", "write"]
         },
         {
-          "test": "tests/CStructSharpTests/WriterPaddingValueTests.cs#PrimitivePointerPadding_UsesZeroAddress",
+          "test": "tests/CStructSharpTests/Writing/WriterPaddingValueTests.cs#PrimitivePointerPadding_UsesZeroAddress",
           "operations": ["serialize", "write"]
         },
         {
@@ -2493,7 +2493,7 @@
           "operations": ["parse", "debug"]
         },
         {
-          "test": "tests/CStructSharpTests/StaticWritePlanTests.cs#UnnamedPadding_UsesGeneralWritesAndRetainsStaticReads",
+          "test": "tests/CStructSharpTests/Writing/StaticWritePlanTests.cs#UnnamedPadding_UsesGeneralWritesAndRetainsStaticReads",
           "operations": ["serialize", "write"]
         },
         {
@@ -4109,7 +4109,7 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/WriteBudgetTests.cs#InvalidWriteBudgets_AreRejectedBeforeOutput",
+          "test": "tests/CStructSharpTests/Writing/WriteBudgetTests.cs#InvalidWriteBudgets_AreRejectedBeforeOutput",
           "operations": [
             "serialize",
             "write",
@@ -4123,19 +4123,19 @@
           ]
         },
         {
-          "test": "tests/CStructSharpTests/UpdateAtomicityTests.cs#LateBindingFailures_DoNotReachDestination_ForEveryObjectShape",
+          "test": "tests/CStructSharpTests/Writing/UpdateAtomicityTests.cs#LateBindingFailures_DoNotReachDestination_ForEveryObjectShape",
           "operations": [
             "update"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/UpdateAtomicityTests.cs#ValueFamilyFailures_DoNotReachDestination",
+          "test": "tests/CStructSharpTests/Writing/UpdateAtomicityTests.cs#ValueFamilyFailures_DoNotReachDestination",
           "operations": [
             "update"
           ]
         },
         {
-          "test": "tests/CStructSharpTests/UpdateAtomicityTests.cs#PhysicalCommitFailure_HasTheDocumentedPartialBoundary",
+          "test": "tests/CStructSharpTests/Writing/UpdateAtomicityTests.cs#PhysicalCommitFailure_HasTheDocumentedPartialBoundary",
           "operations": [
             "update"
           ]

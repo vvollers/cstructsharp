@@ -629,9 +629,12 @@ public class ParserCorpusTests
             }
         }
 
-        foreach (string file in Directory.GetFiles(Path.Combine(root, "tests", "CStructSharpTests"), "*.cs").Order(StringComparer.Ordinal))
+        // Every test source in the feature folders, not the build output under bin/ and obj/.
+        string testsRoot = Path.Combine(root, "tests", "CStructSharpTests");
+        foreach (string file in Directory.GetFiles(testsRoot, "*.cs", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
         {
-            if (Path.GetFileName(file) == nameof(ParserCorpusTests) + ".cs")
+            string first = Path.GetRelativePath(testsRoot, file).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[0];
+            if (Path.GetFileName(file) == nameof(ParserCorpusTests) + ".cs" || first is "bin" or "obj")
             {
                 continue;
             }

@@ -481,6 +481,10 @@ public class UpdateAtomicityTests
         Assert.AreEqual(1, stream.WriteCalls);
     }
 
+    /// <summary>Asserts that an update rejected by validation leaves the destination's bytes and position unchanged and writes nothing.</summary>
+    /// <param name="bytes">The destination's content.</param>
+    /// <param name="position">The destination's position.</param>
+    /// <param name="update">The update that must fail.</param>
     private static void AssertValidationFailureLeavesDestinationUnchanged(
         byte[] bytes,
         long position,
@@ -539,15 +543,20 @@ public class UpdateAtomicityTests
         CollectionAssert.AreEqual(entries, arrayStream.ToArray());
     }
 
+    /// <summary>A plain class that supplies only the first of two members.</summary>
     private sealed class MissingSecondPoco
     {
         public byte First { get; init; }
     }
 
+    /// <summary>A sequence that can be enumerated only once, so a second pass by the writer fails.</summary>
+    /// <param name="values">The items.</param>
     private sealed class SinglePassEnumerable(params object[] values) : IEnumerable
     {
         public int EnumerationCount { get; private set; }
 
+        /// <summary>Enumerates the items the first time and throws afterwards.</summary>
+        /// <returns>The enumerator.</returns>
         public IEnumerator GetEnumerator()
         {
             this.EnumerationCount++;
@@ -596,36 +605,46 @@ public class UpdateAtomicityTests
             }
         }
 
+        /// <summary>Counts the flush.</summary>
         public override void Flush()
         {
             this.FlushCalls++;
         }
 
+        /// <inheritdoc/>
         public override int Read(byte[] buffer, int offset, int count)
         {
             return this.inner.Read(buffer, offset, count);
         }
 
+        /// <inheritdoc/>
         public override int Read(Span<byte> buffer)
         {
             return this.inner.Read(buffer);
         }
 
+        /// <inheritdoc/>
         public override int ReadByte()
         {
             return this.inner.ReadByte();
         }
 
+        /// <inheritdoc/>
         public override long Seek(long offset, SeekOrigin origin)
         {
             return this.inner.Seek(offset, origin);
         }
 
+        /// <inheritdoc/>
         public override void SetLength(long value)
         {
             this.inner.SetLength(value);
         }
 
+        /// <summary>Counts the write; without a commit failure it writes, otherwise it writes the configured prefix and throws. Either way later position changes fail.</summary>
+        /// <param name="buffer">The source.</param>
+        /// <param name="offset">The first index to write.</param>
+        /// <param name="count">The byte count.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
             this.WriteCalls++;
@@ -645,11 +664,16 @@ public class UpdateAtomicityTests
             throw commitCause;
         }
 
+        /// <summary>Copies the stream's bytes.</summary>
+        /// <returns>The bytes.</returns>
         public byte[] Snapshot()
         {
             return this.inner.ToArray();
         }
 
+        /// <summary>An expandable memory stream holding the bytes, positioned at the start.</summary>
+        /// <param name="bytes">The content.</param>
+        /// <returns>The stream.</returns>
         private static MemoryStream CreateInner(byte[] bytes)
         {
             var result = new MemoryStream();
@@ -664,6 +688,8 @@ public class UpdateAtomicityTests
     {
         private readonly MemoryStream inner = new();
 
+        /// <summary>Creates the stream over a copy of the bytes, positioned at the start.</summary>
+        /// <param name="bytes">The initial content.</param>
         public TrackingStream(byte[] bytes)
         {
             this.inner.Write(bytes, 0, bytes.Length);
@@ -678,62 +704,80 @@ public class UpdateAtomicityTests
 
         public override bool CanWrite => true;
 
+        /// <inheritdoc/>
         public override long Length => this.inner.Length;
 
+        /// <inheritdoc/>
         public override long Position
         {
             get => this.inner.Position;
             set => this.inner.Position = value;
         }
 
+        /// <inheritdoc/>
         public override void Flush()
         {
             this.inner.Flush();
         }
 
+        /// <inheritdoc/>
         public override int Read(byte[] buffer, int offset, int count)
         {
             return this.inner.Read(buffer, offset, count);
         }
 
+        /// <inheritdoc/>
         public override int Read(Span<byte> buffer)
         {
             return this.inner.Read(buffer);
         }
 
+        /// <inheritdoc/>
         public override int ReadByte()
         {
             return this.inner.ReadByte();
         }
 
+        /// <inheritdoc/>
         public override long Seek(long offset, SeekOrigin origin)
         {
             return this.inner.Seek(offset, origin);
         }
 
+        /// <inheritdoc/>
         public override void SetLength(long value)
         {
             this.inner.SetLength(value);
         }
 
+        /// <summary>Counts the write, then writes.</summary>
+        /// <param name="buffer">The source.</param>
+        /// <param name="offset">The first index to write.</param>
+        /// <param name="count">The byte count.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
             this.WriteCalls++;
             this.inner.Write(buffer, offset, count);
         }
 
+        /// <summary>Counts the write, then writes.</summary>
+        /// <param name="buffer">The source.</param>
         public override void Write(ReadOnlySpan<byte> buffer)
         {
             this.WriteCalls++;
             this.inner.Write(buffer);
         }
 
+        /// <summary>Counts the write, then writes the byte.</summary>
+        /// <param name="value">The byte.</param>
         public override void WriteByte(byte value)
         {
             this.WriteCalls++;
             this.inner.WriteByte(value);
         }
 
+        /// <summary>Copies the stream's bytes.</summary>
+        /// <returns>The bytes.</returns>
         public byte[] Snapshot()
         {
             return this.inner.ToArray();

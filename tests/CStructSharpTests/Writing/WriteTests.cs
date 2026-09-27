@@ -4,9 +4,12 @@ using System.Dynamic;
 using System.Runtime.CompilerServices;
 using CStructSharp.Values;
 
-/// <summary>Groups tests for write support so changes to this behavior are caught.</summary>
+/// <summary>
+///     Checks the basic write forms: serializing from expando data and mapped classes, updating a field, a bitfield, an
+///     array element and pointer targets in place, and writing a sub-object by path.
+/// </summary>
 [TestClass]
-public class WriteSupport
+public class WriteTests
 {
     /// <summary>
     ///     The dynamic input wraps a and b under the root name test.
@@ -189,17 +192,24 @@ public class WriteSupport
 
         public ushort B { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static PocoTest ReadFrom(StructValue source)
         {
             return new PocoTest { A = source.Get<ushort>("a"), B = source.Get<ushort>("b"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(PocoTest value, StructValue target)
         {
             target["a"] = value.A;
             target["b"] = value.B;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {

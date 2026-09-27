@@ -245,10 +245,13 @@ public class SparseUpdateStreamTests
         CollectionAssert.AreEqual(new byte[4], destination.Snapshot());
     }
 
+    /// <summary>A seekable memory stream that records its reads, writes and flushes and can fail a chosen write or position access.</summary>
     private sealed class TrackingStream : Stream
     {
         private readonly MemoryStream inner = new();
 
+        /// <summary>Creates the stream over a copy of the bytes, positioned at the start.</summary>
+        /// <param name="bytes">The initial content.</param>
         public TrackingStream(byte[] bytes)
         {
             this.inner.Write(bytes, 0, bytes.Length);
@@ -279,6 +282,7 @@ public class SparseUpdateStreamTests
 
         public override bool CanWrite => true;
 
+        /// <inheritdoc/>
         public override long Length => this.inner.Length;
 
         public override long Position
@@ -295,39 +299,56 @@ public class SparseUpdateStreamTests
             }
         }
 
+        /// <summary>Counts the flush.</summary>
         public override void Flush()
         {
             this.FlushCalls++;
         }
 
+        /// <summary>Records where the read starts, then reads.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <param name="offset">The first index to fill.</param>
+        /// <param name="count">The most bytes to read.</param>
+        /// <returns>The bytes read.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
             this.ReadStarts.Add(this.inner.Position);
             return this.inner.Read(buffer, offset, count);
         }
 
+        /// <summary>Records where the read starts, then reads.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <returns>The bytes read.</returns>
         public override int Read(Span<byte> buffer)
         {
             this.ReadStarts.Add(this.inner.Position);
             return this.inner.Read(buffer);
         }
 
+        /// <summary>Records where the read starts, then reads one byte.</summary>
+        /// <returns>The byte, or -1 at the end.</returns>
         public override int ReadByte()
         {
             this.ReadStarts.Add(this.inner.Position);
             return this.inner.ReadByte();
         }
 
+        /// <inheritdoc/>
         public override long Seek(long offset, SeekOrigin origin)
         {
             return this.inner.Seek(offset, origin);
         }
 
+        /// <inheritdoc/>
         public override void SetLength(long value)
         {
             this.inner.SetLength(value);
         }
 
+        /// <summary>Records the write's start and length, fails if it is the chosen call, and otherwise writes.</summary>
+        /// <param name="buffer">The source.</param>
+        /// <param name="offset">The first index to write.</param>
+        /// <param name="count">The byte count.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
             this.WriteStarts.Add(this.inner.Position);
@@ -341,12 +362,16 @@ public class SparseUpdateStreamTests
             this.inner.Write(buffer, offset, count);
         }
 
+        /// <summary>Writes through the array overload, so every write is recorded once.</summary>
+        /// <param name="buffer">The source.</param>
         public override void Write(ReadOnlySpan<byte> buffer)
         {
             byte[] copy = buffer.ToArray();
             this.Write(copy, 0, copy.Length);
         }
 
+        /// <summary>Copies the stream's bytes.</summary>
+        /// <returns>The bytes.</returns>
         public byte[] Snapshot()
         {
             return this.inner.ToArray();

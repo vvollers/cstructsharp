@@ -1,8 +1,12 @@
 namespace CStructSharp.Tests;
 
 using CStructSharp.Diagnostics;
+using CStructSharp.Reading;
 
-/// <summary>Checks runtime-sized struct tails and early writer input diagnostics.</summary>
+/// <summary>
+///     Checks runtime-sized struct tails, early writer input diagnostics, and a general write with no tail that avoids
+///     redundant position queries.
+/// </summary>
 [TestClass]
 public class WriterTailAndInputTests
 {
@@ -62,5 +66,40 @@ public class WriterTailAndInputTests
         StringAssert.StartsWith(failure.Message, "Writing requires a writable, seekable stream.");
         Assert.AreEqual(1L, destination.Position);
         CollectionAssert.AreEqual(new byte[] { 11, 22, }, destination.ToArray());
+    }
+
+    /// <summary>An empty record reads its entry position and, only when aligned, compares its final boundary once.</summary>
+    /// <param name="aligned">Whether the layout requests a final alignment check.</param>
+    /// <param name="expectedReads">The required number of physical position queries.</param>
+    [TestMethod]
+    [DataRow(false, 1)]
+    [DataRow(true, 2)]
+    public void EmptyGeneralWrite_AvoidsRedundantPositionQueries(bool aligned, int expectedReads)
+    {
+        var layout = new CStruct("struct root {};", aligned: aligned);
+        using var destination = new PositionCountingStream();
+        layout.Write(destination, "root", new Dictionary<string, object?>(), options: ExecutionPaths.GeneralWrite());
+
+        Assert.AreEqual(expectedReads, destination.PositionReads);
+        Assert.AreEqual(0L, destination.Length);
+    }
+
+    /// <summary>Counts physical position reads without changing normal seekable-memory-stream behavior.</summary>
+    private sealed class PositionCountingStream : MemoryStream
+    {
+        /// <summary>Gets the number of queries made to the destination position.</summary>
+        public int PositionReads { get; private set; }
+
+        /// <summary>Gets the current byte position while counting the query, or sets it without counting.</summary>
+        public override long Position
+        {
+            get
+            {
+                this.PositionReads++;
+                return base.Position;
+            }
+
+            set => base.Position = value;
+        }
     }
 }

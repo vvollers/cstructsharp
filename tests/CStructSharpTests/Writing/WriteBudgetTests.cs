@@ -1,10 +1,15 @@
 namespace CStructSharp.Tests;
 
 using System.Collections;
+using System.Reflection;
 using CStructSharp.Diagnostics;
+using CStructSharp.Streams;
 using CStructSharp.Values;
 
-/// <summary>Verifies that one shared write policy bounds strings, output, nesting, and collection materialization.</summary>
+/// <summary>
+///     Verifies that one shared write policy bounds strings, output, nesting, and collection materialization - at the
+///     signed 64-bit output limit too, and for a caller's list that grows between count observations.
+/// </summary>
 [TestClass]
 public class WriteBudgetTests
 {
@@ -498,6 +503,47 @@ public class WriteBudgetTests
         Assert.AreEqual(0, values.Yielded);
     }
 
+    /// <summary>The last representable charged byte is affordable, but the next byte must not wrap into a negative charge.</summary>
+    [TestMethod]
+    public void PhysicalOutput_RejectsOverflowAfterTheExactLimit()
+    {
+        using var inner = new MemoryStream(new byte[2]);
+        using var stream = new WriteBudgetStream(inner, new WriteOptions { MaxTotalBytesWritten = long.MaxValue, });
+        SetPreviouslyWrittenBytes(stream, long.MaxValue - 1);
+        Assert.IsTrue(stream.CanAffordBlock(1, 1));
+        stream.WriteByte(17);
+        Assert.AreEqual(1L, inner.Position);
+        Assert.IsTrue(stream.CanAffordBlock(0, 0));
+        Assert.IsFalse(stream.CanAffordBlock(1, 1));
+
+        // Overflow is rejected by accounting before the inner stream accepts another byte.
+        CStructWriteException failure = Assert.Throws<CStructWriteException>(() => stream.WriteByte(29));
+        Assert.IsInstanceOfType<OverflowException>(failure.InnerException);
+        StringAssert.StartsWith(failure.Message, "Write output accounting overflowed the supported stream range");
+        Assert.AreEqual(1L, inner.Position);
+        CollectionAssert.AreEqual(new byte[] { 17, 0, }, inner.ToArray());
+    }
+
+    /// <summary>The final data-sized count is checked again before any element is written.</summary>
+    /// <param name="suffix">The terminated or end-of-input array declarator.</param>
+    [TestMethod]
+    [DataRow("[]")]
+    [DataRow("[EOF]")]
+    public void ChangingListCount_IsCheckedBeforeWriting(string suffix)
+    {
+        var layout = new CStruct("struct root { uint8 values" + suffix + "; };");
+        var values = new GrowingList();
+        using var destination = new MemoryStream();
+
+        // The first materialization count fits; the following count exposes the second available element.
+        Assert.Throws<CStructWriteLimitException>(() => layout.Write(
+            destination,
+            "root",
+            new Dictionary<string, object?> { ["values"] = values, },
+            options: new WriteOptions { MaxArrayElements = 1 }));
+        Assert.AreEqual(0L, destination.Length);
+    }
+
     /// <summary>Asserts that a zero total budget rejects one update before its first physical write.</summary>
     private static void AssertUpdateRejectedWithoutMutation(
         string layout,
@@ -527,12 +573,28 @@ public class WriteBudgetTests
         };
     }
 
+    /// <summary>Sets a valid accumulated history directly so the boundary needs no exabytes of repeated writes.</summary>
+    /// <param name="stream">The budget wrapper whose existing output accounting is initialized.</param>
+    /// <param name="bytes">A nonnegative count within the configured budget.</param>
+    /// <remarks>
+    ///     Rewriting existing storage can accumulate this count independently of the file extent. Reflection is
+    ///     limited to this test setup; the assertions exercise the normal preflight and write methods afterwards.
+    /// </remarks>
+    private static void SetPreviouslyWrittenBytes(WriteBudgetStream stream, long bytes)
+    {
+        FieldInfo? field = typeof(WriteBudgetStream).GetField("bytesWritten", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.IsNotNull(field, "Update the boundary fixture if the internal accounting representation changes.");
+        field.SetValue(stream, bytes);
+    }
+
     /// <summary>Records how many values a writer consumes from an otherwise ordinary single-pass sequence.</summary>
     /// <typeparam name="T">The sequence item type.</typeparam>
     private sealed class CountingEnumerable<T>(IEnumerable<T> values) : IEnumerable<T>
     {
         public int Yielded { get; private set; }
 
+        /// <summary>Counts each value as it is yielded.</summary>
+        /// <returns>The enumerator.</returns>
         public IEnumerator<T> GetEnumerator()
         {
             foreach (T value in values)
@@ -542,9 +604,38 @@ public class WriteBudgetTests
             }
         }
 
+        /// <inheritdoc/>
         IEnumerator IEnumerable.GetEnumerator()
         {
             return this.GetEnumerator();
+        }
+    }
+
+    /// <summary>Models a caller-owned collection that adds an element when its count is first queried.</summary>
+    private sealed class GrowingList : List<object>, IList<object>
+    {
+        private bool observed;
+
+        /// <summary>Starts with one byte and adds a second byte after the first count observation.</summary>
+        public GrowingList()
+            : base([(byte)5,])
+        {
+        }
+
+        /// <summary>Returns the current count, adding one element after its first observation.</summary>
+        int ICollection<object>.Count
+        {
+            get
+            {
+                int count = this.Count;
+                if (!this.observed)
+                {
+                    this.observed = true;
+                    this.Add((byte)6);
+                }
+
+                return count;
+            }
         }
     }
 }
