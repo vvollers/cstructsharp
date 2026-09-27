@@ -190,11 +190,11 @@ internal static class MappedFixedEmitter
     private static string? ReadExpression(FixedMappedMember member, string source, out string? keyword)
     {
         CompiledField field = member.Field;
-        string type = member.Member.FixedType;
+        FixedType type = member.Member.FixedType;
         keyword = null;
         if (field.Array.Kind != CompiledArrayKind.Scalar || field.Composite is not null)
         {
-            if (type == "s" && field.IsCharacterArray && !field.IsWideCharElement && field.Codec.Size == 1 && field.Array.FixedCount is int length && !member.Member.IsNullableValue)
+            if (type.Shape == FixedTypeShape.String && field.IsCharacterArray && !field.IsWideCharElement && field.Codec.Size == 1 && field.Array.FixedCount is int length && !member.Member.IsNullableValue)
             {
                 // ReadFrom's Get<string> of a char[N]: one Latin-1 character per byte, TrimFixedText applied.
                 return CodecClass + ".DecodeFixedText(" + source + ".Slice(" + Int(member.Offset) + ", " + Int(length) + "), trimFixedText)";
@@ -203,13 +203,13 @@ internal static class MappedFixedEmitter
             return null;
         }
 
-        if (type.StartsWith("p:", StringComparison.Ordinal) && field.Enum is null && NaturalKeyword(field.Codec) == type.Substring(2))
+        if (type.Shape == FixedTypeShape.Primitive && field.Enum is null && NaturalKeyword(field.Codec) == type.Name)
         {
-            keyword = type.Substring(2);
+            keyword = type.Name;
             return Decode(field.Codec, source, member.Offset);
         }
 
-        if (type.StartsWith("e:", StringComparison.Ordinal) && field.Enum is { IsFlag: false } && NaturalKeyword(field.Codec) == type.Substring(2))
+        if (type.Shape == FixedTypeShape.Enum && field.Enum is { IsFlag: false } && NaturalKeyword(field.Codec) == type.Name)
         {
             // ReadFrom's Get<TEnum> converts the stored number, whose type is the enum's underlying type, unchanged.
             return "(" + member.Member.TypeName + ")" + Decode(field.Codec, source, member.Offset);
@@ -222,7 +222,7 @@ internal static class MappedFixedEmitter
     private static bool IsLocalRead(FixedMappedMember member)
     {
         CompiledField field = member.Field;
-        string type = member.Member.FixedType;
+        FixedType type = member.Member.FixedType;
         if (member.Member.IsNullableValue)
         {
             return false;
@@ -230,7 +230,7 @@ internal static class MappedFixedEmitter
 
         if (field.Array.Kind == CompiledArrayKind.Scalar)
         {
-            return (type is "c" or "cs") && field.Composite is not null;
+            return type.Shape == FixedTypeShape.Mapped && field.Composite is not null;
         }
 
         if (field.Array.FixedCount is null || field.Enum is not null || field.IsCharacterArray)
@@ -238,12 +238,12 @@ internal static class MappedFixedEmitter
             return false;
         }
 
-        if (type.StartsWith("ap:", StringComparison.Ordinal))
+        if (type.Shape == FixedTypeShape.PrimitiveArray)
         {
-            return field.Composite is null && NaturalKeyword(field.Codec) == type.Substring(3);
+            return field.Composite is null && NaturalKeyword(field.Codec) == type.Name;
         }
 
-        return (type.StartsWith("ac:", StringComparison.Ordinal) || type.StartsWith("acs:", StringComparison.Ordinal)) &&
+        return type.Shape == FixedTypeShape.MappedArray &&
                field.Composite is { } nested && field.FixedElementSize == nested.Symbol.FixedSize;
     }
 
@@ -251,33 +251,33 @@ internal static class MappedFixedEmitter
     private static void EmitLocalRead(SourceWriter writer, FixedMappedMember member, string local)
     {
         CompiledField field = member.Field;
-        string type = member.Member.FixedType;
+        FixedType type = member.Member.FixedType;
         if (field.Array.Kind == CompiledArrayKind.Scalar)
         {
             // A nested mapped class reads directly only when it was generated for this very nested struct.
             CompiledCompositeType nested = field.Composite!;
-            writer.Open("if (!" + Mapped + ".TryReadFixed<" + member.Member.TypeName + ">(source.Slice(" + Int(member.Offset) + ", " + Int(nested.Symbol.FixedSize!.Value) + "), " + Hex(LayoutFingerprint.Compute(nested)) + ", trimFixedText, out " + member.Member.TypeName + (type == "c" ? "?" : string.Empty) + " " + local + "))");
+            writer.Open("if (!" + Mapped + ".TryReadFixed<" + member.Member.TypeName + ">(source.Slice(" + Int(member.Offset) + ", " + Int(nested.Symbol.FixedSize!.Value) + "), " + Hex(LayoutFingerprint.Compute(nested)) + ", trimFixedText, out " + member.Member.TypeName + (type.IsValueType ? string.Empty : "?") + " " + local + "))");
             writer.Line("return false;");
             writer.Close();
             return;
         }
 
         int count = field.Array.FixedCount!.Value;
-        if (type.StartsWith("ap:", StringComparison.Ordinal))
+        if (type.Shape == FixedTypeShape.PrimitiveArray)
         {
-            string keyword = type.Substring(3);
+            string keyword = type.Name;
             writer.Line("var " + local + " = new " + keyword + "[" + Int(count) + "];");
             string bytes = "source.Slice(" + Int(member.Offset) + ", " + Int(count * field.Codec.Size) + ")";
             writer.Line(BulkDecode(field.Codec, keyword, bytes, local));
             return;
         }
 
-        string element = type.Substring(type.IndexOf(':') + 1);
+        string element = type.Name;
         CompiledCompositeType elementComposite = field.Composite!;
         int stride = field.FixedElementSize!.Value;
         writer.Line("var " + local + " = new " + element + "[" + Int(count) + "];");
         writer.Open("for (int index = 0; index < " + Int(count) + "; index++)");
-        writer.Open("if (!" + Mapped + ".TryReadFixed<" + element + ">(source.Slice(" + Int(member.Offset) + " + index * " + Int(stride) + ", " + Int(stride) + "), " + Hex(LayoutFingerprint.Compute(elementComposite)) + ", trimFixedText, out " + element + (type.StartsWith("ac:", StringComparison.Ordinal) ? "?" : string.Empty) + " item))");
+        writer.Open("if (!" + Mapped + ".TryReadFixed<" + element + ">(source.Slice(" + Int(member.Offset) + " + index * " + Int(stride) + ", " + Int(stride) + "), " + Hex(LayoutFingerprint.Compute(elementComposite)) + ", trimFixedText, out " + element + (type.IsValueType ? string.Empty : "?") + " item))");
         writer.Line("return false;");
         writer.Close();
         writer.Line(local + "[index] = item;");
@@ -288,26 +288,26 @@ internal static class MappedFixedEmitter
     private static bool CanWrite(FixedMappedMember member)
     {
         CompiledField field = member.Field;
-        string type = member.Member.FixedType;
+        FixedType type = member.Member.FixedType;
         bool storable = field.Codec.Kind is not (PrimitiveCodecKind.Int24 or PrimitiveCodecKind.UInt24);
         if (field.Array.Kind == CompiledArrayKind.Scalar)
         {
-            return type is "c" or "cs"
+            return type.Shape == FixedTypeShape.Mapped
                        ? field.Composite is not null
-                       : storable && field.Enum is null && field.Composite is null && type.StartsWith("p:", StringComparison.Ordinal) && NaturalKeyword(field.Codec) == type.Substring(2);
+                       : storable && field.Enum is null && field.Composite is null && type.Shape == FixedTypeShape.Primitive && NaturalKeyword(field.Codec) == type.Name;
         }
 
-        return !member.Member.IsNullableValue && IsLocalRead(member) && (!type.StartsWith("ap:", StringComparison.Ordinal) || storable);
+        return !member.Member.IsNullableValue && IsLocalRead(member) && (type.Shape != FixedTypeShape.PrimitiveArray || storable);
     }
 
     /// <summary>Emits the statements storing one member; a member the writer cannot store returns <see langword="false"/> at run time.</summary>
     private static void EmitWrite(SourceWriter writer, FixedMappedMember member, string access, string local)
     {
         CompiledField field = member.Field;
-        string type = member.Member.FixedType;
+        FixedType type = member.Member.FixedType;
         string offset = Int(member.Offset);
         writer.Line("// " + member.LayoutName);
-        if (field.Array.Kind == CompiledArrayKind.Scalar && type.StartsWith("p:", StringComparison.Ordinal))
+        if (field.Array.Kind == CompiledArrayKind.Scalar && type.Shape == FixedTypeShape.Primitive)
         {
             if (member.Member.IsNullableValue)
             {
@@ -326,7 +326,7 @@ internal static class MappedFixedEmitter
         {
             CompiledCompositeType nested = field.Composite!;
             string call = Mapped + ".TryWriteFixed<" + member.Member.TypeName + ">(" + access + ", target.Slice(" + offset + ", " + Int(nested.Symbol.FixedSize!.Value) + "), " + Hex(LayoutFingerprint.Compute(nested)) + ")";
-            writer.Open("if (" + (type == "c" ? access + " is null || " : string.Empty) + "!" + call + ")");
+            writer.Open("if (" + (type.IsValueType ? string.Empty : access + " is null || ") + "!" + call + ")");
             writer.Line("return false;");
             writer.Close();
             return;
@@ -336,18 +336,18 @@ internal static class MappedFixedEmitter
         writer.Open("if (" + access + " is null || " + access + ".Length != " + Int(count) + ")");
         writer.Line("return false;");
         writer.Close();
-        if (type.StartsWith("ap:", StringComparison.Ordinal))
+        if (type.Shape == FixedTypeShape.PrimitiveArray)
         {
-            string keyword = type.Substring(3);
+            string keyword = type.Name;
             string bytes = "target.Slice(" + offset + ", " + Int(count * field.Codec.Size) + ")";
             writer.Line(BulkEncode(field.Codec, keyword, access, bytes));
             return;
         }
 
-        string element = type.Substring(type.IndexOf(':') + 1);
+        string element = type.Name;
         int stride = field.FixedElementSize!.Value;
         writer.Open("for (int index = 0; index < " + Int(count) + "; index++)");
-        writer.Open("if (" + (type.StartsWith("ac:", StringComparison.Ordinal) ? access + "[index] is null || " : string.Empty) + "!" + Mapped + ".TryWriteFixed<" + element + ">(" + access + "[index], target.Slice(" + offset + " + index * " + Int(stride) + ", " + Int(stride) + "), " + Hex(LayoutFingerprint.Compute(field.Composite!)) + "))");
+        writer.Open("if (" + (type.IsValueType ? string.Empty : access + "[index] is null || ") + "!" + Mapped + ".TryWriteFixed<" + element + ">(" + access + "[index], target.Slice(" + offset + " + index * " + Int(stride) + ", " + Int(stride) + "), " + Hex(LayoutFingerprint.Compute(field.Composite!)) + "))");
         writer.Line("return false;");
         writer.Close();
         writer.Close();

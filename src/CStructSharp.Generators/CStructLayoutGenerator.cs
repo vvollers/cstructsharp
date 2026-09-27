@@ -77,42 +77,6 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
     /// <summary>The layout request of a [CStructLayout] class, for the mapped-class generator's layout resolution.</summary>
     internal static LayoutRequest? CreateRequestForMapping(GeneratorAttributeSyntaxContext context, CancellationToken cancellation) => CreateRequest(context, cancellation);
 
-    /// <summary>
-    ///     The composite <paramref name="layoutName"/>, compiled, from the first inline layout of the
-    ///     compilation that declares it (a layout read from a file is not searched), or <see langword="null"/> when
-    ///     no layout declares it or the layout does not compile (its own class reports that).
-    /// </summary>
-    internal static CompiledCompositeType? ResolveComposite(ImmutableArray<LayoutRequest> layouts, string layoutName)
-    {
-        foreach (LayoutRequest request in layouts)
-        {
-            // A layout read from a file, or one whose codec declarations do not parse (its own class reports that), is
-            // not searched.
-            if (request.Definition is null || !request.Settings.TryParseCodecs(out List<CustomCodecDescriptor> codecs, out _))
-            {
-                continue;
-            }
-
-            try
-            {
-                LayoutCompilation compilation = request.Settings.Compile(request.Definition, request.Settings.CodecCatalog(codecs));
-                foreach (KeyValuePair<Syntax.Struct, CompiledTypeSymbol> entry in compilation.CompiledModel.Composites)
-                {
-                    if (entry.Value.Definition is CompiledCompositeType composite && composite.Name == layoutName)
-                    {
-                        return composite;
-                    }
-                }
-            }
-            catch (Exception exception) when (exception is CStructException or ArgumentException)
-            {
-                // The layout's own class reports the failure; the mapper falls back to run-time name matching.
-            }
-        }
-
-        return null;
-    }
-
     /// <summary>Snapshots one attributed class's configuration and source locations for incremental generation.</summary>
     /// <param name="context">The compiler's matched attribute, declaration and semantic symbol.</param>
     /// <param name="cancellation">Cancels syntax retrieval when the compiler abandons this generation pass.</param>
