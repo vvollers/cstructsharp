@@ -592,7 +592,6 @@ public partial class CStruct
         long unionPosition,
         CompositeFieldPlacementCursor? cursor = null)
     {
-        // Keep a local field because an unsized character array is treated as a terminated string for writing.
         if (value is null &&
             (compiledField.PointerDepth == 0 || compiledField.Array.Kind != CompiledArrayKind.Scalar))
         {
@@ -600,80 +599,8 @@ public partial class CStruct
                 WriteFailures.NullForNonPointer(compiledField.Name));
         }
 
-        CompiledField valueField = compiledField;
-        int numFieldValues = 1;
-        bool unknownArray = false;
-        bool hasFixedArrayDeclarator =
-            compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime;
-        bool dataSizedArray = compiledField.Array.Kind is CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
-
-        if (dataSizedArray)
-        {
-            // A data-sized array writes exactly the supplied elements (plus its terminator, below).
-            unknownArray = true;
-        }
-        else if (compiledField.Array.Kind != CompiledArrayKind.Scalar)
-        {
-            if (compiledField.Array.Kind == CompiledArrayKind.Flexible)
-            {
-                // C-style char[] has no fixed count here. Select a string handler that writes its terminator.
-                unknownArray = true;
-                if (compiledField.IsCharElement)
-                {
-                    valueField = compiledField.SelectPointerTarget(
-                        0,
-                        CharacterFieldTypes.CstringType.Name,
-                        this.PointerSize);
-                }
-                else if (compiledField.IsWideCharElement)
-                {
-                    string handler = CharacterFieldTypes.GetStringPointerHandlerKey(compiledField.EffectiveField.Type);
-                    valueField = compiledField.SelectPointerTarget(
-                        0,
-                        handler,
-                        this.PointerSize);
-                }
-            }
-            else if (compiledField.Array.Dimensions.Length > 1)
-            {
-                // Every dimension of a multidimensional array is compile-time-fixed (the multidimensional array's
-                // fixed-dimensions-only slice), so the total leaf count is already known without evaluating any
-                // expression against the current write state.
-                numFieldValues = compiledField.Array.TotalFixedElementCount ??
-                                 throw new InvalidOperationException(
-                                     "Multidimensional array has no fixed total element count: " +
-                                     compiledField.Name);
-                if (numFieldValues > state.Options.MaxArrayElements)
-                {
-                    throw new CStructWriteLimitException(
-                        WriteFailures.ArrayLengthLimit(compiledField.Name));
-                }
-            }
-            else
-            {
-                // Fixed array counts may refer to an earlier field or #define, so calculate them from the current state.
-                numFieldValues = this.layoutExpressionEvaluator.Evaluate(
-                    compiledField.Array.CountExpression ??
-                    throw new InvalidOperationException(
-                        "Compiled array has no count expression: " + compiledField.Name),
-                    state.Variables,
-                    "array length for " + compiledField.Name,
-                    ExpressionFailureDomain.Write);
-                if (numFieldValues < 0)
-                {
-                    throw new CStructWriteException(LayoutFailures.NegativeArrayLength(compiledField.Name));
-                }
-
-                if (numFieldValues > state.Options.MaxArrayElements)
-                {
-                    throw new CStructWriteLimitException(
-                        WriteFailures.ArrayLengthLimit(compiledField.Name));
-                }
-            }
-        }
-
-        bool isArray = hasFixedArrayDeclarator || unknownArray;
-        BigInteger? writtenEnumValue = null;
+        int count = this.WrittenElementCount(compiledField, state, out CompiledField valueField, out bool unknownArray);
+        bool isArray = compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime || unknownArray;
         if (unknownArray && PrimitiveCodecs.IsVariableLengthType(valueField.TypeSpelling))
         {
             // A terminated string view writes one value through its string codec, not element by element.
@@ -682,144 +609,12 @@ public partial class CStruct
 
         bool positionIsResolvedTarget = state.PositionIsResolvedTarget;
         state.PositionIsResolvedTarget = false;
+        bool standalone = PlaceWrittenField(compiledField, valueField, state, unionPosition, cursor, positionIsResolvedTarget);
 
-        // A standalone field has no composite cursor: a root declaration, a union member (placed at the union's start)
-        // or a resolved path target (placed at its address). It starts with no open bitfield unit.
-        bool standalone = cursor is null || unionPosition != -1 || positionIsResolvedTarget;
-
-        if (unionPosition != -1)
+        BigInteger? writtenEnumValue = null;
+        if (isArray)
         {
-            // Each union member begins at the same address, just as it does while reading.
-            state.Stream.Position = unionPosition;
-            state.ResetBitfieldUnit();
-        }
-
-        if (standalone)
-        {
-            if (compiledField.BitSize > 0 && state.BitfieldUnitSeeded)
-            {
-                // A resolved target arrives with its placed unit; nothing to derive.
-                state.BitfieldUnitSeeded = false;
-            }
-            else if (compiledField.BitSize > 0)
-            {
-                // A standalone bitfield opens its own storage unit.
-                state.BitfieldUnitOpen = true;
-                state.CurrentBitfieldSize = compiledField.BitStorageSize ??
-                                            throw new InvalidOperationException(
-                                                "Compiled bitfield has no storage size: " +
-                                                compiledField.Name);
-            }
-
-            // Only a root declaration aligns here, as in the reader: a union member starts exactly at the union's start
-            // and a resolved target at its address. The alignment is the real field type's, after pointers and aliases.
-            if (state.Aligned && unionPosition == -1 && !positionIsResolvedTarget)
-            {
-                state.Stream.Position = LayoutMath.AlignUp(state.Stream.Position, valueField.Alignment);
-            }
-        }
-        else
-        {
-            // The cursor already knows this field's start (and, for a bitfield, whether it continues the active
-            // storage unit or opens a new one) - apply its decision once, for every array element, instead of
-            // re-deriving it per element.
-            (long fieldStart, int bitOffset, int unitSize) = cursor!.AdvanceToField(valueField);
-            state.Stream.Position = fieldStart;
-            if (compiledField.BitSize > 0)
-            {
-                state.CurrentBitOffset = bitOffset;
-                state.BitfieldUnitOpen = true;
-                state.CurrentBitfieldSize = unitSize;
-            }
-            else
-            {
-                state.ResetBitfieldUnit();
-            }
-        }
-
-        if (isArray && compiledField.Array.Dimensions.Length > 1)
-        {
-            // Multidimensional arrays are never Flexible/unknownArray (Seam 4 requires every dimension fixed for
-            // N >= 2), so the caller-supplied value is always an N-deep nested collection to flatten, mirroring
-            // the reader's flat-then-reshape approach in reverse: flatten first, then write the same flat
-            // sequence a 1-D array of the same total count would already write.
-            int[] dimensionSizes = FixedDimensionSizes(compiledField);
-
-            if (valueField.IsCharacterArray)
-            {
-                // The innermost dimension of a fixed string table collapses one caller-supplied string per row,
-                // exactly like today's single-dimension char[32] buffer; only the outer dimensions flatten.
-                int rowSize = dimensionSizes[^1];
-                List<object> rows = this.FlattenNestedArrayValues(value!, dimensionSizes[..^1], compiledField.Name);
-                foreach (object row in rows)
-                {
-                    string rowString = row as string ??
-                                        WriteValueMaterialization.ConvertToBoundedCharString(row, rowSize, compiledField.Name);
-                    this.WriteFixedCharArray(compiledField, rowString, rowSize, state);
-                }
-            }
-            else
-            {
-                List<object> leaves = this.FlattenNestedArrayValues(value!, dimensionSizes, compiledField.Name);
-                for (int i = 0; i < leaves.Count; i++)
-                {
-                    _ = this.WriteSingleFieldValue(compiledField, leaves[i], state);
-                }
-            }
-        }
-        else if (isArray)
-        {
-            if (valueField.IsCharacterArray ||
-                (!compiledField.IsPointer && BoundedTextCodec.IsType(compiledField.TypeSpelling)))
-            {
-                // Character arrays accept either one string or a collection of characters and always fill the declared size.
-                string str = value as string ??
-                             WriteValueMaterialization.ConvertToBoundedCharString(value!, numFieldValues, compiledField.Name);
-                this.WriteFixedCharArray(compiledField, str, numFieldValues, state);
-            }
-            else if (!unknownArray && !standalone && numFieldValues <= state.Options.MaxArrayElements &&
-                     this.TryWriteTypedArrayBlock(compiledField, value, numFieldValues, state))
-            {
-                // Written as one block: the same bytes and budget charge as the element loop below.
-            }
-            else
-            {
-                // Other arrays are written item by item so nested structs, enums, and pointers use their normal logic.
-                int materializationLimit = unknownArray ? state.Options.MaxArrayElements : numFieldValues;
-                IList<object> items = WriteValueMaterialization.ConvertToObjectList(
-                    value!,
-                    materializationLimit,
-                    compiledField.Name);
-                int count = unknownArray ? items.Count : numFieldValues;
-                if (count > state.Options.MaxArrayElements)
-                {
-                    throw new CStructWriteLimitException(
-                        WriteFailures.ArrayLengthLimit(compiledField.Name));
-                }
-
-                if (!unknownArray && items.Count != count)
-                {
-                    throw new CStructWriteException(WriteFailures.ArrayLengthMismatch(compiledField.Name, count, items.Count));
-                }
-
-                for (int i = 0; i < count; i++)
-                {
-                    if (compiledField.TargetComposite is not null)
-                    {
-                        state.Options.CancellationToken.ThrowIfCancellationRequested();
-                    }
-
-                    _ = this.WriteSingleFieldValue(compiledField, items[i], state);
-                }
-
-                if (compiledField.Array.Kind == CompiledArrayKind.Terminated)
-                {
-                    // One all-zero element closes the array.
-                    int elementSize = compiledField.FixedElementSize ??
-                                      throw new InvalidOperationException("Data-sized array has no fixed element size: " + compiledField.Name);
-                    state.WriteZeroes(elementSize);
-                }
-            }
+            this.WriteArrayValue(compiledField, valueField, value!, state, count, unknownArray, standalone);
         }
         else
         {
@@ -839,6 +634,225 @@ public partial class CStruct
         {
             LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, writtenEnumValue is BigInteger exact ? exact : value);
             state.PublishQualified(compiledField.Name);
+        }
+    }
+
+    /// <summary>
+    ///     The element count a field's declaration gives for a write: 1 for a scalar, the product of a multidimensional
+    ///     array's fixed dimensions, or a one-dimensional count evaluated against the variables written so far. A
+    ///     data-sized or unsized array (<paramref name="unknownArray"/>) writes the elements the value supplies; an
+    ///     unsized character array is written through its terminated string codec (<paramref name="valueField"/>).
+    /// </summary>
+    /// <param name="compiledField">The field.</param>
+    /// <param name="state">The write state, whose variables and limits apply.</param>
+    /// <param name="valueField">The field the value is written as: itself, or its terminated string view.</param>
+    /// <param name="unknownArray">Whether the value, not the declaration, gives the element count.</param>
+    /// <returns>The declared count; 1 when <paramref name="unknownArray"/>.</returns>
+    /// <exception cref="CStructWriteException">The count is negative.</exception>
+    /// <exception cref="CStructWriteLimitException">The count is past <c>MaxArrayElements</c>.</exception>
+    private int WrittenElementCount(CompiledField compiledField, CStructElementWriterState state, out CompiledField valueField, out bool unknownArray)
+    {
+        valueField = compiledField;
+        unknownArray = compiledField.Array.Kind is CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated or CompiledArrayKind.Flexible;
+        if (compiledField.Array.Kind == CompiledArrayKind.Flexible)
+        {
+            // C-style char[] has no fixed count here. Select a string handler that writes its terminator.
+            if (compiledField.IsCharElement)
+            {
+                valueField = compiledField.SelectPointerTarget(0, CharacterFieldTypes.CstringType.Name, this.PointerSize);
+            }
+            else if (compiledField.IsWideCharElement)
+            {
+                valueField = compiledField.SelectPointerTarget(0, CharacterFieldTypes.GetStringPointerHandlerKey(compiledField.EffectiveField.Type), this.PointerSize);
+            }
+        }
+
+        if (unknownArray || compiledField.Array.Kind == CompiledArrayKind.Scalar)
+        {
+            return 1;
+        }
+
+        int count;
+        if (compiledField.Array.Dimensions.Length > 1)
+        {
+            // Every dimension of a multidimensional array is fixed, so the total leaf count is known without evaluating
+            // an expression against the current write state.
+            count = compiledField.Array.TotalFixedElementCount ??
+                    throw new InvalidOperationException("Multidimensional array has no fixed total element count: " + compiledField.Name);
+        }
+        else
+        {
+            // Fixed array counts may refer to an earlier field or #define, so calculate them from the current state.
+            count = this.layoutExpressionEvaluator.Evaluate(
+                compiledField.Array.CountExpression ??
+                throw new InvalidOperationException("Compiled array has no count expression: " + compiledField.Name),
+                state.Variables,
+                "array length for " + compiledField.Name,
+                ExpressionFailureDomain.Write);
+            if (count < 0)
+            {
+                throw new CStructWriteException(LayoutFailures.NegativeArrayLength(compiledField.Name));
+            }
+        }
+
+        if (count > state.Options.MaxArrayElements)
+        {
+            throw new CStructWriteLimitException(WriteFailures.ArrayLengthLimit(compiledField.Name));
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    ///     Places a field for a write: a union member at the union's start, a struct member where the composite cursor
+    ///     puts it (with its bitfield unit, once for every array element). A standalone field - a root declaration, a
+    ///     union member, or a resolved path target - has no cursor, starts with no open bitfield unit, and only a root
+    ///     declaration aligns, as in the reader.
+    /// </summary>
+    /// <param name="compiledField">The field.</param>
+    /// <param name="valueField">The field the value is written as, whose alignment a root applies.</param>
+    /// <param name="state">The write state, whose stream and bitfield unit are set.</param>
+    /// <param name="unionPosition">The union's start, or -1.</param>
+    /// <param name="cursor">The containing struct's cursor, or <see langword="null"/>.</param>
+    /// <param name="positionIsResolvedTarget">Whether the stream is at the field's resolved address.</param>
+    /// <returns>Whether the field is standalone.</returns>
+    private static bool PlaceWrittenField(CompiledField compiledField, CompiledField valueField, CStructElementWriterState state, long unionPosition, CompositeFieldPlacementCursor? cursor, bool positionIsResolvedTarget)
+    {
+        bool standalone = cursor is null || unionPosition != -1 || positionIsResolvedTarget;
+        if (unionPosition != -1)
+        {
+            // Each union member begins at the same address, just as it does while reading.
+            state.Stream.Position = unionPosition;
+            state.ResetBitfieldUnit();
+        }
+
+        if (standalone)
+        {
+            if (compiledField.BitSize > 0 && state.BitfieldUnitSeeded)
+            {
+                // A resolved target arrives with its placed unit; nothing to derive.
+                state.BitfieldUnitSeeded = false;
+            }
+            else if (compiledField.BitSize > 0)
+            {
+                // A standalone bitfield opens its own storage unit.
+                state.BitfieldUnitOpen = true;
+                state.CurrentBitfieldSize = compiledField.BitStorageSize ??
+                                            throw new InvalidOperationException("Compiled bitfield has no storage size: " + compiledField.Name);
+            }
+
+            // The alignment is the real field type's, after pointers and aliases.
+            if (state.Aligned && unionPosition == -1 && !positionIsResolvedTarget)
+            {
+                state.Stream.Position = LayoutMath.AlignUp(state.Stream.Position, valueField.Alignment);
+            }
+
+            return true;
+        }
+
+        (long fieldStart, int bitOffset, int unitSize) = cursor!.AdvanceToField(valueField);
+        state.Stream.Position = fieldStart;
+        if (compiledField.BitSize > 0)
+        {
+            state.CurrentBitOffset = bitOffset;
+            state.BitfieldUnitOpen = true;
+            state.CurrentBitfieldSize = unitSize;
+        }
+        else
+        {
+            state.ResetBitfieldUnit();
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///     Writes an array value: a multidimensional array as its flattened row-major leaves (a character table row by
+    ///     row), a character array or encoded text buffer as one string, a numeric array as one block where it can be,
+    ///     and anything else element by element (a data-sized terminated array then gets its all-zero terminator).
+    /// </summary>
+    /// <param name="compiledField">The array field.</param>
+    /// <param name="valueField">The field the value is written as.</param>
+    /// <param name="value">The caller's collection or string.</param>
+    /// <param name="state">The write state.</param>
+    /// <param name="count">The declared element count; ignored when <paramref name="unknownArray"/>.</param>
+    /// <param name="unknownArray">Whether the value gives the element count.</param>
+    /// <param name="standalone">Whether the field has no composite cursor.</param>
+    /// <exception cref="CStructWriteException">The value has the wrong number of elements.</exception>
+    /// <exception cref="CStructWriteLimitException">The value has more elements than <c>MaxArrayElements</c>.</exception>
+    private void WriteArrayValue(CompiledField compiledField, CompiledField valueField, object value, CStructElementWriterState state, int count, bool unknownArray, bool standalone)
+    {
+        if (compiledField.Array.Dimensions.Length > 1)
+        {
+            // Every dimension is fixed, so the value is an N-deep nested collection to flatten - the reader's
+            // flat-then-reshape in reverse - and then written as the same flat sequence a 1-D array writes.
+            int[] dimensionSizes = FixedDimensionSizes(compiledField);
+            if (valueField.IsCharacterArray)
+            {
+                // The innermost dimension of a fixed string table collapses one caller-supplied string per row, like a
+                // one-dimensional char[32]; only the outer dimensions flatten.
+                int rowSize = dimensionSizes[^1];
+                foreach (object row in this.FlattenNestedArrayValues(value, dimensionSizes[..^1], compiledField.Name))
+                {
+                    string rowString = row as string ?? WriteValueMaterialization.ConvertToBoundedCharString(row, rowSize, compiledField.Name);
+                    this.WriteFixedCharArray(compiledField, rowString, rowSize, state);
+                }
+            }
+            else
+            {
+                List<object> leaves = this.FlattenNestedArrayValues(value, dimensionSizes, compiledField.Name);
+                for (int i = 0; i < leaves.Count; i++)
+                {
+                    _ = this.WriteSingleFieldValue(compiledField, leaves[i], state);
+                }
+            }
+
+            return;
+        }
+
+        if (valueField.IsCharacterArray || (!compiledField.IsPointer && BoundedTextCodec.IsType(compiledField.TypeSpelling)))
+        {
+            // Character arrays accept either one string or a collection of characters and always fill the declared size.
+            string text = value as string ?? WriteValueMaterialization.ConvertToBoundedCharString(value, count, compiledField.Name);
+            this.WriteFixedCharArray(compiledField, text, count, state);
+            return;
+        }
+
+        if (!unknownArray && !standalone && count <= state.Options.MaxArrayElements && this.TryWriteTypedArrayBlock(compiledField, value, count, state))
+        {
+            // Written as one block: the same bytes and budget charge as the element loop below.
+            return;
+        }
+
+        // Other arrays are written item by item so nested structs, enums, and pointers use their normal logic.
+        IList<object> items = WriteValueMaterialization.ConvertToObjectList(value, unknownArray ? state.Options.MaxArrayElements : count, compiledField.Name);
+        int written = unknownArray ? items.Count : count;
+        if (written > state.Options.MaxArrayElements)
+        {
+            throw new CStructWriteLimitException(WriteFailures.ArrayLengthLimit(compiledField.Name));
+        }
+
+        if (!unknownArray && items.Count != written)
+        {
+            throw new CStructWriteException(WriteFailures.ArrayLengthMismatch(compiledField.Name, written, items.Count));
+        }
+
+        for (int i = 0; i < written; i++)
+        {
+            if (compiledField.TargetComposite is not null)
+            {
+                state.Options.CancellationToken.ThrowIfCancellationRequested();
+            }
+
+            _ = this.WriteSingleFieldValue(compiledField, items[i], state);
+        }
+
+        if (compiledField.Array.Kind == CompiledArrayKind.Terminated)
+        {
+            // One all-zero element closes the array.
+            int elementSize = compiledField.FixedElementSize ??
+                              throw new InvalidOperationException("Data-sized array has no fixed element size: " + compiledField.Name);
+            state.WriteZeroes(elementSize);
         }
     }
 

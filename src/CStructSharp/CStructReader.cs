@@ -262,589 +262,15 @@ public partial class CStruct
                         ExpressionFailureDomain.Read));
                 break;
             case Field f:
-                {
-                    CompiledField compiledField = fieldDescriptor ??
-                                                  throw new InvalidOperationException(
-                                                      "Field execution requires a compiled descriptor: " +
-                                                      f.Name.Name);
-                    if (compiledField.IsZeroWidthBitfield)
-                    {
-                        // A `: 0` separator has no bytes and no value; the cursor applies its placement effect.
-                        if (cursor is not null && unionPosition == -1)
-                        {
-                            (long separatorEnd, _, _) = cursor.AdvanceToField(compiledField);
-                            state.Stream.Position = separatorEnd;
-                            state.NextPosition = separatorEnd;
-                        }
-
-                        state.ResetBitfieldUnit();
-                        break;
-                    }
-
-                    Func<Stream, object>? fieldReader = this.codecs.ReaderOf(compiledField);
-                    CompiledCompositeType? nestedComposite = compiledField.Composite;
-                    CompiledEnumType? fieldEnum = compiledField.Enum;
-
-                    // Begin with one value, then expand fixed arrays or translate unsized character arrays to terminated strings.
-                    int numFieldValues = 1;
-                    bool hasFixedArrayDeclarator =
-                        compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or
-                        CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
-
-                    // A data-sized array (T v[EOF], T v[]) is counted once its start is known, after placement below.
-                    bool dataSizedArray = compiledField.Array.Kind is CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
-
-                    if (compiledField.Array.Kind != CompiledArrayKind.Scalar && !dataSizedArray)
-                    {
-                        if (compiledField.Array.Kind == CompiledArrayKind.Flexible)
-                        {
-                            // An unsized character array is a terminated string in this layout language; the
-                            // compiled view already carries its terminated codec.
-                            fieldReader = this.codecs.TerminatedReaderOf(compiledField);
-                        }
-                        else if (compiledField.Array.Dimensions.Length > 1)
-                        {
-                            // Every dimension of a multidimensional array is compile-time-fixed (the multidimensional array's
-                            // fixed-dimensions-only slice), so the total leaf count is already known without
-                            // re-evaluating any expression against the current stream's variables. Elements are
-                            // still read in the same flat, sequential, row-major order a 1-D array would use; only
-                            // the container shape built after the loop differs (see the reshape step below).
-                            numFieldValues = compiledField.Array.TotalFixedElementCount ??
-                                             throw new InvalidOperationException(
-                                                 "Multidimensional array has no fixed total element count: " +
-                                                 compiledField.Name);
-                            if (numFieldValues > state.MaxArrayElements)
-                            {
-                                throw new CStructReadLimitException(
-                                    ReadFailures.ArrayLengthLimit(numFieldValues, state.MaxArrayElements));
-                            }
-                        }
-                        else
-                        {
-                            // Evaluate the count only after earlier fields have populated the parser variable dictionary.
-                            numFieldValues = this.layoutExpressionEvaluator.Evaluate(
-                                compiledField.Array.CountExpression ??
-                                throw new InvalidOperationException(
-                                    "Compiled array has no count expression: " + compiledField.Name),
-                                state.Variables,
-                                "array length for " + compiledField.Name,
-                                ExpressionFailureDomain.Read);
-                            if (numFieldValues < 0)
-                            {
-                                throw new CStructReadException(LayoutFailures.NegativeArrayLength(compiledField.Name));
-                            }
-
-                            if (numFieldValues > state.MaxArrayElements)
-                            {
-                                throw new CStructReadLimitException(
-                                    ReadFailures.ArrayLengthLimit(numFieldValues, state.MaxArrayElements));
-                            }
-                        }
-                    }
-
-                    if (state.Debug)
-                    {
-                        // Add this field after its parent struct so debug records identify the complete layout path.
-                        // An unnamed padding field shows as `_`, the name it was declared with.
-                        debugStack = new DebugPath(debugStack, compiledField.Name.Length == 0 && compiledField.BitSize == 0 && !compiledField.IsInlineComposite ? "_" : compiledField.Name);
-                    }
-
-                    IDictionary<string, object?> containerDict = currentContainer;
-
-                    if (unionPosition != -1)
-                    {
-                        // Rewind before each union member so all interpretations use the same bytes.
-                        state.Stream.Position = unionPosition;
-                        state.ResetBitfieldUnit();
-                    }
-
-                    // A standalone field has no composite cursor: a root declaration, a union member (placed at the union's
-                    // start) or a resolved path target (placed at its address). It starts with no open bitfield unit.
-                    bool standalone = cursor is null || unionPosition != -1;
-
-                    if (!standalone)
-                    {
-                        // The cursor already knows this field's start (and, for a bitfield, whether it continues the
-                        // active storage unit or opens a new one) - apply its decision once, for every array element,
-                        // instead of re-deriving it per element or per type branch below.
-                        (long fieldStart, int bitOffset, int unitSize) = cursor!.AdvanceToField(compiledField);
-                        state.Stream.Position = fieldStart;
-                        if (compiledField.BitSize > 0)
-                        {
-                            state.CurrentBitOffset = bitOffset;
-                            state.BitfieldUnitOpen = true;
-                            state.CurrentBitfieldSize = unitSize;
-                        }
-                        else
-                        {
-                            state.ResetBitfieldUnit();
-                        }
-                    }
-
-                    if (dataSizedArray)
-                    {
-                        // The placement above put the stream at the field start; count the whole elements from there.
-                        int elementSize = compiledField.FixedElementSize ??
-                                          throw new InvalidOperationException("Data-sized array has no fixed element size: " + compiledField.Name);
-                        numFieldValues = compiledField.Array.Kind == CompiledArrayKind.ToEnd
-                                             ? DynamicArrayExtent.CountToEnd(state.Stream, state.Stream.Position, elementSize, state.MaxArrayElements, compiledField.Name)
-                                             : DynamicArrayExtent.CountTerminated(state.Stream, state.Stream.Position, elementSize, state.MaxArrayElements, compiledField.Name);
-                    }
-
-                    bool isArray = hasFixedArrayDeclarator;
-
-                    // Bulk path for arrays of fixed-width numeric primitives: one block read and span decoding
-                    // instead of the per-element loop below. Restricted to the shapes whose per-element side effects
-                    // are exactly reproducible there: cursor placement (the field start is already set), no debug
-                    // records, no union rewinds, no bitfields, pointers, enums, structs, or character types.
-                    bool bulkNumeric = isArray && !state.Debug && cursor is not null && unionPosition == -1 && compiledField.BitSize == 0 &&
-                                       compiledField.PointerDepth == 0 && nestedComposite is null && fieldEnum is null && compiledField.Name.Length > 0 &&
-                                       numFieldValues > 0 && compiledField.Codec.IsFixedWidthNumeric;
-
-                    // A one-dimensional numeric array becomes a typed PrimitiveArray<T> (stage 2); every other array
-                    // accumulates boxed elements first (fixed character arrays are converted to a string after the loop).
-                    bool typedArray = bulkNumeric && compiledField.Array.Dimensions.Length == 1;
-
-                    // A one-dimensional char[n] is read as one block and decoded to its string at once, where the
-                    // per-character loop below would have no other observable effect: no debug records, cursor
-                    // placement outside a union, and no layout variable to capture from each character. The block is
-                    // taken only when the whole extent is present and within the budget; otherwise the loop runs.
-                    bool bulkCharacters = isArray && !state.Debug && !standalone && numFieldValues > 0 &&
-                                          compiledField.IsCharElement && !compiledField.IsWideCharElement && !compiledField.IsPointer &&
-                                          compiledField.BitSize == 0 && compiledField.Array.Dimensions.Length == 1 && compiledField.Name.Length > 0 &&
-                                          !compiledField.CapturesLayoutVariable && !state.CaptureAllLayoutVariables && !state.GeneralPathOnly;
-                    if (isArray && !typedArray && !bulkCharacters)
-                    {
-                        containerDict[compiledField.Name] = new List<object?>(numFieldValues);
-                    }
-
-                    string fieldTypeName = compiledField.DisplayTypeSpelling;
-
-                    // An enum-typed bitfield takes the primitive bit-slicing path below and is wrapped afterwards.
-                    bool isKnownStruct = nestedComposite is not null || (fieldEnum is not null && compiledField.BitSize == 0);
-                    bool isKnownFieldType = fieldReader is not null;
-
-                    if (isArray && !compiledField.IsPointer && BoundedTextCodec.IsType(compiledField.TypeSpelling))
-                    {
-                        long start = state.Stream.Position;
-                        string text = state.FixedText(PrimitiveCodecs.ReadBoundedText(state.Stream, numFieldValues, compiledField.TypeSpelling));
-                        long end = state.Stream.Position;
-                        containerDict[compiledField.Name] = text;
-                        if (state.Debug)
-                        {
-                            state.RegisterDebugData(start, end, debugStack, text, fieldTypeName);
-                        }
-
-                        state.NextPosition = end;
-                        if (!standalone)
-                        {
-                            cursor!.CompleteField(end);
-                        }
-
-                        break;
-                    }
-
-                    int firstElement = 0;
-                    if (bulkNumeric)
-                    {
-                        object? lastElement;
-                        if (typedArray)
-                        {
-                            IList<object?> typed = PrimitiveArrayReader.Read(state.Stream, compiledField.Codec, numFieldValues);
-                            containerDict[compiledField.Name] = typed;
-                            lastElement = typed[numFieldValues - 1];
-                        }
-                        else
-                        {
-                            lastElement = PrimitiveArrayReader.ReadInto(
-                                state.Stream,
-                                compiledField.Codec,
-                                numFieldValues,
-                                (List<object?>)containerDict[compiledField.Name]!);
-                        }
-
-                        state.NextPosition = state.Stream.Position;
-
-                        // An array is not an integer; the capture makes a shared name unusable, as every path does.
-                        if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
-                        {
-                            LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, lastElement);
-
-                            state.PublishQualified(compiledField.Name);
-                        }
-
-                        firstElement = numFieldValues;
-                    }
-
-                    // A one-dimensional array of a fully fixed struct whose whole extent is in memory
-                    // is read by looping the element's static plan over one span instead of dispatching per element.
-                    if (isArray && firstElement == 0 && numFieldValues > 0 && !state.Debug && !standalone && !state.GeneralPathOnly &&
-                        compiledField.PointerDepth == 0 && nestedComposite is { IsUnion: false } composite && compiledField.Array.Dimensions.Length == 1)
-                    {
-                        if (composite.StaticPlan is StaticReadPlan plan && plan.Size > 0 && compiledField.FixedElementSize == plan.Size &&
-                            state.CoversPlan(plan) && StaticReadPlan.CanRunAt(composite, this.Aligned, state.Stream.Position) &&
-                            (long)numFieldValues * plan.Size <= int.MaxValue &&
-                            state.Stream.TryReadSpanWithinBudget(numFieldValues * plan.Size, out ReadOnlySpan<byte> elements))
-                        {
-                            var list = (List<object?>)containerDict[compiledField.Name]!;
-                            for (int element = 0; element < numFieldValues; element++)
-                            {
-                                state.CancellationToken.ThrowIfCancellationRequested();
-                                var container = new StructValue(composite.Shape);
-                                this.ExecuteStaticPlan(plan, elements.Slice(element * plan.Size, plan.Size), container, state);
-                                list.Add(container);
-                            }
-
-                            state.ResetBitfieldUnit();
-                            state.NextPosition = state.Stream.Position;
-                            firstElement = numFieldValues;
-                        }
-                    }
-
-                    bool charactersRead = false;
-                    if (bulkCharacters)
-                    {
-                        charactersRead = this.TryReadCharacterBlock(state, numFieldValues, out string? characters);
-                        if (charactersRead)
-                        {
-                            containerDict[compiledField.Name] = characters;
-                            state.NextPosition = state.Stream.Position;
-                            firstElement = numFieldValues;
-                        }
-                        else
-                        {
-                            containerDict[compiledField.Name] = new List<object?>(numFieldValues);
-                        }
-                    }
-
-                    for (int i = firstElement; i < numFieldValues; i++)
-                    {
-                        // Composite leaves need the containing element's coordinates. Keep primitive-array
-                        // debug records unchanged: consumers historically group those under the array field.
-                        DebugPath? elementDebugStack = debugStack;
-                        if (state.Debug && isArray && compiledField.TargetComposite is not null)
-                        {
-                            string indices = string.Empty;
-                            int remainingIndex = i;
-                            for (int dimension = compiledField.Array.Dimensions.Length - 1; dimension >= 0; dimension--)
-                            {
-                                int size = compiledField.Array.Dimensions[dimension].FixedCount ?? numFieldValues;
-                                indices = "[" + (remainingIndex % size) + "]" + indices;
-                                remainingIndex /= size;
-                            }
-
-                            elementDebugStack = new DebugPath(debugStack!.Parent, compiledField.Name + indices);
-                        }
-
-                        if (compiledField.PointerDepth == 0 && isKnownStruct)
-                        {
-                            // Structs and enums have layout-aware readers rather than primitive byte handlers.
-                            if (fieldEnum is { } enm)
-                            {
-                                // Align the enum's primitive storage before reading its numeric representation.
-                                // The cursor already applied this once per field (not per array element) when
-                                // it is available; only a standalone root field still aligns here.
-                                long curPos = state.Stream.Position;
-
-                                if (standalone && state.Aligned && unionPosition == -1 && !positionIsResolvedTarget)
-                                {
-                                    int structAlignment = compiledField.Alignment;
-                                    state.Stream.Position = LayoutMath.AlignUp(curPos, structAlignment);
-                                    curPos = state.Stream.Position;
-                                }
-
-                                EnumValueResult newEnum = this.ReadEnumValue(
-                                    compiledField,
-                                    enm,
-                                    state.Stream);
-                                long endPos = state.Stream.Position;
-
-                                if (state.Debug)
-                                {
-                                    state.RegisterDebugData(
-                                        curPos,
-                                        endPos,
-                                        debugStack,
-                                        newEnum.Value,
-                                        fieldTypeName);
-                                }
-
-                                if (isArray)
-                                {
-                                    ((List<object?>)containerDict[compiledField.Name]!).Add(newEnum);
-                                }
-                                else
-                                {
-                                    containerDict[compiledField.Name] = newEnum;
-                                }
-
-                                if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
-                                {
-                                    LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, newEnum);
-                                    state.PublishQualified(compiledField.Name);
-                                }
-                            }
-                            else
-                            {
-                                CompiledCompositeType strct = nestedComposite!;
-                                if (standalone && !positionIsResolvedTarget)
-                                {
-                                    this.PrepareNestedStructStart(strct, state, unionPosition);
-                                }
-
-                                // A field named through a dotted path (`hdr.n`) republishes its nested values under
-                                // the qualified prefix while its body is read.
-                                string? outerPrefix = state.QualifiedPrefix;
-                                if (compiledField.HasQualifiedPrefix && !isArray)
-                                {
-                                    state.QualifiedPrefix = outerPrefix is null ? compiledField.QualifiedPrefix : outerPrefix + compiledField.QualifiedPrefix;
-                                }
-
-                                object nestedValue;
-                                if (strct.IsUnion)
-                                {
-                                    nestedValue = this.ReadUnionValue(strct, state, elementDebugStack);
-                                }
-                                else
-                                {
-                                    var newContainer = new StructValue(strct.Shape);
-                                    this.ReadCompiledStructInto(
-                                        strct,
-                                        newContainer,
-                                        state,
-                                        elementDebugStack);
-                                    nestedValue = newContainer;
-                                }
-
-                                state.QualifiedPrefix = outerPrefix;
-
-                                if (isArray)
-                                {
-                                    ((List<object?>)containerDict[compiledField.Name]!).Add(nestedValue);
-                                }
-                                else
-                                {
-                                    containerDict[compiledField.Name] = nestedValue;
-                                }
-                            }
-                        }
-                        else if (compiledField.PointerDepth == 0 && !isKnownFieldType)
-                        {
-                            throw new InvalidOperationException($"No handler for field type {fieldTypeName}");
-                        }
-                        else
-                        {
-                            if (standalone && compiledField.BitSize > 0 && state.BitfieldUnitSeeded)
-                            {
-                                // A resolved target arrives with its placed unit; nothing to derive.
-                                state.BitfieldUnitSeeded = false;
-                            }
-                            else if (standalone && compiledField.BitSize > 0)
-                            {
-                                // A standalone bitfield opens its own storage unit.
-                                state.BitfieldUnitOpen = true;
-                                state.CurrentBitfieldSize = compiledField.BitStorageSize ??
-                                                            throw new InvalidOperationException(
-                                                                "Compiled bitfield has no storage size: " +
-                                                                compiledField.Name);
-                            }
-
-                            long curPos = state.Stream.Position;
-
-                            if (standalone && state.Aligned && unionPosition == -1 && !positionIsResolvedTarget)
-                            {
-                                // Only a root declaration gets here: a union member starts exactly at the union's compiled
-                                // start (even when a pointer target is not naturally aligned in the containing stream), and
-                                // a resolved target at its resolved address. A root starts at its own boundary.
-                                state.Stream.Position = LayoutMath.AlignUp(curPos, compiledField.Alignment);
-                                curPos = state.Stream.Position;
-                            }
-
-                            // Fixed-width numerics are decoded straight from a memory-backed cursor; every
-                            // other codec, and every stream source, keeps the delegate path.
-                            // A bitfield whose placed unit differs from its declared type (a packed SysV window) is
-                            // read as a raw unsigned unit of that size; every other field takes its codec.
-                            bool windowedUnit = compiledField.BitSize > 0 && state.CurrentBitfieldSize != compiledField.Codec.Size;
-
-                            // Inside a struct traversal (the cursor path) a pointer's target is followed after the
-                            // struct's last field, so its @count may name a later field; elsewhere it is followed now.
-                            object content = compiledField.PointerDepth > 0
-                                                 ? standalone || !compiledField.FollowsAfterStruct
-                                                     ? this.ReadPointerValue(
-                                                                             compiledField.PointerDepth,
-                                                                             compiledField,
-                                                                             state,
-                                                                             elementDebugStack)
-                                                     : this.ReadDeferredPointer(compiledField, state, elementDebugStack)
-                                                 : windowedUnit
-                                                     ? BinaryPrimitiveIO.ReadBitfieldUnit(state.Stream, state.CurrentBitfieldSize, compiledField.BitStorageIsLittleEndian ?? true)
-                                                     : compiledField.Codec.IsFixedWidthNumeric &&
-                                                       state.Stream.TryReadSpan(compiledField.Codec.Size, out ReadOnlySpan<byte> numericBytes)
-                                                         ? compiledField.Codec.ReadNumeric(numericBytes)
-                                                         : fieldReader?.Invoke(state.Stream) ??
-                                                           throw new InvalidOperationException(
-                                                               "Compiled field has no reader: " + fieldTypeName);
-
-                            // Remember the full primitive range before bitfield handling possibly rewinds for another slice.
-                            long endPos = state.Stream.Position;
-
-                            long finalEndPos = endPos;
-                            if (compiledField.BitSize > 0)
-                            {
-                                // Read the storage value once, then expose only this field's slice of its bits.
-                                int elementBitSize = checked(state.CurrentBitfieldSize * 8);
-                                if (state.CurrentBitOffset + compiledField.BitSize > elementBitSize)
-                                {
-                                    throw new CStructReadException(LayoutFailures.BitfieldExceedsUnit(compiledField.Name));
-                                }
-
-                                ulong extracted = BitfieldCodecTable.ExtractBitfieldValue(
-                                    content,
-                                    BitfieldCodecTable.EffectiveShift(state.CurrentBitOffset, compiledField.BitSize, elementBitSize, this.highBitFirst),
-                                    compiledField.BitSize);
-                                content = compiledField.BitSize < 32 ? (object)(int)extracted : extracted;
-                                if (fieldEnum is { } bitfieldEnum)
-                                {
-                                    content = CreateEnumValue(bitfieldEnum, content);
-                                }
-
-                                state.CurrentBitOffset += compiledField.BitSize;
-                                int bitOffsetInBytes = 1 + (state.CurrentBitOffset / 8);
-                                long elementByteSize = endPos - curPos;
-                                if (bitOffsetInBytes > elementByteSize)
-                                {
-                                    state.CurrentBitOffset -= elementBitSize;
-                                    state.BitfieldUnitOpen = false;
-                                }
-                                else
-                                {
-                                    state.Stream.Position = curPos;
-                                    state.NextPosition = endPos;
-                                    finalEndPos = curPos;
-                                }
-                            }
-                            else
-                            {
-                                state.NextPosition = endPos;
-                            }
-
-                            if (state.Debug)
-                            {
-                                // Debug collection rereads the full source bytes and then restores the logical parser position.
-                                state.RegisterDebugData(curPos, endPos, elementDebugStack, content, fieldTypeName);
-                                state.Stream.Position = finalEndPos;
-                            }
-
-                            // An anonymous nonzero-width bitfield is pure padding: its bits are read and
-                            // consumed above (and still appear in debug output, registered before this point), but
-                            // it has no name to store into the result container or capture as an expression variable.
-                            if (compiledField.Name.Length > 0)
-                            {
-                                if (isArray)
-                                {
-                                    ((List<object?>)containerDict[compiledField.Name]!).Add(content);
-                                }
-                                else
-                                {
-                                    containerDict[compiledField.Name] = content;
-                                }
-
-                                if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
-                                {
-                                    // Later counts and expressions read the value through the field's name; see
-                                    // LayoutVariableCapture for the rule every path shares.
-                                    LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, content);
-                                }
-
-                                if (state.HasQualifiedPrefix && (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables))
-                                {
-                                    state.PublishQualified(compiledField.Name);
-                                }
-                            }
-                        }
-                    }
-
-                    if (compiledField.Array.Kind == CompiledArrayKind.Terminated)
-                    {
-                        // The all-zero terminator element belongs to the field but not to its value.
-                        long terminatorEnd = checked(state.Stream.Position + (compiledField.FixedElementSize ?? 0));
-                        state.Stream.Position = terminatorEnd;
-                        state.NextPosition = terminatorEnd;
-                    }
-
-                    if (!standalone && compiledField.BitSize == 0)
-                    {
-                        // Bitfields skip this: the cursor already reserved their whole storage unit's span when it
-                        // opened, mirroring how CStructAddressResolver's own cursor usage never completes a bitfield.
-                        cursor!.CompleteField(state.Stream.Position);
-                    }
-
-                    if (isArray)
-                    {
-                        bool isCharacterElement =
-                            !compiledField.IsPointer && (compiledField.IsCharElement || compiledField.IsWideCharElement);
-
-                        if (compiledField.Array.Dimensions.Length > 1)
-                        {
-                            int[] dimensionSizes = FixedDimensionSizes(compiledField);
-                            var flatValues = (List<object?>)containerDict[compiledField.Name]!;
-
-                            if (isCharacterElement)
-                            {
-                                // The innermost dimension of a fixed string table (char names[10][32]) collapses
-                                // to a string, exactly like today's single-dimension char[32] buffer; every outer
-                                // dimension then nests around that row of strings the same way any other element
-                                // type nests, so only this one step is character-specific.
-                                int rowSize = dimensionSizes[^1];
-                                var rows = new List<object?>(flatValues.Count / rowSize);
-                                for (int start = 0; start < flatValues.Count; start += rowSize)
-                                {
-                                    string row = state.FixedText(new string(flatValues.GetRange(start, rowSize).Cast<char>().ToArray()));
-                                    if (compiledField.IsWideCharElement)
-                                    {
-                                        try
-                                        {
-                                            _ = this.GetWideCharacterEncoding(compiledField).GetByteCount(row);
-                                        }
-                                        catch (EncoderFallbackException exception)
-                                        {
-                                            throw new CStructReadException(ReadFailures.WideTextInvalid, exception);
-                                        }
-                                    }
-
-                                    rows.Add(row);
-                                }
-
-                                containerDict[compiledField.Name] = ReshapeFlatArrayValues(rows, dimensionSizes[..^1]);
-                            }
-                            else
-                            {
-                                containerDict[compiledField.Name] = ReshapeFlatArrayValues(flatValues, dimensionSizes);
-                            }
-                        }
-                        else if (isCharacterElement && !charactersRead)
-                        {
-                            // Expose fixed character arrays as the string callers expect, after every character has been read.
-                            var list = (List<object?>)containerDict[compiledField.Name]!;
-                            string parsedString = state.FixedText(new string(list.Cast<char>().ToArray()));
-                            if (compiledField.IsWideCharElement)
-                            {
-                                try
-                                {
-                                    _ = this.GetWideCharacterEncoding(compiledField).GetByteCount(parsedString);
-                                }
-                                catch (EncoderFallbackException exception)
-                                {
-                                    throw new CStructReadException(ReadFailures.WideTextInvalid, exception);
-                                }
-                            }
-
-                            containerDict[compiledField.Name] = parsedString;
-                        }
-                    }
-
-                    break;
-                }
+                this.ReadField(
+                    fieldDescriptor ?? throw new InvalidOperationException("Field execution requires a compiled descriptor: " + f.Name.Name),
+                    currentContainer,
+                    state,
+                    debugStack,
+                    unionPosition,
+                    cursor,
+                    positionIsResolvedTarget);
+                break;
             }
 
             break;
@@ -1493,5 +919,683 @@ public partial class CStruct
 
         // The compiled type carries the static extent only when no runtime expression or terminator controls it.
         return field.Type.Symbol.FixedSize;
+    }
+
+    /// <summary>
+    ///     Reads one compiled field into <paramref name="container"/>: a scalar, an array of any element kind, or a
+    ///     <c>: 0</c> separator (which reads nothing). Layout variables the field supplies are captured as it is read.
+    /// </summary>
+    /// <param name="compiledField">The field.</param>
+    /// <param name="container">The value receiving the field.</param>
+    /// <param name="state">The read state: stream, limits, variables, and bitfield unit.</param>
+    /// <param name="debugStack">The parent path for debug records, or <see langword="null"/>.</param>
+    /// <param name="unionPosition">The union's start when the field is a union member; -1 otherwise.</param>
+    /// <param name="cursor">The containing struct's placement cursor, or <see langword="null"/> for a standalone field.</param>
+    /// <param name="positionIsResolvedTarget">Whether the stream is already at the field's resolved address.</param>
+    private void ReadField(
+        CompiledField compiledField,
+        StructValue container,
+        CStructOperationContext state,
+        DebugPath? debugStack,
+        long unionPosition,
+        CompositeFieldPlacementCursor? cursor,
+        bool positionIsResolvedTarget)
+    {
+        if (compiledField.IsZeroWidthBitfield)
+        {
+            // A `: 0` separator has no bytes and no value; the cursor applies its placement effect.
+            if (cursor is not null && unionPosition == -1)
+            {
+                (long separatorEnd, _, _) = cursor.AdvanceToField(compiledField);
+                state.Stream.Position = separatorEnd;
+                state.NextPosition = separatorEnd;
+            }
+
+            state.ResetBitfieldUnit();
+            return;
+        }
+
+        // An unsized character array is a terminated string in this layout language; the compiled view already
+        // carries its terminated codec.
+        Func<Stream, object>? fieldReader = compiledField.Array.Kind == CompiledArrayKind.Flexible
+                                                ? this.codecs.TerminatedReaderOf(compiledField)
+                                                : this.codecs.ReaderOf(compiledField);
+        int count = this.DeclaredElementCount(compiledField, state);
+
+        if (state.Debug)
+        {
+            // Add this field after its parent struct so debug records identify the complete layout path.
+            // An unnamed padding field shows as `_`, the name it was declared with.
+            debugStack = new DebugPath(debugStack, compiledField.Name.Length == 0 && compiledField.BitSize == 0 && !compiledField.IsInlineComposite ? "_" : compiledField.Name);
+        }
+
+        bool standalone = PlaceField(compiledField, state, unionPosition, cursor);
+        if (compiledField.Array.Kind is CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated)
+        {
+            // The placement put the stream at the field start; count the whole elements from there.
+            int elementSize = compiledField.FixedElementSize ??
+                              throw new InvalidOperationException("Data-sized array has no fixed element size: " + compiledField.Name);
+            count = compiledField.Array.Kind == CompiledArrayKind.ToEnd
+                        ? DynamicArrayExtent.CountToEnd(state.Stream, state.Stream.Position, elementSize, state.MaxArrayElements, compiledField.Name)
+                        : DynamicArrayExtent.CountTerminated(state.Stream, state.Stream.Position, elementSize, state.MaxArrayElements, compiledField.Name);
+        }
+
+        bool isArray = compiledField.Array.Kind is CompiledArrayKind.Fixed or CompiledArrayKind.Runtime or
+                           CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated;
+        var read = new FieldRead(compiledField, container, debugStack, unionPosition, standalone, positionIsResolvedTarget, isArray, fieldReader);
+        if (isArray && !compiledField.IsPointer && BoundedTextCodec.IsType(compiledField.TypeSpelling))
+        {
+            this.ReadBoundedTextField(in read, state, count, cursor);
+            return;
+        }
+
+        bool charactersRead = false;
+        int firstElement = isArray ? this.ReadArrayFastPaths(in read, state, count, cursor, out charactersRead) : 0;
+        for (int index = firstElement; index < count; index++)
+        {
+            this.ReadFieldElement(in read, state, index, count);
+        }
+
+        if (compiledField.Array.Kind == CompiledArrayKind.Terminated)
+        {
+            // The all-zero terminator element belongs to the field but not to its value.
+            long terminatorEnd = checked(state.Stream.Position + (compiledField.FixedElementSize ?? 0));
+            state.Stream.Position = terminatorEnd;
+            state.NextPosition = terminatorEnd;
+        }
+
+        if (!standalone && compiledField.BitSize == 0)
+        {
+            // Bitfields skip this: the cursor already reserved their whole storage unit's span when it opened,
+            // mirroring how CStructAddressResolver's own cursor usage never completes a bitfield.
+            cursor!.CompleteField(state.Stream.Position);
+        }
+
+        if (isArray)
+        {
+            this.FinishArray(in read, state, charactersRead);
+        }
+    }
+
+    /// <summary>
+    ///     The element count the declaration gives before the field is placed: 1 for a scalar or a terminated string, the
+    ///     product of a multidimensional array's fixed dimensions, or a one-dimensional count evaluated against the
+    ///     variables read so far. A data-sized array is counted after placement, from the data.
+    /// </summary>
+    /// <param name="compiledField">The field.</param>
+    /// <param name="state">The read state, whose variables and limits apply.</param>
+    /// <returns>The count.</returns>
+    /// <exception cref="CStructReadException">The count is negative.</exception>
+    /// <exception cref="CStructReadLimitException">The count is past <c>MaxArrayElements</c>.</exception>
+    private int DeclaredElementCount(CompiledField compiledField, CStructOperationContext state)
+    {
+        if (compiledField.Array.Kind is CompiledArrayKind.Scalar or CompiledArrayKind.Flexible or CompiledArrayKind.ToEnd or CompiledArrayKind.Terminated)
+        {
+            return 1;
+        }
+
+        int count;
+        if (compiledField.Array.Dimensions.Length > 1)
+        {
+            // Every dimension of a multidimensional array is fixed, so the total leaf count is known without evaluating
+            // an expression. Elements are still read in flat row-major order; the shape is built afterwards.
+            count = compiledField.Array.TotalFixedElementCount ??
+                    throw new InvalidOperationException("Multidimensional array has no fixed total element count: " + compiledField.Name);
+        }
+        else
+        {
+            // Evaluate the count only after earlier fields have populated the variables.
+            count = this.layoutExpressionEvaluator.Evaluate(
+                compiledField.Array.CountExpression ??
+                throw new InvalidOperationException("Compiled array has no count expression: " + compiledField.Name),
+                state.Variables,
+                "array length for " + compiledField.Name,
+                ExpressionFailureDomain.Read);
+            if (count < 0)
+            {
+                throw new CStructReadException(LayoutFailures.NegativeArrayLength(compiledField.Name));
+            }
+        }
+
+        if (count > state.MaxArrayElements)
+        {
+            throw new CStructReadLimitException(ReadFailures.ArrayLengthLimit(count, state.MaxArrayElements));
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    ///     Places a field: a union member at the union's start, a struct member where the composite cursor puts it (with
+    ///     its bitfield unit, once for every array element). A standalone field - a root declaration, a union member,
+    ///     or a resolved path target - has no cursor and starts with no open bitfield unit.
+    /// </summary>
+    /// <param name="compiledField">The field.</param>
+    /// <param name="state">The read state, whose stream and bitfield unit are set.</param>
+    /// <param name="unionPosition">The union's start, or -1.</param>
+    /// <param name="cursor">The containing struct's cursor, or <see langword="null"/>.</param>
+    /// <returns>Whether the field is standalone.</returns>
+    private static bool PlaceField(CompiledField compiledField, CStructOperationContext state, long unionPosition, CompositeFieldPlacementCursor? cursor)
+    {
+        if (unionPosition != -1)
+        {
+            // Rewind before each union member so all interpretations use the same bytes.
+            state.Stream.Position = unionPosition;
+            state.ResetBitfieldUnit();
+        }
+
+        bool standalone = cursor is null || unionPosition != -1;
+        if (!standalone)
+        {
+            (long fieldStart, int bitOffset, int unitSize) = cursor!.AdvanceToField(compiledField);
+            state.Stream.Position = fieldStart;
+            if (compiledField.BitSize > 0)
+            {
+                state.CurrentBitOffset = bitOffset;
+                state.BitfieldUnitOpen = true;
+                state.CurrentBitfieldSize = unitSize;
+            }
+            else
+            {
+                state.ResetBitfieldUnit();
+            }
+        }
+
+        return standalone;
+    }
+
+    /// <summary>Reads an encoded text buffer (<c>utf8 text[N]</c> and the like) as one string.</summary>
+    /// <param name="read">The field being read.</param>
+    /// <param name="state">The read state.</param>
+    /// <param name="capacity">The buffer's declared element count.</param>
+    /// <param name="cursor">The containing struct's cursor, or <see langword="null"/>.</param>
+    private void ReadBoundedTextField(in FieldRead read, CStructOperationContext state, int capacity, CompositeFieldPlacementCursor? cursor)
+    {
+        CompiledField compiledField = read.Field;
+        long start = state.Stream.Position;
+        string text = state.FixedText(PrimitiveCodecs.ReadBoundedText(state.Stream, capacity, compiledField.TypeSpelling));
+        long end = state.Stream.Position;
+        ((IDictionary<string, object?>)read.Container)[compiledField.Name] = text;
+        if (state.Debug)
+        {
+            state.RegisterDebugData(start, end, read.DebugStack, text, compiledField.DisplayTypeSpelling);
+        }
+
+        state.NextPosition = end;
+        if (!read.Standalone)
+        {
+            cursor!.CompleteField(end);
+        }
+    }
+
+    /// <summary>
+    ///     Reads what an array's fast paths can and prepares the element list for the rest: a numeric array in one block
+    ///     (a one-dimensional one as a typed array), a one-dimensional array of a fully fixed struct through its static
+    ///     plan, and a <c>char[N]</c> as one block. Each applies only where the per-element loop would have no other
+    ///     observable effect.
+    /// </summary>
+    /// <param name="read">The array field.</param>
+    /// <param name="state">The read state.</param>
+    /// <param name="count">The element count.</param>
+    /// <param name="cursor">The containing struct's cursor, or <see langword="null"/>.</param>
+    /// <param name="charactersRead">Whether the characters were read as one string.</param>
+    /// <returns>The index of the first element the per-element loop still reads.</returns>
+    private int ReadArrayFastPaths(in FieldRead read, CStructOperationContext state, int count, CompositeFieldPlacementCursor? cursor, out bool charactersRead)
+    {
+        CompiledField compiledField = read.Field;
+        IDictionary<string, object?> containerDict = read.Container;
+        charactersRead = false;
+
+        // Bulk path for arrays of fixed-width numeric primitives: one block read and span decoding instead of the
+        // per-element loop. Restricted to the shapes whose per-element side effects are exactly reproducible there:
+        // cursor placement (the field start is already set), no debug records, no union rewinds, no bitfields,
+        // pointers, enums, structs, or character types.
+        bool bulkNumeric = !state.Debug && cursor is not null && read.UnionPosition == -1 && compiledField.BitSize == 0 &&
+                           compiledField.PointerDepth == 0 && compiledField.Composite is null && compiledField.Enum is null && compiledField.Name.Length > 0 &&
+                           count > 0 && compiledField.Codec.IsFixedWidthNumeric;
+
+        // A one-dimensional numeric array becomes a typed PrimitiveArray<T>; every other array accumulates boxed
+        // elements first (fixed character arrays are converted to a string at the end).
+        bool typedArray = bulkNumeric && compiledField.Array.Dimensions.Length == 1;
+
+        // A one-dimensional char[n] is read as one block and decoded to its string at once, where the per-character
+        // loop would have no other observable effect: no debug records, cursor placement outside a union, and no
+        // layout variable to capture from each character. The block is taken only when the whole extent is present
+        // and within the budget; otherwise the loop runs.
+        bool bulkCharacters = !state.Debug && !read.Standalone && count > 0 &&
+                              compiledField.IsCharElement && !compiledField.IsWideCharElement && !compiledField.IsPointer &&
+                              compiledField.BitSize == 0 && compiledField.Array.Dimensions.Length == 1 && compiledField.Name.Length > 0 &&
+                              !compiledField.CapturesLayoutVariable && !state.CaptureAllLayoutVariables && !state.GeneralPathOnly;
+        if (!typedArray && !bulkCharacters)
+        {
+            containerDict[compiledField.Name] = new List<object?>(count);
+        }
+
+        int firstElement = 0;
+        if (bulkNumeric)
+        {
+            object? lastElement;
+            if (typedArray)
+            {
+                IList<object?> typed = PrimitiveArrayReader.Read(state.Stream, compiledField.Codec, count);
+                containerDict[compiledField.Name] = typed;
+                lastElement = typed[count - 1];
+            }
+            else
+            {
+                lastElement = PrimitiveArrayReader.ReadInto(state.Stream, compiledField.Codec, count, (List<object?>)containerDict[compiledField.Name]!);
+            }
+
+            state.NextPosition = state.Stream.Position;
+
+            // An array is not an integer; the capture makes a shared name unusable, as every path does.
+            if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+            {
+                LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, lastElement);
+                state.PublishQualified(compiledField.Name);
+            }
+
+            firstElement = count;
+        }
+
+        // A one-dimensional array of a fully fixed struct whose whole extent is in memory is read by looping the
+        // element's static plan over one span instead of dispatching per element.
+        if (firstElement == 0 && count > 0 && !state.Debug && !read.Standalone && !state.GeneralPathOnly &&
+            compiledField.PointerDepth == 0 && compiledField.Composite is { IsUnion: false } composite && compiledField.Array.Dimensions.Length == 1)
+        {
+            if (composite.StaticPlan is StaticReadPlan plan && plan.Size > 0 && compiledField.FixedElementSize == plan.Size &&
+                state.CoversPlan(plan) && StaticReadPlan.CanRunAt(composite, this.Aligned, state.Stream.Position) &&
+                (long)count * plan.Size <= int.MaxValue &&
+                state.Stream.TryReadSpanWithinBudget(count * plan.Size, out ReadOnlySpan<byte> elements))
+            {
+                var list = (List<object?>)containerDict[compiledField.Name]!;
+                for (int element = 0; element < count; element++)
+                {
+                    state.CancellationToken.ThrowIfCancellationRequested();
+                    var value = new StructValue(composite.Shape);
+                    this.ExecuteStaticPlan(plan, elements.Slice(element * plan.Size, plan.Size), value, state);
+                    list.Add(value);
+                }
+
+                state.ResetBitfieldUnit();
+                state.NextPosition = state.Stream.Position;
+                firstElement = count;
+            }
+        }
+
+        if (bulkCharacters)
+        {
+            charactersRead = this.TryReadCharacterBlock(state, count, out string? characters);
+            if (charactersRead)
+            {
+                containerDict[compiledField.Name] = characters;
+                state.NextPosition = state.Stream.Position;
+                firstElement = count;
+            }
+            else
+            {
+                containerDict[compiledField.Name] = new List<object?>(count);
+            }
+        }
+
+        return firstElement;
+    }
+
+    /// <summary>Reads one element of a field (or the scalar itself): an enum, a nested struct or union, or a scalar, pointer, or bitfield.</summary>
+    /// <param name="read">The field being read.</param>
+    /// <param name="state">The read state.</param>
+    /// <param name="index">The element's flat row-major index.</param>
+    /// <param name="count">The field's element count.</param>
+    /// <exception cref="InvalidOperationException">The field's type has no reader.</exception>
+    private void ReadFieldElement(in FieldRead read, CStructOperationContext state, int index, int count)
+    {
+        CompiledField compiledField = read.Field;
+
+        // Composite leaves need the containing element's coordinates. Keep primitive-array debug records unchanged:
+        // consumers historically group those under the array field.
+        DebugPath? elementDebugStack = read.DebugStack;
+        if (state.Debug && read.IsArray && compiledField.TargetComposite is not null)
+        {
+            string indices = string.Empty;
+            int remainingIndex = index;
+            for (int dimension = compiledField.Array.Dimensions.Length - 1; dimension >= 0; dimension--)
+            {
+                int size = compiledField.Array.Dimensions[dimension].FixedCount ?? count;
+                indices = "[" + (remainingIndex % size) + "]" + indices;
+                remainingIndex /= size;
+            }
+
+            elementDebugStack = new DebugPath(read.DebugStack!.Parent, compiledField.Name + indices);
+        }
+
+        // An enum-typed bitfield takes the primitive bit-slicing path and is wrapped afterwards.
+        if (compiledField.PointerDepth == 0 && compiledField.Enum is { } enm && compiledField.BitSize == 0)
+        {
+            this.ReadEnumElement(in read, state, enm);
+        }
+        else if (compiledField.PointerDepth == 0 && compiledField.Composite is { } nested)
+        {
+            this.ReadNestedElement(in read, state, nested, elementDebugStack);
+        }
+        else if (compiledField.PointerDepth == 0 && read.Reader is null)
+        {
+            throw new InvalidOperationException($"No handler for field type {compiledField.DisplayTypeSpelling}");
+        }
+        else
+        {
+            this.ReadScalarElement(in read, state, elementDebugStack);
+        }
+    }
+
+    /// <summary>Reads one enum value through its storage type and captures its number for later expressions.</summary>
+    /// <param name="read">The enum field.</param>
+    /// <param name="state">The read state.</param>
+    /// <param name="enm">The compiled enum.</param>
+    private void ReadEnumElement(in FieldRead read, CStructOperationContext state, CompiledEnumType enm)
+    {
+        CompiledField compiledField = read.Field;
+
+        // The cursor already aligned the field once (not per array element); only a standalone root field aligns here.
+        long start = state.Stream.Position;
+        if (read.Standalone && state.Aligned && read.UnionPosition == -1 && !read.PositionIsResolvedTarget)
+        {
+            state.Stream.Position = LayoutMath.AlignUp(start, compiledField.Alignment);
+            start = state.Stream.Position;
+        }
+
+        EnumValueResult value = this.ReadEnumValue(compiledField, enm, state.Stream);
+        if (state.Debug)
+        {
+            state.RegisterDebugData(start, state.Stream.Position, read.DebugStack, value.Value, compiledField.DisplayTypeSpelling);
+        }
+
+        read.Store(value);
+        if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+        {
+            LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, value);
+            state.PublishQualified(compiledField.Name);
+        }
+    }
+
+    /// <summary>
+    ///     Reads one nested struct or union value. A field named through a dotted path (<c>hdr.n</c>) republishes its
+    ///     nested values under the qualified prefix while its body is read.
+    /// </summary>
+    /// <param name="read">The composite field.</param>
+    /// <param name="state">The read state.</param>
+    /// <param name="nested">The nested composite.</param>
+    /// <param name="elementDebugStack">The element's debug path.</param>
+    private void ReadNestedElement(in FieldRead read, CStructOperationContext state, CompiledCompositeType nested, DebugPath? elementDebugStack)
+    {
+        CompiledField compiledField = read.Field;
+        if (read.Standalone && !read.PositionIsResolvedTarget)
+        {
+            this.PrepareNestedStructStart(nested, state, read.UnionPosition);
+        }
+
+        string? outerPrefix = state.QualifiedPrefix;
+        if (compiledField.HasQualifiedPrefix && !read.IsArray)
+        {
+            state.QualifiedPrefix = outerPrefix is null ? compiledField.QualifiedPrefix : outerPrefix + compiledField.QualifiedPrefix;
+        }
+
+        object value;
+        if (nested.IsUnion)
+        {
+            value = this.ReadUnionValue(nested, state, elementDebugStack);
+        }
+        else
+        {
+            var container = new StructValue(nested.Shape);
+            this.ReadCompiledStructInto(nested, container, state, elementDebugStack);
+            value = container;
+        }
+
+        state.QualifiedPrefix = outerPrefix;
+        read.Store(value);
+    }
+
+    /// <summary>
+    ///     Reads one scalar, pointer, or bitfield value. A bitfield reads its storage unit and exposes only its own bits;
+    ///     while later bitfields share the unit the stream stays at the unit's start. An anonymous bitfield is padding:
+    ///     its bits are read (and appear in debug output) but it stores and captures nothing.
+    /// </summary>
+    /// <param name="read">The field.</param>
+    /// <param name="state">The read state.</param>
+    /// <param name="elementDebugStack">The element's debug path.</param>
+    /// <exception cref="CStructReadException">A bitfield overruns its storage unit.</exception>
+    private void ReadScalarElement(in FieldRead read, CStructOperationContext state, DebugPath? elementDebugStack)
+    {
+        CompiledField compiledField = read.Field;
+        if (read.Standalone && compiledField.BitSize > 0 && state.BitfieldUnitSeeded)
+        {
+            // A resolved target arrives with its placed unit; nothing to derive.
+            state.BitfieldUnitSeeded = false;
+        }
+        else if (read.Standalone && compiledField.BitSize > 0)
+        {
+            // A standalone bitfield opens its own storage unit.
+            state.BitfieldUnitOpen = true;
+            state.CurrentBitfieldSize = compiledField.BitStorageSize ??
+                                        throw new InvalidOperationException("Compiled bitfield has no storage size: " + compiledField.Name);
+        }
+
+        long start = state.Stream.Position;
+        if (read.Standalone && state.Aligned && read.UnionPosition == -1 && !read.PositionIsResolvedTarget)
+        {
+            // Only a root declaration gets here: a union member starts exactly at the union's compiled start (even when a
+            // pointer target is not naturally aligned in the containing stream), and a resolved target at its resolved
+            // address. A root starts at its own boundary.
+            state.Stream.Position = LayoutMath.AlignUp(start, compiledField.Alignment);
+            start = state.Stream.Position;
+        }
+
+        // A bitfield whose placed unit differs from its declared type (a packed SysV window) is read as a raw unsigned
+        // unit of that size. Fixed-width numerics decode straight from a memory-backed stream; every other codec, and
+        // every other stream, takes the field's reader. Inside a struct traversal a pointer's target is followed after
+        // the struct's last field, so its @count may name a later field; elsewhere it is followed now.
+        bool windowedUnit = compiledField.BitSize > 0 && state.CurrentBitfieldSize != compiledField.Codec.Size;
+        object content = compiledField.PointerDepth > 0
+                             ? read.Standalone || !compiledField.FollowsAfterStruct
+                                 ? this.ReadPointerValue(compiledField.PointerDepth, compiledField, state, elementDebugStack)
+                                 : this.ReadDeferredPointer(compiledField, state, elementDebugStack)
+                             : windowedUnit
+                                 ? BinaryPrimitiveIO.ReadBitfieldUnit(state.Stream, state.CurrentBitfieldSize, compiledField.BitStorageIsLittleEndian ?? true)
+                                 : compiledField.Codec.IsFixedWidthNumeric && state.Stream.TryReadSpan(compiledField.Codec.Size, out ReadOnlySpan<byte> numericBytes)
+                                     ? compiledField.Codec.ReadNumeric(numericBytes)
+                                     : read.Reader?.Invoke(state.Stream) ??
+                                       throw new InvalidOperationException("Compiled field has no reader: " + compiledField.DisplayTypeSpelling);
+
+        // Remember the full primitive range before bitfield handling possibly rewinds for another slice.
+        long end = state.Stream.Position;
+        long finalEnd = end;
+        if (compiledField.BitSize > 0)
+        {
+            int unitBits = checked(state.CurrentBitfieldSize * 8);
+            if (state.CurrentBitOffset + compiledField.BitSize > unitBits)
+            {
+                throw new CStructReadException(LayoutFailures.BitfieldExceedsUnit(compiledField.Name));
+            }
+
+            ulong extracted = BitfieldCodecTable.ExtractBitfieldValue(
+                content,
+                BitfieldCodecTable.EffectiveShift(state.CurrentBitOffset, compiledField.BitSize, unitBits, this.highBitFirst),
+                compiledField.BitSize);
+            content = compiledField.BitSize < 32 ? (object)(int)extracted : extracted;
+            if (compiledField.Enum is { } bitfieldEnum)
+            {
+                content = CreateEnumValue(bitfieldEnum, content);
+            }
+
+            state.CurrentBitOffset += compiledField.BitSize;
+            if (1 + (state.CurrentBitOffset / 8) > end - start)
+            {
+                state.CurrentBitOffset -= unitBits;
+                state.BitfieldUnitOpen = false;
+            }
+            else
+            {
+                state.Stream.Position = start;
+                state.NextPosition = end;
+                finalEnd = start;
+            }
+        }
+        else
+        {
+            state.NextPosition = end;
+        }
+
+        if (state.Debug)
+        {
+            // Debug collection rereads the full source bytes and then restores the logical parser position.
+            state.RegisterDebugData(start, end, elementDebugStack, content, compiledField.DisplayTypeSpelling);
+            state.Stream.Position = finalEnd;
+        }
+
+        if (compiledField.Name.Length == 0)
+        {
+            return;
+        }
+
+        read.Store(content);
+        if (compiledField.CapturesLayoutVariable || state.CaptureAllLayoutVariables)
+        {
+            // Later counts and expressions read the value through the field's name; see LayoutVariableCapture for the
+            // rule every path shares.
+            LayoutVariableCapture.Capture(state.Variables, compiledField.Name, compiledField, content);
+            if (state.HasQualifiedPrefix)
+            {
+                state.PublishQualified(compiledField.Name);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Gives an array its final shape: a multidimensional array nests its flat elements by dimension (a character
+    ///     table's rows become strings), and a one-dimensional character array becomes its string.
+    /// </summary>
+    /// <param name="read">The array field.</param>
+    /// <param name="state">The read state.</param>
+    /// <param name="charactersRead">Whether the characters were already read as one string.</param>
+    /// <exception cref="CStructReadException">Wide characters do not form valid UTF-16.</exception>
+    private void FinishArray(in FieldRead read, CStructOperationContext state, bool charactersRead)
+    {
+        CompiledField compiledField = read.Field;
+        IDictionary<string, object?> containerDict = read.Container;
+        bool isCharacterElement = !compiledField.IsPointer && (compiledField.IsCharElement || compiledField.IsWideCharElement);
+        if (compiledField.Array.Dimensions.Length > 1)
+        {
+            int[] dimensionSizes = FixedDimensionSizes(compiledField);
+            var flatValues = (List<object?>)containerDict[compiledField.Name]!;
+            if (!isCharacterElement)
+            {
+                containerDict[compiledField.Name] = ReshapeFlatArrayValues(flatValues, dimensionSizes);
+                return;
+            }
+
+            // The innermost dimension of a fixed string table (char names[10][32]) collapses to a string, like a
+            // one-dimensional char[32]; every outer dimension nests around those rows like any other element type.
+            int rowSize = dimensionSizes[^1];
+            var rows = new List<object?>(flatValues.Count / rowSize);
+            for (int start = 0; start < flatValues.Count; start += rowSize)
+            {
+                rows.Add(this.CharacterText(compiledField, state, flatValues.GetRange(start, rowSize)));
+            }
+
+            containerDict[compiledField.Name] = ReshapeFlatArrayValues(rows, dimensionSizes[..^1]);
+        }
+        else if (isCharacterElement && !charactersRead)
+        {
+            // Expose a fixed character array as the string callers expect, after every character has been read.
+            containerDict[compiledField.Name] = this.CharacterText(compiledField, state, (List<object?>)containerDict[compiledField.Name]!);
+        }
+    }
+
+    /// <summary>The text of a row of characters read one by one, trimmed as the options say; wide characters must be valid UTF-16.</summary>
+    /// <param name="compiledField">The character array field.</param>
+    /// <param name="state">The read state, whose fixed-text trimming applies.</param>
+    /// <param name="characters">The boxed characters.</param>
+    /// <returns>The text.</returns>
+    /// <exception cref="CStructReadException">Wide characters do not form valid UTF-16.</exception>
+    private string CharacterText(CompiledField compiledField, CStructOperationContext state, List<object?> characters)
+    {
+        string text = state.FixedText(new string(characters.Cast<char>().ToArray()));
+        if (compiledField.IsWideCharElement)
+        {
+            try
+            {
+                _ = this.GetWideCharacterEncoding(compiledField).GetByteCount(text);
+            }
+            catch (EncoderFallbackException exception)
+            {
+                throw new CStructReadException(ReadFailures.WideTextInvalid, exception);
+            }
+        }
+
+        return text;
+    }
+
+    /// <summary>The facts every step of one field's read shares, passed by reference so the steps copy nothing.</summary>
+    private readonly struct FieldRead
+    {
+        /// <summary>Captures one field's read.</summary>
+        /// <param name="field">The field.</param>
+        /// <param name="container">The value receiving the field.</param>
+        /// <param name="debugStack">The field's debug path.</param>
+        /// <param name="unionPosition">The union's start, or -1.</param>
+        /// <param name="standalone">Whether the field has no composite cursor.</param>
+        /// <param name="positionIsResolvedTarget">Whether the stream is at the field's resolved address.</param>
+        /// <param name="isArray">Whether the field is an array.</param>
+        /// <param name="reader">The field's element reader, or <see langword="null"/>.</param>
+        public FieldRead(CompiledField field, StructValue container, DebugPath? debugStack, long unionPosition, bool standalone, bool positionIsResolvedTarget, bool isArray, Func<Stream, object>? reader)
+        {
+            this.Field = field;
+            this.Container = container;
+            this.DebugStack = debugStack;
+            this.UnionPosition = unionPosition;
+            this.Standalone = standalone;
+            this.PositionIsResolvedTarget = positionIsResolvedTarget;
+            this.IsArray = isArray;
+            this.Reader = reader;
+        }
+
+        /// <summary>Gets the field.</summary>
+        public CompiledField Field { get; }
+
+        /// <summary>Gets the value receiving the field.</summary>
+        public StructValue Container { get; }
+
+        /// <summary>Gets the field's debug path.</summary>
+        public DebugPath? DebugStack { get; }
+
+        /// <summary>Gets the union's start, or -1.</summary>
+        public long UnionPosition { get; }
+
+        /// <summary>Gets whether the field has no composite cursor.</summary>
+        public bool Standalone { get; }
+
+        /// <summary>Gets whether the stream is at the field's resolved address.</summary>
+        public bool PositionIsResolvedTarget { get; }
+
+        /// <summary>Gets whether the field is an array.</summary>
+        public bool IsArray { get; }
+
+        /// <summary>Gets the field's element reader, or <see langword="null"/>.</summary>
+        public Func<Stream, object>? Reader { get; }
+
+        /// <summary>Stores one element: appended to the array's list, or as the field's value.</summary>
+        /// <param name="value">The element.</param>
+        public void Store(object? value)
+        {
+            IDictionary<string, object?> container = this.Container;
+            if (this.IsArray)
+            {
+                ((List<object?>)container[this.Field.Name]!).Add(value);
+            }
+            else
+            {
+                container[this.Field.Name] = value;
+            }
+        }
     }
 }

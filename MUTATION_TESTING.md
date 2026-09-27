@@ -122,10 +122,13 @@ only moves reviewed code, carry the entries with:
 node tools/quality/remap-mutation-equivalents.mjs --base <revision the entries were reviewed against>
 ```
 
-It maps each mutant through the diff, refuses mutants whose lines changed, and prints the mutants close to a changed
-hunk with their reasons and the current code. Read each printed case, then rerun with `--write` to record the new
-locations and hashes. A mutant whose own lines changed needs a new proof by hand, or removal: `--write
---drop-blocked` removes every such entry, and the next mutation run reports the mutant again if it still exists.
+It maps each mutant through the diff and prints the mutants close to a changed hunk with their reasons and the current
+code. A mutant whose lines moved - into an extracted method, or into another file of the scope when a file is split -
+is carried when exactly one changed scope file has the same lines (indentation aside) with matching context: the
+nearest meaningful line before or after in the same file, both of them in another file. Every carried mutant is
+printed too. Read each printed case, then rerun with `--write` to record the new locations, entries and hashes. A
+mutant whose own lines changed needs a new proof by hand, or removal: `--write --drop-blocked` removes every such
+entry (and a file entry left empty), and the next mutation run reports the mutant again if it still exists.
 
 The validator reports individually qualified equivalent survivors separately. Their Stryker status remains
 `Survived`: they stay in the raw score's denominator and are never counted as killed, timed out or ignored.
