@@ -12,40 +12,22 @@ internal sealed partial class CompiledCompositeType : CompiledType
 {
     private StructShape? shape;
 
-    /// <summary>Creates the composite and numbers its if/switch groups, giving each conditional field its compiled arms.</summary>
+    private CompiledConditionalScope? conditionalScope;
+
+    /// <summary>Creates the composite from its placed members.</summary>
     /// <param name="symbol">The composite's type symbol.</param>
-    /// <param name="fields">The fields in declaration order; their <see cref="CompiledField.ConditionalBranches"/> are set here.</param>
+    /// <param name="fields">The members in declaration order, built by <see cref="CompiledField.WithPlacement"/>.</param>
     public CompiledCompositeType(CompiledTypeSymbol symbol, ImmutableArray<CompiledField> fields)
         : base(symbol)
     {
         this.Fields = fields;
         this.HasDirectConditionalFields = fields.Any(field => field.IsConditional);
-        if (this.HasDirectConditionalFields)
+        foreach (CompiledField field in fields)
         {
-            var groups = new Dictionary<ConditionalGroup, CompiledConditionalBranch>();
-            foreach (CompiledField field in fields)
+            foreach (CompiledConditionalBranch branch in field.ConditionalBranches)
             {
-                if (field.Declaration.BranchConditions.Count == 0)
-                {
-                    continue;
-                }
-
-                var branches = ImmutableArray.CreateBuilder<CompiledConditionalBranch>(field.Declaration.BranchConditions.Count);
-                foreach (ConditionalBranch branch in field.Declaration.BranchConditions)
-                {
-                    if (!groups.TryGetValue(branch.Group, out CompiledConditionalBranch decision))
-                    {
-                        decision = new CompiledConditionalBranch(new CompiledConditionalGroup(branch.Group), groups.Count, 0);
-                        groups.Add(branch.Group, decision);
-                    }
-
-                    branches.Add(decision with { Arm = branch.Arm });
-                }
-
-                field.ConditionalBranches = branches.MoveToImmutable();
+                this.ConditionalGroupCount = Math.Max(this.ConditionalGroupCount, branch.Slot + 1);
             }
-
-            this.ConditionalGroupCount = groups.Count;
         }
 
         // An anonymous nonzero-width bitfield has no name to key by, and several may coexist in one
@@ -74,9 +56,15 @@ internal sealed partial class CompiledCompositeType : CompiledType
 
     public bool HasDirectConditionalFields { get; }
 
+    /// <summary>The number of <c>if</c>/<c>switch</c> decisions among the members: the length of an operation's selected-arm array.</summary>
     public int ConditionalGroupCount { get; }
 
-    public ImmutableArray<string> ConditionalLocalNames { get; private set; } = ImmutableArray<string>.Empty;
+    /// <summary>
+    ///     The layout variables kept for the members while nested declarations are read; <see langword="null"/> when no
+    ///     member is conditional. Built on first use, once every composite of the layout is compiled.
+    /// </summary>
+    public CompiledConditionalScope? ConditionalScope
+        => this.HasDirectConditionalFields ? this.conditionalScope ??= new CompiledConditionalScope(this) : null;
 
     public ImmutableDictionary<string, CompiledField> FieldsByName { get; }
 
@@ -89,65 +77,42 @@ internal sealed partial class CompiledCompositeType : CompiledType
     /// </summary>
     public StructShape Shape => this.shape ??= this.BuildShape();
 
-    /// <summary>Finishes scope metadata after recursive pointer symbols have all been bound.</summary>
-    internal void CompleteConditionalScope()
+    /// <summary>
+    ///     Numbers the <c>if</c>/<c>switch</c> decisions of a composite's members in declaration order and compiles each
+    ///     conditional member's arms; every arm of one decision shares its <see cref="CompiledConditionalGroup"/>.
+    /// </summary>
+    /// <param name="fields">The members in declaration order.</param>
+    /// <returns>Each member's arms by position, or <see langword="null"/> when no member is conditional.</returns>
+    internal static ImmutableArray<CompiledConditionalBranch>[]? CompileConditionalBranches(IReadOnlyList<CompiledField> fields)
     {
-        if (!this.HasDirectConditionalFields)
+        ImmutableArray<CompiledConditionalBranch>[]? result = null;
+        Dictionary<ConditionalGroup, CompiledConditionalBranch>? groups = null;
+        for (int index = 0; index < fields.Count; index++)
         {
-            return;
-        }
-
-        var names = ImmutableArray.CreateBuilder<string>();
-        var slots = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (CompiledField field in this.Fields)
-        {
-            string fieldName = field.Declaration.Name.Name;
-            field.VisibleNames = fieldName.Length > 0
-                ? ImmutableArray.Create(fieldName)
-                : ConditionalVariableScope.GetVisibleNames(field).ToImmutableArray();
-            foreach (string name in field.VisibleNames)
+            IReadOnlyList<ConditionalBranch> declared = fields[index].Declaration.BranchConditions;
+            if (declared.Count == 0)
             {
-                if (slots.TryAdd(name, names.Count))
-                {
-                    names.Add(name);
-                }
-            }
-        }
-
-        this.ConditionalLocalNames = names.ToImmutable();
-        foreach (CompiledField field in this.Fields)
-        {
-            field.CapturedLocalSlots = field.VisibleNames.Length == 1
-                ? ImmutableArray.Create(slots[field.VisibleNames[0]])
-                : field.VisibleNames.Select(name => slots[name]).ToImmutableArray();
-            if (field.Type.Symbol.Definition is not CompiledCompositeType)
-            {
-                // Primitive/enum storage cannot introduce a nested declaration that shadows a sibling.
                 continue;
             }
 
-            var overwritten = new HashSet<string>(StringComparer.Ordinal);
-            var visited = new HashSet<CompiledTypeSymbol>();
-            var pending = new Stack<CompiledTypeSymbol>();
-            pending.Push(field.Type.Symbol);
-            while (pending.Count > 0)
+            result ??= new ImmutableArray<CompiledConditionalBranch>[fields.Count];
+            groups ??= new Dictionary<ConditionalGroup, CompiledConditionalBranch>();
+            var branches = ImmutableArray.CreateBuilder<CompiledConditionalBranch>(declared.Count);
+            foreach (ConditionalBranch branch in declared)
             {
-                CompiledTypeSymbol symbol = pending.Pop();
-                if (!visited.Add(symbol) || symbol.Definition is not CompiledCompositeType nested)
+                if (!groups.TryGetValue(branch.Group, out CompiledConditionalBranch decision))
                 {
-                    continue;
+                    decision = new CompiledConditionalBranch(new CompiledConditionalGroup(branch.Group), groups.Count, 0);
+                    groups.Add(branch.Group, decision);
                 }
 
-                foreach (CompiledField child in nested.Fields)
-                {
-                    overwritten.Add(child.Declaration.Name.Name);
-                    pending.Push(child.Type.Symbol);
-                }
+                branches.Add(decision with { Arm = branch.Arm });
             }
 
-            overwritten.ExceptWith(field.VisibleNames);
-            field.RestoredLocalSlots = overwritten.Where(slots.ContainsKey).Select(name => slots[name]).ToImmutableArray();
+            result[index] = branches.MoveToImmutable();
         }
+
+        return result;
     }
 
     private StructShape BuildShape()

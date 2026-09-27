@@ -8,6 +8,12 @@ using CStructSharp.Expressions;
 using CStructSharp.Syntax;
 
 /// <summary>Stores one completely resolved field shape and all operation-time codec/layout facts.</summary>
+/// <remarks>
+///     Immutable once constructed. Compilation first builds a field from its declaration, then
+///     <see cref="WithPlacement"/> builds the composite's member from it with the facts that depend on the other
+///     members: offsets, the bitfield run and the conditional arms. Array elements and pointer targets are views
+///     built from a member during an operation.
+/// </remarks>
 internal sealed class CompiledField
 {
     // One reference for the rare @count facts: descriptors are copied per operation, so each field costs every read.
@@ -53,7 +59,8 @@ internal sealed class CompiledField
         this.BitSize = effectiveField.BitSize;
         this.IsZeroWidthBitfield = effectiveField.HasBitfieldDeclarator && this.BitSize == 0;
         this.PointerDepth = effectiveField.PointerDepth;
-        this.SetCharacterFacts();
+        this.IsCharElement = IsCharSpelling(this.TypeSpelling);
+        this.IsWideCharElement = IsWideCharSpelling(this.TypeSpelling);
 
         // Resolve the codec identity once so no hot path re-derives the name and compares strings.
         // Only the 8-byte descriptor is stored; the name stays a computed property so wide layouts do not grow.
@@ -65,8 +72,50 @@ internal sealed class CompiledField
         this.IsFixedPoint = this.Codec.IsFixedPoint;
     }
 
-    /// <summary>A derived view (an array element, a pointer target, a placed field) of <paramref name="parent"/>; it keeps the parent's resolved codec when the pointer depth is unchanged.</summary>
-    private CompiledField(CompiledField parent, string typeSpelling, int bitSize, bool isZeroWidthBitfield, int pointerDepth, int alignment, int? fixedElementSize, CompiledArrayShape array, int? fixedStorageSize, bool isUnsizedCharacterArray, int? bitStorageSize, bool? bitStorageIsLittleEndian, int? fixedOffset, int bitOffset, int codecId)
+    /// <summary>
+    ///     A field built from <paramref name="parent"/>: a placed member, an array element or a pointer target. The
+    ///     parameters are the facts that differ; the others are the parent's, and the resolved codec is kept when the
+    ///     pointer depth is unchanged.
+    /// </summary>
+    /// <param name="parent">The field this one is built from.</param>
+    /// <param name="typeSpelling">The type as this view spells it.</param>
+    /// <param name="bitSize">The bitfield width.</param>
+    /// <param name="isZeroWidthBitfield">Whether this is a <c>: 0</c> separator.</param>
+    /// <param name="pointerDepth">The pointer levels still to follow.</param>
+    /// <param name="alignment">The alignment in bytes.</param>
+    /// <param name="fixedElementSize">One element's size in bytes, when fixed.</param>
+    /// <param name="array">The remaining array shape.</param>
+    /// <param name="fixedStorageSize">The whole storage size in bytes, when fixed.</param>
+    /// <param name="isUnsizedCharacterArray">Whether this is an unsized character array.</param>
+    /// <param name="bitStorageSize">The declared bitfield storage size in bytes.</param>
+    /// <param name="bitStorageIsLittleEndian">The bitfield storage byte order.</param>
+    /// <param name="fixedOffset">The offset from the composite's start, when known at compile time.</param>
+    /// <param name="bitOffset">The bit offset within the storage unit.</param>
+    /// <param name="codecId">The codec.</param>
+    /// <param name="bitUnitSize">The placed storage unit size in bytes.</param>
+    /// <param name="bitRunBits">The bit length of the field's bitfield run.</param>
+    /// <param name="memberIndex">The field's position among its composite's members.</param>
+    /// <param name="conditionalBranches">The compiled arms the field sits in.</param>
+    private CompiledField(
+        CompiledField parent,
+        string typeSpelling,
+        int bitSize,
+        bool isZeroWidthBitfield,
+        int pointerDepth,
+        int alignment,
+        int? fixedElementSize,
+        CompiledArrayShape array,
+        int? fixedStorageSize,
+        bool isUnsizedCharacterArray,
+        int? bitStorageSize,
+        bool? bitStorageIsLittleEndian,
+        int? fixedOffset,
+        int bitOffset,
+        int codecId,
+        int? bitUnitSize,
+        int bitRunBits,
+        int memberIndex,
+        ImmutableArray<CompiledConditionalBranch> conditionalBranches)
     {
         this.Declaration = parent.Declaration;
         this.Type = parent.Type;
@@ -85,11 +134,15 @@ internal sealed class CompiledField
         this.TypeSpelling = typeSpelling;
         this.BitSize = bitSize;
         this.IsZeroWidthBitfield = isZeroWidthBitfield;
-        this.BitUnitSize = parent.BitUnitSize;
-        this.BitRunBits = parent.BitRunBits;
+        this.BitUnitSize = bitUnitSize;
+        this.BitRunBits = bitRunBits;
+        this.MemberIndex = memberIndex;
+        this.ConditionalBranches = conditionalBranches;
         this.PointerDepth = pointerDepth;
-        this.SetCharacterFacts();
+        this.IsCharElement = IsCharSpelling(typeSpelling);
+        this.IsWideCharElement = IsWideCharSpelling(typeSpelling);
         this.CapturesLayoutVariable = parent.CapturesLayoutVariable;
+        this.HasQualifiedPrefix = parent.HasQualifiedPrefix;
         this.AssertedOffset = parent.AssertedOffset;
         this.countedTarget = parent.countedTarget;
         this.Codec = this.PointerDepth == parent.PointerDepth
@@ -105,8 +158,17 @@ internal sealed class CompiledField
     /// <summary>Whether the field sits in an arm of an <c>if</c> or <c>switch</c>, so the data decides whether it is present.</summary>
     public bool IsConditional => this.Declaration.IsConditional;
 
-    /// <summary>The compiled arms this field sits in, outermost first; empty for an unconditional field.</summary>
-    public ImmutableArray<CompiledConditionalBranch> ConditionalBranches { get; internal set; } = ImmutableArray<CompiledConditionalBranch>.Empty;
+    /// <summary>
+    ///     The compiled arms this member sits in, outermost first; empty for an unconditional field, and for an array
+    ///     element or pointer target, which is read only once its member was selected.
+    /// </summary>
+    public ImmutableArray<CompiledConditionalBranch> ConditionalBranches { get; } = ImmutableArray<CompiledConditionalBranch>.Empty;
+
+    /// <summary>
+    ///     The field's position among its composite's members, which indexes the composite's
+    ///     <see cref="CompiledCompositeType.ConditionalScope"/>; 0 for a root field.
+    /// </summary>
+    public int MemberIndex { get; }
 
     /// <summary>
     ///     Whether an expression names a field of this nested struct field through a dotted path (<c>hdr.n</c>), so
@@ -114,16 +176,10 @@ internal sealed class CompiledField
     ///     padding: a compiled field is copied per operation for array elements and pointer targets, so a reference
     ///     field here would cost every operation eight bytes.
     /// </summary>
-    public bool HasQualifiedPrefix { get; internal set; }
+    public bool HasQualifiedPrefix { get; init; }
 
     /// <summary>The prefix (<c>hdr.</c>) under which the nested fields are published; <see langword="null"/> for every other field.</summary>
     public string? QualifiedPrefix => this.HasQualifiedPrefix ? this.Declaration.Name.Name + "." : null;
-
-    public ImmutableArray<string> VisibleNames { get; internal set; } = ImmutableArray<string>.Empty;
-
-    public ImmutableArray<int> CapturedLocalSlots { get; internal set; } = ImmutableArray<int>.Empty;
-
-    public ImmutableArray<int> RestoredLocalSlots { get; internal set; } = ImmutableArray<int>.Empty;
 
     /// <summary>
     ///     Whether reading or writing this field must publish its value as a layout variable. False when no
@@ -131,7 +187,7 @@ internal sealed class CompiledField
     ///     an operation whose supplied variables can still name it (<see cref="LayoutVariables.CaptureAll"/>)
     ///     overrides this.
     /// </summary>
-    public bool CapturesLayoutVariable { get; internal set; } = true;
+    public bool CapturesLayoutVariable { get; init; }
 
     /// <summary>
     ///     The element count of the pointer's final target, from a <c>@count(N)</c> suffix: the target is N
@@ -187,47 +243,47 @@ internal sealed class CompiledField
     public CStructElement? NamedElement => this.Type.Symbol.Declaration;
 
     /// <summary>The field's name; empty for unnamed padding (an anonymous bitfield or a <c>_</c> field).</summary>
-    public string Name { get; private set; } = string.Empty;
+    public string Name { get; }
 
     /// <summary>Whether the field has no name and therefore no value in the result.</summary>
     public bool IsUnnamed => this.Name.Length == 0;
 
     /// <summary>The type as this view spells it: the declared spelling, or the terminated codec of a peeled string.</summary>
-    public string TypeSpelling { get; private set; } = string.Empty;
+    public string TypeSpelling { get; }
 
     /// <summary>The bitfield width in bits, or 0 for a field that is not a bitfield.</summary>
-    public int BitSize { get; private set; }
+    public int BitSize { get; }
 
     /// <summary>
     ///     Whether this is an unnamed <c>: 0</c> declarator: no storage and no value, but the placement rule moves the
     ///     next bitfield to a boundary of the declared type (<see cref="BitStorageSize"/> is that type's size).
     /// </summary>
-    public bool IsZeroWidthBitfield { get; private set; }
+    public bool IsZeroWidthBitfield { get; }
 
     /// <summary>
     ///     The size in bytes of the storage unit the compiled placement gave this bitfield, when its offset is
     ///     static; it equals <see cref="BitStorageSize"/> except for a packed SysV field that spans declared units.
     /// </summary>
-    public int? BitUnitSize { get; private set; }
+    public int? BitUnitSize { get; }
 
     /// <summary>
     ///     The bit length of the run of adjacent bitfields this field belongs to, measured from the run's first bit
     ///     with the packed SysV rule (contiguous bits, ending at a separator). It depends only on the run's own
     ///     declarations, so the runtime cursor can clamp packed storage units to the run's bytes.
     /// </summary>
-    public int BitRunBits { get; internal set; }
+    public int BitRunBits { get; }
 
     /// <summary>How many pointer levels this view still has to follow before reaching its value.</summary>
-    public int PointerDepth { get; private set; }
+    public int PointerDepth { get; }
 
     /// <summary>Whether this view is still a stored pointer rather than the pointed-to value.</summary>
     public bool IsPointer => this.PointerDepth > 0;
 
     /// <summary>Whether each element is a one-byte <c>char</c>, so a fixed array becomes a string.</summary>
-    public bool IsCharElement { get; private set; }
+    public bool IsCharElement { get; }
 
     /// <summary>Whether each element is a two-byte <c>wchar</c> (any byte order), so a fixed array becomes a string.</summary>
-    public bool IsWideCharElement { get; private set; }
+    public bool IsWideCharElement { get; }
 
     /// <summary>
     ///     The type name shown for this field in debug records: the terminated codec for an unsized character array
@@ -387,7 +443,11 @@ internal sealed class CompiledField
             this.BitStorageIsLittleEndian,
             this.FixedOffset,
             this.BitOffset,
-            this.CodecId);
+            this.CodecId,
+            this.BitUnitSize,
+            this.BitRunBits,
+            this.MemberIndex,
+            ImmutableArray<CompiledConditionalBranch>.Empty);
     }
 
     /// <summary>
@@ -433,13 +493,24 @@ internal sealed class CompiledField
             null,
             null,
             0,
-            targetIsTerminated ? this.TerminatedCodecId : this.CodecId);
+            targetIsTerminated ? this.TerminatedCodecId : this.CodecId,
+            this.BitUnitSize,
+            this.BitRunBits,
+            this.MemberIndex,
+            ImmutableArray<CompiledConditionalBranch>.Empty);
     }
 
-    /// <summary>Returns the same descriptor with its compiled placement facts attached.</summary>
-    public CompiledField WithPlacement(int? fixedOffset, int bitOffset, int? bitUnitSize = null)
+    /// <summary>Builds the composite's member from this field with the facts that depend on the other members.</summary>
+    /// <param name="memberIndex">The member's position in its composite.</param>
+    /// <param name="fixedOffset">The offset from the composite's start, or <see langword="null"/> when only an operation knows it.</param>
+    /// <param name="bitOffset">The bit offset within the storage unit.</param>
+    /// <param name="bitUnitSize">The placed storage unit size in bytes, or <see langword="null"/> to keep this field's.</param>
+    /// <param name="bitRunBits">The bit length of the field's bitfield run; 0 outside a run.</param>
+    /// <param name="conditionalBranches">The compiled arms the member sits in.</param>
+    /// <returns>The member.</returns>
+    public CompiledField WithPlacement(int memberIndex, int? fixedOffset, int bitOffset, int? bitUnitSize, int bitRunBits, ImmutableArray<CompiledConditionalBranch> conditionalBranches)
     {
-        var placed = new CompiledField(
+        return new CompiledField(
             this,
             this.TypeSpelling,
             this.BitSize,
@@ -454,16 +525,19 @@ internal sealed class CompiledField
             this.BitStorageIsLittleEndian,
             fixedOffset,
             bitOffset,
-            this.CodecId);
-        placed.BitUnitSize = bitUnitSize ?? this.BitUnitSize;
-        return placed;
+            this.CodecId,
+            bitUnitSize ?? this.BitUnitSize,
+            bitRunBits,
+            memberIndex,
+            conditionalBranches);
     }
 
-    private void SetCharacterFacts()
-    {
-        this.IsCharElement = this.TypeSpelling == CharacterFieldTypes.CharType.Name;
-        this.IsWideCharElement = this.TypeSpelling == CharacterFieldTypes.WcharType.Name ||
-                                 this.TypeSpelling == CharacterFieldTypes.WcharBigEndianType.Name ||
-                                 this.TypeSpelling == CharacterFieldTypes.WcharLittleEndianType.Name;
-    }
+    /// <summary>Whether a type spelling is the one-byte <c>char</c>.</summary>
+    private static bool IsCharSpelling(string typeSpelling) => typeSpelling == CharacterFieldTypes.CharType.Name;
+
+    /// <summary>Whether a type spelling is a two-byte <c>wchar</c> in any byte order.</summary>
+    private static bool IsWideCharSpelling(string typeSpelling)
+        => typeSpelling == CharacterFieldTypes.WcharType.Name ||
+           typeSpelling == CharacterFieldTypes.WcharBigEndianType.Name ||
+           typeSpelling == CharacterFieldTypes.WcharLittleEndianType.Name;
 }

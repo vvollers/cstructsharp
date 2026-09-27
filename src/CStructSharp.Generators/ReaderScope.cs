@@ -19,6 +19,9 @@ internal sealed class ReaderScope
     private readonly Dictionary<CompiledField, GeneratedMember> members = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<string>? locals;
 
+    /// <summary>Starts the names visible to one generated composite's expressions: its members, and for a conditional composite its kept locals.</summary>
+    /// <param name="emitter">The layout's emitter.</param>
+    /// <param name="composite">The composite being generated.</param>
     public ReaderScope(LayoutEmitter emitter, GeneratedComposite composite)
     {
         this.emitter = emitter;
@@ -31,7 +34,7 @@ internal sealed class ReaderScope
         // A composite with conditional fields protects its own member names: from its first byte they hide any
         // outer or caller value, and one that has not been read yet (or sits in an unselected arm) is undefined.
         this.locals = composite.Composite.HasDirectConditionalFields
-                          ? new HashSet<string>(composite.Composite.ConditionalLocalNames, StringComparer.Ordinal)
+                          ? new HashSet<string>(composite.Composite.ConditionalScope!.LocalNames, StringComparer.Ordinal)
                           : null;
         this.Expressions = new ExpressionEmitter(emitter.StaticVariables, emitter.Definitions, this.Resolve);
     }

@@ -132,7 +132,8 @@ internal sealed partial class LayoutCompilation
         // size-query view built now stays valid for the rest of construction - including the union-storage check
         // below, before the final immutable CompiledLayoutModel exists.
         var sizeQueries = new CompiledSizeQueries(compositeSymbols, this.Aligned, this.BitfieldPacking, this.highBitFirst, this.layoutExpressionEvaluator);
-        var context = new CompositeCompilationContext(namedTypes, compositeSymbols, sizeQueries);
+        LayoutReferences references = this.CollectLayoutReferences();
+        var context = new CompositeCompilationContext(namedTypes, compositeSymbols, sizeQueries, references);
 
         foreach (KeyValuePair<string, CStructElement> declaration in this.CStructElements)
         {
@@ -247,7 +248,10 @@ internal sealed partial class LayoutCompilation
                 null,
                 0,
                 0,
-                this.IsLittleEndian);
+                this.IsLittleEndian)
+            {
+                CapturesLayoutVariable = references.Captures(declaration.Name.Name),
+            };
             rootFields.Add(declaration, compiledRoot);
         }
 
@@ -264,15 +268,10 @@ internal sealed partial class LayoutCompilation
                 throw new CStructLayoutException("Compiled type symbol was not bound: " + symbol.Name);
             }
 
-            if (symbol.Definition is CompiledCompositeType composite)
-            {
-                composite.CompleteConditionalScope();
-            }
-
             symbol.Freeze();
         }
 
-        this.MarkReferencedLayoutVariables(publishedSymbols, rootFields);
+        this.RejectNonIntegerReferences(publishedSymbols, rootFields);
 
         return new CompiledLayoutModel(
             this.cStructElements.ToImmutableDictionary(StringComparer.Ordinal),
@@ -421,15 +420,21 @@ internal sealed partial class LayoutCompilation
         /// <param name="namedTypes">The types by name, which alias resolution extends.</param>
         /// <param name="compositeSymbols">Every composite's symbol, by declaration.</param>
         /// <param name="sizeQueries">The size queries over those composites.</param>
+        /// <param name="references">The names the layout's expressions read.</param>
         public CompositeCompilationContext(
             ImmutableDictionary<string, CompiledTypeReference>.Builder namedTypes,
             IReadOnlyDictionary<Struct, CompiledTypeSymbol> compositeSymbols,
-            CompiledSizeQueries sizeQueries)
+            CompiledSizeQueries sizeQueries,
+            LayoutReferences references)
         {
             this.NamedTypes = namedTypes;
             this.CompositeSymbols = compositeSymbols;
             this.SizeQueries = sizeQueries;
+            this.References = references;
         }
+
+        /// <summary>Gets the names the layout's expressions read.</summary>
+        public LayoutReferences References { get; }
 
         /// <summary>Gets the types by name, which alias resolution extends.</summary>
         public ImmutableDictionary<string, CompiledTypeReference>.Builder NamedTypes { get; }

@@ -8,12 +8,17 @@ using CStructSharp.Syntax;
 /// <summary>Protects a conditional composite's own fields from nested declarations with the same spelling.</summary>
 internal sealed class ConditionalVariableScope
 {
+    private readonly CompiledConditionalScope scope;
     private readonly ImmutableArray<string> names;
     private readonly Expr?[] locals;
 
+    /// <summary>Starts a composite's scope: its kept names are removed from the variables, so an outer value is not read as its own.</summary>
+    /// <param name="composite">A composite with conditional members.</param>
+    /// <param name="variables">The operation's layout variables; modified.</param>
     internal ConditionalVariableScope(CompiledCompositeType composite, Dictionary<string, Expr> variables)
     {
-        this.names = composite.ConditionalLocalNames;
+        this.scope = composite.ConditionalScope!;
+        this.names = this.scope.LocalNames;
         this.locals = new Expr?[this.names.Length];
         foreach (string name in this.names)
         {
@@ -21,37 +26,17 @@ internal sealed class ConditionalVariableScope
         }
     }
 
-    /// <summary>Enumerates result member names, following only anonymous promotion, never named children.</summary>
-    internal static IEnumerable<string> GetVisibleNames(CompiledField field)
-    {
-        var pending = new Stack<CompiledField>();
-        pending.Push(field);
-        while (pending.Count > 0)
-        {
-            CompiledField current = pending.Pop();
-            string name = current.Declaration.Name.Name;
-            if (name.Length > 0)
-            {
-                yield return name;
-            }
-            else if (current.Declaration is Struct && current.Type.Symbol.Definition is CompiledCompositeType promoted)
-            {
-                foreach (CompiledField child in promoted.Fields)
-                {
-                    pending.Push(child);
-                }
-            }
-        }
-    }
-
+    /// <summary>After a member is read, saves its own values and restores the composite's names a nested declaration replaced.</summary>
+    /// <param name="field">The member just read.</param>
+    /// <param name="variables">The operation's layout variables; modified.</param>
     internal void CompleteField(CompiledField field, Dictionary<string, Expr> variables)
     {
-        foreach (int slot in field.CapturedLocalSlots)
+        foreach (int slot in this.scope.CapturedLocalSlots[field.MemberIndex])
         {
             this.locals[slot] = variables.TryGetValue(this.names[slot], out Expr? value) ? value : null;
         }
 
-        foreach (int slot in field.RestoredLocalSlots)
+        foreach (int slot in this.scope.RestoredLocalSlots[field.MemberIndex])
         {
             Expr? value = this.locals[slot];
             if (value is null)

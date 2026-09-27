@@ -22,10 +22,10 @@ public class BitRunCountOverflowTests
         var fields = new CompiledField[(int)((long)int.MaxValue / 64) + 1];
         Array.Fill(fields, field);
         var run = ImmutableCollectionsMarshal.AsImmutableArray(fields);
-        MethodInfo measure = typeof(LayoutCompilation).GetMethod("MeasureBitfieldRuns", BindingFlags.NonPublic | BindingFlags.Static)!;
+        MethodInfo measure = typeof(LayoutCompilation).GetMethod("MeasureBitfieldRun", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        // The checked conversion fails before any measured count is assigned back to the field metadata.
-        TargetInvocationException error = Assert.Throws<TargetInvocationException>(() => measure.Invoke(null, new object?[] { run, }));
+        // The checked conversion fails instead of returning a wrapped, negative width.
+        TargetInvocationException error = Assert.Throws<TargetInvocationException>(() => measure.Invoke(null, new object?[] { run, 0, null, }));
         Assert.IsInstanceOfType<OverflowException>(error.InnerException);
         Assert.AreEqual(64, field.BitRunBits);
     }

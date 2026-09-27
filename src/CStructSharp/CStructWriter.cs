@@ -222,7 +222,7 @@ public partial class CStruct
             {
                 if (selection?.IsActive(field, state.Variables) == false)
                 {
-                    foreach (string name in field.VisibleNames)
+                    foreach (string name in composite.ConditionalScope!.VisibleNames[field.MemberIndex])
                     {
                         if (WriteDataBinding.TryGetMemberValue(data, name, out _))
                         {

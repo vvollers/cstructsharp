@@ -18,13 +18,11 @@ using CstructEnum = CStructSharp.Syntax.Enum;
 /// <summary>The capture stage: which fields a layout expression can read, so a read or write publishes exactly those as layout variables, and the rule that such a field is an integer.</summary>
 internal sealed partial class LayoutCompilation
 {
-    /// <summary>Marks whether a field is named by any layout expression, and collects the named non-integer fields.</summary>
+    /// <summary>Adds a field an expression names that cannot be an integer.</summary>
     /// <param name="field">The compiled field.</param>
-    /// <param name="referenced">Every name the layout's expressions read, or <see langword="null"/> when none.</param>
-    /// <param name="nonInteger">Receives each named field that cannot be an integer; created on the first one.</param>
-    private static void MarkField(CompiledField field, HashSet<string>? referenced, ref List<CompiledField>? nonInteger)
+    /// <param name="nonInteger">Receives the field; created on the first one.</param>
+    private static void CollectNonInteger(CompiledField field, ref List<CompiledField>? nonInteger)
     {
-        field.CapturesLayoutVariable = referenced is not null && referenced.Contains(field.Declaration.Name.Name);
         if (field.CapturesLayoutVariable && field.NotANumberReason is not null)
         {
             (nonInteger ??= []).Add(field);
@@ -217,19 +215,16 @@ internal sealed partial class LayoutCompilation
     }
 
     /// <summary>
-    ///     Marks the fields whose values an expression can read back. The evaluator resolves identifiers only
-    ///     through the layout's own expressions - array dimensions, conditions, switch selectors and cases, bit sizes,
-    ///     <c>#define</c>s, enum values - so their identifier dependencies are the complete set of capturable names.
-    ///     Placement suffixes (<c>@align(N)</c> and <c>@N</c>) are constants evaluated with the <c>#define</c>s only,
-    ///     so they never read a field. A name that only non-integer fields can supply fails construction. Allocation-
+    ///     Collects the names the layout's expressions can read, so each compiled field is built knowing whether an
+    ///     operation must publish its value. The evaluator resolves identifiers only through the layout's own
+    ///     expressions - array dimensions, switch selectors, bit sizes, <c>#define</c>s, enum values - so their
+    ///     identifier dependencies are the complete set of capturable names. Placement suffixes (<c>@align(N)</c> and
+    ///     <c>@N</c>) are constants evaluated with the <c>#define</c>s only, so they never read a field. Allocation-
     ///     conscious on purpose: the release gate budgets a small layout's compilation to the byte, so the sets are
-    ///     created only when the first identifier appears and the fields are walked through their composites' arrays
-    ///     rather than through LINQ.
+    ///     created only when the first identifier appears.
     /// </summary>
-    /// <exception cref="CStructLayoutException">An expression names a field that can only be a non-integer value.</exception>
-    private void MarkReferencedLayoutVariables(
-        HashSet<CompiledTypeSymbol> symbols,
-        ImmutableDictionary<CStructElement, CompiledField>.Builder rootFields)
+    /// <returns>The names and the dotted-reference heads.</returns>
+    private LayoutReferences CollectLayoutReferences()
     {
         HashSet<string>? referenced = null;
         Stack<Expr>? pending = null;
@@ -239,7 +234,20 @@ internal sealed partial class LayoutCompilation
         }
 
         List<string>? qualifiedHeads = ExpandQualifiedReferences(referenced);
+        return new LayoutReferences(referenced, qualifiedHeads);
+    }
 
+    /// <summary>
+    ///     Rejects a name that only non-integer fields can supply: a field an expression names must hold an integer.
+    ///     The fields are walked through their composites' arrays rather than through LINQ, for the allocation budget.
+    /// </summary>
+    /// <param name="symbols">Every compiled type.</param>
+    /// <param name="rootFields">The compiled root fields.</param>
+    /// <exception cref="CStructLayoutException">An expression names a field that can only be a non-integer value.</exception>
+    private void RejectNonIntegerReferences(
+        HashSet<CompiledTypeSymbol> symbols,
+        ImmutableDictionary<CStructElement, CompiledField>.Builder rootFields)
+    {
         List<CompiledField>? nonInteger = null;
         foreach (CompiledTypeSymbol symbol in symbols)
         {
@@ -247,21 +255,14 @@ internal sealed partial class LayoutCompilation
             {
                 foreach (CompiledField field in composite.Fields)
                 {
-                    MarkField(field, referenced, ref nonInteger);
-                    if (qualifiedHeads is not null && field.Type.Symbol.Kind is CompiledTypeKind.Struct or CompiledTypeKind.Union &&
-                        field.PointerDepth == 0 && field.Array.Kind == CompiledArrayKind.Scalar &&
-                        qualifiedHeads.Contains(field.Declaration.Name.Name))
-                    {
-                        // `hdr.n`: the nested fields of `hdr` are published under the qualified name as well.
-                        field.HasQualifiedPrefix = true;
-                    }
+                    CollectNonInteger(field, ref nonInteger);
                 }
             }
         }
 
         foreach (CompiledField field in rootFields.Values)
         {
-            MarkField(field, referenced, ref nonInteger);
+            CollectNonInteger(field, ref nonInteger);
         }
 
         // An expression can only use an integer. A name that only non-integer fields (text, arrays, structs,
@@ -285,5 +286,29 @@ internal sealed partial class LayoutCompilation
                 };
             }
         }
+    }
+
+    /// <summary>The names a layout's expressions read, which decide what a compiled field publishes as a layout variable.</summary>
+    /// <param name="names">Every name read, or <see langword="null"/> when no expression names anything.</param>
+    /// <param name="qualifiedHeads">The heads of dotted names (<c>hdr</c> in <c>hdr.n</c>), or <see langword="null"/>.</param>
+    private readonly struct LayoutReferences(HashSet<string>? names, List<string>? qualifiedHeads)
+    {
+        /// <summary>Whether an expression names the field, so reading or writing it publishes its value.</summary>
+        /// <param name="name">The field's declared name.</param>
+        /// <returns>Whether the field's value is captured.</returns>
+        public bool Captures(string name) => names is not null && names.Contains(name);
+
+        /// <summary>
+        ///     Whether an expression reads a field of this nested struct field through a dotted name (<c>hdr.n</c>), so
+        ///     its fields are also published under the qualified name. Only a scalar, by-value struct or union qualifies.
+        /// </summary>
+        /// <param name="name">The field's declared name.</param>
+        /// <param name="type">The field's resolved type.</param>
+        /// <param name="pointerDepth">The field's pointer depth.</param>
+        /// <param name="array">The field's array shape.</param>
+        /// <returns>Whether the field publishes its nested fields under its name.</returns>
+        public bool PublishesQualified(string name, CompiledTypeReference type, int pointerDepth, CompiledArrayShape array)
+            => qualifiedHeads is not null && type.Symbol.Kind is CompiledTypeKind.Struct or CompiledTypeKind.Union &&
+               pointerDepth == 0 && array.Kind == CompiledArrayKind.Scalar && qualifiedHeads.Contains(name);
     }
 }

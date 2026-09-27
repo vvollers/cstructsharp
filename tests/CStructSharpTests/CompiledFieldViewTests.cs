@@ -114,19 +114,19 @@ public class CompiledFieldViewTests
         Assert.AreEqual(pointer.TerminatedCodecId, target.CodecId);
     }
 
-    /// <summary>New bit-unit placement overrides prior placement, while an omitted unit size retains the current window.</summary>
+    /// <summary>Placement sets every placement fact it is given, while an omitted unit size retains the current window.</summary>
     [TestMethod]
     public void PlacementViews_OverrideOrRetainTheBitWindowExplicitly()
     {
         var layout = new CStruct("struct root { uint32 value:20; };");
         CompiledField value = Field(layout, "value");
         Assert.AreEqual(3, value.BitUnitSize);
-        CompiledField moved = value.WithPlacement(9, 1, 4);
+        CompiledField moved = value.WithPlacement(value.MemberIndex, 9, 1, 4, 7, value.ConditionalBranches);
         Assert.AreEqual(9, moved.FixedOffset);
         Assert.AreEqual(1, moved.BitOffset);
         Assert.AreEqual(4, moved.BitUnitSize);
-        Assert.AreEqual(value.BitRunBits, moved.BitRunBits);
-        Assert.AreEqual(4, moved.WithPlacement(12, 0).BitUnitSize);
+        Assert.AreEqual(7, moved.BitRunBits);
+        Assert.AreEqual(4, moved.WithPlacement(moved.MemberIndex, 12, 0, null, 7, moved.ConditionalBranches).BitUnitSize);
         Assert.AreEqual(3, value.BitUnitSize);
     }
 
@@ -140,6 +140,49 @@ public class CompiledFieldViewTests
         Assert.IsNotNull(nested.Composite);
         Assert.AreEqual(PrimitiveCodecKind.None, nested.Codec.Kind);
         Assert.AreEqual(1, nested.FixedElementSize);
+    }
+
+    /// <summary>A compiled field is complete when constructed: no property can be set afterwards except through an initializer.</summary>
+    [TestMethod]
+    public void CompiledField_HasNoSetterAfterConstruction()
+    {
+        foreach (System.Reflection.PropertyInfo property in typeof(CompiledField).GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic))
+        {
+            System.Reflection.MethodInfo? setter = property.SetMethod;
+            bool initOnly = setter is not null &&
+                            setter.ReturnParameter.GetRequiredCustomModifiers().Contains(typeof(System.Runtime.CompilerServices.IsExternalInit));
+            Assert.IsTrue(setter is null || initOnly, property.Name + " can be set after construction.");
+        }
+    }
+
+    /// <summary>
+    ///     Members carry their capture, qualified-prefix, position and arm facts from construction; an array element or
+    ///     pointer target keeps the member's facts but no arms, since it is read only after its member was selected.
+    /// </summary>
+    [TestMethod]
+    public void MembersAndViews_CarryTheFactsTheyWereBuiltWith()
+    {
+        var layout = new CStruct("struct hdr { uint8 n; }; struct root { hdr h; uint8 flag; if (flag) { uint8 values[h.n]; hdr *next; } };", pointerSize: 4);
+        CompiledField header = Field(layout, "h");
+        Assert.IsTrue(header.HasQualifiedPrefix);
+        Assert.IsTrue(Field(layout, "n").CapturesLayoutVariable);
+        Assert.IsTrue(Field(layout, "flag").CapturesLayoutVariable);
+        Assert.IsFalse(Field(layout, "values").CapturesLayoutVariable);
+
+        CompiledField values = Field(layout, "values");
+        Assert.AreEqual(2, values.MemberIndex);
+        Assert.HasCount(1, values.ConditionalBranches);
+        CompiledField element = values.SelectArrayElement();
+        Assert.AreEqual(values.MemberIndex, element.MemberIndex);
+        Assert.IsEmpty(element.ConditionalBranches);
+
+        CompiledField next = Field(layout, "next");
+        Assert.AreEqual(3, next.MemberIndex);
+        Assert.AreSame(values.ConditionalBranches[0].Group, next.ConditionalBranches[0].Group);
+        CompiledField target = next.SelectPointerTarget(0, null, 4);
+        Assert.AreEqual(next.MemberIndex, target.MemberIndex);
+        Assert.IsEmpty(target.ConditionalBranches);
+        Assert.IsFalse(target.HasQualifiedPrefix);
     }
 
     /// <summary>Finds a uniquely named field in the compiled fixture without reinterpreting its source declaration.</summary>

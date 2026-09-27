@@ -34,39 +34,35 @@ internal sealed partial class LayoutCompilation
     private static int? ToOffset(long? position) => position is long value ? checked((int)value) : null;
 
     /// <summary>
-    ///     Records on every bitfield the bit length of its run of adjacent positive-width bitfields. A zero-width
-    ///     separator ends the run; placement aligns its successor before starting the next independent run.
-    ///     The value depends only on the run's declarations, so the runtime cursor can clamp packed units without
-    ///     looking ahead.
+    ///     The bit length of the run of adjacent positive-width, unconditional bitfields starting at
+    ///     <paramref name="start"/>. A zero-width separator ends the run; placement aligns its successor before starting
+    ///     the next independent run. The value depends only on the run's declarations, so the runtime cursor can clamp
+    ///     packed units without looking ahead.
     /// </summary>
     /// <param name="fields">The composite's compiled fields in declaration order.</param>
-    private static void MeasureBitfieldRuns(ImmutableArray<CompiledField> fields)
+    /// <param name="start">The run's first field.</param>
+    /// <param name="end">The index just past the run.</param>
+    /// <returns>The run's total width in bits.</returns>
+    /// <exception cref="OverflowException">The run is longer than <see cref="int.MaxValue"/> bits.</exception>
+    private static int MeasureBitfieldRun(IReadOnlyList<CompiledField> fields, int start, out int end)
     {
-        int index = 0;
-        while (index < fields.Length)
+        long bits = 0;
+        end = start;
+        while (end < fields.Count && IsInBitfieldRun(fields[end]))
         {
-            if (!fields[index].BitStorageSize.HasValue || fields[index].IsZeroWidthBitfield || fields[index].IsConditional)
-            {
-                index++;
-                continue;
-            }
-
-            int start = index;
-            long bits = 0;
-            while (index < fields.Length && fields[index].BitStorageSize.HasValue && !fields[index].IsZeroWidthBitfield && !fields[index].IsConditional)
-            {
-                // Separator padding belongs to placement, not to either neighboring run's storage window.
-                CompiledField field = fields[index];
-                bits += field.BitSize;
-                index++;
-            }
-
-            for (int member = start; member < index; member++)
-            {
-                fields[member].BitRunBits = checked((int)bits);
-            }
+            // Separator padding belongs to placement, not to either neighboring run's storage window.
+            bits += fields[end].BitSize;
+            end++;
         }
+
+        return checked((int)bits);
     }
+
+    /// <summary>Whether a field joins a bitfield run: a positive-width, unconditional bitfield.</summary>
+    /// <param name="field">The compiled field.</param>
+    /// <returns>Whether the field is part of a run.</returns>
+    private static bool IsInBitfieldRun(CompiledField field)
+        => field.BitStorageSize.HasValue && !field.IsZeroWidthBitfield && !field.IsConditional;
 
     /// <summary>
     ///     Replaces every <c>sizeof(T)</c> and <c>offsetof(T, f)</c> in an expression with its literal value. T may be
@@ -363,6 +359,8 @@ internal sealed partial class LayoutCompilation
                 {
                     PointerElements = pointerElements,
                     AssertedOffset = assertedOffset,
+                    CapturesLayoutVariable = context.References.Captures(field.Name.Name),
+                    HasQualifiedPrefix = context.References.PublishesQualified(field.Name.Name, type, pointerDepth, arrayShape),
                 };
                 fields.Add(compiledField);
             }
@@ -405,8 +403,9 @@ internal sealed partial class LayoutCompilation
         if (strct.IsUnion)
         {
             int? largest = 0;
-            foreach (CompiledField field in fields)
+            for (int index = 0; index < fields.Length; index++)
             {
+                CompiledField field = fields[index];
                 if (!field.FixedStorageSize.HasValue)
                 {
                     try
@@ -421,7 +420,7 @@ internal sealed partial class LayoutCompilation
                     }
                 }
 
-                result.Add(field.WithPlacement(0, 0));
+                result.Add(field.WithPlacement(index, 0, 0, null, 0, ImmutableArray<CompiledConditionalBranch>.Empty));
                 largest = largest.HasValue && field.FixedStorageSize.HasValue
                               ? Math.Max(largest.Value, field.FixedStorageSize.Value)
                               : null;
@@ -431,10 +430,23 @@ internal sealed partial class LayoutCompilation
             return result.ToImmutable();
         }
 
-        MeasureBitfieldRuns(fields);
+        ImmutableArray<CompiledConditionalBranch>[]? branches = CompiledCompositeType.CompileConditionalBranches(fields);
         var cursor = new PlacementCursor(0, this.Aligned, this.BitfieldPacking, this.highBitFirst);
-        foreach (CompiledField field in fields)
+        int runEnd = 0;
+        int runBits = 0;
+        for (int index = 0; index < fields.Length; index++)
         {
+            CompiledField field = fields[index];
+            ImmutableArray<CompiledConditionalBranch> fieldBranches = branches is null || branches[index].IsDefault
+                                                                          ? ImmutableArray<CompiledConditionalBranch>.Empty
+                                                                          : branches[index];
+
+            // Every field of a run gets the run's width; a field outside a run gets 0.
+            if (index >= runEnd)
+            {
+                runBits = IsInBitfieldRun(field) ? MeasureBitfieldRun(fields, index, out runEnd) : 0;
+            }
+
             if (field.IsConditional)
             {
                 cursor.CompleteField(null);
@@ -447,7 +459,7 @@ internal sealed partial class LayoutCompilation
             if (field.IsZeroWidthBitfield)
             {
                 // A separator has no storage; it only moves the bit position for the next bitfield.
-                result.Add(field.WithPlacement(ToOffset(cursor.AdvanceToSeparator(field.BitStorageSize ?? 1, field.Alignment, field.BitRunBits)), 0));
+                result.Add(field.WithPlacement(index, ToOffset(cursor.AdvanceToSeparator(field.BitStorageSize ?? 1, field.Alignment, runBits)), 0, null, runBits, fieldBranches));
                 continue;
             }
 
@@ -455,8 +467,10 @@ internal sealed partial class LayoutCompilation
             {
                 // Bit runs never span a variable-length field, so an unknown position means the run is unreachable
                 // statically; the runtime cursor places it.
-                (long UnitStart, int UnitSize, int BitOffset)? unit = cursor.AdvanceToBitfield(field.BitStorageSize.Value, field.Alignment, field.BitSize, field.BitRunBits, field.BitStorageIsLittleEndian ?? true, field.Declaration.Name.Name);
-                result.Add(unit is { } placed ? field.WithPlacement(ToOffset(placed.UnitStart), placed.BitOffset, placed.UnitSize) : field.WithPlacement(null, 0));
+                (long UnitStart, int UnitSize, int BitOffset)? unit = cursor.AdvanceToBitfield(field.BitStorageSize.Value, field.Alignment, field.BitSize, runBits, field.BitStorageIsLittleEndian ?? true, field.Declaration.Name.Name);
+                result.Add(unit is { } placed
+                               ? field.WithPlacement(index, ToOffset(placed.UnitStart), placed.BitOffset, placed.UnitSize, runBits, fieldBranches)
+                               : field.WithPlacement(index, null, 0, null, runBits, fieldBranches));
                 continue;
             }
 
@@ -470,7 +484,7 @@ internal sealed partial class LayoutCompilation
             cursor.CompleteField(offset.HasValue && field.FixedStorageSize.HasValue
                                      ? checked(offset.Value + field.FixedStorageSize.Value)
                                      : null);
-            result.Add(field.WithPlacement(offset, 0));
+            result.Add(field.WithPlacement(index, offset, 0, null, runBits, fieldBranches));
         }
 
         fixedSize = ToOffset(cursor.Finish(compositeAlignment));
