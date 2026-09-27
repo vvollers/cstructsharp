@@ -260,35 +260,52 @@ public class BufferWriterStreamTests
 
         public List<byte> Written { get; } = [];
 
+        /// <summary>Keeps the first <paramref name="count"/> bytes of the active window and closes it.</summary>
+        /// <param name="count">The bytes written into the window.</param>
         public void Advance(int count)
         {
             this.Written.AddRange(this.active.AsSpan(0, count).ToArray());
             this.active = [];
         }
 
+        /// <summary>Opens a new window of exactly the hinted size (at least one byte).</summary>
+        /// <param name="sizeHint">The requested size.</param>
+        /// <returns>The window.</returns>
         public Memory<byte> GetMemory(int sizeHint = 0)
         {
             this.active = new byte[Math.Max(1, sizeHint)];
             return this.active;
         }
 
+        /// <summary>Opens a window through <see cref="GetMemory"/>.</summary>
+        /// <param name="sizeHint">The requested size.</param>
+        /// <returns>The window.</returns>
         public Span<byte> GetSpan(int sizeHint = 0)
         {
             return this.GetMemory(sizeHint).Span;
         }
     }
 
+    /// <summary>A buffer writer that breaks its contract by returning a window one byte shorter than requested.</summary>
     private sealed class ShortWindowWriter : IBufferWriter<byte>
     {
+        /// <summary>Accepts and discards the advance.</summary>
+        /// <param name="count">The bytes written.</param>
         public void Advance(int count)
         {
         }
 
+        /// <summary>Returns a window one byte shorter than requested.</summary>
+        /// <param name="sizeHint">The requested size.</param>
+        /// <returns>The short window.</returns>
         public Memory<byte> GetMemory(int sizeHint = 0)
         {
             return new byte[Math.Max(0, sizeHint - 1)];
         }
 
+        /// <summary>Returns the short window through <see cref="GetMemory"/>.</summary>
+        /// <param name="sizeHint">The requested size.</param>
+        /// <returns>The short window.</returns>
         public Span<byte> GetSpan(int sizeHint = 0)
         {
             return this.GetMemory(sizeHint).Span;

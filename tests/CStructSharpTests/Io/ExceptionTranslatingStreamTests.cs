@@ -227,6 +227,7 @@ public class ExceptionTranslatingStreamTests
             }
         }
 
+        /// <summary>Throws the injected cause when this is the faulting member; otherwise does nothing.</summary>
         public override void Flush()
         {
             if (this.Point == FaultPoint.Flush)
@@ -235,6 +236,11 @@ public class ExceptionTranslatingStreamTests
             }
         }
 
+        /// <summary>Throws the injected cause when this is the faulting member; otherwise reads nothing.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <param name="offset">The first index to fill.</param>
+        /// <param name="count">The most bytes to read.</param>
+        /// <returns>The bytes read.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
             if (this.Point == FaultPoint.ReadArray)
@@ -245,6 +251,9 @@ public class ExceptionTranslatingStreamTests
             return 0;
         }
 
+        /// <summary>Throws the injected cause when this is the faulting member; otherwise reads nothing.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <returns>The bytes read.</returns>
         public override int Read(Span<byte> buffer)
         {
             if (this.Point == FaultPoint.ReadSpan)
@@ -255,11 +264,17 @@ public class ExceptionTranslatingStreamTests
             return 0;
         }
 
+        /// <summary>Throws the injected cause when this is the faulting member; otherwise reports the end.</summary>
+        /// <returns>-1.</returns>
         public override int ReadByte()
         {
             return this.Point == FaultPoint.ReadByte ? throw cause : -1;
         }
 
+        /// <summary>Throws the injected cause when this is the faulting member; otherwise moves to the offset.</summary>
+        /// <param name="offset">The new position.</param>
+        /// <param name="origin">The origin, treated as the start.</param>
+        /// <returns>The position after the seek.</returns>
         public override long Seek(long offset, SeekOrigin origin)
         {
             if (this.Point == FaultPoint.Seek)
@@ -271,6 +286,8 @@ public class ExceptionTranslatingStreamTests
             return this.position;
         }
 
+        /// <summary>Throws the injected cause when this is the faulting member; otherwise sets the length.</summary>
+        /// <param name="value">The length.</param>
         public override void SetLength(long value)
         {
             if (this.Point == FaultPoint.SetLength)
@@ -281,6 +298,10 @@ public class ExceptionTranslatingStreamTests
             this.length = value;
         }
 
+        /// <summary>Throws the injected cause when this is the faulting member; otherwise advances past the bytes without storing them.</summary>
+        /// <param name="buffer">The source.</param>
+        /// <param name="offset">The first index to write.</param>
+        /// <param name="count">The byte count.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
             if (this.Point == FaultPoint.WriteArray)
@@ -292,6 +313,8 @@ public class ExceptionTranslatingStreamTests
             this.length = Math.Max(this.length, this.position);
         }
 
+        /// <summary>Throws the injected cause when this is the faulting member; otherwise advances past the bytes without storing them.</summary>
+        /// <param name="buffer">The source.</param>
         public override void Write(ReadOnlySpan<byte> buffer)
         {
             if (this.Point == FaultPoint.WriteSpan)
@@ -303,6 +326,8 @@ public class ExceptionTranslatingStreamTests
             this.length = Math.Max(this.length, this.position);
         }
 
+        /// <summary>Throws the injected cause when this is the faulting member; otherwise advances past the byte without storing it.</summary>
+        /// <param name="value">The byte.</param>
         public override void WriteByte(byte value)
         {
             if (this.Point == FaultPoint.WriteByte)

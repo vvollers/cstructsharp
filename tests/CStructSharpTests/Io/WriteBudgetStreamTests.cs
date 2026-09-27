@@ -232,30 +232,48 @@ public class WriteBudgetStreamTests
 
         public override long Position { get; set; } = long.MaxValue;
 
+        /// <summary>Does nothing; writes are discarded.</summary>
         public override void Flush()
         {
         }
 
+        /// <summary>Reads nothing.</summary>
+        /// <param name="buffer">The destination.</param>
+        /// <param name="offset">The first index to fill.</param>
+        /// <param name="count">The most bytes to read.</param>
+        /// <returns>The bytes read.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
             return 0;
         }
 
+        /// <summary>Moves to the offset.</summary>
+        /// <param name="offset">The new position.</param>
+        /// <param name="origin">The origin, treated as the start.</param>
+        /// <returns>The position after the seek.</returns>
         public override long Seek(long offset, SeekOrigin origin)
         {
             this.Position = offset;
             return this.Position;
         }
 
+        /// <summary>Ignores the length.</summary>
+        /// <param name="value">The length.</param>
         public override void SetLength(long value)
         {
         }
 
+        /// <summary>Counts the write and discards the bytes.</summary>
+        /// <param name="buffer">The source.</param>
+        /// <param name="offset">The first index to write.</param>
+        /// <param name="count">The byte count.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
             this.WriteCount++;
         }
 
+        /// <summary>Counts the write and discards the byte.</summary>
+        /// <param name="value">The byte.</param>
         public override void WriteByte(byte value)
         {
             this.WriteCount++;
@@ -267,6 +285,7 @@ public class WriteBudgetStreamTests
     {
         public int FlushCount { get; private set; }
 
+        /// <summary>Counts the flush, then flushes.</summary>
         public override void Flush()
         {
             this.FlushCount++;

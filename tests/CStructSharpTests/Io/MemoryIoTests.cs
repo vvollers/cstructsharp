@@ -324,6 +324,9 @@ public class MemoryIoTests
             };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(MemoryRoot value, StructValue target)
         {
             target["count"] = value.Count;
@@ -332,6 +335,7 @@ public class MemoryIoTests
             target["state"] = value.State;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {
@@ -345,16 +349,23 @@ public class MemoryIoTests
         /// <summary>Gets or sets the big-endian child value.</summary>
         public ushort Value { get; set; }
 
+        /// <summary>Builds the class from a parsed record.</summary>
+        /// <param name="source">The parsed record.</param>
+        /// <returns>The mapped value.</returns>
         public static MemoryChild ReadFrom(StructValue source)
         {
             return new MemoryChild { Value = source.Get<ushort>("value"), };
         }
 
+        /// <summary>Copies the class into a record to write.</summary>
+        /// <param name="value">The mapped value.</param>
+        /// <param name="target">The record to fill.</param>
         public static void WriteTo(MemoryChild value, StructValue target)
         {
             target["value"] = value.Value;
         }
 
+        /// <summary>Registers the mapping when the test assembly loads.</summary>
         [ModuleInitializer]
         internal static void Register()
         {

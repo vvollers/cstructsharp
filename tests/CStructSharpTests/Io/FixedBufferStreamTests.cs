@@ -175,6 +175,7 @@ public class FixedBufferStreamTests
         }
     }
 
+    /// <summary>Creates a fixed-buffer stream with a negative capacity, which must throw.</summary>
     private static unsafe void ConstructWithNegativeCapacity()
     {
         _ = new FixedBufferStream((byte*)0, -1, writable: false);

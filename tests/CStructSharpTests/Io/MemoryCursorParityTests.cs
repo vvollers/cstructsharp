@@ -88,6 +88,9 @@ public class MemoryCursorParityTests
         Assert.AreEqual(0L, resolve.Position, "ResolveAddress restores the position");
     }
 
+    /// <summary>Runs a parse and records its value or the type name of its library failure.</summary>
+    /// <param name="parse">The parse.</param>
+    /// <returns>The value, or the failure's type name.</returns>
     private static (object? Result, string? Error) Try(Func<object> parse)
     {
         try
@@ -100,6 +103,10 @@ public class MemoryCursorParityTests
         }
     }
 
+    /// <summary>Whether two parsed values have the same members, items and scalars, compared recursively.</summary>
+    /// <param name="left">The first value.</param>
+    /// <param name="right">The second value.</param>
+    /// <returns>Whether they are equal.</returns>
     private static bool StructurallyEqual(object? left, object? right)
     {
         switch (left)
@@ -149,6 +156,9 @@ public class MemoryCursorParityTests
         }
     }
 
+    /// <summary>The read options a benchmark fixture describes, or the defaults.</summary>
+    /// <param name="element">The fixture's options, or JSON null.</param>
+    /// <returns>The options.</returns>
     private static ReadOptions CreateReadOptions(JsonElement element)
     {
         var defaults = new ReadOptions();
@@ -167,6 +177,10 @@ public class MemoryCursorParityTests
         };
     }
 
+    /// <summary>The input bytes a benchmark fixture describes: hex, a file, or xorshift bytes from a seed.</summary>
+    /// <param name="directory">The fixture directory.</param>
+    /// <param name="spec">The input description.</param>
+    /// <returns>The bytes.</returns>
     private static byte[] Materialize(string directory, JsonElement spec)
     {
         switch (spec.GetProperty("kind").GetString())
@@ -198,6 +212,8 @@ public class MemoryCursorParityTests
         }
     }
 
+    /// <summary>Finds the benchmark fixture directory above the test output directory.</summary>
+    /// <returns>The directory.</returns>
     private static string FindFixtureDirectory()
     {
         string? directory = AppContext.BaseDirectory;
