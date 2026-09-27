@@ -2542,14 +2542,19 @@ operand:
         return (line, column);
     }
 
+    /// <summary>A syntax error at the current position, naming what was found and what the grammar expected.</summary>
+    /// <param name="expected">What the grammar expected here, as a phrase (<c>an identifier</c>).</param>
+    /// <returns>The exception to throw, with its line and column.</returns>
     private CStructLayoutException Fail(string expected)
     {
         (int line, int column) = LocatePosition(this.source, this.position);
         string found = this.AtEnd
                            ? "end of input"
                            : $"'{DescribeCharacter(this.source[this.position])}'";
-        return new CStructLayoutException(
-            $"{SyntaxErrorPrefix}unexpected {found} at line {line}, column {column}; expected {expected}.");
+        return CStructLayoutException.SyntaxError(
+            FormattableString.Invariant($"{SyntaxErrorPrefix}unexpected {found} at line {line}, column {column}; expected {expected}."),
+            line,
+            column);
     }
 
     private static string DescribeCharacter(char character)

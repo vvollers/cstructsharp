@@ -560,9 +560,13 @@ namespace CStructSharp.Generated
         public void EnterComposite(string member, string? memberType) { }
         public void ExitComposite() { }
         public CStructSharp.Diagnostics.CStructWriteException Fail(string message, string? member, string? memberType) { }
+        public CStructSharp.Diagnostics.CStructWriteException FailArrayLengthMismatch(string field, int expected, int actual, string? member, string? memberType) { }
+        public CStructSharp.Diagnostics.CStructWriteException FailArrayTooMany(string field, int maximum, string? member, string? memberType) { }
         public System.Exception FailExpression(System.Exception exception, string context, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructLayoutException FailLayout(string message, string? member, string? memberType) { }
         public CStructSharp.Diagnostics.CStructWriteLimitException FailLimit(string message, string? member, string? memberType) { }
+        public CStructSharp.Diagnostics.CStructWriteException FailRawStorageLength(string union, int expected, int actual, string? member, string? memberType) { }
+        public CStructSharp.Diagnostics.CStructWriteException FailUnknownUnionMember(string union, string? selected, string? member, string? memberType) { }
         public void Pad(int count, string? member, string? memberType) { }
         public void RequireArrayLength(long count, string member, string? memberType) { }
         public void RequireStringBytes(long count, string member, string? memberType) { }

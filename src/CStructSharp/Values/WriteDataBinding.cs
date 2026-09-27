@@ -214,6 +214,6 @@ internal static class WriteDataBinding
         throw new CStructWriteException(
             data is not null && !IsWritable(data)
                 ? $"No value was supplied for '{name}': a {data.GetType().Name} is not writable data (use a StructValue, a dictionary, or a class implementing ICStructMapped<T> registered with MappedTypes.Register)."
-                : $"No value was supplied for '{name}'.");
+                : WriteFailures.NoValueSupplied(name));
     }
 }

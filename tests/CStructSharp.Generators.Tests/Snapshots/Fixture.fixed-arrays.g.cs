@@ -660,11 +660,11 @@ namespace Demo
                 cursor.RequireArrayLength(count, "values", "uint8");
                 if (value.Values.Length > count)
                 {
-                    throw cursor.Fail("Array value for values exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "values", "uint8");
+                    throw cursor.FailArrayTooMany("values", count, "values", "uint8");
                 }
                 if (value.Values.Length != count)
                 {
-                    throw cursor.Fail("Array length mismatch for values: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Values.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "values", "uint8");
+                    throw cursor.FailArrayLengthMismatch("values", count, value.Values.Length, "values", "uint8");
                 }
                 if (count > 0)
                 {

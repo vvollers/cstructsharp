@@ -110,6 +110,10 @@ public class SkeletonTests
         StringAssert.Contains(result.DiagnosticsWithId("CSG001").Single().GetMessage(), "File");
     }
 
+    /// <summary>
+    ///     An invalid layout reports the runtime's message, placed at the error's line and column inside a multi-line raw
+    ///     literal (the layout column plus the literal's indentation).
+    /// </summary>
     [TestMethod]
     public void InvalidLayout_ReportsCSG001WithTheRuntimeMessage_LocatedInsideARawLiteral()
     {
@@ -120,9 +124,8 @@ public class SkeletonTests
         Assert.AreEqual(runtime.Message, diagnostic.GetMessage());
         FileLinePositionSpan span = diagnostic.Location.GetLineSpan();
         Assert.AreEqual(5, span.StartLinePosition.Line, "the layout's line 2 is the consumer file's line 6 (zero-based 5)");
-        System.Text.RegularExpressions.Match position = System.Text.RegularExpressions.Regex.Match(runtime.Message, @"line (\d+), column (\d+)");
-        Assert.AreEqual("2", position.Groups[1].Value);
-        Assert.AreEqual(4 + int.Parse(position.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture) - 1, span.StartLinePosition.Character, "the layout column plus the raw literal's indentation");
+        Assert.AreEqual(2, runtime.Line);
+        Assert.AreEqual(4 + runtime.Column!.Value - 1, span.StartLinePosition.Character, "the layout column plus the raw literal's indentation");
         Assert.IsEmpty(result.GeneratedSources);
     }
 

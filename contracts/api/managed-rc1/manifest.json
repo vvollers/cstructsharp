@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baselineId": "managed-rc1",
-  "baselineRevision": 51,
+  "baselineRevision": 52,
   "status": "frozen",
   "workItem": "QA-07",
   "packageVersion": "0.10.0",
@@ -14,22 +14,22 @@
   },
   "canonical": {
     "path": "contracts/api/managed-rc1/CStructSharp.public-api.txt",
-    "lines": 1086,
-    "normalizedSha256": "ECF5AEC9A2582ABFBA04EE1F067621BEB31AB363A187145B5BD65010742C7BA9"
+    "lines": 1090,
+    "normalizedSha256": "19083F9680D21E2B59AB469D4F764E859A8276B769502D35EEF0A15087C486E7"
   },
   "frameworks": [
     {
       "tfm": "net8.0",
       "targetFramework": ".NETCoreApp,Version=v8.0",
       "frameworkDisplayName": ".NET 8.0",
-      "normalizedSha256": "723E0A6A23060BDA332351CDC13B9C7802E41DB91CB80320F6933C86723F6591",
+      "normalizedSha256": "136E28AC34E98C0DD11C5921DD44C8F7866C18F29FEBDE6EEA8515702378C22C",
       "aotCompatible": false
     },
     {
       "tfm": "net10.0",
       "targetFramework": ".NETCoreApp,Version=v10.0",
       "frameworkDisplayName": ".NET 10.0",
-      "normalizedSha256": "9CB94DFB6264F973F754E070D712D3FE8F795AECA77266490E796D98AFB3DCDB",
+      "normalizedSha256": "FD919A5A1CB3EE8434E7A95851A548DD7462C6D4B3DFB799006425E8D28BCF70",
       "aotCompatible": true
     }
   ],
@@ -492,6 +492,15 @@
       "combinedSha256": "AFAFE4B50158FC00F64C496310923CEDE54DFB17F3EFF2C26A07617FC48B0685",
       "rationale": "Generated code checks a data-dependent @N offset assertion through CompositeCursor.CheckOffset, which counts from the composite's start with the runtime's text; generated writers report the failure through WriteCursor.FailLayout, as readers already do.",
       "releaseImpact": "Two additive generated-support members; existing generated code is unaffected."
+    },
+    {
+      "revision": 52,
+      "kind": "additive",
+      "date": "2026-09-27",
+      "packageVersion": "0.10.0",
+      "combinedSha256": "FDBA12B3C478D36BDA622E9281E29EDD44B5F5ED871C104BAF57E9109409BEE6",
+      "rationale": "Generated writers format their data-dependent failures (too many elements, a length mismatch, raw union storage of the wrong size, an unknown union member) through the runtime's diagnostic catalog via four WriteCursor helpers, instead of copying the runtime's texts into generated code.",
+      "releaseImpact": "Four additive generated-support members; messages are unchanged, so existing generated code keeps working."
     }
   ]
 }

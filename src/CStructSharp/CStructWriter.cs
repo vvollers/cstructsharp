@@ -59,7 +59,7 @@ public partial class CStruct
         int elementBitSize = checked(byteSize * 8);
         if (state.CurrentBitOffset + compiledField.BitSize > elementBitSize)
         {
-            throw new InvalidOperationException("Bitfield exceeds its storage unit: " + compiledField.Name);
+            throw new CStructWriteException(LayoutFailures.BitfieldExceedsUnit(compiledField.Name));
         }
 
         // Validate the selected slice before reading or changing its shared storage unit.
@@ -186,7 +186,7 @@ public partial class CStruct
         state.Options.CancellationToken.ThrowIfCancellationRequested();
         if (data is null)
         {
-            throw new CStructWriteException("Null is not valid for struct or union value: " + composite.Name);
+            throw new CStructWriteException(WriteFailures.NullComposite(composite.Name));
         }
 
         // A mapped-class instance becomes a StructValue of this composite's shape once, here, so every path
@@ -226,7 +226,7 @@ public partial class CStruct
                     {
                         if (WriteDataBinding.TryGetMemberValue(data, name, out _))
                         {
-                            throw new CStructWriteException("Inactive conditional field supplied: " + name);
+                            throw new CStructWriteException(WriteFailures.InactiveConditionalField(name));
                         }
                     }
 
@@ -393,7 +393,7 @@ public partial class CStruct
         if (unionValue is null)
         {
             throw new CStructWriteException(
-                "A whole union write requires UnionValue.FromRaw or UnionValue.FromMember: " + union.Name);
+                WriteFailures.WholeUnionNeedsSelection(union.Name, "UnionValue.FromRaw or UnionValue.FromMember"));
         }
 
         if (!string.Equals(unionValue.UnionName, union.Name, StringComparison.Ordinal))
@@ -410,7 +410,7 @@ public partial class CStruct
         if (rawStorage is not null && rawStorage.Length != unionSize)
         {
             throw new CStructWriteException(
-                $"Raw storage length mismatch for {union.Name}: expected {unionSize}, got {rawStorage.Length}.");
+                WriteFailures.RawStorageLengthMismatch(union.Name, unionSize, rawStorage.Length));
         }
 
         long unionPosition = state.Stream.Position;
@@ -428,7 +428,7 @@ public partial class CStruct
         if (selected is null)
         {
             throw new CStructWriteException(
-                $"Union '{union.Name}' has no member named '{selectedMember}'.");
+                WriteFailures.UnknownUnionMember(union.Name, selectedMember));
         }
 
         // Build the complete union extent away from the destination. New writes and clearing updates start at zero;
@@ -597,7 +597,7 @@ public partial class CStruct
             (compiledField.PointerDepth == 0 || compiledField.Array.Kind != CompiledArrayKind.Scalar))
         {
             throw new CStructWriteException(
-                "Null is valid only for a scalar pointer field: " + compiledField.Name);
+                WriteFailures.NullForNonPointer(compiledField.Name));
         }
 
         CompiledField valueField = compiledField;
@@ -661,7 +661,7 @@ public partial class CStruct
                     ExpressionFailureDomain.Write);
                 if (numFieldValues < 0)
                 {
-                    throw new CStructWriteException("Array length cannot be negative: " + compiledField.Name);
+                    throw new CStructWriteException(LayoutFailures.NegativeArrayLength(compiledField.Name));
                 }
 
                 if (numFieldValues > state.Options.MaxArrayElements)

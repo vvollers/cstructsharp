@@ -218,6 +218,27 @@ public class DirectRootAccessTests
         Assert.IsFalse(Take(bytes, new ReadOptions { CancellationToken = cancelled.Token }, 8, 1, 8, 1, 0, out _), "cancelled");
     }
 
+    /// <summary>
+    ///     The generated writers' failures carry the runtime writer's texts: a bitfield whose bits overrun its unit, and
+    ///     the data-dependent array and union failures the cursor formats for generated code.
+    /// </summary>
+    [TestMethod]
+    public void WriteCursor_Failures_UseTheRuntimeTexts()
+    {
+        CStructWriteException bits = Assert.Throws<CStructWriteException>(() =>
+        {
+            var overrun = new WriteCursor(new byte[4]);
+            overrun.WriteBits(new BitfieldSlot(0, 1, 6), 4, (byte)1, true, false, "flags", "uint8");
+        });
+        StringAssert.StartsWith(bits.Message, "Bitfield exceeds its storage unit: flags");
+
+        var cursor = new WriteCursor(new byte[4]);
+        StringAssert.StartsWith(cursor.FailArrayTooMany("v", 2, "v", "uint8").Message, "Array value for v exceeds its permitted element count of 2");
+        StringAssert.StartsWith(cursor.FailArrayLengthMismatch("v", 2, 3, "v", "uint8").Message, "Array length mismatch for v: expected 2, got 3");
+        StringAssert.StartsWith(cursor.FailRawStorageLength("u", 2, 3, null, null).Message, "Raw storage length mismatch for u: expected 2, got 3");
+        StringAssert.StartsWith(cursor.FailUnknownUnionMember("u", "x", null, null).Message, "Union 'u' has no member named 'x'");
+    }
+
     /// <summary>The generated fixed writers' cursor step reserves a struct only where the member-by-member writer would write exactly it.</summary>
     [TestMethod]
     public void WriteCursor_TryReserveFixed_HonoursEveryLimit()

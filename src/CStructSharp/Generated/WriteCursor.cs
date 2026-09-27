@@ -390,7 +390,7 @@ public ref struct WriteCursor
         ArgumentNullException.ThrowIfNull(codec);
         if (value is null)
         {
-            throw this.Fail("Null is valid only for a scalar pointer field: " + member, member, memberType);
+            throw this.Fail(WriteFailures.NullForNonPointer(member), member, memberType);
         }
 
         byte[] rented;
@@ -431,7 +431,7 @@ public ref struct WriteCursor
         int unitBits = slot.UnitSize * 8;
         if (slot.BitOffset + bitSize > unitBits)
         {
-            throw this.Fail("Bitfield exceeds its storage unit: " + member, member, memberType);
+            throw this.Fail(LayoutFailures.BitfieldExceedsUnit(member), member, memberType);
         }
 
         ulong bits;
@@ -614,6 +614,44 @@ public ref struct WriteCursor
         this.Attach(exception, member, memberType);
         return exception;
     }
+
+    /// <summary>An array value with more elements than the field permits, with the runtime's text.</summary>
+    /// <param name="field">The array field.</param>
+    /// <param name="maximum">The permitted element count: the declared count, or the array element limit.</param>
+    /// <param name="member">The layout field.</param>
+    /// <param name="memberType">The field's type spelling.</param>
+    /// <returns>The exception to throw.</returns>
+    public readonly CStructWriteException FailArrayTooMany(string field, int maximum, string? member, string? memberType)
+        => this.Fail(WriteFailures.ArrayTooMany(field, maximum), member, memberType);
+
+    /// <summary>A fixed array value with a different element count than declared, with the runtime's text.</summary>
+    /// <param name="field">The array field.</param>
+    /// <param name="expected">The declared element count.</param>
+    /// <param name="actual">The supplied element count.</param>
+    /// <param name="member">The layout field.</param>
+    /// <param name="memberType">The field's type spelling.</param>
+    /// <returns>The exception to throw.</returns>
+    public readonly CStructWriteException FailArrayLengthMismatch(string field, int expected, int actual, string? member, string? memberType)
+        => this.Fail(WriteFailures.ArrayLengthMismatch(field, expected, actual), member, memberType);
+
+    /// <summary>Raw union storage of a different size than the union, with the runtime's text.</summary>
+    /// <param name="union">The union type.</param>
+    /// <param name="expected">The union's size in bytes.</param>
+    /// <param name="actual">The supplied storage's length in bytes.</param>
+    /// <param name="member">The layout field.</param>
+    /// <param name="memberType">The field's type spelling.</param>
+    /// <returns>The exception to throw.</returns>
+    public readonly CStructWriteException FailRawStorageLength(string union, int expected, int actual, string? member, string? memberType)
+        => this.Fail(WriteFailures.RawStorageLengthMismatch(union, expected, actual), member, memberType);
+
+    /// <summary>A union value that selects a member the union does not declare, with the runtime's text.</summary>
+    /// <param name="union">The union type.</param>
+    /// <param name="selected">The selected member name.</param>
+    /// <param name="member">The layout field.</param>
+    /// <param name="memberType">The field's type spelling.</param>
+    /// <returns>The exception to throw.</returns>
+    public readonly CStructWriteException FailUnknownUnionMember(string union, string? selected, string? member, string? memberType)
+        => this.Fail(WriteFailures.UnknownUnionMember(union, selected), member, memberType);
 
     /// <summary>A limit failure at the current position, with the runtime's context.</summary>
     /// <param name="message">The diagnostic.</param>

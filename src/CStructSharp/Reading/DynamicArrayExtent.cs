@@ -24,7 +24,7 @@ internal static class DynamicArrayExtent
         long remaining = stream.Length - start;
         if (remaining < 0)
         {
-            throw new CStructReadException("Not enough bytes: the array starts beyond the end of the input.");
+            throw new CStructReadException(ReadFailures.ArrayStartsPastEnd);
         }
 
         if (elementSize == 0)

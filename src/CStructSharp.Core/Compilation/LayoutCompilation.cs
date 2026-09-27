@@ -487,7 +487,7 @@ internal sealed partial class LayoutCompilation
                 "array length for typedef " + typedef.Name.Name);
             if (count < 0)
             {
-                throw new CStructLayoutException("Array length cannot be negative: " + typedef.Name.Name);
+                throw new CStructLayoutException(LayoutFailures.NegativeArrayLength(typedef.Name.Name));
             }
 
             dimensions[index] = new Literal(count);
@@ -706,8 +706,7 @@ internal sealed partial class LayoutCompilation
                         "array length for " + field.Name.Name);
                     if (count < 0)
                     {
-                        throw new CStructLayoutException(
-                            "Array length cannot be negative: " + field.Name.Name);
+                        throw new CStructLayoutException(LayoutFailures.NegativeArrayLength(field.Name.Name));
                     }
                 }
             }

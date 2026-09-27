@@ -1162,7 +1162,7 @@ namespace Demo
                 int count = value.Entries.Length;
                 if (count > cursor.MaxArrayElements)
                 {
-                    throw cursor.Fail("Array value for entries exceeds its permitted element count of " + cursor.MaxArrayElements.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "entries", "entry");
+                    throw cursor.FailArrayTooMany("entries", cursor.MaxArrayElements, "entries", "entry");
                 }
                 for (int index = 0; index < count; index++)
                 {
@@ -1181,7 +1181,7 @@ namespace Demo
                 int count = value.Values.Length;
                 if (count > cursor.MaxArrayElements)
                 {
-                    throw cursor.Fail("Array value for values exceeds its permitted element count of " + cursor.MaxArrayElements.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "values", "uint16");
+                    throw cursor.FailArrayTooMany("values", cursor.MaxArrayElements, "values", "uint16");
                 }
                 if (count > 0)
                 {

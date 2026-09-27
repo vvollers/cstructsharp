@@ -760,11 +760,11 @@ namespace Demo
                 cursor.RequireArrayLength(count, "items", "blob");
                 if (value.Items.Length > count)
                 {
-                    throw cursor.Fail("Array value for items exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "items", "blob");
+                    throw cursor.FailArrayTooMany("items", count, "items", "blob");
                 }
                 if (value.Items.Length != count)
                 {
-                    throw cursor.Fail("Array length mismatch for items: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Items.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "items", "blob");
+                    throw cursor.FailArrayLengthMismatch("items", count, value.Items.Length, "items", "blob");
                 }
                 for (int index = 0; index < count; index++)
                 {

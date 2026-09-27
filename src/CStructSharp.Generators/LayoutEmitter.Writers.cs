@@ -147,7 +147,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("/// <summary>Writes one <c>" + composite.LayoutName + "</c> at the cursor's position.</summary>");
         writer.Open("private static void Encode" + name + "(ref " + WriteCursorType + " cursor, " + name + "? value, " + VariablesType + " variables, string? member, string? memberType)");
         writer.Open("if (value is null)");
-        writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Null is not valid for struct or union value: " + composite.LayoutName) + ", member, memberType);");
+        writer.Line("throw cursor.Fail(" + SourceWriter.Literal(WriteFailures.NullComposite(composite.LayoutName)) + ", member, memberType);");
         writer.Close();
         this.EmitFixedWriterShortcut(writer, composite);
         writer.Line("cursor.EnterComposite(member ?? " + SourceWriter.Literal(composite.LayoutName) + ", memberType);");
@@ -192,10 +192,10 @@ internal sealed partial class LayoutEmitter
         writer.Line("int unionStart = cursor.Position;");
         writer.Open("if (value.SelectedMember is null)");
         writer.Open("if (value.RawStorage is null)");
-        writer.Line("throw cursor.Fail(" + SourceWriter.Literal("A whole union write requires SelectedMember or RawStorage: " + composite.LayoutName) + ", member, memberType);");
+        writer.Line("throw cursor.Fail(" + SourceWriter.Literal(WriteFailures.WholeUnionNeedsSelection(composite.LayoutName, "SelectedMember or RawStorage")) + ", member, memberType);");
         writer.Close();
         writer.Open("if (value.RawStorage.Length != " + Int(size) + ")");
-        writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Raw storage length mismatch for " + composite.LayoutName + ": expected " + size + ", got ") + " + value.RawStorage.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\", member, memberType);");
+        writer.Line("throw cursor.FailRawStorageLength(" + layout + ", " + Int(size) + ", value.RawStorage.Length, member, memberType);");
         writer.Close();
         writer.Line("new global::System.ReadOnlySpan<byte>(value.RawStorage).CopyTo(cursor.Reserve(" + Int(size) + ", member, memberType));");
         writer.Line("cursor.ExitComposite();");
@@ -216,29 +216,46 @@ internal sealed partial class LayoutEmitter
 
             writer.Line("case " + SourceWriter.Literal(field.Name) + ":");
             writer.Indent();
-            this.EmitWriteField(writer, field, union, scope, "value", inUnion: true, "union", selected: true);
+            this.EmitWriteField(writer, field, union, scope, "value", inUnion: true, "union");
             writer.Line("break;");
             writer.Outdent();
         }
 
         writer.Line("default:");
         writer.Indent();
-        writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Union '" + composite.LayoutName + "' has no member named '") + " + value.SelectedMember + \"'.\", member, memberType);");
+        writer.Line("throw cursor.FailUnknownUnionMember(" + layout + ", value.SelectedMember, member, memberType);");
         writer.Outdent();
         writer.Line("}");
         writer.Line("cursor.Position = unionStart + " + Int(size) + ";");
     }
 
+    /// <summary>Emits the writes of a struct's fields in declaration order, after the slots its conditional arms need.</summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="composite">The struct.</param>
+    /// <param name="scope">The expression scope for counts and conditions.</param>
+    /// <param name="target">The expression holding the value being written.</param>
+    /// <param name="placement">The composite cursor's local.</param>
     private void EmitWriteFields(SourceWriter writer, CompiledCompositeType composite, ReaderScope scope, string target, string placement)
     {
         EmitConditionalSlots(writer, composite, placement);
         foreach (CompiledField field in composite.Fields)
         {
-            this.EmitWriteField(writer, field, composite, scope, target, inUnion: false, placement, selected: false);
+            this.EmitWriteField(writer, field, composite, scope, target, inUnion: false, placement);
         }
     }
 
-    private void EmitWriteField(SourceWriter writer, CompiledField field, CompiledCompositeType composite, ReaderScope scope, string target, bool inUnion, string placement, bool selected)
+    /// <summary>
+    ///     Emits the write of one declared field: its conditional-arm checks (a value for an inactive arm, or a missing
+    ///     value for an active one, fails as the runtime does) and then its body.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="field">The field.</param>
+    /// <param name="composite">The struct or union that declares the field.</param>
+    /// <param name="scope">The expression scope for counts and conditions.</param>
+    /// <param name="target">The expression holding the value being written.</param>
+    /// <param name="inUnion">Whether the field is a union member.</param>
+    /// <param name="placement">The composite cursor's local.</param>
+    private void EmitWriteField(SourceWriter writer, CompiledField field, CompiledCompositeType composite, ReaderScope scope, string target, bool inUnion, string placement)
     {
         bool promoted = field.IsUnnamed && field.IsInlineComposite;
         string member = promoted ? "member" : SourceWriter.Literal(field.Name.Length == 0 && field.BitSize == 0 ? "_" : field.Name);
@@ -261,7 +278,7 @@ internal sealed partial class LayoutEmitter
             {
                 // The runtime rejects the value before entering the field, so the enclosing member is what it notes.
                 writer.Open("if (" + slot + " != " + Int(branch.Arm) + " && " + target + "." + generated.HasFlagName + ")");
-                writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Inactive conditional field supplied: " + field.Name) + ", member, memberType);");
+                writer.Line("throw cursor.Fail(" + SourceWriter.Literal(WriteFailures.InactiveConditionalField(field.Name)) + ", member, memberType);");
                 writer.Close();
             }
 
@@ -272,7 +289,7 @@ internal sealed partial class LayoutEmitter
         if (generated is { IsConditional: true })
         {
             writer.Open("if (!" + target + "." + generated.HasFlagName + ")");
-            writer.Line("throw cursor.Fail(" + SourceWriter.Literal("No value was supplied for '" + field.Name + "'.") + ", " + member + ", " + memberType + ");");
+            writer.Line("throw cursor.Fail(" + SourceWriter.Literal(WriteFailures.NoValueSupplied(field.Name)) + ", " + member + ", " + memberType + ");");
             writer.Close();
         }
 
@@ -359,7 +376,7 @@ internal sealed partial class LayoutEmitter
             if (generated.IsReferenceType || (generated.IsConditional && generated.TypeName.EndsWith("?", StringComparison.Ordinal)))
             {
                 writer.Open("if (" + access + " is null)");
-                writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Null is valid only for a scalar pointer field: " + field.Name) + ", " + member + ", " + memberType + ");");
+                writer.Line("throw cursor.Fail(" + SourceWriter.Literal(WriteFailures.NullForNonPointer(field.Name)) + ", " + member + ", " + memberType + ");");
                 writer.Close();
             }
 
@@ -395,7 +412,7 @@ internal sealed partial class LayoutEmitter
         writer.Line("cursor.EnterComposite(" + member + ", " + memberType + ");");
         writer.Line("cursor.Pad(" + Int(size) + ", " + member + ", " + memberType + ");");
         writer.Line("cursor.Position = unionStart;");
-        this.EmitWriteField(writer, widest, union, scope, target, inUnion: true, placement + "U", selected: true);
+        this.EmitWriteField(writer, widest, union, scope, target, inUnion: true, placement + "U");
         writer.Line("cursor.ExitComposite();");
         writer.Line("cursor.Position = unionStart + " + Int(size) + ";");
     }
@@ -450,6 +467,18 @@ internal sealed partial class LayoutEmitter
         };
     }
 
+    /// <summary>
+    ///     Emits the write of one field's value by its shape: text, a data-sized or fixed array (with the runtime's count
+    ///     checks), or a scalar.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="field">The field.</param>
+    /// <param name="generated">The field's generated member.</param>
+    /// <param name="scope">The expression scope for counts.</param>
+    /// <param name="access">The expression holding the value.</param>
+    /// <param name="inUnion">Whether the field is a union member.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
     private void EmitWriteValue(SourceWriter writer, CompiledField field, GeneratedMember generated, ReaderScope scope, string access, bool inUnion, string member, string memberType)
     {
         if (field.Array.Kind == CompiledArrayKind.Scalar)
@@ -476,7 +505,7 @@ internal sealed partial class LayoutEmitter
             // at most MaxArrayElements of them.
             writer.Line("int count = " + access + ".Length;");
             writer.Open("if (count > cursor.MaxArrayElements)");
-            writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Array value for " + field.Name + " exceeds its permitted element count of ") + " + cursor.MaxArrayElements.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\", " + member + ", " + memberType + ");");
+            writer.Line("throw cursor.FailArrayTooMany(" + SourceWriter.Literal(field.Name) + ", cursor.MaxArrayElements, " + member + ", " + memberType + ");");
             writer.Close();
             break;
         case CompiledArrayKind.Fixed when field.Array.Dimensions.Length > 1 || field.Array.CountExpression is null:
@@ -498,7 +527,7 @@ internal sealed partial class LayoutEmitter
             if (!ExpressionEmitter.IsInt32Literal(field.Array.CountExpression!))
             {
                 writer.Open("if (count < 0)");
-                writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Array length cannot be negative: " + field.Name) + ", " + member + ", " + memberType + ");");
+                writer.Line("throw cursor.Fail(" + SourceWriter.Literal(LayoutFailures.NegativeArrayLength(field.Name)) + ", " + member + ", " + memberType + ");");
                 writer.Close();
             }
 
@@ -558,12 +587,11 @@ internal sealed partial class LayoutEmitter
     /// <summary>The runtime's two array-length checks, in its order: too many elements (the materialization cap), then a count that differs.</summary>
     private static void EmitLengthChecks(SourceWriter writer, string fieldName, string access, string expected, string member, string memberType)
     {
-        const string Invariant = ".ToString(global::System.Globalization.CultureInfo.InvariantCulture)";
         writer.Open("if (" + access + ".Length > " + expected + ")");
-        writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Array value for " + fieldName + " exceeds its permitted element count of ") + " + " + expected + Invariant + " + \".\", " + member + ", " + memberType + ");");
+        writer.Line("throw cursor.FailArrayTooMany(" + SourceWriter.Literal(fieldName) + ", " + expected + ", " + member + ", " + memberType + ");");
         writer.Close();
         writer.Open("if (" + access + ".Length != " + expected + ")");
-        writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Array length mismatch for " + fieldName + ": expected ") + " + " + expected + Invariant + " + \", got \" + " + access + ".Length" + Invariant + " + \".\", " + member + ", " + memberType + ");");
+        writer.Line("throw cursor.FailArrayLengthMismatch(" + SourceWriter.Literal(fieldName) + ", " + expected + ", " + access + ".Length, " + member + ", " + memberType + ");");
         writer.Close();
     }
 
@@ -587,7 +615,7 @@ internal sealed partial class LayoutEmitter
             indices.Add(index);
             current += "[" + index + "]";
             writer.Open("if (" + current + " is null)");
-            writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Null is valid only for a scalar pointer field: " + field.Name) + ", " + member + ", " + memberType + ");");
+            writer.Line("throw cursor.Fail(" + SourceWriter.Literal(WriteFailures.NullForNonPointer(field.Name)) + ", " + member + ", " + memberType + ");");
             writer.Close();
         }
 
@@ -601,6 +629,12 @@ internal sealed partial class LayoutEmitter
         }
     }
 
+    /// <summary>Emits the write of a fixed character array from a string: its length check, encoding and zero padding.</summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="field">The character array field.</param>
+    /// <param name="access">The expression holding the string.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
     private void EmitCharacterArrayWrite(SourceWriter writer, CompiledField field, string access, string member, string memberType)
     {
         bool wide = field.IsWideCharElement;
@@ -625,7 +659,7 @@ internal sealed partial class LayoutEmitter
             opened++;
             current += "[" + index + "]";
             writer.Open("if (" + current + " is null)");
-            writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Null is valid only for a scalar pointer field: " + field.Name) + ", " + member + ", " + memberType + ");");
+            writer.Line("throw cursor.Fail(" + SourceWriter.Literal(WriteFailures.NullForNonPointer(field.Name)) + ", " + member + ", " + memberType + ");");
             writer.Close();
         }
 
@@ -636,6 +670,13 @@ internal sealed partial class LayoutEmitter
         }
     }
 
+    /// <summary>Emits the write of one scalar value: a pointer's address, a nested struct or union, an enum's number, or a primitive.</summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="field">The field.</param>
+    /// <param name="generated">The field's generated member.</param>
+    /// <param name="access">The expression holding the value.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
     private void EmitScalarWrite(SourceWriter writer, CompiledField field, GeneratedMember generated, string access, string member, string memberType)
     {
         if (field.PointerDepth > 0)

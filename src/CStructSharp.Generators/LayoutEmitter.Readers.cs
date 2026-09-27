@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
 /// <summary>
@@ -565,6 +566,18 @@ internal sealed partial class LayoutEmitter
         writer.Line(size is { } end ? "cursor.Position = unionStart + " + Int(end) + ";" : "cursor.Position = unionEnd;");
     }
 
+    /// <summary>
+    ///     Emits the read of one bitfield: its storage unit (placed by the composite cursor, or at the union's start),
+    ///     the unit's bytes, and the field's bits, with the runtime's failure when the bits overrun the unit.
+    /// </summary>
+    /// <param name="writer">The output.</param>
+    /// <param name="field">The bitfield.</param>
+    /// <param name="scope">The expression scope the field's value is published to.</param>
+    /// <param name="target">The expression holding the value being built.</param>
+    /// <param name="inUnion">Whether the field is a union member.</param>
+    /// <param name="member">The member-name expression for failures.</param>
+    /// <param name="memberType">The member-type expression for failures.</param>
+    /// <param name="placement">The composite cursor's local.</param>
     private void EmitBitfield(SourceWriter writer, CompiledField field, ReaderScope scope, string target, bool inUnion, string member, string memberType, string placement)
     {
         int declaredSize = field.BitStorageSize ?? field.Codec.Size;
@@ -582,7 +595,7 @@ internal sealed partial class LayoutEmitter
 
         writer.Line("ulong unit = " + CodecClass + ".ReadUnsigned(cursor.Take(slot.UnitSize, " + member + ", " + memberType + "), " + Bool(littleEndian) + ");");
         writer.Open("if (slot.BitOffset + " + Int(field.BitSize) + " > slot.UnitSize * 8)");
-        writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Bitfield exceeds its storage unit: " + field.Name) + ", " + member + ", " + memberType + ");");
+        writer.Line("throw cursor.Fail(" + SourceWriter.Literal(LayoutFailures.BitfieldExceedsUnit(field.Name)) + ", " + member + ", " + memberType + ");");
         writer.Close();
         writer.Line("ulong bits = " + CodecClass + ".ExtractBits(unit, " + CodecClass + ".BitfieldShift(slot.BitOffset, " + Int(field.BitSize) + ", slot.UnitSize * 8, HighBitFirst), " + Int(field.BitSize) + ");");
         if (!inUnion)

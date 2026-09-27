@@ -331,7 +331,7 @@ public partial class CStruct
                                 ExpressionFailureDomain.Read);
                             if (numFieldValues < 0)
                             {
-                                throw new CStructReadException(ReadFailures.NegativeArrayLength(compiledField.Name));
+                                throw new CStructReadException(LayoutFailures.NegativeArrayLength(compiledField.Name));
                             }
 
                             if (numFieldValues > state.MaxArrayElements)
@@ -695,7 +695,7 @@ public partial class CStruct
                                 int elementBitSize = checked(state.CurrentBitfieldSize * 8);
                                 if (state.CurrentBitOffset + compiledField.BitSize > elementBitSize)
                                 {
-                                    throw new CStructReadException(ReadFailures.BitfieldExceedsUnit(compiledField.Name));
+                                    throw new CStructReadException(LayoutFailures.BitfieldExceedsUnit(compiledField.Name));
                                 }
 
                                 ulong extracted = BitfieldCodecTable.ExtractBitfieldValue(
@@ -1105,7 +1105,7 @@ public partial class CStruct
                         ExpressionFailureDomain.Read);
         if (count < 0)
         {
-            throw new CStructReadException(ReadFailures.NegativeArrayLength(field.Name));
+            throw new CStructReadException(LayoutFailures.NegativeArrayLength(field.Name));
         }
 
         if (count > state.MaxArrayElements)

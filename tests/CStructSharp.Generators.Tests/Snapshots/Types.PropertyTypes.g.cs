@@ -2226,11 +2226,11 @@ namespace Demo
                 cursor.RequireArrayLength(count, "table", "char");
                 if (value.Table.Length > 2)
                 {
-                    throw cursor.Fail("Array value for table exceeds its permitted element count of " + 2.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "table", "char");
+                    throw cursor.FailArrayTooMany("table", 2, "table", "char");
                 }
                 if (value.Table.Length != 2)
                 {
-                    throw cursor.Fail("Array length mismatch for table: expected " + 2.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Table.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "table", "char");
+                    throw cursor.FailArrayLengthMismatch("table", 2, value.Table.Length, "table", "char");
                 }
                 for (int i0 = 0; i0 < 2; i0++)
                 {
@@ -2254,11 +2254,11 @@ namespace Demo
                 cursor.RequireArrayLength(count, "bytes", "uint8");
                 if (value.Bytes.Length > count)
                 {
-                    throw cursor.Fail("Array value for bytes exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "bytes", "uint8");
+                    throw cursor.FailArrayTooMany("bytes", count, "bytes", "uint8");
                 }
                 if (value.Bytes.Length != count)
                 {
-                    throw cursor.Fail("Array length mismatch for bytes: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Bytes.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "bytes", "uint8");
+                    throw cursor.FailArrayLengthMismatch("bytes", count, value.Bytes.Length, "bytes", "uint8");
                 }
                 if (count > 0)
                 {
@@ -2278,11 +2278,11 @@ namespace Demo
                 cursor.RequireArrayLength(count, "words", "uint16");
                 if (value.Words.Length > 2)
                 {
-                    throw cursor.Fail("Array value for words exceeds its permitted element count of " + 2.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "words", "uint16");
+                    throw cursor.FailArrayTooMany("words", 2, "words", "uint16");
                 }
                 if (value.Words.Length != 2)
                 {
-                    throw cursor.Fail("Array length mismatch for words: expected " + 2.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Words.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "words", "uint16");
+                    throw cursor.FailArrayLengthMismatch("words", 2, value.Words.Length, "words", "uint16");
                 }
                 for (int i0 = 0; i0 < 2; i0++)
                 {
@@ -2292,11 +2292,11 @@ namespace Demo
                     }
                     if (value.Words[i0].Length > 2)
                     {
-                        throw cursor.Fail("Array value for words exceeds its permitted element count of " + 2.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "words", "uint16");
+                        throw cursor.FailArrayTooMany("words", 2, "words", "uint16");
                     }
                     if (value.Words[i0].Length != 2)
                     {
-                        throw cursor.Fail("Array length mismatch for words: expected " + 2.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Words[i0].Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "words", "uint16");
+                        throw cursor.FailArrayLengthMismatch("words", 2, value.Words[i0].Length, "words", "uint16");
                     }
                     for (int i1 = 0; i1 < value.Words[i0].Length; i1++)
                     {
@@ -2334,11 +2334,11 @@ namespace Demo
                 cursor.RequireArrayLength(count, "items", "uint8");
                 if (value.Items.Length > count)
                 {
-                    throw cursor.Fail("Array value for items exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "items", "uint8");
+                    throw cursor.FailArrayTooMany("items", count, "items", "uint8");
                 }
                 if (value.Items.Length != count)
                 {
-                    throw cursor.Fail("Array length mismatch for items: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Items.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "items", "uint8");
+                    throw cursor.FailArrayLengthMismatch("items", count, value.Items.Length, "items", "uint8");
                 }
                 if (count > 0)
                 {
@@ -2357,7 +2357,7 @@ namespace Demo
                 int count = value.Tail.Length;
                 if (count > cursor.MaxArrayElements)
                 {
-                    throw cursor.Fail("Array value for tail exceeds its permitted element count of " + cursor.MaxArrayElements.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "tail", "uint8");
+                    throw cursor.FailArrayTooMany("tail", cursor.MaxArrayElements, "tail", "uint8");
                 }
                 if (count > 0)
                 {
@@ -2377,7 +2377,7 @@ namespace Demo
                 int count = value.Rest.Length;
                 if (count > cursor.MaxArrayElements)
                 {
-                    throw cursor.Fail("Array value for rest exceeds its permitted element count of " + cursor.MaxArrayElements.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "rest", "uint16");
+                    throw cursor.FailArrayTooMany("rest", cursor.MaxArrayElements, "rest", "uint16");
                 }
                 if (count > 0)
                 {
@@ -2420,11 +2420,11 @@ namespace Demo
                 cursor.RequireArrayLength(count, "children", "inner");
                 if (value.Children.Length > count)
                 {
-                    throw cursor.Fail("Array value for children exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "children", "inner");
+                    throw cursor.FailArrayTooMany("children", count, "children", "inner");
                 }
                 if (value.Children.Length != count)
                 {
-                    throw cursor.Fail("Array length mismatch for children: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Children.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "children", "inner");
+                    throw cursor.FailArrayLengthMismatch("children", count, value.Children.Length, "children", "inner");
                 }
                 for (int index = 0; index < count; index++)
                 {

@@ -1,6 +1,7 @@
 namespace CStructSharp.Generators;
 
 using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
 
 /// <summary>
 ///     Deferred pointers in the struct readers: a pointer field's address is read in declaration order, and its
@@ -155,7 +156,7 @@ internal sealed partial class LayoutEmitter
         if (!ExpressionEmitter.IsInt32Literal(elements.CountExpression!))
         {
             writer.Open("if (count < 0)");
-            writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Array length cannot be negative: " + field.Name) + ", " + member + ", " + memberType + ");");
+            writer.Line("throw cursor.Fail(" + SourceWriter.Literal(LayoutFailures.NegativeArrayLength(field.Name)) + ", " + member + ", " + memberType + ");");
             writer.Close();
         }
 

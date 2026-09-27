@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
+using CStructSharp.Diagnostics;
 using CStructSharp.Syntax;
 
 /// <summary>Array members: the element count (fixed, from an expression, to the end of the input, or terminated), the runtime's limits, and the element loop or bulk decode.</summary>
@@ -39,7 +40,7 @@ internal sealed partial class LayoutEmitter
             if (!ExpressionEmitter.IsInt32Literal(field.Array.CountExpression!))
             {
                 writer.Open("if (count < 0)");
-                writer.Line("throw cursor.Fail(" + SourceWriter.Literal("Array length cannot be negative: " + field.Name) + ", " + member + ", " + memberType + ");");
+                writer.Line("throw cursor.Fail(" + SourceWriter.Literal(LayoutFailures.NegativeArrayLength(field.Name)) + ", " + member + ", " + memberType + ");");
                 writer.Close();
             }
 

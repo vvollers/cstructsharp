@@ -420,20 +420,21 @@ public partial class CStructExports
     /// <summary>Projects the public CLR code model directly into the browser wire vocabulary.</summary>
     private static (string Code, string Message) GetDomainBrowserError(CStructException exception)
     {
-        // Known diagnostics preserve useful causes without echoing layout text, values, or stack traces. Library
-        // messages carry a trailing "(field ..., offset ...)" clause, so every match is a prefix match.
+        // Known diagnostics preserve useful causes without echoing layout text, values, or stack traces. The texts
+        // come from the runtime's catalog; library messages carry a trailing "(field ..., offset ...)" clause, so
+        // every match is a prefix match.
         string? detail = exception.Message switch
         {
-            var message when message.StartsWith("Not enough bytes", StringComparison.Ordinal) => "Unexpected end of binary input. The field needs more bytes, or a terminated string is missing its terminator. Check the field length and the loaded data range.",
-            var message when message.StartsWith("String field contains bytes that are invalid for its encoding", StringComparison.Ordinal) => "The string contains invalid bytes for its declared encoding. Check whether the format uses ASCII, UTF-8, UTF-16, or a raw character buffer.",
-            var message when message.StartsWith("String field exceeded the configured encoded-byte limit", StringComparison.Ordinal) => "The string exceeds MaxStringBytes. Check its terminator and encoding, or raise that safety limit within the browser maximum.",
-            var message when message.StartsWith("Read operation exceeded the configured total read-byte limit", StringComparison.Ordinal) => "Reading the layout exceeds MaxTotalBytesRead. Check array lengths and pointer traversal, or raise that safety limit within the browser maximum.",
-            var message when message.StartsWith("Maximum nested struct depth exceeded", StringComparison.Ordinal) => "The structure exceeds MaxNestingDepth. Check nested records or raise that safety limit within the browser maximum.",
-            var message when message.StartsWith("Maximum pointer dereference depth exceeded", StringComparison.Ordinal) => "Pointer traversal exceeds MaxPointerDepth. Check pointer chains or disable pointer dereferencing.",
-            var message when message.StartsWith("Pointer target exceeds the configured size limit", StringComparison.Ordinal) => "The pointer target exceeds MaxPointerTargetBytes. Check its type and address, or raise that safety limit within the browser maximum.",
-            var message when message.StartsWith("Array length ", StringComparison.Ordinal) && message.Contains("exceeds MaxArrayElements", StringComparison.Ordinal) => "The array length exceeds MaxArrayElements. Check the count field and byte order, or raise that safety limit within the browser maximum.",
-            var message when message.StartsWith("Pointer target is outside the readable stream range:", StringComparison.Ordinal) => "The pointer target is outside the loaded data. Check pointer width, byte order, addressing mode, and origin. A header preview may not include the target.",
-            var message when message.StartsWith("Cyclic pointer target detected at stream address ", StringComparison.Ordinal) => "Pointer traversal encountered a cycle. Check the pointer layout or disable pointer dereferencing to inspect stored addresses.",
+            var message when message.StartsWith(ReadFailures.ShortReadPrefix, StringComparison.Ordinal) => "Unexpected end of binary input. The field needs more bytes, or a terminated string is missing its terminator. Check the field length and the loaded data range.",
+            var message when message.StartsWith(ReadFailures.TerminatedStringInvalid, StringComparison.Ordinal) => "The string contains invalid bytes for its declared encoding. Check whether the format uses ASCII, UTF-8, UTF-16, or a raw character buffer.",
+            var message when message.StartsWith(ReadFailures.TerminatedStringLimit, StringComparison.Ordinal) => "The string exceeds MaxStringBytes. Check its terminator and encoding, or raise that safety limit within the browser maximum.",
+            var message when message.StartsWith(ReadFailures.TotalBytesLimit, StringComparison.Ordinal) => "Reading the layout exceeds MaxTotalBytesRead. Check array lengths and pointer traversal, or raise that safety limit within the browser maximum.",
+            var message when message.StartsWith(ReadFailures.NestingLimit, StringComparison.Ordinal) => "The structure exceeds MaxNestingDepth. Check nested records or raise that safety limit within the browser maximum.",
+            var message when message.StartsWith(ReadFailures.PointerDepthLimit, StringComparison.Ordinal) => "Pointer traversal exceeds MaxPointerDepth. Check pointer chains or disable pointer dereferencing.",
+            var message when message.StartsWith(ReadFailures.PointerTargetLimit, StringComparison.Ordinal) => "The pointer target exceeds MaxPointerTargetBytes. Check its type and address, or raise that safety limit within the browser maximum.",
+            var message when message.Contains(ReadFailures.ArrayLengthLimitMarker, StringComparison.Ordinal) => "The array length exceeds MaxArrayElements. Check the count field and byte order, or raise that safety limit within the browser maximum.",
+            var message when message.StartsWith(ReadFailures.PointerTargetOutsidePrefix, StringComparison.Ordinal) => "The pointer target is outside the loaded data. Check pointer width, byte order, addressing mode, and origin. A header preview may not include the target.",
+            var message when message.StartsWith(ReadFailures.CyclicPointerPrefix, StringComparison.Ordinal) => "Pointer traversal encountered a cycle. Check the pointer layout or disable pointer dereferencing to inspect stored addresses.",
             _ => null,
         };
         (string Code, string Message) category = exception.Code switch

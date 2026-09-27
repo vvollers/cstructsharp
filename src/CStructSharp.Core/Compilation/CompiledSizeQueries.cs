@@ -214,8 +214,8 @@ internal sealed class CompiledSizeQueries
         if (count < 0)
         {
             throw requireFixedSize
-                      ? new CStructLayoutException("Array length cannot be negative: " + fieldName)
-                      : new CStructReadException("Array length cannot be negative: " + fieldName);
+                      ? new CStructLayoutException(LayoutFailures.NegativeArrayLength(fieldName))
+                      : new CStructReadException(LayoutFailures.NegativeArrayLength(fieldName));
         }
 
         return count;

@@ -129,7 +129,7 @@ public partial class CStruct
                 object value = GetMemberValue(sameShape, data, operation.Slot, name);
                 if (value is null)
                 {
-                    throw new CStructWriteException("Null is valid only for a scalar pointer field: " + name);
+                    throw new CStructWriteException(WriteFailures.NullForNonPointer(name));
                 }
 
                 CStructElementWriterState? captureState = state is not null && (field.CapturesLayoutVariable || state.CaptureAllLayoutVariables) ? state : null;
@@ -169,7 +169,7 @@ public partial class CStruct
                             if (items.Count != operation.Count)
                             {
                                 throw new CStructWriteException(
-                                    $"Array length mismatch for {name}: expected {operation.Count}, got {items.Count}.");
+                                    WriteFailures.ArrayLengthMismatch(name, operation.Count, items.Count));
                             }
 
                             for (int element = 0; element < operation.Count; element++)
@@ -219,14 +219,14 @@ public partial class CStruct
                         if (items.Count != operation.Count)
                         {
                             throw new CStructWriteException(
-                                $"Array length mismatch for {name}: expected {operation.Count}, got {items.Count}.");
+                                WriteFailures.ArrayLengthMismatch(name, operation.Count, items.Count));
                         }
 
                         for (int element = 0; element < operation.Count; element++)
                         {
                             object item = items[element] ??
                                           throw new CStructWriteException(
-                                              "Null is not valid for struct or union value: " + operation.NestedDeclaration!.Name.Name);
+                                              WriteFailures.NullComposite(operation.NestedDeclaration!.Name.Name));
                             this.ExecuteStaticWritePlan(nestedPlan, operation.NestedComposite!, bytes.Slice(operation.Offset + (element * nestedPlan.Size), nestedPlan.Size), item, state);
                         }
 
@@ -258,7 +258,7 @@ public partial class CStruct
         {
             return sameShape.TryGetSlot(slot, out object? slotValue)
                        ? slotValue!
-                       : throw new CStructWriteException($"No value was supplied for '{name}'.");
+                       : throw new CStructWriteException(WriteFailures.NoValueSupplied(name));
         }
 
         return WriteDataBinding.GetMemberValueOrThrow(data, name);

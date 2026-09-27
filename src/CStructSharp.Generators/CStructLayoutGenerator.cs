@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using CStructSharp.Codecs;
 using CStructSharp.Compilation;
@@ -24,8 +23,6 @@ using Microsoft.CodeAnalysis.Text;
 public sealed class CStructLayoutGenerator : IIncrementalGenerator
 {
     private const string AttributeMetadataName = "CStructSharp.CStructLayoutAttribute";
-
-    private static readonly Regex LinePosition = new(@"line (\d+), column (\d+)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -105,7 +102,7 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
                     }
                 }
 
-                LayoutCompilation compilation = Compile(request.Definition, request, codecs);
+                LayoutCompilation compilation = Compile(request.Definition, request, CodecCatalog(request, codecs));
                 foreach (KeyValuePair<Syntax.Struct, CompiledTypeSymbol> entry in compilation.CompiledModel.Composites)
                 {
                     if (entry.Value.Definition is CompiledCompositeType composite && composite.Name == layoutName)
@@ -288,6 +285,14 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         return new DefinitionLiteralShape(false, 0, 0);
     }
 
+    /// <summary>
+    ///     Generates one <c>[CStructLayout]</c> class: checks the class shape and language version, reads the definition
+    ///     (inline or from a <c>.cstruct</c> file), builds the codec catalog and the layout as the runtime would, and
+    ///     emits the source. Every failure becomes a diagnostic instead of generated code.
+    /// </summary>
+    /// <param name="context">The output for sources and diagnostics.</param>
+    /// <param name="request">The attribute's settings and source spans.</param>
+    /// <param name="layoutFiles">The project's <c>.cstruct</c> additional files.</param>
     private static void Generate(SourceProductionContext context, LayoutRequest request, ImmutableArray<(string Path, string Text)> layoutFiles)
     {
         if (!request.IsPartial || !request.IsStatic || !request.ContainersArePartial)
@@ -333,19 +338,26 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
             }
         }
 
-        LayoutCompilation compilation;
+        // The codecs join the catalog in their own step, so a failure there is a codec declaration's.
+        PrimitiveCatalog catalog;
         try
         {
-            compilation = Compile(definition, request, codecs);
+            catalog = CodecCatalog(request, codecs);
         }
-        catch (ArgumentException exception) when (codecs.Count > 0 && exception.Message.StartsWith("Custom codec", StringComparison.Ordinal))
+        catch (ArgumentException exception)
         {
             context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.CodecDeclarationInvalid, request.AttributeSpan.ToLocation(), exception.Message));
             return;
         }
+
+        LayoutCompilation compilation;
+        try
+        {
+            compilation = Compile(definition, request, catalog);
+        }
         catch (Exception exception) when (exception is CStructException or ArgumentException)
         {
-            context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.LayoutInvalid, LocateLayoutError(request, exception.Message), exception.Message));
+            context.ReportDiagnostic(Diagnostic.Create(GeneratorDiagnostics.LayoutInvalid, LocateLayoutError(request, exception), exception.Message));
             return;
         }
 
@@ -376,12 +388,29 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         context.AddSource(request.HintName, SourceText.From(emitter.Emit(), System.Text.Encoding.UTF8));
     }
 
+    /// <summary>The primitive catalog with the layout's custom codecs, as the runtime's <c>CStruct</c> constructor builds it.</summary>
+    /// <param name="request">The attribute's settings.</param>
+    /// <param name="codecs">The parsed codec declarations.</param>
+    /// <returns>The catalog.</returns>
+    /// <exception cref="ArgumentException">A codec's name or storage facts are invalid.</exception>
+    private static PrimitiveCatalog CodecCatalog(LayoutRequest request, IReadOnlyList<CustomCodecDescriptor> codecs)
+        => PrimitiveCatalog.For(request.LittleEndian, CLongWidth(request)).WithCustomCodecs(codecs);
+
+    /// <summary>The attribute's <c>long</c> width in bits; 0 (unset) means the runtime's default of 64.</summary>
+    /// <param name="request">The attribute's settings.</param>
+    /// <returns>32 or 64.</returns>
+    private static int CLongWidth(LayoutRequest request) => request.CLongWidth == 0 ? 64 : request.CLongWidth;
+
     /// <summary>The compilation the runtime's <c>CStruct</c> constructor performs, minus its codec delegate table.</summary>
-    private static LayoutCompilation Compile(string definition, LayoutRequest request, IReadOnlyList<CustomCodecDescriptor> codecs)
+    /// <param name="definition">The layout text.</param>
+    /// <param name="request">The attribute's settings.</param>
+    /// <param name="catalog">The primitive catalog with the layout's custom codecs (see <see cref="CodecCatalog"/>).</param>
+    /// <returns>The compiled layout.</returns>
+    private static LayoutCompilation Compile(string definition, LayoutRequest request, PrimitiveCatalog catalog)
     {
         var options = new CStructCompilationOptions
         {
-            CLongWidth = request.CLongWidth == 0 ? 64 : request.CLongWidth,
+            CLongWidth = CLongWidth(request),
             BitfieldPacking = ParseEnum(request.BitfieldPacking, BitfieldPacking.SysV),
             BitfieldAllocation = ParseEnum(request.BitfieldAllocation, BitfieldAllocation.LowBitFirst),
             Defined = request.Defined.Count == 0 ? null : DefinedSet(request.Defined),
@@ -394,7 +423,6 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
         }
 
         // As the runtime's CStruct constructor: the custom codecs become primitive symbols of the catalog.
-        PrimitiveCatalog catalog = PrimitiveCatalog.For(request.LittleEndian, options.CLongWidth).WithCustomCodecs(codecs);
         ImmutableDictionary<string, CompiledTypeReference>.Builder symbols = ImmutableDictionary.CreateBuilder<string, CompiledTypeReference>(StringComparer.Ordinal);
         foreach (CustomCodecDescriptor descriptor in catalog.CustomCodecs)
         {
@@ -448,19 +476,20 @@ public sealed class CStructLayoutGenerator : IIncrementalGenerator
     }
 
     /// <summary>
-    ///     Places a layout error inside the definition literal when the runtime's message names a line and column
-    ///     and the literal is a multi-line raw string (whose lines map one to one); otherwise at the argument.
+    ///     Places a layout error inside the definition literal when the error has a line and column and the literal
+    ///     is a multi-line raw string (whose lines map one to one); otherwise at the argument.
     /// </summary>
-    private static Location LocateLayoutError(LayoutRequest request, string message)
+    /// <param name="request">The attribute's settings and source spans.</param>
+    /// <param name="exception">The compilation failure.</param>
+    /// <returns>The diagnostic's location.</returns>
+    private static Location LocateLayoutError(LayoutRequest request, Exception exception)
     {
         if (request.DefinitionSpan is not { } span)
         {
             return request.AttributeSpan.ToLocation();
         }
 
-        Match match = LinePosition.Match(message);
-        if (request.DefinitionLiteral.IsRawMultiLine && match.Success &&
-            int.TryParse(match.Groups[1].Value, out int line) && int.TryParse(match.Groups[2].Value, out int column))
+        if (request.DefinitionLiteral.IsRawMultiLine && exception is CStructLayoutException { Line: int line, Column: int column, })
         {
             int sourceLine = request.DefinitionLiteral.ContentStartLine + line - 1;
             int sourceColumn = request.DefinitionLiteral.Indentation + Math.Max(0, column - 1);

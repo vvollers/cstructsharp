@@ -100,16 +100,17 @@ public class LayoutDiagnosticPositionTests
         Assert.AreEqual((2, 14), (exception.Line, exception.Column));
     }
 
-    /// <summary>A parser error keeps its own position text and leaves the properties unset.</summary>
+    /// <summary>A parser error states its position once, inside its sentence, and also sets the properties.</summary>
     [TestMethod]
-    public void SyntaxError_KeepsParserPositionText()
+    public void SyntaxError_StatesItsPositionOnce_AndSetsTheProperties()
     {
         CStructLayoutException exception = Assert.Throws<CStructLayoutException>(
             () => new CStruct("struct header { uint16 kind; $ };"));
 
         StringAssert.Contains(exception.Message, "at line 1, column 30");
-        Assert.IsNull(exception.Line);
-        Assert.IsNull(exception.Column);
+        StringAssert.DoesNotMatch(exception.Message, new System.Text.RegularExpressions.Regex(@"\(line \d+, column \d+\)$"));
+        Assert.AreEqual(1, exception.Line);
+        Assert.AreEqual(30, exception.Column);
     }
 
     /// <summary>Positions count over the text the layout was given, prelude included.</summary>

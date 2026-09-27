@@ -1198,11 +1198,11 @@ namespace Demo
                 cursor.RequireArrayLength(count, "v", "uint8");
                 if (value.V.Length > count)
                 {
-                    throw cursor.Fail("Array value for v exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "v", "uint8");
+                    throw cursor.FailArrayTooMany("v", count, "v", "uint8");
                 }
                 if (value.V.Length != count)
                 {
-                    throw cursor.Fail("Array length mismatch for v: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.V.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "v", "uint8");
+                    throw cursor.FailArrayLengthMismatch("v", count, value.V.Length, "v", "uint8");
                 }
                 if (count > 0)
                 {

@@ -1208,11 +1208,11 @@ namespace Demo
                 cursor.RequireArrayLength(count, "p", "uint8");
                 if (value.P.Length > count)
                 {
-                    throw cursor.Fail("Array value for p exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "p", "uint8");
+                    throw cursor.FailArrayTooMany("p", count, "p", "uint8");
                 }
                 if (value.P.Length != count)
                 {
-                    throw cursor.Fail("Array length mismatch for p: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.P.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "p", "uint8");
+                    throw cursor.FailArrayLengthMismatch("p", count, value.P.Length, "p", "uint8");
                 }
                 if (count > 0)
                 {

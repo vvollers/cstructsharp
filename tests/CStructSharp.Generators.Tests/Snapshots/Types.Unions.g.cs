@@ -1051,7 +1051,7 @@ namespace Demo
                 }
                 if (value.RawStorage.Length != 2)
                 {
-                    throw cursor.Fail("Raw storage length mismatch for choice: expected 2, got " + value.RawStorage.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", member, memberType);
+                    throw cursor.FailRawStorageLength("choice", 2, value.RawStorage.Length, member, memberType);
                 }
                 new global::System.ReadOnlySpan<byte>(value.RawStorage).CopyTo(cursor.Reserve(2, member, memberType));
                 cursor.ExitComposite();
@@ -1074,7 +1074,7 @@ namespace Demo
                 }
                 break;
             default:
-                throw cursor.Fail("Union 'choice' has no member named '" + value.SelectedMember + "'.", member, memberType);
+                throw cursor.FailUnknownUnionMember("choice", value.SelectedMember, member, memberType);
             }
             cursor.Position = unionStart + 2;
             cursor.ExitComposite();

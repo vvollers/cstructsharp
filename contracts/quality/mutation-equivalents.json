@@ -4,7 +4,7 @@
  "files": [
   {
    "pattern": "**/CStructSharp.Core/Compilation/LayoutCompilation.cs",
-   "sourceSha256": "f76c4cddcd2a51fc756a9064566176d39586a4fff45b18a57b6627a7e3764871",
+   "sourceSha256": "1170e2c9ca60340532b96e67dcf6457c5606b45437e46fe237ecf1be5d5e380d",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "remainingDeclarations-- >= 0",
      "location": {"start":{"line":514,"column":16},"end":{"line":514,"column":43}},
@@ -40,10 +40,10 @@
      "location": {"start":{"line":699,"column":17},"end":{"line":699,"column":61}},
      "reason": "RejectNonIntegerConstants is the immediate next call, and its first operation is expressionEvaluator.GetDependencies(dimension). That method obtains the same GetProgram used by Compile, so compilation and all syntax-tree limits still run before constant validation or evaluation, with no intervening state change. The same cached program, dependencies and exceptions result. This removes only a redundant cache warm-up, not dimension validation." },
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?Array.Empty<ConditionalBranch>() :field.BranchConditions.Select(item =>\n                        new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray())",
-     "location": {"start":{"line":761,"column":40},"end":{"line":762,"column":145}},
+     "location": {"start":{"line":760,"column":40},"end":{"line":761,"column":145}},
      "reason": "Only the empty branch list changes arms. Selecting and materializing an empty list produces another empty branch array without invoking the projection, so NormalizeConditionalGroup is not called and a null normalizedGroups value is never accessed. All consumers inspect branch contents/counts, not array reference identity. Nonempty lists execute the identical projection in both versions. No condition, selector, arm or field visibility changes." },
     { "mutatorName": "Conditional (false) mutation", "replacement": "(false?Array.Empty<ConditionalBranch>() :strct.BranchConditions.Select(item =>\n                new ConditionalBranch(this.NormalizeConditionalGroup(item.Group, caseConstants, normalizedGroups!), item.Arm)).ToArray())",
-     "location": {"start":{"line":769,"column":32},"end":{"line":770,"column":137}},
+     "location": {"start":{"line":768,"column":32},"end":{"line":769,"column":137}},
      "reason": "For a composite with no enclosing branches, the alternate Select/ToArray enumerates zero entries and never invokes NormalizeConditionalGroup. It supplies the same empty branch metadata as Array.Empty, including when normalizedGroups is null. Branch consumers depend on entries/counts, not the array instance. A composite with enclosing branches takes the original nonempty projection unchanged, preserving every group and arm." }
    ]
   },
@@ -346,7 +346,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Parsing/LayoutParser.cs",
-   "sourceSha256": "d1bc702bb99ea0ad8c0598fcbb2de192c7de43e75d5113bc5c2deb0946785c8a",
+   "sourceSha256": "2d7b43ad1d2f3aba54117d66469ad1bedfaa38181508e5bab6939282d16aa340",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":931,"column":13},"end":{"line":931,"column":37}},
@@ -652,7 +652,7 @@
   },
   {
    "pattern": "CStructWriter.cs",
-   "sourceSha256": "0bad44d482e5cd43c67c6daa38824b6b208dec8b7f8504ef31ecae36c2719934",
+   "sourceSha256": "b63f9cff9346a76a8b711657511c041bfc8b991ea28fef392dc8c09e34d2e4b8",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":241,"column":25},"end":{"line":241,"column":78}},
@@ -687,9 +687,6 @@
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":281,"column":21},"end":{"line":281,"column":27}},
      "reason": "This rethrow is inside catch (CStructException exception) when (exception.NoteMember(...)). The nonvirtual CStructException.NoteMember method attaches the innermost member context and unconditionally returns false. The exception therefore continues unwinding without entering this catch body. Removing its unreachable throw preserves the filter call, context attachment and original exception propagation. This qualification does not apply to the following conditional-scope CompleteField call or any cancellation checkpoint." },
-    { "mutatorName": "String mutation", "replacement": "\"\"",
-     "location": {"start":{"line":62,"column":49},"end":{"line":62,"column":86}},
-     "reason": "WriteBitFieldValue receives only compiled scalar bitfields: BitfieldCodecTable.ValidateBitField rejects pointers, arrays and widths beyond the integral storage capacity. Struct traversal resets offset and unit size from CompositeFieldPlacementCursor before each bitfield; MSVC placement opens a new unit before overflow, and SysV placement chooses a full cell or a byte window containing every bit (rejecting windows over eight bytes). A selected Update seeds the same resolved offset/window and consumes that seed once. Selected Write and union staging use fresh state, with a zero bit offset and declared storage size. Thus every reachable call satisfies CurrentBitOffset + BitSize <= byteSize * 8 before this defensive throw. The private operation state cannot be edited by caller codecs, and bitfields have no array loop that could reuse an unplaced offset. Only the unreachable exception prefix is changed; the capacity check and value-range validation remain intact." },
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":260,"column":21},"end":{"line":260,"column":74}},
      "reason": "This CompleteField call belongs only to a zero-width bitfield separator. Compilation permits width zero only with an empty declaration name and validates an integer or enum storage type, never a composite. CompleteConditionalScope therefore gives the separator no visible names or captured slots, and skips nested-shadow analysis for its non-composite type, leaving restored slots empty too. ConditionalVariableScope.CompleteField performs only its two slot loops; both are empty for this exact field. If the scope is null the original call also does nothing. Removing this call cannot affect variables or the placement/reset statements that precede it. Ordinary and promoted-struct CompleteField calls are not covered and are required by the nested-count regressions." },
@@ -735,9 +732,6 @@
     { "mutatorName": "Arithmetic mutation", "replacement": "state.CurrentBitOffset - compiledField.BitSize",
      "location": {"start":{"line":60,"column":13},"end":{"line":60,"column":59}},
      "reason": "Compilation validates a positive width no larger than its integral storage capacity. Whole-struct writes use BitfieldPlacement, which opens a fitting MSVC/aligned cell or a packed window enclosing the complete field; selected updates seed that same resolved placement. Standalone and union members start at bit offset zero in the declared unit. Thus offset + width <= unitBits before this defensive check. Offset - width is no greater than that sum and is bounded within small integral bit offsets, so neither version can enter the failure branch." },
-    { "mutatorName": "Statement mutation", "replacement": ";",
-     "location": {"start":{"line":62,"column":13},"end":{"line":62,"column":109}},
-     "reason": "The defensive storage-overrun throw is unreachable for the immutable compiled descriptors. Positive bit widths are validated against their declared integral capacity; standalone and union members start at offset zero, while cursor and selected-update paths use the enclosing window supplied by BitfieldPlacement. That placement guarantees offset + width <= unitBits. Removing only this throw changes no reachable result or failure." },
     { "mutatorName": "Remove checked expression", "replacement": "byteSize * 8",
      "location": {"start":{"line":59,"column":30},"end":{"line":59,"column":51}},
      "reason": "WriteBitFieldValue receives either the compiled storage width or a placed storage window. LayoutCompilation.Model derives the former from BitfieldCodecTable, which permits only 1, 2, 4 or 8 bytes. BitfieldPlacement rejects packed SysV windows larger than 8 bytes; MSVC and aligned windows retain the declared width. The selected-write path seeds the same resolved placement. Multiplication by eight therefore produces at most 64 and cannot overflow Int32; removing checked preserves all values and failures." },
@@ -991,7 +985,7 @@
   },
   {
    "pattern": "**/CStructSharp.Core/Compilation/CompiledSizeQueries.cs",
-   "sourceSha256": "27d206fec81a05a2aba864613f113d49f564f5ea0c9f61576af04473a6e406ff",
+   "sourceSha256": "6952fb71c9c57e78ec746abfe2cc455443e271c640fad73f83162d7cf0ab6473",
    "mutants": [
     { "mutatorName": "Remove checked expression", "replacement": "fieldStart + this.GetCompiledFieldStorageSize(field, variables, requireFixedSize)",
      "location": {"start":{"line":86,"column":21},"end":{"line":86,"column":111}},
@@ -1090,7 +1084,7 @@
   },
   {
    "pattern": "Generated/WriteCursor.cs",
-   "sourceSha256": "15b1541e2102291f0a116d9c1d9cb1a180187b864017e1e2272fdad4682b7bfc",
+   "sourceSha256": "9f0f3920e0b04dfa57ad2ac8524a09845683420cf7f19e2235ffa6d040d8a2db",
    "mutants": [
     { "mutatorName": "Statement mutation", "replacement": ";",
      "location": {"start":{"line":195,"column":13},"end":{"line":195,"column":20}},
@@ -1135,7 +1129,7 @@
   },
   {
    "pattern": "Values/WriteDataBinding.cs",
-   "sourceSha256": "30e37faa2fdb8362a720099de33a3dea2804f30e5c4db4626c1b3af8742a4829",
+   "sourceSha256": "80d1dacaf48de0b9487bb1068e918d7605e6e8c3ea7386eda3a7c8630bdd303d",
    "mutants": [
     { "mutatorName": "Block removal mutation", "replacement": "{}",
      "location": {"start":{"line":23,"column":9},"end":{"line":26,"column":10}},
@@ -1210,7 +1204,7 @@
   },
   {
    "pattern": "CStructReader.cs",
-   "sourceSha256": "8fe285e68d0220c0a21556acee32ed2d3e92693d5dc4b9e324f400c4a3762df6",
+   "sourceSha256": "bc2c8e219a9617491e4fe0b97d8650949221ccceba21255df9871a7c1699cfa4",
    "mutants": [
     { "mutatorName": "Equality mutation", "replacement": "compiledField.Array.Dimensions.Length != 1",
      "location": {"start":{"line":482,"column":111},"end":{"line":482,"column":153}},

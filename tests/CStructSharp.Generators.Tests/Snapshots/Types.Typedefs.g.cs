@@ -1742,11 +1742,11 @@ namespace Demo
                 cursor.RequireArrayLength(count, "pr", "uint8");
                 if (value.Pr.Length > count)
                 {
-                    throw cursor.Fail("Array value for pr exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "pr", "uint8");
+                    throw cursor.FailArrayTooMany("pr", count, "pr", "uint8");
                 }
                 if (value.Pr.Length != count)
                 {
-                    throw cursor.Fail("Array length mismatch for pr: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Pr.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "pr", "uint8");
+                    throw cursor.FailArrayLengthMismatch("pr", count, value.Pr.Length, "pr", "uint8");
                 }
                 if (count > 0)
                 {

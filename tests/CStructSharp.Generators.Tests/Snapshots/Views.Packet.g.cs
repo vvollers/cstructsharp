@@ -1298,11 +1298,11 @@ namespace Demo
                 cursor.RequireArrayLength(count, "values", "uint32");
                 if (value.Values.Length > count)
                 {
-                    throw cursor.Fail("Array value for values exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "values", "uint32");
+                    throw cursor.FailArrayTooMany("values", count, "values", "uint32");
                 }
                 if (value.Values.Length != count)
                 {
-                    throw cursor.Fail("Array length mismatch for values: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Values.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "values", "uint32");
+                    throw cursor.FailArrayLengthMismatch("values", count, value.Values.Length, "values", "uint32");
                 }
                 if (count > 0)
                 {
@@ -1376,11 +1376,11 @@ namespace Demo
                 cursor.RequireArrayLength(count, "data", "uint8");
                 if (value.Data.Length > count)
                 {
-                    throw cursor.Fail("Array value for data exceeds its permitted element count of " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "data", "uint8");
+                    throw cursor.FailArrayTooMany("data", count, "data", "uint8");
                 }
                 if (value.Data.Length != count)
                 {
-                    throw cursor.Fail("Array length mismatch for data: expected " + count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", got " + value.Data.Length.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".", "data", "uint8");
+                    throw cursor.FailArrayLengthMismatch("data", count, value.Data.Length, "data", "uint8");
                 }
                 if (count > 0)
                 {

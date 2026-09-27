@@ -6,13 +6,16 @@ using System.Globalization;
 #pragma warning disable RCS1194 // Binary serialization constructors are intentionally unsupported.
 /// <summary>Represents a layout declaration that cannot be resolved into a safe, finite binary representation.</summary>
 /// <remarks>
-///     When the failing declaration is known, <see cref="Line"/> and <see cref="Column"/> locate it in the layout
-///     source (one-based, counted over the text handed to <see cref="CStruct"/>, prelude included) and the
-///     <see cref="Message"/> ends with <c>(line L, column C)</c>. A syntax error from the parser carries its position
-///     in the message text itself and leaves these properties <see langword="null"/>.
+///     When the failing position is known, <see cref="Line"/> and <see cref="Column"/> locate it in the layout source
+///     (one-based, counted over the text handed to <see cref="CStruct"/>, prelude included). The
+///     <see cref="Message"/> of a declaration error ends with <c>(line L, column C)</c>; a syntax error from the parser
+///     states the same position inside its sentence (<c>unexpected ';' at line L, column C; expected ...</c>).
 /// </remarks>
 public sealed class CStructLayoutException : CStructException
 {
+    // A syntax error states its position inside its own sentence, so the message must not repeat it.
+    private bool positionInMessage;
+
     /// <summary>Creates an empty layout error.</summary>
     public CStructLayoutException()
         : base(CStructErrorCode.InvalidLayout, null)
@@ -42,7 +45,7 @@ public sealed class CStructLayoutException : CStructException
 
     /// <inheritdoc/>
     public override string Message =>
-        this.Line is { } line && this.Column is { } column
+        this.Line is { } line && this.Column is { } column && !this.positionInMessage
             ? FormattableString.Invariant($"{base.Message} (line {line}, column {column})")
             : base.Message;
 
@@ -53,7 +56,17 @@ public sealed class CStructLayoutException : CStructException
     /// </summary>
     internal int SourceOffset { get; init; } = -1;
 
+    /// <summary>Creates a parser syntax error whose message already states its position.</summary>
+    /// <param name="message">The diagnostic, naming the line and column.</param>
+    /// <param name="line">The one-based line.</param>
+    /// <param name="column">The one-based column.</param>
+    /// <returns>The exception, with <see cref="Line"/> and <see cref="Column"/> set.</returns>
+    internal static CStructLayoutException SyntaxError(string message, int line, int column)
+        => new(message) { Line = line, Column = column, positionInMessage = true, };
+
     /// <summary>Records the source position once; a later, less precise attempt does not overwrite it.</summary>
+    /// <param name="line">The one-based line.</param>
+    /// <param name="column">The one-based column.</param>
     internal void AttachSourcePosition(int line, int column)
     {
         this.Line ??= line;

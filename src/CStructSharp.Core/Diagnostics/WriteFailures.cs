@@ -47,6 +47,46 @@ internal static class WriteFailures
     public static string ArrayLengthMismatch(string fieldName, int expected, int actual)
         => "Array length mismatch for " + fieldName + ": expected " + expected.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", got " + actual.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".";
 
+    /// <summary>A null value for a struct or union.</summary>
+    /// <param name="compositeName">The struct or union type.</param>
+    /// <returns>The message.</returns>
+    public static string NullComposite(string compositeName) => "Null is not valid for struct or union value: " + compositeName;
+
+    /// <summary>A null value for a field that is not a scalar pointer.</summary>
+    /// <param name="fieldName">The field.</param>
+    /// <returns>The message.</returns>
+    public static string NullForNonPointer(string fieldName) => "Null is valid only for a scalar pointer field: " + fieldName;
+
+    /// <summary>A value supplied for a conditional field whose condition is false.</summary>
+    /// <param name="fieldName">The field.</param>
+    /// <returns>The message.</returns>
+    public static string InactiveConditionalField(string fieldName) => "Inactive conditional field supplied: " + fieldName;
+
+    /// <summary>A field that the data does not supply.</summary>
+    /// <param name="fieldName">The field.</param>
+    /// <returns>The message.</returns>
+    public static string NoValueSupplied(string fieldName) => "No value was supplied for '" + fieldName + "'.";
+
+    /// <summary>A whole union value that names neither a member nor raw storage.</summary>
+    /// <param name="unionName">The union type.</param>
+    /// <param name="ways">How the caller's value type selects a member or raw storage.</param>
+    /// <returns>The message.</returns>
+    public static string WholeUnionNeedsSelection(string unionName, string ways) => "A whole union write requires " + ways + ": " + unionName;
+
+    /// <summary>Raw union storage of a different size than the union.</summary>
+    /// <param name="unionName">The union type.</param>
+    /// <param name="expected">The union's size in bytes.</param>
+    /// <param name="actual">The supplied storage's length in bytes.</param>
+    /// <returns>The message.</returns>
+    public static string RawStorageLengthMismatch(string unionName, int expected, int actual)
+        => "Raw storage length mismatch for " + unionName + ": expected " + expected.ToString(CultureInfo.InvariantCulture) + ", got " + actual.ToString(CultureInfo.InvariantCulture) + ".";
+
+    /// <summary>A union value that selects a member the union does not declare.</summary>
+    /// <param name="unionName">The union type.</param>
+    /// <param name="member">The selected member name.</param>
+    /// <returns>The message.</returns>
+    public static string UnknownUnionMember(string unionName, string? member) => "Union '" + unionName + "' has no member named '" + member + "'.";
+
     /// <summary>A one-byte character outside the byte range.</summary>
     public static string NarrowCharacter(char character)
         => "Character value U+" + ((int)character).ToString("X4", System.Globalization.CultureInfo.InvariantCulture) + " does not fit the one-byte char type.";

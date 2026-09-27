@@ -31,7 +31,9 @@ fails with `CStructReadException` (`ReadFailed`) and a message such as
 expressions support.` A write that receives such a value fails with `CStructWriteException`.
 
 A syntax error's message starts with `Layout definition contains invalid syntax:` and names the line and column of
-the first unexpected character (or the end of the text) together with what the parser expected there.
+the first unexpected character (or the end of the text) together with what the parser expected there. For
+`struct header { uint16 kind; $ };` the message ends `unexpected '$' at line 1, column 30; expected '}'.`, and
+`CStructLayoutException.Line` and `.Column` hold the same position.
 
 An error about a declaration that parsed but cannot be compiled - an unknown type, a duplicate name, a by-value
 recursion, a name that collides with a built-in codec - names the declaration and ends with its position, which
